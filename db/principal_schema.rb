@@ -210,6 +210,9 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_31_222107) do
     t.index ["organization_id"], name: "index_roles_on_organization_id"
   end
 
+  create_table "staff_identity_telephone_statuses", id: { type: :string, limit: 255, default: "UNVERIFIED" }, force: :cascade do |t|
+  end
+
   create_table "staff_preference_colortheme_options", force: :cascade do |t|
   end
 

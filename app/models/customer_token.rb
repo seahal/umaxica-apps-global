@@ -57,10 +57,8 @@
 #
 # Foreign Keys
 #
-#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id =>
-#                                                           customer_token_binding_methods.id)
-#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id =>
-#                                                           customer_token_dbsc_statuses.id)
+#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id => customer_token_binding_methods.id)
+#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id => customer_token_dbsc_statuses.id)
 #  fk_customer_tokens_on_customer_token_kind_id            (customer_token_kind_id => customer_token_kinds.id)
 #  fk_customer_tokens_on_customer_token_status_id          (customer_token_status_id => customer_token_statuses.id)
 #
