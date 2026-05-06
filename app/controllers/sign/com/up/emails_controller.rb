@@ -48,10 +48,7 @@ module Sign
             @user_email = CustomerEmail.new(address: email_address)
             @user_email.errors.add(
               :base,
-              t(
-                "sign.app.registration.email.create.turnstile_failed",
-                default: "ボット検証に失敗しました。もう一度お試しください。",
-              ),
+              t("session_limit.turnstile_failed"),
             )
             render :new, status: :unprocessable_content
             return
@@ -196,9 +193,10 @@ module Sign
             return true
           end
 
-          return false if @user_email.errors.details.except(:customer, :customer_id).any?
           return :cooldown if existing_email&.customer_email_status_id ==
             CustomerEmailStatus::UNVERIFIED_WITH_SIGN_UP && existing_email.otp_cooldown_active?
+
+          return false if @user_email.errors.details.except(:customer, :customer_id).any? && !uniqueness_only
 
           CustomerEmail.transaction do
             cleanup_pending_customer_signup!
@@ -305,11 +303,11 @@ module Sign
         end
 
         def create_signup_audit!(customer)
-          event_id = UserActivityEvent::SIGNED_UP_WITH_EMAIL
-          ActivityRecord.connected_to(role: :writing) do
-            UserActivityEvent.find_or_create_by!(id: event_id)
-            UserActivityLevel.find_or_create_by!(id: UserActivityLevel::NOTHING)
-            UserActivity.create!(
+          event_id = UserChronicleEvent::SIGNED_UP_WITH_EMAIL
+          ChronicleRecord.connected_to(role: :writing) do
+            UserChronicleEvent.find_or_create_by!(id: event_id)
+            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            UserChronicle.create!(
               actor_type: "Customer", actor_id: customer.id, event_id: event_id,
               subject_id: customer.id.to_s, subject_type: "Customer",
             )

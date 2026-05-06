@@ -41,11 +41,9 @@ module Sign
       after_action :purge_current
 
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: ENV.fetch(
-                             "SIGN_APP_TRUSTED_ORIGINS",
-                             "http://id.app.localhost,https://id.app.localhost",
-                           )
-                             .split(",").map(&:strip),
+                           trusted_origins: HostOriginEnv.trusted_origins(
+                             ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+                           ),
                            with: :exception
 
       guest_only!

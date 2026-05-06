@@ -32,8 +32,8 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_app_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
     assert_response :success
-    assert_select "a[href=?]", "/up/telephones/new", count: 0
-    assert_select "a[href=?]", "/up/telephones/new?ri=jp", count: 0
+    assert_select "a[href=?]", "/sign/up/telephones/new", count: 0
+    assert_select "a[href=?]", "/sign/up/telephones/new?ri=jp", count: 0
   end
 
   test "does not show social login buttons" do

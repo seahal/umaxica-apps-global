@@ -476,70 +476,70 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_29_143000) do
     t.index ["status_id"], name: "index_zip_occurrences_on_status_id"
   end
 
-  add_foreign_key "area_domain_occurrences", "area_occurrences", validate: false
-  add_foreign_key "area_domain_occurrences", "domain_occurrences", validate: false
-  add_foreign_key "area_email_occurrences", "area_occurrences", validate: false
-  add_foreign_key "area_email_occurrences", "email_occurrences", validate: false
-  add_foreign_key "area_ip_occurrences", "area_occurrences", validate: false
-  add_foreign_key "area_ip_occurrences", "ip_occurrences", validate: false
+  add_foreign_key "area_domain_occurrences", "area_occurrences"
+  add_foreign_key "area_domain_occurrences", "domain_occurrences"
+  add_foreign_key "area_email_occurrences", "area_occurrences"
+  add_foreign_key "area_email_occurrences", "email_occurrences"
+  add_foreign_key "area_ip_occurrences", "area_occurrences"
+  add_foreign_key "area_ip_occurrences", "ip_occurrences"
   add_foreign_key "area_occurrences", "area_occurrence_statuses", column: "status_id", name: "fk_area_occurrences_on_status_id"
-  add_foreign_key "area_staff_occurrences", "area_occurrences", validate: false
-  add_foreign_key "area_staff_occurrences", "staff_occurrences", validate: false
-  add_foreign_key "area_telephone_occurrences", "area_occurrences", validate: false
-  add_foreign_key "area_telephone_occurrences", "telephone_occurrences", validate: false
-  add_foreign_key "area_user_occurrences", "area_occurrences", validate: false
-  add_foreign_key "area_user_occurrences", "user_occurrences", validate: false
-  add_foreign_key "area_zip_occurrences", "area_occurrences", validate: false
-  add_foreign_key "area_zip_occurrences", "zip_occurrences", validate: false
-  add_foreign_key "domain_email_occurrences", "domain_occurrences", validate: false
-  add_foreign_key "domain_email_occurrences", "email_occurrences", validate: false
-  add_foreign_key "domain_ip_occurrences", "domain_occurrences", validate: false
-  add_foreign_key "domain_ip_occurrences", "ip_occurrences", validate: false
+  add_foreign_key "area_staff_occurrences", "area_occurrences"
+  add_foreign_key "area_staff_occurrences", "staff_occurrences"
+  add_foreign_key "area_telephone_occurrences", "area_occurrences"
+  add_foreign_key "area_telephone_occurrences", "telephone_occurrences"
+  add_foreign_key "area_user_occurrences", "area_occurrences"
+  add_foreign_key "area_user_occurrences", "user_occurrences"
+  add_foreign_key "area_zip_occurrences", "area_occurrences"
+  add_foreign_key "area_zip_occurrences", "zip_occurrences"
+  add_foreign_key "domain_email_occurrences", "domain_occurrences"
+  add_foreign_key "domain_email_occurrences", "email_occurrences"
+  add_foreign_key "domain_ip_occurrences", "domain_occurrences"
+  add_foreign_key "domain_ip_occurrences", "ip_occurrences"
   add_foreign_key "domain_occurrences", "domain_occurrence_statuses", column: "status_id", name: "fk_domain_occurrences_on_status_id"
-  add_foreign_key "domain_staff_occurrences", "domain_occurrences", validate: false
-  add_foreign_key "domain_staff_occurrences", "staff_occurrences", validate: false
-  add_foreign_key "domain_telephone_occurrences", "domain_occurrences", validate: false
-  add_foreign_key "domain_telephone_occurrences", "telephone_occurrences", validate: false
-  add_foreign_key "domain_user_occurrences", "domain_occurrences", validate: false
-  add_foreign_key "domain_user_occurrences", "user_occurrences", validate: false
-  add_foreign_key "domain_zip_occurrences", "domain_occurrences", validate: false
-  add_foreign_key "domain_zip_occurrences", "zip_occurrences", validate: false
-  add_foreign_key "email_ip_occurrences", "email_occurrences", validate: false
-  add_foreign_key "email_ip_occurrences", "ip_occurrences", validate: false
+  add_foreign_key "domain_staff_occurrences", "domain_occurrences"
+  add_foreign_key "domain_staff_occurrences", "staff_occurrences"
+  add_foreign_key "domain_telephone_occurrences", "domain_occurrences"
+  add_foreign_key "domain_telephone_occurrences", "telephone_occurrences"
+  add_foreign_key "domain_user_occurrences", "domain_occurrences"
+  add_foreign_key "domain_user_occurrences", "user_occurrences"
+  add_foreign_key "domain_zip_occurrences", "domain_occurrences"
+  add_foreign_key "domain_zip_occurrences", "zip_occurrences"
+  add_foreign_key "email_ip_occurrences", "email_occurrences"
+  add_foreign_key "email_ip_occurrences", "ip_occurrences"
   add_foreign_key "email_occurrences", "email_occurrence_statuses", column: "status_id", name: "fk_email_occurrences_on_status_id"
-  add_foreign_key "email_staff_occurrences", "email_occurrences", validate: false
-  add_foreign_key "email_staff_occurrences", "staff_occurrences", validate: false
-  add_foreign_key "email_telephone_occurrences", "email_occurrences", validate: false
-  add_foreign_key "email_telephone_occurrences", "telephone_occurrences", validate: false
-  add_foreign_key "email_user_occurrences", "email_occurrences", validate: false
-  add_foreign_key "email_user_occurrences", "user_occurrences", validate: false
-  add_foreign_key "email_zip_occurrences", "email_occurrences", validate: false
-  add_foreign_key "email_zip_occurrences", "zip_occurrences", validate: false
+  add_foreign_key "email_staff_occurrences", "email_occurrences"
+  add_foreign_key "email_staff_occurrences", "staff_occurrences"
+  add_foreign_key "email_telephone_occurrences", "email_occurrences"
+  add_foreign_key "email_telephone_occurrences", "telephone_occurrences"
+  add_foreign_key "email_user_occurrences", "email_occurrences"
+  add_foreign_key "email_user_occurrences", "user_occurrences"
+  add_foreign_key "email_zip_occurrences", "email_occurrences"
+  add_foreign_key "email_zip_occurrences", "zip_occurrences"
   add_foreign_key "ip_occurrences", "ip_occurrence_statuses", column: "status_id", name: "fk_ip_occurrences_on_status_id"
-  add_foreign_key "ip_staff_occurrences", "ip_occurrences", validate: false
-  add_foreign_key "ip_staff_occurrences", "staff_occurrences", validate: false
-  add_foreign_key "ip_telephone_occurrences", "ip_occurrences", validate: false
-  add_foreign_key "ip_telephone_occurrences", "telephone_occurrences", validate: false
-  add_foreign_key "ip_user_occurrences", "ip_occurrences", validate: false
-  add_foreign_key "ip_user_occurrences", "user_occurrences", validate: false
-  add_foreign_key "ip_zip_occurrences", "ip_occurrences", validate: false
-  add_foreign_key "ip_zip_occurrences", "zip_occurrences", validate: false
+  add_foreign_key "ip_staff_occurrences", "ip_occurrences"
+  add_foreign_key "ip_staff_occurrences", "staff_occurrences"
+  add_foreign_key "ip_telephone_occurrences", "ip_occurrences"
+  add_foreign_key "ip_telephone_occurrences", "telephone_occurrences"
+  add_foreign_key "ip_user_occurrences", "ip_occurrences"
+  add_foreign_key "ip_user_occurrences", "user_occurrences"
+  add_foreign_key "ip_zip_occurrences", "ip_occurrences"
+  add_foreign_key "ip_zip_occurrences", "zip_occurrences"
   add_foreign_key "jwt_anomaly_events", "jwt_occurrences", name: "fk_jwt_anomaly_events_on_jwt_occurrence_id"
   add_foreign_key "jwt_occurrences", "jwt_occurrence_statuses", column: "status_id", name: "fk_jwt_occurrences_on_status_id"
   add_foreign_key "staff_occurrences", "staff_occurrence_statuses", column: "status_id", name: "fk_staff_occurrences_on_status_id"
-  add_foreign_key "staff_telephone_occurrences", "staff_occurrences", validate: false
-  add_foreign_key "staff_telephone_occurrences", "telephone_occurrences", validate: false
-  add_foreign_key "staff_user_occurrences", "staff_occurrences", validate: false
-  add_foreign_key "staff_user_occurrences", "user_occurrences", validate: false
-  add_foreign_key "staff_zip_occurrences", "staff_occurrences", validate: false
-  add_foreign_key "staff_zip_occurrences", "zip_occurrences", validate: false
+  add_foreign_key "staff_telephone_occurrences", "staff_occurrences"
+  add_foreign_key "staff_telephone_occurrences", "telephone_occurrences"
+  add_foreign_key "staff_user_occurrences", "staff_occurrences"
+  add_foreign_key "staff_user_occurrences", "user_occurrences"
+  add_foreign_key "staff_zip_occurrences", "staff_occurrences"
+  add_foreign_key "staff_zip_occurrences", "zip_occurrences"
   add_foreign_key "telephone_occurrences", "telephone_occurrence_statuses", column: "status_id", name: "fk_telephone_occurrences_on_status_id"
-  add_foreign_key "telephone_user_occurrences", "telephone_occurrences", validate: false
-  add_foreign_key "telephone_user_occurrences", "user_occurrences", validate: false
-  add_foreign_key "telephone_zip_occurrences", "telephone_occurrences", validate: false
-  add_foreign_key "telephone_zip_occurrences", "zip_occurrences", validate: false
+  add_foreign_key "telephone_user_occurrences", "telephone_occurrences"
+  add_foreign_key "telephone_user_occurrences", "user_occurrences"
+  add_foreign_key "telephone_zip_occurrences", "telephone_occurrences"
+  add_foreign_key "telephone_zip_occurrences", "zip_occurrences"
   add_foreign_key "user_occurrences", "user_occurrence_statuses", column: "status_id", name: "fk_user_occurrences_on_status_id"
-  add_foreign_key "user_zip_occurrences", "user_occurrences", validate: false
-  add_foreign_key "user_zip_occurrences", "zip_occurrences", validate: false
+  add_foreign_key "user_zip_occurrences", "user_occurrences"
+  add_foreign_key "user_zip_occurrences", "zip_occurrences"
   add_foreign_key "zip_occurrences", "zip_occurrence_statuses", column: "status_id", name: "fk_zip_occurrences_on_status_id"
 end

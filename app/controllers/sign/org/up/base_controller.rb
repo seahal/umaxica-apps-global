@@ -25,11 +25,9 @@ module Sign
         append_after_action :finish_request
 
         protect_from_forgery using: :header_or_legacy_token,
-                             trusted_origins: ENV.fetch(
-                               "SIGN_ORG_TRUSTED_ORIGINS",
-                               "http://id.org.localhost,https://id.org.localhost",
-                             )
-                               .split(",").map(&:strip),
+                             trusted_origins: HostOriginEnv.trusted_origins(
+                               ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+                             ),
                              with: :exception
 
         private

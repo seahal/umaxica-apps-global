@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "session_cookie_config"
 
 class SessionCookieConfigTest < ActiveSupport::TestCase
   # --- cookie_key ---

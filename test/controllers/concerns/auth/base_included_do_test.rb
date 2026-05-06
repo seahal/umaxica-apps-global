@@ -14,7 +14,7 @@ module Auth
 
       def token_class = UserToken
 
-      def audit_class = UserActivity
+      def audit_class = UserChronicle
 
       def resource_foreign_key = :user_id
 
@@ -55,15 +55,6 @@ module Auth
     test "helper_method current_session_restricted? is defined on controller" do
       assert BaseHarness.private_method_defined?(:current_session_restricted?),
              "BaseHarness should have current_session_restricted? private method defined"
-    end
-
-    test "render_login_cooldown method exists" do
-      skip "rescue_from is only available in ActionController with rescue_from method"
-
-      harness = BaseHarness.new
-
-      assert_respond_to harness, :render_login_cooldown,
-                        "BaseHarness should have render_login_cooldown method defined"
     end
 
     test "access_policy class_method registers policy rules" do

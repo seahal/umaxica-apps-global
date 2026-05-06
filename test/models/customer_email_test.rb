@@ -63,4 +63,35 @@ class CustomerEmailTest < ActiveSupport::TestCase
     assert_includes customer_email.errors[:base], "cannot delete a protected email address"
     assert_predicate customer_email.reload, :undeletable?
   end
+
+  test "verification token can be generated and verified" do
+    customer_email = CustomerEmail.create!(
+      @valid_attributes.merge(address: "verify-#{SecureRandom.hex(4)}@example.com"),
+    )
+
+    raw_token = customer_email.generate_verification_token
+
+    assert customer_email.verify_verification_token(raw_token)
+    assert_not customer_email.verify_verification_token("wrong-token")
+  end
+
+  test "verification token fails when token or digest is blank" do
+    customer_email = CustomerEmail.new(@valid_attributes)
+
+    assert_not customer_email.verify_verification_token("")
+    assert_not customer_email.verify_verification_token("raw-token")
+  end
+
+  test "rejects creating more than the maximum emails per customer" do
+    CustomerEmail.where(customer: @customer).delete_all
+
+    CustomerEmail::MAX_EMAILS_PER_CUSTOMER.times do
+      CustomerEmail.create!(@valid_attributes.merge(address: "limit-#{SecureRandom.hex(4)}@example.com"))
+    end
+
+    extra = CustomerEmail.new(@valid_attributes.merge(address: "limit-extra-#{SecureRandom.hex(4)}@example.com"))
+
+    assert_not extra.valid?
+    assert_not_empty extra.errors[:base]
+  end
 end

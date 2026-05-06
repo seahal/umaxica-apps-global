@@ -4,7 +4,7 @@
 module UserSecrets
   class Update
     ACTION = "user_secret.update"
-    EVENT_ID = UserActivityEvent::USER_SECRET_UPDATED
+    EVENT_ID = UserChronicleEvent::USER_SECRET_UPDATED
 
     Result = Struct.new(:secret, keyword_init: true)
 
@@ -43,7 +43,7 @@ module UserSecrets
     private
 
     def audit_class
-      @audit_class ||= @actor.is_a?(Staff) ? StaffActivity : UserActivity
+      @audit_class ||= @actor.is_a?(Staff) ? StaffChronicle : UserChronicle
     end
 
     def status_id_for(enabled_param)
@@ -53,9 +53,9 @@ module UserSecrets
     end
 
     def ensure_audit_dependencies!
-      ActivityRecord.connected_to(role: :writing) do
-        UserActivityEvent.find_or_create_by!(id: EVENT_ID)
-        UserActivityLevel.find_or_create_by!(id: UserActivityLevel::NOTHING)
+      ChronicleRecord.connected_to(role: :writing) do
+        UserChronicleEvent.find_or_create_by!(id: EVENT_ID)
+        UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
       end
     end
   end

@@ -225,13 +225,11 @@ module Sign
         end
 
         def build_registration_credential
-          WebAuthn::Credential.from_create(credential_params.to_h)
+          WebAuthn::Credential.from_create(credential_params.to_h, relying_party: webauthn_relying_party)
         end
 
         def verify_registration_credential!(credential, challenge)
-          with_webauthn_config do
-            credential.verify(challenge)
-          end
+          credential.verify(challenge)
         end
 
         def build_passkey_from_credential(credential)
@@ -244,7 +242,6 @@ module Sign
         end
 
         def persist_passkey!(passkey)
-          authorize!(passkey, :create?)
           passkey.save!
         end
 

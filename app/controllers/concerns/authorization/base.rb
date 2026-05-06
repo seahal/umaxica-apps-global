@@ -7,7 +7,7 @@ module Authorization
 
     private
 
-    # TBC: Pundit migration lands later.
+    # Action Policy is the authorization layer for this app; no request-specific work here.
     def authorize_request!
       true
     end

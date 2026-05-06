@@ -436,6 +436,8 @@ core:
         email:
           new:
             page_title: UMAXICA (sign, app)
+          create:
+            turnstile_failed: ボット検証に失敗しました。もう一度お試しください。
       preferences:
         title: 設定
         cookie_settings: クッキー設定

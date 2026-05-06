@@ -25,7 +25,19 @@ module AuthHelpers
   end
 
   def browser_headers
-    { "User-Agent" => MODERN_USER_AGENT }
+    csrf_token = "test_csrf_token"
+    headers = {
+      "User-Agent" => MODERN_USER_AGENT,
+      "X-CSRF-Token" => csrf_token,
+    }
+
+    if respond_to?(:cookies, true)
+      cookies["csrf_token"] = csrf_token
+    else
+      headers["Cookie"] = "csrf_token=#{csrf_token}"
+    end
+
+    headers
   end
 
   def as_user_headers(user, host: nil, headers: {})

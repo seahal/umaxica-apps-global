@@ -31,10 +31,19 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   def authenticated_headers
-    browser_headers.merge(
+    headers = browser_headers.merge(
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     )
+
+    # browser_headers sets an explicit 'Cookie' header which overwrites the cookie jar.
+    # We must manually append our verification cookie if it exists.
+    verification_token = cookies[UserVerification.cookie_name]
+    if verification_token
+      headers["Cookie"] = "#{headers["Cookie"]}; #{UserVerification.cookie_name}=#{verification_token}"
+    end
+
+    headers
   end
 
   test "should get index" do
@@ -144,6 +153,7 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "should get destroy" do
+    satisfy_user_verification(@token)
     delete sign_app_configuration_secret_url(@user_secret, ri: "jp"), headers: authenticated_headers
 
     assert_response :see_other

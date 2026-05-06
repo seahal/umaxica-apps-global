@@ -64,7 +64,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         get new_sign_app_verification_email_url(ri: "jp"), headers: @headers
         nonce = response.location[%r{/verification/emails/([^/]+)/edit}, 1]
 
-        ActionController::Base.stub(:verify_email_otp!, true) do # Needs proper fix
+        with_verify_email_otp_stub(true) do
           patch sign_app_verification_email_url(nonce, ri: "jp"),
                 params: { verification: { code: "123456" } },
                 headers: @headers
@@ -107,7 +107,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
       assert_predicate nonce, :present?
 
-      ActionController::Base.stub(:verify_email_otp!, true) do # Needs proper fix
+      with_verify_email_otp_stub(true) do
         patch sign_app_verification_email_url(nonce, ri: "jp"),
               params: { verification: { code: "123456", scope: scope, rd: return_to } },
               headers: stale_headers
@@ -137,5 +137,15 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
       assert_response :redirect
       assert_match %r{/verification/emails/.+/edit}, response.location
     end
+  end
+
+  private
+
+  def with_verify_email_otp_stub(result)
+    original_method = Sign::App::Verification::EmailsController.instance_method(:verify_email_otp!)
+    Sign::App::Verification::EmailsController.define_method(:verify_email_otp!) { result }
+    yield
+  ensure
+    Sign::App::Verification::EmailsController.define_method(:verify_email_otp!, original_method)
   end
 end

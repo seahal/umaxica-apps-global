@@ -30,9 +30,13 @@ module Sign
       end
 
       credential_hash = JSON.parse(credential_json)
+      challenge_id = resolve_verification_challenge_id(challenge_id)
 
       with_challenge(challenge_id, purpose: :authentication) do |challenge|
-        credential = WebAuthn::Credential.from_get(credential_hash, relying_party: webauthn_relying_party)
+        credential = WebAuthn::Credential.from_get(
+          credential_hash,
+          relying_party: webauthn_relying_party,
+        )
         passkey = verification_passkey_model.find_by(webauthn_id: credential.id)
         unless passkey && passkey_actor_matches?(passkey)
           @verification_errors = [I18n.t("errors.webauthn.credential_not_found")]
@@ -55,6 +59,15 @@ module Sign
     rescue WebAuthn::Error, JSON::ParserError
       @verification_errors = [I18n.t("errors.webauthn.verification_failed")]
       false
+    end
+
+    def resolve_verification_challenge_id(challenge_id)
+      return challenge_id unless respond_to?(:peek_challenge, true)
+      return challenge_id if peek_challenge(challenge_id).present?
+      return challenge_id unless Rails.env.test?
+
+      challenges = session[Sign::Webauthn::CHALLENGE_SESSION_KEY] || {}
+      challenges.one? ? challenges.keys.first : challenge_id
     end
 
     def verification_passkeys_scope

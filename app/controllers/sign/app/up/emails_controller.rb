@@ -44,10 +44,7 @@ module Sign
           unless cloudflare_turnstile_validation["success"]
             @user_email = UserEmail.new(address: email_address)
             @user_email.errors.add(
-              :base, t(
-                "sign.app.registration.email.create.turnstile_failed",
-                default: "ボット検証に失敗しました。もう一度お試しください。",
-              ),
+              :base, t("sign.app.registration.email.create.turnstile_failed"),
             )
             render :new, status: :unprocessable_content
             return
@@ -232,14 +229,14 @@ module Sign
         end
 
         def create_signup_audit!
-          event_id = UserActivityEvent::SIGNED_UP_WITH_EMAIL
+          event_id = UserChronicleEvent::SIGNED_UP_WITH_EMAIL
 
-          ActivityRecord.connected_to(role: :writing) do
-            UserActivityEvent.find_or_create_by!(id: event_id)
-            UserActivityLevel.find_or_create_by!(id: UserActivityLevel::NOTHING)
+          ChronicleRecord.connected_to(role: :writing) do
+            UserChronicleEvent.find_or_create_by!(id: event_id)
+            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
           end
 
-          audit = UserActivity.new(
+          audit = UserChronicle.new(
             actor_type: "User",
             actor_id: @user.id,
             event_id: event_id,

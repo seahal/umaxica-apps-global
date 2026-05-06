@@ -69,6 +69,15 @@ class JumpLinkTest < ActiveSupport::TestCase
     assert_equal 1, jump_link.reload.uses_count
   end
 
+  test "revoke! marks link revoked" do
+    jump_link = AppJumpLink.create!(destination_url: "https://destination.example/revoke")
+
+    jump_link.revoke!
+
+    assert_equal JumpLinkable::STATUS_REVOKED, jump_link.status_id
+    assert_predicate jump_link.revoked_at, :present?
+  end
+
   test "models have strict tld mapping" do
     assert_equal "jump.example.app", AppJumpLink::TLD_HOST
     assert_equal "jump.example.com", ComJumpLink::TLD_HOST

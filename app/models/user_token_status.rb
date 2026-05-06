@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: user_token_statuses
-# Database name: token
+# Database name: mark
 #
 #  id :bigint           not null, primary key
 #
 
-class UserTokenStatus < TokenRecord
+class UserTokenStatus < MarkRecord
   NOTHING = 0
   ACTIVE = 1
   EXPIRED = 2

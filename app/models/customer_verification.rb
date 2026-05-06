@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: customer_verifications
-# Database name: token
+# Database name: symbol
 #
 #  id                :bigint           not null, primary key
 #  expires_at        :datetime         not null
@@ -25,7 +25,7 @@
 #
 #  fk_rails_...  (customer_token_id => customer_tokens.id)
 #
-class CustomerVerification < TokenRecord
+class CustomerVerification < SymbolRecord
   include RefreshTokenShared
   include VerificationCookieable
 

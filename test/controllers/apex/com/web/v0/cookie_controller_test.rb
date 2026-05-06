@@ -7,7 +7,7 @@ class Apex::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    @host = ENV.fetch("APEX_CORPORATE_URL", "com.localhost")
+    @host = ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost")
     host! @host
   end
 

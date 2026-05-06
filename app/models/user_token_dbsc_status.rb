@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: user_token_dbsc_statuses
-# Database name: token
+# Database name: mark
 #
 #  id :bigint           not null, primary key
 #
-class UserTokenDbscStatus < TokenRecord
+class UserTokenDbscStatus < MarkRecord
   # Fixed IDs - do not modify these values
   NOTHING = 0
   ACTIVE = 1

@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: com_preferences
-# Database name: commerce
+# Database name: setting
 #
 #  id                       :bigint           not null, primary key
 #  compromised_at           :datetime
@@ -50,7 +50,7 @@
 
 # frozen_string_literal: true
 
-class ComPreference < CommerceRecord
+class ComPreference < SettingRecord
   # TODO: Add `deletable_at` to ComPreference for lifecycle-based cleanup.
   include ::PublicId
   include ::ConsumeOnceToken
@@ -92,7 +92,7 @@ class ComPreference < CommerceRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_many :com_preference_activities,
+  has_many :com_preference_chronicles,
            foreign_key: :subject_id,
            inverse_of: :com_preference,
            dependent: :destroy

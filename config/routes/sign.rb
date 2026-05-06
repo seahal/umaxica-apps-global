@@ -65,36 +65,38 @@ scope module: :sign, as: :sign do
       end
 
       # Sign-up: account registration via email or telephone
-      resource :up, only: :new
-      namespace :up do
-        resources :emails, only: %i(new create edit update)
-        resources :telephones, only: %i(new create edit update) do
-          collection do
-            post :resend
-          end
-          resource :passkey_registration, only: %i(show create) do
-            post :begin, on: :member
+      scope path: "sign" do
+        resource :up, only: :new
+        namespace :up do
+          resources :emails, only: %i(new create edit update)
+          resources :telephones, only: %i(new create edit update) do
+            collection do
+              post :resend
+            end
+            resource :passkey_registration, only: %i(show create) do
+              post :begin, on: :member
+            end
           end
         end
-      end
 
-      # Sign-in: credential entry and session establishment
-      resource :in, only: %i(new)
-      namespace :in do
-        resource :email, only: %i(new create edit update)
-        resources :passkeys, only: [:new] do
-          collection do
-            post :options
-            post :verification
+        # Sign-in: credential entry and session establishment
+        resource :in, only: %i(new)
+        namespace :in do
+          resource :email, only: %i(new create edit update)
+          resources :passkeys, only: [:new] do
+            collection do
+              post :options
+              post :verification
+            end
           end
-        end
-        resource :secret, only: %i(new create)
-        resource :session, only: %i(show update destroy)
-        resource :bulletin, only: %i(show update destroy)
-        resource :challenge, only: %i(show)
-        namespace :challenge do
-          resource :totp, only: %i(new create)
-          resource :passkey, only: %i(new create)
+          resource :secret, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+          resource :bulletin, only: %i(show update destroy)
+          resource :challenge, only: %i(show)
+          namespace :challenge do
+            resource :totp, only: %i(new create)
+            resource :passkey, only: %i(new create)
+          end
         end
       end
 
@@ -216,28 +218,30 @@ scope module: :sign, as: :sign do
       end
 
       # Sign-up: email registration
-      resource :up, only: :new
-      namespace :up do
-        resources :emails, only: %i(new create edit update)
-      end
-
-      # Sign-in: credential entry and session establishment
-      resource :in, only: %i(new)
-      namespace :in do
-        resource :email, only: %i(new create edit update)
-        resources :passkeys, only: [:new] do
-          collection do
-            post :options
-            post :verification
-          end
+      scope path: "sign" do
+        resource :up, only: :new
+        namespace :up do
+          resources :emails, only: %i(new create edit update)
         end
-        resource :secret, only: %i(new create)
-        resource :session, only: %i(show update destroy)
-        resource :bulletin, only: %i(show update destroy)
-        resource :challenge, only: %i(show)
-        namespace :challenge do
-          resource :totp, only: %i(new create)
-          resource :passkey, only: %i(new create)
+
+        # Sign-in: credential entry and session establishment
+        resource :in, only: %i(new)
+        namespace :in do
+          resource :email, only: %i(new create edit update)
+          resources :passkeys, only: [:new] do
+            collection do
+              post :options
+              post :verification
+            end
+          end
+          resource :secret, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+          resource :bulletin, only: %i(show update destroy)
+          resource :challenge, only: %i(show)
+          namespace :challenge do
+            resource :totp, only: %i(new create)
+            resource :passkey, only: %i(new create)
+          end
         end
       end
 
@@ -273,7 +277,9 @@ scope module: :sign, as: :sign do
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
-        resources :secrets, only: %i(index show new edit create destroy)
+        resources :secrets, only: %i(index show new edit create destroy) do
+          post :regenerate, on: :member
+        end
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
@@ -340,12 +346,14 @@ scope module: :sign, as: :sign do
       end
 
       # Sign-up: email registration and staff invitation flows
-      resource :up, only: :new
-      namespace :up do
-        resources :emails, only: %i(new create)
-        resources :invitations, only: %i(new create) do
-          collection do
-            resources :emails, only: %i(new create edit update)
+      scope path: "sign" do
+        resource :up, only: :new
+        namespace :up do
+          resources :emails, only: %i(new create)
+          resources :invitations, only: %i(new create) do
+            collection do
+              resources :emails, only: %i(new create edit update)
+            end
           end
         end
       end
@@ -365,20 +373,22 @@ scope module: :sign, as: :sign do
       end
 
       # Sign-in: credential entry and session establishment
-      resource :in, only: [:new]
-      namespace :in do
-        resources :passkeys, only: [:new] do
-          collection do
-            post :options
-            post :verification
+      scope path: "sign" do
+        resource :in, only: [:new]
+        namespace :in do
+          resources :passkeys, only: [:new] do
+            collection do
+              post :options
+              post :verification
+            end
           end
-        end
-        resource :secret, only: %i(new create)
-        resource :session, only: %i(show update destroy)
-        resource :bulletin, only: %i(show update destroy)
-        resource :challenge, only: %i(show)
-        namespace :challenge do
-          resource :passkey, only: %i(new create)
+          resource :secret, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+          resource :bulletin, only: %i(show update destroy)
+          resource :challenge, only: %i(show)
+          namespace :challenge do
+            resource :passkey, only: %i(new create)
+          end
         end
       end
 

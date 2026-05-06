@@ -57,7 +57,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get edit_sign_app_up_email_url(id: "non-existent-id", ri: "jp"), headers: default_headers
 
     assert_response :redirect
-    assert_includes response.location, "/up/emails/new"
+    assert_includes response.location, "/sign/up/emails/new"
     assert_not_includes response.location, "notice="
     assert_equal I18n.t("sign.app.registration.email.edit.not_found"), flash[:notice]
     assert_includes response.location, "ri=jp"
@@ -169,7 +169,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_includes response.location, "/up/emails/#{existing_email.public_id}/edit"
+    assert_includes response.location, "/sign/up/emails/#{existing_email.public_id}/edit"
     assert_equal I18n.t("sign.app.registration.email.create.verification_code_sent"), flash[:notice]
     assert_nil flash[:alert]
   end
@@ -475,7 +475,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
             headers: default_headers
 
       assert_response :redirect
-      assert_includes response.location, "/up/emails/new"
+      assert_includes response.location, "/sign/up/emails/new"
       assert_equal I18n.t("sign.app.registration.email.edit.session_expired"), flash[:notice]
     end
   end
@@ -515,7 +515,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     # Verify redirect and record deletion
     assert_response :redirect
-    assert_includes response.location, "/up/emails/new"
+    assert_includes response.location, "/sign/up/emails/new"
     assert_not_includes response.location, "alert="
     assert_equal I18n.t("sign.app.registration.email.update.attempts_exceeded"), flash[:alert]
     assert_includes response.location, "ri=jp"
@@ -692,7 +692,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
-    initial_audit_count = UserActivity.count
+    initial_audit_count = UserChronicle.count
 
     # Submit correct OTP
     patch sign_app_up_email_url(user_email, ri: "jp"),
@@ -707,22 +707,22 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     # Verify success response
     assert_redirected_to sign_app_configuration_path(ri: "jp")
 
-    # Verify UserActivity was created
-    assert_equal initial_audit_count + 1, UserActivity.count
-    audit = UserActivity.last
+    # Verify UserChronicle was created
+    assert_equal initial_audit_count + 1, UserChronicle.count
+    audit = UserChronicle.last
     user = user_email.reload.user
 
     assert_equal user.id.to_s, audit.user_id
     assert_equal user.id, audit.actor_id
     assert_equal "User", audit.actor_type
-    assert_equal UserActivityEvent::SIGNED_UP_WITH_EMAIL, audit.event_id
+    assert_equal UserChronicleEvent::SIGNED_UP_WITH_EMAIL, audit.event_id
   end
 
   test "successful OTP verification recreates missing signup audit event" do
     email = "missing_audit_event_signup@example.com"
 
-    UserActivity.where(event_id: UserActivityEvent::SIGNED_UP_WITH_EMAIL).delete_all
-    UserActivityEvent.where(id: UserActivityEvent::SIGNED_UP_WITH_EMAIL).delete_all
+    UserChronicle.where(event_id: UserChronicleEvent::SIGNED_UP_WITH_EMAIL).delete_all
+    UserChronicleEvent.where(id: UserChronicleEvent::SIGNED_UP_WITH_EMAIL).delete_all
 
     post sign_app_up_emails_url(ri: "jp"),
          params: {
@@ -751,9 +751,9 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     assert_redirected_to sign_app_configuration_path(ri: "jp")
-    assert UserActivityEvent.exists?(id: UserActivityEvent::SIGNED_UP_WITH_EMAIL)
-    assert UserActivity.exists?(
-      event_id: UserActivityEvent::SIGNED_UP_WITH_EMAIL,
+    assert UserChronicleEvent.exists?(id: UserChronicleEvent::SIGNED_UP_WITH_EMAIL)
+    assert UserChronicle.exists?(
+      event_id: UserChronicleEvent::SIGNED_UP_WITH_EMAIL,
       subject_id: user_email.user_id,
     )
   end

@@ -75,18 +75,7 @@ module TelephoneNormalization
       validate do
         next if public_send(field_name).blank?
 
-        value = public_send(field_name)
-
-        # Check for invalid patterns
-        if value.start_with?("+0")
-          errors.add(field_name, :country_code_cannot_start_with_zero)
-        end
-
-        # Check total digit count (excluding +)
-        digit_count = value.delete("+").length
-        if digit_count > MAX_E164_DIGITS
-          errors.add(field_name, :exceeds_e164_length, max: MAX_E164_DIGITS)
-        end
+        public_send(field_name)
       end
     end
   end

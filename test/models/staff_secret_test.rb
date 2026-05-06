@@ -168,6 +168,32 @@ class StaffSecretTest < ActiveSupport::TestCase
     assert_not_includes StaffSecret.allowed_for_secret_sign_in, totp_secret
   end
 
+  test "usable_for_secret_sign_in? allows records without expires_at column" do
+    secret, = StaffSecret.issue!(name: "Permanent Key", staff: @staff, staff_secret_kind_id: StaffSecretKind::LOGIN)
+
+    assert_predicate secret, :usable_for_secret_sign_in?
+  end
+
+  test "expired_for_secret_sign_in? handles nil infinite and elapsed expires_at values" do
+    secret = StaffSecret.new
+
+    secret.define_singleton_method(:respond_to?) do |name, include_private = false|
+      name == :expires_at || super(name, include_private)
+    end
+
+    secret.define_singleton_method(:expires_at) { nil }
+
+    assert_not secret.send(:expired_for_secret_sign_in?, Time.current)
+
+    secret.define_singleton_method(:expires_at) { Float::INFINITY }
+
+    assert_not secret.send(:expired_for_secret_sign_in?, Time.current)
+
+    secret.define_singleton_method(:expires_at) { 1.minute.ago }
+
+    assert secret.send(:expired_for_secret_sign_in?, Time.current)
+  end
+
   test "public_id is automatically generated on create" do
     record = StaffSecret.create!(
       staff: @staff,

@@ -78,7 +78,7 @@ module Preference::Core
           "UPDATE_PREFERENCE_TIMEZONE",
         )
         reload_preferences_and_reissue_token!
-      rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ArgumentError
         raise PreferenceOperationError
       end
     end
@@ -91,6 +91,8 @@ module Preference::Core
     Time.zone = timezone if timezone.present?
     session[:timezone] = timezone if timezone.present?
     write_preference_cookie(Preference::Base::TIMEZONE_COOKIE_KEY, timezone) if timezone.present?
+  rescue ArgumentError
+    raise PreferenceOperationError
   end
 
   def set_colortheme_preferences_edit

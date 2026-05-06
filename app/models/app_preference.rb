@@ -92,7 +92,7 @@ class AppPreference < PrincipalRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_many :app_preference_activities,
+  has_many :app_preference_chronicles,
            foreign_key: :subject_id,
            inverse_of: :app_preference,
            dependent: :destroy

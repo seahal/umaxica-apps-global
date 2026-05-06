@@ -12,6 +12,12 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     @staff = staffs(:one)
     # Clean up any existing tokens for this staff
     StaffToken.where(staff: @staff).delete_all
+    @original_allow_forgery_protection = ActionController::Base.allow_forgery_protection
+    ActionController::Base.allow_forgery_protection = false
+  end
+
+  teardown do
+    ActionController::Base.allow_forgery_protection = @original_allow_forgery_protection
   end
 
   # ===================================================================
@@ -57,7 +63,11 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   test "update without authentication redirects to login" do
     patch sign_org_in_session_url(ri: "jp"),
           params: { revoke_refs: ["some-ref"] },
-          headers: browser_headers.merge("Host" => @host)
+          headers: browser_headers.merge(
+            "Host" => @host,
+            "Origin" => "http://#{@host}",
+            "HTTP_ORIGIN" => "http://#{@host}",
+          )
 
     assert_response :redirect
     assert_match %r{/in/new}, response.location
@@ -313,7 +323,11 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "destroy without authentication redirects to login" do
     delete sign_org_in_session_url(ri: "jp"),
-           headers: browser_headers.merge("Host" => @host)
+           headers: browser_headers.merge(
+             "Host" => @host,
+             "Origin" => "http://#{@host}",
+             "HTTP_ORIGIN" => "http://#{@host}",
+           )
 
     assert_response :redirect
     assert_match %r{/in/new}, response.location
@@ -508,8 +522,13 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     )
     browser_headers.merge(
       "Host" => host,
+      "Origin" => "http://#{host}",
+      "HTTP_ORIGIN" => "http://#{host}",
       "Authorization" => "Bearer #{access_token}",
-      "Cookie" => "#{Authentication::Base::ACCESS_COOKIE_KEY}=#{access_token}",
+      "Cookie" => [
+        "csrf_token=test_csrf_token",
+        "#{Authentication::Base::ACCESS_COOKIE_KEY}=#{access_token}",
+      ].join("; "),
     )
   end
 end

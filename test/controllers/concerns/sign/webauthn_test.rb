@@ -22,6 +22,63 @@ module Sign
       @controller = TestController.new
     end
 
+    test "private helper methods are not public on including controller" do
+      # These methods should be private, not public
+      assert_includes @controller.private_methods, :store_challenge!
+      assert_not @controller.public_methods.include?(:store_challenge!)
+
+      assert_includes @controller.private_methods, :fetch_and_delete_challenge!
+      assert_not @controller.public_methods.include?(:fetch_and_delete_challenge!)
+
+      assert_includes @controller.private_methods, :cleanup_expired_challenges!
+      assert_not @controller.public_methods.include?(:cleanup_expired_challenges!)
+
+      assert_includes @controller.private_methods, :enforce_challenge_limit!
+      assert_not @controller.public_methods.include?(:enforce_challenge_limit!)
+
+      assert_includes @controller.private_methods, :resource_display_name
+      assert_not @controller.public_methods.include?(:resource_display_name)
+
+      assert_includes @controller.private_methods, :normalize_webauthn_options_for_json
+      assert_not @controller.public_methods.include?(:normalize_webauthn_options_for_json)
+
+      assert_includes @controller.private_methods, :normalize_credential_list_ids!
+      assert_not @controller.public_methods.include?(:normalize_credential_list_ids!)
+
+      assert_includes @controller.private_methods, :normalize_webauthn_id
+      assert_not @controller.public_methods.include?(:normalize_webauthn_id)
+    end
+
+    test "public helper methods are public on including controller" do
+      # These methods should remain public (intended API surface)
+      assert_respond_to @controller, :webauthn_rp_id
+      assert_not @controller.private_methods.include?(:webauthn_rp_id)
+
+      assert_respond_to @controller, :webauthn_origin
+      assert_not @controller.private_methods.include?(:webauthn_origin)
+
+      assert_respond_to @controller, :webauthn_relying_party
+      assert_not @controller.private_methods.include?(:webauthn_relying_party)
+
+      assert_respond_to @controller, :validate_webauthn_origin!
+      assert_not @controller.private_methods.include?(:validate_webauthn_origin!)
+
+      assert_respond_to @controller, :trusted_webauthn_origin?
+      assert_not @controller.private_methods.include?(:trusted_webauthn_origin?)
+
+      assert_respond_to @controller, :create_registration_challenge
+      assert_not @controller.private_methods.include?(:create_registration_challenge)
+
+      assert_respond_to @controller, :create_authentication_challenge
+      assert_not @controller.private_methods.include?(:create_authentication_challenge)
+
+      assert_respond_to @controller, :with_challenge
+      assert_not @controller.private_methods.include?(:with_challenge)
+
+      assert_respond_to @controller, :peek_challenge
+      assert_not @controller.private_methods.include?(:peek_challenge)
+    end
+
     # Test normalize_webauthn_options_for_json
     test "normalize_webauthn_options_for_json converts symbol keys to string keys" do
       options = WebAuthn::Credential.options_for_create(
@@ -162,41 +219,22 @@ module Sign
       assert_nil result
     end
 
-    test "with_webauthn_config sets and restores configuration" do
-      original_origins = WebAuthn.configuration.allowed_origins
-      original_rp_id = WebAuthn.configuration.rp_id
+    test "webauthn_relying_party returns per-request relying party instance" do
+      rp = @controller.webauthn_relying_party
 
-      @controller.send(:with_webauthn_config) do
-        # Inside block, config should be set
-        assert_equal ["https://id.umaxica.app"], WebAuthn.configuration.allowed_origins
-        assert_equal "id.umaxica.app", WebAuthn.configuration.rp_id
-      end
-
-      # After block, config should be restored (may be nil in test env)
-      if original_origins.nil?
-        assert_nil WebAuthn.configuration.allowed_origins
-      else
-        assert_equal original_origins, WebAuthn.configuration.allowed_origins
-      end
-
-      if original_rp_id.nil?
-        assert_nil WebAuthn.configuration.rp_id
-      else
-        assert_equal original_rp_id, WebAuthn.configuration.rp_id
-      end
+      assert_kind_of WebAuthn::RelyingParty, rp
+      assert_equal ["https://id.umaxica.app"], rp.allowed_origins
+      assert_equal "id.umaxica.app", rp.id
     end
 
-    test "with_webauthn_config restores configuration even on error" do
+    test "global WebAuthn.configuration is not mutated during request" do
       original_origins = WebAuthn.configuration.allowed_origins
       original_rp_id = WebAuthn.configuration.rp_id
 
-      assert_raises(RuntimeError) do
-        @controller.send(:with_webauthn_config) do
-          raise RuntimeError, "Test error"
-        end
-      end
+      # Access relying_party (which should not mutate global config)
+      _rp = @controller.webauthn_relying_party
 
-      # Config should still be restored after error (may be nil in test env)
+      # Global config should remain unchanged
       if original_origins.nil?
         assert_nil WebAuthn.configuration.allowed_origins
       else

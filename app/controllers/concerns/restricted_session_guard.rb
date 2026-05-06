@@ -41,7 +41,14 @@ module RestrictedSessionGuard
 
     return true if session.respond_to?(:expired_at) ? session.expired_at.present? : session.revoked_at.present?
 
-    TokenRecord.connected_to(role: :writing) do
+    # Find the nearest abstract base record that defines the database connection (e.g., MarkRecord, TokenRecord)
+    base_class =
+      session.class.ancestors.find { |a|
+        a.respond_to?(:abstract_class?) && a.abstract_class? && a < ApplicationRecord
+      }
+    base_class ||= ApplicationRecord
+
+    base_class.connected_to(role: :writing) do
       session.revoke!
     end
 

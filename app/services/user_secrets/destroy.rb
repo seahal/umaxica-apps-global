@@ -4,7 +4,7 @@
 module UserSecrets
   class Destroy
     ACTION = "user_secret.delete"
-    EVENT_ID = UserActivityEvent::USER_SECRET_REMOVED
+    EVENT_ID = UserChronicleEvent::USER_SECRET_REMOVED
 
     def self.call(actor:, secret:)
       new(actor: actor, secret: secret).call
@@ -35,13 +35,13 @@ module UserSecrets
     private
 
     def audit_class
-      @audit_class ||= @actor.is_a?(Staff) ? StaffActivity : UserActivity
+      @audit_class ||= @actor.is_a?(Staff) ? StaffChronicle : UserChronicle
     end
 
     def ensure_audit_dependencies!
-      ActivityRecord.connected_to(role: :writing) do
-        UserActivityEvent.find_or_create_by!(id: EVENT_ID)
-        UserActivityLevel.find_or_create_by!(id: UserActivityLevel::NOTHING)
+      ChronicleRecord.connected_to(role: :writing) do
+        UserChronicleEvent.find_or_create_by!(id: EVENT_ID)
+        UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
       end
     end
   end

@@ -5,7 +5,7 @@ module Oidc
   class SingleLogoutService
     class << self
       def call(user:)
-        TokenRecord.connected_to(role: :writing) do
+        MarkRecord.connected_to(role: :writing) do
           now = Time.current
           UserToken.where(user_id: user.id)
             .where(revoked_at: nil)

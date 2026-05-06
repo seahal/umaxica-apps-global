@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: user_tokens
-# Database name: token
+# Database name: mark
 #
 #  id                           :bigint           not null, primary key
 #  compromised_at               :datetime
@@ -70,8 +70,18 @@ class UserTokenTest < ActiveSupport::TestCase
     @token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
   end
 
-  test "inherits from TokenRecord" do
-    assert_operator UserToken, :<, TokenRecord
+  test "inherits from MarkRecord" do
+    assert_operator UserToken, :<, MarkRecord
+    assert_operator UserToken, :<, ApplicationRecord
+    assert_not_operator UserToken, :<, TokenRecord
+  end
+
+  test "signed ref lookup uses mark connection owner" do
+    assert_equal MarkRecord, UserToken.send(:connection_owner)
+  end
+
+  test "signed ref lookup role defaults to reading" do
+    assert_equal :reading, UserToken.signed_ref_lookup_role
   end
 
   test "belongs to user" do
@@ -177,6 +187,16 @@ class UserTokenTest < ActiveSupport::TestCase
 
     assert_predicate token, :expired_refresh?
     assert_not token.active?
+  end
+
+  test "revoke! marks token expired and revoked" do
+    token = UserToken.create!(user: @user)
+
+    token.revoke!
+
+    assert_predicate token, :expired?
+    assert_predicate token.expired_at, :present?
+    assert_predicate token.revoked_at, :present?
   end
 
   test "rotate_refresh_token! updates digest and timestamps" do
@@ -332,6 +352,17 @@ class UserTokenTest < ActiveSupport::TestCase
 
     assert_equal :replay, second[:status]
     assert_predicate token.reload.rotated_at, :present?
+  end
+
+  test "rotate_refresh! rejects mismatched device id with current token" do
+    token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB, device_id: "device-user")
+    raw = token.rotate_refresh_token!
+    digest = UserToken.digest_refresh_token(UserToken.parse_refresh_token(raw).last)
+
+    result = UserToken.rotate_refresh!(presented_refresh_digest: digest, device_id: "other-device", now: Time.current)
+
+    assert_equal :invalid, result[:status]
+    assert_equal token.id, result[:token].id
   end
 
   test "rotate_refresh! rejects revoked compromised and expired tokens" do

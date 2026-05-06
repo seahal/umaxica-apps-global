@@ -113,7 +113,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   test "fails for expired code" do
     code_record = issue_code!
 
-    travel AuthorizationCode::CODE_TTL + 1.second do
+    travel UserAuthorizationCode::CODE_TTL + 1.second do
       result =
         with_authenticated_client do
           Oidc::TokenExchangeService.call(
@@ -232,7 +232,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     org_redirect_uri = org_client.redirect_uris.first
     staff_secret = "test_secret_for_core_org"
 
-    code_record = AuthorizationCode.issue!(
+    code_record = StaffAuthorizationCode.issue!(
       staff: staff,
       client_id: "core_org",
       redirect_uri: org_redirect_uri,
@@ -264,7 +264,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     org_redirect_uri = org_client.redirect_uris.first
     staff_secret = "test_secret_for_core_org"
 
-    code_record = AuthorizationCode.issue!(
+    code_record = StaffAuthorizationCode.issue!(
       staff: staff,
       client_id: "core_org",
       redirect_uri: org_redirect_uri,
@@ -289,7 +289,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   private
 
   def issue_code!
-    AuthorizationCode.issue!(
+    UserAuthorizationCode.issue!(
       user: @user,
       client_id: "core_app",
       redirect_uri: @redirect_uri,

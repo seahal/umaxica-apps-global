@@ -17,7 +17,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
            :user_statuses,
            :user_social_google_statuses,
            :user_social_apple_statuses,
-           :app_preference_activity_levels
+           :app_preference_chronicle_levels
 
   setup do
     OmniAuth.config.test_mode = true

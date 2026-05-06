@@ -30,25 +30,30 @@ scope module: :apex, as: :apex do
       namespace :auth do
         resource :callback, only: :show
       end
+      resource :configuration, only: [:show]
+      namespace :configuration do
+        # logged in user's email settings.
+        resources :emails, only: %i(edit update new create)
+      end
+      resource :preference, only: [:show]
+      # for emergency token operations
+      namespace :emergency do
+        namespace :app do
+          resource :token, only: %i(show update)
+        end
+      end
     end
   end
 
   constraints host: ENV["APEX_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
-
       # Health
       resource :health, only: :show
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
-
-      # OIDC callback
-      namespace :auth do
-        resource :callback, only: :show
-      end
-
       # Edge API endpoint (browser/Rails view)
       namespace :web do
         namespace :v0 do
@@ -64,11 +69,16 @@ scope module: :apex, as: :apex do
           resource :dbsc, only: :create
         end
       end
+      # OIDC callback
+      namespace :auth do
+        resource :callback, only: :show
+      end
       resource :configuration, only: [:show]
       namespace :configuration do
         # logged in user's email settings.
         resources :emails, only: %i(edit update new create)
       end
+      resource :preference, only: [:show]
       # for emergency token operations
       namespace :emergency do
         namespace :app do

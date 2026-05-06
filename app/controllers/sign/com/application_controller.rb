@@ -20,11 +20,9 @@ module Sign
       helper_method :current_user if respond_to?(:helper_method)
 
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: ENV.fetch(
-                             "SIGN_COM_TRUSTED_ORIGINS",
-                             "http://id.com.localhost,https://id.com.localhost",
-                           )
-                             .split(",").map(&:strip),
+                           trusted_origins: HostOriginEnv.trusted_origins(
+                             ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                           ),
                            with: :exception
 
       guest_only! # FIXME: remove this line.
@@ -104,8 +102,8 @@ module Sign
         sign_com_verification_path(attrs)
       end
 
-      def verification_setup_redirect_path
-        new_sign_com_verification_setup_path(ri: params[:ri], rd: encoded_step_up_rd)
+      def verification_setup_redirect_path(rd: nil)
+        new_sign_com_verification_setup_path(ri: params[:ri], rd: rd || encoded_step_up_rd)
       end
 
       def after_login_path

@@ -380,41 +380,45 @@ module Preference
     }.freeze
 
     PREFERENCE_AUDIT_EVENT_ID_MAP = {
-      "AppPreferenceActivityEvent" => {
-        "CREATE_NEW_PREFERENCE_TOKEN" => AppPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
-        "REFRESH_TOKEN_ROTATED" => AppPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-        "UPDATE_PREFERENCE_COOKIE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-        "UPDATE_PREFERENCE_LANGUAGE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-        "UPDATE_PREFERENCE_TIMEZONE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-        "RESET_BY_USER_DECISION" => AppPreferenceActivityEvent::RESET_BY_USER_DECISION,
-        "UPDATE_PREFERENCE_REGION" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
+      "AppPreferenceChronicleEvent" => {
+        "CREATE_NEW_PREFERENCE_TOKEN" => AppPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
+        "REFRESH_TOKEN_ROTATED" => AppPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+        "UPDATE_PREFERENCE_COOKIE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+        "UPDATE_PREFERENCE_LANGUAGE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+        "UPDATE_PREFERENCE_TIMEZONE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+        "RESET_BY_USER_DECISION" => AppPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+        "UPDATE_PREFERENCE_REGION" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+        "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
       }.freeze,
-      "ComPreferenceActivityEvent" => {
-        "CREATE_NEW_PREFERENCE_TOKEN" => ComPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
-        "REFRESH_TOKEN_ROTATED" => ComPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-        "UPDATE_PREFERENCE_COOKIE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-        "UPDATE_PREFERENCE_LANGUAGE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-        "UPDATE_PREFERENCE_TIMEZONE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-        "RESET_BY_USER_DECISION" => ComPreferenceActivityEvent::RESET_BY_USER_DECISION,
-        "UPDATE_PREFERENCE_REGION" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
+      "ComPreferenceChronicleEvent" => {
+        "CREATE_NEW_PREFERENCE_TOKEN" => ComPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
+        "REFRESH_TOKEN_ROTATED" => ComPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+        "UPDATE_PREFERENCE_COOKIE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+        "UPDATE_PREFERENCE_LANGUAGE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+        "UPDATE_PREFERENCE_TIMEZONE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+        "RESET_BY_USER_DECISION" => ComPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+        "UPDATE_PREFERENCE_REGION" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+        "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
       }.freeze,
-      "OrgPreferenceActivityEvent" => {
-        "CREATE_NEW_PREFERENCE_TOKEN" => OrgPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
-        "REFRESH_TOKEN_ROTATED" => OrgPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-        "UPDATE_PREFERENCE_COOKIE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-        "UPDATE_PREFERENCE_LANGUAGE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-        "UPDATE_PREFERENCE_TIMEZONE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-        "RESET_BY_USER_DECISION" => OrgPreferenceActivityEvent::RESET_BY_USER_DECISION,
-        "UPDATE_PREFERENCE_REGION" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
+      "OrgPreferenceChronicleEvent" => {
+        "CREATE_NEW_PREFERENCE_TOKEN" => OrgPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
+        "REFRESH_TOKEN_ROTATED" => OrgPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+        "UPDATE_PREFERENCE_COOKIE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+        "UPDATE_PREFERENCE_LANGUAGE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+        "UPDATE_PREFERENCE_TIMEZONE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+        "RESET_BY_USER_DECISION" => OrgPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+        "UPDATE_PREFERENCE_REGION" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+        "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
       }.freeze,
     }.freeze
 
     included do
       helper_method :show_cookie_banner?, :cookie_banner_endpoint_url if respond_to?(:helper_method)
       before_action :set_preferences_cookie
+    end
+
+    def show_cookie_banner?
+      false
     end
 
     private
@@ -449,10 +453,6 @@ module Preference
       adopt_preference_for!(resource)
     rescue StandardError => e
       Rails.event.record("preference.restore_from_resource.error", error: e.class.name, message: e.message)
-    end
-
-    def show_cookie_banner?
-      false
     end
 
     def cookie_banner_endpoint_url
@@ -700,7 +700,7 @@ module Preference
       expires_at_value = expires_at || REFRESH_TOKEN_TTL.from_now
       normalized_event_id = normalize_preference_audit_event_id(event_id)
 
-      ActivityRecord.connected_to(role: :writing) do
+      ChronicleRecord.connected_to(role: :writing) do
         ensure_model_defaults!(preference_audit_level_class)
 
         if normalized_event_id.present?
@@ -889,6 +889,11 @@ module Preference
       public_id = Token.extract_public_id(payload)
       if public_id.present?
         @preferences = preference_class.includes(preference_associations_to_preload).find_by(public_id: public_id)
+        if @preferences.blank?
+          cookies.delete(access_token_cookie_name, **preference_cookie_deletion_options)
+          @preference_payload = nil
+          return false
+        end
       end
 
       true
@@ -1187,11 +1192,11 @@ module Preference
     def preference_dbsc_path
       case preference_class.name
       when "AppPreference"
-        apex_app_edge_v0_dbsc_path
+        apex_app_edge_v0_dbsc_path if respond_to?(:apex_app_edge_v0_dbsc_path)
       when "OrgPreference"
-        apex_org_edge_v0_dbsc_path
+        apex_org_edge_v0_dbsc_path if respond_to?(:apex_org_edge_v0_dbsc_path)
       when "ComPreference"
-        apex_com_edge_v0_dbsc_path
+        apex_com_edge_v0_dbsc_path if respond_to?(:apex_com_edge_v0_dbsc_path)
       end
     end
 

@@ -1,0 +1,65 @@
+# == Schema Information
+#
+# Table name: user_chronicle_events
+# Database name: chronicle
+#
+#  id :bigint           not null, primary key
+#
+nothing_zero:
+  id: 0
+nothing:
+  id: 9
+account_recovered:
+  id: 1
+account_withdrawn:
+  id: 2
+authorization_failed:
+  id: 3
+logged_in:
+  id: 4
+logged_out:
+  id: 5
+login_failed:
+  id: 6
+login_success:
+  id: 7
+logout:
+  id: 8
+non_existent_event:
+  id: 10
+passkey_registered:
+  id: 11
+passkey_removed:
+  id: 12
+recovery_code_used:
+  id: 14
+recovery_codes_generated:
+  id: 13
+signed_up_with_apple:
+  id: 15
+signed_up_with_email:
+  id: 16
+signed_up_with_google:
+  id: 17
+signed_up_with_telephone:
+  id: 18
+token_refreshed:
+  id: 19
+totp_disabled:
+  id: 20
+totp_enabled:
+  id: 21
+user_secret_created:
+  id: 22
+user_secret_removed:
+  id: 23
+user_secret_updated:
+  id: 24
+email_removed:
+  id: 25
+telephone_removed:
+  id: 26
+social_unlinked:
+  id: 27
+step_up_verified:
+  id: 28

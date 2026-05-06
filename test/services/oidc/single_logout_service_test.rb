@@ -34,6 +34,16 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
     assert_equal "revoked", token2.status
   end
 
+  test "uses mark connection for user logout" do
+    connection_calls = []
+
+    MarkRecord.stub(:connected_to, ->(**options, &block) { connection_calls << options; block.call }) do
+      Oidc::SingleLogoutService.call(user: @user)
+    end
+
+    assert connection_calls.any? { |options| options[:role] == :writing }
+  end
+
   test "does not affect already revoked tokens" do
     revoked_at = 1.hour.ago
     token = UserToken.create!(

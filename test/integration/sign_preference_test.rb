@@ -15,24 +15,24 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       host: "id.app.localhost",
       scope: "apex.app.preferences",
       preference_model: AppPreference,
-      audit_class: AppPreferenceActivity,
-      audit_event_class: AppPreferenceActivityEvent,
+      audit_class: AppPreferenceChronicle,
+      audit_event_class: AppPreferenceChronicleEvent,
     },
     {
       name: "org",
       host: "id.org.localhost",
       scope: "apex.org.preferences",
       preference_model: OrgPreference,
-      audit_class: OrgPreferenceActivity,
-      audit_event_class: OrgPreferenceActivityEvent,
+      audit_class: OrgPreferenceChronicle,
+      audit_event_class: OrgPreferenceChronicleEvent,
     },
     {
       name: "com",
       host: "id.com.localhost",
       scope: "apex.com.preferences",
       preference_model: ComPreference,
-      audit_class: ComPreferenceActivity,
-      audit_event_class: ComPreferenceActivityEvent,
+      audit_class: ComPreferenceChronicle,
+      audit_event_class: ComPreferenceChronicleEvent,
     },
   ].freeze
 
@@ -621,10 +621,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
         ActiveSupport::Notifications.unsubscribe(callback)
       end
 
-      # Verify INSERT query was executed on activity table (audit log)
-      insert_queries = queries.select { |q| q.include?("INSERT") && q.include?("activit") }
+      # Verify INSERT query was executed on chronicle table (audit log)
+      insert_queries = queries.select { |q| q.include?("INSERT") && q.include?("chronicl") }
 
-      assert_not_empty insert_queries, "Should have INSERT query on activity table"
+      assert_not_empty insert_queries, "Should have INSERT query on chronicle table"
     end
   end
 

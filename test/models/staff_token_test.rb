@@ -75,6 +75,10 @@ class StaffTokenTest < ActiveSupport::TestCase
     assert_operator StaffToken, :<, TokenRecord
   end
 
+  test "signed ref lookup uses token connection owner" do
+    assert_equal TokenRecord, StaffToken.send(:connection_owner)
+  end
+
   test "belongs to staff" do
     association = StaffToken.reflect_on_association(:staff)
 

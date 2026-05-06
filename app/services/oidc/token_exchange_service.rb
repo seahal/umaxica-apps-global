@@ -50,8 +50,12 @@ module Oidc
     def find_and_validate_code!
       authorization_code =
         TokenRecord.connected_to(role: :writing) do
-          AuthorizationCode.lock.find_by!(code: code)
+          StaffAuthorizationCode.lock.find_by(code: code)
+        end || MarkRecord.connected_to(role: :writing) do
+          UserAuthorizationCode.lock.find_by(code: code)
         end
+
+      raise ActiveRecord::RecordNotFound unless authorization_code
 
       raise RuntimeError, "Authorization code expired" if authorization_code.expired?
       raise RuntimeError, "Authorization code already consumed" if authorization_code.consumed?
@@ -73,9 +77,11 @@ module Oidc
 
     def consume_and_issue_tokens!(authorization_code)
       client = Oidc::ClientRegistry.find!(client_id)
-      resource = authorization_code.resource
+      resource = authorization_code.is_a?(StaffAuthorizationCode) ? authorization_code.staff : authorization_code.user
 
-      TokenRecord.connected_to(role: :writing) do
+      connection_class = authorization_code.is_a?(StaffAuthorizationCode) ? TokenRecord : MarkRecord
+
+      connection_class.connected_to(role: :writing) do
         authorization_code.consume!
 
         token_record = create_token_record!(client, resource)

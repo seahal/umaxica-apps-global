@@ -32,31 +32,16 @@ module RefreshTokenable
       end
 
       transaction do
-        relation =
-          where(
-            :id => current_token.id,
-            :refresh_token_digest => presented_refresh_digest,
-            :rotated_at => nil,
-            expiry_column => nil,
-            :compromised_at => nil,
-          ).where(arel_table[:refresh_expires_at].gt(now))
-
-        if column_names.include?("revoked_at")
-          relation = relation.where(arel_table[:revoked_at].eq(nil).or(arel_table[:revoked_at].gt(now)))
-        end
-
-        updated = relation.first
-
-        if updated.blank?
-          current_token.reload
-          return { status: :replay, token: current_token } if current_token.rotated_at.present?
-
-          return { status: :invalid, token: current_token }
-        end
-
-        updated.update!(rotated_at: now, last_used_at: now, updated_at: now)
-
+        current_token.lock!
         current_token.reload
+
+        return { status: :replay, token: current_token } if current_token.rotated_at.present?
+        return { status: :invalid, token: current_token } unless current_token.currently_usable?(now)
+        return { status: :invalid,
+                 token: current_token, } unless current_token.refresh_token_digest == presented_refresh_digest
+
+        current_token.update!(rotated_at: now, last_used_at: now, updated_at: now)
+
         replacement, raw_refresh_token = create_rotated_token_record!(current_token)
 
         {
@@ -117,25 +102,22 @@ module RefreshTokenable
     def actor_foreign_key_from(token)
       return :user_id if token.has_attribute?(:user_id)
       return :staff_id if token.has_attribute?(:staff_id)
-      return :customer_id if token.has_attribute?(:customer_id)
 
-      nil
+      :customer_id
     end
 
     def token_status_key_from(token)
       return :user_token_status_id if token.has_attribute?(:user_token_status_id)
       return :staff_token_status_id if token.has_attribute?(:staff_token_status_id)
-      return :customer_token_status_id if token.has_attribute?(:customer_token_status_id)
 
-      nil
+      :customer_token_status_id
     end
 
     def token_kind_key_from(token)
       return :user_token_kind_id if token.has_attribute?(:user_token_kind_id)
       return :staff_token_kind_id if token.has_attribute?(:staff_token_kind_id)
-      return :customer_token_kind_id if token.has_attribute?(:customer_token_kind_id)
 
-      nil
+      :customer_token_kind_id
     end
   end
 
@@ -168,25 +150,6 @@ module RefreshTokenable
 
       # Return the combined token for the client.
       token
-    end
-  end
-
-  # Revoke the token.
-  def revoke!
-    now = Time.current
-    attrs = {}
-    attrs[:expired_at] = now if has_attribute?(:expired_at)
-    attrs[:revoked_at] = now if has_attribute?(:revoked_at)
-    update!(attrs)
-  end
-
-  def expired?
-    if respond_to?(:expired_at) && has_attribute?(:expired_at)
-      expired_at.present?
-    elsif respond_to?(:revoked_at) && has_attribute?(:revoked_at)
-      revoked_at.present?
-    else
-      false
     end
   end
 

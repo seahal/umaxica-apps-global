@@ -28,13 +28,7 @@ class CustomerPreferenceTimezoneOption < GuestRecord
   DEFAULTS = [ETC_UTC, ASIA_TOKYO].freeze
 
   def self.ensure_defaults!
-    return if DEFAULTS.blank?
-
-    existing_ids = where(id: DEFAULTS).pluck(:id)
-    missing_ids = DEFAULTS - existing_ids
-    return if missing_ids.empty?
-
-    missing_ids.each { |id| create!(id: id) }
+    insert_missing_fixed_ids!(DEFAULTS)
   end
 
   self.primary_key = :id

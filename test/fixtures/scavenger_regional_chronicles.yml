@@ -1,0 +1,45 @@
+# == Schema Information
+#
+# Table name: scavenger_regional_chronicles
+# Database name: chronicle
+#
+#  id              :bigint           not null, primary key
+#  error_message   :text
+#  finished_at     :datetime
+#  idempotency_key :string(128)      not null
+#  job_type        :string(64)       not null
+#  occurred_at     :datetime
+#  payload         :jsonb
+#  retry_count     :integer
+#  started_at      :datetime
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  event_id        :bigint           default(0), not null
+#  region_id       :bigint           not null
+#  status_id       :bigint           default(0), not null
+#
+# Indexes
+#
+#  idx_on_region_id_idempotency_key_2dd0f63eee                    (region_id,idempotency_key) UNIQUE
+#  index_scavenger_regional_chronicles_on_event_id                (event_id)
+#  index_scavenger_regional_chronicles_on_occurred_at             (occurred_at)
+#  index_scavenger_regional_chronicles_on_region_id_and_job_type  (region_id,job_type)
+#  index_scavenger_regional_chronicles_on_status_id               (status_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (event_id => scavenger_regional_chronicle_events.id)
+#  fk_rails_...  (status_id => scavenger_regional_chronicle_statuses.id)
+#
+one:
+  region_id: 1
+  occurred_at: 2026-02-24 03:21:00
+  event_id: 1
+  status_id: 2
+  job_type: scavenger:regional
+  payload: { source: fixture }
+  started_at: 2026-02-24 03:21:05
+  finished_at: 2026-02-24 03:21:15
+  retry_count: 0
+  idempotency_key: regional-fixture-1
+  error_message:

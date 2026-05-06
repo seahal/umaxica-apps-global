@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: user_tokens
-# Database name: token
+# Database name: mark
 #
 #  id                           :bigint           not null, primary key
 #  compromised_at               :datetime
@@ -65,7 +65,7 @@
 
 # Refresh tokens are persisted as digests only.
 # The public_id is used as the session identifier (sid).
-class UserToken < TokenRecord
+class UserToken < MarkRecord
   include ::PublicId
   include ::RefreshTokenable
   include ::SignedSessionReference

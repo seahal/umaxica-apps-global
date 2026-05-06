@@ -176,37 +176,4 @@ class UserPolicyTest < ActiveSupport::TestCase
 
     assert_equal policy.send(:update?), policy.send(:edit?)
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope_with_staff_admin_or_manager
-  #     staff = staffs(:one)
-  #     scope = UserPolicy::Scope.new(User, user: staff)
-  #     scope.define_singleton_method(:operator_or_manager?) { true }
-  #
-  #     assert_equal User.all, scope.resolve
-  #   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope_with_staff_not_admin_or_manager
-  #     staff = staffs(:one)
-  #     scope = UserPolicy::Scope.new(User, user: staff)
-  #     scope.define_singleton_method(:operator_or_manager?) { false }
-  #
-  #     assert_equal User.none, scope.resolve
-  #   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope_with_user
-  #     user = users(:one)
-  #     scope = UserPolicy::Scope.new(User, user: user)
-  #
-  #     assert_equal User.where(id: user.id), scope.resolve
-  #   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope_with_nil_actor
-  #     scope = UserPolicy::Scope.new(User, user: nil)
-  #
-  #     assert_equal User.none, scope.resolve
-  #   end
 end

@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: com_preference_regions
-# Database name: commerce
+# Database name: setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -23,7 +23,7 @@
 
 # frozen_string_literal: true
 
-class ComPreferenceRegion < CommerceRecord
+class ComPreferenceRegion < SettingRecord
   belongs_to :preference, class_name: "ComPreference", inverse_of: :com_preference_region
   belongs_to :option,
              class_name: "ComPreferenceRegionOption",

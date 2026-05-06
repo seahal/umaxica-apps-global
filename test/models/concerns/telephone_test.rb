@@ -136,4 +136,42 @@ class TelephoneConcernTest < ActiveSupport::TestCase
     assert_predicate @telephone, :locked?
     assert_not_nil @telephone.locked_at
   end
+
+  test "increment_attempts! sets locked_at timestamp when threshold is reached" do
+    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+
+    # Initially locked_at should be a sentinel (-infinity)
+    locked = @telephone.locked_at
+
+    assert locked.nil? || locked.to_s == "-infinity" || (locked.is_a?(Float) && locked == -Float::INFINITY)
+
+    # Increment to threshold
+    3.times { @telephone.increment_attempts! }
+    @telephone.reload
+
+    # locked_at should now be a real timestamp
+    assert_predicate @telephone.locked_at, :present?
+    assert_not_equal @telephone.locked_at, -Float::INFINITY
+    assert_operator @telephone.locked_at, :<=, Time.current
+  end
+
+  test "increment_attempts! does not change locked_at if already set" do
+    initial_lock_time = 1.hour.ago
+    @telephone.update!(locked_at: initial_lock_time, otp_attempts_count: 3)
+
+    # Increment again
+    @telephone.increment_attempts!
+    @telephone.reload
+
+    # locked_at should remain unchanged (idempotent)
+    assert_equal initial_lock_time.to_i, @telephone.locked_at.to_i
+  end
+
+  test "validate_number_format adds specific error for country code" do
+    zero_country = StaffTelephone.new(number: "+0123456789", staff: staffs(:none_staff))
+
+    assert_not zero_country.valid?
+    assert_includes zero_country.errors.details[:number].pluck(:error),
+                    :country_code_cannot_start_with_zero
+  end
 end

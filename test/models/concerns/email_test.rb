@@ -160,6 +160,36 @@ class EmailTest < ActiveSupport::TestCase
     assert_predicate email.reload, :locked?
   end
 
+  test "increment_attempts! sets locked_at timestamp when threshold is reached" do
+    email = create_email(address: "test@example.com", confirm_policy: true)
+
+    # Initially locked_at should be a sentinel (infinity or nil)
+    assert email.locked_at.nil? || email.locked_at == Float::INFINITY || email.locked_at.to_s == "infinity"
+
+    # Increment to threshold
+    3.times { email.increment_attempts! }
+    email.reload
+
+    # locked_at should now be a real timestamp
+    assert_predicate email.locked_at, :present?
+    assert_not_equal email.locked_at, Float::INFINITY
+    assert_not_equal email.locked_at, -Float::INFINITY
+    assert_operator email.locked_at, :<=, Time.current
+  end
+
+  test "increment_attempts! does not change locked_at if already set" do
+    email = create_email(address: "test@example.com", confirm_policy: true)
+    initial_lock_time = 1.hour.ago
+    email.update!(locked_at: initial_lock_time, otp_attempts_count: 3)
+
+    # Increment again
+    email.increment_attempts!
+    email.reload
+
+    # locked_at should remain unchanged (idempotent)
+    assert_equal initial_lock_time.to_i, email.locked_at.to_i
+  end
+
   test "locked? returns true when locked_at is set" do
     email = create_email(address: "test@example.com", confirm_policy: true)
     email.update!(locked_at: Time.current)

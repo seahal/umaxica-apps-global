@@ -40,7 +40,7 @@ module Auth
 
       def token_class = UserToken
 
-      def audit_class = UserActivity
+      def audit_class = UserChronicle
 
       def resource_foreign_key = :user_id
 

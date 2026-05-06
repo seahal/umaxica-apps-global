@@ -53,7 +53,7 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
     end
 
     def audit_class
-      UserActivity
+      UserChronicle
     end
 
     def resource_foreign_key

@@ -30,19 +30,10 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
     assert_bigint_pk(EmailOccurrenceStatus)
   end
 
-  test "commerce schema tables use bigint primary keys" do
-    assert_bigint_pk(AppPreferenceStatus)
+  test "config, option, and setting schemas tables use bigint primary keys" do
+    assert_bigint_pk(ComPreferenceStatus)
     assert_bigint_pk(ComPreferenceLanguageOption)
-  end
-
-  test "publication schema tables use bigint primary keys" do
-    assert_bigint_pk(AppTimelineStatus)
-    assert_bigint_pk(ComTimelineCategoryMaster)
-  end
-
-  test "document schema tables use bigint primary keys" do
-    assert_bigint_pk(AppDocumentStatus)
-    assert_bigint_pk(OrgDocumentTagMaster)
+    assert_bigint_pk(ComPreference)
   end
 
   test "guest schema tables use bigint primary keys" do
@@ -50,9 +41,9 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
     assert_bigint_pk(ComContactCategory)
   end
 
-  test "activity schema tables use bigint primary keys" do
-    assert_bigint_pk(StaffActivityEvent)
-    assert_bigint_pk(UserActivityLevel)
+  test "chronicle schema tables use bigint primary keys" do
+    assert_bigint_pk(StaffChronicleEvent)
+    assert_bigint_pk(UserChronicleLevel)
   end
 
   test "models with code column use citext" do

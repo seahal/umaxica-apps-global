@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: com_preference_colortheme_options
-# Database name: commerce
+# Database name: setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class ComPreferenceColorthemeOption < CommerceRecord
+class ComPreferenceColorthemeOption < SettingRecord
   # Fixed IDs - do not modify these values
   LIGHT = 1
   DARK = 2

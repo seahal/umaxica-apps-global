@@ -97,7 +97,7 @@ class User < PrincipalRecord
            dependent: :restrict_with_exception,
            inverse_of: :user
 
-  has_many :user_activities,
+  has_many :user_chronicles,
            foreign_key: :subject_id,
            dependent: :destroy,
            inverse_of: false
@@ -107,12 +107,9 @@ class User < PrincipalRecord
   has_many :user_memberships,
            dependent: :destroy,
            inverse_of: :user
-  has_many :staff_activities,
+  has_many :staff_chronicles,
            as: :actor,
            dependent: :destroy
-  has_many :user_messages,
-           dependent: :destroy,
-           inverse_of: :user
   has_many :user_notifications,
            dependent: :destroy,
            inverse_of: :user

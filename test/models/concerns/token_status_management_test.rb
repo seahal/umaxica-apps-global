@@ -168,6 +168,23 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
     assert_equal "active", token.status
   end
 
+  test "expiry_column raises when model has no expiry columns" do
+    klass =
+      Class.new do
+        extend TokenStatusManagement::ClassMethods
+
+        define_singleton_method(:column_names) do
+          []
+        end
+
+        define_singleton_method(:name) do
+          "NoExpiryToken"
+        end
+      end
+
+    assert_raises(ArgumentError) { klass.expiry_column }
+  end
+
   test "works with StaffToken as well" do
     staff = Staff.find_by!(public_id: "BCDE2345FGHJ67KM")
     token = StaffToken.create!(staff: staff)

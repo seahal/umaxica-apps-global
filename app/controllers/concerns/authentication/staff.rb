@@ -57,7 +57,7 @@ module Authentication
     end
 
     def audit_class
-      ::StaffActivity
+      ::StaffChronicle
     end
 
     def resource_type

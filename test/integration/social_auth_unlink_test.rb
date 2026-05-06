@@ -173,7 +173,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     # Apple identity should still exist and be ACTIVE
     assert_equal 1, UserSocialApple.where(user: @user).count
 
-    audit = UserActivity.order(created_at: :desc).find_by(event_id: UserActivityEvent::SOCIAL_UNLINKED)
+    audit = UserChronicle.order(created_at: :desc).find_by(event_id: UserChronicleEvent::SOCIAL_UNLINKED)
 
     assert_not_nil audit, "Should create audit record for social unlink"
     assert_equal google_identity.id.to_s, audit.subject_id

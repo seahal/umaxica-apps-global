@@ -84,7 +84,6 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     end
 
     assert_response :redirect
-    puts flash.to_hash
 
     assert_redirected_to sign_com_configuration_path(ri: "jp")
     assert_nil session[:pending_mfa]

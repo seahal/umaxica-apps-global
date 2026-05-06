@@ -97,14 +97,13 @@
   "postStartCommand": "",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/marcosbolanos/devcontainer-features/neovim-prebuilt:1": {},
     "ghcr.io/devcontainers/features/copilot-cli:1": {},
     "ghcr.io/stu-bell/devcontainer-features/gemini-cli:0": {},
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/opencode:1": {},
     "ghcr.io/devcontainers-extra/features/lefthook-asdf:1": {},
     "ghcr.io/jasonthedeveloper/features/trivy:1": {},
-    "ghcr.io/audacioustux/devcontainers/bun:1": {}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",

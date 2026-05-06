@@ -6,9 +6,9 @@ require "base64"
 
 module Sign::App::Up
   class PasskeyRegistrationsControllerTest < ActionDispatch::IntegrationTest
-    fixtures :app_preference_activity_levels, :app_preference_activity_events,
+    fixtures :app_preference_chronicle_levels, :app_preference_chronicle_events,
              :user_statuses, :user_telephone_statuses, :user_passkey_statuses,
-             :user_activity_events, :user_activity_levels
+             :user_chronicle_events, :user_chronicle_levels
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -191,7 +191,7 @@ module Sign::App::Up
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
-        assert_difference("UserActivity.count", 1) do
+        assert_difference("UserChronicle.count", 1) do
           post sign_app_up_telephone_passkey_registration_url(telephone, ri: "jp"), params: {
             challenge_id: challenge_id,
             credential: {
@@ -203,9 +203,9 @@ module Sign::App::Up
         end
       end
 
-      audit = UserActivity.last
+      audit = UserChronicle.last
 
-      assert_equal UserActivityEvent::SIGNED_UP_WITH_TELEPHONE, audit.event_id
+      assert_equal UserChronicleEvent::SIGNED_UP_WITH_TELEPHONE, audit.event_id
       assert_equal telephone.user.id, audit.actor_id
     end
 

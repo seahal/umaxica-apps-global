@@ -54,11 +54,14 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
-        WebAuthn::Credential.stub(:from_get, OpenStruct.new(id: "test", verify: true, sign_count: 1)) do
+        WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
           get sign_org_verification_url(scope: "configuration_passkey", return_to: return_to, ri: "jp"),
               headers: @headers
+          get new_sign_org_verification_passkey_url(ri: "jp"), headers: @headers
 
-          post sign_org_verification_passkey_url(ri: "jp"), headers: @headers
+          post sign_org_verification_passkey_url(ri: "jp"),
+               params: { verification: { challenge_id: "test", credential_json: '{"id":"webauthn_id_1"}' } },
+               headers: @headers
 
           assert_response :redirect
           # Redirects to return_to decoded value
@@ -66,5 +69,15 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
         end
       end
     end
+  end
+
+  private
+
+  def passkey_credential_stub(id)
+    Struct.new(:id, :sign_count) do
+      define_method(:verify) do |*|
+        true
+      end
+    end.new(id, 1)
   end
 end

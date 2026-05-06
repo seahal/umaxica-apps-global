@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: user_token_binding_methods
-# Database name: token
+# Database name: mark
 #
 #  id :bigint           not null, primary key
 #
-class UserTokenBindingMethod < TokenRecord
+class UserTokenBindingMethod < MarkRecord
   NOTHING = 0
   DBSC = 1
   LEGACY = 2

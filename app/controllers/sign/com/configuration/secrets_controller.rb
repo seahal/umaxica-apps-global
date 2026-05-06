@@ -37,7 +37,7 @@ module Sign
           @secret.password = raw_secret
           @secret.save!
 
-          flash[:notice] = t(".created")
+          flash[:notice] = t("sign.app.configuration.secrets.create.created")
           redirect_to(sign_com_configuration_secrets_path(ri: params[:ri]))
         rescue ActiveRecord::RecordInvalid => e
           @secret ||= e.record
@@ -47,12 +47,12 @@ module Sign
 
         def destroy
           if AuthMethodGuard.last_method?(current_customer, excluding: @secret)
-            flash[:alert] = t(".last_method")
+            flash[:alert] = t("sign.app.configuration.secrets.destroy.last_method")
             return redirect_to(sign_com_configuration_secrets_path(ri: params[:ri]))
           end
 
           @secret.update!(customer_secret_status_id: CustomerSecretStatus::DELETED)
-          flash[:notice] = t(".destroyed")
+          flash[:notice] = t("sign.app.configuration.secrets.destroy.destroyed")
           redirect_to(sign_com_configuration_secrets_path(ri: params[:ri]), status: :see_other)
         end
 

@@ -12,6 +12,7 @@
   <%= stylesheet_link_tag "apex/app/main", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
+  <%= inertia_ssr_head %>
   <%= yield :head %>
 </head>
 
@@ -47,7 +48,7 @@
     <ul>
       <li><a href="<%= "#{request.protocol}#{ENV.fetch('APEX_SERVICE_URL', 'app.localhost')}#{request.port_string}/" %>"><%= t('apex.app.preferences.footer.home') %></a></li>
       <li><%= link_to t('apex.app.preferences.footer.preference'), sign_app_preference_url %></li>
-      <li><%= link_to t("apex.app.configurations.title"), apex_app_configuration_path %></li>
+      <li><%= link_to t("apex.app.configurations.title"), "#" %></li>
     </ul>
   </nav>
   <%= render "layouts/shared/footer_cookie_controls", scope: :app %>

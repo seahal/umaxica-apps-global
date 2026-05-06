@@ -10,20 +10,35 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
            :user_token_statuses,
            :user_token_kinds,
            :user_one_time_password_statuses,
-           :app_preference_activity_levels
+           :app_preference_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     # Clear existing TOTPs to avoid limit error
     @user.user_one_time_passwords.destroy_all
+    UserEmail.create!(
+      user: @user,
+      address: "totp-config-test@example.com",
+      user_email_status_id: UserEmailStatus::VERIFIED,
+    )
 
     @token = UserToken.create!(user_id: @user.id)
+    @token.rotate_refresh_token!
+    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "manage_totp")
+    access_token = Authentication::Base::Token.encode(
+      @user,
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      session_public_id: @token.public_id,
+    )
     @headers = {
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      "Authorization" => "Bearer #{access_token}",
     }.freeze
+    cookies["csrf_token"] = "test_csrf_token"
+    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
     satisfy_user_verification(@token)
+    @headers.freeze
 
     @totp = UserOneTimePassword.create!(
       user: @user,
@@ -143,14 +158,23 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "initial setup user can access totp pages without step-up" do
-    user = User.create!
+    user = create_verified_user_with_email(email_address: "initial_totp_access@example.com")
     token = UserToken.create!(user_id: user.id)
-    token.update!(created_at: 1.hour.ago)
+    token.rotate_refresh_token!
+    token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "manage_totp")
     satisfy_user_verification(token)
+    access_token = Authentication::Base::Token.encode(
+      user,
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      session_public_id: token.public_id,
+    )
     headers = {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      "Authorization" => "Bearer #{access_token}",
     }
+    cookies["csrf_token"] = "test_csrf_token"
+    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    satisfy_user_verification(token)
 
     get sign_app_configuration_totps_url(ri: "jp"), headers: headers
 
@@ -158,14 +182,23 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "initial setup user can create first totp without step-up" do
-    user = User.create!
+    user = create_verified_user_with_email(email_address: "initial_totp_create@example.com")
     token = UserToken.create!(user_id: user.id)
-    token.update!(created_at: 1.hour.ago)
+    token.rotate_refresh_token!
+    token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "manage_totp")
     satisfy_user_verification(token)
+    access_token = Authentication::Base::Token.encode(
+      user,
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      session_public_id: token.public_id,
+    )
     headers = {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      "Authorization" => "Bearer #{access_token}",
     }
+    cookies["csrf_token"] = "test_csrf_token"
+    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    satisfy_user_verification(token)
 
     with_mocked_totp do |secret|
       get new_sign_app_configuration_totp_url(ri: "jp"), headers: headers

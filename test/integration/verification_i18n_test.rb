@@ -30,7 +30,7 @@ class VerificationI18nTest < ActionDispatch::IntegrationTest
   end
 
   test "verification view displays translated strings in Japanese" do
-    ReauthSession.delete_all
+    UserReauthSession.delete_all
 
     get sign_app_verification_url(ri: "jp"), headers: @headers
 
@@ -40,7 +40,7 @@ class VerificationI18nTest < ActionDispatch::IntegrationTest
   end
 
   test "verification view displays translated strings in English" do
-    ReauthSession.delete_all
+    UserReauthSession.delete_all
 
     get sign_app_verification_url(ri: "us", lx: "en"), headers: @headers
 

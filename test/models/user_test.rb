@@ -341,6 +341,18 @@ class UserTest < ActiveSupport::TestCase
     assert_predicate @user, :verified_telephone?
   end
 
+  test "verified_telephone? returns true with loaded verified telephone association" do
+    UserTelephone.create!(
+      user: @user,
+      number: "+15557654321",
+      user_identity_telephone_status_id: UserTelephoneStatus::VERIFIED,
+    )
+
+    @user.user_telephones.load
+
+    assert_predicate @user, :verified_telephone?
+  end
+
   test "verified_telephone? returns false with unverified telephone" do
     UserTelephone.create!(
       user: @user,
@@ -442,6 +454,58 @@ class UserTest < ActiveSupport::TestCase
     @user.update!(withdrawal_started_at: Time.current)
 
     assert_predicate @user, :withdrawal_in_progress?
+  end
+
+  test "withdrawal_in_progress? returns true when deactivated" do
+    @user.update!(deactivated_at: Time.current)
+
+    assert_predicate @user, :withdrawal_in_progress?
+  end
+
+  test "passkey_login_available? returns true when passkey and phone verified" do
+    UserTelephone.create!(
+      user: @user,
+      number: "+15551234567",
+      user_identity_telephone_status_id: UserTelephoneStatus::VERIFIED,
+    )
+    UserPasskey.create!(
+      user: @user,
+      status_id: UserPasskeyStatus::ACTIVE,
+      public_key: "test_key",
+      webauthn_id: "test_webauthn_id",
+      description: "My Passkey",
+    )
+
+    assert_predicate @user, :passkey_login_available?
+  end
+
+  test "remaining_login_methods returns apple when active" do
+    UserSocialApple.create!(
+      user: @user,
+      status_id: UserSocialAppleStatus::ACTIVE,
+      token: "test_token",
+      uid: "apple_uid",
+      token_expires_at: 1.day.from_now,
+    )
+
+    assert_includes @user.remaining_login_methods, :apple
+  end
+
+  test "remaining_login_methods returns passkey when available" do
+    UserTelephone.create!(
+      user: @user,
+      number: "+15551234567",
+      user_identity_telephone_status_id: UserTelephoneStatus::VERIFIED,
+    )
+    UserPasskey.create!(
+      user: @user,
+      status_id: UserPasskeyStatus::ACTIVE,
+      public_key: "test_key",
+      webauthn_id: "test_webauthn_id",
+      description: "My Passkey",
+    )
+
+    assert_includes @user.remaining_login_methods, :passkey
   end
 
   private

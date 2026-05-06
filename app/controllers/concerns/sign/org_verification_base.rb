@@ -62,19 +62,19 @@ module Sign
 
       define_method(:verification_model) { StaffVerification }
 
-      define_method(:verification_success_event_id) { StaffActivityEvent::STEP_UP_VERIFIED }
+      define_method(:verification_success_event_id) { StaffChronicleEvent::STEP_UP_VERIFIED }
 
       define_method(:verification_success_notice_key) { "sign.org.verification.success.complete" }
 
       define_method(:verification_success_fallback_path) { sign_org_verification_path(ri: params[:ri]) }
 
-      define_method(:verification_audit_event_class) { StaffActivityEvent }
+      define_method(:verification_audit_event_class) { StaffChronicleEvent }
 
-      define_method(:verification_audit_level_class) { StaffActivityLevel }
+      define_method(:verification_audit_level_class) { StaffChronicleLevel }
 
-      define_method(:verification_default_activity_level_id) { StaffActivityLevel::NOTHING }
+      define_method(:verification_default_activity_level_id) { StaffChronicleLevel::NOTHING }
 
-      define_method(:verification_activity_model) { StaffActivity }
+      define_method(:verification_activity_model) { StaffChronicle }
 
       define_method(:current_verification_actor) { current_staff }
 
@@ -134,7 +134,7 @@ module Sign
     end
 
     def verification_success_event_id
-      StaffActivityEvent::STEP_UP_VERIFIED
+      StaffChronicleEvent::STEP_UP_VERIFIED
     end
 
     def verification_success_notice_key
@@ -145,13 +145,13 @@ module Sign
       sign_org_verification_path(ri: params[:ri])
     end
 
-    def verification_audit_event_class = StaffActivityEvent
+    def verification_audit_event_class = StaffChronicleEvent
 
-    def verification_audit_level_class = StaffActivityLevel
+    def verification_audit_level_class = StaffChronicleLevel
 
-    def verification_default_activity_level_id = StaffActivityLevel::NOTHING
+    def verification_default_activity_level_id = StaffChronicleLevel::NOTHING
 
-    def verification_activity_model = StaffActivity
+    def verification_activity_model = StaffChronicle
 
     def current_verification_actor = current_staff
 

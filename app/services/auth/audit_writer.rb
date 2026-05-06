@@ -19,7 +19,7 @@ module Auth
     def self.write!(audit_class, event_id, resource:, actor: nil, ip_address: nil)
       actor ||= resource
 
-      ActivityRecord.connected_to(role: :writing) do
+      ChronicleRecord.connected_to(role: :writing) do
         normalized_event_id = normalize_event_id(audit_class, event_id)
         audit = build_audit(
           audit_class, normalized_event_id, resource: resource, actor: actor,
@@ -75,8 +75,8 @@ module Auth
       end
 
       # Set resource using the appropriate setter method
-      # For UserActivity: user= or subject_id=/subject_type=
-      # For StaffActivity: staff= or subject_id=/subject_type=
+      # For UserChronicle: user= or subject_id=/subject_type=
+      # For StaffChronicle: staff= or subject_id=/subject_type=
       resource_type = infer_resource_type(audit_class, resource)
       if audit.respond_to?("#{resource_type}=")
         audit.public_send("#{resource_type}=", resource)
@@ -90,9 +90,9 @@ module Auth
     end
 
     # Infers resource type from audit class name
-    # UserActivity -> "user", StaffActivity -> "staff"
+    # UserChronicle -> "user", StaffChronicle -> "staff"
     def self.infer_resource_type(audit_class, resource)
-      # Try to extract from audit class name (UserActivity -> user)
+      # Try to extract from audit class name (UserChronicle -> user)
       class_name = audit_class.name.demodulize
       if class_name =~ /^(\w+)Activity$/
         Regexp.last_match(1).downcase
@@ -113,52 +113,52 @@ module Auth
 
     def self.event_id_map_for(audit_class)
       case audit_class.name
-      when "UserActivity"
+      when "UserChronicle"
         {
-          "LOGGED_IN" => UserActivityEvent::LOGGED_IN,
-          "LOGGED_OUT" => UserActivityEvent::LOGGED_OUT,
-          "LOGIN_FAILED" => UserActivityEvent::LOGIN_FAILED,
-          "TOKEN_REFRESHED" => UserActivityEvent::TOKEN_REFRESHED,
+          "LOGGED_IN" => UserChronicleEvent::LOGGED_IN,
+          "LOGGED_OUT" => UserChronicleEvent::LOGGED_OUT,
+          "LOGIN_FAILED" => UserChronicleEvent::LOGIN_FAILED,
+          "TOKEN_REFRESHED" => UserChronicleEvent::TOKEN_REFRESHED,
         }
-      when "StaffActivity"
+      when "StaffChronicle"
         {
-          "LOGGED_IN" => StaffActivityEvent::LOGGED_IN,
-          "LOGGED_OUT" => StaffActivityEvent::LOGGED_OUT,
-          "LOGIN_FAILED" => StaffActivityEvent::LOGIN_FAILED,
-          "TOKEN_REFRESHED" => StaffActivityEvent::TOKEN_REFRESHED,
+          "LOGGED_IN" => StaffChronicleEvent::LOGGED_IN,
+          "LOGGED_OUT" => StaffChronicleEvent::LOGGED_OUT,
+          "LOGIN_FAILED" => StaffChronicleEvent::LOGIN_FAILED,
+          "TOKEN_REFRESHED" => StaffChronicleEvent::TOKEN_REFRESHED,
         }
-      when "AppPreferenceActivity"
+      when "AppPreferenceChronicle"
         {
-          "REFRESH_TOKEN_ROTATED" => AppPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-          "UPDATE_PREFERENCE_COOKIE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-          "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
-          "RESET_BY_USER_DECISION" => AppPreferenceActivityEvent::RESET_BY_USER_DECISION,
-          "UPDATE_PREFERENCE_TIMEZONE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-          "UPDATE_PREFERENCE_REGION" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-          "UPDATE_PREFERENCE_LANGUAGE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-          "CREATE_NEW_PREFERENCE_TOKEN" => AppPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
+          "REFRESH_TOKEN_ROTATED" => AppPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+          "UPDATE_PREFERENCE_COOKIE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+          "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
+          "RESET_BY_USER_DECISION" => AppPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+          "UPDATE_PREFERENCE_TIMEZONE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+          "UPDATE_PREFERENCE_REGION" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+          "UPDATE_PREFERENCE_LANGUAGE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+          "CREATE_NEW_PREFERENCE_TOKEN" => AppPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
         }
-      when "ComPreferenceActivity"
+      when "ComPreferenceChronicle"
         {
-          "CREATE_NEW_PREFERENCE_TOKEN" => ComPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
-          "REFRESH_TOKEN_ROTATED" => ComPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-          "UPDATE_PREFERENCE_COOKIE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-          "UPDATE_PREFERENCE_LANGUAGE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-          "UPDATE_PREFERENCE_TIMEZONE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-          "RESET_BY_USER_DECISION" => ComPreferenceActivityEvent::RESET_BY_USER_DECISION,
-          "UPDATE_PREFERENCE_REGION" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-          "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
+          "CREATE_NEW_PREFERENCE_TOKEN" => ComPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
+          "REFRESH_TOKEN_ROTATED" => ComPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+          "UPDATE_PREFERENCE_COOKIE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+          "UPDATE_PREFERENCE_LANGUAGE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+          "UPDATE_PREFERENCE_TIMEZONE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+          "RESET_BY_USER_DECISION" => ComPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+          "UPDATE_PREFERENCE_REGION" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+          "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
         }
-      when "OrgPreferenceActivity"
+      when "OrgPreferenceChronicle"
         {
-          "CREATE_NEW_PREFERENCE_TOKEN" => OrgPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
-          "REFRESH_TOKEN_ROTATED" => OrgPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-          "UPDATE_PREFERENCE_COOKIE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-          "UPDATE_PREFERENCE_LANGUAGE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-          "UPDATE_PREFERENCE_TIMEZONE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-          "RESET_BY_USER_DECISION" => OrgPreferenceActivityEvent::RESET_BY_USER_DECISION,
-          "UPDATE_PREFERENCE_REGION" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-          "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
+          "CREATE_NEW_PREFERENCE_TOKEN" => OrgPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
+          "REFRESH_TOKEN_ROTATED" => OrgPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+          "UPDATE_PREFERENCE_COOKIE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+          "UPDATE_PREFERENCE_LANGUAGE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+          "UPDATE_PREFERENCE_TIMEZONE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+          "RESET_BY_USER_DECISION" => OrgPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+          "UPDATE_PREFERENCE_REGION" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+          "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
         }
       else
         {}

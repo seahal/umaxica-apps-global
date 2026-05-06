@@ -30,14 +30,14 @@ class UserSecrets::DestroyTest < ActiveSupport::TestCase
     end
   end
 
-  test "creates UserActivity audit when actor is User" do
-    assert_difference("UserActivity.count", 1) do
+  test "creates UserChronicle audit when actor is User" do
+    assert_difference("UserChronicle.count", 1) do
       UserSecrets::Destroy.call(actor: @user, secret: @secret)
     end
 
-    activity = UserActivity.last
+    activity = UserChronicle.last
 
-    assert_equal UserActivityEvent::USER_SECRET_REMOVED, activity.event_id
+    assert_equal UserChronicleEvent::USER_SECRET_REMOVED, activity.event_id
     assert_equal @user, activity.actor
     assert_equal @secret.id.to_s, activity.subject_id
   end

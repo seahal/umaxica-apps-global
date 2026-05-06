@@ -25,7 +25,22 @@ module Common
       keys.filter_map { |k| Common::Redirect.normalize_host(ENV[k]) }
     end
 
-    # Removed private due to Ruby 4.0 compatibility issue
+    private
+
+    def safe_redirect_to(target, fallback: "/", **)
+      safe_path = safe_internal_path(target)
+
+      if safe_path
+        redirect_to(safe_path, allow_other_host: false, **)
+      else
+        redirect_to(fallback, allow_other_host: false, **)
+      end
+    end
+
+    def safe_redirect_back_or_to(fallback, **)
+      safe_path = safe_internal_path(request.referer)
+      redirect_to(safe_path || fallback, allow_other_host: false, **)
+    end
 
     def safe_internal_path(target)
       return nil if target.blank?
@@ -45,21 +60,6 @@ module Common
 
       query = parsed_uri.query
       query.present? ? "#{path}?#{query}" : path
-    end
-
-    def safe_redirect_to(target, fallback: "/", **)
-      safe_path = safe_internal_path(target)
-
-      if safe_path
-        redirect_to(safe_path, allow_other_host: false, **)
-      else
-        redirect_to(fallback, allow_other_host: false, **)
-      end
-    end
-
-    def safe_redirect_back_or_to(fallback, **)
-      safe_path = safe_internal_path(request.referer)
-      redirect_to(safe_path || fallback, allow_other_host: false, **)
     end
 
     def generate_redirect_url(url)

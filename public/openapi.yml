@@ -16,12 +16,16 @@ servers:
     description: Core Service
   - url: https://core.org.localhost
     description: Core Staff
-  - url: https://apex.com.localhost
+  - url: https://www.com.localhost
     description: Apex Corporate
-  - url: https://apex.app.localhost
+  - url: https://www.app.localhost
     description: Apex Service
-  - url: https://apex.org.localhost
+  - url: https://www.org.localhost
     description: Apex Staff
+  - url: https://www.net.localhost
+    description: Apex Network
+  - url: https://www.dev.localhost
+    description: Apex Developer
 
 paths:
   /v0/health:

@@ -101,7 +101,7 @@ class SocialAuthService
 
       identity.update!(identity_class.status_column => revoked_status)
 
-      create_audit_event!(UserActivityEvent::SOCIAL_UNLINKED, subject: identity)
+      create_audit_event!(UserChronicleEvent::SOCIAL_UNLINKED, subject: identity)
 
       Rails.event.notify(
         "social_auth.unlinked",
@@ -451,12 +451,12 @@ class SocialAuthService
   end
 
   def create_audit_event!(event_id, subject:)
-    ActivityRecord.connected_to(role: :writing) do
-      UserActivityEvent.find_or_create_by!(id: event_id)
-      UserActivityLevel.find_or_create_by!(id: UserActivityLevel::NOTHING)
+    ChronicleRecord.connected_to(role: :writing) do
+      UserChronicleEvent.find_or_create_by!(id: event_id)
+      UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
     end
 
-    UserActivity.create!(
+    UserChronicle.create!(
       actor_type: "User",
       actor_id: @current_user.id,
       event_id: event_id,

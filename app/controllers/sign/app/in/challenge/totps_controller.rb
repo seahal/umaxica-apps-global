@@ -36,10 +36,7 @@ module Sign
 
             unless cloudflare_turnstile_stealth_validation["success"]
               @totp_form.errors.add(
-                :base, t(
-                  "sign.app.in.mfa.turnstile_failed",
-                  default: "検証に失敗しました。もう一度お試しください。",
-                ),
+                :base, t("session_limit.turnstile_failed"),
               )
               return render :new, status: :unprocessable_content
             end

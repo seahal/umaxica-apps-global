@@ -25,7 +25,7 @@ module Withdrawable
   end
 
   def recovery_deadline
-    return nil unless withdrawn_at
+    return nil if withdrawn_at.blank? || withdrawn_at == Float::INFINITY
 
     withdrawn_at + WITHDRAWAL_RECOVERY_PERIOD
   end

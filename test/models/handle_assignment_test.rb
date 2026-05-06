@@ -53,6 +53,10 @@ class HandleAssignmentTest < ActiveSupport::TestCase
     )
   end
 
+  test "current_attributes returns handle and avatar ids" do
+    assert_equal [:handle_id, :avatar_id], HandleAssignment.current_attributes
+  end
+
   test "valid_to defaults to infinity" do
     assignment = HandleAssignment.create!(
       avatar: @avatar,

@@ -64,4 +64,28 @@ class ApplicationErrorTest < ActiveSupport::TestCase
     assert_equal 3, error.context.size
     assert_equal 1, error.context[:user_id]
   end
+
+  def test_application_error_with_unicode_message
+    error = ApplicationError.new("直接日本語メッセージ", :bad_request)
+
+    assert_equal "直接日本語メッセージ", error.message
+  end
+
+  def test_application_error_with_unicode_key_that_is_not_translated
+    error = ApplicationError.new("nonexistent.error.キー", :bad_request)
+
+    assert_match(/nonexistent|Translation missing|キー/, error.message)
+  end
+
+  def test_application_error_status_code_default
+    error = ApplicationError.new("test.error.key")
+
+    assert_equal :internal_server_error, error.status_code
+  end
+
+  def test_application_error_context_is_empty_when_not_provided
+    error = ApplicationError.new("test.error.key", :bad_request)
+
+    assert_empty error.context
+  end
 end

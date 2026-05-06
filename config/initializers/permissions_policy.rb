@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+require Rails.root.join("lib/host_origin_env").to_s
+
 # Define an application-wide HTTP Permissions-Policy header.
 # See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy
 
@@ -29,6 +31,13 @@ Rails.application.config.permissions_policy do |f|
   f.payment(:none)
 
   # Allow WebAuthn for our authentication domains
-  f.publickey_credentials_get(:self, "https://id.umaxica.app", "https://id.umaxica.com", "https://id.umaxica.org")
-  f.publickey_credentials_create(:self, "https://id.umaxica.app", "https://id.umaxica.com", "https://id.umaxica.org")
+  id_origins =
+    HostOriginEnv.trusted_origins(
+      ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+      ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+    )
+
+  f.publickey_credentials_get(:self, *id_origins)
+  f.publickey_credentials_create(:self, *id_origins)
 end

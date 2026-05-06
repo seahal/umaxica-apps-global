@@ -12,17 +12,12 @@ class Sign::Org::UpsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_org_up_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
-    if ENV["DEBUG"]
-      puts "BODY: #{response.body}"
-      puts "TRANSLATION: #{I18n.t("sign.org.ups.new.recruit_prompt_html")}"
-      puts "LOCALE: #{I18n.locale}"
-    end
   end
 
   test "renders recruit contact and home links" do
     get new_sign_org_up_url(ri: "jp"), headers: { "Host" => @host }
 
-    apex_host = ENV["APEX_STAFF_URL"].presence || "org.localhost"
+    apex_host = ENV["APEX_STAFF_URL"].presence || "www.org.localhost"
     # Match the URL while allowing any order of query parameters
     assert_select "div a[href^=?]", "http://#{apex_host}/",
                   text: I18n.t("sign.org.ups.new.recruit_link_text")

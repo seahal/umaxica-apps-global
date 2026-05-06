@@ -48,4 +48,9 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
     error = assert_raises(NotImplementedError) { DummySocial.status_column }
     assert_match(/Subclass must define status_column/, error.message)
   end
+
+  test "status_class is required for subclasses" do
+    error = assert_raises(NotImplementedError) { DummySocial.status_class }
+    assert_match(/Subclass must define status_class/, error.message)
+  end
 end

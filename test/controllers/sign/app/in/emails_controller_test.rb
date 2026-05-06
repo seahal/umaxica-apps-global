@@ -101,7 +101,12 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal existing_session.response.status, missing_session.response.status
     assert_equal existing_session.response.location, missing_session.response.location
-    assert_equal existing_session.flash[:notice], missing_session.flash[:notice]
+
+    if existing_session.flash[:notice].nil?
+      assert_nil missing_session.flash[:notice]
+    else
+      assert_equal existing_session.flash[:notice], missing_session.flash[:notice]
+    end
   end
 
   test "POST create with existing email generates OTP and redirects to edit" do
@@ -383,15 +388,15 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     valid_pass_code = hotp.at(otp_counter).to_s
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    assert_difference -> { UserActivity.where(event_id: UserActivityEvent::LOGGED_IN).count }, 1 do
+    assert_difference -> { UserChronicle.where(event_id: UserChronicleEvent::LOGGED_IN).count }, 1 do
       patch sign_app_in_email_url(ri: "jp"),
             params: { user_email: { pass_code: valid_pass_code } },
             headers: { "Host" => @host }
     end
 
-    audit = UserActivity.order(created_at: :desc).first
+    audit = UserChronicle.order(created_at: :desc).first
 
-    assert_equal UserActivityEvent::LOGGED_IN, audit.event_id
+    assert_equal UserChronicleEvent::LOGGED_IN, audit.event_id
     assert_equal user, audit.user
   end
 
@@ -445,15 +450,15 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_counter = 56_789
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    assert_difference -> { UserActivity.where(event_id: UserActivityEvent::LOGIN_FAILED).count }, 1 do
+    assert_difference -> { UserChronicle.where(event_id: UserChronicleEvent::LOGIN_FAILED).count }, 1 do
       patch sign_app_in_email_url(ri: "jp"),
             params: { user_email: { pass_code: "000000" } },
             headers: { "Host" => @host }
     end
 
-    audit = UserActivity.order(created_at: :desc).first
+    audit = UserChronicle.order(created_at: :desc).first
 
-    assert_equal UserActivityEvent::LOGIN_FAILED, audit.event_id
+    assert_equal UserChronicleEvent::LOGIN_FAILED, audit.event_id
     assert_equal user, audit.user
   end
 

@@ -47,6 +47,35 @@ apple_team_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_TEAM_ID)
 apple_key_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_KEY_ID)
 apple_pem = Rails.app.creds.option(:OMNI_AUTH_APPLE_PRIVATE_KEY)
 
+# =============================================================================
+# Corporate Social Login Guard
+# =============================================================================
+# Rejects /auth/... requests on the corporate host to prevent social login bypass.
+class OmniAuthCorporateGuard
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    return @app.call(env) unless env["PATH_INFO"].start_with?("/auth/")
+
+    if corporate_host?(env)
+      return [404, { "Content-Type" => "text/plain" }, ["Not Found"]]
+    end
+
+    @app.call(env)
+  end
+
+  private
+
+  def corporate_host?(env)
+    # ENV["ID_CORPORATE_URL"] is hostname-only (e.g. id.com.localhost or id.umaxica.com)
+    corporate = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    Rack::Request.new(env).host == corporate
+  end
+end
+
+Rails.application.config.middleware.use(OmniAuthCorporateGuard)
 Rails.application.config.middleware.use(OmniAuth::Builder) do
   # ---------------------------------------------------------------------------
   # Google OAuth2 - App (user sign-in/sign-up)

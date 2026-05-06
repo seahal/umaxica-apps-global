@@ -2038,10 +2038,10 @@ module Authentication
       elsif respond_to?(:sign_org_in_session_path, true)
         sign_org_in_session_path
       else
-        "/in/session"
+        "/sign/in/session"
       end
     rescue StandardError
-      "/in/session"
+      "/sign/in/session"
     end
 
     # Default redirect destination after login for guest_only! policy.
@@ -2407,10 +2407,10 @@ module Authentication
       elsif respond_to?(:sign_org_in_challenge_path, true)
         sign_org_in_challenge_path(ri: ri)
       else
-        "/in/challenge"
+        "/sign/in/challenge"
       end
     rescue StandardError
-      "/in/challenge"
+      "/sign/in/challenge"
     end
 
     def handle_auth_required_json(options)

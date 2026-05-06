@@ -1,9 +1,9 @@
 {
   "features": {
-    "ghcr.io/audacioustux/devcontainers/bun:1": {
-      "version": "1.0.0",
-      "resolved": "ghcr.io/audacioustux/devcontainers/bun@sha256:dfa5bc9e0d2c50be91e229e88b576af05f857e67482eff6fcd3a318fd7f4a896",
-      "integrity": "sha256:dfa5bc9e0d2c50be91e229e88b576af05f857e67482eff6fcd3a318fd7f4a896"
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
+      "version": "1.0.5",
+      "resolved": "ghcr.io/anthropics/devcontainer-features/claude-code@sha256:cfc2e7d3e9fd3b9b01f8d5cb158508a884c8c0ede2e23ed10f32dea5d4ffe69a",
+      "integrity": "sha256:cfc2e7d3e9fd3b9b01f8d5cb158508a884c8c0ede2e23ed10f32dea5d4ffe69a"
     },
     "ghcr.io/devcontainers-extra/features/lefthook-asdf:1": {
       "version": "1.0.3",
@@ -11,9 +11,9 @@
       "integrity": "sha256:7eeba1f61b4eda2004fdced224c39a775c00e248790f35407353252b48f3cc43"
     },
     "ghcr.io/devcontainers/features/copilot-cli:1": {
-      "version": "1.0.0",
-      "resolved": "ghcr.io/devcontainers/features/copilot-cli@sha256:905c3bd16f12b57e4e68319838799f51d5540982a8911a68f1605f3562838c8b",
-      "integrity": "sha256:905c3bd16f12b57e4e68319838799f51d5540982a8911a68f1605f3562838c8b"
+      "version": "1.1.2",
+      "resolved": "ghcr.io/devcontainers/features/copilot-cli@sha256:757c6c2899dc902c44a9f6164c1f7392832ced13c6bb632d8d60a880f2e92456",
+      "integrity": "sha256:757c6c2899dc902c44a9f6164c1f7392832ced13c6bb632d8d60a880f2e92456"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {
       "version": "1.1.0",
@@ -35,21 +35,16 @@
       "resolved": "ghcr.io/jsburckhardt/devcontainer-features/opencode@sha256:047f9144ad6540ee416cc2ea170f41bfae887c6c2cd883e14d2ab44a1ce20fc8",
       "integrity": "sha256:047f9144ad6540ee416cc2ea170f41bfae887c6c2cd883e14d2ab44a1ce20fc8"
     },
-    "ghcr.io/marcosbolanos/devcontainer-features/neovim-prebuilt:1": {
-      "version": "1.0.0",
-      "resolved": "ghcr.io/marcosbolanos/devcontainer-features/neovim-prebuilt@sha256:bd1f7a64fc308f256a01c61946db094e0c92c4fd9d32f42b7ea8b661788d879d",
-      "integrity": "sha256:bd1f7a64fc308f256a01c61946db094e0c92c4fd9d32f42b7ea8b661788d879d"
-    },
     "ghcr.io/stu-bell/devcontainer-features/gemini-cli:0": {
-      "version": "0.1.4",
-      "resolved": "ghcr.io/stu-bell/devcontainer-features/gemini-cli@sha256:fe4270714eb833f5c41e03da10a5c248c51bcfcaddb330af6672ffb020e25d25",
-      "integrity": "sha256:fe4270714eb833f5c41e03da10a5c248c51bcfcaddb330af6672ffb020e25d25",
+      "version": "0.1.7",
+      "resolved": "ghcr.io/stu-bell/devcontainer-features/gemini-cli@sha256:c8007e24206445779f51d162636452d003cdd63fe70cbb67dc2228f6a5178b26",
+      "integrity": "sha256:c8007e24206445779f51d162636452d003cdd63fe70cbb67dc2228f6a5178b26",
       "dependsOn": ["ghcr.io/stu-bell/devcontainer-features/node"]
     },
     "ghcr.io/stu-bell/devcontainer-features/node": {
-      "version": "0.5.0",
-      "resolved": "ghcr.io/stu-bell/devcontainer-features/node@sha256:a735250a0e17457a7e5fbe40d57263a58cb8c97c0974003e18c6ef86f9415a28",
-      "integrity": "sha256:a735250a0e17457a7e5fbe40d57263a58cb8c97c0974003e18c6ef86f9415a28"
+      "version": "0.5.2",
+      "resolved": "ghcr.io/stu-bell/devcontainer-features/node@sha256:044479bdbf55bf9191f6bea70306818c7669259f6962add77af2ff7d93658541",
+      "integrity": "sha256:044479bdbf55bf9191f6bea70306818c7669259f6962add77af2ff7d93658541"
     }
   }
 }

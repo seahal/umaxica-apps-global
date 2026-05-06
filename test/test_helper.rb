@@ -3,24 +3,17 @@
 
 ENV["RAILS_ENV"] ||= "test"
 
-# Set side URLs for tests
-ENV["SIDE_CORPORATE_URL"] ||= "news.com.localhost"
-ENV["SIDE_SERVICE_URL"] ||= "news.app.localhost"
-ENV["SIDE_STAFF_URL"] ||= "news.org.localhost"
+trusted_origins = ENV["TRUSTED_ORIGINS"].to_s.split(",").map(&:strip).reject(&:empty?)
+trusted_origins |= [
+  "http://id.app.localhost",
+  "http://id.com.localhost",
+  "http://id.org.localhost",
+]
+ENV["TRUSTED_ORIGINS"] = trusted_origins.join(",")
+COVERAGE_ENABLED = ENV["COVERAGE"] == "true"
+require_relative "support/simplecov_setup" if COVERAGE_ENABLED
 
-# Set main URLs for tests
-ENV["MAIN_CORPORATE_URL"] ||= "main.com.localhost"
-ENV["MAIN_SERVICE_URL"] ||= "main.app.localhost"
-ENV["MAIN_STAFF_URL"] ||= "main.org.localhost"
-
-# Set jump URLs for tests
-ENV["JUMP_CORPORATE_URL"] ||= "jump.example.com"
-ENV["JUMP_SERVICE_URL"] ||= "jump.example.app"
-ENV["JUMP_STAFF_URL"] ||= "jump.example.org"
 require "active_model"
-coverage_enabled = ActiveModel::Type::Boolean.new.cast(ENV["COVERAGE"])
-require_relative "support/simplecov_setup" if coverage_enabled
-
 require_relative "../config/environment"
 require "rails/test_help"
 
@@ -31,7 +24,7 @@ end
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
-    parallelize(workers: :number_of_processors, work_stealing: true)
+    parallelize(workers: COVERAGE_ENABLED ? 1 : :number_of_processors, work_stealing: true)
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all

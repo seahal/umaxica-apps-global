@@ -9,8 +9,6 @@ class AddTestSeederIdentityData < ActiveRecord::Migration[8.2]
       seed_ids = {
         "user_identity_statuses" => %w(NEYO ALIVE VERIFIED_WITH_SIGN_UP PRE_WITHDRAWAL_CONDITION WITHDRAWAL_COMPLETED),
         "staff_identity_statuses" => %w(NEYO ALIVE PRE_WITHDRAWAL_CONDITION WITHDRAWAL_COMPLETED),
-        "user_token_statuses" => %w(NEYO ACTIVE),
-        "staff_token_statuses" => %w(NEYO ACTIVE),
         "user_identity_email_statuses" => %w(NEYO UNVERIFIED_WITH_SIGN_UP VERIFIED_WITH_SIGN_UP UNVERIFIED ALIVE
                                              SUSPENDED DELETED),
         "staff_identity_email_statuses" => %w(NEYO UNVERIFIED VERIFIED SUSPENDED DELETED),

@@ -45,7 +45,7 @@ module Oidc
 
       return if ActiveSupport::SecurityUtils.secure_compare(expected_state.to_s, params[:state].to_s)
 
-      raise ActionController::InvalidAuthenticityToken, "OIDC state mismatch"
+      raise ActionController::InvalidCrossOriginRequest, "OIDC state mismatch"
     end
 
     def set_auth_cookies_from_token_response(token_response)

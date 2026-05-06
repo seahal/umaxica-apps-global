@@ -60,7 +60,7 @@ class UserSecrets::UpdateTest < ActiveSupport::TestCase
   end
 
   test "creates user activity audit record" do
-    assert_difference -> { UserActivity.count } do
+    assert_difference -> { UserChronicle.count } do
       UserSecrets::Update.call(
         actor: @user,
         secret: @secret,
@@ -68,12 +68,12 @@ class UserSecrets::UpdateTest < ActiveSupport::TestCase
       )
     end
 
-    activity = UserActivity.last
+    activity = UserChronicle.last
 
     assert_equal @user, activity.actor
     assert_equal "UserSecret", activity.subject_type
     assert_equal @secret.id.to_s, activity.subject_id
-    assert_equal UserActivityEvent::USER_SECRET_UPDATED, activity.event_id
+    assert_equal UserChronicleEvent::USER_SECRET_UPDATED, activity.event_id
   end
 
   test "handles string true for enabled" do

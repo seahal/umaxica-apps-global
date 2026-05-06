@@ -32,16 +32,16 @@ class SolidInfrastructureTest < ActiveSupport::TestCase
             File.write("tmp/job_test.txt", arg)
           end
         end
-      Object.const_set(:TestJob, job)
+      Object.const_set(:InfrastructureTestJob, job)
 
-      TestJob.perform_later("done")
+      InfrastructureTestJob.perform_later("done")
 
       # In test environment, Solid Queue might not have a worker running.
       # But we can check the database.
       assert_operator SolidQueue::Job.count, :>=, 1
     ensure
       ActiveJob::Base.queue_adapter = old_adapter
-      Object.send(:remove_const, :TestJob)
+      Object.send(:remove_const, :InfrastructureTestJob)
       FileUtils.rm_f("tmp/job_test.txt")
     end
   end

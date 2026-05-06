@@ -1,41 +1,43 @@
+---
 name: umaxica-apps-global
 services:
   core:
     build:
-      context: .
-      dockerfile: ./Dockerfile
+      context: "."
+      dockerfile: "./Dockerfile"
       args:
-        COMMIT_HASH: "abcdef"
-        DOCKER_UID: ${UID:-1000}
-        DOCKER_GID: ${GID:-1000}
+        COMMIT_HASH: abcdef
+        DOCKER_UID: "${UID:-1000}"
+        DOCKER_GID: "${GID:-1000}"
     env_file: docker/core/env
-    entrypoint: ["/bin/bash", "/home/global/workspace/docker/core/entrypoint.sh"]
-    command: ["sleep", "infinity"]
+    entrypoint:
+    - "/bin/bash"
+    - "/home/global/workspace/docker/core/entrypoint.sh"
+    command:
+    - sleep
+    - infinity
     restart: always
     user: "${UID:-1000}:${GID:-1000}"
     tmpfs:
-      - /home/global/workspace/tmp:uid=${UID:-1000},gid=${GID:-1000}
-      - /home/global/workspace/log:uid=${UID:-1000},gid=${GID:-1000}
-    ports:
-      - "3001:3000" # development (all-in-one)
-      - "3101:3100" # global
-      - "3201:3200" # local jp
-      - "3301:3300" # local us
+    - "/home/global/workspace/tmp:uid=${UID:-1000},gid=${GID:-1000}"
+    - "/home/global/workspace/log:uid=${UID:-1000},gid=${GID:-1000}"
     volumes:
-      - type: bind
-        source: .
-        target: /home/global/workspace
+    - type: bind
+      source: "."
+      target: "/home/global/workspace"
+    ports:
+    - "3001:3000"
     networks:
       backend: {}
       frontend:
         aliases:
-          - id.app.localhost
-          - id.com.localhost
-          - id.org.localhost
+        - id.app.localhost
+        - id.com.localhost
+        - id.org.localhost
       observability: {}
       outer:
         aliases:
-          - global
+        - global
     depends_on:
       primary:
         condition: service_healthy
@@ -47,82 +49,76 @@ services:
         condition: service_started
   kumo:
     image: ghcr.io/sivchari/kumo:latest
-    ports:
-      - "4566:4566"
   primary:
     image: postgres:18.1-alpine
     command:
-      - -c
-      - config_file=/etc/postgresql/postgresql.conf
-      - -c
-      - hba_file=/etc/postgresql/pg_hba.conf
+    - "-c"
+    - config_file=/etc/postgresql/postgresql.conf
+    - "-c"
+    - hba_file=/etc/postgresql/pg_hba.conf
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: password
       POSTGRES_DB: db
       TZ: UTC
-      POSTGRES_HOST_AUTH_METHOD: trust # dev only
+      POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_INITDB_WAL_LEVEL: replica
       POSTGRES_INITDB_MAX_WAL_SENDERS: 10
       POSTGRES_INITDB_MAX_REPLICATION_SLOTS: 10
     tmpfs:
-      - /var/lib/postgresql/18
-    ports:
-      - "127.0.0.1:5435:5432"
+    - "/var/lib/postgresql/18"
     volumes:
-      - ./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-      - ./docker/psql-pub:/docker-entrypoint-initdb.d:ro
+    - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
+    - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro"
+    - "./docker/psql-pub:/docker-entrypoint-initdb.d:ro"
     networks:
-      - backend
+    - backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d db -h 127.0.0.1"]
+      test:
+      - CMD-SHELL
+      - pg_isready -U root -d db -h 127.0.0.1
       interval: 3s
       timeout: 3s
       retries: 20
       start_period: 5s
-
   replica:
     image: postgres:18.1-alpine
-    entrypoint: /entrypoint.sh
+    entrypoint: "/entrypoint.sh"
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: password
       POSTGRES_DB: db
       TZ: UTC
-      POSTGRES_HOST_AUTH_METHOD: trust # dev only
+      POSTGRES_HOST_AUTH_METHOD: trust
     tmpfs:
-      - /var/lib/postgresql/18
-    ports:
-      - "127.0.0.1:5436:5432"
+    - "/var/lib/postgresql/18"
     volumes:
-      - ./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro
-      - ./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro"
+    - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
+    - "./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro"
     depends_on:
       primary:
         condition: service_healthy
     networks:
-      - backend
+    - backend
     restart: unless-stopped
-
   valkey:
     image: valkey/valkey:8.0-alpine3.22
-    ports:
-      - "127.0.0.1:${VALKEY_HOST_PORT:-56379}:6379"
     networks:
-      - backend
+    - backend
     volumes:
-      - valkey-volume:/data
+    - valkey-volume:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test:
+      - CMD
+      - valkey-cli
+      - ping
       interval: 3s
       timeout: 2s
       retries: 20
       start_period: 3s
-
   kafka:
     image: confluentinc/cp-kafka:7.9.0
     environment:
@@ -137,174 +133,140 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       CLUSTER_ID: UmaxicaCluster01
-    ports:
-      - "127.0.0.1:9092:9092"
     networks:
-      - backend
+    - backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test:
+      - CMD
+      - kafka-broker-api-versions
+      - "--bootstrap-server"
+      - localhost:9092
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
-
   loki:
     image: grafana/loki:latest
-    command: -config.file=/etc/loki/local-config.yaml
-    ports:
-      - "127.0.0.1:${LOKI_HOST_PORT:-33100}:3100"
+    command: "-config.file=/etc/loki/local-config.yaml"
     volumes:
-      - loki-volume:/tmp/loki
+    - loki-volume:/tmp/loki
     networks:
-      - observability
+    - observability
     restart: unless-stopped
-
   tempo:
     image: grafana/tempo:latest
-    command: -config.file=/etc/tempo.yaml
+    command: "-config.file=/etc/tempo.yaml"
     volumes:
-      - ./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro
-      - tempo-volume:/tmp/tempo
-    ports:
-      - "127.0.0.1:14268:14268" # jaeger ingest
-      - "127.0.0.1:3200:3200" # tempo
-      - "127.0.0.1:9095:9095" # tempo grpc
-      - "127.0.0.1:9411:9411" # zipkin
+    - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro"
+    - tempo-volume:/tmp/tempo
     networks:
-      - observability
+    - observability
     restart: unless-stopped
-
   grafana:
     image: grafana/grafana:latest
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
-    ports:
-      - "127.0.0.1:8000:3000"
+      GF_PATHS_PROVISIONING: "/etc/grafana/provisioning"
     volumes:
-      - grafana-volume:/var/lib/grafana
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    - grafana-volume:/var/lib/grafana
+    - "./docker/grafana/provisioning:/etc/grafana/provisioning"
     networks:
-      - observability
+    - observability
     depends_on:
-      - loki
-      - tempo
-      - prometheus
+    - loki
+    - tempo
+    - prometheus
     restart: unless-stopped
-
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     volumes:
-      - ./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro
-    ports:
-      - "127.0.0.1:4317:4317" # otlp grpc
-      - "127.0.0.1:4318:4318" # otlp http
-      - "127.0.0.1:8889:8889" # prometheus exporter
+    - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro"
     networks:
-      - observability
+    - observability
     depends_on:
-      - tempo
+    - tempo
     restart: unless-stopped
-
   prometheus:
     image: prom/prometheus:latest
     volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-volume:/prometheus
-    ports:
-      - "127.0.0.1:9090:9090"
+    - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+    - prometheus-volume:/prometheus
     networks:
-      - observability
+    - observability
     restart: unless-stopped
-
   alloy:
     image: grafana/alloy:latest
     volumes:
-      - ./docker/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+    - "./docker/alloy/config.alloy:/etc/alloy/config.alloy:ro"
+    - "/var/run/docker.sock:/var/run/docker.sock:ro"
     command: run /etc/alloy/config.alloy
     networks:
-      - observability
+    - observability
     depends_on:
-      - loki
+    - loki
     restart: unless-stopped
-
   master:
     image: chrislusf/seaweedfs:4.03
-    ports:
-      - "127.0.0.1:9333:9333"
-      - "127.0.0.1:19333:19333"
-    command: "master -ip=master -ip.bind=0.0.0.0"
+    command: master -ip=master -ip.bind=0.0.0.0
     volumes:
-      - master_data:/data
+    - master_data:/data
     networks:
-      - backend
+    - backend
     restart: unless-stopped
   volume:
     image: chrislusf/seaweedfs:4.03
-    ports:
-      - "127.0.0.1:8080:8080"
-      - "127.0.0.1:18080:18080"
-    command: 'volume -ip=volume -master="master:9333" -ip.bind=0.0.0.0 -port=8080'
+    command: volume -ip=volume -master="master:9333" -ip.bind=0.0.0.0 -port=8080
     volumes:
-      - volume_data:/data
+    - volume_data:/data
     networks:
-      - backend
+    - backend
     depends_on:
-      - master
+    - master
     restart: unless-stopped
   filer:
     image: chrislusf/seaweedfs:4.03
-    ports:
-      - "127.0.0.1:8888:8888"
-      - "127.0.0.1:18888:18888"
-    command: 'filer -ip=filer -master="master:9333" -ip.bind=0.0.0.0'
+    command: filer -ip=filer -master="master:9333" -ip.bind=0.0.0.0
     volumes:
-      - filer_data:/data
+    - filer_data:/data
     networks:
-      - backend
+    - backend
     tty: true
     stdin_open: true
     depends_on:
-      - master
-      - volume
+    - master
+    - volume
     restart: unless-stopped
   s3:
     image: chrislusf/seaweedfs:4.03
-    ports:
-      - "127.0.0.1:8333:8333"
-    command: 's3 -filer="filer:8888" -ip.bind=0.0.0.0'
+    command: s3 -filer="filer:8888" -ip.bind=0.0.0.0
     networks:
-      - backend
+    - backend
     depends_on:
-      - master
-      - volume
-      - filer
+    - master
+    - volume
+    - filer
     restart: unless-stopped
-
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
     depends_on:
-      - core
+    - core
     command: tunnel run --token ${CLOUDFLARED_TOKEN}
     environment:
-      CLOUDFLARED_TOKEN: ${CLOUDFLARED_TOKEN}
+      CLOUDFLARED_TOKEN: "${CLOUDFLARED_TOKEN}"
     networks:
-      - frontend
+    - frontend
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+    - host.docker.internal:host-gateway
     restart: unless-stopped
-
 networks:
   backend: {}
   frontend: {}
   observability: {}
   outer:
-    name: ${OUTER_DOCKER_NETWORK:-umaxica-apps-global_outer}
-    external: ${OUTER_DOCKER_NETWORK_EXTERNAL:-false}
-
+    name: "${OUTER_DOCKER_NETWORK:-umaxica-apps-global_outer}"
+    external: "${OUTER_DOCKER_NETWORK_EXTERNAL:-false}"
 volumes:
   valkey-volume: {}
   loki-volume: {}

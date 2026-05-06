@@ -87,4 +87,18 @@ class Sign::Com::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     assert_response :created
     assert_equal "ok", response.parsed_body["status"]
   end
+
+  test "create json returns not implemented" do
+    I18n.backend.store_translations(:ja, messages: { not_implemented: "Not implemented" })
+    post sign_com_configuration_passkeys_path(ri: "jp", format: :json), headers: @headers
+
+    assert_response :unprocessable_content
+    assert_equal I18n.t("messages.not_implemented"), response.parsed_body["error"]
+  end
+
+  test "destroy json returns no content" do
+    delete sign_com_configuration_passkey_path(@passkey.id, ri: "jp", format: :json), headers: @headers
+
+    assert_response :no_content
+  end
 end

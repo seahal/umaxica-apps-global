@@ -36,7 +36,9 @@ module Apex
 
       # FIXME: Resolve the URL issues before deploying.
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: %w(http://org.localhost https://org.localhost),
+                           trusted_origins: HostOriginEnv.trusted_origins(
+                             ENV.fetch("APEX_STAFF_URL", "www.org.localhost"),
+                           ),
                            with: :exception
 
       auth_required!

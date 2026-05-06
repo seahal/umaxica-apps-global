@@ -280,7 +280,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     assert_includes response.body, User::RECOVERY_IDENTITY_REQUIRED_MESSAGE
   end
 
-  test "create returns unprocessable entity plain message when user has no verified recovery identity" do
+  test "create returns forbidden plain message when user has no verified recovery identity" do
     unverified_user = User.create!(status_id: UserStatus::NOTHING, public_id: SecureRandom.hex(10))
     headers = as_user_headers(unverified_user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
@@ -297,7 +297,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
            headers: headers
     end
 
-    assert_response :unprocessable_entity
+    assert_response :forbidden
     assert_includes response.body, User::RECOVERY_IDENTITY_REQUIRED_MESSAGE
   end
 

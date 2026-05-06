@@ -6,17 +6,12 @@ namespace :data do
   task normalize_sentinel_values: :environment do
     record_bases = [
       ApplicationRecord,
-      ActivityRecord,
       AvatarRecord,
-      BehaviorRecord,
-      DocumentRecord,
+      ChronicleRecord,
       GuestRecord,
-      MessageRecord,
-      PublicationRecord,
       NotificationRecord,
       OccurrenceRecord,
       OperatorRecord,
-      CommerceRecord,
       PrincipalRecord,
       TokenRecord,
     ]

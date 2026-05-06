@@ -51,8 +51,8 @@ class ComContact < GuestRecord
              foreign_key: :status_id,
              inverse_of: :com_contacts
   has_many :com_contact_topics, dependent: :destroy, inverse_of: :com_contact
-  has_many :com_contact_behaviors,
-           class_name: "ComContactBehavior",
+  has_many :com_contact_chronicles,
+           class_name: "ComContactChronicle",
            foreign_key: :subject_id,
            inverse_of: :com_contact,
            dependent: :delete_all

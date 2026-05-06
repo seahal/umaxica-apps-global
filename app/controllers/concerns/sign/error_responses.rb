@@ -3,7 +3,7 @@
 
 module Sign
   # Concern for standardized error response handling
-  # Provides common error handlers for Pundit authorization failures
+  # Provides common error handlers for Action Policy authorization failures
   #
   # Usage:
   #   class ApplicationController < ActionController::Base
@@ -16,7 +16,7 @@ module Sign
     included do
       include Common::Redirect
 
-      # Automatically set up rescue_from if Pundit is included
+      # Automatically set up rescue_from when the concern is included
       if respond_to?(:rescue_from)
         rescue_from ActionPolicy::Unauthorized, with: :handle_not_authorized
         rescue_from ApplicationError, with: :handle_application_error
@@ -35,7 +35,7 @@ module Sign
       end
     end
 
-    # Handles Pundit authorization failures
+    # Handles Action Policy authorization failures
     # Responds with JSON error for API requests, forbidden status for others
     #
     # @param exception [ActionPolicy::Unauthorized] The authorization error

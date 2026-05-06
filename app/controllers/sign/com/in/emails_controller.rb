@@ -16,6 +16,10 @@ module Sign
 
         before_action :load_user_email, only: %i(edit update)
 
+        def identity_email_model
+          CustomerEmail
+        end
+
         def new
           @user_email = CustomerEmail.new
         end
@@ -168,6 +172,10 @@ module Sign
 
         def process_email_authentication(normalized_address)
           existing_email = find_email_with_timing_protection(normalized_address)
+
+          Rails.logger.debug { "Inside controller existing_email: #{existing_email.inspect}" }
+          Rails.logger.debug { "Inside controller identity_email_model: #{identity_email_model}" }
+          Rails.logger.debug { "Inside controller login_allowed: #{existing_email&.customer&.login_allowed?}" }
 
           if existing_email&.customer&.login_allowed?
             customer = existing_email.customer

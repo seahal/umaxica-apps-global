@@ -10,19 +10,12 @@ class IdColumnTypeTest < ActiveSupport::TestCase
   end
 
   test "polymorphic ids use bigint" do
-    assert_bigint_column(AppDocumentBehavior, "actor_id")
-    assert_bigint_column(AppDocumentBehavior, "subject_id")
-
     assert_bigint_column(PostVersion, "edited_by_id")
     assert_bigint_column(Post, "created_by_actor_id")
     assert_bigint_column(Post, "published_by_actor_id")
   end
 
-  test "message and notification public_id columns are strings" do
-    [OperatorMessage, MemberMessage, StaffMessage, UserMessage].each do |model|
-      assert_string_column(model, "public_id")
-    end
-
+  test "notification public_id columns are strings" do
     [OperatorNotification, MemberNotification, StaffNotification, UserNotification].each do |model|
       assert_string_column(model, "public_id")
     end

@@ -18,15 +18,9 @@ module Behavior
   end
 
   SUBJECT_TYPES = {
-    "OrgDocument" => OrgDocument,
     "OrgContact" => OrgContact,
-    "OrgTimeline" => OrgTimeline,
-    "ComDocument" => ComDocument,
     "ComContact" => ComContact,
-    "ComTimeline" => ComTimeline,
     "AppContact" => AppContact,
-    "AppDocument" => AppDocument,
-    "AppTimeline" => AppTimeline,
   }.freeze
 
   def subject

@@ -20,9 +20,17 @@ module SignedSessionReference
       find_logic = -> { find_by(id: token_id, public_id: public_id) }
 
       role = Rails.env.test? ? :writing : signed_ref_lookup_role
-      TokenRecord.connected_to(role: role, &find_logic)
+      connection_owner.connected_to(role: role, &find_logic)
     rescue ActiveSupport::MessageVerifier::InvalidSignature
       nil
+    end
+
+    private
+
+    def connection_owner
+      klass = self
+      klass = klass.superclass until klass.connection_class? || klass == ApplicationRecord
+      klass
     end
   end
 

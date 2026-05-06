@@ -10,12 +10,27 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
+    @user.update!(status_id: UserStatus::ACTIVE)
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @headers = { "X-TEST-CURRENT-USER" => @user.id }.freeze
+    @device_id = SecureRandom.uuid
+    @token = UserToken.create!(
+      user_id: @user.id,
+      device_id: @device_id,
+      device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(@device_id)),
+    )
+    @refresh_plain = @token.rotate_refresh_token!
+    satisfy_user_verification(@token)
+  end
+
+  def seed_refresh_session(token: @token, refresh_plain: @refresh_plain, device_id: @device_id)
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = device_id
+    token
   end
 
   test "should get show when logged in" do
-    get sign_app_configuration_url(ri: "jp"), headers: @headers
+    seed_refresh_session
+    get sign_app_configuration_url(ri: "jp")
 
     assert_response :success
     assert_select "a[href^=?]", sign_app_configuration_emails_path(ri: "jp")
@@ -40,9 +55,20 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "restricted session is blocked on configuration with locked plain response" do
-    token = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
+    device_id = SecureRandom.uuid
+    token = UserToken.create!(
+      user: @user,
+      status: UserToken::STATUS_RESTRICTED,
+      device_id: device_id,
+      device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)),
+    )
     token.rotate_refresh_token!(expires_at: 15.minutes.from_now)
-    headers = as_user_headers(@user, host: @host).merge("X-TEST-SESSION-PUBLIC-ID" => token.public_id)
+    access_token = jwt_access_token_for(@user, host: @host, session_public_id: token.public_id)
+    headers = browser_headers.merge(
+      "Host" => @host,
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => "#{Authentication::Base::ACCESS_COOKIE_KEY}=#{access_token}",
+    )
 
     get sign_app_configuration_url(ri: "jp"), headers: headers
 
@@ -52,11 +78,17 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "active session can access configuration normally" do
-    token = UserToken.create!(user: @user, status: UserToken::STATUS_ACTIVE)
-    token.rotate_refresh_token!
-    headers = as_user_headers(@user, host: @host).merge("X-TEST-SESSION-PUBLIC-ID" => token.public_id)
+    device_id = SecureRandom.uuid
+    token = UserToken.create!(
+      user: @user,
+      status: UserToken::STATUS_ACTIVE,
+      device_id: device_id,
+      device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)),
+    )
+    refresh_plain = token.rotate_refresh_token!
+    seed_refresh_session(token: token, refresh_plain: refresh_plain, device_id: device_id)
 
-    get sign_app_configuration_url(ri: "jp"), headers: headers
+    get sign_app_configuration_url(ri: "jp")
 
     assert_response :success
   end

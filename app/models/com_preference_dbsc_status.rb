@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: com_preference_dbsc_statuses
-# Database name: commerce
+# Database name: setting
 #
 #  id :bigint           not null, primary key
 #
-class ComPreferenceDbscStatus < CommerceRecord
+class ComPreferenceDbscStatus < SettingRecord
   # Fixed IDs - do not modify these values
   NOTHING = 0
   ACTIVE = 1

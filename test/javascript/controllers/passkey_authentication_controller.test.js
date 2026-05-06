@@ -32,8 +32,8 @@ describe("PasskeyAuthenticationController", () => {
 
   beforeEach(() => {
     controller = new PasskeyAuthenticationController();
-    controller.optionsUrlValue = "/in/passkeys/options";
-    controller.verificationUrlValue = "/in/passkeys/verification";
+    controller.optionsUrlValue = "/sign/in/passkeys/options";
+    controller.verificationUrlValue = "/sign/in/passkeys/verification";
     controller.identifierParamValue = "email";
     controller.turnstileSiteKeyValue = "sitekey123";
 

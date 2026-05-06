@@ -90,8 +90,10 @@ module Sign
               )
             when :locked
               reset_registration_session!
-              flash[:alert] = t("sign.app.registration.telephone.update.attempts_exceeded")
-              redirect_to(new_sign_com_configuration_telephones_registration_path(ri: params[:ri]))
+              redirect_to(
+                new_sign_com_configuration_telephones_registration_path(ri: params[:ri]),
+                alert: t("sign.app.registration.telephone.update.attempts_exceeded"),
+              )
             else
               render :edit, status: :unprocessable_content
             end

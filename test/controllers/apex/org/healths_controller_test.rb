@@ -5,7 +5,7 @@ require "test_helper"
 
 class Apex::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns OK response without redirect" do
-    host! ENV["APEX_STAFF_URL"] || "org.localhost"
+    host! ENV["APEX_STAFF_URL"] || "www.org.localhost"
 
     get apex_org_health_url(ri: "jp"), headers: browser_headers
 

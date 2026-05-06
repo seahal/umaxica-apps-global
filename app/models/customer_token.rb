@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: customer_tokens
-# Database name: token
+# Database name: symbol
 #
 #  id                               :bigint           not null, primary key
 #  compromised_at                   :datetime
@@ -57,14 +57,14 @@
 #
 # Foreign Keys
 #
-#  fk_customer_tokens_on_customer_token_binding_method_id
-#    (customer_token_binding_method_id => customer_token_binding_methods.id)
-#  fk_customer_tokens_on_customer_token_dbsc_status_id
-#    (customer_token_dbsc_status_id => customer_token_dbsc_statuses.id)
+#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id =>
+#                                                           customer_token_binding_methods.id)
+#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id =>
+#                                                           customer_token_dbsc_statuses.id)
 #  fk_customer_tokens_on_customer_token_kind_id            (customer_token_kind_id => customer_token_kinds.id)
 #  fk_customer_tokens_on_customer_token_status_id          (customer_token_status_id => customer_token_statuses.id)
 #
-class CustomerToken < TokenRecord
+class CustomerToken < SymbolRecord
   include ::PublicId
   include ::RefreshTokenable
   include ::SignedSessionReference

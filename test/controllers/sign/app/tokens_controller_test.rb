@@ -96,7 +96,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
   test "returns error for expired code" do
     code_record = issue_code!
 
-    travel AuthorizationCode::CODE_TTL + 1.second do
+    travel UserAuthorizationCode::CODE_TTL + 1.second do
       with_authenticated_client do
         post sign_app_token_url(host: @host, ri: "jp"), params: token_params(
           code: code_record.code,
@@ -140,7 +140,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
   end
 
   def issue_code!
-    AuthorizationCode.issue!(
+    UserAuthorizationCode.issue!(
       user: @user,
       client_id: "core_app",
       redirect_uri: @redirect_uri,

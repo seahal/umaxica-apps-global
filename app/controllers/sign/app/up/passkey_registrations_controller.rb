@@ -32,10 +32,10 @@ module Sign
             options: creation_options,
           }, status: :ok
         rescue Sign::Webauthn::OriginValidationError => e
-          Rails.logger.error("WebAuthn origin validation failed: #{e.message}")
+          Rails.event.error("webauthn.origin_validation_failed", error: e.message)
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
         rescue StandardError => e
-          Rails.logger.error("WebAuthn options generation failed: #{e.message}")
+          Rails.event.error("webauthn.options_generation_failed", error: e.message)
           render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
         end
 
@@ -49,10 +49,11 @@ module Sign
           end
 
           with_challenge(challenge_id, purpose: :registration) do |challenge|
-            credential = WebAuthn::Credential.from_create(credential_params.to_h)
-            with_webauthn_config do
-              credential.verify(challenge)
-            end
+            credential = WebAuthn::Credential.from_create(
+              credential_params.to_h,
+              relying_party: webauthn_relying_party,
+            )
+            credential.verify(challenge)
 
             passkey = @user.user_passkeys.new(
               webauthn_id: credential.id,
@@ -129,10 +130,10 @@ module Sign
         end
 
         def record_signup_audit!(user)
-          audit = UserActivity.new
+          audit = UserChronicle.new
           audit.actor_type = "User"
           audit.actor_id = user.id
-          audit.event_id = UserActivityEvent::SIGNED_UP_WITH_TELEPHONE
+          audit.event_id = UserChronicleEvent::SIGNED_UP_WITH_TELEPHONE
           audit.subject_id = user.id.to_s
           audit.subject_type = "User"
           audit.save!

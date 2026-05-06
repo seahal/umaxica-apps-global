@@ -91,6 +91,8 @@ gem "stripe"
 gem "blazer"
 gem "sentry-ruby"
 gem "sentry-rails"
+gem "inertia_rails"
+gem "vite_rails"
 
 group :development, :test do
   # Test coverage
@@ -110,12 +112,8 @@ group :development, :test do
   gem "debride"
   # type
   gem "tapioca", require: false
-  # sorbet
-  gem "sorbet-runtime"
+
   gem "rack-livereload"
-  gem "guard"
-  gem "guard-minitest"
-  gem "guard-livereload", require: false
 end
 
 group :development do

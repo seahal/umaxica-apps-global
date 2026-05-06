@@ -110,10 +110,7 @@ module Sign
           elsif result[:restricted]
             redirect_to(
               sign_org_in_session_path(ri: params[:ri]),
-              notice: I18n.t(
-                "sign.org.in.session.restricted_notice",
-                default: "セッション数が上限に達しています。既存セッションを管理してください。",
-              ),
+              notice: I18n.t("session_limit.restricted_notice"),
             )
           elsif result[:status] == :success
             if issue_bulletin!

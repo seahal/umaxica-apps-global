@@ -13,6 +13,8 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     host! host
     Jit::Security::TurnstileVerifier.test_mode = true
     Jit::Security::TurnstileVerifier.test_response = { "success" => true }
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
     @original_trusted_origins = Webauthn.method(:trusted_origins)
     Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://#{host}"] }
 
@@ -35,6 +37,8 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
     Jit::Security::TurnstileVerifier.test_mode = false
     Jit::Security::TurnstileVerifier.test_response = nil
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   test "should get new" do

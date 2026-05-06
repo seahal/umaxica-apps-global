@@ -157,10 +157,7 @@ module Sign
             when :session_limit_exceeded
               redirect_to(
                 sign_org_in_session_path,
-                notice: I18n.t(
-                  "sign.org.in.session.restricted_notice",
-                  default: "セッション数が上限に達しています。既存セッションを管理してください。",
-                ),
+                notice: I18n.t("session_limit.restricted_notice"),
               )
             else
               redirect_to(
@@ -171,10 +168,7 @@ module Sign
           elsif result.is_a?(Hash) && result[:restricted]
             redirect_to(
               sign_org_in_session_path,
-              notice: I18n.t(
-                "sign.org.in.session.restricted_notice",
-                default: "セッション数が上限に達しています。既存セッションを管理してください。",
-              ),
+              notice: I18n.t("session_limit.restricted_notice"),
             )
           else
             if issue_bulletin!
@@ -228,9 +222,14 @@ module Sign
         # Override to use org path instead of app path
         def reject_social_callback!(reason:, provider:, details: {})
           clear_social_state!
-          Rails.logger.warn(
-            "[SocialCallbackGuard] org phase=callback provider=#{provider.inspect} " \
-            "reason=#{reason} details=#{details.inspect}",
+          Rails.event.warn(
+            "social_callback.rejected",
+            source: "SocialCallbackGuard",
+            surface: "org",
+            phase: "callback",
+            provider: provider,
+            reason: reason,
+            details: details,
           )
           redirect_to(
             new_sign_org_in_path,

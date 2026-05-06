@@ -112,7 +112,7 @@ module Preference
       @user.reload
 
       # Touch app preference to make it newer
-      CommerceRecord.connected_to(role: :writing) { @preference.touch }
+      SettingRecord.connected_to(role: :writing) { @preference.touch }
 
       # Now adopt and sync AppPreference to UserPreference.
       adoption = build_adoption_context(@preference)
@@ -236,7 +236,7 @@ module Preference
         region: AppPreferenceRegion,
         colortheme: AppPreferenceColortheme,
       }.fetch(type)
-      CommerceRecord.connected_to(role: :writing) do
+      SettingRecord.connected_to(role: :writing) do
         klass.create!(preference_id: preference.id, option_id: option_id)
       end
     end

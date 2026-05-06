@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: com_preference_languages
-# Database name: commerce
+# Database name: setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null

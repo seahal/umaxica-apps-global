@@ -12,6 +12,10 @@ class CookieServiceTest < ActiveSupport::TestCase
       @url = "https://app.example.com/"
       @host = "app.example.com"
     end
+
+    def ssl?
+      true
+    end
   end
 
   class MockCookies
@@ -129,6 +133,29 @@ class CookieServiceTest < ActiveSupport::TestCase
     service = Auth::CookieService.new(cookies, request)
 
     result = service.extract_access_token_from_request
+
+    assert_nil result
+  end
+
+  test "extract_access_token_from_request prefers bearer token over cookie" do
+    cookies = MockCookies.new
+    cookies.cookies_hash["auth_access"] = "cookie_token"
+    request = MockRequest.new
+    request.headers["Authorization"] = "Bearer bearer_token"
+    service = Auth::CookieService.new(cookies, request)
+
+    result = service.extract_access_token_from_request
+
+    assert_equal "bearer_token", result
+  end
+
+  test "read_device_id_cookie returns empty string coerced to nil" do
+    cookies = MockCookies.new
+    cookies.cookies_hash["auth_device_id"] = ""
+    request = MockRequest.new
+    service = Auth::CookieService.new(cookies, request)
+
+    result = service.read_device_id_cookie
 
     assert_nil result
   end

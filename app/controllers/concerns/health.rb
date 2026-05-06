@@ -5,17 +5,12 @@ module Health
   extend ActiveSupport::Concern
 
   DATABASE_RECORD_CLASSES = [
-    ActivityRecord,
+    ChronicleRecord,
     AvatarRecord,
-    BehaviorRecord,
-    DocumentRecord,
     GuestRecord,
-    MessageRecord,
-    PublicationRecord,
     NotificationRecord,
     OccurrenceRecord,
     OperatorRecord,
-    CommerceRecord,
     PrincipalRecord,
     TokenRecord,
   ].freeze

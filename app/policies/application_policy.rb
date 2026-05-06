@@ -116,6 +116,7 @@ class ApplicationPolicy < ActionPolicy::Base
   # @return [Boolean]
   def owner?
     return false unless actor
+    return jwt_subject.to_s == actor.id.to_s if record.blank?
 
     if actor.is_a?(User) && record.respond_to?(:user_id)
       record.user_id == actor.id

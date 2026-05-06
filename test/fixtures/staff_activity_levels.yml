@@ -1,9 +1,0 @@
-# == Schema Information
-#
-# Table name: staff_activity_levels
-# Database name: activity
-#
-#  id :bigint           not null, primary key
-#
-nothing:
-  id: 1

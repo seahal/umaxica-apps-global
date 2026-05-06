@@ -157,15 +157,13 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create renders invalid when log_in returns non-success status" do
-    if true # Replaced STUB stub with real execution as per G1
-      post sign_org_in_secret_url(ri: "jp"),
-           params: {
-             secret_login_form: {
-               identifier: @staff.public_id,
-               secret_value: @raw_secret,
-             },
-           }
-    end
+    post sign_org_in_secret_url(ri: "jp"),
+         params: {
+           secret_login_form: {
+             identifier: @staff.public_id,
+             secret_value: "wrong-secret",
+           },
+         }
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("sign.org.authentication.secret.create.invalid")

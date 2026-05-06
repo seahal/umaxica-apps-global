@@ -31,8 +31,8 @@ module Auth
       assert_equal StaffToken, @controller.send(:token_class)
     end
 
-    test "audit_class returns StaffActivity" do
-      assert_equal ::StaffActivity, @controller.send(:audit_class)
+    test "audit_class returns StaffChronicle" do
+      assert_equal ::StaffChronicle, @controller.send(:audit_class)
     end
 
     test "resource_type returns staff" do

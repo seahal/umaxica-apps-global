@@ -28,7 +28,7 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
 
   test "should redirect show when not logged in" do
     get sign_org_configuration_google_url(ri: "jp")
-    rt = Base64.urlsafe_encode64(sign_org_configuration_google_url(ri: "jp"), padding: false)
+    rt = Base64.urlsafe_encode64(sign_org_configuration_google_url(ri: "jp"))
 
     assert_redirected_to new_sign_org_in_url(rt: rt, host: @host)
   end

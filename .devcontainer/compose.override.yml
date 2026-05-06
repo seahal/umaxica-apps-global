@@ -4,9 +4,10 @@ services:
     container_name: global-devcontainer-core
     userns_mode: keep-id
     tmpfs:
-      - /home/global/workspace/tmp:uid=1000,gid=1000
+      - /home/global/workspace/tmp:uid=1000,gid=1000,exec
       - /home/global/workspace/log:uid=1000,gid=1000
     environment:
+      - TMPDIR=/home/global/workspace/tmp
       - DEVCONTAINER=1
       - RUBY_DEBUG_OPEN=false
   primary:

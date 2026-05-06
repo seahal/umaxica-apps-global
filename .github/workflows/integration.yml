@@ -178,9 +178,11 @@ jobs:
       IDENTIFIER_REGION_CODE: "392"
       IDENTIFIER_INSTANCE_ID: "0123456789"
       # Domain URLs - APEX
-      APEX_CORPORATE_URL: com.localhost
-      APEX_SERVICE_URL: app.localhost
-      APEX_STAFF_URL: org.localhost
+      APEX_CORPORATE_URL: www.com.localhost
+      APEX_SERVICE_URL: www.app.localhost
+      APEX_STAFF_URL: www.org.localhost
+      APEX_NETWORK_URL: www.net.localhost
+      APEX_DEVELOPER_URL: www.dev.localhost
       # Domain URLs - Auth
       SIGN_CORPORATE_URL: sign.com.localhost
       SIGN_SERVICE_URL: sign.app.localhost

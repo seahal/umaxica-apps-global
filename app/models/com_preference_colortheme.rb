@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: com_preference_colorthemes
-# Database name: commerce
+# Database name: setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -23,7 +23,7 @@
 
 # frozen_string_literal: true
 
-class ComPreferenceColortheme < CommerceRecord
+class ComPreferenceColortheme < SettingRecord
   belongs_to :preference, class_name: "ComPreference", inverse_of: :com_preference_colortheme
   belongs_to :option,
              class_name: "ComPreferenceColorthemeOption",

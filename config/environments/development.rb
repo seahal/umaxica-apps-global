@@ -98,11 +98,6 @@ Rails.application.configure do
   # config.web_console.permitted_networks = "127.0.0.1", "::1", "172.19.0.0/16"
 
   ## to avoid errors
-  config.hosts << "app.localhost"
-  config.hosts << "com.localhost"
-  config.hosts << "org.localhost"
-  config.hosts << "net.localhost"
-  config.hosts << "dev.localhost"
   config.hosts << "id.app.localhost"
   config.hosts << "id.com.localhost"
   config.hosts << "id.org.localhost"

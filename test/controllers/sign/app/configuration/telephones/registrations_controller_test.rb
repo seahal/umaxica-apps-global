@@ -150,12 +150,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
-      # the method is complete_telephone_verification, we can mock it
-      Sign::App::Configuration::Telephones::RegistrationsController.stub(
-        :complete_telephone_verification, ->(*_args, &block) {
-                                            block.call(tel); :success
-                                          },
-      ) do
+      with_complete_telephone_verification(:success, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -175,7 +170,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
-      if true # Replaced STUB stub with real execution as per G1
+      with_complete_telephone_verification(:session_expired, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -195,7 +190,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
-      if true # Replaced STUB stub with real execution as per G1
+      with_complete_telephone_verification(:locked, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -215,7 +210,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
-      if true # Replaced STUB stub with real execution as per G1
+      with_complete_telephone_verification(:invalid_code, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -242,5 +237,22 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
         original_method,
       )
     end
+  end
+
+  def with_complete_telephone_verification(status, telephone)
+    original_method =
+      Sign::App::Configuration::Telephones::RegistrationsController.instance_method(:complete_telephone_verification)
+    Sign::App::Configuration::Telephones::RegistrationsController.define_method(
+      :complete_telephone_verification,
+    ) do |*_args, &block|
+      block.call(telephone) if status == :success && block
+      status
+    end
+    yield
+  ensure
+    Sign::App::Configuration::Telephones::RegistrationsController.define_method(
+      :complete_telephone_verification,
+      original_method,
+    )
   end
 end

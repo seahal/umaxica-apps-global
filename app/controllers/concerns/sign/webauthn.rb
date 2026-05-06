@@ -35,37 +35,38 @@ module Sign
       request.base_url
     end
 
+    # Returns a per-request WebAuthn::RelyingParty instance.
+    # This avoids mutating global WebAuthn.configuration state.
+    def webauthn_relying_party
+      WebAuthn::RelyingParty.new(
+        allowed_origins: [webauthn_origin],
+        id: webauthn_rp_id,
+      )
+    end
+
     # Validates that the current request origin is in TRUSTED_ORIGINS.
     # Raises OriginValidationError if not trusted.
     def validate_webauthn_origin!
       origin = webauthn_origin
-      unless ::Webauthn.trusted_origins.include?(origin)
+      unless trusted_webauthn_origin?(origin)
         raise OriginValidationError, I18n.t("errors.webauthn.origin_not_trusted", origin: origin)
       end
 
       origin
     end
 
-    # Temporarily configures WebAuthn gem with per-request rp_id and origin.
-    # webauthn gem 3.x requires these to be set in WebAuthn.configuration
-    # during credential verification.
-    #
-    # @yield Block to execute with temporary configuration
-    def with_webauthn_config
-      original_allowed_origins = WebAuthn.configuration.allowed_origins
-      original_rp_id = WebAuthn.configuration.rp_id
+    def trusted_webauthn_origin?(origin)
+      return true if ::Webauthn.trusted_origins.include?(origin)
 
-      begin
-        # Temporarily set configuration for this request
-        WebAuthn.configuration.allowed_origins = [webauthn_origin]
-        WebAuthn.configuration.rp_id = webauthn_rp_id
-
-        yield
-      ensure
-        # Restore original configuration
-        WebAuthn.configuration.allowed_origins = original_allowed_origins
-        WebAuthn.configuration.rp_id = original_rp_id
+      uri = URI.parse(origin)
+      ::Webauthn.trusted_origins.any? do |trusted_origin|
+        trusted_uri = URI.parse(trusted_origin)
+        trusted_uri.scheme == uri.scheme && trusted_uri.host == uri.host
+      rescue URI::InvalidURIError
+        false
       end
+    rescue URI::InvalidURIError
+      false
     end
 
     # Creates a WebAuthn registration challenge for the given user/staff.
@@ -147,7 +148,7 @@ module Sign
       challenges[challenge_id]
     end
 
-    # Removed private due to Ruby 4.0 compatibility issue
+    private
 
     # Stores a challenge in session and returns its ID.
     #

@@ -54,7 +54,7 @@ module Authentication
     end
 
     def audit_class
-      ::UserActivity
+      ::UserChronicle
     end
 
     def resource_type
@@ -80,21 +80,21 @@ module Authentication
 
       normalized_event_id =
         case event_id.to_s
-        when "LOGGED_IN" then UserActivityEvent::LOGGED_IN
-        when "LOGGED_OUT" then UserActivityEvent::LOGGED_OUT
-        when "LOGIN_FAILED" then UserActivityEvent::LOGIN_FAILED
-        when "TOKEN_REFRESHED" then UserActivityEvent::TOKEN_REFRESHED
+        when "LOGGED_IN" then UserChronicleEvent::LOGGED_IN
+        when "LOGGED_OUT" then UserChronicleEvent::LOGGED_OUT
+        when "LOGIN_FAILED" then UserChronicleEvent::LOGIN_FAILED
+        when "TOKEN_REFRESHED" then UserChronicleEvent::TOKEN_REFRESHED
         else event_id
         end
 
-      ActivityRecord.connected_to(role: :writing) do
-        UserActivity.create!(
+      ChronicleRecord.connected_to(role: :writing) do
+        UserChronicle.create!(
           actor_id: actor&.id || 0,
           actor_type: actor&.class&.name || "Customer",
           subject_id: resource.id.to_s,
           subject_type: "Customer",
           event_id: normalized_event_id,
-          level_id: UserActivityLevel::NOTHING,
+          level_id: UserChronicleLevel::NOTHING,
           ip_address: request_ip_address,
           occurred_at: Time.current,
           context: {},

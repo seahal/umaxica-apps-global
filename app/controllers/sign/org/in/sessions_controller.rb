@@ -47,10 +47,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
       # Revoke selected sessions by signed references
       refs = Array(params[:revoke_refs]).compact_blank
       if refs.empty?
-        flash[:alert] = I18n.t(
-          "sign.org.in.session.no_sessions_selected",
-          default: "無効化するセッションを選択してください。",
-        )
+        flash[:alert] = I18n.t("session_limit.no_sessions_selected")
         load_session_data
         return render :show, status: :unprocessable_content
       end
@@ -63,19 +60,11 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
       promote_current_session!
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
-      return redirect_to_return_path(
-        notice: I18n.t(
-          "sign.org.in.session.promoted",
-          default: "セッションが昇格しました。",
-        ),
-      )
+      return redirect_to_return_path(notice: I18n.t("session_limit.promoted"))
     end
 
     # Still restricted, stay on session management
-    flash[:notice] = I18n.t(
-      "sign.org.in.session.sessions_revoked",
-      default: "セッションを無効化しました。",
-    )
+    flash[:notice] = I18n.t("session_limit.sessions_revoked")
     load_session_data
     render :show
   end
@@ -100,12 +89,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
       log_out
-      redirect_to(
-        new_sign_org_in_path, notice: I18n.t(
-          "sign.org.in.session.cancelled",
-          default: "セッションをキャンセルしました。",
-        ),
-      )
+      redirect_to(new_sign_org_in_path, notice: I18n.t("session_limit.cancelled"))
     end
   end
 
@@ -135,10 +119,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   def redirect_to_login
     redirect_to(
       new_sign_org_in_path,
-      alert: I18n.t(
-        "sign.org.in.session.login_required",
-        default: "ログインが必要です。",
-      ),
+      alert: I18n.t("session_limit.login_required"),
     )
   end
 
@@ -193,19 +174,13 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   def revoke_session_by_ref(staff, ref)
     token = StaffToken.find_from_signed_ref(ref)
     unless token && token.staff_id == staff.id
-      flash[:alert] = I18n.t(
-        "sign.org.in.session.invalid_session",
-        default: "無効なセッションです。",
-      )
+      flash[:alert] = I18n.t("session_limit.invalid_session")
       return
     end
 
     # Don't allow revoking the current session via ref (use destroy without ref for that)
     if token.public_id == current_session_public_id
-      flash[:alert] = I18n.t(
-        "sign.org.in.session.cannot_revoke_current",
-        default: "現在のセッションは無効化できません。",
-      )
+      flash[:alert] = I18n.t("session_limit.cannot_revoke_current")
       return
     end
 
@@ -213,10 +188,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
       token.revoke!
     end
 
-    flash[:notice] = I18n.t(
-      "sign.org.in.session.session_revoked",
-      default: "セッションを無効化しました。",
-    )
+    flash[:notice] = I18n.t("session_limit.session_revoked")
   end
 
   def revoke_sessions_by_refs(staff, refs)

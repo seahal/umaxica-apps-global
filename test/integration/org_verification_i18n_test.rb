@@ -36,7 +36,7 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
   end
 
   test "verification view displays translated strings in Japanese" do
-    ReauthSession.delete_all
+    StaffReauthSession.delete_all
 
     get sign_org_verification_url(ri: "jp"), headers: @headers
 
@@ -46,7 +46,7 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
   end
 
   test "verification view displays translated strings in English" do
-    ReauthSession.delete_all
+    StaffReauthSession.delete_all
 
     get sign_org_verification_url(ri: "us", lx: "en"), headers: @headers
 

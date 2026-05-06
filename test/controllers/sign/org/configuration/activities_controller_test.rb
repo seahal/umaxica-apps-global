@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_activity_events, :staff_activity_levels
+  fixtures :staffs, :staff_statuses, :staff_chronicle_events, :staff_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -13,8 +13,8 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     @other_staff = staffs(:two)
     @headers = as_staff_headers(@staff, host: @host)
 
-    ActivityRecord.connected_to(role: :writing) do
-      StaffActivity.delete_all
+    ChronicleRecord.connected_to(role: :writing) do
+      StaffChronicle.delete_all
     end
   end
 
@@ -27,11 +27,11 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "shows only current staff activity logs" do
     create_staff_audit(
-      staff: @staff, event_id: StaffActivityEvent::LOGGED_IN, occurred_at: 2.minutes.ago,
+      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 2.minutes.ago,
       context: { tag: "my-login-event" },
     )
     create_staff_audit(
-      staff: @other_staff, event_id: StaffActivityEvent::LOGGED_IN, occurred_at: 1.minute.ago,
+      staff: @other_staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 1.minute.ago,
       context: { tag: "other-staff-event" },
     )
 
@@ -44,15 +44,15 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "orders activity by occurred_at desc" do
     create_staff_audit(
-      staff: @staff, event_id: StaffActivityEvent::LOGGED_IN, occurred_at: 3.hours.ago,
+      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 3.hours.ago,
       context: { tag: "oldest-entry" },
     )
     create_staff_audit(
-      staff: @staff, event_id: StaffActivityEvent::LOGGED_IN, occurred_at: 2.hours.ago,
+      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 2.hours.ago,
       context: { tag: "middle-entry" },
     )
     create_staff_audit(
-      staff: @staff, event_id: StaffActivityEvent::LOGGED_IN, occurred_at: 1.hour.ago,
+      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 1.hour.ago,
       context: { tag: "newest-entry" },
     )
 
@@ -73,7 +73,7 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     120.times do |i|
       create_staff_audit(
         staff: @staff,
-        event_id: StaffActivityEvent::LOGGED_IN,
+        event_id: StaffChronicleEvent::LOGGED_IN,
         occurred_at: base_time + i.minutes,
         context: { tag: "limit-entry-#{i}" },
       )
@@ -90,11 +90,11 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "filters to login success events" do
     create_staff_audit(
-      staff: @staff, event_id: StaffActivityEvent::LOGGED_IN, occurred_at: 2.minutes.ago,
+      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 2.minutes.ago,
       context: { tag: "login-success-event" },
     )
     create_staff_audit(
-      staff: @staff, event_id: StaffActivityEvent::LOGGED_OUT, occurred_at: 1.minute.ago,
+      staff: @staff, event_id: StaffChronicleEvent::LOGGED_OUT, occurred_at: 1.minute.ago,
       context: { tag: "non-login-event" },
     )
 
@@ -108,7 +108,7 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "renders user agent summary and login method" do
     create_staff_audit(
       staff: @staff,
-      event_id: StaffActivityEvent::LOGGED_IN,
+      event_id: StaffChronicleEvent::LOGGED_IN,
       occurred_at: Time.current,
       context: {
         tag: "ua-method-entry",
@@ -127,11 +127,11 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   private
 
   def create_staff_audit(staff:, event_id:, occurred_at:, context:, ip_address: "203.0.113.25")
-    StaffActivity.create!(
+    StaffChronicle.create!(
       actor_type: "Staff",
       actor_id: staff.id,
       event_id: event_id,
-      level_id: StaffActivityLevel::NOTHING,
+      level_id: StaffChronicleLevel::NOTHING,
       subject_id: staff.id,
       subject_type: "Staff",
       occurred_at: occurred_at,

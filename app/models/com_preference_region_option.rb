@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: com_preference_region_options
-# Database name: commerce
+# Database name: setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class ComPreferenceRegionOption < CommerceRecord
+class ComPreferenceRegionOption < SettingRecord
   # Fixed IDs - do not modify these values
   US = 1
   JP = 2
@@ -30,17 +30,7 @@ class ComPreferenceRegionOption < CommerceRecord
   DEFAULTS = [US, JP].freeze
 
   def self.ensure_defaults!
-    return if DEFAULTS.blank?
-
-    existing_ids = where(id: DEFAULTS).pluck(:id)
-    missing_ids = DEFAULTS - existing_ids
-    return if missing_ids.empty?
-
-    if defined?(Prosopite)
-      Prosopite.pause { missing_ids.each { |id| create!(id: id) } }
-    else
-      missing_ids.each { |id| create!(id: id) }
-    end
+    insert_missing_fixed_ids!(DEFAULTS)
   end
 
   self.primary_key = :id

@@ -5,16 +5,16 @@ require "test_helper"
 
 class Apex::Org::Emergency::TokensControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("APEX_STAFF_URL", "org.localhost")
+    host! ENV.fetch("APEX_STAFF_URL", "www.org.localhost")
   end
 
   test "routes emergency app/com token to apex org controllers" do
-    get "http://#{ENV.fetch("APEX_STAFF_URL", "org.localhost")}/emergency/app/token"
+    get "http://#{ENV.fetch("APEX_STAFF_URL", "www.org.localhost")}/emergency/app/token"
 
     assert_equal "apex/org/emergency/app/tokens", request.path_parameters[:controller]
     assert_equal "show", request.path_parameters[:action]
 
-    get "http://#{ENV.fetch("APEX_STAFF_URL", "org.localhost")}/emergency/com/token"
+    get "http://#{ENV.fetch("APEX_STAFF_URL", "www.org.localhost")}/emergency/com/token"
 
     assert_equal "apex/org/emergency/com/tokens", request.path_parameters[:controller]
     assert_equal "show", request.path_parameters[:action]

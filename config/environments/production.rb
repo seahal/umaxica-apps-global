@@ -86,7 +86,7 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "id.umaxica.app" }
+  config.action_mailer.default_url_options = { host: ENV.fetch("ID_SERVICE_URL", "id.app.example.com") }
 
   # Specify outgoing SMTP server. Remember to add credentials via bin/rails credentials:edit.
   config.action_mailer.smtp_settings = {
@@ -124,7 +124,7 @@ Rails.application.configure do
   ).compact_blank
 
   # Skip DNS rebinding protection for health checks and load balancer probes.
-  config.host_authorization = { exclude: ->(request) { request.path.start_with?("/health", "/up") } }
+  config.host_authorization = { exclude: ->(request) { request.path.start_with?("/health", "/sign/up") } }
 
   ### Added by owner
   # We've configured this production environment to prevent the delivery of public static content.

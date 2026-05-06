@@ -149,54 +149,21 @@ class ComContactPolicyTest < ActiveSupport::TestCase
 
     assert_not policy.destroy?
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope
-  #     # Staff manager sees all
-  #     staff = staffs(:one)
-  #     staff.define_singleton_method(:id) { 1 }
-  #
-  #     # We need to stub ComContact.all and where probably or rely on actual AR if simple.
-  #     # Since fixtures are loaded, we can rely on actual AR.
-  #
-  #     scope_class = ComContactPolicy::Scope
-  #
-  #     # Mocking behaviors on policy scope instance or passing stubbed actors
-  #
-  #     # Case 1: Staff Manager
-  #     # We need to stub operator_or_manager? on the policy scope instance which wraps the actor?
-  #     # No, operator_or_manager? comes from ApplicationPolicy::Scope or a mixin included there.
-  #     # Let's see ComContactPolicy::Scope inherits from ApplicationPolicy::Scope.
-  #
-  #     # Let's just create a test subclass for scope testing to inject behaviors if needed,
-  #     # or rely on what we know about staffs fixture.
-  #
-  #     # Assuming we can stub methods on the scope instance after creation? No, resolve is called immediately usually?
-  #     # Actually resolve is a method.
-  #
-  #     policy_scope = scope_class.new(staff, ComContact)
-  #     policy_scope.define_singleton_method(:operator_or_manager?) { true }
-  #
-  #     assert_equal ComContact.all, policy_scope.resolve
-  #
-  #     # Case 2: Regular Staff
-  #     policy_scope = scope_class.new(staff, ComContact)
-  #     policy_scope.define_singleton_method(:operator_or_manager?) { false }
-  #     # Should be where(staff_id: [actor.id, nil])
-  #     expected = ComContact.where(staff_id: [staff.id, nil])
-  #
-  #     assert_equal expected, policy_scope.resolve
-  #
-  #     # Case 3: User
-  #     user = users(:one)
-  #     policy_scope = scope_class.new(user, ComContact)
-  #     expected = ComContact.where(user_id: user.id)
-  #
-  #     assert_equal expected, policy_scope.resolve
-  #
-  #     # Case 4: Nil
-  #     policy_scope = scope_class.new(nil, ComContact)
-  #
-  #     assert_equal ComContact.none, policy_scope.resolve
-  #   end
+
+  def test_show_allows_owner_even_if_not_staff
+    user = users(:one)
+    record = OpenStruct.new(user_id: user.id)
+    policy = ComContactPolicy.new(record, user: user)
+
+    assert_predicate policy, :show?
+  end
+
+  def test_show_denies_owner_when_staff_needs_view
+    staff = staffs(:one)
+    record = OpenStruct.new(user_id: 999)
+    policy = ComContactPolicy.new(record, user: staff)
+    policy.define_singleton_method(:can_view?) { false }
+
+    assert_not policy.show?
+  end
 end

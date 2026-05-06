@@ -6,7 +6,7 @@ require "test_helper"
 # This test verifies cross-domain links between apex and other domains
 class ApexCrossDomainLinksTest < ActionDispatch::IntegrationTest
   test "apex layouts link to other domains correctly" do
-    host! ENV.fetch("APEX_SERVICE_URL", "apex.app.localhost")
+    host! ENV.fetch("APEX_SERVICE_URL", "www.app.localhost")
 
     get apex_app_root_url(ri: "jp")
 

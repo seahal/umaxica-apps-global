@@ -53,7 +53,7 @@ module Authentication
     end
 
     def audit_class
-      ::UserActivity
+      ::UserChronicle
     end
 
     def resource_type

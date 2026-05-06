@@ -11,6 +11,15 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     @staff = Staff.create!(
       status_id: StaffStatus::ACTIVE,
     )
+    @staff_passkey = StaffPasskey.create!(
+      staff: @staff,
+      name: "Test Passkey",
+      status_id: StaffPasskeyStatus::ACTIVE,
+      public_key: "test_public_key",
+      sign_count: 0,
+      external_id: "test_external_id",
+      webauthn_id: "test_webauthn_id",
+    )
     @token = StaffToken.create!(staff: @staff)
     satisfy_staff_verification(@token)
     @staff_secret = StaffSecret.create!(
@@ -23,10 +32,19 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   def authenticated_headers
-    browser_headers.merge(
+    headers = browser_headers.merge(
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     )
+
+    # browser_headers sets an explicit 'Cookie' header which overwrites the cookie jar.
+    # We must manually append our verification cookie if it exists.
+    verification_token = cookies[StaffVerification.cookie_name]
+    if verification_token
+      headers["Cookie"] = "#{headers["Cookie"]}; #{StaffVerification.cookie_name}=#{verification_token}"
+    end
+
+    headers
   end
 
   test "should get index" do
@@ -54,6 +72,7 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "should create secret and redirect to index" do
+    satisfy_staff_verification(@token)
     assert_difference("StaffSecret.count", 1) do
       post sign_org_configuration_secrets_url(ri: "jp"),
            params: { staff_secret: { name: "New Secret", enabled: true } },
@@ -66,6 +85,7 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "should update secret and redirect to index" do
+    satisfy_staff_verification(@token)
     patch sign_org_configuration_secret_url(@staff_secret, ri: "jp"),
           params: { staff_secret: { name: "Updated Secret", enabled: false } },
           headers: authenticated_headers
@@ -78,6 +98,7 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "should get destroy" do
+    satisfy_staff_verification(@token)
     delete sign_org_configuration_secret_url(@staff_secret, ri: "jp"), headers: authenticated_headers
 
     assert_response :see_other

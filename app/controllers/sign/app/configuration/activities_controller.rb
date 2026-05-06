@@ -7,10 +7,10 @@ module Sign
       class ActivitiesController < ApplicationController
         auth_required!
 
-        LOGIN_EVENT_IDS = [UserActivityEvent::LOGGED_IN, UserActivityEvent::LOGIN_SUCCESS].freeze
+        LOGIN_EVENT_IDS = [UserChronicleEvent::LOGGED_IN, UserChronicleEvent::LOGIN_SUCCESS].freeze
         EVENT_LABELS = {
-          UserActivityEvent::LOGGED_IN => "logged_in",
-          UserActivityEvent::LOGIN_SUCCESS => "login_success",
+          UserChronicleEvent::LOGGED_IN => "logged_in",
+          UserChronicleEvent::LOGIN_SUCCESS => "login_success",
         }.freeze
         SENSITIVE_CONTEXT_PATTERNS = %w(
           user_agent
@@ -32,7 +32,7 @@ module Sign
         def index
           @activities = current_user_activities.limit(100)
         rescue StandardError
-          @activities = UserActivity.none
+          @activities = UserChronicle.none
         end
 
         def show
@@ -42,9 +42,9 @@ module Sign
 
         private
 
-        # UserActivity is currently written with numeric user.id in subject_id.
+        # UserChronicle is currently written with numeric user.id in subject_id.
         def current_user_activities
-          UserActivity
+          UserChronicle
             .where(subject_type: "User", subject_id: current_user.id, event_id: LOGIN_EVENT_IDS)
             .order(Arel.sql("COALESCE(occurred_at, created_at) DESC"))
         end

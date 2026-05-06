@@ -39,7 +39,9 @@ module Apex
 
       # FIXME: Resolve the URL issues before deploying.
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: %w(http://app.localhost https://app.localhost),
+                           trusted_origins: HostOriginEnv.trusted_origins(
+                             ENV.fetch("APEX_SERVICE_URL", "www.app.localhost"),
+                           ),
                            with: :exception
 
       public_strict!
@@ -51,7 +53,7 @@ module Apex
       end
 
       def oidc_sign_host
-        ENV.fetch("SIGN_APP_URL", "id.app.localhost")
+        ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       end
 
       private

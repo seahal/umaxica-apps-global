@@ -72,15 +72,15 @@ class StaffSecrets::UpdateTest < ActiveSupport::TestCase
     assert_equal original_status, result.secret.staff_secret_status_id
   end
 
-  test "creates StaffActivity audit" do
+  test "creates StaffChronicle audit" do
     params = { name: "Audit Test" }
 
-    assert_difference("StaffActivity.count", 1) do
+    assert_difference("StaffChronicle.count", 1) do
       StaffSecrets::Update.call(actor: @staff, secret: @secret, params: params)
     end
 
-    activity = StaffActivity.last
+    activity = StaffChronicle.last
 
-    assert_equal StaffActivityEvent::STAFF_SECRET_UPDATED, activity.event_id
+    assert_equal StaffChronicleEvent::STAFF_SECRET_UPDATED, activity.event_id
   end
 end
