@@ -11,7 +11,7 @@ module Apex
       include ::Authentication::Staff
       include ::Authorization::Staff
       include ::Verification::Staff
-      include Pundit::Authorization # FIXME: I hate this line.
+      include ActionPolicy::Controller # FIXME: I hate this line.
       include ::Oidc::SsoInitiator # FIXME: I hate this line.
       include ::CurrentSupport
       include ::Finisher
@@ -25,9 +25,9 @@ module Apex
       prepend_before_action :set_preferences_cookie
       prepend_before_action :resolve_param_context
       prepend_before_action :set_region
-      prepend_before_action :set_locale
-      prepend_before_action :set_timezone
+
       prepend_before_action :set_color_theme
+      before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :enforce_access_policy!
       before_action :enforce_verification_if_required
       before_action :set_current
@@ -36,7 +36,9 @@ module Apex
 
       # FIXME: Resolve the URL issues before deploying.
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: %w(http://org.localhost https://org.localhost),
+                           trusted_origins: HostOriginEnv.trusted_origins(
+                             ENV.fetch("APEX_STAFF_URL", "www.org.localhost"),
+                           ),
                            with: :exception
 
       auth_required!
@@ -48,7 +50,7 @@ module Apex
       end
 
       def oidc_sign_host
-        ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+        ENV.fetch("ID_STAFF_URL", "id.org.localhost")
       end
 
       private

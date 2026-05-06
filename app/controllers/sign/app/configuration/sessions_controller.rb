@@ -47,7 +47,7 @@ module Sign
           redirect_to(
             sign_app_configuration_sessions_path,
             status: :see_other,
-            notice: t("sign.app.configuration.sessions.revoke.success"),
+            notice: t("session_limit.sessions_revoked"),
           )
         end
 
@@ -69,7 +69,7 @@ module Sign
         def render_current_session_error
           redirect_to(
             sign_app_configuration_sessions_path,
-            alert: t("sign.app.configuration.sessions.revoke.failure"),
+            alert: t("session_limit.cannot_revoke_current"),
           )
         end
 

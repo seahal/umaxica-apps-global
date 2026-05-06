@@ -50,8 +50,12 @@ module Oidc
     def find_and_validate_code!
       authorization_code =
         TokenRecord.connected_to(role: :writing) do
-          AuthorizationCode.lock.find_by!(code: code)
+          StaffAuthorizationCode.lock.find_by(code: code)
+        end || MarkRecord.connected_to(role: :writing) do
+          UserAuthorizationCode.lock.find_by(code: code)
         end
+
+      raise ActiveRecord::RecordNotFound unless authorization_code
 
       raise RuntimeError, "Authorization code expired" if authorization_code.expired?
       raise RuntimeError, "Authorization code already consumed" if authorization_code.consumed?
@@ -73,9 +77,11 @@ module Oidc
 
     def consume_and_issue_tokens!(authorization_code)
       client = Oidc::ClientRegistry.find!(client_id)
-      resource = authorization_code.resource
+      resource = authorization_code.is_a?(StaffAuthorizationCode) ? authorization_code.staff : authorization_code.user
 
-      TokenRecord.connected_to(role: :writing) do
+      connection_class = authorization_code.is_a?(StaffAuthorizationCode) ? TokenRecord : MarkRecord
+
+      connection_class.connected_to(role: :writing) do
         authorization_code.consume!
 
         token_record = create_token_record!(client, resource)
@@ -83,19 +89,21 @@ module Oidc
         now = Time.current
         access_expires_at = now + Authentication::Base::ACCESS_TOKEN_TTL
 
-        sign_host =
+        id_host =
           if client.resource_type == "staff"
-            ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+            ENV.fetch("ID_STAFF_URL", "id.org.localhost")
           else
-            ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+            ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
           end
 
         access_token = Auth::TokenService.encode(
           resource,
-          host: sign_host,
+          host: id_host,
           session_public_id: token_record.public_id,
           resource_type: client.resource_type,
           expires_at: access_expires_at,
+          acr: authorization_code.acr,
+          amr: Array(authorization_code.auth_method),
         )
 
         Result.new(

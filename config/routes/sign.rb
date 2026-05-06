@@ -1,18 +1,19 @@
 # typed: false
 # frozen_string_literal: true
 
-require Rails.root.join("lib/sign_host_env").to_s
+require Rails.root.join("lib/id_host_env").to_s
 
 scope module: :sign, as: :sign do
-  # User auth service (sign.app domain)
-  constraints host: SignHostEnv.service_url do
+  # User auth service (id.app domain)
+  constraints host: IdHostEnv.service_url do
     scope module: :app, as: :app do
       root to: "roots#index"
-
-      # Health check and sitemap
-      resource :health, only: :show, defaults: { format: :html }
-      resource :sitemap, only: :show, defaults: { format: :xml }
-
+      # Health
+      resource :health, only: :show
+      # Robots
+      resource :robots, only: :show, path: "robots.txt"
+      # Sitemap
+      resource :sitemap, only: :show, path: "sitemap.xml"
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
         namespace :v0 do
@@ -64,36 +65,38 @@ scope module: :sign, as: :sign do
       end
 
       # Sign-up: account registration via email or telephone
-      resource :up, only: :new
-      namespace :up do
-        resources :emails, only: %i(new create edit update)
-        resources :telephones, only: %i(new create edit update) do
-          collection do
-            post :resend
-          end
-          resource :passkey_registration, only: %i(show create) do
-            post :begin, on: :member
+      scope path: "sign" do
+        resource :up, only: :new
+        namespace :up do
+          resources :emails, only: %i(new create edit update)
+          resources :telephones, only: %i(new create edit update) do
+            collection do
+              post :resend
+            end
+            resource :passkey_registration, only: %i(show create) do
+              post :begin, on: :member
+            end
           end
         end
-      end
 
-      # Sign-in: credential entry and session establishment
-      resource :in, only: %i(new)
-      namespace :in do
-        resource :email, only: %i(new create edit update)
-        resources :passkeys, only: [:new] do
-          collection do
-            post :options
-            post :verification
+        # Sign-in: credential entry and session establishment
+        resource :in, only: %i(new)
+        namespace :in do
+          resource :email, only: %i(new create edit update)
+          resources :passkeys, only: [:new] do
+            collection do
+              post :options
+              post :verification
+            end
           end
-        end
-        resource :secret, only: %i(new create)
-        resource :session, only: %i(show update destroy)
-        resource :bulletin, only: %i(show update destroy)
-        resource :challenge, only: %i(show)
-        namespace :challenge do
-          resource :totp, only: %i(new create)
-          resource :passkey, only: %i(new create)
+          resource :secret, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+          resource :bulletin, only: %i(show update destroy)
+          resource :challenge, only: %i(show)
+          namespace :challenge do
+            resource :totp, only: %i(new create)
+            resource :passkey, only: %i(new create)
+          end
         end
       end
 
@@ -166,14 +169,17 @@ scope module: :sign, as: :sign do
     end
   end
 
-  # Corporate sign service (sign.com domain)
-  constraints host: SignHostEnv.corporate_url do
+  # Corporate id service (id.com domain)
+  constraints host: IdHostEnv.corporate_url do
     scope module: :com, as: :com do
       root to: "roots#index"
 
-      # Health check and sitemap
-      resource :health, only: :show, defaults: { format: :html }
-      resource :sitemap, only: :show, defaults: { format: :xml }
+      # Health
+      resource :health, only: :show
+      # Robots
+      resource :robots, only: :show, path: "robots.txt"
+      # Sitemap
+      resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
@@ -212,28 +218,30 @@ scope module: :sign, as: :sign do
       end
 
       # Sign-up: email registration
-      resource :up, only: :new
-      namespace :up do
-        resources :emails, only: %i(new create edit update)
-      end
-
-      # Sign-in: credential entry and session establishment
-      resource :in, only: %i(new)
-      namespace :in do
-        resource :email, only: %i(new create edit update)
-        resources :passkeys, only: [:new] do
-          collection do
-            post :options
-            post :verification
-          end
+      scope path: "sign" do
+        resource :up, only: :new
+        namespace :up do
+          resources :emails, only: %i(new create edit update)
         end
-        resource :secret, only: %i(new create)
-        resource :session, only: %i(show update destroy)
-        resource :bulletin, only: %i(show update destroy)
-        resource :challenge, only: %i(show)
-        namespace :challenge do
-          resource :totp, only: %i(new create)
-          resource :passkey, only: %i(new create)
+
+        # Sign-in: credential entry and session establishment
+        resource :in, only: %i(new)
+        namespace :in do
+          resource :email, only: %i(new create edit update)
+          resources :passkeys, only: [:new] do
+            collection do
+              post :options
+              post :verification
+            end
+          end
+          resource :secret, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+          resource :bulletin, only: %i(show update destroy)
+          resource :challenge, only: %i(show)
+          namespace :challenge do
+            resource :totp, only: %i(new create)
+            resource :passkey, only: %i(new create)
+          end
         end
       end
 
@@ -269,7 +277,9 @@ scope module: :sign, as: :sign do
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
-        resources :secrets, only: %i(index show new edit create destroy)
+        resources :secrets, only: %i(index show new edit create destroy) do
+          post :regenerate, on: :member
+        end
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
@@ -283,13 +293,16 @@ scope module: :sign, as: :sign do
   end
 
   # Staff auth management
-  constraints host: SignHostEnv.staff_url do
+  constraints host: IdHostEnv.staff_url do
     scope module: :org, as: :org do
       root to: "roots#index"
 
-      # Health check and sitemap
-      resource :health, only: :show, defaults: { format: :html }
-      resource :sitemap, only: :show, defaults: { format: :xml }
+      # Health
+      resource :health, only: :show
+      # Robots
+      resource :robots, only: :show, path: "robots.txt"
+      # Sitemap
+      resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Public web API: cookie consent, theme
       namespace :web do
@@ -333,12 +346,14 @@ scope module: :sign, as: :sign do
       end
 
       # Sign-up: email registration and staff invitation flows
-      resource :up, only: :new
-      namespace :up do
-        resources :emails, only: %i(new create)
-        resources :invitations, only: %i(new create) do
-          collection do
-            resources :emails, only: %i(new create edit update)
+      scope path: "sign" do
+        resource :up, only: :new
+        namespace :up do
+          resources :emails, only: %i(new create)
+          resources :invitations, only: %i(new create) do
+            collection do
+              resources :emails, only: %i(new create edit update)
+            end
           end
         end
       end
@@ -358,20 +373,22 @@ scope module: :sign, as: :sign do
       end
 
       # Sign-in: credential entry and session establishment
-      resource :in, only: [:new]
-      namespace :in do
-        resources :passkeys, only: [:new] do
-          collection do
-            post :options
-            post :verification
+      scope path: "sign" do
+        resource :in, only: [:new]
+        namespace :in do
+          resources :passkeys, only: [:new] do
+            collection do
+              post :options
+              post :verification
+            end
           end
-        end
-        resource :secret, only: %i(new create)
-        resource :session, only: %i(show update destroy)
-        resource :bulletin, only: %i(show update destroy)
-        resource :challenge, only: %i(show)
-        namespace :challenge do
-          resource :passkey, only: %i(new create)
+          resource :secret, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+          resource :bulletin, only: %i(show update destroy)
+          resource :challenge, only: %i(show)
+          namespace :challenge do
+            resource :passkey, only: %i(new create)
+          end
         end
       end
 
@@ -416,6 +433,16 @@ scope module: :sign, as: :sign do
         resource :out, only: %i(edit destroy)
         resource :withdrawal, only: %i(show)
       end
+    end
+
+    constraints host: ENV["SIGN_NETWORK_URL"] do
+      # Health
+      resource :health, only: :show
+    end
+
+    constraints host: ENV["SIGN_DEVELOPER_URL"] do
+      # Health
+      resource :health, only: :show
     end
   end
 end

@@ -148,23 +148,23 @@ module Concerns
       end
     end
 
-    test "application controllers with viewer auth include required concerns" do
-      viewer_controllers =
+    test "application controllers with customer auth include required concerns" do
+      customer_controllers =
         ALL_CONTROLLER_FILES.select do |file|
           content = File.read(file)
-          content.include?("Authentication::Viewer")
+          content.include?("Authentication::Customer")
         end
 
-      viewer_controllers.each do |file|
+      customer_controllers.each do |file|
         content = File.read(file)
         controller_name = file.gsub(Rails.root.join("app/controllers/").to_s, "")
           .gsub("/application_controller.rb", "")
           .gsub("/", "::")
 
-        assert_includes content, "Authorization::Viewer",
-                        "#{controller_name} should include Authorization::Viewer when using Authentication::Viewer"
-        assert_includes content, "Verification::Viewer",
-                        "#{controller_name} should include Verification::Viewer when using Authentication::Viewer"
+        assert_includes content, "Authorization::Customer",
+                        "#{controller_name} should include Authorization::Customer when using Authentication::Customer"
+        assert_includes content, "Verification::Customer",
+                        "#{controller_name} should include Verification::Customer when using Authentication::Customer"
       end
     end
 

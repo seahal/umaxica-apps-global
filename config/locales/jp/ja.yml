@@ -184,6 +184,7 @@ ja:
           create:
             verification_code_sent: 確認コードをメールアドレスに送信しました。
             success: 登録が完了しました。
+            turnstile_failed: ボット検証に失敗しました。もう一度お試しください。
             turnstile_validation_failed: セキュリティ検証に失敗しました。もう一度お試しください。
             otp_resend_too_soon: しばらく時間をおいてから再度お試しください。
           edit:

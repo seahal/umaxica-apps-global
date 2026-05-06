@@ -25,9 +25,16 @@
 require "test_helper"
 
 class AvatarRolePermissionTest < ActiveSupport::TestCase
-  test "model exists and is valid" do
-    assert_nothing_raised do
-      AvatarRolePermission.new
-    end
+  fixtures :avatar_roles, :avatar_permissions
+
+  test "belongs to role and permission" do
+    assert_equal :belongs_to, AvatarRolePermission.reflect_on_association(:avatar_role).macro
+    assert_equal :belongs_to, AvatarRolePermission.reflect_on_association(:avatar_permission).macro
+  end
+
+  test "validates role permission pair uniqueness" do
+    validator = AvatarRolePermission.validators_on(:avatar_role_id).grep(ActiveRecord::Validations::UniquenessValidator).first
+
+    assert_equal :avatar_permission_id, validator.options[:scope]
   end
 end

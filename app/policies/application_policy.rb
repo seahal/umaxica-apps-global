@@ -1,18 +1,20 @@
 # typed: false
 # frozen_string_literal: true
 
-# Base policy class for authorization using Pundit
+# Base policy class for authorization using Action Policy
 # Provides common authorization patterns for both User and Staff actors
-class ApplicationPolicy
-  attr_reader :actor, :record # Use 'actor' instead of 'user' to support both User and Staff
+class ApplicationPolicy < ActionPolicy::Base
+  # By default, Action Policy uses 'user' for the actor.
+  # We allow it to be nil for unauthenticated paths.
+  authorize :user, optional: true
 
-  # Alias user to actor for compatibility with standard Pundit expectations and tests
-  alias_method :user, :actor
+  # We alias it to 'actor' to match our internal naming.
+  alias_rule :edit?, to: :update?
+  alias_rule :new?, to: :create?
 
-  def initialize(actor, record)
-    @actor = actor
-    @record = record
-  end
+  def edit? = update?
+
+  def new? = create?
 
   # Default permissions - deny all by default (allowlist approach)
   def index?
@@ -27,16 +29,8 @@ class ApplicationPolicy
     false
   end
 
-  def new?
-    create?
-  end
-
   def update?
     false
-  end
-
-  def edit?
-    update?
   end
 
   def destroy?
@@ -45,7 +39,12 @@ class ApplicationPolicy
 
   protected
 
-  # Get the workspace from the record if it has one
+  # Use 'user' as the actor (provided by ActionPolicy)
+  def actor
+    user
+  end
+
+  # Get the organization from the record if it has one
   # @return [Object, nil]
   def organization
     @organization ||=
@@ -117,6 +116,7 @@ class ApplicationPolicy
   # @return [Boolean]
   def owner?
     return false unless actor
+    return jwt_subject.to_s == actor.id.to_s if record.blank?
 
     if actor.is_a?(User) && record.respond_to?(:user_id)
       record.user_id == actor.id
@@ -163,30 +163,5 @@ class ApplicationPolicy
 
   def can_contribute?
     actor&.can_contribute?(organization: organization)
-  end
-
-  # Scope class for filtering collections based on permissions
-  class Scope
-    attr_reader :actor, :scope
-
-    def initialize(actor, scope)
-      @actor = actor
-      @scope = scope
-    end
-
-    def resolve
-      raise NoMethodError, "You must define #resolve in #{self.class}"
-    end
-
-    protected
-
-    # Helper to check if actor has a role
-    def has_role?(role_key, organization: nil)
-      actor&.has_role?(role_key, organization: organization)
-    end
-
-    def operator_or_manager?(organization: nil)
-      actor&.operator_or_manager?(organization: organization)
-    end
   end
 end

@@ -133,4 +133,10 @@ class ComContactTest < ActiveSupport::TestCase
 
     assert_equal contact.public_id, contact.to_param
   end
+
+  test "completed? reflects completed contact action status" do
+    contact = ComContact.new(status_id: ComContactStatus::COMPLETED_CONTACT_ACTION)
+
+    assert_predicate contact, :completed?
+  end
 end

@@ -11,7 +11,7 @@ module Sign::App::In
              :user_one_time_password_statuses
 
     setup do
-      host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+      host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
 
@@ -45,7 +45,7 @@ module Sign::App::In
       )
 
       @original_trusted_origins = Webauthn.method(:trusted_origins)
-      Webauthn.define_singleton_method(:trusted_origins) { ["http://sign.app.localhost", "http://sign.org.localhost"] }
+      Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://id.org.localhost"] }
     end
 
     teardown do

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
@@ -92,7 +92,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates authorization code record" do
-    assert_difference "AuthorizationCode.count", 1 do
+    assert_difference "UserAuthorizationCode.count", 1 do
       get sign_app_authorize_url(
         host: @host,
         params: authorize_params,

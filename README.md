@@ -14,7 +14,7 @@ and subdomain matter in both development and production.
 
 ## Stack
 
-- Ruby `4.0.1`
+- Ruby `4.0.2`
 - PostgreSQL
   - Solid Queue
 - Valkey/Redis
@@ -44,7 +44,7 @@ bin/importmap audit             # Audit pinned JS packages
 ## Local Setup
 
 - Docker and Docker Compose
-- Ruby `4.0.1`
+- Ruby `4.0.2`
 - Bundler
 - Node.js `20+`
 - `pnpm@10.27.0`
@@ -55,7 +55,7 @@ Start the local stack, install dependencies, and boot the app:
 docker compose up
 bundle install
 pnpm install
-TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000 bin/setup
+TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/setup
 ```
 
 `TRUSTED_ORIGINS` is required for boot because WebAuthn origin validation fails fast when it is
@@ -65,7 +65,7 @@ missing.
 your shell or dev env file, for example:
 
 ```bash
-TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000
+TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000
 ```
 
 `bin/setup` installs Ruby gems, runs `bin/rails db:prepare`, clears logs and temp files, then starts
@@ -74,7 +74,7 @@ TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000
 If dependencies are already installed, you can start development directly:
 
 ```bash
-TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000 bin/dev
+TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/dev
 ```
 
 `bin/dev` runs `bin/rails db:prepare` unless `SKIP_DB_PREPARE=1`, then starts:
@@ -88,19 +88,12 @@ TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000 bi
 Modern browsers resolve `*.localhost` to `127.0.0.1`, so extra `/etc/hosts` entries are usually not
 needed.
 
-| Surface  | URL                                        |
-| :------- | :----------------------------------------- |
-| App apex | `http://app.localhost:3000`                |
-| Com apex | `http://com.localhost:3000`                |
-| Org apex | `http://org.localhost:3000`                |
-| App sign | `http://sign.app.localhost:3000`           |
-| Org sign | `http://sign.org.localhost:3000`           |
-| App core | `http://www.app.localhost:3000`            |
-| Com core | `http://www.com.localhost:3000`            |
-| Org core | `http://www.org.localhost:3000`            |
-| Docs     | `http://docs.{app,com,org}.localhost:3000` |
-| Help     | `http://help.{app,com,org}.localhost:3000` |
-| News     | `http://news.{app,com,org}.localhost:3000` |
+| Surface | URL                                        |
+| :------ | :----------------------------------------- |
+| Apex    | `http://{app,com,org}.localhost:3000`      |
+| Sign    | `http://sign.{org,com,app}.localhost:3000` |
+| core    | `http://www.{app,com,org}.localhost:3000`  |
+| Docs    | `http://docs.{app,com,org}.localhost:3000` |
 
 ## Linting and Formatting
 
@@ -117,10 +110,14 @@ Use `rubocop -a`, `erb_lint -a .`, and `vp check --fix` to apply auto-fixes wher
 
 ## Testing
 
+### Rails Tests
+
 ```bash
 bundle exec rails test
 COVERAGE=true bundle exec rails test
 ```
+
+Coverage reports are written to `coverage/rails/`.
 
 ### JavaScript Tests
 
@@ -129,9 +126,11 @@ Run JavaScript tests with Vitest:
 ```bash
 vp test
 vp test --watch                            # Watch mode
+pnpm test:coverage
 ```
 
-JavaScript tests are located in `test/javascript/` and use Vitest with Vite Plus.
+JavaScript tests are located in `test/javascript/` and use Vitest with Vite Plus. Coverage reports
+are written to `coverage/vite/`.
 
 ## Security and Quality Checks
 

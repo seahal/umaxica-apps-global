@@ -11,10 +11,10 @@ module Apex
 
         assert_includes controller.class, RateLimit
         assert_includes controller.class, ::Preference::Global
-        assert_includes controller.class, ::Authentication::User
-        assert_includes controller.class, ::Authorization::User
-        assert_includes controller.class, ::Verification::User
-        assert_includes controller.class, Pundit::Authorization
+        assert_includes controller.class, ::Authentication::Customer
+        assert_includes controller.class, ::Authorization::Customer
+        assert_includes controller.class, ::Verification::Customer
+        assert_includes controller.class, ActionPolicy::Controller
         assert_includes controller.class, ::Oidc::SsoInitiator
         assert_includes controller.class, ::CurrentSupport
         assert_includes controller.class, ::Finisher
@@ -27,8 +27,6 @@ module Apex
         assert_includes before_filters, :set_preferences_cookie
         assert_includes before_filters, :resolve_param_context
         assert_includes before_filters, :set_region
-        assert_includes before_filters, :set_locale
-        assert_includes before_filters, :set_timezone
         assert_includes before_filters, :set_color_theme
       end
 
@@ -68,6 +66,12 @@ module Apex
 
         assert_respond_to controller, :oidc_client_id
         assert_equal "apex_com", controller.send(:oidc_client_id)
+      end
+
+      test "has oidc_sign_host method" do
+        controller = ApplicationController.new
+
+        assert_respond_to controller, :oidc_sign_host
       end
     end
   end

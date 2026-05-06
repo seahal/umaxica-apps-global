@@ -23,6 +23,16 @@ class SecretConcernTest < ActiveSupport::TestCase
     end
   end
 
+  class MinimalSecret
+    def self.validates(*) = nil
+
+    def self.has_secure_password(*) = nil
+
+    def self.respond_to_missing?(_name, _include_private = false) = false
+
+    include Secret
+  end
+
   setup do
     @user = User.find_by!(public_id: "one_id")
     # Ensure statuses exist
@@ -109,5 +119,21 @@ class SecretConcernTest < ActiveSupport::TestCase
     record.expires_at = -Float::INFINITY
 
     assert_not record.send(:expired_by_time?, Time.current)
+  end
+
+  test "base secret class requires status hooks" do
+    assert_raises(NotImplementedError) { MinimalSecret.identity_secret_status_class }
+    assert_raises(NotImplementedError) { MinimalSecret.identity_secret_status_id_column }
+  end
+
+  test "base secret class reports unsupported optional columns" do
+    assert_not MinimalSecret.supports_uses_remaining?
+    assert_not MinimalSecret.supports_expiration?
+  end
+
+  test "status_id_for raises for unknown status class" do
+    MinimalSecret.stub(:identity_secret_status_class, Class.new) do
+      assert_raises(KeyError) { MinimalSecret.status_id_for(:active) }
+    end
   end
 end

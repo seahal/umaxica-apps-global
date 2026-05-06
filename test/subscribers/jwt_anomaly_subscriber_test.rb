@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require Rails.root.join("app/subscribers/jwt_anomaly_subscriber")
 
 class JwtAnomalySubscriberTest < ActiveSupport::TestCase
   fixtures :jwt_occurrences
@@ -68,7 +67,7 @@ class JwtAnomalySubscriberTest < ActiveSupport::TestCase
       name: "jwt.anomaly.detected",
       payload: {
         code: "AUTH_USER_MALFORMED_TOKEN",
-        request_host: "sign.app.localhost",
+        request_host: "id.app.localhost",
         kid: "kid-1",
         alg: "ES384",
         typ: "JWT",
@@ -123,7 +122,7 @@ class JwtAnomalySubscriberTest < ActiveSupport::TestCase
   test "emit stores request host and timestamp correctly" do
     event, occurred_at = setup_anomaly_event_test
 
-    assert_equal "sign.app.localhost", event.request_host
+    assert_equal "id.app.localhost", event.request_host
     assert_equal occurred_at, event.occurred_at
   end
 
@@ -147,7 +146,7 @@ class JwtAnomalySubscriberTest < ActiveSupport::TestCase
       :build_metadata,
       {
         :code => "AUTH_USER_MALFORMED_TOKEN",
-        "request_host" => "sign.app.localhost",
+        "request_host" => "id.app.localhost",
         :kid => "kid-1",
         :alg => "ES384",
         :typ => "JWT",

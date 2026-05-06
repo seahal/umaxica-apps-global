@@ -4,18 +4,17 @@
 module Sitemap
   extend ActiveSupport::Concern
 
-  included do
-    begin
-      skip_before_action :canonicalize_query_params
-    rescue ArgumentError
-      # Callback doesn't exist, ignore
-    end
-    public_strict! if respond_to?(:public_strict!)
-  end
+  BROWSER_CACHE_TTL = 5.minutes
+  CDN_CACHE_TTL = 10.minutes
 
   private
 
   def show_xml
+    response.set_header(
+      "Cache-Control",
+      "public, max-age=#{BROWSER_CACHE_TTL.to_i}, s-maxage=#{CDN_CACHE_TTL.to_i}",
+    )
+    response.set_header("Surrogate-Control", "max-age=#{CDN_CACHE_TTL.to_i}")
     render formats: :xml
   end
 

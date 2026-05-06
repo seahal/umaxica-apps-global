@@ -3,162 +3,133 @@
 
 require "test_helper"
 
-class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_email_statuses, :staff_visibilities, :staff_tokens,
-           :staff_token_kinds, :staff_token_statuses
+class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
+  test "direct org omniauth callback branches" do
+    controller = Sign::Org::Auth::OmniauthCallbacksController.new
+    session_hash = {}
+    redirects = []
+    hard_rejects = []
 
-  GOOGLE_PROVIDER = "google_org"
+    request = ActionDispatch::TestRequest.create("REQUEST_METHOD" => "GET", "REMOTE_ADDR" => "127.0.0.1")
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_org", message: "denied") }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
+    controller.define_singleton_method(:new_sign_org_in_path) { "/org/in/new" }
+    controller.define_singleton_method(:sign_org_in_session_path) { "/org/in/session" }
+    controller.define_singleton_method(:sign_org_in_bulletin_path) { |ri: nil| "/org/in/bulletin?ri=#{ri}" }
+    controller.define_singleton_method(:sign_org_root_path) { |ri: nil| "/org?ri=#{ri}" }
+    controller.define_singleton_method(:sign_org_configuration_path) { "/org/configuration" }
+    controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
+    controller.define_singleton_method(:issue_bulletin!) { @issue_bulletin_for_test }
+    controller.define_singleton_method(:log_in) { |*| @login_result_for_test }
 
-  setup do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
-    OmniAuth.config.test_mode = true
+    auth = { "provider" => "google_org", "info" => { "email" => " STAFF@example.COM " } }
+    auth.define_singleton_method(:provider) { self["provider"] }
 
-    @staff = staffs(:one)
-    @staff.update!(status_id: StaffStatus::ACTIVE)
-    StaffToken.where(staff_id: @staff.id).delete_all
-    @staff_email = StaffEmail.create!(
-      staff: @staff,
-      address: "google_staff@example.com",
-      staff_email_status_id: StaffEmailStatus::VERIFIED,
+    controller.send(:handle_missing_auth)
+
+    assert_match "/org/in/new", redirects.last.first.first
+
+    assert_equal "staff@example.com", controller.send(:extract_email_from_auth, auth)
+    assert_nil controller.send(:find_active_staff_by_google_email, nil)
+
+    controller.send(:redirect_staff_not_found, auth)
+
+    assert controller.instance_variable_get(:@cleared_for_test)
+    assert_match "/org/in/new", redirects.last.first.first
+
+    staff = OpenStruct.new(id: 10, login_allowed?: false)
+    controller.send(:redirect_login_not_allowed, staff)
+
+    assert_match "/org/in/new", redirects.last.first.first
+
+    controller.send(
+      :handle_login_result,
+      { status: :session_limit_hard_reject, message: "full", http_status: :too_many_requests }, "Google org",
     )
 
-    set_mock_google_auth(email: @staff_email.address)
+    assert_equal({ message: "full", http_status: :too_many_requests }, hard_rejects.last)
+
+    controller.send(:handle_login_result, { status: :session_limit_exceeded }, "Google org")
+
+    assert_match "/org/in/session", redirects.last.first.first
+
+    controller.send(:handle_login_result, { status: :unknown }, "Google org")
+
+    assert_match "/org/in/new", redirects.last.first.first
+
+    controller.send(:handle_login_result, { status: :success, restricted: true }, "Google org")
+
+    assert_match "/org/in/session", redirects.last.first.first
+
+    controller.instance_variable_set(:@issue_bulletin_for_test, true)
+    controller.send(:handle_login_result, true, "Google org")
+
+    assert_match "/org/in/bulletin", redirects.last.first.first
+
+    controller.instance_variable_set(:@issue_bulletin_for_test, false)
+    controller.send(:handle_login_result, true, "Google org")
+
+    assert_match "/org?ri=jp", redirects.last.first.first
+
+    controller.send(:handle_unexpected_error, StandardError.new("boom"), OpenStruct.new(provider: "google_org"))
+
+    assert_match "/org/in/new", redirects.last.first.first
+
+    controller.failure
+
+    assert_match "/org/in/new", redirects.last.first.first
+
+    OmniAuth.config.mock_auth[:google_org] = OpenStruct.new(provider: "google_org", uid: "uid")
+
+    assert_equal "uid", controller.send(:mock_auth_from_test_mode).uid
+
+    assert_equal "/org/in/new", controller.send(:social_auth_failure_redirect_path)
+    assert_equal "/org/configuration", controller.send(:social_auth_success_redirect_path)
+  ensure
+    OmniAuth.config.mock_auth.delete(:google_org) if defined?(OmniAuth)
   end
 
-  teardown do
-    OmniAuth.config.test_mode = false
-    OmniAuth.config.mock_auth.delete(GOOGLE_PROVIDER.to_sym)
-  end
+  test "direct org omniauth action success path and csrf helpers" do
+    controller = Sign::Org::Auth::OmniauthCallbacksController.new
+    redirects = []
+    request = ActionDispatch::TestRequest.create("REQUEST_METHOD" => "GET")
+    auth = OpenStruct.new(provider: "google_org")
+    request.env["omniauth.auth"] = auth
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
 
-  # --- Successful sign-in ---
+    staff = OpenStruct.new(id: 22, login_allowed?: true)
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(provider: "google_org") }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:validate_social_auth_state!) { @validated_for_test = true }
+    controller.define_singleton_method(:find_staff_from_auth) { |value| @found_auth_for_test = value; staff }
+    controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
+    controller.define_singleton_method(:login_and_redirect) { |found_staff, found_auth|
+      @login_args_for_test = [found_staff, found_auth].freeze
+    }
+    controller.define_singleton_method(:action_name) { @action_name_for_test }
+    controller.define_singleton_method(:verified_social_callback_request?) { @verified_social_for_test }
+    controller.define_singleton_method(:reject_social_callback!) { |**kwargs| @rejection_for_test = kwargs }
 
-  test "omniauth redirects to destination on successful staff sign-in" do
-    state = initiate_social_auth_flow!
+    controller.omniauth
 
-    get sign_org_auth_callback_path(provider: GOOGLE_PROVIDER, ri: "jp", state: state)
+    assert controller.instance_variable_get(:@validated_for_test)
+    assert_equal auth, controller.instance_variable_get(:@found_auth_for_test)
+    assert controller.instance_variable_get(:@cleared_for_test)
+    assert_equal [staff, auth], controller.instance_variable_get(:@login_args_for_test)
 
-    assert_nil flash[:alert], "Unexpected alert: #{flash[:alert]}"
-    assert_redirected_to sign_org_root_path(ri: "jp")
-    assert_not_nil flash[:notice]
-    assert_includes flash[:notice], "Google"
-  end
+    controller.instance_variable_set(:@action_name_for_test, "omniauth")
+    controller.instance_variable_set(:@verified_social_for_test, true)
 
-  test "omniauth marks the matched staff email as undeletable" do
-    assert_not_predicate @staff_email, :undeletable?
-    state = initiate_social_auth_flow!
+    assert controller.send(:verified_request?)
 
-    get sign_org_auth_callback_path(provider: GOOGLE_PROVIDER, ri: "jp", state: state)
+    request.env["social_callback_guard.rejection"] = { reason: "bad_state", provider: "google_org", details: {} }
+    controller.send(:handle_unverified_request)
 
-    assert_predicate @staff_email.reload, :undeletable?
-  end
-
-  # --- Staff not found ---
-
-  test "omniauth redirects to sign-in with error when no staff has that email" do
-    set_mock_google_auth(email: "unknown@example.com")
-    state = initiate_social_auth_flow!
-
-    get sign_org_auth_callback_path(provider: GOOGLE_PROVIDER, ri: "jp", state: state)
-
-    assert_redirected_to new_sign_org_in_path(ri: "jp")
-    assert_equal I18n.t("sign.org.social.sessions.create.not_found"), flash[:alert]
-  end
-
-  test "omniauth redirects to sign-in with error when staff is not active" do
-    @staff.update!(status_id: StaffStatus::NOTHING)
-    state = initiate_social_auth_flow!
-
-    get sign_org_auth_callback_path(provider: GOOGLE_PROVIDER, ri: "jp", state: state)
-
-    assert_redirected_to new_sign_org_in_path(ri: "jp")
-    assert_equal I18n.t("sign.org.social.sessions.create.not_found"), flash[:alert]
-  end
-
-  test "omniauth redirects to sign-in with failure when staff is withdrawn" do
-    @staff.update!(status_id: StaffStatus::ACTIVE, withdrawn_at: Time.current)
-    state = initiate_social_auth_flow!
-
-    get sign_org_auth_callback_path(provider: GOOGLE_PROVIDER, ri: "jp", state: state)
-
-    assert_redirected_to new_sign_org_in_path(ri: "jp")
-    assert_equal I18n.t("sign.org.social.sessions.create.failure"), flash[:alert]
-  end
-
-  # --- Failure callback ---
-
-  test "failure redirects to sign-in with error" do
-    get sign_org_auth_failure_path(message: "access_denied", strategy: GOOGLE_PROVIDER, ri: "jp")
-
-    assert_redirected_to new_sign_org_in_path(ri: "jp")
-    assert_equal I18n.t("sign.org.social.sessions.create.failure"), flash[:alert]
-  end
-
-  # --- Session limit ---
-
-  test "omniauth redirects to session management when sessions are exceeded" do
-    Sign::Org::Auth::OmniauthCallbacksController.any_instance.stub(
-      :log_in, { status: :session_limit_exceeded },
-    ) do
-      state = initiate_social_auth_flow!
-      get sign_org_auth_callback_path(provider: GOOGLE_PROVIDER, ri: "jp", state: state)
-    end
-
-    assert_redirected_to sign_org_in_session_path(ri: "jp")
-    assert_equal I18n.t(
-      "sign.org.in.session.restricted_notice",
-      default: "セッション数が上限に達しています。既存セッションを管理してください。",
-    ), flash[:notice]
-  end
-
-  test "omniauth redirects to session management when one logical staff session has many rotated ancestors" do
-    create_rotated_active_staff_session(@staff, rotations: 4)
-    state = initiate_social_auth_flow!
-
-    get sign_org_auth_callback_path(provider: GOOGLE_PROVIDER, ri: "jp", state: state)
-
-    assert_redirected_to sign_org_in_session_path(ri: "jp")
-    assert_equal "セッション数が上限に達しています。既存セッションを管理してください。", flash[:notice]
-    assert_equal 1, StaffToken.where(staff_id: @staff.id, status: StaffToken::STATUS_RESTRICTED).count
-  end
-
-  private
-
-  # Initiates the social auth flow via /social/session/new, which sets session state,
-  # then follows the redirect through OmniAuth request phase.
-  # Returns the state parameter for use in callback requests.
-  def initiate_social_auth_flow!
-    get(new_sign_org_social_session_path(provider: GOOGLE_PROVIDER, ri: "jp"))
-
-    assert_response :redirect
-
-    # Extract state from redirect URL to /auth/google_org?state=...
-    # Session state is already set by prepare_social_auth_intent! in the controller
-    redirect_uri = URI.parse(response.location)
-    Rack::Utils.parse_query(redirect_uri.query)["state"]
-  end
-
-  def set_mock_google_auth(email:)
-    OmniAuth.config.mock_auth[GOOGLE_PROVIDER.to_sym] = OmniAuth::AuthHash.new(
-      provider: GOOGLE_PROVIDER,
-      uid: "google_uid_#{SecureRandom.hex(8)}",
-      info: {
-        email: email,
-        name: "Test Staff",
-      },
-      credentials: {
-        token: "mock_token",
-        refresh_token: "mock_refresh_token",
-        expires_at: 1.hour.from_now.to_i,
-      },
-    )
-  end
-
-  def create_rotated_active_staff_session(staff, rotations:)
-    token = StaffToken.create!(staff: staff, status: StaffToken::STATUS_ACTIVE)
-    refresh = token.rotate_refresh_token!
-
-    rotations.times do
-      refresh = Sign::RefreshTokenService.call(refresh_token: refresh)[:refresh_token]
-    end
+    assert_equal "bad_state", controller.instance_variable_get(:@rejection_for_test)[:reason]
   end
 end

@@ -7,12 +7,12 @@ module SessionCookieConfig
   # Determines whether to force secure cookie settings.
   # Returns true in production, or when FORCE_SECURE_COOKIES=1,
   # but never in test or development environments.
-  def force_secure?(sign_service_host:, rails_env: Rails.env)
+  def force_secure?(id_service_host:, rails_env: Rails.env)
     non_local_host =
-      sign_service_host.present? &&
-      sign_service_host.exclude?("localhost") &&
-      !sign_service_host.start_with?("127.") &&
-      !sign_service_host.start_with?("0.") # non-routable bind address
+      id_service_host.present? &&
+      id_service_host.exclude?("localhost") &&
+      !id_service_host.start_with?("127.") &&
+      !id_service_host.start_with?("0.") # non-routable bind address
 
     (rails_env.production? ||
       ENV["FORCE_SECURE_COOKIES"] == "1" ||

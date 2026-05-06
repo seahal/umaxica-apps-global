@@ -1,40 +1,42 @@
+name: umaxica-apps-global-dc
 services:
   core:
-    container_name: jit-devcontainer-core
+    container_name: global-devcontainer-core
     userns_mode: keep-id
     tmpfs:
-      - /home/jit/workspace/tmp:uid=1000,gid=1000
-      - /home/jit/workspace/log:uid=1000,gid=1000
+      - /home/global/workspace/tmp:uid=1000,gid=1000,exec
+      - /home/global/workspace/log:uid=1000,gid=1000
     environment:
+      - TMPDIR=/home/global/workspace/tmp
       - DEVCONTAINER=1
       - RUBY_DEBUG_OPEN=false
   primary:
-    container_name: jit-devcontainer-primary
+    container_name: global-devcontainer-primary
     ports: []
   replica:
-    container_name: jit-devcontainer-replica
+    container_name: global-devcontainer-replica
     ports: []
   valkey:
-    container_name: jit-devcontainer-valkey
+    container_name: global-devcontainer-valkey
     ports: []
   master:
-    container_name: jit-devcontainer-seaweedfs-master
+    container_name: global-devcontainer-seaweedfs-master
     ports: []
   volume:
-    container_name: jit-devcontainer-seaweedfs-volume
+    container_name: global-devcontainer-seaweedfs-volume
     ports: []
   filer:
-    container_name: jit-devcontainer-seaweedfs-filer
+    container_name: global-devcontainer-seaweedfs-filer
     ports: []
   s3:
-    container_name: jit-devcontainer-seaweedfs-s3
+    container_name: global-devcontainer-seaweedfs-s3
     ports: []
   loki:
-    container_name: jit-devcontainer-loki
+    container_name: global-devcontainer-loki
     ports: []
   tempo:
-    container_name: jit-devcontainer-tempo
+    container_name: global-devcontainer-tempo
     ports: []
   grafana:
-    container_name: jit-devcontainer-grafana
+    container_name: global-devcontainer-grafana
     ports: []

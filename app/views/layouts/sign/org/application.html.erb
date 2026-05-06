@@ -11,7 +11,7 @@
   <%= stylesheet_link_tag "sign/main", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "sign/org/main", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-  <%= javascript_importmap_tags %>
+  <%= javascript_importmap_tags %>  <%= inertia_ssr_head %>
   <%= yield :head %>
 </head>
 
@@ -22,10 +22,10 @@
     <%= render "layouts/shared/flash_messages" %>
     <%= render "layouts/shared/current_banner", tld: :org, domain: :sign, region: :global %>
     <% if logged_in? %>
-      <%= link_to t("sign.org.layout.nav.logout"), edit_sign_org_configuration_out_url(host: ENV["SIGN_STAFF_URL"]) %>
+      <%= link_to t("sign.org.layout.nav.logout"), edit_sign_org_configuration_out_url(host: ENV["ID_STAFF_URL"]) %>
     <% else %>
-      <%= link_to t("sign.org.layout.nav.sign_up"), new_sign_org_up_url(host: ENV["SIGN_STAFF_URL"]) %>
-      <%= link_to t("sign.org.layout.nav.log_in"), new_sign_org_in_url(host: ENV["SIGN_STAFF_URL"]) %>
+      <%= link_to t("sign.org.layout.nav.sign_up"), new_sign_org_up_url(host: ENV["ID_STAFF_URL"]) %>
+      <%= link_to t("sign.org.layout.nav.log_in"), new_sign_org_in_url(host: ENV["ID_STAFF_URL"]) %>
     <% end %>
   </nav>
   <div>

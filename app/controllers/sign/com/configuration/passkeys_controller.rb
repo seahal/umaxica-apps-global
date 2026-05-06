@@ -69,11 +69,12 @@ module Sign
           end
 
           with_challenge(challenge_id, purpose: :registration) do |challenge|
-            credential = WebAuthn::Credential.from_create(credential_params.to_h)
+            credential = WebAuthn::Credential.from_create(
+              credential_params.to_h,
+              relying_party: webauthn_relying_party,
+            )
 
-            with_webauthn_config do
-              credential.verify(challenge)
-            end
+            credential.verify(challenge)
 
             passkey = current_customer.customer_passkeys.new(
               webauthn_id: credential.id,

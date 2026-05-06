@@ -102,19 +102,16 @@ module Email
   end
 
   def increment_attempts!
-    # Use atomic increment to prevent race condition with concurrent requests
-    record = self.class.find(id)
-    record.update!(otp_attempts_count: otp_attempts_count + 1, updated_at: Time.current)
-    reload
-    # Atomically set locked_at only when attempts reached threshold and not already locked
-    # Check for both NULL and -infinity as sentinel values for "not locked"
-    records = self.class.where(id: id)
-      .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp OR locked_at = 'infinity'::timestamp")
+    # rubocop:disable Rails/SkipsModelValidations
+    increment!(:otp_attempts_count)
+    # Conditionally set locked_at when threshold is reached and not already locked
+    self.class
+      .where(id: id)
       .where(otp_attempts_count: MAX_OTP_ATTEMPTS..)
-      .to_a
-    records.each { |r| r.update!(locked_at: Time.current) }
-
-    reload if records.any?
+      .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp OR locked_at = 'infinity'::timestamp")
+      .update_all(locked_at: Time.current)
+    # rubocop:enable Rails/SkipsModelValidations
+    reload if locked_at_changed?
   end
 
   def raw_address
@@ -140,14 +137,10 @@ module Email
     end
 
     normalized = Jit::Utils::EmailValidator.normalize(raw_address)
-    unless normalized
-      errors.add(:address, :invalid)
-      return
-    end
+    return if normalized
 
-    return unless normalized.length > 255
-
-    errors.add(:address, :too_long, count: 255)
+    errors.add(:address, :invalid)
+    nil
 
   end
 end

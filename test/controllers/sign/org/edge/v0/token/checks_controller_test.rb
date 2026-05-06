@@ -8,7 +8,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   setup do
     @staff = staffs(:one)
-    @host = ENV.fetch("SIGN_STAFF_URL", "test.umaxica.com")
+    @host = ENV.fetch("ID_STAFF_URL", "test.umaxica.com")
   end
 
   test "GET check with valid JWT access token returns 200" do

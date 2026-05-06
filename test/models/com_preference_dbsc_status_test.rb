@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: com_preference_dbsc_statuses
-# Database name: commerce
+# Database name: setting
 #
 #  id :bigint           not null, primary key
 #

@@ -8,7 +8,7 @@ class Sign::Org::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :staffs, :staff_statuses
 
   setup do
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
     @staff = staffs(:one)
     @headers = { "X-TEST-CURRENT-STAFF" => @staff.id }.freeze

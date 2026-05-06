@@ -7,7 +7,7 @@ class Sign::Org::Social::SessionsControllerTest < ActionDispatch::IntegrationTes
   fixtures :staffs, :staff_statuses, :staff_visibilities
 
   setup do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
   end
 
   test "start redirects to google oauth with valid provider" do

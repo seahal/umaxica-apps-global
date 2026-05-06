@@ -487,15 +487,15 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_29_153000) do
   end
 
   add_foreign_key "app_contact_emails", "app_contacts"
-  add_foreign_key "app_contact_histories", "app_contacts", validate: false
+  add_foreign_key "app_contact_histories", "app_contacts"
   add_foreign_key "app_contact_telephones", "app_contacts"
-  add_foreign_key "app_contact_topics", "app_contacts", validate: false
+  add_foreign_key "app_contact_topics", "app_contacts"
   add_foreign_key "app_contacts", "app_contact_categories", column: "category_id"
   add_foreign_key "app_contacts", "app_contact_statuses", column: "status_id", on_delete: :restrict
-  add_foreign_key "com_contact_audits", "com_contacts", validate: false
+  add_foreign_key "com_contact_audits", "com_contacts"
   add_foreign_key "com_contact_emails", "com_contacts"
   add_foreign_key "com_contact_telephones", "com_contacts"
-  add_foreign_key "com_contact_topics", "com_contacts", validate: false
+  add_foreign_key "com_contact_topics", "com_contacts"
   add_foreign_key "com_contacts", "com_contact_categories", column: "category_id"
   add_foreign_key "com_contacts", "com_contact_statuses", column: "status_id", on_delete: :restrict
   add_foreign_key "customer_emails", "customer_email_statuses"
@@ -516,12 +516,12 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_29_153000) do
   add_foreign_key "customer_secrets", "customers"
   add_foreign_key "customer_telephones", "customer_telephone_statuses"
   add_foreign_key "customer_telephones", "customers"
-  add_foreign_key "customers", "customer_statuses", column: "status_id", validate: false
-  add_foreign_key "customers", "customer_visibilities", column: "visibility_id", validate: false
+  add_foreign_key "customers", "customer_statuses", column: "status_id"
+  add_foreign_key "customers", "customer_visibilities", column: "visibility_id"
   add_foreign_key "org_contact_emails", "org_contacts"
-  add_foreign_key "org_contact_histories", "org_contacts", validate: false
+  add_foreign_key "org_contact_histories", "org_contacts"
   add_foreign_key "org_contact_telephones", "org_contacts"
-  add_foreign_key "org_contact_topics", "org_contacts", validate: false
+  add_foreign_key "org_contact_topics", "org_contacts"
   add_foreign_key "org_contacts", "org_contact_categories", column: "category_id"
   add_foreign_key "org_contacts", "org_contact_statuses", column: "status_id", name: "fk_org_contacts_on_status_id_nullify", on_delete: :nullify
 end

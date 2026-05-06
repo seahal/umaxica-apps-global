@@ -5,7 +5,7 @@ require "test_helper"
 
 class Apex::Com::Auth::CallbacksControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("APEX_CORPORATE_URL", "com.localhost")
+    @host = ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost")
   end
 
   test "returns client_id as apex_com" do

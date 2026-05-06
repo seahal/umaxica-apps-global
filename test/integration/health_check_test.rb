@@ -7,6 +7,10 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   # Use the sign.app health endpoint for integration testing of the Health concern.
   # The concern logic is shared across all health controllers.
 
+  setup do
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+  end
+
   test "returns 200 OK when all dependencies are healthy" do
     get sign_app_health_url(ri: "jp")
 

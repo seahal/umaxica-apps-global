@@ -9,7 +9,7 @@ module Sign::App::Configuration
     fixtures :users, :user_statuses
 
     setup do
-      host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+      host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       @user = users(:one)
       @headers = { "X-TEST-CURRENT-USER" => @user.id }.freeze
     end
@@ -34,7 +34,7 @@ module Sign::App::Configuration
       assert_redirected_to new_sign_app_in_url(
         rt: rt,
         host: ENV.fetch(
-          "SIGN_SERVICE_URL", "sign.app.localhost",
+          "ID_SERVICE_URL", "id.app.localhost",
         ),
       )
     end

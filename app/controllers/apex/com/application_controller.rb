@@ -7,10 +7,10 @@ module Apex
       include ::RateLimit
       include ::Session
       include ::Preference::Global
-      include ::Authentication::User
-      include ::Authorization::User
-      include ::Verification::User
-      include Pundit::Authorization
+      include ::Authentication::Customer
+      include ::Authorization::Customer
+      include ::Verification::Customer
+      include ActionPolicy::Controller
       include ::Oidc::SsoInitiator
       include ::CurrentSupport
       include ::Finisher
@@ -24,8 +24,7 @@ module Apex
       prepend_before_action :set_preferences_cookie
       prepend_before_action :resolve_param_context
       prepend_before_action :set_region
-      prepend_before_action :set_locale
-      prepend_before_action :set_timezone
+
       prepend_before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
@@ -38,7 +37,9 @@ module Apex
       # NOTE: rewrite in production.
       # FIXME: Resolve the URL issues before deploying.
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: %w(http://com.localhost https://com.localhost),
+                           trusted_origins: HostOriginEnv.trusted_origins(
+                             ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost"),
+                           ),
                            with: :exception
 
       public_strict!
@@ -47,6 +48,10 @@ module Apex
 
       def oidc_client_id
         "apex_com"
+      end
+
+      def oidc_sign_host
+        ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       end
 
       private

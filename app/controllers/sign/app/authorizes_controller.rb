@@ -8,9 +8,12 @@ module Sign
       before_action :authenticate!
 
       def show
+        amr = Current.token&.dig("amr")
         result = Oidc::AuthorizeService.call(
           params: authorize_params,
           resource: current_user,
+          auth_method: Array(amr).first,
+          acr: Current.token&.dig("acr"),
         )
 
         if result.success?

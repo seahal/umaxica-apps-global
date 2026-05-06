@@ -324,15 +324,15 @@ module Sign
         end
 
         def audit_recovery_code_used!(user, secret)
-          ActivityRecord.connected_to(role: :writing) do
-            UserActivityEvent.find_or_create_by!(id: UserActivityEvent::RECOVERY_CODE_USED)
-            UserActivityLevel.find_or_create_by!(id: UserActivityLevel::NOTHING)
+          ChronicleRecord.connected_to(role: :writing) do
+            UserChronicleEvent.find_or_create_by!(id: UserChronicleEvent::RECOVERY_CODE_USED)
+            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
           end
 
-          UserActivity.create!(
+          UserChronicle.create!(
             actor_type: "User",
             actor_id: user.id,
-            event_id: UserActivityEvent::RECOVERY_CODE_USED,
+            event_id: UserChronicleEvent::RECOVERY_CODE_USED,
             subject_id: secret.id.to_s,
             subject_type: "UserSecret",
             occurred_at: Time.current,

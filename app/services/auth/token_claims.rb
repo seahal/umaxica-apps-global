@@ -6,7 +6,7 @@ module Auth
     module_function
 
     def build(resource:, session_public_id:, resource_type:, issued_at:, access_token_ttl:, expires_at: nil,
-              preferences: nil, scopes: nil)
+              preferences: nil, scopes: nil, acr: nil, amr: nil)
       issued_at_seconds = timestamp_value(issued_at)
       expires_at_seconds = timestamp_value(expires_at || (issued_at + access_token_ttl))
       token_type = Authentication::Base::JwtConfiguration.token_type(resource_type)
@@ -22,10 +22,18 @@ module Auth
         "iss" => Authentication::Base::JwtConfiguration.issuer(resource_type),
         "aud" => Authentication::Base::JwtConfiguration.audiences(resource_type),
         "scp" => scopes_value,
+        "acr" => normalize_acr(acr),
       }
+      payload["amr"] = Array(amr) if amr.present?
       payload["sid"] = session_public_id if session_public_id.present?
       payload["prf"] = preferences if preferences.is_a?(Hash) && preferences.present?
       payload
+    end
+
+    def normalize_acr(acr)
+      return "aal1" if acr.blank?
+
+      acr.to_s.downcase
     end
 
     def subject(payload)

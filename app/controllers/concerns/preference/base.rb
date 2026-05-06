@@ -44,7 +44,7 @@ module Preference
     end
 
     # Returns audiences scoped to the TLD of the given host.
-    # e.g., host "sign.umaxica.app" results in only audiences ending with ".app" or equal to an ".app" apex.
+    # e.g., host "id.umaxica.app" results in only audiences ending with ".app" or equal to an ".app" apex.
     # In development, "localhost" is always included as an additional audience.
     def self.audience_for(host)
       return audiences if host.blank?
@@ -52,7 +52,7 @@ module Preference
       all = audiences
       return all if all.empty?
 
-      # Extract the TLD from the host (e.g., "sign.umaxica.app" results in "app", "localhost" results in "localhost")
+      # Extract the TLD from the host (e.g., "id.umaxica.app" results in "app", "localhost" results in "localhost")
       host_parts = host.split(".")
       host_tld = host_parts.last
 
@@ -380,41 +380,45 @@ module Preference
     }.freeze
 
     PREFERENCE_AUDIT_EVENT_ID_MAP = {
-      "AppPreferenceActivityEvent" => {
-        "CREATE_NEW_PREFERENCE_TOKEN" => AppPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
-        "REFRESH_TOKEN_ROTATED" => AppPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-        "UPDATE_PREFERENCE_COOKIE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-        "UPDATE_PREFERENCE_LANGUAGE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-        "UPDATE_PREFERENCE_TIMEZONE" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-        "RESET_BY_USER_DECISION" => AppPreferenceActivityEvent::RESET_BY_USER_DECISION,
-        "UPDATE_PREFERENCE_REGION" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
+      "AppPreferenceChronicleEvent" => {
+        "CREATE_NEW_PREFERENCE_TOKEN" => AppPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
+        "REFRESH_TOKEN_ROTATED" => AppPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+        "UPDATE_PREFERENCE_COOKIE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+        "UPDATE_PREFERENCE_LANGUAGE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+        "UPDATE_PREFERENCE_TIMEZONE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+        "RESET_BY_USER_DECISION" => AppPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+        "UPDATE_PREFERENCE_REGION" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+        "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
       }.freeze,
-      "ComPreferenceActivityEvent" => {
-        "CREATE_NEW_PREFERENCE_TOKEN" => ComPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
-        "REFRESH_TOKEN_ROTATED" => ComPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-        "UPDATE_PREFERENCE_COOKIE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-        "UPDATE_PREFERENCE_LANGUAGE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-        "UPDATE_PREFERENCE_TIMEZONE" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-        "RESET_BY_USER_DECISION" => ComPreferenceActivityEvent::RESET_BY_USER_DECISION,
-        "UPDATE_PREFERENCE_REGION" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
+      "ComPreferenceChronicleEvent" => {
+        "CREATE_NEW_PREFERENCE_TOKEN" => ComPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
+        "REFRESH_TOKEN_ROTATED" => ComPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+        "UPDATE_PREFERENCE_COOKIE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+        "UPDATE_PREFERENCE_LANGUAGE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+        "UPDATE_PREFERENCE_TIMEZONE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+        "RESET_BY_USER_DECISION" => ComPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+        "UPDATE_PREFERENCE_REGION" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+        "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
       }.freeze,
-      "OrgPreferenceActivityEvent" => {
-        "CREATE_NEW_PREFERENCE_TOKEN" => OrgPreferenceActivityEvent::CREATE_NEW_PREFERENCE_TOKEN,
-        "REFRESH_TOKEN_ROTATED" => OrgPreferenceActivityEvent::REFRESH_TOKEN_ROTATED,
-        "UPDATE_PREFERENCE_COOKIE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_COOKIE,
-        "UPDATE_PREFERENCE_LANGUAGE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_LANGUAGE,
-        "UPDATE_PREFERENCE_TIMEZONE" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_TIMEZONE,
-        "RESET_BY_USER_DECISION" => OrgPreferenceActivityEvent::RESET_BY_USER_DECISION,
-        "UPDATE_PREFERENCE_REGION" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceActivityEvent::UPDATE_PREFERENCE_COLORTHEME,
+      "OrgPreferenceChronicleEvent" => {
+        "CREATE_NEW_PREFERENCE_TOKEN" => OrgPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
+        "REFRESH_TOKEN_ROTATED" => OrgPreferenceChronicleEvent::REFRESH_TOKEN_ROTATED,
+        "UPDATE_PREFERENCE_COOKIE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_COOKIE,
+        "UPDATE_PREFERENCE_LANGUAGE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_LANGUAGE,
+        "UPDATE_PREFERENCE_TIMEZONE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
+        "RESET_BY_USER_DECISION" => OrgPreferenceChronicleEvent::RESET_BY_USER_DECISION,
+        "UPDATE_PREFERENCE_REGION" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
+        "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
       }.freeze,
     }.freeze
 
     included do
       helper_method :show_cookie_banner?, :cookie_banner_endpoint_url if respond_to?(:helper_method)
       before_action :set_preferences_cookie
+    end
+
+    def show_cookie_banner?
+      false
     end
 
     private
@@ -449,10 +453,6 @@ module Preference
       adopt_preference_for!(resource)
     rescue StandardError => e
       Rails.event.record("preference.restore_from_resource.error", error: e.class.name, message: e.message)
-    end
-
-    def show_cookie_banner?
-      false
     end
 
     def cookie_banner_endpoint_url
@@ -700,7 +700,7 @@ module Preference
       expires_at_value = expires_at || REFRESH_TOKEN_TTL.from_now
       normalized_event_id = normalize_preference_audit_event_id(event_id)
 
-      ActivityRecord.connected_to(role: :writing) do
+      ChronicleRecord.connected_to(role: :writing) do
         ensure_model_defaults!(preference_audit_level_class)
 
         if normalized_event_id.present?
@@ -889,6 +889,11 @@ module Preference
       public_id = Token.extract_public_id(payload)
       if public_id.present?
         @preferences = preference_class.includes(preference_associations_to_preload).find_by(public_id: public_id)
+        if @preferences.blank?
+          cookies.delete(access_token_cookie_name, **preference_cookie_deletion_options)
+          @preference_payload = nil
+          return false
+        end
       end
 
       true
@@ -899,43 +904,11 @@ module Preference
 
       token_value = refresh_token_value
       @refresh_token_value = token_value
-      refresh_public_id = nil
       @refresh_presented_digest = nil
       @refresh_public_id = nil
-      preference =
-        if token_value.present?
-          refresh_public_id, refresh_verifier = parse_refresh_token(token_value)
-          digest =
-            if refresh_verifier.present?
-              digest_refresh_token(refresh_verifier)
-            else
-              refresh_token_lookup_digest(token_value)
-            end
-          with_preference_connection(:writing) do
-            relation = preference_class.includes(preference_associations_to_preload)
-            if digest
-              @refresh_presented_digest = digest
-              @refresh_public_id = refresh_public_id
-              pref =
-                if refresh_public_id.present?
-                  relation.find_by(public_id: refresh_public_id)
-                else
-                  relation.find_by(token_digest: digest)
-                end
 
-              if pref.present? && pref.token_digest.present? && !secure_compare?(pref.token_digest, digest)
-                handle_preference_refresh_failed(pref, refresh_public_id)
-                return [nil, false]
-              end
-
-              if pref.present? && !preference_refresh_binding_allowed?(pref)
-                handle_preference_refresh_device_denied(pref, refresh_public_id)
-                return [nil, false]
-              end
-              pref
-            end
-          end
-        end
+      refresh_public_id, refresh_digest = refresh_token_data(token_value)
+      preference = find_refresh_preference(refresh_public_id, refresh_digest)
 
       if valid_refresh_preference?(preference)
         @preferences = preference
@@ -951,6 +924,11 @@ module Preference
         return [nil, false]
       end
 
+      if token_value.present?
+        handle_preference_refresh_failed(preference, refresh_public_id)
+        return [nil, false]
+      end
+
       # Don't create new preference if device binding was denied (security violation)
       return [nil, false] if @preference_refresh_device_denied
 
@@ -960,6 +938,58 @@ module Preference
       @refresh_public_id = nil
       preference = create_new_preference_record!
       [preference, true]
+    end
+
+    def refresh_token_data(token_value)
+      return [nil, nil] if token_value.blank?
+
+      refresh_public_id, refresh_verifier = parse_refresh_token(token_value)
+      refresh_digest =
+        if refresh_verifier.present?
+          digest_refresh_token(refresh_verifier)
+        else
+          refresh_token_lookup_digest(token_value)
+        end
+      [refresh_public_id, refresh_digest]
+    end
+
+    def find_refresh_preference(refresh_public_id, refresh_digest)
+      return nil if refresh_digest.blank?
+
+      @refresh_presented_digest = refresh_digest
+      @refresh_public_id = refresh_public_id
+
+      with_preference_connection(:writing) do
+        relation = preference_class.includes(preference_associations_to_preload)
+        pref =
+          if refresh_public_id.present?
+            relation.find_by(public_id: refresh_public_id)
+          else
+            relation.find_by(token_digest: refresh_digest)
+          end
+
+        digest_mismatch = refresh_digest_mismatch?(pref, refresh_digest)
+        binding_denied = pref.present? && !preference_refresh_binding_allowed?(pref)
+
+        return handle_invalid_refresh_digest(pref, refresh_public_id) if digest_mismatch
+        return handle_denied_refresh_binding(pref, refresh_public_id) if binding_denied
+
+        pref
+      end
+    end
+
+    def refresh_digest_mismatch?(pref, refresh_digest)
+      pref.present? && pref.token_digest.present? && !secure_compare?(pref.token_digest, refresh_digest)
+    end
+
+    def handle_invalid_refresh_digest(pref, refresh_public_id)
+      handle_preference_refresh_failed(pref, refresh_public_id)
+      nil
+    end
+
+    def handle_denied_refresh_binding(pref, refresh_public_id)
+      handle_preference_refresh_device_denied(pref, refresh_public_id)
+      nil
     end
 
     def create_new_preference_record!
@@ -1162,11 +1192,11 @@ module Preference
     def preference_dbsc_path
       case preference_class.name
       when "AppPreference"
-        apex_app_edge_v0_dbsc_path
+        apex_app_edge_v0_dbsc_path if respond_to?(:apex_app_edge_v0_dbsc_path)
       when "OrgPreference"
-        apex_org_edge_v0_dbsc_path
+        apex_org_edge_v0_dbsc_path if respond_to?(:apex_org_edge_v0_dbsc_path)
       when "ComPreference"
-        apex_com_edge_v0_dbsc_path
+        apex_com_edge_v0_dbsc_path if respond_to?(:apex_com_edge_v0_dbsc_path)
       end
     end
 

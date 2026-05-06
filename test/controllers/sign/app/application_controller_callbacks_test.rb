@@ -17,8 +17,6 @@ module Sign::App
       #   resolve_param_context -> set_preferences_cookie
       expected_before_filters = %i(
         set_color_theme
-        set_timezone
-        set_locale
         set_region
         resolve_param_context
         enforce_restricted_session_guard!

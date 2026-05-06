@@ -7,7 +7,7 @@ class Sign::App::LayoutTest < ActionDispatch::IntegrationTest
   fixtures :users, :user_statuses
 
   def default_headers
-    { "Host" => ENV["SIGN_SERVICE_URL"] || "sign.app.localhost" }
+    { "Host" => ENV["ID_SERVICE_URL"] || "id.app.localhost" }
   end
 
   def login_headers(user)

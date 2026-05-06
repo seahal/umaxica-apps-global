@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::App::JwksControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
   end
 
   test "returns JWKS as JSON" do

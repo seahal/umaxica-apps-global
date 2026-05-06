@@ -99,7 +99,7 @@ class OrgPreference < OperatorRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_many :org_preference_activities,
+  has_many :org_preference_chronicles,
            foreign_key: :subject_id,
            inverse_of: :org_preference,
            dependent: :destroy

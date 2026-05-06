@@ -22,7 +22,7 @@ class JwtAnomalySubscriberCoverageTest < ActiveSupport::TestCase
       name: "jwt.anomaly.detected",
       payload: {
         code: "AUTH_USER_MALFORMED_TOKEN",
-        request_host: "sign.app.localhost",
+        request_host: "id.app.localhost",
         kid: "kid-1",
         alg: "ES384",
         typ: "JWT",

@@ -5,9 +5,12 @@ scope module: :apex, as: :apex do
   constraints host: ENV["APEX_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
-      # health check for html
-      resource :health, only: :show, format: :html
-      resource :sitemap, only: :show, defaults: { format: :xml }
+      # Health
+      resource :health, only: :show
+      # Robots
+      resource :robots, only: :show, path: "robots.txt"
+      # Sitemap
+      resource :sitemap, only: :show, path: "sitemap.xml"
       # Edge API endpoint (browser/Rails view)
       namespace :web do
         namespace :v0 do
@@ -26,6 +29,18 @@ scope module: :apex, as: :apex do
       # OIDC callback
       namespace :auth do
         resource :callback, only: :show
+      end
+      resource :configuration, only: [:show]
+      namespace :configuration do
+        # logged in user's email settings.
+        resources :emails, only: %i(edit update new create)
+      end
+      resource :preference, only: [:show]
+      # for emergency token operations
+      namespace :emergency do
+        namespace :app do
+          resource :token, only: %i(show update)
+        end
       end
     end
   end
@@ -33,16 +48,12 @@ scope module: :apex, as: :apex do
   constraints host: ENV["APEX_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
-
-      # endpoint of health check
+      # Health
       resource :health, only: :show
-      resource :sitemap, only: :show, defaults: { format: :xml }
-
-      # OIDC callback
-      namespace :auth do
-        resource :callback, only: :show
-      end
-
+      # Robots
+      resource :robots, only: :show, path: "robots.txt"
+      # Sitemap
+      resource :sitemap, only: :show, path: "sitemap.xml"
       # Edge API endpoint (browser/Rails view)
       namespace :web do
         namespace :v0 do
@@ -58,11 +69,16 @@ scope module: :apex, as: :apex do
           resource :dbsc, only: :create
         end
       end
+      # OIDC callback
+      namespace :auth do
+        resource :callback, only: :show
+      end
       resource :configuration, only: [:show]
       namespace :configuration do
         # logged in user's email settings.
         resources :emails, only: %i(edit update new create)
       end
+      resource :preference, only: [:show]
       # for emergency token operations
       namespace :emergency do
         namespace :app do
@@ -79,8 +95,12 @@ scope module: :apex, as: :apex do
       namespace :auth do
         resource :callback, only: :show
       end
-      # health check for html
-      resource :health, only: :show, format: :html
+      # Health
+      resource :health, only: :show
+      # Robots
+      resource :robots, only: :show, path: "robots.txt"
+      # Sitemap
+      resource :sitemap, only: :show, path: "sitemap.xml"
       # Edge API endpoint (browser/Rails view)
       namespace :web do
         namespace :v0 do
@@ -116,6 +136,16 @@ scope module: :apex, as: :apex do
         # logged in user's email settings.
         resources :emails, only: %i(edit update new create)
       end
+    end
+
+    constraints host: ENV["APEX_NETWORK_URL"] do
+      # Health
+      resource :health, only: :show
+    end
+
+    constraints host: ENV["APEX_DEVELOPER_URL"] do
+      # Health
+      resource :health, only: :show
     end
   end
 end

@@ -8,7 +8,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   setup do
     @staff = staffs(:one)
-    @host = ENV.fetch("SIGN_STAFF_URL", "test.umaxica.com")
+    @host = ENV.fetch("ID_STAFF_URL", "test.umaxica.com")
     @device_id = SecureRandom.uuid
     @original_allow_forgery_protection = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = false
@@ -59,8 +59,6 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     csrf_token = "test_csrf_token"
     cookies["csrf_token"] = csrf_token
     cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
-
-    controller = Sign::Org::Edge::V0::Token::RefreshesController
     expires_at = Time.utc(2035, 5, 6, 7, 8, 9)
 
     travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
@@ -69,10 +67,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
       with_cookie_domain_credentials(COOKIE_DOMAIN_ORG: ".org.refresh.example.test") do
-        controller.any_instance.stub(
-          :decode_and_verify_preference_jwt,
-          { "preferences" => { "consented" => false }, "public_id" => "pref-org-public-id" },
-        ) do
+        if true # Replaced STUB stub with real execution as per G1
           post "/edge/v0/token/refresh",
                headers: {
                  "Host" => @host,

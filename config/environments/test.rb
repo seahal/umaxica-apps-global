@@ -23,7 +23,8 @@ Rails.application.configure do
 
   # Show full error reports.
   config.consider_all_requests_local = true
-  config.cache_store = :null_store
+  config.cache_store = :solid_cache_store
+  config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
@@ -39,8 +40,9 @@ Rails.application.configure do
   # ActionMailer::Base.deliveries array.
   config.action_mailer.delivery_method = :test
 
-  # Use test adapter for ActiveJob in test environment
+  # Tell Active Job to use the test adapter
   config.active_job.queue_adapter = :test
+  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }
@@ -67,6 +69,9 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Set log level to :warn to avoid cluttered output during tests
+  config.log_level = :warn
 
   # The following lines were added by me.
   # Bullet, a gem to help you avoid N+1 queries and unused eager loading.

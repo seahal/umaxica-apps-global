@@ -5,11 +5,11 @@ require "test_helper"
 require "base64"
 
 class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_activity_events, :staff_activity_levels,
+  fixtures :staffs, :staff_chronicle_events, :staff_chronicle_levels,
            :staff_token_statuses, :staff_token_kinds
 
   setup do
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @token = StaffToken.create!(
       staff: @staff,
@@ -20,6 +20,14 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     )
     @headers = as_staff_headers(@staff, host: @host)
     @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
+
+    host_value = @host
+    @original_trusted_origins = Webauthn.method(:trusted_origins)
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.org.localhost", "http://#{host_value}"] }
+  end
+
+  teardown do
+    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
   end
 
   test "GET protected endpoint redirects to setup when configured methods are zero" do
@@ -90,16 +98,28 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
   test "successful verification enables protected POST and records audit" do
     return_to = Base64.urlsafe_encode64(sign_org_configuration_passkeys_path(ri: "jp"))
+    StaffPasskey.create!(
+      staff: @staff,
+      webauthn_id: "test",
+      external_id: SecureRandom.uuid,
+      public_key: "public_key",
+      sign_count: 0,
+      name: "stepup passkey",
+      status_id: StaffPasskeyStatus::ACTIVE,
+    )
 
-    Sign::Org::VerificationsController.any_instance.stub(:available_step_up_methods, [:passkey]) do
-      Sign::Org::Verification::PasskeysController.any_instance.stub(:prepare_passkey_challenge!, true) do
-        Sign::Org::Verification::PasskeysController.any_instance.stub(:verify_passkey!, true) do
+    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+      WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
+        WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
           get sign_org_verification_url(scope: "configuration_passkey", return_to: return_to, ri: "jp"),
               headers: @headers
 
           assert_response :success
+          get new_sign_org_verification_passkey_url(ri: "jp"), headers: @headers
 
-          post sign_org_verification_passkey_url(ri: "jp"), headers: @headers
+          post sign_org_verification_passkey_url(ri: "jp"),
+               params: { verification: { challenge_id: "test", credential_json: '{"id":"test"}' } },
+               headers: @headers
         end
       end
     end
@@ -109,10 +129,10 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     assert response_has_cookie?(StaffVerification.cookie_name)
 
     assert StaffVerification.active.exists?(staff_token_id: @token.id)
-    assert StaffActivity.exists?(
+    assert StaffChronicle.exists?(
       actor_type: "Staff",
       actor_id: @staff.id,
-      event_id: StaffActivityEvent::STEP_UP_VERIFIED,
+      event_id: StaffChronicleEvent::STEP_UP_VERIFIED,
       subject_type: "Staff",
       subject_id: @staff.id,
     )
@@ -120,5 +140,15 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     post options_sign_org_configuration_passkeys_url(ri: "jp"), headers: @headers
 
     assert_not_equal 401, response.status
+  end
+
+  private
+
+  def passkey_credential_stub(id)
+    Struct.new(:id, :sign_count) do
+      define_method(:verify) do |*|
+        true
+      end
+    end.new(id, 1)
   end
 end

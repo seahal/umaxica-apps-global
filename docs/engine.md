@@ -59,7 +59,7 @@ infrastructure concerns, not business data.
 
 | Route file | Domain purpose                             | Hosts (dev)                                       |
 | ---------- | ------------------------------------------ | ------------------------------------------------- |
-| `sign.rb`  | Authentication (sign-in/up, MFA, passkeys) | `sign.app.localhost`, `sign.org.localhost`        |
+| `sign.rb`  | Authentication (sign-in/up, MFA, passkeys) | `id.app.localhost`, `id.org.localhost`            |
 | `apex.rb`  | Dashboard shell & preferences              | `app.localhost`, `org.localhost`, `com.localhost` |
 
 ### Local (core, docs, news, help)

@@ -5,10 +5,10 @@ require "test_helper"
 require "base64"
 
 class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_one_time_password_statuses, :user_activity_events, :user_activity_levels
+  fixtures :users, :user_one_time_password_statuses, :user_chronicle_events, :user_chronicle_levels
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     @headers = as_user_headers(@user, host: @host)
     @token = UserToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
@@ -99,10 +99,10 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     assert response_has_cookie?(UserVerification.cookie_name)
 
     assert UserVerification.active.exists?(user_token_id: @token.id)
-    assert UserActivity.exists?(
+    assert UserChronicle.exists?(
       actor_type: "User",
       actor_id: @user.id,
-      event_id: UserActivityEvent::STEP_UP_VERIFIED,
+      event_id: UserChronicleEvent::STEP_UP_VERIFIED,
       subject_type: "User",
       subject_id: @user.id,
     )

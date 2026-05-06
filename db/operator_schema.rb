@@ -404,47 +404,47 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_31_222108) do
   end
 
   add_foreign_key "departments", "department_statuses", name: "fk_departments_on_department_status_id"
-  add_foreign_key "departments", "departments", column: "parent_id", validate: false
+  add_foreign_key "departments", "departments", column: "parent_id"
   add_foreign_key "departments", "organizations", column: "workspace_id", on_delete: :nullify
   add_foreign_key "divisions", "division_statuses"
   add_foreign_key "divisions", "organizations", on_delete: :nullify
-  add_foreign_key "operators", "departments", on_delete: :nullify, validate: false
+  add_foreign_key "operators", "departments", on_delete: :nullify
   add_foreign_key "operators", "operator_statuses", column: "status_id"
-  add_foreign_key "operators", "staffs", validate: false
-  add_foreign_key "org_preference_colorthemes", "org_preference_colortheme_options", column: "option_id", name: "fk_org_preference_colorthemes_on_option_id", validate: false
-  add_foreign_key "org_preference_colorthemes", "org_preferences", column: "preference_id", validate: false
-  add_foreign_key "org_preference_cookies", "org_preferences", column: "preference_id", validate: false
-  add_foreign_key "org_preference_languages", "org_preference_language_options", column: "option_id", name: "fk_org_preference_languages_on_option_id", validate: false
-  add_foreign_key "org_preference_languages", "org_preferences", column: "preference_id", validate: false
-  add_foreign_key "org_preference_regions", "org_preference_region_options", column: "option_id", name: "fk_org_preference_regions_on_option_id", validate: false
-  add_foreign_key "org_preference_regions", "org_preferences", column: "preference_id", validate: false
-  add_foreign_key "org_preference_timezones", "org_preference_timezone_options", column: "option_id", name: "fk_org_preference_timezones_on_option_id", validate: false
-  add_foreign_key "org_preference_timezones", "org_preferences", column: "preference_id", validate: false
-  add_foreign_key "org_preferences", "org_preference_binding_methods", column: "binding_method_id", name: "fk_org_preferences_on_binding_method_id", validate: false
-  add_foreign_key "org_preferences", "org_preference_dbsc_statuses", column: "dbsc_status_id", name: "fk_org_preferences_on_dbsc_status_id", validate: false
-  add_foreign_key "org_preferences", "org_preference_statuses", column: "status_id", name: "fk_org_preferences_on_status_id", validate: false
-  add_foreign_key "org_preferences", "org_preferences", column: "replaced_by_id", on_delete: :nullify, validate: false
+  add_foreign_key "operators", "staffs"
+  add_foreign_key "org_preference_colorthemes", "org_preference_colortheme_options", column: "option_id", name: "fk_org_preference_colorthemes_on_option_id"
+  add_foreign_key "org_preference_colorthemes", "org_preferences", column: "preference_id"
+  add_foreign_key "org_preference_cookies", "org_preferences", column: "preference_id"
+  add_foreign_key "org_preference_languages", "org_preference_language_options", column: "option_id", name: "fk_org_preference_languages_on_option_id"
+  add_foreign_key "org_preference_languages", "org_preferences", column: "preference_id"
+  add_foreign_key "org_preference_regions", "org_preference_region_options", column: "option_id", name: "fk_org_preference_regions_on_option_id"
+  add_foreign_key "org_preference_regions", "org_preferences", column: "preference_id"
+  add_foreign_key "org_preference_timezones", "org_preference_timezone_options", column: "option_id", name: "fk_org_preference_timezones_on_option_id"
+  add_foreign_key "org_preference_timezones", "org_preferences", column: "preference_id"
+  add_foreign_key "org_preferences", "org_preference_binding_methods", column: "binding_method_id", name: "fk_org_preferences_on_binding_method_id"
+  add_foreign_key "org_preferences", "org_preference_dbsc_statuses", column: "dbsc_status_id", name: "fk_org_preferences_on_dbsc_status_id"
+  add_foreign_key "org_preferences", "org_preference_statuses", column: "status_id", name: "fk_org_preferences_on_status_id"
+  add_foreign_key "org_preferences", "org_preferences", column: "replaced_by_id", on_delete: :nullify
   add_foreign_key "organizations", "organization_statuses", column: "workspace_status_id"
-  add_foreign_key "role_assignments", "staffs", on_delete: :cascade, validate: false
+  add_foreign_key "role_assignments", "staffs", on_delete: :cascade
   add_foreign_key "staff_bulletins", "staffs"
   add_foreign_key "staff_emails", "staff_email_statuses", column: "staff_identity_email_status_id"
-  add_foreign_key "staff_emails", "staffs", validate: false
-  add_foreign_key "staff_identity_audits", "staff_identity_audit_events", column: "event_id", validate: false
-  add_foreign_key "staff_identity_audits", "staffs", validate: false
-  add_foreign_key "staff_identity_passkeys", "staffs", validate: false
-  add_foreign_key "staff_operators", "operators", on_delete: :cascade, validate: false
-  add_foreign_key "staff_operators", "staffs", on_delete: :cascade, validate: false
-  add_foreign_key "staff_org_preferences", "org_preferences", on_delete: :cascade, validate: false
-  add_foreign_key "staff_org_preferences", "staffs", validate: false
-  add_foreign_key "staff_passkeys", "staff_passkey_statuses", column: "status_id", validate: false
-  add_foreign_key "staff_passkeys", "staffs", validate: false
-  add_foreign_key "staff_recovery_codes", "staffs", validate: false
+  add_foreign_key "staff_emails", "staffs"
+  add_foreign_key "staff_identity_audits", "staff_identity_audit_events", column: "event_id"
+  add_foreign_key "staff_identity_audits", "staffs"
+  add_foreign_key "staff_identity_passkeys", "staffs"
+  add_foreign_key "staff_operators", "operators", on_delete: :cascade
+  add_foreign_key "staff_operators", "staffs", on_delete: :cascade
+  add_foreign_key "staff_org_preferences", "org_preferences", on_delete: :cascade
+  add_foreign_key "staff_org_preferences", "staffs"
+  add_foreign_key "staff_passkeys", "staff_passkey_statuses", column: "status_id"
+  add_foreign_key "staff_passkeys", "staffs"
+  add_foreign_key "staff_recovery_codes", "staffs"
   add_foreign_key "staff_secrets", "staff_secret_kinds", name: "fk_staff_secrets_on_staff_secret_kind_id"
   add_foreign_key "staff_secrets", "staff_secret_statuses", column: "staff_identity_secret_status_id"
-  add_foreign_key "staff_secrets", "staffs", validate: false
+  add_foreign_key "staff_secrets", "staffs"
   add_foreign_key "staff_telephones", "staff_telephone_statuses", column: "staff_identity_telephone_status_id"
-  add_foreign_key "staff_telephones", "staffs", validate: false
+  add_foreign_key "staff_telephones", "staffs"
   add_foreign_key "staffs", "staff_statuses", column: "status_id"
   add_foreign_key "staffs", "staff_visibilities", column: "visibility_id"
-  add_foreign_key "user_workspaces", "workspaces", validate: false
+  add_foreign_key "user_workspaces", "workspaces"
 end

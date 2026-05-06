@@ -30,18 +30,16 @@ class UserPolicy < ApplicationPolicy
     (owner? && actor.is_a?(User)) || (actor.is_a?(Staff) && operator?)
   end
 
-  class Scope < ApplicationPolicy::Scope
-    def resolve
-      if actor.is_a?(Staff) && operator_or_manager?
-        # Staff managers see all users
-        scope.all
-      elsif actor.is_a?(User)
-        # Users see only themselves
-        scope.where(id: actor.id)
-      else
-        # Unauthenticated users see nothing
-        scope.none
-      end
+  relation_scope do |relation|
+    if actor.is_a?(Staff) && operator_or_manager?
+      # Staff managers see all users
+      relation.all
+    elsif actor.is_a?(User)
+      # Users see only themselves
+      relation.where(id: actor.id)
+    else
+      # Unauthenticated users see nothing
+      relation.none
     end
   end
 end

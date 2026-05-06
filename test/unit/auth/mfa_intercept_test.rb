@@ -94,7 +94,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
         end
 
         define_method(:audit_class) do
-          ::UserActivity
+          ::UserChronicle
         end
 
         define_method(:resource_type) do
@@ -110,7 +110,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
         end
 
         define_method(:sign_in_url_with_return) do |_rt|
-          "/in"
+          "/sign/in"
         end
 
         define_method(:am_i_user?) do
@@ -130,7 +130,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
         end
 
         define_method(:sign_app_in_mfa_path) do |ri: nil|
-          ri ? "/in/mfa?ri=#{ri}" : "/in/mfa"
+          ri ? "/sign/in/mfa?ri=#{ri}" : "/sign/in/mfa"
         end
       end
 

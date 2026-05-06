@@ -77,6 +77,7 @@ module Sign
       redirect_to(new_sign_app_up_email_path)
     end
 
+    # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
     def initiate_email_verification!(email_address, confirm_policy: "1", allow_existing: false)
       return false unless ensure_turnstile!(email_address, confirm_policy)
 
@@ -108,8 +109,18 @@ module Sign
         return :cooldown
       end
 
+      cooldown_active = false
       begin
         UserEmail.transaction do
+          # 2. Definitive check inside transaction with row lock
+          if existing_email&.user_email_status_id == UserEmailStatus::UNVERIFIED_WITH_SIGN_UP
+            locked = UserEmail.lock.find_by(id: existing_email.id)
+            if locked&.otp_cooldown_active?
+              cooldown_active = true
+              raise ActiveRecord::Rollback
+            end
+          end
+
           cleanup_pending_signup!
           remove_existing_unverified_emails!
           create_pending_user!
@@ -125,8 +136,11 @@ module Sign
         return false
       end
 
+      return :cooldown if cooldown_active
+
       true
     end
+    # rubocop:enable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
     def complete_email_verification!(id, submitted_code, token = nil)
       @user_email = UserEmail.find_by(public_id: id)

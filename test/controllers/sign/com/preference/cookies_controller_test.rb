@@ -12,7 +12,7 @@ module Sign
         fixtures :users, :user_telephone_statuses, :com_preferences, :com_preference_cookies
 
         setup do
-          @host = ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+          @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
           @user = users(:one)
           @user.user_telephones.create!(
             number: "+819012340001",

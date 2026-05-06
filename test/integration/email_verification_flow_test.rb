@@ -6,7 +6,7 @@ require "test_helper"
 class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
   setup do
     CloudflareTurnstile.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = User.create!(status_id: UserStatus::UNVERIFIED_WITH_SIGN_UP)
   end
 

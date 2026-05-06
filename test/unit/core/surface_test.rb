@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-module Core
+module Main
   class SurfaceTest < ActiveSupport::TestCase
     RequestStub = Struct.new(:host, :env)
 

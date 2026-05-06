@@ -8,7 +8,7 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :users
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     @headers = as_user_headers(@user, host: @host)
     UserEmail.create!(

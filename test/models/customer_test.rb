@@ -47,6 +47,7 @@ class CustomerTest < ActiveSupport::TestCase
     [0, 1, 2, 3].each { |id| CustomerVisibility.find_or_create_by!(id: id) }
     [1, 2, 3, 4].each { |id| CustomerTelephoneStatus.find_or_create_by!(id: id) }
     [1, 2, 3, 4].each { |id| CustomerEmailStatus.find_or_create_by!(id: id) }
+    [1, 2, 3, 4, 5].each { |id| CustomerPasskeyStatus.find_or_create_by!(id: id) }
   end
 
   test "should be valid" do
@@ -110,6 +111,19 @@ class CustomerTest < ActiveSupport::TestCase
     assert_predicate customer, :verified_email?
   end
 
+  test "verified_email? uses loaded customer_emails" do
+    customer = Customer.create!
+    CustomerEmail.create!(
+      customer: customer,
+      address: "loaded@example.com",
+      confirm_policy: "1",
+      customer_email_status_id: CustomerEmailStatus::VERIFIED,
+    )
+    customer.customer_emails.load
+
+    assert_predicate customer, :verified_email?
+  end
+
   test "verified_email? returns true when customer has verified_with_sign_up email" do
     customer = Customer.create!
     CustomerEmail.create!(
@@ -141,6 +155,18 @@ class CustomerTest < ActiveSupport::TestCase
       number: "+15551234567",
       customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
     )
+
+    assert_predicate customer, :verified_telephone?
+  end
+
+  test "verified_telephone? uses loaded customer_telephones" do
+    customer = Customer.create!
+    CustomerTelephone.create!(
+      customer: customer,
+      number: "+15557654321",
+      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+    )
+    customer.customer_telephones.load
 
     assert_predicate customer, :verified_telephone?
   end
@@ -195,5 +221,22 @@ class CustomerTest < ActiveSupport::TestCase
     customer = Customer.create!
 
     assert_not customer.passkey_login_available?
+  end
+
+  test "passkey_login_available? requires verified telephone" do
+    customer = Customer.create!
+    CustomerTelephone.create!(
+      customer: customer,
+      number: "+15550001111",
+      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+    )
+    CustomerPasskey.create!(
+      customer: customer,
+      webauthn_id: "customer-passkey-login",
+      public_key: "test-public-key",
+      description: "My Passkey",
+    )
+
+    assert_predicate customer, :passkey_login_available?
   end
 end

@@ -74,6 +74,12 @@ class TelephoneNormalizationTest < ActiveSupport::TestCase
     assert_equal "+819012345678", TelephoneNormalization.normalize_to_e164("01081(0)90-1234-5678")
   end
 
+  test "normalize_to_e164 removes domestic zero after non Japan country code patterns" do
+    assert_equal "+442012345678", TelephoneNormalization.normalize_to_e164("004402012345678")
+    assert_equal "+123456789", TelephoneNormalization.normalize_to_e164("001023456789")
+    assert_equal "+99923456789", TelephoneNormalization.normalize_to_e164("00999023456789")
+  end
+
   # Domestic format (Japan)
   test "normalize_to_e164 converts domestic format to +81" do
     assert_equal "+819012345678", TelephoneNormalization.normalize_to_e164("09012345678")

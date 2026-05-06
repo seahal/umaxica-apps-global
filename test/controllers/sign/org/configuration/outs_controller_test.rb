@@ -7,9 +7,9 @@ class Sign::Org::Configuration::OutsControllerTest < ActionDispatch::Integration
   fixtures :staffs, :staff_statuses
 
   setup do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
-    @host = ENV["SIGN_STAFF_URL"] || "sign.org.localhost"
+    @host = ENV["ID_STAFF_URL"] || "id.org.localhost"
   end
 
   test "should get edit raises error without session" do

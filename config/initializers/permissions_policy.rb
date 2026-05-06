@@ -1,24 +1,43 @@
 # typed: false
 # frozen_string_literal: true
 
-# config/initializers/permissions_policy.rb
+require Rails.root.join("lib/host_origin_env").to_s
 
-Rails.application.config.permissions_policy do |policy|
-  policy.accelerometer(:none)
-  policy.camera(:none)
-  policy.geolocation(:none)
-  policy.gyroscope(:none)
-  policy.magnetometer(:none)
-  policy.microphone(:none)
-  policy.midi(:none)
-  policy.usb(:none)
+# Define an application-wide HTTP Permissions-Policy header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy
 
-  policy.fullscreen(:self)
-  policy.payment(:self)
-  policy.picture_in_picture(:self)
+# WebAuthn directives are not yet supported by Rails' PermissionsPolicy out of the box.
+# We extend it here to allow configuring these directives.
+ActionDispatch::PermissionsPolicy.class_eval do
+  define_method(:publickey_credentials_get) do |*sources|
+    @directives["publickey-credentials-get"] = apply_mappings(sources)
+  end
 
-  # WebAuthn/passkeys require these directives.
-  # Rails does not yet define them in DIRECTIVES, so set them directly.
-  policy.directives["publickey-credentials-get"]    = ["'self'"]
-  policy.directives["publickey-credentials-create"] = ["'self'"]
+  define_method(:publickey_credentials_create) do |*sources|
+    @directives["publickey-credentials-create"] = apply_mappings(sources)
+  end
+end
+
+Rails.application.config.permissions_policy do |f|
+  f.accelerometer(:none)
+  f.camera(:none)
+  f.geolocation(:none)
+  f.gyroscope(:none)
+  f.magnetometer(:none)
+  f.microphone(:none)
+  f.midi(:none)
+  f.usb(:none)
+  f.fullscreen(:self)
+  f.payment(:none)
+
+  # Allow WebAuthn for our authentication domains
+  id_origins =
+    HostOriginEnv.trusted_origins(
+      ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+      ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+    )
+
+  f.publickey_credentials_get(:self, *id_origins)
+  f.publickey_credentials_create(:self, *id_origins)
 end

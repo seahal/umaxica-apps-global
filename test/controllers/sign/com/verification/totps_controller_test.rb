@@ -7,7 +7,7 @@ class Sign::Com::Verification::TotpsControllerTest < ActionDispatch::Integration
   fixtures :users
 
   setup do
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
     ensure_customer_reference_records!
     ensure_customer_token_reference_records!

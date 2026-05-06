@@ -51,7 +51,7 @@ module Sign
         end
 
         def verification_success_event_id
-          UserActivityEvent::STEP_UP_VERIFIED
+          UserChronicleEvent::STEP_UP_VERIFIED
         end
 
         def verification_success_notice_key
@@ -62,13 +62,13 @@ module Sign
           sign_app_verification_path(ri: params[:ri])
         end
 
-        def verification_audit_event_class = UserActivityEvent
+        def verification_audit_event_class = UserChronicleEvent
 
-        def verification_audit_level_class = UserActivityLevel
+        def verification_audit_level_class = UserChronicleLevel
 
-        def verification_default_activity_level_id = UserActivityLevel::NOTHING
+        def verification_default_activity_level_id = UserChronicleLevel::NOTHING
 
-        def verification_activity_model = UserActivity
+        def verification_activity_model = UserChronicle
 
         def current_verification_actor = current_user
 

@@ -91,7 +91,7 @@ module Verification
       if request.format.json?
         render json: { error: STEP_UP_REQUIRED_MESSAGE }, status: :unprocessable_content
       else
-        render plain: STEP_UP_REQUIRED_MESSAGE, status: :unprocessable_content
+        render plain: STEP_UP_REQUIRED_MESSAGE, status: :unauthorized
       end
       false
     end
@@ -143,7 +143,7 @@ module Verification
       if request.get? || request.head?
         destination =
           if configured_step_up_methods.empty?
-            verification_setup_redirect_path
+            verification_setup_redirect_path(rd: encoded_step_up_rd)
           else
             verification_redirect_path(rd: encoded_step_up_rd, scope_override: scope_override)
           end
@@ -156,57 +156,11 @@ module Verification
 
         safe_redirect_to(destination, fallback: fallback, status: :found)
       elsif request.format.json?
-        render json: { error: I18n.t("auth.step_up.register_methods_required") },
-               status: :unprocessable_content
+        render json: { error: I18n.t("auth.step_up.register_methods_required") }, status: :unprocessable_content
       else
         render plain: I18n.t("auth.step_up.register_methods_required"), status: :unprocessable_content
       end
-
       false
-    end
-
-    def actor_verification_path(attrs)
-      actor_staff? ? sign_org_verification_path(attrs) : sign_app_verification_path(attrs)
-    end
-
-    def verification_redirect_path(rd:, scope_override: nil)
-      attrs = { ri: params[:ri], rd: rd }
-      scope = scope_override.to_s.presence || verification_scope.to_s.presence
-      attrs[:scope] = scope if scope
-
-      actor_verification_path(attrs)
-    end
-
-    def verification_setup_redirect_path
-      attrs = { ri: params[:ri], rd: encoded_step_up_rd }
-      actor_staff? ? new_sign_org_verification_setup_path(attrs) : new_sign_app_verification_setup_path(attrs)
-    end
-
-    def verification_redirect_fallback
-      "/verification"
-    end
-
-    def verification_setup_redirect_fallback
-      "/verification/setup"
-    end
-
-    def available_step_up_methods(actor = current_actor)
-      ::StepUp::AvailableMethods.call(actor) & step_up_supported_methods
-    end
-
-    def configured_step_up_methods(actor = current_actor)
-      ::StepUp::ConfiguredMethods.call(actor) & step_up_supported_methods
-    end
-
-    def step_up_supported_methods
-      actor_staff? ? [:passkey] : %i(email_otp passkey totp)
-    end
-
-    def current_actor
-      return current_staff if actor_staff? && respond_to?(:current_staff)
-      return current_user if respond_to?(:current_user)
-
-      nil
     end
 
     def encoded_step_up_rd
@@ -242,6 +196,53 @@ module Verification
 
     def actor_staff?
       false
+    end
+
+    def available_step_up_methods(actor = current_actor)
+      ::StepUp::AvailableMethods.call(actor) & step_up_supported_methods
+    end
+
+    def configured_step_up_methods(actor = current_actor)
+      ::StepUp::ConfiguredMethods.call(actor) & step_up_supported_methods
+    end
+
+    def step_up_supported_methods
+      actor_staff? ? [:passkey] : %i(email_otp passkey totp)
+    end
+
+    def current_actor
+      return current_staff if actor_staff? && respond_to?(:current_staff)
+      return current_user if respond_to?(:current_user)
+
+      nil
+    end
+
+    def verification_redirect_path(rd: nil, scope_override: nil)
+      actor_verification_path(rd: rd, scope: scope_override || verification_scope, ri: params[:ri])
+    end
+
+    def verification_redirect_fallback
+      actor_root_path(ri: params[:ri])
+    end
+
+    def verification_setup_redirect_path(rd: nil)
+      actor_verification_setup_path(rd: rd, ri: params[:ri])
+    end
+
+    def verification_setup_redirect_fallback
+      actor_root_path(ri: params[:ri])
+    end
+
+    def actor_verification_path(**args)
+      actor_staff? ? sign_org_verification_path(**args) : sign_app_verification_path(**args)
+    end
+
+    def actor_verification_setup_path(**args)
+      actor_staff? ? new_sign_org_verification_setup_path(**args) : new_sign_app_verification_setup_path(**args)
+    end
+
+    def actor_root_path(**args)
+      actor_staff? ? sign_org_root_path(**args) : sign_app_root_path(**args)
     end
   end
 end

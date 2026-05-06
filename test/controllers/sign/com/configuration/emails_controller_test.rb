@@ -5,8 +5,8 @@ require "test_helper"
 
 class Sign::Com::Configuration::EmailsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @customer = create_verified_customer_with_email(
       email_address: "config-#{SecureRandom.hex(4)}@example.com",
     )

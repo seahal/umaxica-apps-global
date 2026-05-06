@@ -6,12 +6,12 @@ require "base64"
 
 module Sign::App::Up
   class PasskeyRegistrationsControllerTest < ActionDispatch::IntegrationTest
-    fixtures :app_preference_activity_levels, :app_preference_activity_events,
+    fixtures :app_preference_chronicle_levels, :app_preference_chronicle_events,
              :user_statuses, :user_telephone_statuses, :user_passkey_statuses,
-             :user_activity_events, :user_activity_levels
+             :user_chronicle_events, :user_chronicle_levels
 
     setup do
-      host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+      host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -25,11 +25,11 @@ module Sign::App::Up
 
       @original_trusted_origins = Webauthn.method(:trusted_origins)
       allowed_origins = [
-        "http://sign.app.localhost",
-        "http://sign.org.localhost",
+        "http://id.app.localhost",
+        "http://id.org.localhost",
         "http://www.example.com",
-        "http://#{ENV.fetch("SIGN_SERVICE_URL", "sign.umaxica.app")}",
-        "https://#{ENV.fetch("SIGN_SERVICE_URL", "sign.umaxica.app")}",
+        "http://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}",
+        "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}",
       ].uniq
       Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
     end
@@ -191,7 +191,7 @@ module Sign::App::Up
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
-        assert_difference("UserActivity.count", 1) do
+        assert_difference("UserChronicle.count", 1) do
           post sign_app_up_telephone_passkey_registration_url(telephone, ri: "jp"), params: {
             challenge_id: challenge_id,
             credential: {
@@ -203,9 +203,9 @@ module Sign::App::Up
         end
       end
 
-      audit = UserActivity.last
+      audit = UserChronicle.last
 
-      assert_equal UserActivityEvent::SIGNED_UP_WITH_TELEPHONE, audit.event_id
+      assert_equal UserChronicleEvent::SIGNED_UP_WITH_TELEPHONE, audit.event_id
       assert_equal telephone.user.id, audit.actor_id
     end
 

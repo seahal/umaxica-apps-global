@@ -3,18 +3,14 @@
 source "https://rubygems.org"
 # source "https://gem.coop"
 
-ruby "4.0.2"
+ruby "4.0.3"
 
 # Rake
 gem "rake"
 # Rack
 gem "rack"
 # Rails
-# Tracking the main branch for Rails 8.1 features.
-# Once Rails 8.1 has a stable gem release, switch to:
 #   gem "rails", "~> 8.1.0"
-# or the stable maintenance branch:
-#   gem "rails", github: "rails/rails", branch: "8-1-stable"
 gem "rails", github: "rails/rails", branch: "main"
 # Web server
 gem "puma"
@@ -55,9 +51,8 @@ gem "propshaft"
 gem "opentelemetry-sdk", require: false
 gem "opentelemetry-exporter-otlp", require: false
 gem "opentelemetry-instrumentation-all", require: false
+# search
 gem "pg_search"
-# Sitemap
-# gem "sitemap_generator" # unused: no sitemap config/task found
 # TOTP
 gem "rotp"
 # QR code generation
@@ -89,13 +84,15 @@ gem "meta-tags"
 # ID generation
 gem "nanoid"
 # Authentication
-gem "pundit"
+gem "action_policy"
 # billing
 gem "stripe"
 # SQL exploration
 gem "blazer"
 gem "sentry-ruby"
 gem "sentry-rails"
+gem "inertia_rails"
+gem "vite_rails"
 
 group :development, :test do
   # Test coverage
@@ -115,12 +112,8 @@ group :development, :test do
   gem "debride"
   # type
   gem "tapioca", require: false
-  # sorbet
-  gem "sorbet-runtime"
+
   gem "rack-livereload"
-  gem "guard"
-  gem "guard-minitest"
-  gem "guard-livereload", require: false
 end
 
 group :development do
@@ -156,8 +149,6 @@ group :development do
   gem "erb_lint", require: false
   # Annotate models, routes, fixtures, etc.
   gem "annotaterb"
-  # License finder
-  gem "license_finder", require: false
   # Ruby LSP
   gem "ruby-lsp"
   # Code quality tools
@@ -171,3 +162,5 @@ group :development do
   # Security
   gem "bundler-audit", require: false
 end
+
+gem "rbs", "~> 4.0"

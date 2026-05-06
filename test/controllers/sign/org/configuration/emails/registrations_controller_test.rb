@@ -7,8 +7,8 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
   fixtures :staffs, :staff_statuses, :staff_email_statuses
 
   setup do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @token = StaffToken.create!(staff: @staff, status: StaffToken::STATUS_ACTIVE)
     satisfy_staff_verification(@token)

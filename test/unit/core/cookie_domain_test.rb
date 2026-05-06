@@ -43,7 +43,7 @@ module Core
 
     test "derives .app.localhost for nested localhost hosts" do
       with_cookie_domain_credentials(COOKIE_DOMAIN_APP: nil) do
-        assert_equal ".app.localhost", Core::CookieDomain.for(surface: :app, request_host: "sign.app.localhost")
+        assert_equal ".app.localhost", Core::CookieDomain.for(surface: :app, request_host: "id.app.localhost")
       end
     end
 

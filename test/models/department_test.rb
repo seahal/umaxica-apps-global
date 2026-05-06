@@ -52,4 +52,27 @@ class DepartmentTest < ActiveSupport::TestCase
     assert_not department.valid?
     assert_includes department.errors[:name], "を入力してください"
   end
+
+  test "links parent and children" do
+    parent = Department.create!(
+      name: "Parent Dept",
+      department_status_id: DepartmentStatus::ACTIVE,
+      workspace: @workspace,
+    )
+    child = Department.create!(
+      name: "Child Dept",
+      department_status_id: DepartmentStatus::NOTHING,
+      workspace: @workspace,
+      parent: parent,
+    )
+
+    assert_equal parent, child.parent
+    assert_includes parent.children, child
+  end
+
+  test "validates status uniqueness within the same parent" do
+    validator = Department.validators_on(:department_status_id).grep(ActiveRecord::Validations::UniquenessValidator).first
+
+    assert_equal :parent_id, validator.options[:scope]
+  end
 end

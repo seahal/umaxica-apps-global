@@ -6,14 +6,18 @@ require "jwt"
 module Auth
   class TokenService
     JWT_ALGORITHM = "ES384"
-    VALID_ACTOR_TYPES = %w(user staff).freeze
+    VALID_ACTOR_TYPES = %w(user staff customer).freeze
 
     class << self
-      def encode(resource, host:, session_public_id: nil, resource_type: nil, expires_at: nil, preferences: nil)
+      def encode(resource, host:, session_public_id: nil, resource_type: nil, expires_at: nil, preferences: nil,
+                 acr: nil, amr: nil)
         return nil unless valid_encode_params?(resource, host)
 
         type = resource_type || resource.class.name.downcase
-        payload = build_payload(resource, session_public_id, type, expires_at: expires_at, preferences: preferences)
+        payload = build_payload(
+          resource, session_public_id, type, expires_at: expires_at, preferences: preferences,
+                                             acr: acr, amr: amr,
+        )
         token_type = Authentication::Base::JwtConfiguration.token_type(type)
         JWT.encode(
           payload,
@@ -150,7 +154,7 @@ module Auth
         true
       end
 
-      def build_payload(resource, session_public_id, type, expires_at: nil, preferences: nil)
+      def build_payload(resource, session_public_id, type, expires_at: nil, preferences: nil, acr: nil, amr: nil)
         Auth::TokenClaims.build(
           resource: resource,
           session_public_id: session_public_id,
@@ -159,13 +163,15 @@ module Auth
           access_token_ttl: Authentication::Base::ACCESS_TOKEN_TTL,
           expires_at: expires_at,
           preferences: preferences,
+          acr: acr,
+          amr: amr,
         )
       end
 
       def decode_options(resource_type, issuer, audiences)
         {
           algorithms: [JWT_ALGORITHM],
-          required_claims: %w(iss aud typ exp sub sid act jti),
+          required_claims: %w(iss aud typ exp sub sid act jti acr),
           leeway: Authentication::Base::JwtConfiguration.leeway_seconds,
           verify_iat: true,
           verify_exp: true,

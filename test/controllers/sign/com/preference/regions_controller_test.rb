@@ -12,8 +12,10 @@ module Sign
         fixtures :com_preferences
 
         setup do
-          @host = ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
-          @customer = create_verified_customer_with_email(email_address: "preference-#{SecureRandom.hex(4)}@example.com")
+          @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+          @customer = create_verified_customer_with_email(
+            email_address: "preference-#{SecureRandom.hex(4)}@example.com",
+          )
           @customer.customer_telephones.create!(
             number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
             customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,

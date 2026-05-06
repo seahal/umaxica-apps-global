@@ -431,15 +431,13 @@ class StaffTest < ActiveSupport::TestCase
     assert_equal :restrict_with_error,
                  Staff.reflect_on_association(:staff_telephones).options[:dependent]
     assert_equal :nullify,
-                 Staff.reflect_on_association(:staff_activities).options[:dependent]
+                 Staff.reflect_on_association(:staff_chronicles).options[:dependent]
     assert_equal :nullify,
-                 Staff.reflect_on_association(:user_activities).options[:dependent]
+                 Staff.reflect_on_association(:user_chronicles).options[:dependent]
     assert_equal :destroy,
                  Staff.reflect_on_association(:staff_secrets).options[:dependent]
     assert_equal :destroy,
                  Staff.reflect_on_association(:staff_tokens).options[:dependent]
-    assert_equal :destroy,
-                 Staff.reflect_on_association(:staff_messages).options[:dependent]
     assert_equal :destroy,
                  Staff.reflect_on_association(:staff_notifications).options[:dependent]
   end

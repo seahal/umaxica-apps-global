@@ -1,12 +1,12 @@
 # typed: false
 # frozen_string_literal: true
 
-require Rails.root.join("lib/sign_host_env").to_s
+require Rails.root.join("lib/id_host_env").to_s
 require Rails.root.join("lib/session_cookie_config").to_s
 
 # config/initializers/session_store.rb
 force_secure = SessionCookieConfig.force_secure?(
-  sign_service_host: SignHostEnv.service_url.to_s,
+  id_service_host: IdHostEnv.service_url.to_s,
 )
 
 Rails.application.config.session_store(

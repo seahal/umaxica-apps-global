@@ -32,8 +32,8 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_app_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
     assert_response :success
-    assert_select "a[href=?]", "/up/telephones/new", count: 0
-    assert_select "a[href=?]", "/up/telephones/new?ri=jp", count: 0
+    assert_select "a[href=?]", "/sign/up/telephones/new", count: 0
+    assert_select "a[href=?]", "/sign/up/telephones/new?ri=jp", count: 0
   end
 
   test "does not show social login buttons" do
@@ -94,13 +94,13 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_app_up_url(format: :html, ri: "jp"), headers: { "X-TEST-CURRENT-USER" => user.id }
 
     assert_response :unauthorized
-    assert_equal "権限がありません", response.body
+    assert_equal "この操作を行う権限がありません。", response.body
   end
 
   private
 
   def host
-    ENV["SIGN_SERVICE_URL"] || "sign.app.localhost"
+    ENV["ID_SERVICE_URL"] || "id.app.localhost"
   end
 
   def brand_name

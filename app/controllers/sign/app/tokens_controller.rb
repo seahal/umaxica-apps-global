@@ -4,15 +4,15 @@
 module Sign
   module App
     class TokensController < ApplicationController
+      include ::RateLimit
+
       public_strict!
-      # FIXME: This configuration disables CSRF protection by nullifying the session
-      # instead of raising an exception on invalid/missing tokens. This is a potential
-      # security vulnerability, but is kept because this OAuth/OIDC token endpoint
-      # receives requests from third-party clients using client_id/client_secret
-      # authentication, which cannot include CSRF tokens.
-      # Consider implementing alternative security measures (e.g., origin validation,
-      # rate limiting) to mitigate the risk.
+      # Token endpoints used by OIDC clients cannot provide CSRF tokens.
+      # We use null_session to ensure no session access occurs during the request.
       protect_from_forgery with: :null_session
+
+      # Limit token exchange attempts to prevent brute-force/DoS
+      rate_limit to: 10, within: 1.minute, only: :create
 
       def create
         result = Oidc::TokenExchangeService.call(

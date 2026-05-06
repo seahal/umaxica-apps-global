@@ -54,8 +54,11 @@ module Authentication
     DBSC_COOKIE_TTL = 10.minutes
     RESTRICTED_SESSION_TTL = 15.minutes
     LOGIN_COOLDOWN = 30.seconds
-    SESSION_LIMIT_HARD_REJECT_MESSAGE = "セッション数上限に達しています"
-    LOGIN_COOLDOWN_MESSAGE = "ログインは30秒間隔を空けてください"
+    SESSION_LIMIT_HARD_REJECT_MESSAGE = I18n.t(
+      "errors.messages.session_limit_exceeded",
+      default: "Session limit exceeded",
+    )
+    LOGIN_COOLDOWN_MESSAGE = I18n.t("errors.messages.login_cooldown", default: "Please wait before logging in again")
 
     class LoginCooldownError < StandardError; end
 
@@ -143,16 +146,20 @@ module Authentication
       JWT_ALGORITHM = "ES384"
 
       class << self
-        def encode(resource, host:, session_public_id: nil, resource_type: nil, expires_at: nil, preferences: nil)
+        def encode(resource, host:, session_public_id: nil, resource_type: nil, expires_at: nil, preferences: nil,
+                   acr: nil, amr: nil)
           Auth::TokenService.encode(
             resource, host: host, session_public_id: session_public_id,
                       resource_type: resource_type, expires_at: expires_at,
-                      preferences: preferences,
+                      preferences: preferences, acr: acr, amr: amr,
           )
         end
 
-        def decode(token, host:, resource_type: nil)
-          Auth::TokenService.decode(token, host: host, resource_type: resource_type)
+        def decode(token, host:, resource_type: nil, issuer: nil, audiences: nil)
+          Auth::TokenService.decode(
+            token, host: host, resource_type: resource_type, issuer: issuer,
+                   audiences: audiences,
+          )
         end
 
         def extract_subject(payload)
@@ -199,7 +206,7 @@ module Authentication
     def ensure_not_logged_in(message_key: nil)
       return unless logged_in?
 
-      message = message_key ? t(message_key) : "権限がありません"
+      message = message_key ? t(message_key) : I18n.t("errors.messages.not_authorized")
       render plain: message, status: :unauthorized
       nil
     end
@@ -213,7 +220,7 @@ module Authentication
     def ensure_not_logged_in_for_registration(redirect_path: "/", message_key: nil)
       return unless logged_in?
 
-      message = message_key ? t(message_key) : "権限がありません"
+      message = message_key ? t(message_key) : I18n.t("errors.messages.not_authorized")
 
       if request.format.json?
         render plain: message, status: :unauthorized
@@ -241,7 +248,7 @@ module Authentication
     def reject_logged_in_session
       return unless logged_in?
 
-      render plain: "権限がありません", status: :unauthorized
+      render plain: I18n.t("errors.messages.not_authorized"), status: :unauthorized
     end
 
     # ======================================================================
@@ -634,6 +641,9 @@ module Authentication
       access_expires_at = access_token_expires_at_for(token_record, now: now)
       refresh_cookie_expires_at = refresh_cookie_expires_at_for(token_record)
 
+      # Determine amr from token_kind_id
+      amr_value = normalize_amr(token_kind_id)
+
       access_token = Token.encode(
         resource,
         host: request.host,
@@ -641,6 +651,8 @@ module Authentication
         resource_type: resource_type,
         expires_at: access_expires_at,
         preferences: build_auth_preference_snapshot(resource),
+        acr: "aal1",
+        amr: amr_value,
       )
 
       # Always set cookies (even for JSON responses - required for Edge/SPA)
@@ -1268,10 +1280,12 @@ module Authentication
       nil
     end
 
+    # rubocop:disable Metrics/MethodLength
     def build_refreshed_session(resource, token_record, new_refresh_plain, previous_token_record: nil)
       access_expires_at = access_token_expires_at_for(token_record)
       refresh_cookie_expires_at = refresh_cookie_expires_at_for(token_record)
 
+      # Refresh forces downgrade to aal1 and clears amr
       new_access_token = Token.encode(
         resource,
         host: request.host,
@@ -1279,6 +1293,8 @@ module Authentication
         resource_type: resource_type,
         expires_at: access_expires_at,
         preferences: build_auth_preference_snapshot(resource),
+        acr: "aal1",
+        amr: nil,
       )
 
       set_auth_cookies(
@@ -1325,6 +1341,7 @@ module Authentication
         dbsc: dbsc_payload_for(token_record),
       }
     end
+    # rubocop:enable Metrics/MethodLength
 
     def request_ip_address
       (respond_to?(:request, true) && request) ? request.remote_ip : nil
@@ -1987,6 +2004,17 @@ module Authentication
     #
     # @param user [User] the user to log in
     # @return [Hash] result with :status, :redirect_path, etc.
+    def normalize_amr(token_kind_id)
+      case token_kind_id.to_s
+      when "email" then ["email_otp"]
+      when "passkey" then ["passkey"]
+      when "google" then ["google"]
+      when "apple" then ["apple"]
+      when "secret" then ["recovery_code"]
+      else []
+      end
+    end
+
     def finalize_mfa_login!(user)
       return_to = pending_mfa&.dig(:return_to)
       clear_pending_mfa!
@@ -2010,10 +2038,10 @@ module Authentication
       elsif respond_to?(:sign_org_in_session_path, true)
         sign_org_in_session_path
       else
-        "/in/session"
+        "/sign/in/session"
       end
     rescue StandardError
-      "/in/session"
+      "/sign/in/session"
     end
 
     # Default redirect destination after login for guest_only! policy.
@@ -2379,10 +2407,10 @@ module Authentication
       elsif respond_to?(:sign_org_in_challenge_path, true)
         sign_org_in_challenge_path(ri: ri)
       else
-        "/in/challenge"
+        "/sign/in/challenge"
       end
     rescue StandardError
-      "/in/challenge"
+      "/sign/in/challenge"
     end
 
     def handle_auth_required_json(options)
@@ -2411,10 +2439,10 @@ module Authentication
 
     def handle_guest_only_with_status_checks(options)
       if options[:status] == :unauthorized
-        return render plain: (options[:message] || "権限がありません"), status: :unauthorized
+        return render plain: (options[:message] || I18n.t("errors.messages.not_authorized")), status: :unauthorized
       end
       if options[:status] == :bad_request
-        return render plain: (options[:message] || "リクエストが不正です"), status: :bad_request
+        return render plain: (options[:message] || I18n.t("errors.messages.invalid_request")), status: :bad_request
       end
 
       handle_guest_only_html(options)

@@ -11,7 +11,7 @@ module Sign
       include ::Authentication::Staff
       include ::Authorization::Staff
       include ::Verification::Staff
-      include Pundit::Authorization
+      include ActionPolicy::Controller
       include ::RestrictedSessionGuard
       include ::CurrentSupport
       include ::Finisher
@@ -27,21 +27,20 @@ module Sign
       prepend_before_action :set_preferences_cookie
       prepend_before_action :resolve_param_context
       prepend_before_action :set_region
-      prepend_before_action :set_locale
-      prepend_before_action :set_timezone
+
       prepend_before_action :set_color_theme
       before_action :enforce_restricted_session_guard!
+      before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :enforce_access_policy!
       before_action :enforce_verification_if_required
       before_action :set_current
+      before_action :set_current_observability
       after_action :purge_current
 
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: ENV.fetch(
-                             "SIGN_ORG_TRUSTED_ORIGINS",
-                             "http://sign.org.localhost,https://sign.org.localhost",
-                           )
-                             .split(",").map(&:strip),
+                           trusted_origins: HostOriginEnv.trusted_origins(
+                             ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+                           ),
                            with: :exception
 
       guest_only!

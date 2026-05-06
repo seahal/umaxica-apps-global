@@ -11,7 +11,7 @@ module Sign::Com
       assert_includes controller.class, ::Authentication::Customer
       assert_includes controller.class, ::Authorization::Customer
       assert_includes controller.class, ::Verification::Customer
-      assert_includes controller.class, Pundit::Authorization
+      assert_includes controller.class, ActionPolicy::Controller
       assert_includes controller.class, ::CurrentSupport
     end
 

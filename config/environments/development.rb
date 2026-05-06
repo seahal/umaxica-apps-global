@@ -98,29 +98,14 @@ Rails.application.configure do
   # config.web_console.permitted_networks = "127.0.0.1", "::1", "172.19.0.0/16"
 
   ## to avoid errors
-  config.hosts << "app.localhost"
-  config.hosts << "com.localhost"
-  config.hosts << "org.localhost"
-  config.hosts << "sign.app.localhost"
-  config.hosts << "sign.com.localhost"
-  config.hosts << "sign.org.localhost"
-  config.hosts << "ww.app.localhost"
-  config.hosts << "ww.com.localhost"
-  config.hosts << "ww.org.localhost"
-  config.hosts << "help.app.localhost"
-  config.hosts << "help.com.localhost"
-  config.hosts << "help.org.localhost"
-  config.hosts << "docs.app.localhost"
-  config.hosts << "docs.com.localhost"
-  config.hosts << "docs.org.localhost"
-  config.hosts << "news.app.localhost"
-  config.hosts << "news.com.localhost"
-  config.hosts << "news.org.localhost"
-  # Production hostnames allowed in development for Cloudflare Tunnel testing.
-  # Remove once local-only development is sufficient.
-  config.hosts << "sign.umaxica.app"
-  config.hosts << "sign.umaxica.com"
-  config.hosts << "sign.umaxica.org"
+  config.hosts << "id.app.localhost"
+  config.hosts << "id.com.localhost"
+  config.hosts << "id.org.localhost"
+  config.hosts << "www.app.localhost"
+  config.hosts << "www.com.localhost"
+  config.hosts << "www.org.localhost"
+  config.hosts << "www.net.localhost"
+  config.hosts << "www.dev.localhost"
 
   ## file watcher
   config.file_watcher = ActiveSupport::EventedFileUpdateChecker

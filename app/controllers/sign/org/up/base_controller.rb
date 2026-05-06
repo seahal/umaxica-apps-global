@@ -6,7 +6,7 @@ module Sign
     module Up
       class BaseController < ApplicationController
         include ::RateLimit
-        include Pundit::Authorization
+        include ActionPolicy::Controller
         # Note: Authentication::Staff is NOT included here for unauthenticated sign-up
         include ::Preference::Global
         include ::Preference::Adoption
@@ -25,11 +25,9 @@ module Sign
         append_after_action :finish_request
 
         protect_from_forgery using: :header_or_legacy_token,
-                             trusted_origins: ENV.fetch(
-                               "SIGN_ORG_TRUSTED_ORIGINS",
-                               "http://sign.org.localhost,https://sign.org.localhost",
-                             )
-                               .split(",").map(&:strip),
+                             trusted_origins: HostOriginEnv.trusted_origins(
+                               ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+                             ),
                              with: :exception
 
         private

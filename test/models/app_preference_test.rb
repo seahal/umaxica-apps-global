@@ -221,6 +221,21 @@ class AppPreferenceTest < ActiveSupport::TestCase
     assert_nil AppPreference.consume_once_by_digest!(digest: expired_digest)
   end
 
+  test "revoked? reflects revoked and compromised timestamps" do
+    preference = AppPreference.new
+
+    assert_not preference.revoked?
+
+    preference.revoked_at = Time.current
+
+    assert_predicate preference, :revoked?
+
+    preference.revoked_at = nil
+    preference.compromised_at = Time.current
+
+    assert_predicate preference, :revoked?
+  end
+
   test "rotate! creates replacement and links replaced_by_id" do
     digest = AppPreference.digest_refresh_token("rotate-me")
     preference = AppPreference.create!(
@@ -240,5 +255,23 @@ class AppPreferenceTest < ActiveSupport::TestCase
     assert_equal "device-1", rotated.device_id
     assert_predicate rotated.token_digest, :present?
     assert_equal rotated.id, preference.reload.replaced_by_id
+  end
+
+  test "migrate_preference_children! moves child preference reference" do
+    child = Struct.new(:preference_id) do
+      define_method(:update!) do |attributes|
+        self.preference_id = attributes.fetch(:preference_id)
+      end
+    end.new(1)
+    from = Struct.new(:app_preference_cookie) do
+      define_singleton_method(:model_name) do
+        ActiveModel::Name.new(AppPreference)
+      end
+    end.new(child)
+    to = Struct.new(:id).new(2)
+
+    AppPreference.send(:migrate_preference_children!, from: from, to: to)
+
+    assert_equal 2, child.preference_id
   end
 end

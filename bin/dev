@@ -1,25 +1,23 @@
 #!/usr/bin/env sh
 
-if ! gem list foreman -i --silent; then
+export PORT="${PORT:-3000}"
+
+if command -v overmind 1> /dev/null 2>&1
+then
+  overmind start -f Procfile.dev "$@"
+  exit $?
+fi
+
+if command -v hivemind 1> /dev/null 2>&1
+then
+  echo "Hivemind is installed. Running the application with Hivemind..."
+  exec hivemind Procfile.dev "$@"
+  exit $?
+fi
+
+if gem list --no-installed --exact --silent foreman; then
   echo "Installing foreman..."
   gem install foreman
 fi
 
-# Default to port 3000 if not specified
-export PORT="${PORT:-3000}"
-
-# Let the debug gem allow remote connections,
-# but avoid loading until `debugger` is called
-export RUBY_DEBUG_OPEN="true"
-export RUBY_DEBUG_LAZY="true"
-
-if [ "${SKIP_DB_PREPARE:-}" = "" ]; then
-  echo "Preparing database..."
-  # Use foreman so `.env` is loaded consistently with `foreman start`.
-  foreman run bin/rails db:prepare || {
-    echo "Database preparation failed. Try running: bin/setup" >&2
-    exit 1
-  }
-fi
-
-exec foreman start -f Procfile.dev "$@"
+foreman start -f Procfile.dev "$@"

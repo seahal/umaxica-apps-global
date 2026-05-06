@@ -10,13 +10,13 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
            :staff_secret_kinds, :staff_secret_statuses, :staff_email_statuses
 
   setup do
-    host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! host
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host}", "http://sign.app.localhost"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host}", "http://id.app.localhost"] }
 
     @staff = staffs(:one)
     @staff.update!(status_id: StaffStatus::ACTIVE, multi_factor_enabled: true)

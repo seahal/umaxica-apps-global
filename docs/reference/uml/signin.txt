@@ -1,0 +1,47 @@
+@startuml
+title B. Sign-In (Existing User)
+
+start
+:Display login page;
+
+if (Choose sign-in method) then (Email)
+  if (Choose auth factor) then (Password)
+    :Email + password;
+  elseif (OTP)
+    :Email OTP authentication;
+  else (Passkey)
+    :Email passkey authentication;
+  endif
+
+elseif (Phone number)
+  if (Choose auth factor) then (Password)
+    :Phone number + password;
+  else (Passkey)
+    :Phone number passkey authentication;
+  endif
+
+elseif (Google)
+  :Sign in with Google;
+else (Apple)
+  :Sign in with Apple;
+endif
+
+if (Is MFA required?) then (Yes)
+  if (Choose channel) then (Email)
+    if (Choose factor) then (TOTP)
+      :Enter TOTP (email);
+    else (Passkey)
+      :Use passkey (email);
+    endif
+  else (Phone number)
+    if (Choose factor) then (TOTP)
+      :Enter TOTP (phone);
+    else (Passkey)
+      :Use passkey (phone);
+    endif
+  endif
+endif
+
+:Authentication succeeds -> navigate to app;
+stop
+@enduml

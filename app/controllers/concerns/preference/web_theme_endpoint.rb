@@ -24,10 +24,10 @@ module Preference
 
     def apply_theme_update_from_request!
       requested = requested_theme_value
-      return false if requested.nil?
+      return nil if requested.nil?
 
       persist_theme!(requested)
-      true
+      requested
     rescue StandardError => e
       Rails.logger.error("[Preference::WebThemeEndpoint] theme update failed: #{e.class}")
       raise

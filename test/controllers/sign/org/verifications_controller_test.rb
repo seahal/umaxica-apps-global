@@ -7,7 +7,7 @@ class Sign::Org::VerificationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :staffs, :staff_tokens, :staff_passkeys
 
   setup do
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @headers = as_staff_headers(@staff, host: @host)
     @token = staff_tokens(:one)

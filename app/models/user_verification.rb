@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: user_verifications
-# Database name: token
+# Database name: mark
 #
 #  id            :bigint           not null, primary key
 #  expires_at    :datetime         not null
@@ -25,7 +25,7 @@
 #
 #  fk_rails_...  (user_token_id => user_tokens.id) ON DELETE => cascade
 #
-class UserVerification < TokenRecord
+class UserVerification < MarkRecord
   include RefreshTokenShared
   include VerificationCookieable
 

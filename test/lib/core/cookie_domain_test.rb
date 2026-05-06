@@ -39,7 +39,7 @@ class CookieDomainTest < ActiveSupport::TestCase
 
   test "for derives domain from request host with subdomain" do
     stub_creds(:COOKIE_DOMAIN_APP, nil) do
-      result = Core::CookieDomain.for(surface: :app, request_host: "ww.app.example.com")
+      result = Core::CookieDomain.for(surface: :app, request_host: "wwww.app.example.com")
 
       assert_equal ".example.com", result
     end
@@ -109,7 +109,7 @@ class CookieDomainTest < ActiveSupport::TestCase
 
   test "best_effort_apex extracts apex domain" do
     assert_equal "example.com", Core::CookieDomain.send(:best_effort_apex, "app.example.com")
-    assert_equal "example.com", Core::CookieDomain.send(:best_effort_apex, "ww.example.com")
+    assert_equal "example.com", Core::CookieDomain.send(:best_effort_apex, "wwww.example.com")
   end
 
   test "best_effort_apex returns nil for single part" do

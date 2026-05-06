@@ -52,7 +52,7 @@ class UserPasskey < PrincipalRecord
   validate :enforce_user_passkey_limit, on: :create
   validate :require_verified_recovery_identity, on: :create
 
-  before_validation :set_defaults
+  before_validation :set_defaults, on: :create
 
   def to_param
     public_id

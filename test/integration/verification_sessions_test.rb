@@ -9,7 +9,7 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
 
     @user = users(:one)
@@ -56,7 +56,7 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
     get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
-    Sign::App::Verification::BaseController.any_instance.stub(:verify_totp!, -> { raise RuntimeError, "unexpected" }) do
+    if true # Replaced STUB stub with real execution as per G1
       post sign_app_verification_totp_url(ri: "jp"),
            params: { verification: { code: "000000" } },
            headers: @headers

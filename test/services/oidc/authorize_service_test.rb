@@ -118,17 +118,16 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "authorization code is stored in database" do
-    assert_difference "AuthorizationCode.count", 1 do
+    assert_difference "UserAuthorizationCode.count", 1 do
       Oidc::AuthorizeService.call(
         params: valid_params,
         resource: @user,
       )
     end
 
-    code = AuthorizationCode.last
+    code = UserAuthorizationCode.last
 
     assert_equal @user.id, code.user_id
-    assert_nil code.staff_id
     assert_equal "core_app", code.client_id
     assert_equal @redirect_uri, code.redirect_uri
     assert_equal @code_challenge, code.code_challenge
@@ -168,7 +167,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
 
-    assert_difference "AuthorizationCode.count", 1 do
+    assert_difference "StaffAuthorizationCode.count", 1 do
       Oidc::AuthorizeService.call(
         params: {
           response_type: "code",
@@ -181,9 +180,8 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
       )
     end
 
-    code = AuthorizationCode.last
+    code = StaffAuthorizationCode.last
 
-    assert_nil code.user_id
     assert_equal staff.id, code.staff_id
     assert_equal "core_org", code.client_id
   end

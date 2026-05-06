@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Com::In::Challenge::TotpsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
   end
 
   test "new redirects because totp challenge is unavailable" do

@@ -16,7 +16,7 @@
         <%= t("sign.org.ups.new.recruit_prompt") %>
       </p>
       <%= link_to t("sign.org.ups.new.recruit_link_text"),
-                  new_core_org_contact_url(host: ENV.fetch("CORE_STAFF_URL", "core.org.localhost"), category: "recruit", ri: params[:ri], lx: params[:lx]) %>
+                  apex_org_root_url(ri: params[:ri], lx: params[:lx]) %>
     </div>
 
     <div>

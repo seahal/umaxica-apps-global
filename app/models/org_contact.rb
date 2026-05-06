@@ -51,8 +51,8 @@ class OrgContact < GuestRecord
              foreign_key: :status_id,
              inverse_of: :org_contacts
   has_many :org_contact_topics, dependent: :destroy, inverse_of: :org_contact
-  has_many :org_contact_behaviors,
-           class_name: "OrgContactBehavior",
+  has_many :org_contact_chronicles,
+           class_name: "OrgContactChronicle",
            foreign_key: :subject_id,
            inverse_of: :org_contact,
            dependent: :delete_all

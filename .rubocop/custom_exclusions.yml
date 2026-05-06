@@ -1209,6 +1209,9 @@ Rake/MethodDefinitionInTask:
 # ---------- I18n ----------
 I18n/RailsI18n:
   Enabled: true
+  Exclude:
+    - "app/models/concerns/treeable.rb"
+    - "test/unit/security/skip_forgery_protection_usage_test.rb"
 
 I18n/GetText:
   Enabled: false

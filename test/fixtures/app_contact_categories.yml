@@ -11,3 +11,5 @@ legacy_nothing:
   id: 1
 application_inquiry:
   id: 2
+one:
+  id: 3

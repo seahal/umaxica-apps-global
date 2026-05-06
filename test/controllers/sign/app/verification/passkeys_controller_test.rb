@@ -8,18 +8,30 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   fixtures :users
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
+    UserEmail.create!(
+      user: @user,
+      address: "app-passkey-stepup-#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: UserEmailStatus::VERIFIED,
+    )
     @headers = as_user_headers(@user, host: @host)
     @token = UserToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    @user.user_passkeys.create!(
+      description: "Test passkey",
+      webauthn_id: "test",
+      public_key: "public_key",
+      sign_count: 0,
+      status_id: UserPasskeyStatus::ACTIVE,
+    )
   end
 
   test "creates verification on success" do
     return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
 
-    Sign::App::Verification::BaseController.any_instance.stub(:available_step_up_methods, [:passkey]) do
-      Sign::App::Verification::PasskeysController.any_instance.stub(:prepare_passkey_challenge!, true) do
-        Sign::App::Verification::PasskeysController.any_instance.stub(:verify_passkey!, true) do
+    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+      WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
+        WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
           get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
               headers: @headers
 
@@ -27,7 +39,9 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
           assert_response :success
 
-          post sign_app_verification_passkey_url(ri: "jp"), headers: @headers
+          post sign_app_verification_passkey_url(ri: "jp"),
+               params: { verification: { challenge_id: "test", credential_json: '{"id":"test"}' } },
+               headers: @headers
 
           assert_response :redirect
           assert_redirected_to sign_app_configuration_emails_url(ri: "jp")
@@ -39,8 +53,8 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   test "new keeps scope and return_to in form hidden fields" do
     return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
 
-    Sign::App::Verification::BaseController.any_instance.stub(:available_step_up_methods, [:passkey]) do
-      Sign::App::Verification::PasskeysController.any_instance.stub(:prepare_passkey_challenge!, true) do
+    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+      WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
@@ -55,5 +69,15 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
         assert_select "input[name='verification[return_to]'][value='#{return_to}']"
       end
     end
+  end
+
+  private
+
+  def passkey_credential_stub(id)
+    Struct.new(:id, :sign_count) do
+      define_method(:verify) do |*|
+        true
+      end
+    end.new(id, 1)
   end
 end

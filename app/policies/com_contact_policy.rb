@@ -30,21 +30,19 @@ class ComContactPolicy < ApplicationPolicy
     actor.is_a?(Staff) && operator?
   end
 
-  class Scope < ApplicationPolicy::Scope
-    def resolve
-      if actor.is_a?(Staff) && operator_or_manager?
-        # Staff managers see all contacts
-        scope.all
-      elsif actor.is_a?(Staff)
-        # Other staff see assigned or unassigned contacts
-        scope.where(staff_id: [actor.id, nil])
-      elsif actor.is_a?(User)
-        # Users see only their own contact inquiries
-        scope.where(user_id: actor.id)
-      else
-        # Unauthenticated users see nothing
-        scope.none
-      end
+  relation_scope do |relation|
+    if actor.is_a?(Staff) && operator_or_manager?
+      # Staff managers see all contacts
+      relation.all
+    elsif actor.is_a?(Staff)
+      # Other staff see assigned or unassigned contacts
+      relation.where(staff_id: [actor.id, nil])
+    elsif actor.is_a?(User)
+      # Users see only their own contact inquiries
+      relation.where(user_id: actor.id)
+    else
+      # Unauthenticated users see nothing
+      relation.none
     end
   end
 end

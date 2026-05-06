@@ -20,7 +20,7 @@ module Sign
             clear_pending_mfa! if respond_to?(:clear_pending_mfa!, true)
             redirect_to(
               new_sign_com_in_path(ri: params[:ri]),
-              alert: I18n.t("sign.app.verification.unavailable", default: "この認証手段は利用できません。"),
+              alert: I18n.t("auth.step_up.method_unavailable"),
               status: :see_other,
             )
           end

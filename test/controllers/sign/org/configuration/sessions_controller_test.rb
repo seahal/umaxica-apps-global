@@ -7,9 +7,9 @@ class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::Integra
   fixtures :staffs, :staff_statuses, :staff_token_statuses, :staff_token_kinds
 
   setup do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
-    @host = ENV["SIGN_STAFF_URL"] || "sign.org.localhost"
+    @host = ENV["ID_STAFF_URL"] || "id.org.localhost"
     StaffToken.where(staff_id: @staff.id).delete_all
     # Create a token for the current session
     @current_token = StaffToken.create!(

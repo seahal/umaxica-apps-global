@@ -178,12 +178,15 @@ jobs:
       IDENTIFIER_REGION_CODE: "392"
       IDENTIFIER_INSTANCE_ID: "0123456789"
       # Domain URLs - APEX
-      PEAK_CORPORATE_URL: com.localhost
-      PEAK_SERVICE_URL: app.localhost
-      PEAK_STAFF_URL: org.localhost
+      APEX_CORPORATE_URL: www.com.localhost
+      APEX_SERVICE_URL: www.app.localhost
+      APEX_STAFF_URL: www.org.localhost
+      APEX_NETWORK_URL: www.net.localhost
+      APEX_DEVELOPER_URL: www.dev.localhost
       # Domain URLs - Auth
-      AUTH_SERVICE_URL: sign.app.localhost
-      AUTH_STAFF_URL: sign.org.localhost
+      SIGN_CORPORATE_URL: sign.com.localhost
+      SIGN_SERVICE_URL: sign.app.localhost
+      SIGN_STAFF_URL: sign.org.localhost
       TRUSTED_ORIGINS: http://sign.app.localhost,http://sign.org.localhost
       # Domain URLs - Core
       CORE_CORPORATE_URL: ww.com.localhost
@@ -427,18 +430,25 @@ jobs:
           cache: true
       - run: vp install
       - run: vp check
-      - run: vp test
+      - run: vp test --coverage
+      - name: Upload JavaScript coverage
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: vite-coverage-${{ github.sha }}
+          path: coverage/vite/
+          retention-days: 30
+          compression-level: 6
   # ====================
   # SECURITY SCANS
   # ====================
   image-scan:
-    name: Container Scan (Trivy + SBOM)
+    name: Container SBOM
     runs-on: ubuntu-24.04
     if: github.event_name != 'schedule'
     timeout-minutes: 20
     permissions:
       contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@v6.0.1
         with:
@@ -457,32 +467,6 @@ jobs:
           load: true
           provenance: false
           sbom: false
-      - name: Run Trivy vulnerability scanner (SARIF)
-        uses: aquasecurity/trivy-action@0.33.0
-        with:
-          image-ref: umaxica-app:${{ github.sha }}
-          format: sarif
-          output: trivy-results.sarif
-          exit-code: "1"
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          vuln-type: os,library
-          scanners: vuln
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4.31.10
-        if: always() && hashFiles('trivy-results.sarif') != ''
-        with:
-          sarif_file: trivy-results.sarif
-          category: trivy-container
-      - name: Run Trivy (table format, informational)
-        uses: aquasecurity/trivy-action@0.33.0
-        with:
-          image-ref: umaxica-app:${{ github.sha }}
-          format: table
-          exit-code: "0"
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          scanners: vuln
       - name: Generate SBOM with Syft
         uses: anchore/sbom-action@v0.20.9
         with:

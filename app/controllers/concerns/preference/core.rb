@@ -58,10 +58,15 @@ module Preference::Core
     with_preference_connection(:writing) do
       @preference_timezone = load_or_refresh_preference_child("Timezone", option_id: nil)
     end
+
+    timezone = option_id_to_timezone(@preference_timezone.option_id, preference_prefix)
+    Time.zone = timezone if timezone.present?
   end
 
   def set_timezone_preferences_update
     raise PreferenceOperationError if @preferences.blank?
+
+    submitted_timezone = preference_timezone_params[Preference::IoKeys::Params::OPTION_ID]
 
     with_preference_connection(:writing) do
       @preference_timezone = load_or_refresh_preference_child("Timezone", option_id: nil)
@@ -73,15 +78,21 @@ module Preference::Core
           "UPDATE_PREFERENCE_TIMEZONE",
         )
         reload_preferences_and_reissue_token!
-      rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ArgumentError
         raise PreferenceOperationError
       end
     end
 
     return if @preference_timezone.option_id.blank?
 
+    @preference_timezone.reload
     timezone = option_id_to_timezone(@preference_timezone.option_id, preference_prefix)
+    timezone = submitted_timezone if submitted_timezone.to_s.include?("/")
+    Time.zone = timezone if timezone.present?
+    session[:timezone] = timezone if timezone.present?
     write_preference_cookie(Preference::Base::TIMEZONE_COOKIE_KEY, timezone) if timezone.present?
+  rescue ArgumentError
+    raise PreferenceOperationError
   end
 
   def set_colortheme_preferences_edit

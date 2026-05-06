@@ -5,7 +5,7 @@ require "test_helper"
 
 class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
     OperatorRecord.connected_to(role: :writing) do
       StaffStatus.insert_missing_fixed_ids!([StaffStatus::ACTIVE, StaffStatus::NOTHING, StaffStatus::RESERVED])
@@ -36,7 +36,7 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
   end
 
   test "verification view displays translated strings in Japanese" do
-    ReauthSession.delete_all
+    StaffReauthSession.delete_all
 
     get sign_org_verification_url(ri: "jp"), headers: @headers
 
@@ -46,7 +46,7 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
   end
 
   test "verification view displays translated strings in English" do
-    ReauthSession.delete_all
+    StaffReauthSession.delete_all
 
     get sign_org_verification_url(ri: "us", lx: "en"), headers: @headers
 

@@ -11,7 +11,7 @@ module AuthorizationAudit
 
     # Log authorization failures for audit purposes
     if respond_to?(:rescue_from)
-      rescue_from Pundit::NotAuthorizedError, with: :handle_authorization_error
+      rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
     end
   end
 
@@ -56,9 +56,9 @@ module AuthorizationAudit
       action: action_name,
       controller: controller_name,
       policy: exception.policy.class.name,
-      query: exception.query,
-      record_type: exception.record&.class&.name,
-      record_id: exception.record&.id,
+      query: exception.rule,
+      record_type: exception.policy.record&.class&.name,
+      record_id: exception.policy.record&.id,
       ip_address: request.remote_ip,
       user_agent: request.user_agent,
       timestamp: Time.current,
@@ -75,9 +75,9 @@ module AuthorizationAudit
   end
 
   def create_user_authorization_audit(user, log_data)
-    audit = UserActivity.new(
+    audit = UserChronicle.new(
       actor: user,
-      event_id: UserActivityEvent::AUTHORIZATION_FAILED,
+      event_id: UserChronicleEvent::AUTHORIZATION_FAILED,
       ip_address: log_data[:ip_address],
       occurred_at: log_data[:timestamp],
     )
@@ -89,9 +89,9 @@ module AuthorizationAudit
   end
 
   def create_staff_authorization_audit(staff, log_data)
-    audit = StaffActivity.new(
+    audit = StaffChronicle.new(
       actor: staff,
-      event_id: StaffActivityEvent::AUTHORIZATION_FAILED,
+      event_id: StaffChronicleEvent::AUTHORIZATION_FAILED,
       ip_address: log_data[:ip_address],
       occurred_at: log_data[:timestamp],
     )

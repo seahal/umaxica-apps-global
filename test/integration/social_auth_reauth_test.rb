@@ -14,7 +14,7 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @callback_headers = SocialCallbackTestHelper.callback_headers(@host)
 
     # Create test user

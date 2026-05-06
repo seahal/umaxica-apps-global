@@ -89,5 +89,29 @@ module Jit
 
     # Enable structured logging in all environments.
     config.active_support.structured_logging = true
+
+    # Ensure default host environment variables are set for route generation and constraints,
+    # especially in test environment where they might not be loaded from external env files.
+    {
+      "APEX_CORPORATE_URL" => "www.com.localhost",
+      "APEX_SERVICE_URL" => "www.app.localhost",
+      "APEX_STAFF_URL" => "www.org.localhost",
+      "APEX_NETWORK_URL" => "www.net.localhost",
+      "APEX_DEVELOPER_URL" => "www.dev.localhost",
+      "JUMP_CORPORATE_URL" => "jump.example.com",
+      "JUMP_SERVICE_URL" => "jump.example.app",
+      "JUMP_STAFF_URL" => "jump.example.org",
+      "MAIN_CORPORATE_URL" => "main.com.localhost",
+      "MAIN_SERVICE_URL" => "main.app.localhost",
+      "MAIN_STAFF_URL" => "main.org.localhost",
+      "SIDE_CORPORATE_URL" => "news.com.localhost",
+      "SIDE_SERVICE_URL" => "news.app.localhost",
+      "SIDE_STAFF_URL" => "news.org.localhost",
+      "DOCS_CORPORATE_URL" => "docs.com.localhost",
+      "DOCS_SERVICE_URL" => "docs.app.localhost",
+      "DOCS_STAFF_URL" => "docs.org.localhost",
+    }.each do |key, value|
+      ENV[key] ||= value
+    end
   end
 end

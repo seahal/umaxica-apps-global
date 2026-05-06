@@ -30,11 +30,9 @@ class UserPasskeyPolicy < ApplicationPolicy
     owner?
   end
 
-  class Scope < ApplicationPolicy::Scope
-    def resolve
-      return scope.none unless actor
+  relation_scope do |relation|
+    return relation.none unless actor
 
-      scope.where(user_id: actor.id)
-    end
+    relation.where(user_id: actor.id)
   end
 end

@@ -13,8 +13,7 @@ module Preference
       skip_before_action :resolve_param_context, raise: false
       skip_before_action :canonicalize_regional_params, raise: false
       skip_before_action :set_region, raise: false
-      skip_before_action :set_locale, raise: false
-      skip_before_action :set_timezone, raise: false
+
       skip_before_action :set_color_theme, raise: false
       skip_before_action :set_current, raise: false
       skip_before_action :enforce_withdrawal_gate!, raise: false

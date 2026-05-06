@@ -28,18 +28,15 @@ class AddIdFormatConstraintsToDocumentTables < ActiveRecord::Migration[8.2]
 
   def tables_to_constrain
     %w(
-      com_documents
-      com_document_versions
-      app_documents
-      app_document_versions
-      org_documents
-      org_document_versions
-      org_document_tags
-      org_document_categories
-      app_document_tags
-      app_document_categories
-      com_document_tags
-      com_document_categories
+      org_document_statuses
+      org_document_tag_masters
+      org_document_category_masters
+      com_document_statuses
+      com_document_tag_masters
+      com_document_category_masters
+      app_document_statuses
+      app_document_tag_masters
+      app_document_category_masters
     )
   end
 end

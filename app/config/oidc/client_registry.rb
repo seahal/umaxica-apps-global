@@ -81,33 +81,33 @@ module Oidc
       {
         # Apex
         "apex_app" => {
-          redirect_uris: build_redirect_uris("APEX_SERVICE_URL", "app.localhost"),
+          redirect_uris: build_redirect_uris("APEX_SERVICE_URL", "www.app.localhost"),
           aud: "umaxica-apex-app",
           resource_type: "user",
         },
         "apex_org" => {
-          redirect_uris: build_redirect_uris("APEX_STAFF_URL", "org.localhost"),
+          redirect_uris: build_redirect_uris("APEX_STAFF_URL", "www.org.localhost"),
           aud: "umaxica-apex-org",
           resource_type: "staff",
         },
         "apex_com" => {
-          redirect_uris: build_redirect_uris("APEX_CORPORATE_URL", "com.localhost"),
+          redirect_uris: build_redirect_uris("APEX_CORPORATE_URL", "www.com.localhost"),
           aud: "umaxica-apex-com",
           resource_type: "user",
         },
         # Core
         "core_app" => {
-          redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "ww.app.localhost"),
+          redirect_uris: build_redirect_uris("MAIN_SERVICE_URL", "main.app.localhost"),
           aud: "umaxica-core-app",
           resource_type: "user",
         },
         "core_org" => {
-          redirect_uris: build_redirect_uris("CORE_STAFF_URL", "ww.org.localhost"),
+          redirect_uris: build_redirect_uris("MAIN_STAFF_URL", "main.org.localhost"),
           aud: "umaxica-core-org",
           resource_type: "staff",
         },
         "core_com" => {
-          redirect_uris: build_redirect_uris("CORE_CORPORATE_URL", "ww.com.localhost"),
+          redirect_uris: build_redirect_uris("MAIN_CORPORATE_URL", "main.com.localhost"),
           aud: "umaxica-core-com",
           resource_type: "user",
         },

@@ -10,8 +10,8 @@ class Sign::App::Configuration::TelephonesControllerTest < ActionDispatch::Integ
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
-    @host = ENV["SIGN_SERVICE_URL"] || "sign.app.localhost"
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV["ID_SERVICE_URL"] || "id.app.localhost"
     @user = users(:one)
     @token = UserToken.create!(
       user_id: @user.id,

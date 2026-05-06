@@ -10,7 +10,7 @@ module Sign
         fixtures :users, :user_statuses, :user_email_statuses
 
         setup do
-          host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+          host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
           CloudflareTurnstile.test_mode = true
         end
 

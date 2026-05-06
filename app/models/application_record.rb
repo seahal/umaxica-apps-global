@@ -4,10 +4,9 @@
 class ApplicationRecord < ActiveRecord::Base
   primary_abstract_class
 
-  connects_to database: { writing: :default, reading: :default }
-
+  # FIXME: i want to remove these lines.
   def self.insert_missing_fixed_ids!(ids)
-    raise if ids.blank?
+    return if ids.blank?
 
     rows = ids.uniq
     rows.map! { |id| { primary_key => id } }
@@ -26,6 +25,5 @@ class ApplicationRecord < ActiveRecord::Base
     raise unless defined?(Prosopite)
 
     Prosopite.pause(&operation)
-
   end
 end

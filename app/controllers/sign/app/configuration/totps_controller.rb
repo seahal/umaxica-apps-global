@@ -18,7 +18,7 @@ module Sign
 
         def new
           if current_user.user_one_time_passwords.count >= MAX_TOTPS
-            return render plain: "#{MAX_TOTPS}件以上は登録できないです"
+            return render plain: t("session_limit.totp_limit_reached", count: MAX_TOTPS)
           end
 
           @totp = UserOneTimePassword.new

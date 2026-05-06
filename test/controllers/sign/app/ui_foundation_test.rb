@@ -8,7 +8,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   setup do
     @user = users(:one)
-    @host = ENV["SIGN_SERVICE_URL"]
+    @host = ENV["ID_SERVICE_URL"]
   end
 
   test "should render configuration page with new UI foundation" do

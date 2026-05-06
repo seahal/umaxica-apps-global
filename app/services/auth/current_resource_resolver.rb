@@ -68,7 +68,15 @@ module Auth
 
       # Use the primary database for revocation-sensitive checks so a recently
       # revoked session cannot slip through replica lag.
-      TokenRecord.connected_to(role: :writing, &check_logic)
+      token_connection_owner.connected_to(role: :writing, &check_logic)
+    end
+
+    def token_connection_owner
+      klass = @token_class
+      return TokenRecord unless klass.respond_to?(:connection_class?)
+
+      klass = klass.superclass until klass.connection_class?
+      klass
     end
 
     def failure(reason, payload: nil, session_public_id: nil)

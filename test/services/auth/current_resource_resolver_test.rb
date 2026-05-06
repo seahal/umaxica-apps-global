@@ -78,6 +78,19 @@ module Auth
       end
     end
 
+    test "uses the token class connection owner" do
+      resolver = Auth::CurrentResourceResolver.new(
+        access_token: "token",
+        request_host: "app.localhost",
+        resource_type: "user",
+        resource_class: FakeResourceClass,
+        token_class: UserToken,
+        test_env: true,
+      )
+
+      assert_equal MarkRecord, resolver.send(:token_connection_owner)
+    end
+
     test "returns actor_mismatch failure when actor claim differs" do
       payload = { "sub" => 123, "sid" => "sess_1", "act" => "staff" }
 

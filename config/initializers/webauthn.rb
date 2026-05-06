@@ -10,12 +10,12 @@
 #
 # Environment Variables:
 # - TRUSTED_ORIGINS: Comma-separated list of allowed origins (required)
-#   - Development: http://sign.app.localhost:3000,http://sign.org.localhost:3000
-#   - Production: https://sign.app.example.com,https://sign.org.example.com
+#   - Development: http://id.app.localhost:3000,http://id.org.localhost:3000
+#   - Production: https://id.app.example.com,https://id.org.example.com
 #
 # Note: rp_id is NOT configured here. It is dynamically determined per-request
 # using request.host in the Webauthn::Config concern. This allows different
-# rp_id values for service (sign.app.localhost) and staff (sign.org.localhost).
+# rp_id values for service (id.app.localhost) and staff (id.org.localhost).
 
 module Webauthn
   class TrustedOriginsNotConfiguredError < StandardError; end
@@ -45,10 +45,10 @@ module Webauthn
         raise TrustedOriginsNotConfiguredError,
               "TRUSTED_ORIGINS environment variable is required but not set. " \
               "Please configure it with comma-separated origin URLs. " \
-              "Example for development: TRUSTED_ORIGINS=http://sign.app.localhost:3000, " \
-              "http://sign.org.localhost:3000" \
-              "Example for production: TRUSTED_ORIGINS=https://sign.app.example.com, " \
-              "https://sign.org.example.com"
+              "Example for development: TRUSTED_ORIGINS=http://id.app.localhost:3000, " \
+              "http://id.org.localhost:3000" \
+              "Example for production: TRUSTED_ORIGINS=https://id.app.example.com, " \
+              "https://id.org.example.com"
       end
 
       # Validate origin format
@@ -85,7 +85,7 @@ WebAuthn.configure do |config|
   # IMPORTANT: allowed_origins and rp_id are NOT set here.
   # They are dynamically configured per-request in Webauthn::Config concern.
   # This allows:
-  # - rp_id to vary by host (sign.app.localhost vs sign.org.localhost)
+  # - rp_id to vary by host (id.app.localhost vs id.org.localhost)
   # - origin validation to use our stricter Webauthn.validate_origin!
 
   # Use Base64URL encoding (default, but explicit for clarity)

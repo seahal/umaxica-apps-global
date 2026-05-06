@@ -8,17 +8,10 @@ class TurnstileFormsTest < ActionDispatch::IntegrationTest
     # Map of paths that contain Turnstile forms with turbo disabled
     # Format: [Host ENV Name, Path, Description]
     @turnstile_form_paths = [
-      { name: "Sign::App registration emails", env_key: "SIGN_SERVICE_URL", path: "/up/emails/new" },
-      { name: "Sign::App authentication email", env_key: "SIGN_SERVICE_URL", path: "/in/email/new" },
-      # { name: "Sign::Org registration emails", env_key: "SIGN_STAFF_URL", path: "/registration/emails/new" },
-      # { name: "Sign::Org registration passkeys", env_key: "SIGN_STAFF_URL", path: "/registration/passkeys/new" },
-      {
-        name: "Core::App contacts",
-        env_key: "CORE_SERVICE_URL",
-        path: "/contacts/new",
-        headers: core_app_contact_headers,
-      },
-      { name: "Core::Com contacts", env_key: "CORE_CORPORATE_URL", path: "/contacts/new" },
+      { name: "Sign::App registration emails", env_key: "ID_SERVICE_URL", path: "/sign/up/emails/new" },
+      { name: "Sign::App authentication email", env_key: "ID_SERVICE_URL", path: "/sign/in/email/new" },
+      # { name: "Sign::Org registration emails", env_key: "ID_STAFF_URL", path: "/registration/emails/new" },
+      # { name: "Sign::Org registration passkeys", env_key: "ID_STAFF_URL", path: "/registration/passkeys/new" },
     ]
   end
 
@@ -72,27 +65,5 @@ class TurnstileFormsTest < ActionDispatch::IntegrationTest
       assert response.body.include?("cf-turnstile") || response.body.include?("cloudflare_turnstile"),
              "Expected Turnstile widget in #{name} (#{host})"
     end
-  end
-
-  private
-
-  def core_app_contact_headers
-    user = users(:one)
-    ensure_contact_channels!(user)
-    { "X-TEST-CURRENT-USER" => user.id.to_s }
-  end
-
-  def ensure_contact_channels!(user)
-    user.user_emails.create!(
-      address: "turnstile-#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
-    ) unless user.user_emails.exists?
-
-    return if user.user_telephones.exists?
-
-    user.user_telephones.create!(
-      number: "+1555#{rand(1_000_000..9_999_999)}",
-      user_identity_telephone_status_id: UserTelephoneStatus::VERIFIED,
-    )
   end
 end

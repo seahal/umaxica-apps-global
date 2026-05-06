@@ -7,8 +7,8 @@ class Sign::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     clear_enqueued_jobs
     clear_performed_jobs
   end

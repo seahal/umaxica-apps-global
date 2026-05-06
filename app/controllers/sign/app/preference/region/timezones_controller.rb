@@ -15,7 +15,9 @@ module Sign
 
           def update
             set_timezone_preferences_update
-            session[:timezone] = option_id_to_timezone(@preference_timezone.option_id, preference_prefix)
+            timezone = option_id_to_timezone(@preference_timezone.option_id, preference_prefix)
+            session[:timezone] = timezone
+            write_preference_cookie(::Preference::Base::TIMEZONE_COOKIE_KEY, timezone)
             redirect_to(
               edit_sign_app_preference_region_timezone_url,
               notice: t("apex.app.preferences.update_success"),

@@ -7,15 +7,15 @@ module Auth
   class BaseTest < ActiveSupport::TestCase
     class HeaderKeyHarness
       class MockCookies
-        delegate :[], :[]=, to: :@store
+        delegate :[], to: :@store
+
+        def initialize(store)
+          @store = store
+        end
 
         def []=(key, value)
           @store[key] = value
           HeaderKeyHarness.encrypted_cookies[key] = value
-        end
-
-        def initialize(store)
-          @store = store
         end
 
         def delete(key, _options = nil)
@@ -40,7 +40,7 @@ module Auth
 
       def token_class = UserToken
 
-      def audit_class = UserActivity
+      def audit_class = UserChronicle
 
       def resource_foreign_key = :user_id
 
@@ -262,7 +262,7 @@ module Auth
 
       harness.ensure_not_logged_in
 
-      assert_equal "権限がありません", harness.rendered[:plain]
+      assert_equal "この操作を行う権限がありません。", harness.rendered[:plain]
       assert_equal :unauthorized, harness.rendered[:status]
 
       harness.ensure_not_logged_in(message_key: "auth.denied")

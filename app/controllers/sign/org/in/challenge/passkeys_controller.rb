@@ -46,10 +46,7 @@ module Sign
             unless cloudflare_turnstile_stealth_validation["success"]
               redirect_to(
                 new_sign_org_in_challenge_passkey_path,
-                alert: I18n.t(
-                  "sign.org.in.mfa.turnstile_failed",
-                  default: "検証に失敗しました。もう一度お試しください。",
-                ),
+                alert: I18n.t("session_limit.turnstile_failed"),
                 status: :see_other,
               )
               return
@@ -99,7 +96,10 @@ module Sign
 
           def verify_passkey!(challenge)
             credential_payload = JSON.parse(passkey_params[:credential_json].to_s)
-            credential = WebAuthn::Credential.from_get(credential_payload)
+            credential = WebAuthn::Credential.from_get(
+              credential_payload,
+              relying_party: webauthn_relying_party,
+            )
             passkey = StaffPasskey.find_by(webauthn_id: credential.id)
 
             staff = pending_mfa_user
@@ -116,9 +116,7 @@ module Sign
               return
             end
 
-            with_webauthn_config do
-              credential.verify(challenge, public_key: passkey.public_key, sign_count: passkey.sign_count)
-            end
+            credential.verify(challenge, public_key: passkey.public_key, sign_count: passkey.sign_count)
             passkey.update!(sign_count: credential.sign_count, last_used_at: Time.current)
 
             complete_mfa_login!(staff)

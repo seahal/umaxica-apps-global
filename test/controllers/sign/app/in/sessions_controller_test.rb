@@ -7,10 +7,16 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   fixtures :users
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     # Clean up any existing tokens for this user
     UserToken.where(user: @user).delete_all
+    @original_allow_forgery_protection = ActionController::Base.allow_forgery_protection
+    ActionController::Base.allow_forgery_protection = false
+  end
+
+  teardown do
+    ActionController::Base.allow_forgery_protection = @original_allow_forgery_protection
   end
 
   # ===================================================================
@@ -72,7 +78,11 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   test "update without authentication redirects to login" do
     patch sign_app_in_session_url(ri: "jp"),
           params: { revoke_refs: ["some-ref"] },
-          headers: browser_headers.merge("Host" => @host)
+          headers: browser_headers.merge(
+            "Host" => @host,
+            "Origin" => "http://#{@host}",
+            "HTTP_ORIGIN" => "http://#{@host}",
+          )
 
     assert_redirected_to new_sign_app_in_url(ri: "jp")
   end
@@ -347,7 +357,11 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "destroy without authentication redirects to login" do
     delete sign_app_in_session_url(ri: "jp"),
-           headers: browser_headers.merge("Host" => @host)
+           headers: browser_headers.merge(
+             "Host" => @host,
+             "Origin" => "http://#{@host}",
+             "HTTP_ORIGIN" => "http://#{@host}",
+           )
 
     assert_redirected_to new_sign_app_in_url(ri: "jp")
   end
@@ -536,8 +550,13 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     access_token = Authentication::Base::Token.encode(user, host: host, session_public_id: token.public_id)
     browser_headers.merge(
       "Host" => host,
+      "Origin" => "http://#{host}",
+      "HTTP_ORIGIN" => "http://#{host}",
       "Authorization" => "Bearer #{access_token}",
-      "Cookie" => "#{Authentication::Base::ACCESS_COOKIE_KEY}=#{access_token}",
+      "Cookie" => [
+        "csrf_token=test_csrf_token",
+        "#{Authentication::Base::ACCESS_COOKIE_KEY}=#{access_token}",
+      ].join("; "),
     )
   end
 end

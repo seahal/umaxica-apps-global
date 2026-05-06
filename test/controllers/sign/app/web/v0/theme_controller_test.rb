@@ -8,7 +8,7 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     _ = Preference::Base # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = SignHostEnv.service_url || "sign.app.localhost"
+    @host = IdHostEnv.service_url || "id.app.localhost"
     host! @host
   end
 

@@ -8,7 +8,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
            :user_telephone_statuses
 
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     @raw_email = "secret_login_#{SecureRandom.hex(4)}@example.com".freeze
     @email = @user.user_emails.create!(address: @raw_email, user_email_status_id: UserEmailStatus::VERIFIED)
@@ -238,7 +238,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_equal UserSecretStatus::USED, one_time_secret.user_secret_status_id
 
     reset!
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
@@ -351,7 +351,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def default_headers
-    { "Host" => ENV["SIGN_SERVICE_URL"] || "sign.app.localhost" }
+    { "Host" => ENV["ID_SERVICE_URL"] || "id.app.localhost" }
   end
 
   def capture_sql_queries
@@ -400,5 +400,187 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     # Session limit gate should be issued
     assert_predicate session[SessionLimitGate::GATE_SESSION_KEY], :present?
+  end
+
+  test "direct controller branches for mfa and standard secret flows" do
+    controller = Sign::App::In::SecretsController.new
+    session_hash = {}
+    params_hash = ActionController::Parameters.new(ri: "jp")
+    failures = []
+    redirects = []
+    target_user = @user
+
+    controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => host)
+    controller.response = ActionDispatch::TestResponse.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { params_hash }
+    controller.define_singleton_method(:render_failed_login) { |**kwargs| failures << kwargs }
+    controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs|
+      failures << kwargs.merge(reason: :hard_reject)
+    }
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+    controller.define_singleton_method(:safe_redirect_to_rd_or_default!) { |rd, default_path:|
+      redirects << [rd || default_path, {}]
+    }
+    controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
+    controller.define_singleton_method(:sign_app_in_bulletin_path) { |rd: nil, ri: nil| "/bulletin?rd=#{rd}&ri=#{ri}" }
+    controller.define_singleton_method(:t) { |key| key }
+
+    controller.new
+
+    assert_instance_of Sign::App::In::SecretsController::SecretLoginForm,
+                       controller.instance_variable_get(:@secret_form)
+
+    session_hash[Sign::App::In::SecretsController::MFA_USER_SESSION_KEY] = @user.id
+    controller.remove_instance_variable(:@mfa_user)
+    controller.define_singleton_method(:active_secret_hints_for) { |_| ["hint"] }
+    controller.new
+
+    assert_instance_of Sign::App::In::SecretsController::MfaSecretForm, controller.instance_variable_get(:@secret_form)
+    assert_equal ["hint"], controller.instance_variable_get(:@secret_hints)
+
+    params_hash[:mfa_secret_form] = { secret_value: "" }
+    controller.handle_mfa_login
+
+    assert_equal :form_invalid, failures.last[:reason]
+
+    params_hash[:mfa_secret_form] = { secret_value: "secret" }
+    controller.define_singleton_method(:cloudflare_turnstile_validation) { { "success" => false } }
+    controller.handle_mfa_login
+
+    assert_equal :turnstile_failed, failures.last[:reason]
+
+    secret = Struct.new(:id).new(99)
+    controller.define_singleton_method(:cloudflare_turnstile_validation) { { "success" => true } }
+    controller.define_singleton_method(:verify_secret_for_sign_in) do |user:, raw_secret:|
+      Sign::App::In::SecretsController::SecretVerificationResult.new(
+        secret: secret, reason: :success,
+        details: { user_id: user.id, raw: raw_secret },
+      )
+    end
+    controller.define_singleton_method(:handle_successful_mfa) { |u, verified_secret|
+      redirects << [u.id, secret_id: verified_secret.id]
+    }
+    controller.handle_mfa_login
+
+    assert_equal [@user.id, { secret_id: 99 }], redirects.last
+
+    session_hash.delete(Sign::App::In::SecretsController::MFA_USER_SESSION_KEY)
+    params_hash.delete(:mfa_secret_form)
+    params_hash[:secret_login_form] = { identifier: "", secret_value: "" }
+    controller.handle_standard_login
+
+    assert_equal :form_invalid, failures.last[:reason]
+
+    params_hash[:secret_login_form] = { identifier: @raw_email, secret_value: "secret" }
+    controller.define_singleton_method(:cloudflare_turnstile_validation) { { "success" => false } }
+    controller.handle_standard_login
+
+    assert_equal :turnstile_failed, failures.last[:reason]
+
+    controller.define_singleton_method(:cloudflare_turnstile_validation) { { "success" => true } }
+    controller.define_singleton_method(:find_user_by_identifier) { |_| target_user }
+    controller.define_singleton_method(:session_limit_hard_reject_for?) { |_| true }
+    controller.handle_standard_login
+
+    assert_equal :hard_reject, failures.last[:reason]
+
+    controller.define_singleton_method(:session_limit_hard_reject_for?) { |_| false }
+    controller.define_singleton_method(:verify_secret_for_sign_in) do |user:, raw_secret:|
+      Sign::App::In::SecretsController::SecretVerificationResult.new(
+        secret: nil, reason: :secret_mismatch,
+        details: { user_id: user.id, raw: raw_secret },
+      )
+    end
+    controller.handle_standard_login
+
+    assert_equal :secret_mismatch, failures.last[:reason]
+  end
+
+  test "direct controller success handlers cover mfa and standard redirects" do
+    controller = Sign::App::In::SecretsController.new
+    session_hash = {}
+    params_hash = ActionController::Parameters.new(ri: "jp", rd: "encoded-rd")
+    redirects = []
+    failures = []
+
+    controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => host)
+    controller.response = ActionDispatch::TestResponse.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { params_hash }
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+    controller.define_singleton_method(:safe_redirect_to_rd_or_default!) { |rd, default_path:|
+      redirects << [rd || default_path, {}]
+    }
+    controller.define_singleton_method(:render_failed_login) { |**kwargs| failures << kwargs }
+    controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs|
+      failures << kwargs.merge(reason: :hard_reject)
+    }
+    controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
+    controller.define_singleton_method(:sign_app_in_bulletin_path) { |rd: nil, ri: nil| "/bulletin?rd=#{rd}&ri=#{ri}" }
+    controller.define_singleton_method(:t) { |key| key }
+    controller.define_singleton_method(:clear_mfa_session!) { session_hash[Sign::App::In::SecretsController::MFA_USER_SESSION_KEY] = nil }
+
+    secret = Struct.new(:id).new(9)
+
+    controller.define_singleton_method(:finalize_mfa_login!) { |_|
+      { status: :session_limit_hard_reject, message: "limit", http_status: :conflict }
+    }
+    controller.handle_successful_mfa(@user, secret)
+
+    assert_equal :hard_reject, failures.last[:reason]
+
+    controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :restricted } }
+    controller.handle_successful_mfa(@user, secret)
+
+    assert_equal [nil, { notice: I18n.t("sign.app.in.session.restricted_notice") }], redirects.last
+
+    controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :success, redirect_path: "/after" } }
+    controller.define_singleton_method(:issue_bulletin!) { true }
+    controller.handle_successful_mfa(@user, secret)
+
+    assert_match %r{\A/bulletin}, redirects.last.first
+
+    controller.define_singleton_method(:issue_bulletin!) { false }
+    controller.handle_successful_mfa(@user, secret)
+
+    assert_equal ["/after", {}], redirects.last
+
+    controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :unexpected } }
+    controller.handle_successful_mfa(@user, secret)
+
+    assert_equal :unexpected, failures.last[:reason]
+
+    controller.define_singleton_method(:complete_sign_in_or_start_mfa!) { |*|
+      { status: :mfa_required, redirect_path: "/challenge" }
+    }
+    controller.process_standard_login(@user)
+
+    assert_equal ["/challenge", { notice: "sign.app.in.mfa.required" }], redirects.last
+
+    controller.define_singleton_method(:complete_sign_in_or_start_mfa!) { |*|
+      { status: :session_limit_hard_reject, message: "limit", http_status: :conflict }
+    }
+    controller.process_standard_login(@user)
+
+    assert_equal :hard_reject, failures.last[:reason]
+
+    controller.define_singleton_method(:complete_sign_in_or_start_mfa!) { |*| { restricted: true } }
+    controller.process_standard_login(@user)
+
+    assert_equal ["/sign/in/session", { notice: I18n.t("sign.app.in.session.restricted_notice") }], redirects.last
+
+    controller.define_singleton_method(:complete_sign_in_or_start_mfa!) { |*| { status: :success } }
+    controller.define_singleton_method(:issue_bulletin!) { true }
+    controller.process_standard_login(@user)
+
+    assert_match %r{\A/bulletin}, redirects.last.first
+
+    controller.define_singleton_method(:issue_bulletin!) { false }
+    controller.process_standard_login(@user)
+
+    assert_equal ["encoded-rd", {}], redirects.last
   end
 end

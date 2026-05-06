@@ -84,19 +84,6 @@ class StaffPreferenceLanguageOptionTest < ActiveSupport::TestCase
     end
   end
 
-  test "ensure_defaults! handles empty DEFAULTS" do
-    original_defaults = StaffPreferenceLanguageOption::DEFAULTS
-    StaffPreferenceLanguageOption.send(:remove_const, :DEFAULTS)
-    StaffPreferenceLanguageOption.const_set(:DEFAULTS, [].freeze)
-
-    assert_no_difference("StaffPreferenceLanguageOption.count") do
-      StaffPreferenceLanguageOption.ensure_defaults!
-    end
-  ensure
-    StaffPreferenceLanguageOption.send(:remove_const, :DEFAULTS)
-    StaffPreferenceLanguageOption.const_set(:DEFAULTS, original_defaults)
-  end
-
   test "primary_key is id" do
     assert_equal "id", StaffPreferenceLanguageOption.primary_key
   end

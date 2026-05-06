@@ -284,4 +284,91 @@ module TreeableSharedTests
     assert_predicate a, :valid?
     a.save!
   end
+
+  def test_subtree_ids_with_max_depth
+    klass = treeable_class
+    tree = build_tree!(klass)
+
+    # depth 0 is root, depth 1 is a, b, c, depth 2 is c1
+    # max_depth limits the traversal.
+    # If max_depth is 1, only root and its immediate children are included?
+    # Wait, the SQL says `WHERE tree.depth < max_depth`.
+    # Anchor is depth 0. Children are depth 1.
+    # If max_depth is 1, children are joined, but their depth is 1.
+    # In UNION ALL: select t.*, tree.depth + 1 FROM ... JOIN tree ON ... WHERE tree.depth < max_depth
+    # If tree.depth is 0 (root), then 0 < 1 is true, so children (depth 1) are added.
+    # Next iteration, tree.depth is 1. 1 < 1 is false. So grandchildren are not added.
+    # So max_depth 1 means: anchor + immediate children.
+
+    ids = klass.subtree_ids(tree[:root].id, include_self: true, max_depth: 1)
+
+    assert_includes ids, tree[:root].id
+    assert_includes ids, tree[:a].id
+    assert_includes ids, tree[:b].id
+    assert_includes ids, tree[:c].id
+    assert_not_includes ids, tree[:c1].id
+  end
+
+  def test_subtree_ids_with_max_depth_include_self_false
+    klass = treeable_class
+    tree = build_tree!(klass)
+
+    # include_self: false means anchor starts at children.
+    # Anchor (children) is depth 0. Grandchildren are depth 1.
+    # If max_depth is 1, grandchildren (depth 1) are included. Great-grandchildren are not.
+    ids = klass.subtree_ids(tree[:root].id, include_self: false, max_depth: 1)
+
+    assert_includes ids, tree[:a].id
+    assert_includes ids, tree[:b].id
+    assert_includes ids, tree[:c].id
+    assert_includes ids, tree[:c1].id # depth 1 relative to children
+  end
+
+  def test_ancestor_ids_with_max_depth
+    klass = treeable_class
+    tree = build_tree!(klass)
+
+    # c1 (depth 0) -> c (depth 1) -> root (depth 2)
+    # max_depth 1: c1 and c
+    ids = klass.ancestor_ids(tree[:c1].id, include_self: true, max_depth: 1)
+
+    assert_includes ids, tree[:c1].id
+    assert_includes ids, tree[:c].id
+    assert_not_includes ids, tree[:root].id
+  end
+
+  def test_subtree_in_tree_order_with_max_depth
+    klass = treeable_class
+    tree = build_tree!(klass)
+
+    relation = klass.subtree_in_tree_order(tree[:root].id, include_self: true, max_depth: 1)
+    ids = relation.pluck(:id)
+
+    assert_includes ids, tree[:root].id
+    assert_includes ids, tree[:c].id
+    assert_not_includes ids, tree[:c1].id
+  end
+
+  def test_subtree_ids_returns_empty_for_nonexistent_id
+    klass = treeable_class
+    nonexistent_id = string_id_column? ? "NONEXISTENT" : 999_999
+    ids = klass.subtree_ids(nonexistent_id)
+
+    assert_empty ids
+  end
+
+  def test_ancestor_ids_returns_empty_for_nonexistent_id
+    klass = treeable_class
+    nonexistent_id = string_id_column? ? "NONEXISTENT" : 999_999
+    ids = klass.ancestor_ids(nonexistent_id)
+
+    assert_empty ids
+  end
+
+  def test_subtree_ids_returns_empty_for_root_sentinel
+    klass = treeable_class
+    ids = klass.subtree_ids(tree_root_sentinel, include_self: true)
+
+    assert_kind_of Array, ids
+  end
 end

@@ -17,11 +17,11 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
            :user_statuses,
            :user_social_google_statuses,
            :user_social_apple_statuses,
-           :app_preference_activity_levels
+           :app_preference_chronicle_levels
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @callback_headers = SocialCallbackTestHelper.callback_headers(@host)
 
     # Create test users

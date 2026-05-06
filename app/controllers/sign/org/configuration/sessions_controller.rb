@@ -47,10 +47,7 @@ module Sign
           redirect_to(
             sign_org_configuration_sessions_path,
             status: :see_other,
-            notice: t(
-              "sign.org.configuration.sessions.revoke.success",
-              default: "セッションを無効化しました。",
-            ),
+            notice: t("sign.org.in.session.sessions_revoked"),
           )
         end
 
@@ -72,10 +69,7 @@ module Sign
         def render_current_session_error
           redirect_to(
             sign_org_configuration_sessions_path,
-            alert: t(
-              "sign.org.configuration.sessions.revoke.failure",
-              default: "現在のセッションは無効化できません。",
-            ),
+            alert: t("sign.org.in.session.cannot_revoke_current"),
           )
         end
 

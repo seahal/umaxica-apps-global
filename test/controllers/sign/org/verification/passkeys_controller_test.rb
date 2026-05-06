@@ -8,7 +8,7 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   fixtures :staffs, :staff_tokens
 
   setup do
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @headers = as_staff_headers(@staff, host: @host)
     @token = staff_tokens(:one)
@@ -18,9 +18,9 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   test "creates verification on success" do
     return_to = Base64.urlsafe_encode64(sign_org_configuration_passkeys_path(ri: "jp"))
 
-    Sign::Org::VerificationsController.any_instance.stub(:available_step_up_methods, [:passkey]) do
-      Sign::Org::Verification::PasskeysController.any_instance.stub(:prepare_passkey_challenge!, true) do
-        Sign::Org::Verification::PasskeysController.any_instance.stub(:verify_passkey!, true) do
+    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+      WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
+        WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
           get sign_org_verification_url(scope: "configuration_passkey", return_to: return_to, ri: "jp"),
               headers: @headers
 
@@ -28,7 +28,9 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
           assert_response :success
 
-          post sign_org_verification_passkey_url(ri: "jp"), headers: @headers
+          post sign_org_verification_passkey_url(ri: "jp"),
+               params: { verification: { challenge_id: "test", credential_json: '{"id":"webauthn_id_1"}' } },
+               headers: @headers
 
           assert_response :redirect
           assert_redirected_to sign_org_configuration_passkeys_url(ri: "jp")
@@ -41,5 +43,15 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
         end
       end
     end
+  end
+
+  private
+
+  def passkey_credential_stub(id)
+    Struct.new(:id, :sign_count) do
+      define_method(:verify) do |*|
+        true
+      end
+    end.new(id, 1)
   end
 end

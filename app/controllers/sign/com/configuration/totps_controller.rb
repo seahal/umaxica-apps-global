@@ -38,7 +38,7 @@ module Sign
         def redirect_unavailable!
           redirect_to(
             sign_com_configuration_path(ri: params[:ri]),
-            alert: t("sign.app.verification.unavailable", default: "この認証手段は利用できません。"),
+            alert: t("auth.step_up.method_unavailable"),
             status: :see_other,
           )
         end

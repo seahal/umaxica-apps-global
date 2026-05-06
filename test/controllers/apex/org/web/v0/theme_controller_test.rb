@@ -8,7 +8,7 @@ class Apex::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     _ = Preference::Base # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = ENV.fetch("APEX_STAFF_URL", "org.localhost")
+    @host = ENV.fetch("APEX_STAFF_URL", "www.org.localhost")
     host! @host
   end
 

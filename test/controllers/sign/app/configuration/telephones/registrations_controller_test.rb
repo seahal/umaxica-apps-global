@@ -8,8 +8,8 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     @token = UserToken.create!(
       user_id: @user.id,
@@ -150,12 +150,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
-      # the method is complete_telephone_verification, we can mock it
-      Sign::App::Configuration::Telephones::RegistrationsController.any_instance.stub(
-        :complete_telephone_verification, ->(*_args, &block) {
-                                            block.call(tel); :success
-                                          },
-      ) do
+      with_complete_telephone_verification(:success, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -175,10 +170,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
-      Sign::App::Configuration::Telephones::RegistrationsController.any_instance.stub(
-        :complete_telephone_verification,
-        :session_expired,
-      ) do
+      with_complete_telephone_verification(:session_expired, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -198,10 +190,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
-      Sign::App::Configuration::Telephones::RegistrationsController.any_instance.stub(
-        :complete_telephone_verification,
-        :locked,
-      ) do
+      with_complete_telephone_verification(:locked, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -221,10 +210,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
-      Sign::App::Configuration::Telephones::RegistrationsController.any_instance.stub(
-        :complete_telephone_verification,
-        :invalid,
-      ) do
+      with_complete_telephone_verification(:invalid_code, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -238,11 +224,35 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
 
   def set_registration_session(id)
     # Using the backdoor or stubs. Since it's integration test, let's use a workaround.
-    Sign::App::Configuration::Telephones::RegistrationsController.any_instance.stub(
-      :current_registration_telephone,
-      UserTelephone.find(id),
-    ) do
-      yield if block_given?
+    original_method = Sign::App::Configuration::Telephones::RegistrationsController.instance_method(:current_registration_telephone)
+    Sign::App::Configuration::Telephones::RegistrationsController.define_method(:current_registration_telephone) do
+      UserTelephone.find(id)
     end
+
+    begin
+      yield if block_given?
+    ensure
+      Sign::App::Configuration::Telephones::RegistrationsController.define_method(
+        :current_registration_telephone,
+        original_method,
+      )
+    end
+  end
+
+  def with_complete_telephone_verification(status, telephone)
+    original_method =
+      Sign::App::Configuration::Telephones::RegistrationsController.instance_method(:complete_telephone_verification)
+    Sign::App::Configuration::Telephones::RegistrationsController.define_method(
+      :complete_telephone_verification,
+    ) do |*_args, &block|
+      block.call(telephone) if status == :success && block
+      status
+    end
+    yield
+  ensure
+    Sign::App::Configuration::Telephones::RegistrationsController.define_method(
+      :complete_telephone_verification,
+      original_method,
+    )
   end
 end

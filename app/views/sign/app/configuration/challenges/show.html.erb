@@ -1,4 +1,4 @@
-<%= link_to t("sign.app.configuration.show.back"), "https://sign.umaxica.app/configuration?ri=jp" %>
+<%= link_to t("sign.app.configuration.show.back"), sign_app_configuration_path(ri: params[:ri]) %>
 
 <% content_for :page_title, t("sign.app.configuration.mfa.show.title") %>
 

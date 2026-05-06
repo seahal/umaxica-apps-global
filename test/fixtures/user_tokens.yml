@@ -1,7 +1,7 @@
 # == Schema Information
 #
 # Table name: user_tokens
-# Database name: token
+# Database name: mark
 #
 #  id                           :bigint           not null, primary key
 #  compromised_at               :datetime

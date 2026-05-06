@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: user_token_statuses
-# Database name: token
+# Database name: mark
 #
 #  id :bigint           not null, primary key
 #

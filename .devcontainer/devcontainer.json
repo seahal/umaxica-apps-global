@@ -1,10 +1,10 @@
 {
-  "name": "umaxica-app-jit-dc",
+  "name": "umaxica-apps-global-dc",
   "dockerComposeFile": ["../compose.yaml", "./compose.override.yml"],
   "service": "core",
-  "remoteUser": "jit",
-  "containerUser": "jit",
-  "workspaceFolder": "/home/jit/workspace",
+  "remoteUser": "global",
+  "containerUser": "global",
+  "workspaceFolder": "/home/global/workspace",
   "overrideCommand": true,
   "forwardPorts": [3002],
   "remoteEnv": { "EDITOR": "code --wait --reuse-window", "DEBUGGER_DISABLE": "1" },
@@ -97,25 +97,24 @@
   "postStartCommand": "",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/marcosbolanos/devcontainer-features/neovim-prebuilt:1": {},
     "ghcr.io/devcontainers/features/copilot-cli:1": {},
     "ghcr.io/stu-bell/devcontainer-features/gemini-cli:0": {},
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/opencode:1": {},
     "ghcr.io/devcontainers-extra/features/lefthook-asdf:1": {},
     "ghcr.io/jasonthedeveloper/features/trivy:1": {},
-    "ghcr.io/audacioustux/devcontainers/bun:1": {}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
   "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/home/jit/.claude,type=bind",
-    "source=${localEnv:HOME}/.claude.json,target=/home/jit/.claude.json,type=bind",
-    "source=${localEnv:HOME}/.copilot,target=/home/jit/.copilot,type=bind",
-    "source=${localEnv:HOME}/.codex,target=/home/jit/.codex,type=bind",
-    "source=${localEnv:HOME}/.gemini,target=/home/jit/.gemini,type=bind",
-    "source=${localEnv:HOME}/.config/gh,target=/home/jit/.config/gh,type=bind",
-    "source=${localEnv:HOME}/.config/git,target=/home/jit/.config/git,type=bind",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/jit/.gitconfig,type=bind",
-    "source=${localEnv:HOME}/.ssh,target=/home/jit/.ssh,type=bind",
-    "source=${localEnv:HOME}/.config/opencode,target=/home/jit/.config/opencode,type=bind"
+    "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",
+    "source=${localEnv:HOME}/.claude.json,target=/home/global/.claude.json,type=bind",
+    "source=${localEnv:HOME}/.copilot,target=/home/global/.copilot,type=bind",
+    "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
+    "source=${localEnv:HOME}/.gemini,target=/home/global/.gemini,type=bind",
+    "source=${localEnv:HOME}/.config/gh,target=/home/global/.config/gh,type=bind",
+    "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind",
+    "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind",
+    "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind"
   ]
 }

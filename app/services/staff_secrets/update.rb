@@ -4,7 +4,7 @@
 module StaffSecrets
   class Update
     ACTION = "staff_secret.update"
-    EVENT_ID = StaffActivityEvent::STAFF_SECRET_UPDATED
+    EVENT_ID = StaffChronicleEvent::STAFF_SECRET_UPDATED
 
     Result = Struct.new(:secret, keyword_init: true)
 
@@ -22,11 +22,11 @@ module StaffSecrets
       @secret.name = @params[:name].to_s.strip if @params[:name].present?
       @secret.staff_secret_status_id = status_id_for(@params[:enabled]) if @params.key?(:enabled)
 
-      StaffActivity.transaction do
+      StaffChronicle.transaction do
         StaffSecret.transaction do
           ensure_audit_dependencies!
           @secret.save!
-          StaffActivity.create!(
+          StaffChronicle.create!(
             actor: @actor,
             subject_type: "StaffSecret",
             subject_id: @secret.id.to_s,
@@ -49,9 +49,9 @@ module StaffSecrets
     end
 
     def ensure_audit_dependencies!
-      ActivityRecord.connected_to(role: :writing) do
-        StaffActivityEvent.find_or_create_by!(id: EVENT_ID)
-        StaffActivityLevel.find_or_create_by!(id: StaffActivityLevel::NOTHING)
+      ChronicleRecord.connected_to(role: :writing) do
+        StaffChronicleEvent.find_or_create_by!(id: EVENT_ID)
+        StaffChronicleLevel.find_or_create_by!(id: StaffChronicleLevel::NOTHING)
       end
     end
   end

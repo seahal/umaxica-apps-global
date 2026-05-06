@@ -8,7 +8,7 @@ class Sign::App::In::BulletinsControllerTest < ActionDispatch::IntegrationTest
   fixtures :users, :user_tokens
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
   end
 

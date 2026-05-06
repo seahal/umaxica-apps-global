@@ -81,12 +81,5 @@ class TelephoneOccurrence < OccurrenceRecord
 
     errors.add(:body, :invalid_e164_format) unless body.match?(TelephoneNormalization::E164_FORMAT)
     errors.add(:body, :country_code_cannot_start_with_zero) if body.start_with?("+0")
-
-    digit_count = body.delete("+").length
-    if digit_count > TelephoneNormalization::MAX_E164_DIGITS
-      errors.add(:body, :exceeds_e164_length, max: TelephoneNormalization::MAX_E164_DIGITS)
-    end
-
-    errors.add(:body, :too_long, count: 16) if body.length > 16
   end
 end

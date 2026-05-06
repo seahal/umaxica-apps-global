@@ -7,11 +7,11 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   fixtures :users, :user_statuses, :user_token_statuses, :user_token_kinds
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     # Ensure master data needed for audit
-    UserActivityEvent.ensure_defaults! if UserActivityEvent.respond_to?(:ensure_defaults!)
-    UserActivityLevel.ensure_defaults! if UserActivityLevel.respond_to?(:ensure_defaults!)
+    UserChronicleEvent.ensure_defaults! if UserChronicleEvent.respond_to?(:ensure_defaults!)
+    UserChronicleLevel.ensure_defaults! if UserChronicleLevel.respond_to?(:ensure_defaults!)
 
     # Ensure user is active for refresh to work
     # We update status to something active if available, or just rely on 'active?' returning true.
@@ -69,10 +69,10 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "audit event is created on refresh" do
-    if UserActivityEvent.respond_to?(:ensure_defaults!)
-      UserActivityEvent.ensure_defaults!
-    elsif !UserActivityEvent.exists?(id: UserActivityEvent::TOKEN_REFRESHED)
-      UserActivityEvent.create!(id: UserActivityEvent::TOKEN_REFRESHED) rescue nil
+    if UserChronicleEvent.respond_to?(:ensure_defaults!)
+      UserChronicleEvent.ensure_defaults!
+    elsif !UserChronicleEvent.exists?(id: UserChronicleEvent::TOKEN_REFRESHED)
+      UserChronicleEvent.create!(id: UserChronicleEvent::TOKEN_REFRESHED) rescue nil
     end
 
     token_record = UserToken.create!(
@@ -99,8 +99,8 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "S1: audit failure does not block authentication (refresh succeeds)" do
-    UserActivityEvent.ensure_defaults! if UserActivityEvent.respond_to?(:ensure_defaults!)
-    UserActivityLevel.ensure_defaults! if UserActivityLevel.respond_to?(:ensure_defaults!)
+    UserChronicleEvent.ensure_defaults! if UserChronicleEvent.respond_to?(:ensure_defaults!)
+    UserChronicleLevel.ensure_defaults! if UserChronicleLevel.respond_to?(:ensure_defaults!)
 
     token_record = UserToken.create!(
       user: @user,
@@ -134,8 +134,8 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "S1: audit failure does not block authentication (login succeeds)" do
-    UserActivityEvent.ensure_defaults! if UserActivityEvent.respond_to?(:ensure_defaults!)
-    UserActivityLevel.ensure_defaults! if UserActivityLevel.respond_to?(:ensure_defaults!)
+    UserChronicleEvent.ensure_defaults! if UserChronicleEvent.respond_to?(:ensure_defaults!)
+    UserChronicleLevel.ensure_defaults! if UserChronicleLevel.respond_to?(:ensure_defaults!)
 
     token_record = UserToken.create!(
       user: @user,

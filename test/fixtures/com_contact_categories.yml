@@ -9,3 +9,5 @@ nothing:
   id: 1
 security_issue:
   id: 2
+one:
+  id: 3

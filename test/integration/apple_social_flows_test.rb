@@ -4,11 +4,11 @@
 require "test_helper"
 
 class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_social_apple_statuses, :app_preference_activity_levels
+  fixtures :users, :user_statuses, :user_social_apple_statuses, :app_preference_chronicle_levels
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @callback_headers = SocialCallbackTestHelper.callback_headers(@host)
   end
 

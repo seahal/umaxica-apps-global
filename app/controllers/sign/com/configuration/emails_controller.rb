@@ -39,7 +39,7 @@ module Sign
           end
 
           @user_email.destroy!
-          create_audit_event!(UserActivityEvent::EMAIL_REMOVED, subject: @user_email)
+          create_audit_event!(UserChronicleEvent::EMAIL_REMOVED, subject: @user_email)
 
           redirect_to(
             sign_com_configuration_emails_path(ri: params[:ri]),
@@ -51,12 +51,12 @@ module Sign
         private
 
         def create_audit_event!(event_id, subject:)
-          ActivityRecord.connected_to(role: :writing) do
-            UserActivityEvent.find_or_create_by!(id: event_id)
-            UserActivityLevel.find_or_create_by!(id: UserActivityLevel::NOTHING)
+          ChronicleRecord.connected_to(role: :writing) do
+            UserChronicleEvent.find_or_create_by!(id: event_id)
+            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
           end
 
-          UserActivity.create!(
+          UserChronicle.create!(
             actor_type: "Customer",
             actor_id: current_customer.id,
             event_id: event_id,

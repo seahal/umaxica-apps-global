@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: com_preference_binding_methods
-# Database name: commerce
+# Database name: setting
 #
 #  id :bigint           not null, primary key
 #
-class ComPreferenceBindingMethod < CommerceRecord
+class ComPreferenceBindingMethod < SettingRecord
   NOTHING = 0
   DBSC = 1
   LEGACY = 2
@@ -20,16 +20,6 @@ class ComPreferenceBindingMethod < CommerceRecord
            dependent: :restrict_with_error
 
   def self.ensure_defaults!
-    return if DEFAULTS.blank?
-
-    existing_ids = where(id: DEFAULTS).pluck(:id)
-    missing_ids = DEFAULTS - existing_ids
-    return if missing_ids.empty?
-
-    if defined?(Prosopite)
-      Prosopite.pause { missing_ids.each { |id| create!(id: id) } }
-    else
-      missing_ids.each { |id| create!(id: id) }
-    end
+    insert_missing_fixed_ids!(DEFAULTS)
   end
 end

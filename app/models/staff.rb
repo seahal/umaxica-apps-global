@@ -63,21 +63,18 @@ class Staff < OperatorRecord
   has_many :staff_passkeys,
            dependent: :destroy,
            inverse_of: :staff
-  has_many :staff_activities,
+  has_many :staff_chronicles,
            -> { where(subject_type: "Staff") },
            foreign_key: :subject_id,
            dependent: :nullify,
            inverse_of: false
-  has_many :user_activities,
+  has_many :user_chronicles,
            as: :actor,
            dependent: :nullify
   has_many :staff_secrets,
            dependent: :destroy,
            inverse_of: :staff
   has_many :staff_tokens,
-           dependent: :destroy,
-           inverse_of: :staff
-  has_many :staff_messages,
            dependent: :destroy,
            inverse_of: :staff
   has_many :staff_notifications,

@@ -7,7 +7,7 @@ class Sign::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    @host = SignHostEnv.staff_url || "sign.org.localhost"
+    @host = IdHostEnv.staff_url || "id.org.localhost"
     host! @host
   end
 

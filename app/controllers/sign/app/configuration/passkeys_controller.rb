@@ -28,17 +28,17 @@ module Sign
         include Sign::Webauthn
 
         before_action :authenticate_user!
-        before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
+        before_action :ensure_verified_recovery_identity_for_registration!, only: [:new, :create]
         before_action :set_passkey, only: %i(show edit update destroy)
 
         # GET /configuration/passkeys
         def index
-          @passkeys = policy_scope(current_user.user_passkeys).order(created_at: :desc)
+          @passkeys = authorized_scope(current_user.user_passkeys).order(created_at: :desc)
         end
 
         # GET /configuration/passkeys/:id
         def show
-          authorize(@passkey)
+          authorize!(@passkey)
         end
 
         # GET /configuration/passkeys/new
@@ -48,19 +48,17 @@ module Sign
 
         # GET /configuration/passkeys/:id/edit
         def edit
-          authorize(@passkey)
+          authorize!(@passkey)
         end
 
         # POST /configuration/passkeys
         def create
           @passkey = current_user.user_passkeys.new(create_params)
-          authorize(@passkey, :create?)
+          authorize!(@passkey, :create?)
 
-          if @passkey.save
-            render plain: "ok", status: :created
-          else
-            render plain: @passkey.errors.full_messages.join("\n"), status: :unprocessable_content
-          end
+          return unless @passkey.save
+
+          render plain: "ok", status: :created
         end
 
         # POST /configuration/passkeys/options
@@ -144,7 +142,7 @@ module Sign
 
         # PATCH/PUT /configuration/passkeys/:id
         def update
-          authorize(@passkey)
+          authorize!(@passkey)
           if @passkey.update(update_params)
             respond_to do |format|
               format.html do
@@ -167,7 +165,7 @@ module Sign
 
         # DELETE /configuration/passkeys/:id
         def destroy
-          authorize(@passkey)
+          authorize!(@passkey)
 
           unless AuthMethodGuard.can_remove_passkey?(current_user, @passkey)
             respond_to do |format|
@@ -227,13 +225,11 @@ module Sign
         end
 
         def build_registration_credential
-          WebAuthn::Credential.from_create(credential_params.to_h)
+          WebAuthn::Credential.from_create(credential_params.to_h, relying_party: webauthn_relying_party)
         end
 
         def verify_registration_credential!(credential, challenge)
-          with_webauthn_config do
-            credential.verify(challenge)
-          end
+          credential.verify(challenge)
         end
 
         def build_passkey_from_credential(credential)
@@ -246,7 +242,6 @@ module Sign
         end
 
         def persist_passkey!(passkey)
-          authorize(passkey, :create?)
           passkey.save!
         end
 

@@ -63,10 +63,13 @@ module Sign
               return
             end
 
-            case complete_staff_telephone_verification(@staff_telephone.id, submitted_code) do |staff_telephone|
-                   staff_telephone.staff = current_staff
-                   staff_telephone.save!
-                 end
+            result =
+              complete_staff_telephone_verification(@staff_telephone.id, submitted_code) do |staff_telephone|
+                staff_telephone.staff = current_staff
+                staff_telephone.save!
+              end
+
+            case result
             when :success
               reset_registration_session!
               redirect_to(

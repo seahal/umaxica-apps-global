@@ -1,8 +1,0 @@
-<% content_for :page_title, 'Roots' %>
-<ul>
-  <li>Current language: <%= I18n.locale %></li>
-  <li>TimeZone: <%= params[:tz].to_s.downcase == 'utc' ? "utc" : 'jst' %></li>
-  <li><%= I18n.t "hello" %></li>
-  <li><%= Time.now.in_time_zone("Tokyo") %></li>
-  <li><%= to_localetime Time.now, 'jst' %></li>
-</ul>

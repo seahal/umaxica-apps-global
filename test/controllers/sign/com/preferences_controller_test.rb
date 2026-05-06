@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Com::PreferencesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
   end
 
   test "should get show" do

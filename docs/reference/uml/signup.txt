@@ -1,0 +1,21 @@
+@startuml
+title A. Sign-Up (New Registration)
+
+start
+:Display sign-up page;
+
+if (Choose registration method) then (Email)
+  :Register with email;
+elseif (Google)
+  :Register with Google;
+elseif (Apple)
+  :Register with Apple;
+else (Phone)
+  :Register with phone number;
+endif
+
+:Account creation complete;
+
+:Navigate to app;
+stop
+@enduml

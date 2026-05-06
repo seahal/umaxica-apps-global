@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: customer_token_kinds
-# Database name: token
+# Database name: symbol
 #
 #  id :bigint           not null, primary key
 #
-class CustomerTokenKind < TokenRecord
+class CustomerTokenKind < SymbolRecord
   self.primary_key = :id
   self.record_timestamps = false
 

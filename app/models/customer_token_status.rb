@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: customer_token_statuses
-# Database name: token
+# Database name: symbol
 #
 #  id :bigint           not null, primary key
 #
-class CustomerTokenStatus < TokenRecord
+class CustomerTokenStatus < SymbolRecord
   NOTHING = 0
   ACTIVE = 1
   EXPIRED = 2

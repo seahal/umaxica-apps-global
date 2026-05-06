@@ -8,8 +8,8 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
   fixtures :staffs, :staff_statuses
 
   setup do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @headers = { "Host" => @host, "X-TEST-CURRENT-STAFF" => @staff.id }.freeze
   end
@@ -28,7 +28,7 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
 
   test "should redirect show when not logged in" do
     get sign_org_configuration_google_url(ri: "jp")
-    rt = Base64.strict_encode64(sign_org_configuration_google_url(ri: "jp"))
+    rt = Base64.urlsafe_encode64(sign_org_configuration_google_url(ri: "jp"))
 
     assert_redirected_to new_sign_org_in_url(rt: rt, host: @host)
   end

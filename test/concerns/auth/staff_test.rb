@@ -141,7 +141,7 @@ class Authentication::StaffTest < ActiveSupport::TestCase
 
   test "log_in derives shared cookie domain from localhost host" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
-    @obj.request.host = "sign.org.localhost"
+    @obj.request.host = "id.org.localhost"
 
     @obj.send(:log_in, @staff)
 

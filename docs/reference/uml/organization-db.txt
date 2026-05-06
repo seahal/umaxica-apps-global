@@ -1,0 +1,114 @@
+erDiagram
+    direction LR
+
+    TENANT ||--o{ ORGANIZATION : "has"
+    ORGANIZATION ||--o{ ACCOUNT : "includes"
+    ACCOUNT ||--o{ PRINCIPAL : "has"
+
+    USER  ||--o{ PRINCIPAL : "as_subject"
+    STAFF ||--o{ PRINCIPAL : "as_subject"
+
+    ORGANIZATION ||--o{ AVATAR : "owns"
+    PRINCIPAL ||--o{ MEMBERSHIP : "participates"
+    AVATAR    ||--o{ MEMBERSHIP : "controlled_by"
+
+    AVATAR ||--o{ OWNERSHIP_TRANSFER : "transfers"
+    MEMBERSHIP ||--o{ OWNERSHIP_TRANSFER : "from_membership"
+    MEMBERSHIP ||--o{ OWNERSHIP_TRANSFER : "to_membership"
+
+    ROLE ||--o{ ROLE_PERMISSION : "bundles"
+    CAPABILITY ||--o{ ROLE_PERMISSION : "is_in"
+    ACCOUNT ||--o{ ROLE_ASSIGNMENT : "has"
+    ROLE    ||--o{ ROLE_ASSIGNMENT : "grants"
+
+    TENANT {
+      uuid id PK
+      text name
+      text slug
+    }
+    ORGANIZATION {
+      uuid id PK
+      uuid tenant_id FK
+      text name
+      text slug
+    }
+    ACCOUNT {
+      uuid id PK
+      uuid organization_id FK
+      text email
+      bool active
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    USER {
+      uuid id PK
+      text logical_key
+    }
+    STAFF {
+      uuid id PK
+      text logical_key
+    }
+    PRINCIPAL {
+      uuid id PK
+      uuid account_id
+      text subject_type
+      uuid subject_id
+      uuid identity_id
+      text region
+      text personality_key
+      bool active
+      timestamptz accepted_at
+      timestamptz valid_until
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    AVATAR {
+      uuid id PK
+      uuid organization_id FK
+      text handle
+      bool active
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    MEMBERSHIP {
+      uuid id PK
+      uuid principal_id
+      uuid avatar_id
+      bool owner
+      bool active
+      timestamptz accepted_at
+      timestamptz valid_until
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    OWNERSHIP_TRANSFER {
+      uuid id PK
+      uuid avatar_id
+      uuid from_membership_id
+      uuid to_membership_id
+      text status
+      timestamptz occurred_at
+      timestamptz created_at
+    }
+    ROLE {
+      uuid id PK
+      text key
+      text name
+    }
+    CAPABILITY {
+      text key PK
+    }
+    ROLE_PERMISSION {
+      uuid id PK
+      uuid role_id
+      text capability_key
+    }
+    ROLE_ASSIGNMENT {
+      uuid id PK
+      uuid account_id
+      uuid role_id
+      text scope_type
+      uuid scope_id
+      bool active
+    }
+

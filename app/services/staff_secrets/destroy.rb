@@ -4,7 +4,7 @@
 module StaffSecrets
   class Destroy
     ACTION = "staff_secret.delete"
-    EVENT_ID = StaffActivityEvent::STAFF_SECRET_REMOVED
+    EVENT_ID = StaffChronicleEvent::STAFF_SECRET_REMOVED
 
     def self.call(actor:, secret:)
       new(actor: actor, secret: secret).call
@@ -16,10 +16,10 @@ module StaffSecrets
     end
 
     def call
-      StaffActivity.transaction do
+      StaffChronicle.transaction do
         StaffSecret.transaction do
           ensure_audit_dependencies!
-          StaffActivity.create!(
+          StaffChronicle.create!(
             actor: @actor,
             subject_type: "StaffSecret",
             subject_id: @secret.id.to_s,
@@ -35,9 +35,9 @@ module StaffSecrets
     private
 
     def ensure_audit_dependencies!
-      ActivityRecord.connected_to(role: :writing) do
-        StaffActivityEvent.find_or_create_by!(id: EVENT_ID)
-        StaffActivityLevel.find_or_create_by!(id: StaffActivityLevel::NOTHING)
+      ChronicleRecord.connected_to(role: :writing) do
+        StaffChronicleEvent.find_or_create_by!(id: EVENT_ID)
+        StaffChronicleLevel.find_or_create_by!(id: StaffChronicleLevel::NOTHING)
       end
     end
   end

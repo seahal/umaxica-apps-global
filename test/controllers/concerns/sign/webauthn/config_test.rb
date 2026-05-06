@@ -24,17 +24,17 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
 
   # Case B-1: webauthn_rp_id should return request.host
   test "webauthn_rp_id returns request host" do
-    @controller.request.host = "sign.app.localhost"
+    @controller.request.host = "id.app.localhost"
 
-    assert_equal "sign.app.localhost", @controller.webauthn_rp_id
+    assert_equal "id.app.localhost", @controller.webauthn_rp_id
   end
 
   # Case B-2: webauthn_origin should return request.base_url
   test "webauthn_origin returns request base_url" do
-    @controller.request.host = "sign.app.localhost"
+    @controller.request.host = "id.app.localhost"
     @controller.request.set_header("rack.url_scheme", "http")
 
-    assert_equal "http://sign.app.localhost", @controller.webauthn_origin
+    assert_equal "http://id.app.localhost", @controller.webauthn_origin
   end
 
   # Case B-3: validate_webauthn_origin! rejects origins that are not trusted
@@ -48,7 +48,7 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
 
   # Case B-4 & B-5: Challenge Management
   test "challenge management flow" do
-    @controller.request.host = "sign.app.localhost" # valid host
+    @controller.request.host = "id.app.localhost" # valid host
 
     # Create challenge
     challenge_id = @controller.send(:store_challenge!, challenge: "test-challenge", purpose: :registration)
@@ -73,7 +73,7 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
   end
 
   test "fetch_and_delete_challenge! raises error on wrong purpose" do
-    @controller.request.host = "sign.app.localhost"
+    @controller.request.host = "id.app.localhost"
     challenge_id = @controller.send(:store_challenge!, challenge: "test", purpose: :registration)
 
     assert_raises(Sign::Webauthn::ChallengePurposeMismatchError) do
@@ -82,7 +82,7 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
   end
 
   test "fetch_and_delete_challenge! raises error when expired" do
-    @controller.request.host = "sign.app.localhost"
+    @controller.request.host = "id.app.localhost"
     challenge_id = @controller.send(:store_challenge!, challenge: "test", purpose: :registration)
 
     # Manually expire it

@@ -7,7 +7,7 @@ class Apex::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    @host = ENV.fetch("APEX_SERVICE_URL", "app.localhost")
+    @host = ENV.fetch("APEX_SERVICE_URL", "www.app.localhost")
     host! @host
   end
 
@@ -136,14 +136,8 @@ class Apex::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
       public_id: preference.public_id,
     )
     cookies[Preference::CookieName.access] = token
-
-    controller = Apex::App::Web::V0::CookiesController
     with_preference_jwt_keys(host: @host) do
-      controller.any_instance.stub(
-        :issue_access_token_from, ->(_) {
-                                    raise NoMethodError, "issue_access_token_from"
-                                  },
-      ) do
+      Preference::Token.stub(:encode, ->(*) { raise NoMethodError, "issue_access_token_from" }) do
         assert_raises(NoMethodError) do
           patch apex_app_web_v0_cookie_path, params: { consented: true }, as: :json
         end

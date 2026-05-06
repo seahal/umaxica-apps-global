@@ -109,12 +109,12 @@ class PreferenceTokenTest < ActiveSupport::TestCase
 
   test "host_matches handles direct and nested hosts" do
     assert Preference::Token.send(:host_matches?, "app.localhost", "app.localhost")
-    assert Preference::Token.send(:host_matches?, "app.localhost", "sign.app.localhost")
+    assert Preference::Token.send(:host_matches?, "app.localhost", "id.app.localhost")
     assert_not Preference::Token.send(:host_matches?, "app.localhost", "evil.localhost")
   end
 
   test "audience_matches handles allowed and rejected audiences" do
-    assert Preference::Token.send(:audience_matches?, ["app.localhost"], "sign.app.localhost")
+    assert Preference::Token.send(:audience_matches?, ["app.localhost"], "id.app.localhost")
     assert_not Preference::Token.send(:audience_matches?, ["app.localhost"], "evil.localhost")
   end
 
@@ -125,7 +125,7 @@ class PreferenceTokenTest < ActiveSupport::TestCase
       "aud" => ["app.localhost"],
     }
 
-    assert_equal payload, Preference::Token.send(:validate_payload, payload, "sign.app.localhost")
+    assert_equal payload, Preference::Token.send(:validate_payload, payload, "id.app.localhost")
   end
 
   test "validate_payload rejects invalid type host and audience" do
@@ -135,14 +135,14 @@ class PreferenceTokenTest < ActiveSupport::TestCase
       "aud" => ["app.localhost"],
     }
 
-    assert_nil Preference::Token.send(:validate_payload, payload.merge("typ" => "wrong"), "sign.app.localhost")
+    assert_nil Preference::Token.send(:validate_payload, payload.merge("typ" => "wrong"), "id.app.localhost")
     assert_nil Preference::Token.send(
       :validate_payload, payload.merge("host" => "evil.localhost"),
-      "sign.app.localhost",
+      "id.app.localhost",
     )
     assert_nil Preference::Token.send(
       :validate_payload, payload.merge("aud" => ["evil.localhost"]),
-      "sign.app.localhost",
+      "id.app.localhost",
     )
   end
 

@@ -1,0 +1,41 @@
+@startuml
+title Email Preference Update Flow (No Login Required)
+
+start
+
+:User visits /configuration/email/new;
+
+while (Email format valid?) is (No)
+  :Display email input form + Cloudflare Turnstile;
+  :Return validation error;
+endwhile (Yes)
+
+:Display email input form + Cloudflare Turnstile;
+:Send confirmation email containing one-time token link;
+note right
+  System response does not reveal
+  whether the email exists or not.
+end note
+:Show "If the address is registered, an email has been sent.";
+
+:User clicks token link in email;
+
+while (Token valid and not expired?) is (No)
+  :Show token invalid/expired notification;
+endwhile (Yes)
+
+:Display preference edit page;
+note right
+  Always ON (non-editable):
+  - Important Service Notifications
+  Editable:
+  - Product Updates
+  - Promotional Messages
+end note
+
+:User submits changes;
+:Update DB and mark token as used;
+:Show confirmation message;
+
+stop
+@enduml

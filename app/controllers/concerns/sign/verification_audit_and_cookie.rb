@@ -19,7 +19,7 @@ module Sign
     end
 
     def create_audit_event!(event_id, subject:)
-      ActivityRecord.connected_to(role: :writing) do
+      ChronicleRecord.connected_to(role: :writing) do
         verification_audit_event_class.find_or_create_by!(id: event_id)
         verification_audit_level_class.find_or_create_by!(id: verification_default_activity_level_id)
       end

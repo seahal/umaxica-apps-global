@@ -4,6 +4,7 @@
 module Preference::Global
   extend ActiveSupport::Concern
   include Preference::Base
+  include Preference::Localization
 
   PARAM_CONTEXT_KEYS = %i(ri lx ct tz).freeze
   OPTIONAL_PARAM_KEYS = %i(lx ct tz).freeze
@@ -57,14 +58,9 @@ module Preference::Global
 
   def cookie_context
     preferences = preference_payload_preferences
-    context =
-      if preferences.present?
-        preference_context_from_hash(preferences)
-      elsif @preferences.present?
-        preference_context_from_record
-      else
-        {}
-      end
+    context = {}
+    context.merge!(preference_context_from_hash(preferences)) if preferences.present?
+    context.merge!(preference_context_from_record) if @preferences.present?
     context.compact
   end
 
@@ -92,10 +88,12 @@ module Preference::Global
   end
 
   def preference_context_from_record
+    prefix = preference_prefix(@preferences)
+
     {
-      ri: preference_option_value(association_name_for_region),
-      lx: preference_option_value(association_name_for_language),
-      tz: preference_option_value(association_name_for_timezone),
+      ri: option_id_to_region(preference_option_id(association_name_for_region), prefix),
+      lx: option_id_to_language(preference_option_id(association_name_for_language), prefix),
+      tz: option_id_to_timezone(preference_option_id(association_name_for_timezone), prefix),
       ct: colortheme_short_code(preference_option_value(preference_colortheme_association)),
     }
   end
@@ -107,10 +105,15 @@ module Preference::Global
   private
 
   def preference_option_value(association_name)
+    option_id = preference_option_id(association_name)
+    option_id&.to_s&.downcase
+  end
+
+  def preference_option_id(association_name)
     return nil if @preferences.blank? || association_name.blank?
 
     record = @preferences.public_send(association_name)
-    record&.option_id&.to_s&.downcase
+    record&.option_id
   rescue NoMethodError
     nil
   end

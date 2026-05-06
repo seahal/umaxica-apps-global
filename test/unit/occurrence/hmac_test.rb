@@ -37,6 +37,10 @@ class OccurrenceHmacTest < ActiveSupport::TestCase
   test "telephone must start with plus and only digits" do
     with_env_secret("secret") do
       assert_raises(Occurrence::Hmac::InvalidTelephoneFormatError) do
+        Occurrence::Hmac.telephone_hmac("")
+      end
+
+      assert_raises(Occurrence::Hmac::InvalidTelephoneFormatError) do
         Occurrence::Hmac.telephone_hmac("09012345678")
       end
 
@@ -47,6 +51,26 @@ class OccurrenceHmacTest < ActiveSupport::TestCase
       digest = Occurrence::Hmac.telephone_hmac("+819012345678")
 
       assert_match(/\A\h{64}\z/, digest)
+    end
+  end
+
+  test "ip hmac strips surrounding whitespace" do
+    with_env_secret("secret") do
+      digest_a = Occurrence::Hmac.ip_hmac(" 192.0.2.1 ")
+      digest_b = Occurrence::Hmac.ip_hmac("192.0.2.1")
+
+      assert_equal digest_a, digest_b
+    end
+  end
+
+  test "secret raises when missing" do
+    fake_creds = Object.new
+    fake_creds.define_singleton_method(:option) { |_key, **| nil }
+
+    Rails.app.stub(:creds, fake_creds) do
+      assert_raises(Occurrence::Hmac::MissingSecretError) do
+        Occurrence::Hmac.secret
+      end
     end
   end
 end

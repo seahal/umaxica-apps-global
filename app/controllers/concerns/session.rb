@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-# TODO:
+# TODO: review flash boundary handling across subdomains.
 # Prevent flash leakage across subdomains and surfaces by validating origin boundary on each request.
 # Treat surface (app/com/org) and realm (www/sign/docs/help/news) as a logical session boundary key.
 # Record the boundary at the moment a flash message is created to preserve its origin context safely.

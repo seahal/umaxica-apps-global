@@ -9,7 +9,7 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   fixtures :users, :user_statuses, :user_token_kinds, :user_token_statuses
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
     @user = users(:one)
     @token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB)

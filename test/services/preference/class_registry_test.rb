@@ -20,8 +20,8 @@ module Preference
 
     test "resolves status and audit classes from preference class" do
       assert_equal AppPreferenceStatus, Preference::ClassRegistry.status_class_for(AppPreference)
-      assert_equal ComPreferenceActivity, Preference::ClassRegistry.audit_class_for(ComPreference)
-      assert_equal OrgPreferenceActivityEvent, Preference::ClassRegistry.audit_event_class_for(OrgPreference)
+      assert_equal ComPreferenceChronicle, Preference::ClassRegistry.audit_class_for(ComPreference)
+      assert_equal OrgPreferenceChronicleEvent, Preference::ClassRegistry.audit_event_class_for(OrgPreference)
     end
   end
 end

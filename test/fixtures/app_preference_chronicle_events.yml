@@ -1,0 +1,23 @@
+# == Schema Information
+#
+# Table name: app_preference_chronicle_events
+# Database name: chronicle
+#
+#  id :bigint           not null, primary key
+#
+create_new_preference_token:
+  id: 8
+refresh_token_rotated:
+  id: 1
+update_preference_cookie:
+  id: 2
+update_preference_language:
+  id: 7
+update_preference_timezone:
+  id: 5
+reset_by_user_decision:
+  id: 4
+update_preference_region:
+  id: 6
+update_preference_colortheme:
+  id: 3

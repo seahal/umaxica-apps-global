@@ -3,7 +3,10 @@
 
 module Org
   class InvitationService
-    Result = Data.define(:success, :invitation, :code, :error)
+    Result =
+      Data.define(:success, :invitation, :code, :error) do
+        def success? = !!success
+      end
 
     def self.create(organization_id:, email:, invited_by:, role_id: 0)
       new(organization_id: organization_id, email: email, invited_by: invited_by, role_id: role_id).create

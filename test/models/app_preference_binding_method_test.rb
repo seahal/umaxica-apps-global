@@ -62,19 +62,6 @@ class AppPreferenceBindingMethodTest < ActiveSupport::TestCase
     end
   end
 
-  test "ensure_defaults! handles empty DEFAULTS" do
-    original_defaults = AppPreferenceBindingMethod::DEFAULTS
-    AppPreferenceBindingMethod.send(:remove_const, :DEFAULTS)
-    AppPreferenceBindingMethod.const_set(:DEFAULTS, [].freeze)
-
-    assert_no_difference("AppPreferenceBindingMethod.count") do
-      AppPreferenceBindingMethod.ensure_defaults!
-    end
-  ensure
-    AppPreferenceBindingMethod.send(:remove_const, :DEFAULTS)
-    AppPreferenceBindingMethod.const_set(:DEFAULTS, original_defaults)
-  end
-
   test "app_preferences association works with dependent restrict" do
     method = AppPreferenceBindingMethod.find(AppPreferenceBindingMethod::NOTHING)
     preference = AppPreference.create!(

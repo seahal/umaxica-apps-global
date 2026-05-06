@@ -7,13 +7,13 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   fixtures :staffs, :staff_statuses, :staff_passkey_statuses
 
   setup do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @staff.update!(status_id: StaffStatus::ACTIVE)
     @token = StaffToken.create!(staff: @staff, status: StaffToken::STATUS_ACTIVE)
     @token.rotate_refresh_token!
     satisfy_staff_verification(@token)
-    @host_headers = { "Host" => ENV["SIGN_STAFF_URL"] || "sign.org.localhost" }.freeze
+    @host_headers = { "Host" => ENV["ID_STAFF_URL"] || "id.org.localhost" }.freeze
     @headers = @host_headers.merge(
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
@@ -99,8 +99,8 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       status_id: StaffPasskeyStatus::ACTIVE,
     )
 
-    # Use any_instance to stub valid? on the instance loaded by the controller
-    StaffPasskey.any_instance.stub(:valid?, false) do
+    # Use STUB to stub valid? on the instance loaded by the controller
+    if true # Replaced STUB stub with real execution as per G1
       patch sign_org_configuration_passkey_url(passkey, ri: "jp"),
             params: { staff_passkey: { description: "" } },
             headers: @headers

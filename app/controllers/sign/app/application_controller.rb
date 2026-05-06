@@ -7,11 +7,11 @@ module Sign
       include ::RateLimit
       include ::Session
       include ::Preference::Global
-      include ::Preference::Adoption
+      include ::Preference::Adoption # FIXME: what is this?
       include ::Authentication::User
       include ::Authorization::User
       include ::Verification::User
-      include Pundit::Authorization
+      include ActionPolicy::Controller
       # Note: RestrictedSessionGuard is still needed to enforce session expiration
       # and block expired restricted sessions on the session management page itself.
       include ::RestrictedSessionGuard
@@ -30,22 +30,20 @@ module Sign
       prepend_before_action :enforce_restricted_session_guard!
       prepend_before_action :resolve_param_context
       prepend_before_action :set_region
-      prepend_before_action :set_locale
-      prepend_before_action :set_timezone
+
       prepend_before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :enforce_access_policy!
       before_action :enforce_verification_if_required
       before_action :set_current
+      before_action :set_current_observability
       after_action :purge_current
 
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: ENV.fetch(
-                             "SIGN_APP_TRUSTED_ORIGINS",
-                             "http://sign.app.localhost,https://sign.app.localhost",
-                           )
-                             .split(",").map(&:strip),
+                           trusted_origins: HostOriginEnv.trusted_origins(
+                             ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+                           ),
                            with: :exception
 
       guest_only!

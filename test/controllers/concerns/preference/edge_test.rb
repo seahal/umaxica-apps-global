@@ -3,7 +3,8 @@
 
 require "test_helper"
 
-class PreferenceEdgeTestController < ::Core::App::ApplicationController
+class PreferenceEdgeTestController < ::ApplicationController
+  include ::Authentication::User
   include ::Preference::Edge
 
   attr_accessor :payload_preferences, :payload_public_id
@@ -23,7 +24,7 @@ class PreferenceEdgeTestController < ::Core::App::ApplicationController
   end
 
   def controller_path
-    "core/app/preferences"
+    "apex/app/preferences"
   end
 
   def test_resolved_preference_data

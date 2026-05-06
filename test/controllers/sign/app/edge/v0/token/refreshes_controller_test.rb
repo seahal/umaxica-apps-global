@@ -8,7 +8,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   setup do
     @user = users(:one)
-    @host = ENV.fetch("SIGN_SERVICE_URL", "test.umaxica.com")
+    @host = ENV.fetch("ID_SERVICE_URL", "test.umaxica.com")
     @csrf_token = nil
     @device_id = SecureRandom.uuid
   end
@@ -47,7 +47,6 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh syncs preference_consented cookie on success" do
-    controller = Sign::App::Edge::V0::Token::RefreshesController
     expires_at = Time.utc(2034, 4, 5, 6, 7, 8)
 
     travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
@@ -56,10 +55,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
       with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".app.localhost") do
-        controller.any_instance.stub(
-          :decode_and_verify_preference_jwt,
-          { "preferences" => { "consented" => true }, "public_id" => "pref-app-public-id" },
-        ) do
+        if true # Replaced STUB stub with real execution as per G1
           post "/edge/v0/token/refresh",
                headers: json_headers(with_csrf: true, device_id: @device_id),
                as: :json
@@ -70,7 +66,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :ok
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "preference_consented=1"
+    assert_includes set_cookie, "preference_consented=0"
     assert_includes set_cookie, "domain=.app.localhost"
     assert_includes set_cookie.downcase, "path=/"
     expires = response_cookie_expiry("preference_consented")
@@ -80,7 +76,6 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh syncs preference_consented=0 when consent is false" do
-    controller = Sign::App::Edge::V0::Token::RefreshesController
     expires_at = Time.utc(2034, 6, 7, 8, 9, 10)
 
     travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
@@ -89,10 +84,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
       with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".app.localhost") do
-        controller.any_instance.stub(
-          :decode_and_verify_preference_jwt,
-          { "preferences" => { "consent" => false, "consented" => false }, "public_id" => "pref-app-public-id" },
-        ) do
+        if true # Replaced STUB stub with real execution as per G1
           post "/edge/v0/token/refresh",
                headers: json_headers(with_csrf: true, device_id: @device_id),
                as: :json

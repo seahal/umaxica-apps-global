@@ -7,14 +7,15 @@ require "ostruct"
 
 class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
+    host_value = @host
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{@host}", "http://sign.app.localhost"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host_value}", "http://id.app.localhost"] }
 
     @customer = create_verified_customer_with_email(email_address: "com_mfa_passkey_#{SecureRandom.hex(4)}@example.com")
     @customer.update!(multi_factor_enabled: true)
@@ -52,7 +53,7 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
   test "create verifies passkey and redirects on success" do
     establish_pending_mfa!
 
-    Sign::Com::In::Challenge::PasskeysController.any_instance.stub(:validate_webauthn_origin!, true) do
+    if true # Replaced STUB stub with real execution as per G1
       get new_sign_com_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
     end
 
@@ -83,6 +84,7 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     end
 
     assert_response :redirect
+
     assert_redirected_to sign_com_configuration_path(ri: "jp")
     assert_nil session[:pending_mfa]
     assert_equal 6, @passkey.reload.sign_count

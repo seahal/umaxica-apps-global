@@ -54,22 +54,6 @@ class ConvertAllPrincipalPksToBigint < ActiveRecord::Migration[8.2]
       t.citext(:code, null: false, index: { unique: true })
     end
 
-    create_table(:user_token_kinds, id: :bigint) do |t|
-      t.citext(:code, null: false, index: { unique: true })
-    end
-
-    create_table(:user_token_statuses, id: :bigint) do |t|
-      t.citext(:code, null: false, index: { unique: true })
-    end
-
-    create_table(:staff_token_kinds, id: :bigint) do |t|
-      t.citext(:code, null: false, index: { unique: true })
-    end
-
-    create_table(:staff_token_statuses, id: :bigint) do |t|
-      t.citext(:code, null: false, index: { unique: true })
-    end
-
     create_table(:user_social_google_statuses, id: :bigint) do |t|
       t.citext(:code, null: false, index: { unique: true })
     end

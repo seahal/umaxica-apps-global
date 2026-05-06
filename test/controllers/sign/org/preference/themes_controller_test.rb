@@ -10,7 +10,7 @@ module Sign
         fixtures :staffs, :staff_preferences
 
         setup do
-          @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+          @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
           @staff = staffs(:one)
           host! @host
         end

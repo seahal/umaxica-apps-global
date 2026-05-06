@@ -51,8 +51,8 @@ class AppContact < GuestRecord
   has_many :app_contact_topics, dependent: :destroy, inverse_of: :app_contact
   has_many :app_contact_emails, dependent: :destroy, inverse_of: :app_contact
   has_many :app_contact_telephones, dependent: :destroy, inverse_of: :app_contact
-  has_many :app_contact_behaviors,
-           class_name: "AppContactBehavior",
+  has_many :app_contact_chronicles,
+           class_name: "AppContactChronicle",
            foreign_key: :subject_id,
            inverse_of: :app_contact,
            dependent: :delete_all

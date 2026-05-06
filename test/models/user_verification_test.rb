@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: user_verifications
-# Database name: token
+# Database name: mark
 #
 #  id            :bigint           not null, primary key
 #  expires_at    :datetime         not null

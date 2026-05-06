@@ -4,8 +4,8 @@
 require "test_helper"
 
 class SignRouteHostTest < ActionDispatch::IntegrationTest
-  test "sign app routes match SIGN_SERVICE_URL" do
-    with_env("SIGN_SERVICE_URL" => "sign.app.example.test") do
+  test "sign app routes match ID_SERVICE_URL" do
+    with_env("ID_SERVICE_URL" => "sign.app.example.test") do
       Rails.application.reload_routes!
       host!("sign.app.example.test")
 
@@ -18,7 +18,7 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
   end
 
   test "sign com named root route points at sign/com/roots#index" do
-    with_env("SIGN_CORPORATE_URL" => "sign.com.example.test") do
+    with_env("ID_CORPORATE_URL" => "sign.com.example.test") do
       Rails.application.reload_routes!
 
       route = Rails.application.routes.named_routes[:sign_com_root]
@@ -31,8 +31,8 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
     Rails.application.reload_routes!
   end
 
-  test "sign org routes match SIGN_STAFF_URL" do
-    with_env("SIGN_STAFF_URL" => "sign.org.example.test") do
+  test "sign org routes match ID_STAFF_URL" do
+    with_env("ID_STAFF_URL" => "sign.org.example.test") do
       Rails.application.reload_routes!
       host!("sign.org.example.test")
 

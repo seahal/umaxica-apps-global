@@ -6,41 +6,41 @@
 
 ActiveSupport.on_load(:active_record) do
   Prosopite.pause do
-    if defined?(UserActivityEvent)
-      UserActivityEvent.ensure_defaults!
+    if defined?(UserChronicleEvent)
+      UserChronicleEvent.ensure_defaults!
     end
 
-    if defined?(UserActivityLevel)
-      UserActivityLevel.ensure_defaults!
+    if defined?(UserChronicleLevel)
+      UserChronicleLevel.ensure_defaults!
     end
 
-    if defined?(StaffActivityLevel)
-      StaffActivityLevel.insert_missing_fixed_ids!([StaffActivityLevel::NOTHING])
+    if defined?(StaffChronicleLevel)
+      StaffChronicleLevel.insert_missing_fixed_ids!([StaffChronicleLevel::NOTHING])
     end
 
-    if defined?(StaffActivityEvent)
-      StaffActivityEvent.ensure_defaults!
+    if defined?(StaffChronicleEvent)
+      StaffChronicleEvent.ensure_defaults!
     end
 
-    if defined?(AppPreferenceActivityLevel)
-      AppPreferenceActivityLevel.ensure_defaults!
+    if defined?(AppPreferenceChronicleLevel)
+      AppPreferenceChronicleLevel.ensure_defaults!
     end
-    if defined?(AppPreferenceActivityEvent)
-      AppPreferenceActivityEvent.ensure_defaults!
-    end
-
-    if defined?(ComPreferenceActivityLevel)
-      ComPreferenceActivityLevel.ensure_defaults!
-    end
-    if defined?(ComPreferenceActivityEvent)
-      ComPreferenceActivityEvent.ensure_defaults!
+    if defined?(AppPreferenceChronicleEvent)
+      AppPreferenceChronicleEvent.ensure_defaults!
     end
 
-    if defined?(OrgPreferenceActivityLevel)
-      OrgPreferenceActivityLevel.ensure_defaults!
+    if defined?(ComPreferenceChronicleLevel)
+      ComPreferenceChronicleLevel.ensure_defaults!
     end
-    if defined?(OrgPreferenceActivityEvent)
-      OrgPreferenceActivityEvent.ensure_defaults!
+    if defined?(ComPreferenceChronicleEvent)
+      ComPreferenceChronicleEvent.ensure_defaults!
+    end
+
+    if defined?(OrgPreferenceChronicleLevel)
+      OrgPreferenceChronicleLevel.ensure_defaults!
+    end
+    if defined?(OrgPreferenceChronicleEvent)
+      OrgPreferenceChronicleEvent.ensure_defaults!
     end
   end
 end

@@ -85,19 +85,17 @@ module Telephone
   end
 
   def increment_attempts!
-    # Use atomic increment to prevent race condition with concurrent requests
-    record = self.class.find(id)
-    record.update!(otp_attempts_count: otp_attempts_count + 1, updated_at: Time.current)
-    reload
-    # Atomically set locked_at only when attempts reached threshold and not already locked
-    # Check for both NULL and -infinity as sentinel values for "not locked"
-    records = self.class.where(id: id)
-      .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp")
+    # rubocop:disable Rails/SkipsModelValidations
+    increment!(:otp_attempts_count)
+    # Conditionally set locked_at when threshold is reached and not already locked
+    # Threshold is 3 (see locked? method)
+    self.class
+      .where(id: id)
       .where(otp_attempts_count: 3..)
-      .to_a
-    records.each { |r| r.update!(locked_at: Time.current) }
-
-    reload if records.any?
+      .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp")
+      .update_all(locked_at: Time.current)
+    # rubocop:enable Rails/SkipsModelValidations
+    reload if locked_at_changed?
   end
 
   def raw_number
@@ -133,19 +131,10 @@ module Telephone
       return
     end
 
-    unless normalized.match?(TelephoneNormalization::E164_FORMAT)
-      errors.add(:number, :invalid_e164_format)
-      return
-    end
+    return if normalized.match?(TelephoneNormalization::E164_FORMAT)
 
-    digit_count = normalized.delete("+").length
-    if digit_count > TelephoneNormalization::MAX_E164_DIGITS
-      errors.add(:number, :exceeds_e164_length, max: TelephoneNormalization::MAX_E164_DIGITS)
-    end
-
-    return unless normalized.length > 16
-
-    errors.add(:number, :too_long, count: 16)
+    errors.add(:number, :invalid_e164_format)
+    nil
 
   end
 end

@@ -4,11 +4,24 @@
 require "test_helper"
 
 class PreferenceConstantsTest < ActiveSupport::TestCase
-  test "preference_constants is defined" do
-    assert defined?(PreferenceConstants)
+  test "preference constants expose the expected keys" do
+    assert_equal %w(lx ri tz ct), Preference::Constants::PREFERENCE_KEYS
   end
 
-  test "preference_constants equals preference constants" do
-    assert_equal Preference::Constants, PreferenceConstants
+  test "preference constants expose the expected defaults" do
+    assert_equal(
+      {
+        "lx" => "ja",
+        "ri" => "jp",
+        "tz" => "jst",
+        "ct" => "sy",
+      },
+      Preference::Constants::DEFAULT_PREFERENCES,
+    )
+  end
+
+  test "preference constants stay frozen" do
+    assert_predicate Preference::Constants::PREFERENCE_KEYS, :frozen?
+    assert_predicate Preference::Constants::DEFAULT_PREFERENCES, :frozen?
   end
 end

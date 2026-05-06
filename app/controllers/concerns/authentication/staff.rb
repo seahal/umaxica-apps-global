@@ -57,7 +57,7 @@ module Authentication
     end
 
     def audit_class
-      ::StaffActivity
+      ::StaffChronicle
     end
 
     def resource_type
@@ -76,7 +76,7 @@ module Authentication
     def sign_in_url_with_return(return_to)
       new_sign_org_in_url(
         rt: return_to,
-        host: ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost"),
+        host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
         protocol: request.protocol,
       )
     end

@@ -9,7 +9,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @callback_headers = SocialCallbackTestHelper.callback_headers(@host)
   end
 
@@ -44,7 +44,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
   end
 
   test "callback initializes preference timezone options when missing" do
-    CommerceRecord.connected_to(role: :writing) do
+    SettingRecord.connected_to(role: :writing) do
       AppPreferenceTimezone.delete_all
       AppPreferenceRegion.delete_all
       AppPreferenceLanguage.delete_all
@@ -74,7 +74,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to sign_app_configuration_url(ri: "jp")
 
-    CommerceRecord.connected_to(role: :writing) do
+    SettingRecord.connected_to(role: :writing) do
       assert AppPreferenceTimezoneOption.exists?(id: AppPreferenceTimezoneOption::ASIA_TOKYO)
       assert_predicate AppPreferenceTimezone, :exists?
     end

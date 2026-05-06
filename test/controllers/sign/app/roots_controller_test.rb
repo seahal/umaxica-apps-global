@@ -43,8 +43,7 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "footer" do
       assert_select "a"
-      assert_select "a[href=?]", sign_app_root_url(ri: "jp"),
-                    text: I18n.t("sign.app.preferences.footer.home")
+      assert_select "a", text: I18n.t("sign.app.preferences.footer.home")
       assert_select "a[href=?]", sign_app_preference_url(ri: "jp"),
                     text: I18n.t("sign.app.preferences.footer.preference")
       assert_select "a[href=?]", sign_app_configuration_url(ri: "jp"),
@@ -61,7 +60,7 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: "sign.app.localhost",
+      host: "id.app.localhost",
       path: :sign_app_root_path,
       label: "sign app root",
       ri: "jp",
@@ -73,6 +72,6 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_root_url(ri: "jp"), headers: { "X-TEST-CURRENT-USER" => user.id }
 
     assert_response :unauthorized
-    assert_equal "権限がありません", response.body
+    assert_equal "この操作を行う権限がありません。", response.body
   end
 end

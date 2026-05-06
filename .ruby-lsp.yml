@@ -7,4 +7,5 @@ optimization:
     - "tmp/**/*"
     - "log/**/*"
     - "vendor/**/*"
+    - "docs/**/*"
   memory_limit: 2048MB

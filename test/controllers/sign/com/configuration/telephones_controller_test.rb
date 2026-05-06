@@ -7,8 +7,8 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @customer = create_verified_customer_with_email(email_address: "telephones-#{SecureRandom.hex(4)}@example.com")
     @customer.customer_telephones.create!(
       number: "+10000000027",
@@ -30,6 +30,22 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
     get sign_com_configuration_telephones_url(ri: "jp"), headers: request_headers
 
     assert_response :success
+  end
+
+  test "index redirects customers without a verified telephone to registration" do
+    customer = create_verified_customer_with_email(email_address: "unverified-#{SecureRandom.hex(4)}@example.com")
+    token = CustomerToken.create!(customer: customer, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
+    satisfy_customer_verification(token)
+
+    headers = {
+      "Host" => @host,
+      "X-TEST-CURRENT-RESOURCE" => customer.id,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+
+    get sign_com_configuration_telephones_url(ri: "jp"), headers: headers
+
+    assert_redirected_to new_sign_com_configuration_telephones_registration_url(ri: "jp")
   end
 
   test "create registers telephone" do

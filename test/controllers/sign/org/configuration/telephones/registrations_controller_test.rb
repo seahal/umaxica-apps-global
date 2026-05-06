@@ -8,8 +8,8 @@ class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < Action
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @token = StaffToken.create!(staff: @staff, status: StaffToken::STATUS_ACTIVE)
     satisfy_staff_verification(@token)
@@ -60,16 +60,8 @@ class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < Action
       otp_expires_at: 10.minutes.from_now,
     )
 
-    Sign::Org::Configuration::Telephones::RegistrationsController.any_instance.stub(
-      :current_registration_telephone,
-      tel,
-    ) do
-      Sign::Org::Configuration::Telephones::RegistrationsController.any_instance.stub(
-        :complete_staff_telephone_verification, ->(*_args, &block) {
-          block.call(tel)
-          :success
-        },
-      ) do
+    with_current_registration_telephone(tel) do
+      with_complete_staff_telephone_verification(:success, tel) do
         patch sign_org_configuration_telephones_registration_url(ri: "jp"),
               params: { staff_telephone: { pass_code: "123456" } },
               headers: request_headers
@@ -77,5 +69,38 @@ class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < Action
     end
 
     assert_redirected_to sign_org_configuration_telephones_url(ri: "jp")
+  end
+
+  private
+
+  def with_current_registration_telephone(telephone)
+    original_method =
+      Sign::Org::Configuration::Telephones::RegistrationsController.instance_method(:current_registration_telephone)
+    Sign::Org::Configuration::Telephones::RegistrationsController.define_method(:current_registration_telephone) do
+      telephone
+    end
+    yield
+  ensure
+    Sign::Org::Configuration::Telephones::RegistrationsController.define_method(
+      :current_registration_telephone,
+      original_method,
+    )
+  end
+
+  def with_complete_staff_telephone_verification(status, telephone)
+    original_method =
+      Sign::Org::Configuration::Telephones::RegistrationsController.instance_method(:complete_staff_telephone_verification)
+    Sign::Org::Configuration::Telephones::RegistrationsController.define_method(
+      :complete_staff_telephone_verification,
+    ) do |*_args, &block|
+      block.call(telephone) if status == :success && block
+      status
+    end
+    yield
+  ensure
+    Sign::Org::Configuration::Telephones::RegistrationsController.define_method(
+      :complete_staff_telephone_verification,
+      original_method,
+    )
   end
 end

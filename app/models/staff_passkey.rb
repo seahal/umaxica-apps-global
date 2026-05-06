@@ -53,7 +53,7 @@ class StaffPasskey < OperatorRecord
 
   validate :enforce_staff_passkey_limit, on: :create
 
-  before_validation :set_defaults
+  before_validation :set_defaults, on: :create
 
   private
 

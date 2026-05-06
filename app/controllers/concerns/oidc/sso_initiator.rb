@@ -65,7 +65,7 @@ module Oidc
     end
 
     def oidc_sign_host
-      ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+      ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     end
 
     # Must be overridden in each RP's application controller

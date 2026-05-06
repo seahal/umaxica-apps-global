@@ -337,7 +337,7 @@ end
 
 ## トラブルシューティング
 
-### `Pundit::NotAuthorizedError`が発生する
+### `ActionPolicy::Unauthorized`が発生する
 
 コントローラーに`authorize`を追加し忘れていないか確認：
 

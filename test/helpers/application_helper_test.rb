@@ -117,7 +117,7 @@ class ApplicationHelperTest < ActionView::TestCase
   end
 
   test "edge_host returns nil when matching edge env is unset" do
-    stub_request_host("ww.com.localhost")
+    stub_request_host(ENV["MAIN_CORPORATE_URL"])
 
     with_edge_env("EDGE_CORPORATE_URL" => nil) do
       assert_nil edge_host
@@ -125,7 +125,7 @@ class ApplicationHelperTest < ActionView::TestCase
   end
 
   test "edge_host resolves service edge host for app surface" do
-    stub_request_host("ww.app.localhost")
+    stub_request_host(ENV["MAIN_SERVICE_URL"])
 
     with_edge_env("EDGE_SERVICE_URL" => "https://edge.app.localhost:5171") do
       assert_equal "edge.app.localhost", edge_host
@@ -133,7 +133,7 @@ class ApplicationHelperTest < ActionView::TestCase
   end
 
   test "edge_host resolves staff edge host for org surface" do
-    stub_request_host("news.org.localhost")
+    stub_request_host(ENV["SIDE_STAFF_URL"])
 
     with_edge_env("EDGE_STAFF_URL" => "edge.org.localhost") do
       assert_equal "edge.org.localhost", edge_host
@@ -141,7 +141,7 @@ class ApplicationHelperTest < ActionView::TestCase
   end
 
   test "edge_host resolves corporate edge host for com surface" do
-    stub_request_host("docs.com.localhost")
+    stub_request_host(ENV["DOCS_CORPORATE_URL"])
 
     with_edge_env("EDGE_CORPORATE_URL" => "http://edge.com.localhost") do
       assert_equal "edge.com.localhost", edge_host

@@ -5,29 +5,17 @@ module Health
   extend ActiveSupport::Concern
 
   DATABASE_RECORD_CLASSES = [
-    ActivityRecord,
-    ApplicationRecord,
+    ChronicleRecord,
     AvatarRecord,
-    BehaviorRecord,
-    DocumentRecord,
     GuestRecord,
-    MessageRecord,
-    PublicationRecord,
     NotificationRecord,
     OccurrenceRecord,
     OperatorRecord,
-    CommerceRecord,
     PrincipalRecord,
     TokenRecord,
   ].freeze
 
   DB_ROLES = %i(writing reading).freeze
-
-  included do
-    # Skip query canonicalization for health checks if the callback exists
-    skip_before_action :canonicalize_query_params, raise: false # FIXME: i want to remove this line
-    public_strict! if respond_to?(:public_strict!) # TODO: what is this?
-  end
 
   private
 

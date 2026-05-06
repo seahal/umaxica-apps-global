@@ -8,7 +8,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   setup do
     @user = users(:one)
-    @host = ENV.fetch("SIGN_SERVICE_URL", "test.umaxica.com")
+    @host = ENV.fetch("ID_SERVICE_URL", "test.umaxica.com")
     UserToken.where(user: @user).delete_all
   end
 

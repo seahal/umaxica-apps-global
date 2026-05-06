@@ -15,7 +15,7 @@ module Apex
         assert_includes controller.class, ::Authentication::Staff
         assert_includes controller.class, ::Authorization::Staff
         assert_includes controller.class, ::Verification::Staff
-        assert_includes controller.class, Pundit::Authorization
+        assert_includes controller.class, ActionPolicy::Controller
         assert_includes controller.class, ::Oidc::SsoInitiator
         assert_includes controller.class, ::CurrentSupport
         assert_includes controller.class, ::Finisher
@@ -28,8 +28,6 @@ module Apex
         assert_includes before_filters, :set_preferences_cookie
         assert_includes before_filters, :resolve_param_context
         assert_includes before_filters, :set_region
-        assert_includes before_filters, :set_locale
-        assert_includes before_filters, :set_timezone
         assert_includes before_filters, :set_color_theme
       end
 
@@ -38,6 +36,7 @@ module Apex
         before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
 
         assert_includes before_filters, :check_default_rate_limit
+        assert_includes before_filters, :transparent_refresh_access_token
         assert_includes before_filters, :enforce_access_policy!
         assert_includes before_filters, :enforce_verification_if_required
         assert_includes before_filters, :set_current

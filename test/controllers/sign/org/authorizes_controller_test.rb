@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Org::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
@@ -92,17 +92,17 @@ class Sign::Org::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates authorization code record with staff_id" do
-    assert_difference "AuthorizationCode.count", 1 do
+    assert_difference "StaffAuthorizationCode.count", 1 do
       get sign_org_authorize_url(
         host: @host,
         params: authorize_params,
       ), headers: as_staff_headers(@staff, host: @host)
     end
 
-    code = AuthorizationCode.last
+    code = StaffAuthorizationCode.last
 
     assert_equal @staff.id, code.staff_id
-    assert_nil code.user_id
+    assert_not_nil code.staff_id
   end
 
   private

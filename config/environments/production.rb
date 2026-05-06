@@ -86,7 +86,7 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "sign.umaxica.app" }
+  config.action_mailer.default_url_options = { host: ENV.fetch("ID_SERVICE_URL", "id.app.example.com") }
 
   # Specify outgoing SMTP server. Remember to add credentials via bin/rails credentials:edit.
   config.action_mailer.smtp_settings = {
@@ -111,9 +111,11 @@ Rails.application.configure do
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Collect all host ENV vars used in route constraints.
   config.hosts = ENV.values_at(
-    "SIGN_SERVICE_URL",
-    "SIGN_CORPORATE_URL",
-    "SIGN_STAFF_URL",
+    "ID_SERVICE_URL",
+    "ID_CORPORATE_URL",
+    "ID_STAFF_URL",
+    "JUMP_SERVICE_URL", "JUMP_STAFF_URL", "JUMP_CORPORATE_URL",
+    "MAIN_SERVICE_URL", "MAIN_STAFF_URL", "MAIN_CORPORATE_URL",
     "APEX_SERVICE_URL", "APEX_STAFF_URL", "APEX_CORPORATE_URL",
     "CORE_SERVICE_URL", "CORE_STAFF_URL", "CORE_CORPORATE_URL",
     "DOCS_SERVICE_URL", "DOCS_STAFF_URL", "DOCS_CORPORATE_URL",
@@ -122,7 +124,7 @@ Rails.application.configure do
   ).compact_blank
 
   # Skip DNS rebinding protection for health checks and load balancer probes.
-  config.host_authorization = { exclude: ->(request) { request.path.start_with?("/health", "/up") } }
+  config.host_authorization = { exclude: ->(request) { request.path.start_with?("/health", "/sign/up") } }
 
   ### Added by owner
   # We've configured this production environment to prevent the delivery of public static content.

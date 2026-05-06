@@ -101,7 +101,7 @@ module SocialCallbackGuard
     @allowed_hosts ||=
       begin
         hosts =
-          [ENV["SIGN_SERVICE_URL"], ENV["SIGN_STAFF_URL"]].compact.filter_map { |v|
+          [ENV["ID_SERVICE_URL"], ENV["ID_STAFF_URL"]].compact.filter_map { |v|
             normalize_host_port(v)
           }
         hosts.uniq

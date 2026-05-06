@@ -7,7 +7,7 @@ class Sign::App::Configuration::ChallengesControllerTest < ActionDispatch::Integ
   fixtures :users, :user_statuses, :user_token_statuses, :user_token_kinds
 
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     @token = UserToken.create!(
       user_id: @user.id,

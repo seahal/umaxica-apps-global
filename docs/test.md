@@ -101,7 +101,7 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 | Surface           | Hosts                                                   | Coverage Focus                                                             |
 | ----------------- | ------------------------------------------------------- | -------------------------------------------------------------------------- |
 | Top::Com/App/Org  | `www.umaxica.com`, `www.umaxica.app`, `www.umaxica.org` | Redirect correctness, preference UIs, health endpoints                     |
-| Sign::App/Org     | `sign.umaxica.app`, `sign.umaxica.org`                  | Registration (email/phone), passkey/TOTP, JWT cookies, logout, withdrawal  |
+| Sign::App/Org     | `id.umaxica.app`, `id.umaxica.org`                      | Registration (email/phone), passkey/TOTP, JWT cookies, logout, withdrawal  |
 | Help::Com/App/Org | `help.umaxica.com`, etc.                                | Contact form validation, Turnstile, encrypted persistence, email/SMS hooks |
 | Docs::_/News::_   | `docs.umaxica.*`, `news.umaxica.*`                      | Health endpoints, React hydration placeholder                              |
 | API::\*           | `api.umaxica.*`                                         | `/health`, `/v1/health`, inquiry validation endpoints                      |

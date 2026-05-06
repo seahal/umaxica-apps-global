@@ -32,6 +32,15 @@ en:
     staff_not_found: Staff not found. Please log in again.
     no_sessions_selected: Please select sessions to revoke.
     sessions_revoked: Sessions revoked. Please continue logging in.
+    restricted_notice: Your active session limit has been reached. Please manage your existing sessions.
+    promoted: Session promoted.
+    cancelled: Session cancelled. Please sign in again.
+    login_required: You need to sign in to manage sessions.
+    invalid_session: Invalid session.
+    cannot_revoke_current: The current session cannot be revoked.
+    session_revoked: Session revoked.
+    turnstile_failed: Verification failed. Please try again.
+    totp_limit_reached: You cannot register more than %{count} TOTP credentials.
     login_limit_exceeded: Login limit exceeded. Please end an existing session and try again.
     edit:
       page_title: Session Management
@@ -48,6 +57,31 @@ en:
     common:
       cancel: Cancel
     default_passkey_description: My Passkey
+    com:
+      registration:
+        new:
+          page_title: Registration
+          page_description: "Select how you would like to begin using %{product}."
+          links:
+            registration: Need an account?
+      authentication:
+        new:
+          page_title: Choose how to sign in
+          description: Select the method that fits your current session.
+          links:
+            email: Email
+            passkey: Passkey
+            secret: Secret
+            registration: Need an account?
+      configuration:
+        show:
+          page_title: Settings
+          security_settings: Security Settings
+          account_settings: Account Settings
+          others: Others
+          mfa: Multi-Factor Authentication
+          logout: Logout
+          withdrawal: Withdrawal
     app:
       authentication:
         new:
@@ -101,6 +135,12 @@ en:
           new:
             page_title: Use a recovery code
             description: Enter one of your saved recovery codes to regain access to your account.
+      in:
+        mfa:
+          turnstile_failed: Verification failed. Please try again.
+        session:
+          sessions_revoked: Sessions revoked.
+          cannot_revoke_current: The current session cannot be revoked.
       outs:
         destroy:
           success: You have been signed out.
@@ -163,6 +203,8 @@ en:
           index:
             new_link: Create a new TOTP credential
             description: Manage time-based one-time passwords linked to your account.
+        totps:
+          limit_reached: You cannot register more than %{count} TOTP credentials.
         passkeys:
           new:
             page_title: Register Passkey
@@ -468,6 +510,7 @@ en:
           description: Additional verification is required to continue.
           verification_failed: Verification failed.
           no_methods_available: No verification methods are available.
+          turnstile_failed: Verification failed. Please try again.
           methods:
             passkey: Authenticate with passkey
           passkey:
@@ -476,6 +519,15 @@ en:
             authenticate: Authenticate with passkey
             back: Back
             success: Passkey authentication succeeded.
+        session:
+          no_sessions_selected: Please select sessions to revoke.
+          sessions_revoked: Sessions revoked.
+          promoted: Session promoted.
+          cancelled: Session cancelled. Please sign in again.
+          login_required: You need to sign in to manage sessions.
+          invalid_session: Invalid session.
+          cannot_revoke_current: The current session cannot be revoked.
+          session_revoked: Session revoked.
       social:
         sessions:
           invalid_provider: Invalid provider specified
@@ -659,6 +711,7 @@ en:
             updated: Secret has been successfully updated.
           destroy:
             destroyed: Secret has been successfully deleted.
+            last_method: You must keep at least one login or recovery method.
         withdrawal:
           show:
             title: Withdrawal
@@ -1115,6 +1168,8 @@ en:
         region_settings: Region & Language Settings
         theme_settings: Theme Settings
         reset_settings: Reset Settings
+        email_settings: Email Settings
+        email_settings_description: Manage notification email sender and content.
         up_link: Back to top
         footer:
           home: Home
@@ -1156,6 +1211,8 @@ en:
         region_settings: Region & Language Settings
         theme_settings: Theme Settings
         reset_settings: Reset Settings
+        email_settings: Email Settings
+        email_settings_description: Manage notification email sender and content.
         up_link: Back to top
         footer:
           home: Home
@@ -1201,6 +1258,8 @@ en:
         region_settings: Region & Language Settings
         theme_settings: Theme Settings
         reset_settings: Reset Settings
+        email_settings: Email Settings
+        email_settings_description: Manage notification email sender and content.
         up_link: Back to top
         footer:
           home: Home

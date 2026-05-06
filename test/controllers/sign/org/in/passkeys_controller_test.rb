@@ -9,12 +9,14 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   fixtures :staffs, :staff_statuses, :staff_passkeys, :staff_passkey_statuses
 
   setup do
-    host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! host
     Jit::Security::TurnstileVerifier.test_mode = true
     Jit::Security::TurnstileVerifier.test_response = { "success" => true }
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://sign.app.localhost", "http://#{host}"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://#{host}"] }
 
     # Setup active staff with email and passkey
     @staff = staffs(:one)
@@ -35,6 +37,8 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
     Jit::Security::TurnstileVerifier.test_mode = false
     Jit::Security::TurnstileVerifier.test_response = nil
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   test "should get new" do
@@ -132,18 +136,23 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     challenge_id = response.parsed_body["challenge_id"]
     mismatch_error = Sign::Webauthn::ChallengePurposeMismatchError.new("purpose mismatch")
 
-    Sign::Org::In::PasskeysController.any_instance.stub(
-      :with_challenge, ->(*_args, &_block) {
-                         raise mismatch_error
-                       },
-    ) do
-      post verification_sign_org_in_passkeys_url(ri: "jp"), params: {
-        challenge_id: challenge_id,
-        credential: {
-          id: @staff_passkey.webauthn_id,
-          response: { clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h" },
+    original_method = Sign::Org::In::PasskeysController.instance_method(:with_challenge)
+    Sign::Org::In::PasskeysController.define_method(:with_challenge) do |*_args|
+      raise mismatch_error
+    end
+
+    begin
+      post(
+        verification_sign_org_in_passkeys_url(ri: "jp"), params: {
+          challenge_id: challenge_id,
+          credential: {
+            id: @staff_passkey.webauthn_id,
+            response: { clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h" },
+          },
         },
-      }
+      )
+    ensure
+      Sign::Org::In::PasskeysController.define_method(:with_challenge, original_method)
     end
 
     assert_response :bad_request
@@ -259,19 +268,28 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     mock_credential.define_singleton_method(:sign_count) { 1 }
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-    Sign::Org::In::PasskeysController.any_instance.stub(:log_in, { status: :unknown }) do
+    original_method = Sign::Org::In::PasskeysController.instance_method(:perform_passkey_sign_in)
+    Sign::Org::In::PasskeysController.define_method(:perform_passkey_sign_in) do |*_args|
+      { status: :unknown_status }
+    end
+
+    begin
       WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post verification_sign_org_in_passkeys_url(ri: "jp"), params: {
-          challenge_id: challenge_id,
-          credential: {
-            id: @staff_passkey.webauthn_id,
-            response: { clientDataJSON: "e30=",
-                        authenticatorData: "e30=",
-                        signature: "sig",
-                        userHandle: "h", },
+        post(
+          verification_sign_org_in_passkeys_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            credential: {
+              id: @staff_passkey.webauthn_id,
+              response: { clientDataJSON: "e30=",
+                          authenticatorData: "e30=",
+                          signature: "sig",
+                          userHandle: "h", },
+            },
           },
-        }
+        )
       end
+    ensure
+      Sign::Org::In::PasskeysController.define_method(:perform_passkey_sign_in, original_method)
     end
 
     assert_response :unprocessable_content

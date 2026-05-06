@@ -9,7 +9,7 @@ module RouteHelpers
   end
 
   def sign_app_social_start_url(options = {})
-    new_sign_app_social_session_url(options.reverse_merge(host: "sign.app.localhost"))
+    new_sign_app_social_session_url(options.reverse_merge(host: "id.app.localhost"))
   end
 end
 

@@ -27,12 +27,12 @@ module Sign
           end
 
           begin
-            Org::RegistrationPolicy.validate!(invitation_code: invitation_code)
+            ::Org::RegistrationPolicy.validate!(invitation_code: invitation_code)
             session[INVITATION_SESSION_KEY] = invitation_code
-          rescue Org::RegistrationPolicy::InvitationRequiredError,
-                 Org::RegistrationPolicy::InvalidInvitationError,
-                 Org::RegistrationPolicy::InvitationExpiredError,
-                 Org::RegistrationPolicy::InvitationConsumedError => e
+          rescue ::Org::RegistrationPolicy::InvitationRequiredError,
+                 ::Org::RegistrationPolicy::InvalidInvitationError,
+                 ::Org::RegistrationPolicy::InvitationExpiredError,
+                 ::Org::RegistrationPolicy::InvitationConsumedError => e
             @staff_email = StaffEmail.new
             @staff_email.errors.add(:base, e.message)
             render :new, status: :unprocessable_content
@@ -49,7 +49,7 @@ module Sign
             return
           end
 
-          redirect_to(new_sign_org_up_invitation_email_path(invitation_code: invitation_code))
+          redirect_to(new_sign_org_up_email_path(invitation_code: invitation_code))
         end
       end
     end

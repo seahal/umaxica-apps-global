@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: customer_token_dbsc_statuses
-# Database name: token
+# Database name: symbol
 #
 #  id :bigint           not null, primary key
 #
-class CustomerTokenDbscStatus < TokenRecord
+class CustomerTokenDbscStatus < SymbolRecord
   NOTHING = 0
   PENDING = 1
   ACTIVE = 2
@@ -19,16 +19,6 @@ class CustomerTokenDbscStatus < TokenRecord
   has_many :customer_tokens, dependent: :restrict_with_error
 
   def self.ensure_defaults!
-    return if DEFAULTS.blank?
-
-    existing_ids = where(id: DEFAULTS).pluck(:id)
-    missing_ids = DEFAULTS - existing_ids
-    return if missing_ids.empty?
-
-    if defined?(Prosopite)
-      Prosopite.pause { missing_ids.each { |id| create!(id: id) } }
-    else
-      missing_ids.each { |id| create!(id: id) }
-    end
+    insert_missing_fixed_ids!(DEFAULTS)
   end
 end

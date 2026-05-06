@@ -8,10 +8,12 @@ module Oidc
         def success? = success
       end
 
-    def initialize(params:, resource:)
+    def initialize(params:, resource:, auth_method: nil, acr: nil)
       super()
       @params = params
       @resource = resource
+      @auth_method = auth_method
+      @acr = acr
     end
 
     def call
@@ -28,7 +30,7 @@ module Oidc
 
     private
 
-    attr_reader :params, :resource
+    attr_reader :params, :resource, :auth_method, :acr
 
     def validate!
       raise ArgumentError, "response_type must be 'code'" unless params[:response_type] == "code"
@@ -47,19 +49,36 @@ module Oidc
     end
 
     def issue_authorization_code!
-      resource_key = (@client.resource_type == "staff") ? :staff : :user
-
-      TokenRecord.connected_to(role: :writing) do
-        AuthorizationCode.issue!(
-          resource_key => resource,
-          :client_id => params[:client_id],
-          :redirect_uri => params[:redirect_uri],
-          :code_challenge => params[:code_challenge],
-          :code_challenge_method => params[:code_challenge_method],
-          :scope => params[:scope],
-          :state => params[:state],
-          :nonce => params[:nonce],
-        )
+      if @client.resource_type == "staff"
+        TokenRecord.connected_to(role: :writing) do
+          StaffAuthorizationCode.issue!(
+            staff: resource,
+            client_id: params[:client_id],
+            redirect_uri: params[:redirect_uri],
+            code_challenge: params[:code_challenge],
+            code_challenge_method: params[:code_challenge_method],
+            scope: params[:scope],
+            state: params[:state],
+            nonce: params[:nonce],
+            auth_method: auth_method,
+            acr: acr,
+          )
+        end
+      else
+        MarkRecord.connected_to(role: :writing) do
+          UserAuthorizationCode.issue!(
+            user: resource,
+            client_id: params[:client_id],
+            redirect_uri: params[:redirect_uri],
+            code_challenge: params[:code_challenge],
+            code_challenge_method: params[:code_challenge_method],
+            scope: params[:scope],
+            state: params[:state],
+            nonce: params[:nonce],
+            auth_method: auth_method,
+            acr: acr,
+          )
+        end
       end
     end
 

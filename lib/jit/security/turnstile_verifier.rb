@@ -15,19 +15,19 @@ module Jit
 
       class << self
         def test_mode
-          @test_mode
+          Thread.current[:turnstile_verifier_test_mode]
         end
 
         def test_mode=(value)
-          @test_mode = value
+          Thread.current[:turnstile_verifier_test_mode] = value
         end
 
         def test_response
-          @test_response
+          Thread.current[:turnstile_verifier_test_response]
         end
 
         def test_response=(value)
-          @test_response = value
+          Thread.current[:turnstile_verifier_test_response] = value
         end
 
         def test_mode?

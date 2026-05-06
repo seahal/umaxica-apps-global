@@ -19,28 +19,27 @@
 
 All must be resolved before production deployment.
 
-| #   | Location                                                      |
-| --- | ------------------------------------------------------------- |
-| 3   | `app/controllers/apex/app/application_controller.rb:39`       |
-| 4   | `app/controllers/apex/com/application_controller.rb:39`       |
-| 5   | `app/controllers/apex/org/application_controller.rb:37`       |
-| 6   | `app/controllers/core/app/application_controller.rb:21`       |
-| 7   | `app/controllers/core/com/application_controller.rb:21`       |
-| 8   | `app/controllers/core/org/application_controller.rb:21`       |
-| 9   | `app/controllers/docs/app/application_controller.rb:29`       |
-| 10  | `app/controllers/docs/com/application_controller.rb:28`       |
-| 11  | `app/controllers/docs/org/application_controller.rb:27`       |
-| 12  | `app/controllers/help/app/application_controller.rb:37`       |
-| 13  | `app/controllers/help/com/application_controller.rb:38`       |
-| 14  | `app/controllers/help/org/application_controller.rb:39`       |
-| 15  | `app/controllers/news/app/application_controller.rb:40`       |
-| 16  | `app/controllers/news/com/application_controller.rb:38`       |
-| 17  | `app/controllers/news/org/application_controller.rb:38`       |
-| 18  | `app/controllers/sign/app/application_controller.rb:44`       |
-| 19  | `app/controllers/sign/com/application_controller.rb:19`       |
-| 20  | `app/controllers/sign/org/application_controller.rb:41`       |
-| 21  | `app/controllers/sign/org/up/base_controller.rb:30`           |
-| 22  | `app/controllers/concerns/sign/com/controller_behavior.rb:17` |
+| #   | Location                                                |
+| --- | ------------------------------------------------------- |
+| 3   | `app/controllers/apex/app/application_controller.rb:39` |
+| 4   | `app/controllers/apex/com/application_controller.rb:39` |
+| 5   | `app/controllers/apex/org/application_controller.rb:37` |
+| 6   | `app/controllers/core/app/application_controller.rb:21` |
+| 7   | `app/controllers/core/com/application_controller.rb:21` |
+| 8   | `app/controllers/core/org/application_controller.rb:21` |
+| 9   | `app/controllers/docs/app/application_controller.rb:29` |
+| 10  | `app/controllers/docs/com/application_controller.rb:28` |
+| 11  | `app/controllers/docs/org/application_controller.rb:27` |
+| 12  | `app/controllers/help/app/application_controller.rb:37` |
+| 13  | `app/controllers/help/com/application_controller.rb:38` |
+| 14  | `app/controllers/help/org/application_controller.rb:39` |
+| 15  | `app/controllers/news/app/application_controller.rb:40` |
+| 16  | `app/controllers/news/com/application_controller.rb:38` |
+| 17  | `app/controllers/news/org/application_controller.rb:38` |
+| 18  | `app/controllers/sign/app/application_controller.rb:44` |
+| 19  | `app/controllers/sign/com/application_controller.rb:19` |
+| 20  | `app/controllers/sign/org/application_controller.rb:41` |
+| 21  | `app/controllers/sign/org/up/base_controller.rb:30`     |
 
 ### IDOR — Missing Authorization on Contact Lookup (3)
 

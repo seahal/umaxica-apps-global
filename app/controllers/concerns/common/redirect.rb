@@ -27,6 +27,21 @@ module Common
 
     private
 
+    def safe_redirect_to(target, fallback: "/", **)
+      safe_path = safe_internal_path(target)
+
+      if safe_path
+        redirect_to(safe_path, allow_other_host: false, **)
+      else
+        redirect_to(fallback, allow_other_host: false, **)
+      end
+    end
+
+    def safe_redirect_back_or_to(fallback, **)
+      safe_path = safe_internal_path(request.referer)
+      redirect_to(safe_path || fallback, allow_other_host: false, **)
+    end
+
     def safe_internal_path(target)
       return nil if target.blank?
       return nil if target.match?(/[[:cntrl:]]/)
@@ -47,27 +62,12 @@ module Common
       query.present? ? "#{path}?#{query}" : path
     end
 
-    def safe_redirect_to(target, fallback: "/", **)
-      safe_path = safe_internal_path(target)
-
-      if safe_path
-        redirect_to(safe_path, allow_other_host: false, **)
-      else
-        redirect_to(fallback, allow_other_host: false, **)
-      end
-    end
-
-    def safe_redirect_back_or_to(fallback, **)
-      safe_path = safe_internal_path(request.referer)
-      redirect_to(safe_path || fallback, allow_other_host: false, **)
-    end
-
     def generate_redirect_url(url)
       safe_path = safe_internal_path(url)
 
       return unless safe_path
 
-      Base64.urlsafe_encode64(safe_path)
+      Base64.urlsafe_encode64(safe_path, padding: false)
     end
 
     def jump_to_generated_url(encoded_url, fallback: "/")

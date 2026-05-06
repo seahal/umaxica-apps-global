@@ -7,8 +7,8 @@ class Sign::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     ActionMailer::Base.deliveries.clear
   end
 

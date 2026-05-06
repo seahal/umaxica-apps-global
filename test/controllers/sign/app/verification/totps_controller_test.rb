@@ -8,7 +8,7 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
   fixtures :users, :user_one_time_password_statuses
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = users(:one)
     @headers = as_user_headers(@user, host: @host)
     @token = UserToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])

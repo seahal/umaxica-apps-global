@@ -1,50 +1,51 @@
-# アプリケーション・アーキテクチャガイドライン
+# Application Architecture Guidelines
 
-## 目指すアーキテクチャ
+## Target Architecture
 
-本プロジェクトは **「MVC + Service + Form」** を標準のアーキテクチャとします。これはFat
-ControllerやFat Modelを防ぐため、Railsのレールに沿いつつ適切に責務を分割するアプローチです。
+This project uses **MVC + Service + Form** as its standard architecture. The goal is to avoid Fat
+Controllers and Fat Models by separating responsibilities along Rails conventions.
 
-## 各ディレクトリの役割
+## Responsibilities by Directory
 
 ### 1. `app/controllers` (Controller)
 
-**役割:**
+**Role:**
 
-- リクエストのルーティング
-- パラメータの受け取りとForm/Serviceへの引き渡し
-- レスポンス（HTML, JSON, リダイレクトなど）の返却
+- Route incoming requests
+- Accept parameters and pass them to Forms or Services
+- Return responses (HTML, JSON, redirects, etc.)
 
-**ルール:**
+**Rules:**
 
-- ビジネスロジックを直接記述しないこと（Controllerのメソッドの行数はできるだけ抑える）。
-- 複雑なクエリの組み立てや、複数のDBを巻き込んだ保存操作は `Form` や `Service` に委譲する。
+- Do not write business logic directly in controllers.
+- Keep controller methods short.
+- Delegate complex query building and multi-database persistence operations to Forms or Services.
 
 ### 2. `app/models` (Model)
 
-**役割:**
+**Role:**
 
-- データベースと直結する振る舞い
-- データベースの構造に依存したバリデーション（ユニーク制約など）
-- スコープやテーブル情報の取得
+- Behavior tied directly to the database
+- Validations that depend on database structure, such as uniqueness
+- Scopes and schema introspection
 
-**ルール:**
+**Rules:**
 
-- **単一モデルに閉じた知識のみ**を持つようにする。
-- 外部APIとの通信や、他の複数モデルをまたぐようなトランザクション処理を含めない（Fat Modelの防止）。
+- Keep knowledge limited to a single model.
+- Do not include external API calls or transaction logic spanning multiple models.
 
 ---
 
 ### 3. `app/forms` (Form)
 
-**役割:**
+**Role:**
 
-- リクエストから受け取ったデータの検証（ビジネス要求に基づいた複雑なバリデーション）
-- 複数のモデルに対するデータ加工や、矛盾のない同時保存を一貫性を持たせて行う処理
+- Validate data received from requests using business rules
+- Transform data across multiple models and save related records consistently
 
-**ベースクラス:** `ApplicationForm` （`ActiveModel::Model` と `ActiveModel::Attributes` を包含）
+**Base class:** `ApplicationForm` (wraps `ActiveModel::Model` and `ActiveModel::Attributes`)
 
-**実装サンプル:**
+**Example:**
 
 ```ruby
 class UserRegistrationForm < ApplicationForm
@@ -63,8 +64,8 @@ class UserRegistrationForm < ApplicationForm
     end
     true
   rescue ActiveRecord::RecordInvalid
-    # バリデーションエラーやDB制約違反などのハンドリング
-    errors.add(:base, "登録に失敗しました")
+    # Handle validation errors and database constraint violations here.
+    errors.add(:base, "Registration failed")
     false
   end
 end
@@ -74,17 +75,19 @@ end
 
 ### 4. `app/services` (Service)
 
-**役割:**
+**Role:**
 
-- 決済、メールの送信、外部APIとの連携といった「複雑なドメインロジック」の実行
-- ControllerやBackground Jobから呼び出される、純粋なRubyとしての処理（トランザクションスクリプト）
+- Execute complex domain logic such as payments, email delivery, and external API integration
+- Act as pure Ruby transaction scripts called from controllers or background jobs
 
-**ベースクラス:** `ApplicationService` **ルール:**
+**Base class:** `ApplicationService`
 
-- 原則として **単一責任（クラス１つにつき、やることは１つ）** とし、公開メソッドは `#call`
-  のみを持たせること。
+**Rules:**
 
-**実装サンプル:**
+- Prefer a single responsibility per class.
+- Expose `#call` as the primary public method.
+
+**Example:**
 
 ```ruby
 class SendWelcomeEmailService < ApplicationService
@@ -95,31 +98,31 @@ class SendWelcomeEmailService < ApplicationService
   def call
     return false unless @user.active?
 
-    # 外部APIの呼び出しや複雑な条件判断など、
-    # Modelに持たせるべきではないロジックをここに記述する
+    # Put logic here that does not belong in the model,
+    # such as external API calls or complex branching.
     Mailer.welcome(@user).deliver_now
 
-    # 成功時にイベントログを記録するなど
+    # Record an event on success.
     Rails.event.record("user.welcomed", user_id: @user.id)
     true
   end
 end
 ```
 
-**呼び出し方:** `SendWelcomeEmailService.call(user: current_user)`
+**Invocation:** `SendWelcomeEmailService.call(user: current_user)`
 
 ---
 
-## バックグラウンド処理について
+## Background Processing
 
 ### `app/jobs` (Job)
 
-**役割:**
+**Role:**
 
-- 重い処理（一括データ更新、時間のかかる外部API通信、ファイル生成など）の非同期実行
-- アプリケーションでは `Solid Queue` (ActiveJob) をバックエンドとして利用します。
+- Run heavy work asynchronously, such as bulk updates, slow external API calls, or file generation
+- Use `Solid Queue` (ActiveJob) as the backend
 
-**制限事項:**
+**Constraints:**
 
-- Jobの中で複雑なロジックを0から書くのではなく、できる限り **`Service.call` を呼び出す薄いラッパー**
-  として設計することが推奨されます。
+- Jobs should remain thin wrappers that call `Service.call` whenever possible, instead of
+  reimplementing complex logic.

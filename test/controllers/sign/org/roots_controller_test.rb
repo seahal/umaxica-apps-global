@@ -45,7 +45,7 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: "sign.org.localhost",
+      host: "id.org.localhost",
       path: :sign_org_root_path,
       label: "sign org root",
       ri: "jp",

@@ -1,0 +1,19 @@
+# == Schema Information
+#
+# Table name: app_contact_chronicle_levels
+# Database name: chronicle
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 0
+legacy_nothing:
+  id: 1
+debug:
+  id: 2
+info:
+  id: 3
+warn:
+  id: 4
+error:
+  id: 5

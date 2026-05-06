@@ -183,4 +183,17 @@ class UserEmailTest < ActiveSupport::TestCase
     assert_not extra_email.valid?
     assert_includes extra_email.errors[:base], "exceeds maximum emails per user (#{UserEmail::MAX_EMAILS_PER_USER})"
   end
+
+  test "verification token generation and verification" do
+    user_email = UserEmail.create!(@valid_attributes)
+
+    token = user_email.generate_verification_token
+
+    assert_not_nil token
+    assert_not_nil user_email.verification_token_digest
+
+    assert user_email.verify_verification_token(token)
+    assert_not user_email.verify_verification_token("wrong-token")
+    assert_not user_email.verify_verification_token("")
+  end
 end

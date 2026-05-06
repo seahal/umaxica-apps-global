@@ -15,7 +15,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: returns unauthorized when no token record exists" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     post sign_app_edge_v0_token_dbsc_path,
          headers: { Auth::IoKeys::Headers::DBSC_SESSION_ID => %("fake-session-id") }
@@ -24,7 +24,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles registration with valid proof" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     user = users(:one)
     token = UserToken.create!(
@@ -65,7 +65,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles registration failure with invalid proof" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     user = users(:one)
     token = UserToken.create!(
@@ -92,7 +92,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles registration failure without challenge" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     user = users(:one)
     token = UserToken.create!(
@@ -121,7 +121,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles refresh challenge when proof is missing" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     user = users(:one)
     token = UserToken.create!(
@@ -150,7 +150,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles refresh verification failure" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     user = users(:one)
     token = UserToken.create!(
@@ -178,7 +178,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles successful refresh verification" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     user = users(:one)
     token = UserToken.create!(
@@ -222,7 +222,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: returns unauthorized when bound record does not exist" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     user = users(:one)
     token = UserToken.create!(
@@ -246,7 +246,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: returns unauthorized when no token record exists" do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     post sign_org_edge_v0_token_dbsc_path,
          headers: { Auth::IoKeys::Headers::DBSC_SESSION_ID => %("fake-session-id") }
@@ -255,7 +255,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles registration with valid proof" do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
     token = StaffToken.create!(
@@ -296,7 +296,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles registration failure with invalid proof" do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
     token = StaffToken.create!(
@@ -323,7 +323,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles registration failure without challenge" do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
     token = StaffToken.create!(
@@ -352,7 +352,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles refresh challenge when proof is missing" do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
     token = StaffToken.create!(
@@ -381,7 +381,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles refresh verification failure" do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
     token = StaffToken.create!(
@@ -409,7 +409,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles successful refresh verification" do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
     token = StaffToken.create!(
@@ -453,7 +453,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: returns unauthorized when bound record does not exist" do
-    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
     token = StaffToken.create!(
@@ -477,7 +477,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: token_from_refresh_cookie returns nil when parsing fails" do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     user = users(:one)
     UserToken.create!(

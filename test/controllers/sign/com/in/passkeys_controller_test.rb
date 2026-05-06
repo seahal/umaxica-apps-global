@@ -6,7 +6,7 @@ require "base64"
 
 class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
     Jit::Security::TurnstileVerifier.test_mode = true
@@ -26,8 +26,9 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
       status_id: CustomerPasskeyStatus::ACTIVE,
     )
 
+    host_value = @host
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://sign.app.localhost", "http://#{@host}"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://#{host_value}"] }
   end
 
   teardown do
@@ -43,7 +44,7 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "options returns challenge for known identifier" do
-    Sign::Com::In::PasskeysController.any_instance.stub(:validate_webauthn_origin!, true) do
+    if true # Replaced STUB stub with real execution as per G1
       post options_sign_com_in_passkeys_path(ri: "jp"),
            params: { identifier: @customer.customer_emails.first.address },
            headers: @origin_headers
@@ -58,7 +59,7 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "options returns error when identifier is unknown" do
-    Sign::Com::In::PasskeysController.any_instance.stub(:validate_webauthn_origin!, true) do
+    if true # Replaced STUB stub with real execution as per G1
       post options_sign_com_in_passkeys_path(ri: "jp"),
            params: { identifier: "missing@example.com" },
            headers: @origin_headers
@@ -69,7 +70,7 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "verification logs customer in on success" do
-    Sign::Com::In::PasskeysController.any_instance.stub(:validate_webauthn_origin!, true) do
+    if true # Replaced STUB stub with real execution as per G1
       post options_sign_com_in_passkeys_path(ri: "jp"),
            params: { identifier: @customer.customer_emails.first.address },
            headers: @origin_headers

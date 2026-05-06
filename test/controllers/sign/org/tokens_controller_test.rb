@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
@@ -96,7 +96,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
   test "returns error for expired code" do
     code_record = issue_code!
 
-    travel AuthorizationCode::CODE_TTL + 1.second do
+    travel StaffAuthorizationCode::CODE_TTL + 1.second do
       with_authenticated_client do
         post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
           code: code_record.code,
@@ -152,7 +152,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
   end
 
   def issue_code!
-    AuthorizationCode.issue!(
+    StaffAuthorizationCode.issue!(
       staff: @staff,
       client_id: "core_org",
       redirect_uri: @redirect_uri,

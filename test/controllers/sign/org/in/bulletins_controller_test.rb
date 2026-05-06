@@ -8,7 +8,7 @@ class Sign::Org::In::BulletinsControllerTest < ActionDispatch::IntegrationTest
   fixtures :staffs
 
   setup do
-    @host = ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
   end
 

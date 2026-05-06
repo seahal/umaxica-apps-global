@@ -506,6 +506,8 @@ Lint/EmptyBlock:
   Enabled: true
   AllowComments: true
   AllowEmptyLambdas: true
+  Exclude:
+    - "db/initial_schemas/**/*"
 
 Lint/EmptyClass:
   Enabled: true
@@ -1124,10 +1126,6 @@ Minitest/LifecycleHooksOrder:
 Minitest/LiteralAsActualArgument:
   Enabled: true
 
-Minitest/MultipleAssertions:
-  Enabled: true
-  Max: 10
-
 Minitest/NoAssertions:
   Enabled: true
 
@@ -1163,9 +1161,9 @@ Minitest/UnreachableAssertion:
 
 Minitest/UnspecifiedException:
   Enabled: true
-
-Minitest/UselessAssertion:
+Minitest/MultipleAssertions:
   Enabled: true
+  Max: 30
 
 # ============================================================
 # 8. その他
@@ -1210,6 +1208,8 @@ Rake/MethodDefinitionInTask:
 I18n/RailsI18n:
   Enabled: true
 
+# Ban inline default: literal in t() and I18n.t()
+# Ref: F3. i18n inline default: literal ban
 I18n/GetText:
   Enabled: false
 
@@ -1417,6 +1417,7 @@ Style/IpAddresses:
     - "test/**/*"
     - "docker/**/*"
     - "db/**/*_migrate/**/*"
+    - "db/initial_schemas/**/*"
 
 # rubocop:disable コメントの使用を可視化（安易な無効化を抑止）
 Style/DisableCopsWithinSourceCodeDirective:
@@ -1426,6 +1427,13 @@ Style/DisableCopsWithinSourceCodeDirective:
     - Metrics/AbcSize
     - Metrics/MethodLength
     - Metrics/CyclomaticComplexity
+    - Metrics/PerceivedComplexity
+    - I18n/RailsI18n/DecorateString
+    - Rails/SkipsModelValidations
+    - Minitest/NoAssertions
+    - Lint/EmptyBlock
+    - Rails/ActionControllerTestCase
+    - ThreadSafety/ClassAndModuleAttributes
 
 
 # メソッド呼び出しの括弧を強制（可読性向上）
@@ -1498,6 +1506,7 @@ Metrics/BlockLength:
   Exclude:
     - "config/**/*"
     - "db/**/*_migrate/**/*"
+    - "db/initial_schemas/**/*"
     - "test/**/*"
 
 Style/ConstantVisibility:
@@ -1507,6 +1516,7 @@ Style/ConstantVisibility:
 Layout/LineLength:
   Exclude:
     - "db/**/*_migrate/**/*.rb"
+    - "db/initial_schemas/**/*.rb"
 
 Rails/SkipsModelValidations:
   Exclude:
@@ -1515,6 +1525,11 @@ Rails/SkipsModelValidations:
 
 ThreadSafety/ClassInstanceVariable:
   Exclude:
+    - "test/**/*.rb"
     - "app/controllers/concerns/social_callback_guard.rb"
     - "lib/jit/security/turnstile_verifier.rb"
     - "lib/jit/security/jwt/jti_generator.rb"
+
+ThreadSafety/MutableClassInstanceVariable:
+  Exclude:
+    - "test/**/*.rb"

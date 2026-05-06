@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: customer_tokens
-# Database name: token
+# Database name: symbol
 #
 #  id                               :bigint           not null, primary key
 #  compromised_at                   :datetime
@@ -57,8 +57,10 @@
 #
 # Foreign Keys
 #
-#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id => customer_token_binding_methods.id)
-#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id => customer_token_dbsc_statuses.id)
+#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id =>
+#                                                           customer_token_binding_methods.id)
+#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id =>
+#                                                           customer_token_dbsc_statuses.id)
 #  fk_customer_tokens_on_customer_token_kind_id            (customer_token_kind_id => customer_token_kinds.id)
 #  fk_customer_tokens_on_customer_token_status_id          (customer_token_status_id => customer_token_statuses.id)
 #
@@ -103,8 +105,14 @@ class CustomerTokenTest < ActiveSupport::TestCase
 
   public
 
-  test "inherits from TokenRecord" do
-    assert_operator CustomerToken, :<, TokenRecord
+  test "inherits from SymbolRecord" do
+    assert_operator CustomerToken, :<, SymbolRecord
+    assert_operator CustomerToken, :<, ApplicationRecord
+    assert_not_operator CustomerToken, :<, TokenRecord
+  end
+
+  test "signed ref lookup uses symbol connection owner" do
+    assert_equal SymbolRecord, CustomerToken.send(:connection_owner)
   end
 
   test "belongs to customer" do

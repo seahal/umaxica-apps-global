@@ -10,7 +10,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
   end
 
   teardown do
@@ -121,13 +121,13 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     assert SocialCallbackGuard.allowed_request_method?("google_app", "GET")
     assert SocialCallbackGuard.allowed_callback_method?("apple", "POST")
     assert SocialCallbackGuard.allowed_callback_method?("apple", "GET")
-    assert_equal "sign.app.localhost", SocialCallbackGuard.normalize_host_port("https://sign.app.localhost")
-    assert_equal "sign.app.localhost:444", SocialCallbackGuard.normalize_host_port("https://sign.app.localhost:444")
+    assert_equal "id.app.localhost", SocialCallbackGuard.normalize_host_port("https://id.app.localhost")
+    assert_equal "id.app.localhost:444", SocialCallbackGuard.normalize_host_port("https://id.app.localhost:444")
     assert_nil SocialCallbackGuard.normalize_host_port("::not a uri::")
-    assert_equal "https://sign.app.localhost", SocialCallbackGuard.normalize_origin("https://sign.app.localhost")
-    assert_equal "https://sign.app.localhost:444", SocialCallbackGuard.normalize_origin("https://sign.app.localhost:444/path")
-    assert_nil SocialCallbackGuard.normalize_origin("ftp://sign.app.localhost")
-    assert_equal "https://sign.app.localhost", SocialCallbackGuard.sanitize_source_header("https://sign.app.localhost/path")
+    assert_equal "https://id.app.localhost", SocialCallbackGuard.normalize_origin("https://id.app.localhost")
+    assert_equal "https://id.app.localhost:444", SocialCallbackGuard.normalize_origin("https://id.app.localhost:444/path")
+    assert_nil SocialCallbackGuard.normalize_origin("ftp://id.app.localhost")
+    assert_equal "https://id.app.localhost", SocialCallbackGuard.sanitize_source_header("https://id.app.localhost/path")
   end
 
   test "request phase helpers derive source, enforce state, and reject bad methods" do

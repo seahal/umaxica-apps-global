@@ -9,23 +9,23 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   fixtures :users, :user_statuses, :user_secret_kinds, :user_secret_statuses, :user_email_statuses
 
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = create_verified_user_with_email(email_address: "passkey_config_test_user@example.com")
     @other_user = create_verified_user_with_email(email_address: "other_passkey_config_test_user@example.com")
     @token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
     satisfy_user_verification(@token)
-    @headers = as_user_headers(@user, host: ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")).merge(
+    @headers = as_user_headers(@user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")).merge(
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     ).freeze
 
     # Mock TRUSTED_ORIGINS
     @original_trusted_origins = Webauthn.method(:trusted_origins)
     allowed_origins = [
-      "http://sign.app.localhost",
-      "http://sign.org.localhost",
+      "http://id.app.localhost",
+      "http://id.org.localhost",
       "http://www.example.com",
-      "http://#{ENV.fetch("SIGN_SERVICE_URL", "sign.umaxica.app")}",
-      "https://#{ENV.fetch("SIGN_SERVICE_URL", "sign.umaxica.app")}",
+      "http://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}",
+      "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}",
     ].uniq
     Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
 
@@ -269,8 +269,8 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     headers = as_user_headers(
       unverified_user,
       host: ENV.fetch(
-        "SIGN_SERVICE_URL",
-        "sign.app.localhost",
+        "ID_SERVICE_URL",
+        "id.app.localhost",
       ),
     ).merge("X-TEST-SESSION-PUBLIC-ID" => token.public_id)
 
@@ -280,9 +280,9 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     assert_includes response.body, User::RECOVERY_IDENTITY_REQUIRED_MESSAGE
   end
 
-  test "create returns unprocessable entity plain message when user has no verified recovery identity" do
+  test "create returns forbidden plain message when user has no verified recovery identity" do
     unverified_user = User.create!(status_id: UserStatus::NOTHING, public_id: SecureRandom.hex(10))
-    headers = as_user_headers(unverified_user, host: ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost"))
+    headers = as_user_headers(unverified_user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
     assert_no_difference("UserPasskey.count") do
       post sign_app_configuration_passkeys_path(ri: "jp"),
@@ -297,7 +297,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
            headers: headers
     end
 
-    assert_response :unprocessable_entity
+    assert_response :forbidden
     assert_includes response.body, User::RECOVERY_IDENTITY_REQUIRED_MESSAGE
   end
 
@@ -338,7 +338,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     user = create_verified_user_with_email(email_address: "passkey_rule_email_ok_#{SecureRandom.hex(4)}@example.com")
     token = UserToken.create!(user: user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
     satisfy_user_verification(token)
-    headers = as_user_headers(user, host: ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")).merge(
+    headers = as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")).merge(
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     )
     passkey = UserPasskey.create!(
@@ -364,7 +364,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     )
     satisfy_user_verification(token)
     headers = {
-      "Host" => ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost"),
+      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
