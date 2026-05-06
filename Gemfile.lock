@@ -977,6 +977,7 @@ DEPENDENCIES
   rails-mermaid_erd
   rails_live_reload
   rake
+  rbs (~> 4.0)
   redis
   reek
   rotp

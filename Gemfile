@@ -162,3 +162,5 @@ group :development do
   # Security
   gem "bundler-audit", require: false
 end
+
+gem "rbs", "~> 4.0"
