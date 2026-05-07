@@ -606,22 +606,22 @@ GEM
       opentelemetry-api (~> 1.0)
     os (1.1.4)
     ostruct (0.6.3)
-    packwerk (3.2.3)
+    packwerk (3.3.0)
       activesupport (>= 6.0)
       ast
+      benchmark
       better_html
       bundler
       constant_resolver (>= 0.3)
-      parallel
+      parallel (< 2)
       parser
-      prism (>= 0.25.0)
-      sorbet-runtime (>= 0.5.9914)
+      prism (>= 1.4.0)
       zeitwerk (>= 2.6.1)
     pagy (43.5.3)
       json
       uri
       yaml
-    parallel (2.1.0)
+    parallel (1.28.0)
     parser (3.3.11.1)
       ast (~> 2.4.1)
       racc
@@ -1212,9 +1212,9 @@ CHECKSUMS
   opentelemetry-semantic_conventions (1.37.0) sha256=1e2dc5ad649e19ba2fb0fa7c6f9303e5cdd8d3952511415cb07efe28a0f8f4c3
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
-  packwerk (3.2.3) sha256=3cf5dd76d8072dc0a1c026328e94608fb151bd94ffec29dd7707124ffe84af54
+  packwerk (3.3.0) sha256=5a23dfb161ce225dea02a7171dd038b21b77b7c685e37edd635cd75fb8b1a74f
   pagy (43.5.3) sha256=f9d73e690648d484706661dcb815647775cf8330fcc5c6e62ec87b9df431290b
-  parallel (2.1.0) sha256=b35258865c2e31134c5ecb708beaaf6772adf9d5efae28e93e99260877b09356
+  parallel (1.28.0) sha256=33e6de1484baf2524792d178b0913fc8eb94c628d6cfe45599ad4458c638c970
   parser (3.3.11.1) sha256=d17ace7aabe3e72c3cc94043714be27cc6f852f104d81aa284c2281aecc65d54
   path_expander (2.0.1) sha256=2de201164bff4719cc4d0b3767286e9977cc832a59c4d70abab571ec86cb41e4
   pg (1.6.3-x86_64-linux) sha256=5d9e188c8f7a0295d162b7b88a768d8452a899977d44f3274d1946d67920ae8d
