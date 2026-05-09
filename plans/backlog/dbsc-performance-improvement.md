@@ -2,9 +2,9 @@
 
 ## Problem
 
-DBSC 自体の計算は重くないが、現状は `set_preferences_cookie` 経由でページ表示時にも
-DBSC の challenge 発行や preference 更新が走るため、`show` や root で余計な write が発生
-している。
+DBSC 自体の計算は重くないが、現状は `set_preferences_cookie`
+経由でページ表示時にも DBSC の challenge 発行や preference 更新が走るため、`show`
+や root で余計な write が発生している。
 
 ## Goal
 
@@ -17,7 +17,8 @@ DBSC の challenge 発行や preference 更新が走るため、`show` や root 
 1. `show` と root の before_action を整理し、`set_preferences_cookie` が不要な画面を固定する。
 2. DBSC challenge 発行は registration / verification endpoint のみに限定する。
 3. 余計な `update!` が走らない経路を探し、必要なら cache や条件分岐を追加する。
-4. `App/Org/Com` の各 surface に回帰テストを置いて、公開ページで preference を更新しないことを保証する。
+4. `App/Org/Com`
+   の各 surface に回帰テストを置いて、公開ページで preference を更新しないことを保証する。
 
 ## Verification
 

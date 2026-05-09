@@ -775,7 +775,7 @@ module Preference
       prefix = preference_class.name.delete_suffix("Preference")
       option_class =
         case option_type
-        when :colortheme then Preference::ClassRegistry.option_class(prefix, :colortheme)
+        when :colortheme, :theme then Preference::ClassRegistry.option_class(prefix, option_type)
         when :language then Preference::ClassRegistry.option_class(prefix, :language)
         when :region then Preference::ClassRegistry.option_class(prefix, :region)
         when :timezone then Preference::ClassRegistry.option_class(prefix, :timezone)
@@ -783,7 +783,7 @@ module Preference
 
       if option_class
         name =
-          if option_type == :colortheme
+          if option_type == :colortheme || option_type == :theme
             canonical_colortheme_option_id(params[option_id_key])
           else
             params[option_id_key]
