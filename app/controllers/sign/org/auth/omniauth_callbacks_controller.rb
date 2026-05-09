@@ -70,7 +70,7 @@ module Sign
           if action_name == "omniauth"
             rejection = request.env["social_callback_guard.rejection"] || {
               reason: "csrf_unverified",
-              provider: params[:provider].to_s,
+              provider: params.expect(:provider).to_s,
               details: {},
             }
             reject_social_callback!(**rejection)

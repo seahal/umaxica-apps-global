@@ -1,6 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
+# FIXME: Find out why this file exists.
 class Current
   # Immutable value object representing the resolved preference state for the current request.
   #

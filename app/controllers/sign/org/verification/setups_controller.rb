@@ -10,7 +10,7 @@ module Sign
         before_action :authenticate_staff!
 
         def new
-          @rd = params[:rd].to_s.presence
+          @rd = params.expect(:rd).to_s.presence
         end
       end
     end

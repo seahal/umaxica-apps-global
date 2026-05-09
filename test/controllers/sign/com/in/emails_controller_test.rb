@@ -45,7 +45,7 @@ class Sign::Com::In::EmailsControllerTest < ActionDispatch::IntegrationTest
            headers: { "Host" => @host }
 
       assert_response :redirect
-      assert_redirected_to %r{/in/email/edit}
+      assert_redirected_to %r{/sign/in/email/edit}
       assert_nil session[:user_email_authentication_id]
     end
   end
@@ -62,7 +62,7 @@ class Sign::Com::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_redirected_to %r{/in/email/edit}
+    assert_redirected_to %r{/sign/in/email/edit}
   end
 
   test "post create with invalid email format" do
@@ -80,7 +80,7 @@ class Sign::Com::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     get edit_sign_com_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_redirected_to %r{/in/email/new}
+    assert_redirected_to %r{/sign/in/email/new}
   end
 
   test "patch update with invalid OTP fails" do

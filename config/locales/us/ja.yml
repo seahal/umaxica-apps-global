@@ -435,7 +435,8 @@ core:
               error: Google authentication failed
         email:
           new:
-            page_title: UMAXICA (sign, app)
+            page_title: メールアドレスで登録
+            error_summary: 入力内容を確認してください。
           create:
             turnstile_failed: ボット検証に失敗しました。もう一度お試しください。
       preferences:

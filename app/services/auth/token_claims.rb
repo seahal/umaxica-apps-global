@@ -5,8 +5,9 @@ module Auth
   module TokenClaims
     module_function
 
-    def build(resource:, session_public_id:, resource_type:, issued_at:, access_token_ttl:, expires_at: nil,
-              preferences: nil, scopes: nil, acr: nil, amr: nil)
+    def build(resource:, session_id: nil, session_public_id: nil, resource_type:, issued_at:, access_token_ttl:,
+              expires_at: nil, preferences: nil, scopes: nil, acr: nil, amr: nil, dpop_jkt: nil)
+      sid = session_id || session_public_id
       issued_at_seconds = timestamp_value(issued_at)
       expires_at_seconds = timestamp_value(expires_at || (issued_at + access_token_ttl))
       token_type = Authentication::Base::JwtConfiguration.token_type(resource_type)
@@ -25,8 +26,9 @@ module Auth
         "acr" => normalize_acr(acr),
       }
       payload["amr"] = Array(amr) if amr.present?
-      payload["sid"] = session_public_id if session_public_id.present?
+      payload["sid"] = sid if sid.present?
       payload["prf"] = preferences if preferences.is_a?(Hash) && preferences.present?
+      payload["cnf"] = { "jkt" => dpop_jkt } if dpop_jkt.present?
       payload
     end
 

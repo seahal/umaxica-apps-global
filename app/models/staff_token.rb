@@ -7,20 +7,18 @@
 # Database name: token
 #
 #  id                            :bigint           not null, primary key
-#  compromised_at                :datetime
 #  dbsc_challenge                :text
 #  dbsc_challenge_issued_at      :datetime
 #  dbsc_public_key               :jsonb
-#  deletable_at                  :datetime         default(Infinity), not null
 #  device_id_digest              :string
-#  expired_at                    :datetime
+#  dpop_jkt                      :string
+#  lapses_at                     :datetime         default(Infinity), not null
 #  last_step_up_at               :datetime
 #  last_step_up_scope            :string
 #  last_used_at                  :datetime
-#  refresh_expires_at            :datetime         not null
+#  purge_at                      :datetime         default(Infinity), not null
 #  refresh_token_digest          :binary
 #  refresh_token_generation      :integer          default(0), not null
-#  revoked_at                    :datetime
 #  rotated_at                    :datetime
 #  status                        :string(20)       default("active"), not null
 #  created_at                    :datetime         not null
@@ -29,6 +27,7 @@
 #  device_id                     :string           default(""), not null
 #  public_id                     :string(21)       default(""), not null
 #  refresh_token_family_id       :string
+#  session_id                    :string
 #  staff_id                      :bigint           not null
 #  staff_token_binding_method_id :bigint           default(0), not null
 #  staff_token_dbsc_status_id    :bigint           default(0), not null
@@ -37,17 +36,14 @@
 #
 # Indexes
 #
-#  index_staff_tokens_on_compromised_at                 (compromised_at)
 #  index_staff_tokens_on_dbsc_session_id                (dbsc_session_id) UNIQUE
-#  index_staff_tokens_on_deletable_at                   (deletable_at)
 #  index_staff_tokens_on_device_id                      (device_id)
 #  index_staff_tokens_on_device_id_digest               (device_id_digest)
-#  index_staff_tokens_on_expired_at                     (expired_at)
 #  index_staff_tokens_on_public_id                      (public_id) UNIQUE
-#  index_staff_tokens_on_refresh_expires_at             (refresh_expires_at)
+#  index_staff_tokens_on_purge_at                       (purge_at)
 #  index_staff_tokens_on_refresh_token_digest           (refresh_token_digest) UNIQUE
 #  index_staff_tokens_on_refresh_token_family_id        (refresh_token_family_id)
-#  index_staff_tokens_on_revoked_at                     (revoked_at)
+#  index_staff_tokens_on_session_id                     (session_id)
 #  index_staff_tokens_on_staff_id_and_last_step_up_at   (staff_id,last_step_up_at)
 #  index_staff_tokens_on_staff_token_binding_method_id  (staff_token_binding_method_id)
 #  index_staff_tokens_on_staff_token_dbsc_status_id     (staff_token_dbsc_status_id)
@@ -69,7 +65,7 @@ class StaffToken < TokenRecord
   include ::PublicId
   include ::RefreshTokenable
   include ::SignedSessionReference
-  include ::TokenDeletableSync
+  include ::Retainable
   include ::TokenStatusManagement
   include ::DbscBindable
 
@@ -93,9 +89,16 @@ class StaffToken < TokenRecord
   attribute :staff_token_dbsc_status_id, default: StaffTokenDbscStatus::NOTHING
 
   validates :public_id, uniqueness: true, length: { maximum: 21 }
-  validates :refresh_expires_at, presence: true
+
+  before_create :ensure_session_id
 
   validate :enforce_concurrent_session_limit, on: :create
+
+  private
+
+  def ensure_session_id
+    self.session_id = public_id if session_id.blank?
+  end
 
   # This is a model-level validation to provide a friendly error message to the user.
   # The primary enforcement of the session limit is done by a database trigger,

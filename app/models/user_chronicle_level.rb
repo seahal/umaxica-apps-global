@@ -9,7 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class UserChronicleLevel < ChronicleRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   DEBUG = 1
   ERROR = 2

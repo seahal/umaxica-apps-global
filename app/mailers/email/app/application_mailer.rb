@@ -3,7 +3,7 @@
 
 module Email::App
   class ApplicationMailer < ActionMailer::Base
-    default from: Rails.app.creds.require(:SMTP_FROM_ADDRESS)
+    default from: ENV.fetch("SMTP_FROM_ADDRESS_APP", "from@umaxica.app")
     layout "mailer/app/mailer"
   end
 end

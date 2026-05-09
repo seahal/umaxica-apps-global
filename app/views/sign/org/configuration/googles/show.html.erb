@@ -15,6 +15,7 @@
 
 <div>
   <%= button_to t("actions.connect"),
-                sign_org_configuration_google_path,
-                method: :post %>
+                start_sign_org_social_authentication_path(provider: "google_org", ri: params[:ri]),
+                method: :post,
+                data: { turbo: false } %>
 </div>

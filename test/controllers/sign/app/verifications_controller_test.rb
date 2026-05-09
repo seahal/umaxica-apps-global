@@ -54,6 +54,8 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_verification_url(scope: "configuration_email", return_to: "%%%INVALID%%%", ri: "jp"),
         headers: @headers
 
+    assert_response :redirect
+
     assert_redirected_to sign_app_configuration_path(ri: "jp")
   end
 

@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_preference_region_options
-# Database name: principal
+# Database name: operator
 #
 #  id :bigint           not null, primary key
 #

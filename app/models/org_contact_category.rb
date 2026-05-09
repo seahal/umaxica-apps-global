@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class OrgContactCategory < GuestRecord
+  include ReferenceRecord
+
   NOTHING = 1
   ORGANIZATION_INQUIRY = 2
 

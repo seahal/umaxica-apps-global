@@ -130,6 +130,21 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     assert_equal "https://id.app.localhost", SocialCallbackGuard.sanitize_source_header("https://id.app.localhost/path")
   end
 
+  test "allowed hosts includes sign host environment names" do
+    SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
+
+    begin
+      with_env("SIGN_SERVICE_URL" => "id.umaxica.app", "SIGN_STAFF_URL" => "id.umaxica.org") do
+        SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
+
+        assert_includes SocialCallbackGuard.allowed_hosts, "id.umaxica.app"
+        assert_includes SocialCallbackGuard.allowed_hosts, "id.umaxica.org"
+      end
+    ensure
+      SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
+    end
+  end
+
   test "request phase helpers derive source, enforce state, and reject bad methods" do
     env = Rack::MockRequest.env_for(
       "https://#{@host}/auth/google_app?foo=bar",
@@ -173,8 +188,8 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   private
 
   def prepare_callback_flow(provider:, user:)
-    get(
-      sign_app_social_start_url(provider: provider, intent: "link", ri: "jp"),
+    post(
+      start_sign_app_social_authentication_url(provider: provider, intent: "link", ri: "jp"),
       headers: as_user_headers(user, host: @host),
     )
 
@@ -198,7 +213,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
       credentials: {
         token: "google_token_#{SecureRandom.hex(8)}",
         refresh_token: "refresh_token",
-        expires_at: 1.week.from_now.to_i,
+        lapses_at: 1.week.from_now.to_i,
       },
     )
   end
@@ -210,8 +225,22 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
       info: {},
       credentials: {
         token: "apple_token_#{SecureRandom.hex(8)}",
-        expires_at: 1.week.from_now.to_i,
+        lapses_at: 1.week.from_now.to_i,
       },
     )
+  end
+
+  def with_env(values)
+    previous = values.keys.index_with { |key| ENV[key] }
+    values.each { |key, value| ENV[key] = value }
+    yield
+  ensure
+    previous.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
   end
 end

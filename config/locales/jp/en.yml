@@ -224,7 +224,8 @@ en:
           sign_in_text: Sign in
         email:
           new:
-            page_title: UMAXICA (sign, app)
+            page_title: Sign up with email
+            error_summary: Please check your input.
           already_logged_in: You are already logged in.
           create:
             verification_code_sent: Verification code has been sent to your email address.
@@ -685,6 +686,11 @@ en:
             success: Preference cookies cleared.
             confirmation_required: Select the checkbox to confirm clearing your preference cookies.
     com:
+      registration:
+        email:
+          new:
+            page_title: Sign up with email
+            error_summary: Please check your input.
       preferences:
         up_link: Back to top
         title: Preferences
@@ -837,6 +843,10 @@ en:
             submit: Save theme preference
   activerecord:
     attributes:
+      user_email:
+        address: Email address
+        confirm_policy: Terms of service
+        raw_address: Email address
       user_identity_email:
         address: Email address
     errors:

@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class UserPasskeyStatus < PrincipalRecord
+  include ReferenceRecord
+
   ACTIVE = 1
   DISABLED = 2
   REVOKED = 3

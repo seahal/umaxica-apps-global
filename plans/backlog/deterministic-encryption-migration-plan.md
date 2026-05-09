@@ -4,84 +4,149 @@
 
 GitHub #533
 
-## Current Status
+## Status
 
-### Completed
+Refreshed (2026-05-07). Scope narrowed to **user + staff** only.
 
-Blind index columns added to the following models:
+- The `{app,com,org}_contact_*` mirrors are out of scope and have been dropped from this plan.
+- The `customer_email` / `customer_telephone` side has been split into its own plan
+  (`plans/backlog/customer-email-telephone-encryption-plan.md`) because the customer table's
+  schema-dump status is uncertain and resolving that is a prerequisite, not a side effect.
 
-| Model               | Blind Index Columns                                | Migration      |
-| ------------------- | -------------------------------------------------- | -------------- |
-| UserEmail           | `address_bidx`, `address_digest`                   | Existing       |
-| UserTelephone       | `number_bidx`, `number_digest`                     | Existing       |
-| CustomerEmail       | `address_bidx`, `address_digest`                   | Existing       |
-| CustomerTelephone   | `number_bidx`, `number_digest`                     | Existing       |
-| StaffEmail          | `address_bidx`, `address_digest`                   | 20260414150000 |
-| StaffTelephone      | `number_bidx`, `number_digest`                     | Existing       |
-| AppContactEmail     | `email_address_bidx`, `email_address_digest`       | 20260414151000 |
-| ComContactEmail     | `email_address_bidx`, `email_address_digest`       | 20260414151000 |
-| OrgContactEmail     | `email_address_bidx`, `email_address_digest`       | 20260414151000 |
-| AppContactTelephone | `telephone_number_bidx`, `telephone_number_digest` | 20260414152000 |
-| ComContactTelephone | `telephone_number_bidx`, `telephone_number_digest` | 20260414152000 |
-| OrgContactTelephone | `telephone_number_bidx`, `telephone_number_digest` | 20260414152000 |
+The previous draft also framed `staff` as the only side needing migration — that was wrong even
+within the user+staff scope, because `user_email` / `user_telephone` still carry
+`deterministic: true` despite already having blind-index columns. Both user and staff need the flag
+flipped before any key rotation is possible.
 
-### Still Using deterministic: true
+## Goal
 
-The following models still use `encrypts :field, deterministic: true`:
+Enable encryption key rotation for email and telephone columns on the **user (principal DB) and
+staff (operator DB)** sides. Rails' deterministic encryption mode cannot be re-keyed;
+non-deterministic encryption with HMAC blind-index lookups can.
 
-| Model               | Field              | Status             |
-| ------------------- | ------------------ | ------------------ |
-| UserEmail           | `address`          | Needs verification |
-| CustomerEmail       | `address`          | Needs verification |
-| StaffEmail          | `address`          | Needs verification |
-| UserTelephone       | `number`           | Needs verification |
-| CustomerTelephone   | `number`           | Needs verification |
-| StaffTelephone      | `number`           | Needs verification |
-| AppContactEmail     | `email_address`    | Needs verification |
-| ComContactEmail     | `email_address`    | Needs verification |
-| OrgContactEmail     | `email_address`    | Needs verification |
-| AppContactTelephone | `telephone_number` | Needs verification |
-| ComContactTelephone | `telephone_number` | Needs verification |
-| OrgContactTelephone | `telephone_number` | Needs verification |
-| Telephone concern   | `number`           | Needs verification |
+The migration is not just a renaming of how rows are queried — it removes the cryptographic
+constraint that has prevented rotating `ActiveRecord::Encryption.primary_key`, `deterministic_key`,
+and `key_derivation_salt` since the columns were introduced.
+
+## Current State (verified 2026-05-07)
+
+### Blind index columns
+
+| Model             | DB        | `*_bidx` | `*_digest` | Migration                          |
+| ----------------- | --------- | -------- | ---------- | ---------------------------------- |
+| `user_email`      | principal | ✅       | ✅         | `20260208170000`, `20260210120000` |
+| `user_telephone`  | principal | ✅       | ✅         | existing                           |
+| `staff_email`     | operator  | ❌       | ❌         | **needed**                         |
+| `staff_telephone` | operator  | ❌       | ❌         | **needed**                         |
+
+### `deterministic: true` declarations in scope
+
+| File                               | Line | Field     |
+| ---------------------------------- | ---- | --------- |
+| `app/models/concerns/email.rb`     | 22   | `address` |
+| `app/models/concerns/telephone.rb` | 20   | `number`  |
+| `app/models/user_email.rb`         | 85   | `address` |
+| `app/models/staff_email.rb`        | 72   | `address` |
+
+`UserTelephone` and `StaffTelephone` reach `deterministic: true` through
+`app/models/concerns/{email,telephone}.rb`. The customer-side models reach the same flag through the
+same concerns, so any change to the concerns also affects the customer side — coordinate that change
+with `plans/backlog/customer-email-telephone-encryption-plan.md` so user / staff / customer flip in
+lockstep.
+
+### Existing infrastructure
+
+- `IdentifierBlindIndex` service (HMAC-SHA256, `IDENTIFIER_BIDX_SECRET` credential) — already used
+  by user-side callbacks.
+- `UserEmail#set_address_digests`, `UserTelephone#set_number_digests` — populate `*_bidx` /
+  `*_digest` on save. Equivalent callbacks need to be added for staff (or hoisted into the shared
+  concerns).
 
 ## Migration Strategy
 
-### Phase 1: Verification (Current)
+### Phase 1: Staff schema parity
 
-1. Verify all blind index columns are properly populated
-2. Ensure uniqueness constraints are working
-3. Confirm query paths use blind indexes where appropriate
+Add `address_bidx`, `address_digest`, `number_bidx`, `number_digest` columns and partial-unique
+indexes (`WHERE *_bidx IS NOT NULL`) to `staff_emails` and `staff_telephones`, in
+`db/operators_migrate/`. Mirror the shape that already exists on `user_emails` / `user_telephones`.
 
-### Phase 2: Query Path Migration
+Backfill: write a one-time data migration (or runner script) that recomputes `IdentifierBlindIndex`
+for every existing row. Do **not** rely on a `save` callback alone, because `save` will rewrite the
+encrypted column in non-deterministic mode and break lookups until Phase 3 lands.
 
-1. Identify all query paths using encrypted columns with deterministic search
-2. Migrate queries to use blind index columns (`*_bidx` or `*_digest`)
-3. Update scopes and finder methods
+### Phase 2: Query path audit and migration
 
-### Phase 3: Deterministic Removal
+Audit every place that queries `user_email`, `user_telephone`, `staff_email`, or `staff_telephone`
+by encrypted value. Replace each lookup with a `*_bidx` / `*_digest` query. Cover at minimum:
 
-After all query paths are migrated:
+- Sign-in / OTP flows (`app/services/...`, `app/controllers/sign/...`).
+- Account reconciliation services (find-by-email, find-by-phone).
+- Admin / staff console search.
+- Rake tasks and one-off scripts under `lib/tasks/`.
+- Tests that assert `where(address: ...)` / `where(number: ...)` against encrypted columns (these
+  will start failing once Phase 3 lands).
 
-1. Remove `deterministic: true` from encrypts declarations
-2. Run `bin/rails db:encryption:reencrypt` to re-encrypt with non-deterministic mode
-3. Verify no application code relies on deterministic encryption
+Output of this audit should be a checked-in list (or PR description) of every call site that was
+updated, so the rollout can prove completion.
 
-### Phase 4: Cleanup
+### Phase 3: Remove `deterministic: true` (coordinate with customer plan)
 
-1. Remove backward compatibility code in `set_*_digests` methods
-2. Consider dropping legacy columns if no longer needed
+Once every lookup uses the blind-index columns:
+
+1. Remove `deterministic: true` from the four sites listed above.
+2. Hoist the `set_*_digests` callbacks into the shared concerns where appropriate.
+3. **Coordinate with the customer plan.** Because the `Email` and `Telephone` concerns are shared,
+   flipping the concern flag in this plan automatically flips it for the customer models too. Do not
+   ship Phase 3 until the customer plan's blind-index parity work has also landed; otherwise
+   customer lookups will silently break.
+4. Run `bin/rails db:encryption:reencrypt` (or an equivalent migration job) so existing ciphertext
+   is re-encoded under the non-deterministic scheme. Plan downtime or a zero-downtime approach
+   (dual-read) up front; do not skip this step.
+
+### Phase 4: Key rotation drill
+
+Now that rotation is possible, prove it once end-to-end before declaring the work complete:
+
+1. Add a new key to `ActiveRecord::Encryption.primary_key` chain, leave the old key as `previous`.
+2. Re-encrypt with the new key.
+3. Sign in / OTP all still work for both user and staff actors.
+4. Drop the old key from the chain.
+
+This drill becomes the regression contract: any future encryption-touching change must run this
+drill in CI or staging.
+
+### Phase 5: Cleanup
+
+1. Remove dual-write / backward-compat scaffolding from the `set_*_digests` callbacks.
+2. Drop legacy columns that were retained "just in case" (only after a deploy cycle confirms the new
+   path is solid).
+3. Document the rotation procedure in `docs/` so the next operator can do it without rediscovery.
 
 ## Risks
 
-- Query paths may still rely on deterministic encryption for lookups
-- External integrations may depend on deterministic encrypted values
-- Re-encryption requires downtime or careful zero-downtime migration
+- Re-encryption of existing rows requires either downtime or a careful dual-read window. Do not
+  hand-wave this away.
+- Test fixtures and integration tests that build emails / phones on the fly will need to honor the
+  same blind-index callbacks; otherwise tests will pass but production lookups fail.
+- Phase 3 affects the shared concerns and therefore touches customer-side behavior. Sequence with
+  the customer plan or you will ship a half-done migration.
 
 ## Acceptance Criteria
 
-- [ ] All query paths migrated to blind indexes
-- [ ] `deterministic: true` removed from all encrypts declarations
-- [ ] Database re-encrypted with non-deterministic mode
-- [ ] No regression in lookup functionality
-- [ ] Performance validated (blind index lookups vs deterministic)
+- [ ] Blind-index columns and partial-unique indexes present on `staff_emails` and
+      `staff_telephones`.
+- [ ] All four `deterministic: true` declarations in scope removed.
+- [ ] Every user / staff lookup site audited and migrated to blind-index queries (audit list checked
+      in).
+- [ ] `bin/rails db:encryption:reencrypt` (or zero-downtime equivalent) has been run for both
+      principal and operator databases.
+- [ ] Phase 4 key-rotation drill executed successfully end-to-end.
+- [ ] Documentation update (in `docs/` or an ADR) describes the rotation procedure for operators.
+
+## Related
+
+- `plans/backlog/gh533-encryption-blind-index-migration.md` — GitHub issue #533 status, kept in sync
+  with this plan.
+- `plans/backlog/customer-email-telephone-encryption-plan.md` — customer-side counterpart. Phase 3
+  of this plan must be sequenced with the customer plan because they share the `Email` and
+  `Telephone` concerns.

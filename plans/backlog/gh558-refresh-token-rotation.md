@@ -53,3 +53,23 @@ Remaining:
   rotation contract already exist, so the remaining gap should be called out precisely.
 - Separate already-landed replay handling from still-open grace-window or deduplication work so the
   issue does not duplicate `GH-612`.
+
+## 2026-05-07 現状差分と改善として残すこと
+
+Refresh token rotation の中核は現行ツリーで実装済み。
+
+確認済み:
+
+- `app/services/sign/refresh_token_service.rb` が存在する。
+- `test/services/sign/refresh_token_service_test.rb` が存在する。
+- session limit / token status management 側にも refresh token service を使うテストがある。
+
+この文書は「rotation を実装する」計画ではなく、追加改善の判断メモとして残す。
+
+残す改善:
+
+- 現行 `Sign::RefreshTokenService` の仕様を docs 化する。
+- short grace window が本当に必要か、既存の one-time consume / replay
+  handling で足りるかを判断する。
+- Redis / JTI deduplication は必須要件ではなく、必要性が確認できた場合だけ追加する。
+- 追加する場合は、family-wide revocation を弱めないことをテストで固定する。

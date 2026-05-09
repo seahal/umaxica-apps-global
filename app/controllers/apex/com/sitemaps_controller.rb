@@ -3,11 +3,9 @@
 
 module Apex
   module Com
-    class SitemapsController < ApplicationController
+    class SitemapsController < Apex::PublicController
       include ::Sitemap
 
-      skip_before_action :canonicalize_query_params, raise: false
-      skip_before_action :set_region, raise: false
       public_strict!
 
       def show

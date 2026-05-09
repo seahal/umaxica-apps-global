@@ -195,7 +195,7 @@ module SocialCallbackGuard
 
   def load_callback_state_data(_provider)
     {
-      callback: params[:state].to_s.presence,
+      callback: params.expect(:state).to_s.presence,
       expected: session[SOCIAL_STATE_SESSION_KEY].to_s.presence ||
         request.env.dig("omniauth.params", "state").to_s.presence,
       started_at: session[SOCIAL_STATE_STARTED_AT_SESSION_KEY].to_i,
@@ -252,7 +252,7 @@ module SocialCallbackGuard
   def test_mode_mock_auth_present?
     return false unless defined?(OmniAuth) && OmniAuth.config.test_mode
 
-    provider = params[:provider].to_s
+    provider = params.expect(:provider).to_s
     return false if provider.blank?
 
     OmniAuth.config.mock_auth[provider.to_sym].present? || OmniAuth.config.mock_auth[provider].present?
@@ -266,7 +266,7 @@ module SocialCallbackGuard
   end
 
   def evaluate_social_callback_request
-    provider = params[:provider].to_s
+    provider = params.expect(:provider).to_s
     method = request.request_method.to_s.upcase
 
     unless SocialCallbackGuard.allowed_callback_method?(provider, method)
@@ -303,7 +303,7 @@ module SocialCallbackGuard
   def default_social_callback_rejection
     {
       reason: "bad_state",
-      provider: params[:provider].to_s,
+      provider: params.expect(:provider).to_s,
       details: {},
     }
   end
@@ -333,7 +333,8 @@ module SocialCallbackGuard
     clear_social_state!
 
     Rails.logger.warn(
-      "[SocialCallbackGuard] phase=callback provider=#{provider.inspect} reason=#{reason} details=#{details.inspect}",
+      "[SocialCallbackGuard] phase=callback provider=#{provider.inspect} reason=#{reason} details=#{details.inspect} " \
+      "host=#{request.host_with_port} allowed_hosts=#{SocialCallbackGuard.allowed_hosts.inspect}",
     )
 
     redirect_to(

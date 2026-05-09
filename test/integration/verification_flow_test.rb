@@ -21,7 +21,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
       public_id: "vf#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
     )
     @headers = as_user_headers(@user, host: @host)
     @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id

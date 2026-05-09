@@ -7,25 +7,25 @@
       <%= t("apex.org.preference.language.edit.description") %>
   </p>
 
-  <% selected_language = nil
-     language_options = OrgPreferenceLanguageOption.order(:id).map do |option|
-       label = case option.name
-               when "ja" then t("languages.japanese")
-               when "en" then t("languages.english")
-               else option.name
-               end
-       value = option.name.to_s.upcase
-       selected_language = value if option.id == @preference_language.option_id
-       [label, value]
-     end %>
-
   <%= form_with model: @preference_language, scope: :preference_language, url: sign_org_preference_region_language_path, method: :patch do |f| %>
     <div>
       <%= f.label :option_id,
                   t("apex.org.preference.language.edit.language_label") %>
       <div>
         <%= f.select :option_id,
-                     options_for_select(language_options, selected_language),
+                     options_for_select(
+                       OrgPreferenceLanguageOption.order(:id).map do |option|
+                         [
+                           case option.name
+                           when "ja" then t("languages.japanese")
+                           when "en" then t("languages.english")
+                           else option.name
+                           end,
+                           option.id,
+                         ]
+                       end,
+                       @preference_language.option_id,
+                     ),
                      {} %>
       </div>
     </div>

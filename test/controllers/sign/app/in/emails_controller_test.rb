@@ -11,6 +11,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "should get new" do
     get new_sign_app_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
+    assert_response :success
+
     assert_select "h1", I18n.t("sign.app.authentication.email.new.page_title")
 
     assert_select "a"
@@ -65,20 +67,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     # Should redirect to edit to prevent enumeration
     assert_response :found
-    assert_redirected_to %r{/in/email/edit}
-  end
-
-  test "POST create with unknown email does not issue otp" do
-    assert_no_difference -> { ActionMailer::Base.deliveries.count } do
-      post sign_app_in_email_url(ri: "jp"),
-           params: { user_email: { address: "missing-user@example.com" } },
-           headers: { "Host" => @host }
-
-      assert_response :found
-      assert_redirected_to %r{/in/email/edit}
-      # Session should not have ID, but might have address
-      assert_nil session[:user_email_authentication_id]
-    end
+    assert_redirected_to %r{/sign/in/email/edit}
+    assert_nil session[:user_email_authentication_id]
   end
 
   test "POST create responds the same for existing and missing emails" do
@@ -125,7 +115,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to %r{/in/email/edit}
+    assert_redirected_to %r{/sign/in/email/edit}
   end
 
   test "timing attack protection in update action" do
@@ -287,6 +277,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     user = users(:one)
     test_email = user.user_emails.create!(
       address: "cooldown_test_#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: UserEmailStatus::VERIFIED,
     )
 
     assert_difference -> { ActionMailer::Base.deliveries.count }, 1 do
@@ -569,6 +560,9 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
            "cf-turnstile-response" => "test_token",
          },
          headers: { "Host" => @host }
+
+    assert_response :found
+    assert_predicate session[:user_email_authentication_id], :present?
 
     # Generate valid OTP code
     otp_private_key = ROTP::Base32.random_base32

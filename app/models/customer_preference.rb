@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: customer_preferences
-# Database name: guest
+# Database name: setting
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -25,11 +25,7 @@
 #
 #  index_customer_preferences_on_customer_id  (customer_id) UNIQUE
 #
-# Foreign Keys
-#
-#  fk_rails_...  (customer_id => customers.id)
-#
-class CustomerPreference < GuestRecord
+class CustomerPreference < SettingRecord
   belongs_to :customer, inverse_of: :customer_preference
 
   has_one :customer_preference_language,
@@ -44,7 +40,7 @@ class CustomerPreference < GuestRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :customer_preference_colortheme,
+  has_one :customer_preference_theme,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy

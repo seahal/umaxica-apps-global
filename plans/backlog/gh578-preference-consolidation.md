@@ -61,3 +61,24 @@ Remaining:
   current-state inventory.
 - Split UI polish, token reissue rules, and database moves into separate subtracks. They have
   different validation paths and should not block each other.
+
+## 2026-05-07 現状差分と改善として残すこと
+
+この issue の大部分は既に進んでいる。
+
+確認済み:
+
+- `Current::Preference` は実装済み。
+- `Auth::TokenService` と token claims 周辺のテストが存在する。
+- preference DB 配置は、少なくとも app / org / com /
+  customer の主要移動が現行 schema に反映されている。
+
+この文書は「preference 全体を統合する大計画」としてではなく、残り改善の親メモとして残す。
+
+残す改善:
+
+- preference 変更時に access token / preference snapshot を再発行すべき条件を明文化する。
+- dark mode / cookie consent の AJAX 化は UI 改善として独立させる。
+- obsolete shim / bridge / duplicate model の削除は
+  `plans/backlog/legacy-preference-models-retirement-plan.md` 側で扱う。
+- 新しい DB 移動をこの文書へ追加しない。DB 配置の変更は個別 plan に分ける。

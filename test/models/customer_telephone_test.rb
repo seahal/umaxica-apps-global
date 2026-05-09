@@ -98,4 +98,19 @@ class CustomerTelephoneTest < ActiveSupport::TestCase
     assert_not duplicate.valid?
     assert_not_empty duplicate.errors[:number]
   end
+
+  test "sets number digest from normalized input" do
+    telephone = CustomerTelephone.create!(
+      customer: @customer,
+      number: "+1 (555) 765-4321",
+      customer_telephone_status_id: CustomerTelephoneStatus::UNVERIFIED,
+      otp_counter: "0",
+      otp_private_key: "secret",
+    )
+
+    expected = IdentifierBlindIndex.bidx_for_telephone("+15557654321")
+
+    assert_equal expected, telephone.number_bidx
+    assert_equal expected, telephone.number_digest
+  end
 end

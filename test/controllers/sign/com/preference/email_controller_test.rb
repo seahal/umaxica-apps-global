@@ -39,6 +39,8 @@ class Sign::Com::Preference::EmailControllerTest < ActionDispatch::IntegrationTe
   test "edit with invalid token redirects to new" do
     get edit_sign_com_preference_email_url(ri: "jp", token: "invalid")
 
+    assert_response :redirect
+
     assert_redirected_to new_sign_com_preference_email_url(ri: "jp")
     assert_equal I18n.t("base.shared.preference_emails.token_invalid"), flash[:alert]
   end

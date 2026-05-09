@@ -4,10 +4,10 @@
 
 <% if current_user.deactivated? %>
   <p><%= t("sign.app.configuration.edit.deactivated_notice") %></p>
-  <% if current_user.scheduled_purge_at.present? %>
+  <% if current_user.purge_at.present? %>
     <p>
       <%= t("sign.app.configuration.edit.scheduled_purge_notice",
-            date: l(current_user.scheduled_purge_at, format: :long)) %>
+            date: l(current_user.purge_at, format: :long)) %>
     </p>
   <% end %>
   <p>

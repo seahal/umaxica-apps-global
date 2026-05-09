@@ -133,6 +133,17 @@ class UserEmailTest < ActiveSupport::TestCase
     assert_equal expected, user_email.address_digest
   end
 
+  test "finds by normalized address" do
+    user_email = UserEmail.create!(
+      raw_address: "user-find@example.com",
+      confirm_policy: true,
+      user: @user,
+    )
+
+    assert_equal user_email, UserEmail.find_by(address: "USER-FIND@example.com")
+    assert_nil UserEmail.find_by(address: "")
+  end
+
   test "should downcase email address before saving" do
     user_email = UserEmail.new(@valid_attributes.merge(address: "TEST@EXAMPLE.COM"))
     user_email.save!

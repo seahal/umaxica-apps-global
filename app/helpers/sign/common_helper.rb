@@ -28,7 +28,7 @@ module Sign::CommonHelper
     "jp"
   end
 
-  def get_colortheme
+  def get_theme
     "sy"
   end
 

@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class AppContactCategory < GuestRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   LEGACY_NOTHING = 1

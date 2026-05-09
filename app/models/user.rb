@@ -8,13 +8,12 @@
 #
 #  id                    :bigint           not null, primary key
 #  deactivated_at        :datetime
-#  deletable_at          :datetime         default(Infinity), not null
+#  lapses_at             :datetime         default(Infinity), not null
 #  last_reauth_at        :datetime
 #  lock_version          :integer          default(0), not null
 #  multi_factor_enabled  :boolean          default(FALSE), not null
+#  purge_at              :datetime         default(Infinity), not null
 #  purged_at             :datetime
-#  scheduled_purge_at    :datetime
-#  shreddable_at         :datetime         default(Infinity), not null
 #  withdrawal_started_at :datetime
 #  withdrawn_at          :datetime         default(Infinity)
 #  created_at            :datetime         not null
@@ -26,11 +25,9 @@
 # Indexes
 #
 #  index_users_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_users_on_deletable_at           (deletable_at)
 #  index_users_on_public_id              (public_id) UNIQUE
+#  index_users_on_purge_at               (purge_at)
 #  index_users_on_purged_at              (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_users_on_scheduled_purge_at     (scheduled_purge_at) WHERE (scheduled_purge_at IS NOT NULL)
-#  index_users_on_shreddable_at          (shreddable_at)
 #  index_users_on_status_id              (status_id)
 #  index_users_on_visibility_id          (visibility_id)
 #  index_users_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
@@ -43,6 +40,7 @@
 #
 
 class User < PrincipalRecord
+  include Retainable
   include ::PublicId
   include ::Identity
 
@@ -56,7 +54,7 @@ class User < PrincipalRecord
     UserTelephoneStatus::VERIFIED,
     UserTelephoneStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
-  RECOVERY_IDENTITY_REQUIRED_MESSAGE = "パスキー/シークレットを登録するには、先にメールアドレスまたは電話番号を1つ以上登録（確認）してください。"
+  RECOVERY_IDENTITY_REQUIRED_MESSAGE = I18n.t("models.user.recovery_identity_required")
 
   # Legacy column scheduled for removal after passkeys table migration.
   # Remove this line as well after DROP COLUMN migration is completed.
@@ -156,8 +154,7 @@ class User < PrincipalRecord
            through: :avatar_assignments,
            source: :avatar
   validates :public_id, uniqueness: true, length: { maximum: 21 }
-  # TODO: User deletion flow should rely on `shreddable_at`; remove `deletable_at` usage from User.
-  scope :deletable, ->(now = Time.current) { where(deletable_at: ..now) }
+  include Retainable
 
   def totp_enabled?
     if user_one_time_passwords.loaded?

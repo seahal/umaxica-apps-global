@@ -33,7 +33,7 @@ class Sign::Com::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   teardown do
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
   end
 
   test "redirects unauthenticated user to login" do

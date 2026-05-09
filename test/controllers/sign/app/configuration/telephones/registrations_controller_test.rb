@@ -95,6 +95,8 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
     get edit_sign_app_configuration_telephones_registration_url(ri: "jp"),
         headers: request_headers
 
+    assert_response :redirect
+
     assert_redirected_to new_sign_app_configuration_telephones_registration_url(ri: "jp")
     assert_equal I18n.t("sign.app.registration.telephone.edit.session_expired"), flash[:notice]
   end

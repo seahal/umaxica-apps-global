@@ -32,9 +32,9 @@ module Sign
           )
           region = ComPreferenceRegion.create!(preference: preference, option_id: ComPreferenceRegionOption::US)
           timezone = ComPreferenceTimezone.create!(preference: preference, option_id: ComPreferenceTimezoneOption::ETC_UTC)
-          colortheme = ComPreferenceColortheme.create!(
+          theme = ComPreferenceTheme.create!(
             preference: preference,
-            option_id: ComPreferenceColorthemeOption::DARK,
+            option_id: ComPreferenceThemeOption::DARK,
           )
           token = encode_preference_jwt(
             preferences: { "ri" => "us", "tz" => "Etc/UTC", "ct" => "dr", "consented" => true },
@@ -53,7 +53,7 @@ module Sign
 
           assert_redirected_to edit_sign_com_preference_reset_path
 
-          [preference, cookie, region, timezone, colortheme].each(&:reload)
+          [preference, cookie, region, timezone, theme].each(&:reload)
 
           assert_not cookie.consented
           assert_not cookie.functional
@@ -61,7 +61,7 @@ module Sign
           assert_not cookie.targetable
           assert_equal ComPreferenceRegionOption::JP, region.option_id
           assert_equal ComPreferenceTimezoneOption::ASIA_TOKYO, timezone.option_id
-          assert_equal ComPreferenceColorthemeOption::SYSTEM, colortheme.option_id
+          assert_equal ComPreferenceThemeOption::SYSTEM, theme.option_id
         end
       end
     end

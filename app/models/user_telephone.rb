@@ -69,7 +69,6 @@ class UserTelephone < PrincipalRecord
   validates :user_identity_telephone_status_id, numericality: { only_integer: true }
   validate :ensure_unique_number_digest
   validate :enforce_user_telephone_limit, on: :create
-  before_validation :set_number_digests
 
   after_initialize do
     self.number ||= ""
@@ -78,12 +77,6 @@ class UserTelephone < PrincipalRecord
   # Note: :number encryption is handled by Telephone concern
 
   private
-
-  def set_number_digests
-    digest = IdentifierBlindIndex.bidx_for_telephone(raw_number)
-    self.number_bidx = digest
-    self.number_digest = digest if respond_to?(:number_digest=)
-  end
 
   def ensure_unique_number_digest
     return if number_digest.blank?

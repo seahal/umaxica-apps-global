@@ -8,11 +8,5 @@ class AddPreferenceColumnsToUserAndStaffPreferences < ActiveRecord::Migration[8.
     add_column(:user_preferences, :region, :string, default: "jp", null: false)
     add_column(:user_preferences, :timezone, :string, default: "Asia/Tokyo", null: false)
     add_column(:user_preferences, :theme, :string, default: "sy", null: false)
-
-    # Add preference columns to staff_preferences
-    add_column(:staff_preferences, :language, :string, default: "ja", null: false)
-    add_column(:staff_preferences, :region, :string, default: "jp", null: false)
-    add_column(:staff_preferences, :timezone, :string, default: "Asia/Tokyo", null: false)
-    add_column(:staff_preferences, :theme, :string, default: "sy", null: false)
   end
 end

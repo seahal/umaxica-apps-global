@@ -31,6 +31,69 @@ class ConvertAvatarUuidPksToBigint < ActiveRecord::Migration[8.2]
 
     drop_table(:avatar_role_permissions, if_exists: true)
 
+    # Drop status tables to convert from string to bigint
+    drop_table(:handle_statuses, if_exists: true, force: :cascade)
+    drop_table(:handle_assignment_statuses, if_exists: true, force: :cascade)
+    drop_table(:post_statuses, if_exists: true, force: :cascade)
+    drop_table(:post_review_statuses, if_exists: true, force: :cascade)
+    drop_table(:avatar_roles, if_exists: true, force: :cascade)
+    drop_table(:avatar_permissions, if_exists: true, force: :cascade)
+    drop_table(:avatar_capabilities, if_exists: true, force: :cascade)
+    drop_table(:avatar_ownership_statuses, if_exists: true, force: :cascade)
+    drop_table(:avatar_moniker_statuses, if_exists: true, force: :cascade)
+    drop_table(:avatar_membership_statuses, if_exists: true, force: :cascade)
+
+    # Recreate status tables with Bigint PKs
+    create_table(:handle_statuses, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:handle_assignment_statuses, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:post_statuses, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:post_review_statuses, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:avatar_roles, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:avatar_permissions, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:avatar_capabilities, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:avatar_ownership_statuses, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:avatar_moniker_statuses, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
+    create_table(:avatar_membership_statuses, id: :bigint) do |t|
+      t.string(:code, null: false)
+      t.index(:code, unique: true)
+    end
+
     # Recreate tables with Bigint PKs
 
     create_table(:handles) do |t| # implicit id: :bigint
@@ -234,7 +297,7 @@ class ConvertAvatarUuidPksToBigint < ActiveRecord::Migration[8.2]
       t.string(:permalink, limit: 200, null: false)
       t.bigint(:post_id, null: false) # FK
       t.string(:public_id, default: "", null: false)
-      t.datetime(:published_at, null: false)
+      t.datetime(:publish_at, null: false)
       t.string(:redirect_url)
       t.string(:response_mode, null: false)
       t.string(:title)

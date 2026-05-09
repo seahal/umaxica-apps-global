@@ -9,7 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class WorkspaceStatus < OperatorRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   self.primary_key = "id"
 
   # Fixed IDs - do not modify these values

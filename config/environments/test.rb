@@ -23,7 +23,7 @@ Rails.application.configure do
 
   # Show full error reports.
   config.consider_all_requests_local = true
-  config.cache_store = :solid_cache_store
+  config.cache_store = (ENV["SOLID_CACHE_TEST"] == "1") ? :solid_cache_store : :memory_store
   config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.

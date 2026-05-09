@@ -2,8 +2,8 @@
 
 ## Overview
 
-Implement an extensible architecture that supports multiple social login providers (Google, Apple,
-Facebook, etc.).
+Implement an architecture that supports two social login providers: Google and Apple. Facebook and
+other providers are intentionally out of scope.
 
 ## Current State
 
@@ -21,8 +21,7 @@ app/services/oauth/
 ├── base_service.rb          # shared logic
 ├── providers/
 │   ├── google_service.rb    # Google-specific processing
-│   ├── apple_service.rb     # Apple-specific processing
-│   └── facebook_service.rb  # placeholder for future providers
+│   └── apple_service.rb     # Apple-specific processing
 ```
 
 **BaseService responsibilities:**
@@ -53,11 +52,6 @@ providers:
     icon: "apple"
     enabled: true
     scopes: ["name", "email"]
-  facebook:
-    name: "Facebook"
-    icon: "facebook"
-    enabled: false
-    scopes: ["email", "public_profile"]
 ```
 
 ### 3. Shared controller concern
@@ -176,7 +170,6 @@ get '/sign/failure', to: 'oauth_callbacks#failure'
 2. **Implement provider-specific services**
    - Google OAuth service.
    - Apple OAuth service.
-   - Extensible for additional providers.
 
 ### Phase 3: Controller implementation
 

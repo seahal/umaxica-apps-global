@@ -74,7 +74,7 @@ namespace :preference do
   define_method(:copy_preference_options!) do |source_pref, target_pref, _source_prefix, target_prefix|
     source_assoc = source_pref.class.name.underscore
 
-    %w(language timezone region colortheme).each do |type|
+    %w(language timezone region theme).each do |type|
       source_child = source_pref.public_send("#{source_assoc}_#{type}")
       next unless source_child&.option_id
 

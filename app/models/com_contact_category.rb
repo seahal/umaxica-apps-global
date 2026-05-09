@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class ComContactCategory < GuestRecord
+  include ReferenceRecord
+
   NOTHING = 1
   SECURITY_ISSUE = 2
 

@@ -14,14 +14,14 @@ class AuthTokenServiceTest < ActiveSupport::TestCase
     CustomerVisibility.find_or_create_by!(id: CustomerVisibility::BOTH)
   end
   test "encode returns nil for nil resource" do
-    result = Auth::TokenService.encode(nil, host: "example.com")
+    result = Auth::TokenService.encode(nil, host: "example.com", resource_type: "user")
 
     assert_nil result
   end
 
   test "encode returns nil for blank host" do
     user = users(:one)
-    result = Auth::TokenService.encode(user, host: "")
+    result = Auth::TokenService.encode(user, host: "", resource_type: "user")
 
     assert_nil result
   end
@@ -83,7 +83,7 @@ class AuthTokenServiceTest < ActiveSupport::TestCase
   test "encode creates valid token that can be decoded" do
     user = users(:one)
     token = Auth::TokenService.encode(
-      user, host: "example.com", session_public_id: "sid123",
+      user, host: "example.com", session_id: "sid123",
             resource_type: "user",
     )
 
@@ -98,7 +98,7 @@ class AuthTokenServiceTest < ActiveSupport::TestCase
   test "decode rejects token when resource_type issuer/type do not match" do
     user = users(:one)
     token = Auth::TokenService.encode(
-      user, host: "example.com", session_public_id: "sid123",
+      user, host: "example.com", session_id: "sid123",
             resource_type: "user",
     )
 
@@ -109,7 +109,7 @@ class AuthTokenServiceTest < ActiveSupport::TestCase
     ensure_customer_reference_records!
     customer = Customer.create!
     token = Auth::TokenService.encode(
-      customer, host: "example.com", session_public_id: "sid999",
+      customer, host: "example.com", session_id: "sid999",
                 resource_type: "customer",
     )
 
@@ -120,5 +120,29 @@ class AuthTokenServiceTest < ActiveSupport::TestCase
     assert_predicate payload, :present?
     assert_equal customer.id, payload["sub"]
     assert_equal "customer", payload["act"]
+  end
+
+  test "encode includes cnf.jkt when dpop_jkt provided" do
+    user = users(:one)
+    token = Auth::TokenService.encode(
+      user, host: "example.com", session_id: "sid123",
+            resource_type: "user", dpop_jkt: "thumb123",
+    )
+
+    payload = Auth::TokenService.decode(token, host: "example.com", resource_type: "user")
+
+    assert_equal({ "jkt" => "thumb123" }, payload["cnf"])
+  end
+
+  test "encode backward compatible with session_public_id parameter" do
+    user = users(:one)
+    token = Auth::TokenService.encode(
+      user, host: "example.com", session_public_id: "legacy_sid",
+            resource_type: "user",
+    )
+
+    payload = Auth::TokenService.decode(token, host: "example.com", resource_type: "user")
+
+    assert_equal "legacy_sid", payload["sid"]
   end
 end

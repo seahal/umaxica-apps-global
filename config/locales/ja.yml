@@ -47,10 +47,15 @@ ja:
       sent: 認証コードを再送しました。
       too_soon: しばらく待ってから再送してください。
       failed: 再送に失敗しました。時間を置いて再度お試しください。
+  jump:
+    redirector:
+      unavailable: このジャンプリンクは利用できません。
   activerecord:
     attributes:
       user_email:
         address: メールアドレス
+        confirm_policy: 利用規約
+        raw_address: メールアドレス
         status: ステータス
       user_telephone:
         number: 電話番号
@@ -75,8 +80,47 @@ ja:
         created_at: 作成日時
         last_used_at: 最終使用日
       user_passkey:
+        description: 名前
+        created_at: 登録日時
+        last_used_at: 最終使用日
+        sign_count: 使用回数
+      staff_passkey:
+        description: 名前
+        created_at: 登録日時
+        sign_count: 使用回数
+      user_token:
+        refresh_expires_at: リフレッシュトークン有効期限
+        lapses_at: 有効期限
+        purge_at: 削除予定日時
+      staff_token:
+        refresh_expires_at: リフレッシュトークン有効期限
+        lapses_at: 有効期限
+        purge_at: 削除予定日時
+      customer_token:
+        refresh_expires_at: リフレッシュトークン有効期限
+        lapses_at: 有効期限
+        purge_at: 削除予定日時
       user_identity_email:
         address: メールアドレス
+      customer_email:
+        address: メールアドレス
+        status: ステータス
+      customer_telephone:
+        number: 電話番号
+        status: ステータス
+      customer_secret:
+        name: 名前
+        created_at: 作成日時
+        last_used_at: 最終使用日
+      customer_one_time_password:
+        title: 名前
+        created_at: 作成日時
+        last_otp_at: 最終使用日
+      customer_passkey:
+        description: 名前
+        created_at: 登録日時
+        last_used_at: 最終使用日
+        sign_count: 使用回数
     errors:
       messages:
         code_format: 大文字・数字・アンダースコアのみを使用してください
@@ -341,6 +385,10 @@ ja:
           page_description: "%{product} の利用をはじめるための登録方法を選択してください。"
           links:
             registration: アカウント登録はこちら
+        email:
+          new:
+            page_title: メールアドレスで登録
+            error_summary: 入力内容を確認してください。
       authentication:
         new:
           page_title: サインイン方法を選ぶ
@@ -443,7 +491,8 @@ ja:
           flow:
             invalid: セッションの有効期限が切れました。
           new:
-            page_title: UMAXICA (sign, app)
+            page_title: メールアドレスで登録
+            error_summary: 入力内容を確認してください。
             link_to_other_methods: 他の方法で登録しますか？
             link_to_sign_in: ログインしますか？
         telephone:
@@ -488,7 +537,8 @@ ja:
             not_found: メールアドレスが見つかりません。
             session_expired: セッションの有効期限が切れました。最初からやり直してください。
           new:
-            page_title: UMAXICA (sign, app)
+            page_title: メールアドレスで登録
+            error_summary: 入力内容を確認してください。
             link_to_other_methods: 他の方法で登録しますか？
             link_to_sign_in: ログインしますか？
           create:
@@ -2280,6 +2330,8 @@ ja:
     invalid_session: 無効なセッションです。
     cannot_revoke_current: 現在のセッションは無効化できません。
     session_revoked: セッションを無効化しました。
+    all_sessions_revoked: すべてのセッションを無効化しました。再度ログインしてください。
+    sessions_purged: セッションを削除しました。
     turnstile_failed: 検証に失敗しました。もう一度お試しください。
     totp_limit_reached: 2件以上は登録できないです
     login_limit_exceeded: ログイン上限を超えています。既存のセッションを終了してから再度お試しください。
@@ -2750,3 +2802,159 @@ ja:
         reject_all: すべて拒否
         open_settings: 設定する
         accept_all: すべて許可
+  views:
+    apex:
+      app:
+        roots:
+          index:
+            redirect_prompt: "%{preference} へすぐ移動できます。"
+      com:
+        roots:
+          index:
+            redirect_prompt: "%{preference} へすぐ移動できます。"
+      org:
+        roots:
+          index:
+            redirect_prompt: "%{preference} へすぐ移動できます。"
+    sign:
+      com:
+        up:
+          telephones:
+            edit:
+              submit: 確認する
+            new:
+              confirm_policy_label: 利用規約に同意する
+              confirm_using_mfa_label: MFAの利用を確認する
+          emails:
+            new:
+              confirm_policy_label: 利用規約に同意する
+            edit:
+              submit: 確認する
+        configuration:
+          emails:
+            index:
+              verified: 認証済み
+              unverified: 未認証
+              empty: メールアドレスは登録されていません。
+          telephones:
+            registrations:
+              new:
+                description: 新しい電話番号を追加して、アカウントの管理をより安全にします。
+                help_text: 入力された電話番号にSMS等で確認コードを送信します。
+              edit:
+                page_title: 確認コードの入力
+                heading: 確認コードの入力
+                description: SMSで届いた確認コードを入力してください。
+            index:
+              actions: アクション
+              verified: 認証済み
+              unverified: 未認証
+              empty: 電話番号は登録されていません。
+      org:
+        configuration:
+          telephones:
+            index:
+              verified: 認証済み
+              unverified: 未認証
+          emails:
+            index:
+              verified: 認証済み
+              unverified: 未認証
+          secrets:
+            new:
+              confirm_secret_saved_label: わたしはしーくれっとをほぞんしました
+        verifications:
+          show:
+            no_methods: passkey を登録してください
+      app:
+        configuration:
+          outs:
+            edit:
+              confirm_label: ろぐあうとしますか？
+              confirm_description: 一度ログアウトすると、再度ログインが必要になります。
+          emails:
+            index:
+              verified: 認証済み
+              unverified: 未認証
+              empty: メールアドレスは登録されていません。
+          totps:
+            new:
+              qr_fallback: QRコードがスキャンできない場合は、認証アプリに手動でシークレットを入力してください。
+              first_token_label: 認証コード
+              first_token_help: 認証アプリに表示されている6桁のコードを入力してください。
+          telephones:
+            new:
+              description: 新しい電話番号を追加して、アカウントの管理をより安全にします。
+              help_text: 入力された電話番号にSMS等で確認コードを送信します。
+            index:
+              actions: アクション
+              verified: 認証済み
+              unverified: 未認証
+              empty: 電話番号は登録されていません。
+            registrations:
+              edit:
+                page_title: 確認コードの入力
+                heading: 確認コードの入力
+                description: SMSで届いた確認コードを入力してください。
+              new:
+                description: 新しい電話番号を追加して、アカウントの管理をより安全にします。
+                help_text: 入力された電話番号にSMS等で確認コードを送信します。
+          googles:
+            show:
+              description: Googleアカウントを使用してこのアカウントにログインできます。
+              linked: 連携済み
+              unlinked: 未連携
+          apples:
+            show:
+              description: Apple IDを使用してこのアカウントにログインできます。
+              linked: 連携済み
+              unlinked: 未連携
+          secrets:
+            new:
+              confirm_saved_label: わたしはしーくれっとをほぞんしました
+              one_time_notice: この値は一度しか表示されません。
+          passkeys:
+            index:
+              actions: アクション
+              empty: パスキーは登録されていません。
+        emails:
+          registrations:
+            verification_fields:
+              submit: 確認する
+            new_fields:
+              confirm_policy_label: 利用規約に同意する
+        up:
+          emails:
+            new:
+              confirm_policy_label: 利用規約に同意する
+            edit:
+              submit: 確認する
+          telephones:
+            new:
+              confirm_policy_label: 利用規約に同意する
+              confirm_using_mfa_label: MFAの利用を確認する
+        verifications:
+          show:
+            no_methods: email/passkey/totp を登録してください
+  models:
+    customer:
+      recovery_identity_required: パスキー/シークレットを登録するには、先にメールアドレスまたは電話番号を1つ以上登録（確認）してください。
+    user:
+      recovery_identity_required: パスキー/シークレットを登録するには、先にメールアドレスまたは電話番号を1つ以上登録（確認）してください。
+  controllers:
+    restricted_session_guard:
+      blocked_message: きんそくじこうです
+    sign:
+      verification_passkey_checks:
+        missing_credential_data: パスキー認証データが不足しています
+      com_verification_base:
+        email_unverified: メールアドレスが未確認です
+      verification_totp_checks:
+        invalid_code_format: 確認コードが不正です
+        invalid_code: 確認コードが正しくありません
+      app_verification_base:
+        email_unverified: メールアドレスが未確認です
+        invalid_code_format: 確認コードが不正です
+        code_resend_required: 確認コードの再送信が必要です
+        code_expired: 確認コードの有効期限が切れました
+        invalid_code: 確認コードが正しくありません

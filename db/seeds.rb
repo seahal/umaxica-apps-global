@@ -13,6 +13,7 @@ def ensure_reference_rows(model_class, ids)
   end
 end
 
+# Reference tables with ReferenceRecord concern
 ensure_reference_rows(UserVisibility, [UserVisibility::STAFF])
 ensure_reference_rows(UserStatus, [UserStatus::ACTIVE])
 ensure_reference_rows(UserEmailStatus, [UserEmailStatus::VERIFIED])
@@ -28,6 +29,19 @@ ensure_reference_rows(
    StaffSecretStatus::REVOKED, StaffSecretStatus::USED,],
 )
 ensure_reference_rows(StaffSecretKind, [StaffSecretKind::PERMANENT])
+
+# Ensure reference rows using ensure_defaults! method
+UserVisibility.ensure_defaults!
+UserStatus.ensure_defaults!
+UserEmailStatus.ensure_defaults!
+UserSecretStatus.ensure_defaults!
+UserSecretKind.ensure_defaults!
+
+StaffVisibility.ensure_defaults!
+StaffStatus.ensure_defaults!
+StaffEmailStatus.ensure_defaults!
+StaffSecretStatus.ensure_defaults!
+StaffSecretKind.ensure_defaults!
 
 user = User.find_or_initialize_by(public_id: "sample_user")
 user.status_id = UserStatus::ACTIVE

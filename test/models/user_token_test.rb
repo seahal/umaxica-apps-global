@@ -7,20 +7,18 @@
 # Database name: mark
 #
 #  id                           :bigint           not null, primary key
-#  compromised_at               :datetime
 #  dbsc_challenge               :text
 #  dbsc_challenge_issued_at     :datetime
 #  dbsc_public_key              :jsonb
-#  deletable_at                 :datetime         default(Infinity), not null
 #  device_id_digest             :string
-#  expired_at                   :datetime
+#  dpop_jkt                     :string
+#  lapses_at                    :datetime         default(Infinity), not null
 #  last_step_up_at              :datetime
 #  last_step_up_scope           :string
 #  last_used_at                 :datetime
-#  refresh_expires_at           :datetime         not null
+#  purge_at                     :datetime         default(Infinity), not null
 #  refresh_token_digest         :binary
 #  refresh_token_generation     :integer          default(0), not null
-#  revoked_at                   :datetime
 #  rotated_at                   :datetime
 #  status                       :string(20)       default("active"), not null
 #  created_at                   :datetime         not null
@@ -29,6 +27,7 @@
 #  device_id                    :string           default(""), not null
 #  public_id                    :string(21)       default(""), not null
 #  refresh_token_family_id      :string
+#  session_id                   :string
 #  user_id                      :bigint           not null
 #  user_token_binding_method_id :bigint           default(0), not null
 #  user_token_dbsc_status_id    :bigint           default(0), not null
@@ -37,17 +36,14 @@
 #
 # Indexes
 #
-#  index_user_tokens_on_compromised_at                (compromised_at)
 #  index_user_tokens_on_dbsc_session_id               (dbsc_session_id) UNIQUE
-#  index_user_tokens_on_deletable_at                  (deletable_at)
 #  index_user_tokens_on_device_id                     (device_id)
 #  index_user_tokens_on_device_id_digest              (device_id_digest)
-#  index_user_tokens_on_expired_at                    (expired_at)
 #  index_user_tokens_on_public_id                     (public_id) UNIQUE
-#  index_user_tokens_on_refresh_expires_at            (refresh_expires_at)
+#  index_user_tokens_on_purge_at                      (purge_at)
 #  index_user_tokens_on_refresh_token_digest          (refresh_token_digest) UNIQUE
 #  index_user_tokens_on_refresh_token_family_id       (refresh_token_family_id)
-#  index_user_tokens_on_revoked_at                    (revoked_at)
+#  index_user_tokens_on_session_id                    (session_id)
 #  index_user_tokens_on_status                        (status)
 #  index_user_tokens_on_user_id_and_last_step_up_at   (user_id,last_step_up_at)
 #  index_user_tokens_on_user_token_binding_method_id  (user_token_binding_method_id)
@@ -174,19 +170,22 @@ class UserTokenTest < ActiveSupport::TestCase
   end
 
   test "active state reflects revoked and expired refresh tokens" do
-    token = UserToken.create!(user: User.create!)
+    freeze_time do
+      token = UserToken.create!(user: User.create!)
 
-    assert_predicate token, :active?
+      assert_predicate token, :active?
 
-    token.update!(expired_at: Time.current)
+      travel 1.minute
+      token.update!(lapses_at: 30.seconds.from_now)
 
-    assert_predicate token, :revoked?
-    assert_not token.active?
+      assert_not token.expired_refresh?
+      assert_predicate token, :active?
 
-    token.update!(expired_at: nil, refresh_expires_at: 1.day.ago)
+      token.update_columns(lapses_at: 30.seconds.ago)
 
-    assert_predicate token, :expired_refresh?
-    assert_not token.active?
+      assert_predicate token, :expired_refresh?
+      assert_not token.active?
+    end
   end
 
   test "revoke! marks token expired and revoked" do
@@ -195,8 +194,8 @@ class UserTokenTest < ActiveSupport::TestCase
     token.revoke!
 
     assert_predicate token, :expired?
-    assert_predicate token.expired_at, :present?
-    assert_predicate token.revoked_at, :present?
+    assert_predicate token.lapses_at, :present?
+    assert_predicate token.lapses_at, :present?
   end
 
   test "rotate_refresh_token! updates digest and timestamps" do
@@ -228,7 +227,8 @@ class UserTokenTest < ActiveSupport::TestCase
       token = UserToken.create!(
         user: @user,
         user_token_kind_id: UserTokenKind::BROWSER_WEB,
-        revoked_at: 3.hours.from_now,
+        lapses_at: 3.hours.from_now,
+        purge_at: 4.days.from_now,
       )
       token.rotate_refresh_token!
 
@@ -240,8 +240,8 @@ class UserTokenTest < ActiveSupport::TestCase
       replacement = result[:token]
 
       assert_equal :rotated, result[:status]
-      assert_equal token.revoked_at.to_i, replacement.revoked_at.to_i
-      assert_equal token.deletable_at.to_i, replacement.deletable_at.to_i
+      assert_equal token.lapses_at.to_i, replacement.lapses_at.to_i
+      assert_equal token.purge_at.to_i, replacement.purge_at.to_i
     end
   end
 
@@ -254,6 +254,20 @@ class UserTokenTest < ActiveSupport::TestCase
 
     assert_equal token.public_id, public_id
     assert_predicate verifier, :present?
+  end
+
+  test "session_id copies from public_id on create when blank" do
+    user = User.create!
+    token = UserToken.create!(user: user)
+
+    assert_equal token.public_id, token.session_id
+  end
+
+  test "session_id preserves explicit value on create" do
+    user = User.create!
+    token = UserToken.create!(user: user, session_id: "custom_sid")
+
+    assert_equal "custom_sid", token.session_id
   end
 
   test "public_id is generated and unique" do
@@ -271,46 +285,50 @@ class UserTokenTest < ActiveSupport::TestCase
     assert_not_empty @token.errors[:public_id]
   end
 
-  test "refresh_expires_at is required" do
-    @token.refresh_expires_at = nil
+  test "lapses_at is required" do
+    @token.lapses_at = nil
 
     assert_not @token.valid?
-    assert_not_empty @token.errors[:refresh_expires_at]
+    assert_not_empty @token.errors[:lapses_at]
   end
 
-  test "deletable_at matches refresh_expires_at on create" do
-    expires_at = 2.hours.from_now
+  test "purge_at persists on create when provided" do
+    lapses_at = 1.day.from_now
+    purge_at = 2.days.from_now
     token = UserToken.create!(
       user: User.create!,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      refresh_expires_at: expires_at,
+      lapses_at: lapses_at,
+      purge_at: purge_at,
     )
 
-    assert_equal token.refresh_expires_at, token.deletable_at
+    assert_equal purge_at.to_i, token.purge_at.to_i
   end
 
-  test "deletable_at is updated when refresh_expires_at changes" do
+  test "purge_at is preserved when lapses_at changes" do
+    purge_at = 4.days.from_now
     token = UserToken.create!(
       user: User.create!,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      refresh_expires_at: 1.hour.from_now,
+      lapses_at: 1.day.from_now,
+      purge_at: purge_at,
     )
-    new_expires_at = 3.hours.from_now
+    new_lapses_at = 2.days.from_now
 
-    token.update!(refresh_expires_at: new_expires_at)
+    token.update!(lapses_at: new_lapses_at)
 
-    assert_equal token.refresh_expires_at, token.deletable_at
+    assert_equal purge_at.to_i, token.purge_at.to_i
   end
 
-  test "deletable scope returns only tokens deletable at or before now" do
+  test "purgeability query returns only tokens purgeable at or before now" do
     user = User.create!
-    past_token = UserToken.create!(user: user, refresh_expires_at: 10.minutes.ago)
-    future_token = UserToken.create!(user: user, refresh_expires_at: 10.minutes.from_now)
+    past_token = UserToken.create!(user: user, lapses_at: 20.minutes.ago, purge_at: 10.minutes.ago)
+    future_token = UserToken.create!(user: user, lapses_at: 10.minutes.ago, purge_at: 10.minutes.from_now)
 
-    deletable_ids = UserToken.deletable(Time.current).pluck(:id)
+    purgeable_ids = UserToken.where(purge_at: ..Time.current).pluck(:id)
 
-    assert_includes deletable_ids, past_token.id
-    assert_not_includes deletable_ids, future_token.id
+    assert_includes purgeable_ids, past_token.id
+    assert_not_includes purgeable_ids, future_token.id
   end
 
   test "association deletion: destroys when user is destroyed" do
@@ -373,29 +391,31 @@ class UserTokenTest < ActiveSupport::TestCase
     revoked_raw = revoked.rotate_refresh_token!
     compromised_raw = compromised.rotate_refresh_token!
     expired_raw = expired.rotate_refresh_token!
-    revoked.update!(expired_at: Time.current)
-    compromised.update!(compromised_at: Time.current)
-    expired.update!(refresh_expires_at: 1.minute.ago)
+    travel 1.minute do
+      revoked.update_columns(lapses_at: 30.seconds.ago)
+      expired.update_columns(lapses_at: 30.seconds.ago)
+      compromised.update!(lapses_at: Time.current)
 
-    revoked_digest = UserToken.digest_refresh_token(UserToken.parse_refresh_token(revoked_raw).last)
-    compromised_digest = UserToken.digest_refresh_token(UserToken.parse_refresh_token(compromised_raw).last)
-    expired_digest = UserToken.digest_refresh_token(UserToken.parse_refresh_token(expired_raw).last)
+      revoked_digest = UserToken.digest_refresh_token(UserToken.parse_refresh_token(revoked_raw).last)
+      compromised_digest = UserToken.digest_refresh_token(UserToken.parse_refresh_token(compromised_raw).last)
+      expired_digest = UserToken.digest_refresh_token(UserToken.parse_refresh_token(expired_raw).last)
 
-    assert_equal :invalid,
-                 UserToken.rotate_refresh!(
-                   presented_refresh_digest: revoked_digest, device_id: "d1",
-                   now: Time.current,
-                 )[:status]
-    assert_equal :invalid,
-                 UserToken.rotate_refresh!(
-                   presented_refresh_digest: compromised_digest, device_id: "d2",
-                   now: Time.current,
-                 )[:status]
-    assert_equal :invalid,
-                 UserToken.rotate_refresh!(
-                   presented_refresh_digest: expired_digest, device_id: "d3",
-                   now: Time.current,
-                 )[:status]
+      assert_equal :invalid,
+                   UserToken.rotate_refresh!(
+                     presented_refresh_digest: revoked_digest, device_id: "d1",
+                     now: Time.current,
+                   )[:status]
+      assert_equal :invalid,
+                   UserToken.rotate_refresh!(
+                     presented_refresh_digest: compromised_digest, device_id: "d2",
+                     now: Time.current,
+                   )[:status]
+      assert_equal :invalid,
+                   UserToken.rotate_refresh!(
+                     presented_refresh_digest: expired_digest, device_id: "d3",
+                     now: Time.current,
+                   )[:status]
+    end
   end
 
   test "find_from_signed_ref resolves token when verifier payload has string keys" do

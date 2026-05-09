@@ -7,7 +7,7 @@
     <div>
       <h3><%= t('controller.sign.app.setting.index.google') %></h3>
       <p>
-        Googleアカウントを使用してこのアカウントにログインできます。
+        <%= t("views.sign.app.configuration.googles.show.description") %>
       </p>
     </div>
   </div>
@@ -28,9 +28,9 @@
             <div>
               <h4>Google</h4>
               <% if current_user.user_social_google %>
-                <p>連携済み</p>
+                <p><%= t("views.sign.app.configuration.googles.show.linked") %></p>
               <% else %>
-                <p>未連携</p>
+                <p><%= t("views.sign.app.configuration.googles.show.unlinked") %></p>
               <% end %>
             </div>
           </div>
@@ -38,7 +38,7 @@
             <% if current_user.user_social_google %>
               <% unlink_allowed = current_user.login_methods_remaining?(excluding_provider: "google_app") %>
               <%= button_to t('actions.disconnect'),
-                            sign_app_social_unlink_path(provider: "google_app"),
+                            sign_app_social_authentication_path(provider: "google_app"),
                             method: :delete,
                             disabled: !unlink_allowed %>
               <p><%= t("auth.step_up.required") %></p>
@@ -46,7 +46,10 @@
                 <p><%= t("errors.social_auth.insufficient_login_methods") %></p>
               <% end %>
             <% else %>
-              <%= link_to t('actions.connect'), new_sign_app_social_session_path(provider: "google_app", intent: "link"), data: { turbo: false } %>
+              <%= button_to t('actions.connect'),
+                            start_sign_app_social_authentication_path(provider: "google_app", intent: "link", ri: params[:ri]),
+                            method: :post,
+                            data: { turbo: false } %>
             <% end %>
           </div>
         </div>

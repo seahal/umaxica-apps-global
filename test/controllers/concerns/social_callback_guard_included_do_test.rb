@@ -24,7 +24,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     end
 
     def params
-      params_hash
+      ActionController::Parameters.new(params_hash)
     end
 
     def request

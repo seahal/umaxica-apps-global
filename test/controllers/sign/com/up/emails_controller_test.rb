@@ -25,6 +25,17 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
+    assert_select "h2", I18n.t("sign.com.registration.email.new.page_title")
+    assert_no_match(/UMAXICA \(sign, app\)/, response.body)
+  end
+
+  test "collection get redirects to new email registration" do
+    get sign_com_up_emails_url(ri: "jp", hotwire_spark: true, reload: "123"), headers: default_headers
+
+    assert_response :redirect
+    assert_includes response.location, "/sign/up/emails/new?ri=jp"
+    assert_not_includes response.location, "hotwire_spark"
+    assert_not_includes response.location, "reload"
   end
 
   test "includes navigation link back to sign in" do
@@ -37,7 +48,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "create redirects to edit and allows edit page" do
     post sign_com_up_emails_url(ri: "jp"),
          params: {
-           user_email: {
+           customer_email: {
              raw_address: "com-flow-step@example.com",
              confirm_policy: "1",
            },
@@ -50,7 +61,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    assert_match(%r{/up/emails/[^/]+/edit}, path)
+    assert_match(%r{/sign/up/emails/[^/]+/edit}, path)
   end
 
   test "create with existing email still redirects and does not create a new record" do
@@ -67,7 +78,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
         assert_enqueued_emails 0 do
           post sign_com_up_emails_url(ri: "jp"),
                params: {
-                 user_email: {
+                 customer_email: {
                    raw_address: existing_email.address,
                    confirm_policy: "1",
                  },
@@ -94,7 +105,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     post sign_com_up_emails_url(ri: "jp"),
          params: {
-           user_email: {
+           customer_email: {
              raw_address: existing_email.address,
              confirm_policy: "1",
            },
@@ -105,7 +116,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     patch sign_com_up_email_url(id: existing_email.public_id, ri: "jp"),
-          params: { user_email: { pass_code: "000000" } },
+          params: { customer_email: { pass_code: "000000" } },
           headers: default_headers
 
     assert_redirected_to new_sign_com_in_path(ri: "jp")
@@ -121,7 +132,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "edit with expired session redirects to new" do
     post sign_com_up_emails_url(ri: "jp"),
          params: {
-           user_email: {
+           customer_email: {
              raw_address: "expired-session@example.com",
              confirm_policy: "1",
            },
@@ -142,7 +153,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "update without code renders edit" do
     post sign_com_up_emails_url(ri: "jp"),
          params: {
-           user_email: {
+           customer_email: {
              raw_address: "missing-code@example.com",
              confirm_policy: "1",
            },
@@ -153,7 +164,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     public_id = response.location.split("/").last(2).first
 
     patch sign_com_up_email_url(id: public_id, ri: "jp"),
-          params: { user_email: { pass_code: "" } },
+          params: { customer_email: { pass_code: "" } },
           headers: default_headers
 
     assert_response :unprocessable_content
@@ -169,7 +180,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     )
 
     patch sign_com_up_email_url(id: email.public_id, ri: "jp"),
-          params: { user_email: { pass_code: "123456" } },
+          params: { customer_email: { pass_code: "123456" } },
           headers: default_headers
 
     assert_redirected_to new_sign_com_up_email_path(ri: "jp")
@@ -178,7 +189,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "create with invalid email fails" do
     post sign_com_up_emails_url(ri: "jp"),
          params: {
-           user_email: {
+           customer_email: {
              raw_address: "invalid-email",
              confirm_policy: "1",
            },
@@ -192,7 +203,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "create with unconfirmed policy fails" do
     post sign_com_up_emails_url(ri: "jp"),
          params: {
-           user_email: {
+           customer_email: {
              raw_address: "com-flow-step-2@example.com",
              confirm_policy: "0",
            },
@@ -208,7 +219,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     post sign_com_up_emails_url(ri: "jp"),
          params: {
-           user_email: { raw_address: "turnstile@example.com", confirm_policy: "1" },
+           customer_email: { raw_address: "turnstile@example.com", confirm_policy: "1" },
            "cf-turnstile-response": "test",
          },
          headers: default_headers
@@ -221,14 +232,16 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     # First request
     post sign_com_up_emails_url(ri: "jp"),
-         params: { user_email: { raw_address: email_address, confirm_policy: "1" }, "cf-turnstile-response": "test" },
+         params: { customer_email: { raw_address: email_address, confirm_policy: "1" },
+                   "cf-turnstile-response": "test", },
          headers: default_headers
 
     assert_response :redirect
 
     # Second request immediately should trigger cooldown
     post sign_com_up_emails_url(ri: "jp"),
-         params: { user_email: { raw_address: email_address, confirm_policy: "1" }, "cf-turnstile-response": "test" },
+         params: { customer_email: { raw_address: email_address, confirm_policy: "1" },
+                   "cf-turnstile-response": "test", },
          headers: default_headers
 
     assert_response :too_many_requests
@@ -236,7 +249,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   test "patch update with attempts exceeded redirects to new" do
     post sign_com_up_emails_url(ri: "jp"),
-         params: { user_email: { raw_address: "locked@example.com", confirm_policy: "1" },
+         params: { customer_email: { raw_address: "locked@example.com", confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
          headers: default_headers
 
@@ -247,7 +260,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     email.update!(otp_attempts_count: 10)
 
     patch sign_com_up_email_url(id: public_id, ri: "jp"),
-          params: { user_email: { pass_code: "123456" } },
+          params: { customer_email: { pass_code: "123456" } },
           headers: default_headers
 
     assert_redirected_to new_sign_com_up_email_path(ri: "jp")

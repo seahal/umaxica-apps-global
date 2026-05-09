@@ -154,7 +154,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
     UserToken.create!(
       user: @user,
       status: UserToken::STATUS_RESTRICTED,
-      refresh_expires_at: 1.minute.ago,
+      lapses_at: 1.minute.ago,
     )
 
     assert_not @harness.send(:restricted_session_exists?, @user)

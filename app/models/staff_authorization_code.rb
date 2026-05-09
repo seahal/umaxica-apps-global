@@ -13,10 +13,10 @@
 #  code_challenge        :string           not null
 #  code_challenge_method :string(8)        default("S256"), not null
 #  consumed_at           :datetime
-#  expires_at            :datetime         not null
+#  lapses_at             :datetime         default(Infinity), not null
 #  nonce                 :string
+#  purge_at              :datetime         default(Infinity), not null
 #  redirect_uri          :text             not null
-#  revoked_at            :datetime
 #  scope                 :string
 #  state                 :string
 #  created_at            :datetime         not null
@@ -26,11 +26,12 @@
 #
 # Indexes
 #
-#  index_staff_authorization_codes_on_code        (code) UNIQUE
-#  index_staff_authorization_codes_on_expires_at  (expires_at)
-#  index_staff_authorization_codes_on_staff_id    (staff_id)
+#  index_staff_authorization_codes_on_code      (code) UNIQUE
+#  index_staff_authorization_codes_on_staff_id  (staff_id)
 #
 class StaffAuthorizationCode < TokenRecord
+  include Retainable
+
   CODE_TTL = 10.seconds
   CODE_BYTES = 32
 
@@ -41,9 +42,9 @@ class StaffAuthorizationCode < TokenRecord
   validates :redirect_uri, presence: true
   validates :code_challenge, presence: true
   validates :code_challenge_method, inclusion: { in: %w(S256) }
-  validates :expires_at, presence: true
+  validates :lapses_at, presence: true
 
-  scope :valid, -> { where(consumed_at: nil, revoked_at: nil).where("expires_at > ?", Time.current) }
+  scope :valid, -> { where(consumed_at: nil).where("lapses_at > ?", Time.current) }
 
   def resource
     staff
@@ -72,13 +73,13 @@ class StaffAuthorizationCode < TokenRecord
         nonce: nonce,
         auth_method: auth_method,
         acr: acr,
-        expires_at: CODE_TTL.from_now,
+        lapses_at: CODE_TTL.from_now,
       )
     end
   end
 
   def expired?
-    expires_at <= Time.current
+    lapses_at <= Time.current
   end
 
   def consumed?
@@ -86,23 +87,22 @@ class StaffAuthorizationCode < TokenRecord
   end
 
   def revoked?
-    revoked_at.present?
+    lapses_at <= Time.current
   end
 
   def usable?
-    !expired? && !consumed? && !revoked?
+    !expired? && !consumed?
   end
 
   def consume!
     raise RuntimeError, "Authorization code already consumed" if consumed?
-    raise RuntimeError, "Authorization code revoked" if revoked?
     raise RuntimeError, "Authorization code expired" if expired?
 
     update!(consumed_at: Time.current)
   end
 
   def revoke!
-    update!(revoked_at: Time.current) unless revoked?
+    update!(lapses_at: Time.current)
   end
 
   def verify_pkce(code_verifier)

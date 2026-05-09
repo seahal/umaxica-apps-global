@@ -146,12 +146,12 @@ module Authentication
       JWT_ALGORITHM = "ES384"
 
       class << self
-        def encode(resource, host:, session_public_id: nil, resource_type: nil, expires_at: nil, preferences: nil,
-                   acr: nil, amr: nil)
+        def encode(resource, host:, session_public_id: nil, session_id: nil, resource_type: nil, dpop_jkt: nil,
+                   expires_at: nil, preferences: nil, acr: nil, amr: nil)
           Auth::TokenService.encode(
-            resource, host: host, session_public_id: session_public_id,
-                      resource_type: resource_type, expires_at: expires_at,
-                      preferences: preferences, acr: acr, amr: amr,
+            resource, host: host, session_public_id: session_public_id, session_id: session_id,
+                      resource_type: resource_type, dpop_jkt: dpop_jkt,
+                      expires_at: expires_at, preferences: preferences, acr: acr, amr: amr,
           )
         end
 
@@ -621,7 +621,7 @@ module Authentication
       restricted_expires_at = is_restricted ? restricted_session_expires_at : nil
       refresh_plain =
         TokenRecord.connected_to(role: :writing) do
-          token_record.rotate_refresh_token!(expires_at: restricted_expires_at)
+          token_record.rotate_refresh_token!(lapses_at: restricted_expires_at)
         end
 
       if is_restricted
@@ -2191,10 +2191,10 @@ module Authentication
       return {} unless %w(staff customer).include?(resource_type)
 
       ttl_class = (resource_type == "customer") ? CustomerToken : StaffToken
-      revoked_at = now + ttl_class::LOGIN_SESSION_TTL
+      lapses_at = now + ttl_class::LOGIN_SESSION_TTL
       {
-        revoked_at: revoked_at,
-        deletable_at: revoked_at + ttl_class::DELETION_GRACE_PERIOD,
+        lapses_at: lapses_at,
+        purge_at: lapses_at + ttl_class::DELETION_GRACE_PERIOD,
       }
     end
 
@@ -2298,7 +2298,7 @@ module Authentication
     def dbsc_cookie_expires_at_for(token_record, now: Time.current)
       return unless token_record&.binding_method_dbsc?
 
-      [now + DBSC_COOKIE_TTL, token_record.refresh_expires_at, token_record.revoked_at].compact.min
+      [now + DBSC_COOKIE_TTL, token_record.lapses_at].compact.min
     end
 
     def issue_dbsc_registration_header_for(token_record)
@@ -2349,17 +2349,25 @@ module Authentication
 
     def token_expiry_column(klass)
       return :expired_at if klass.column_names.include?("expired_at")
+      return :lapses_at if klass.column_names.include?("lapses_at")
       return :revoked_at if klass.column_names.include?("revoked_at")
 
       raise ArgumentError, "#{klass.name} does not have expired_at/revoked_at column"
     end
 
     def access_token_expires_at_for(token_record, now: Time.current)
-      [now + ACCESS_TOKEN_TTL, token_record&.revoked_at].compact.min
+      [now + ACCESS_TOKEN_TTL, token_record_expiry_at(token_record)].compact.min
     end
 
     def refresh_cookie_expires_at_for(token_record)
-      [token_record&.refresh_expires_at, token_record&.revoked_at].compact.min
+      [token_record_expiry_at(token_record), token_record&.lapses_at].compact.min
+    end
+
+    def token_record_expiry_at(token_record)
+      return unless token_record
+      return token_record.revoked_at if token_record.respond_to?(:revoked_at)
+
+      token_record.lapses_at if token_record.respond_to?(:lapses_at)
     end
 
     def expires_in_for(expires_at, now: Time.current)

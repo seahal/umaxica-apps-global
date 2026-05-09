@@ -47,6 +47,8 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
   test "new requires pending MFA session" do
     get new_sign_com_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
 
+    assert_response :redirect
+
     assert_redirected_to new_sign_com_in_path(ri: "jp")
   end
 
@@ -55,9 +57,10 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
     if true # Replaced STUB stub with real execution as per G1
       get new_sign_com_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+
+      assert_response :success
     end
 
-    assert_response :success
     challenge_id = session[:passkey_challenges].keys.first
 
     mock_credential = OpenStruct.new(id: @passkey.webauthn_id, sign_count: 6)

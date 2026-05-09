@@ -97,8 +97,7 @@ module Sign
       end
 
       def issue_and_send!(normalized_target)
-        digest = digest_for_target(normalized_target)
-        records = target_records(digest)
+        records = target_records(normalized_target)
 
         records.find_each do |record|
           clear_otp(record)
@@ -132,17 +131,15 @@ module Sign
         end
       end
 
-      def digest_for_target(normalized_target)
-        (@kind == "telephone") ?
-          IdentifierBlindIndex.bidx_for_telephone(normalized_target) :
-          IdentifierBlindIndex.bidx_for_email(normalized_target)
-      end
+      def target_records(normalized_target)
+        return UserTelephone.none if @kind == "telephone" && normalized_target.blank?
+        return UserEmail.none if @kind == "email" && normalized_target.blank?
 
-      def target_records(digest)
-        return UserTelephone.none if @kind == "telephone" && digest.blank?
-        return UserEmail.none if @kind == "email" && digest.blank?
-
-        (@kind == "telephone") ? UserTelephone.where(number_digest: digest) : UserEmail.where(address_digest: digest)
+        if @kind == "telephone"
+          UserTelephone.with_number(normalized_target)
+        else
+          UserEmail.with_address(normalized_target)
+        end
       end
 
       def issued_status_id

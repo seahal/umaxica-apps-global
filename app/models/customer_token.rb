@@ -7,20 +7,18 @@
 # Database name: symbol
 #
 #  id                               :bigint           not null, primary key
-#  compromised_at                   :datetime
 #  dbsc_challenge                   :text
 #  dbsc_challenge_issued_at         :datetime
 #  dbsc_public_key                  :jsonb
-#  deletable_at                     :datetime         default(Infinity), not null
 #  device_id_digest                 :string
-#  expired_at                       :datetime
+#  dpop_jkt                         :string
+#  lapses_at                        :datetime         default(Infinity), not null
 #  last_step_up_at                  :datetime
 #  last_step_up_scope               :string
 #  last_used_at                     :datetime
-#  refresh_expires_at               :datetime         not null
+#  purge_at                         :datetime         default(Infinity), not null
 #  refresh_token_digest             :binary
 #  refresh_token_generation         :integer          default(0), not null
-#  revoked_at                       :datetime
 #  rotated_at                       :datetime
 #  status                           :string(20)       default("active"), not null
 #  created_at                       :datetime         not null
@@ -34,33 +32,29 @@
 #  device_id                        :string           default(""), not null
 #  public_id                        :string(21)       default(""), not null
 #  refresh_token_family_id          :string
+#  session_id                       :string
 #
 # Indexes
 #
-#  index_customer_tokens_on_compromised_at                    (compromised_at)
 #  index_customer_tokens_on_customer_id_and_last_step_up_at   (customer_id,last_step_up_at)
 #  index_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id)
 #  index_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id)
 #  index_customer_tokens_on_customer_token_kind_id            (customer_token_kind_id)
 #  index_customer_tokens_on_customer_token_status_id          (customer_token_status_id)
 #  index_customer_tokens_on_dbsc_session_id                   (dbsc_session_id) UNIQUE
-#  index_customer_tokens_on_deletable_at                      (deletable_at)
 #  index_customer_tokens_on_device_id                         (device_id)
 #  index_customer_tokens_on_device_id_digest                  (device_id_digest)
-#  index_customer_tokens_on_expired_at                        (expired_at)
 #  index_customer_tokens_on_public_id                         (public_id) UNIQUE
-#  index_customer_tokens_on_refresh_expires_at                (refresh_expires_at)
+#  index_customer_tokens_on_purge_at                          (purge_at)
 #  index_customer_tokens_on_refresh_token_digest              (refresh_token_digest) UNIQUE
 #  index_customer_tokens_on_refresh_token_family_id           (refresh_token_family_id)
-#  index_customer_tokens_on_revoked_at                        (revoked_at)
+#  index_customer_tokens_on_session_id                        (session_id)
 #  index_customer_tokens_on_status                            (status)
 #
 # Foreign Keys
 #
-#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id =>
-#                                                           customer_token_binding_methods.id)
-#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id =>
-#                                                           customer_token_dbsc_statuses.id)
+#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id => customer_token_binding_methods.id)
+#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id => customer_token_dbsc_statuses.id)
 #  fk_customer_tokens_on_customer_token_kind_id            (customer_token_kind_id => customer_token_kinds.id)
 #  fk_customer_tokens_on_customer_token_status_id          (customer_token_status_id => customer_token_statuses.id)
 #
@@ -68,7 +62,7 @@ class CustomerToken < SymbolRecord
   include ::PublicId
   include ::RefreshTokenable
   include ::SignedSessionReference
-  include ::TokenDeletableSync
+  include ::Retainable
   include ::TokenStatusManagement
   include ::DbscBindable
 
@@ -93,9 +87,16 @@ class CustomerToken < SymbolRecord
   attribute :customer_token_dbsc_status_id, default: CustomerTokenDbscStatus::NOTHING
 
   validates :public_id, uniqueness: true, length: { maximum: 21 }
-  validates :refresh_expires_at, presence: true
+
+  before_create :ensure_session_id
 
   validate :enforce_concurrent_session_limit, on: :create
+
+  private
+
+  def ensure_session_id
+    self.session_id = public_id if session_id.blank?
+  end
 
   def enforce_concurrent_session_limit
     return unless customer_id

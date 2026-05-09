@@ -10,6 +10,8 @@
 # frozen_string_literal: true
 
 class AppPreferenceTimezoneOption < PrincipalRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   ETC_UTC = 1

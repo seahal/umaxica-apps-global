@@ -18,7 +18,7 @@
             <th scope="col"><%= t('activerecord.attributes.user_passkey.created_at') %></th>
             <th scope="col"><%= t('activerecord.attributes.user_passkey.last_used_at') %></th>
             <th scope="col">
-              <span>アクション</span>
+              <span><%= t("views.sign.app.configuration.passkeys.index.actions") %></span>
             </th>
           </tr>
           </thead>
@@ -37,7 +37,7 @@
           <% if @passkeys.empty? %>
             <tr>
               <td colspan="4" class="italic">
-                パスキーは登録されていません。
+                <%= t("views.sign.app.configuration.passkeys.index.empty") %>
               </td>
             </tr>
           <% end %>

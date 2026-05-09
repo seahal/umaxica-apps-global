@@ -33,6 +33,14 @@ module Jit
           decode_key(keyset[kid])
         end
 
+        def encode(payload)
+          kid = active_kid
+          pk = private_key_for(kid)
+          raise StandardError, "Missing private key for kid: #{kid}" if pk.nil?
+
+          JWT.encode(payload, pk, "ES384", { kid: kid, typ: payload["typ"] })
+        end
+
         def parse_header(token)
           _payload, header = JWT.decode(token, nil, false)
           header || {}

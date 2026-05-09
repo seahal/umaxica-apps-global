@@ -22,10 +22,10 @@
     <%= render "layouts/shared/flash_messages" %>
     <%= render "layouts/shared/current_banner", tld: :org, domain: :sign, region: :global %>
     <% if logged_in? %>
-      <%= link_to t("sign.org.layout.nav.logout"), edit_sign_org_configuration_out_url(host: ENV["ID_STAFF_URL"]) %>
+      <%= link_to t("sign.org.layout.nav.logout"), edit_sign_org_configuration_out_url %>
     <% else %>
-      <%= link_to t("sign.org.layout.nav.sign_up"), new_sign_org_up_url(host: ENV["ID_STAFF_URL"]) %>
-      <%= link_to t("sign.org.layout.nav.log_in"), new_sign_org_in_url(host: ENV["ID_STAFF_URL"]) %>
+      <%= link_to t("sign.org.layout.nav.sign_up"), new_sign_org_up_url %>
+      <%= link_to t("sign.org.layout.nav.log_in"), new_sign_org_in_url %>
     <% end %>
   </nav>
   <div>

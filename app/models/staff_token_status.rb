@@ -10,6 +10,8 @@
 #
 
 class StaffTokenStatus < TokenRecord
+  include ReferenceRecord
+
   ACTIVE = 1
   NOTHING = 0
   EXPIRED = 2

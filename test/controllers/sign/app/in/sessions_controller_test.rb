@@ -27,6 +27,8 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_in_session_url(ri: "jp"),
         headers: browser_headers.merge("Host" => @host)
 
+    assert_response :redirect
+
     assert_redirected_to new_sign_app_in_url(ri: "jp")
   end
 
@@ -139,12 +141,12 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     active_token1.reload
 
-    assert_not_nil active_token1.expired_at
+    assert_not active_token1.currently_usable?
 
     # Unrevoked active session remains
     active_token2.reload
 
-    assert_nil active_token2.expired_at
+    assert_predicate active_token2, :currently_usable?
   end
 
   test "update revokes session but does not promote when still at limit" do
@@ -191,7 +193,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.reload
 
     assert_equal UserToken::STATUS_RESTRICTED, restricted_token.status
-    assert_nil restricted_token.revoked_at
+    assert_predicate restricted_token, :currently_usable?
   end
 
   test "update ignores ref belonging to another user" do
@@ -209,8 +211,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     other_token.reload
 
-    assert_nil other_token.expired_at
-    assert_nil other_token.revoked_at
+    assert_predicate other_token, :currently_usable?
   end
 
   # ===================================================================
@@ -232,7 +233,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     active_token.reload
 
-    assert_not_nil active_token.expired_at
+    assert_not active_token.currently_usable?
 
     restricted_token.reload
 
@@ -259,7 +260,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.reload
 
     assert_equal UserToken::STATUS_RESTRICTED, restricted_token.status
-    assert_nil restricted_token.revoked_at
+    assert_predicate restricted_token, :currently_usable?
   end
 
   test "update with invalid ref param flashes alert and stays on page" do
@@ -389,7 +390,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     token.reload
 
-    assert_not_nil token.expired_at
+    assert_not token.currently_usable?
     assert_equal UserToken::STATUS_REVOKED, token.status
   end
 
@@ -414,7 +415,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     active_token.reload
 
-    assert_not_nil active_token.expired_at
+    assert_not active_token.currently_usable?
 
     restricted_token.reload
 
@@ -433,7 +434,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.reload
 
     assert_equal UserToken::STATUS_RESTRICTED, restricted_token.status
-    assert_nil restricted_token.revoked_at
+    assert_predicate restricted_token, :currently_usable?
   end
 
   test "destroy with invalid ref param does not revoke anything" do
@@ -465,7 +466,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     other_token.reload
 
-    assert_nil other_token.expired_at
+    assert_predicate other_token, :currently_usable?
   end
 
   # ===================================================================
@@ -473,11 +474,13 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # ===================================================================
 
   test "restricted session at 14 minutes is still accessible (boundary: within TTL)" do
-    token = create_restricted_session(@user, expires_at: 15.minutes.from_now)
+    token = create_restricted_session(@user, lapses_at: 15.minutes.from_now)
     headers = as_user_headers_with_token(@user, token, host: @host)
 
     travel 14.minutes do
       get sign_app_in_session_url(ri: "jp"), headers: headers
+
+      assert_response :success
     end
 
     assert_response :success
@@ -487,7 +490,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "restricted session expires after 15 minutes and is locked on in/session" do
-    token = create_restricted_session(@user, expires_at: 15.minutes.from_now)
+    token = create_restricted_session(@user, lapses_at: 15.minutes.from_now)
     headers = as_user_headers_with_token(@user, token, host: @host)
     events = []
 
@@ -524,14 +527,14 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def create_restricted_session(user, expires_at: nil)
+  def create_restricted_session(user, lapses_at: nil)
     token = UserToken.create!(
       user: user,
       status: UserToken::STATUS_RESTRICTED,
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
-    token.rotate_refresh_token!(expires_at: expires_at)
+    token.rotate_refresh_token!(lapses_at: lapses_at)
     token
   end
 

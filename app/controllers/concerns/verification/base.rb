@@ -182,8 +182,10 @@ module Verification
     def current_actor_token
       return nil if current_session_public_id.blank?
 
-      expiry_column = token_class.column_names.include?("expired_at") ? :expired_at : :revoked_at
-      token_class.find_by(:public_id => current_session_public_id, expiry_column => nil)
+      token = token_class.find_by(public_id: current_session_public_id)
+      return token if token&.currently_usable?
+
+      nil
     end
 
     def verification_model

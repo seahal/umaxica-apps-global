@@ -6,7 +6,8 @@ require "test_helper"
 module Sign
   module Risk
     class EnforcerTest < ActiveSupport::TestCase
-      fixtures :users, :user_statuses, :user_token_statuses, :user_token_kinds
+      fixtures :users, :user_statuses, :user_token_statuses, :user_token_kinds,
+               :staffs, :staff_token_statuses, :staff_token_kinds
 
       setup do
         @user = users(:one) # Assuming fixtures or factory
@@ -47,14 +48,42 @@ module Sign
       end
 
       test "requires step up if score is 60" do
-        Engine.stub(:score, 60) do
-          called = false
-          Enforcer.stub(:require_step_up!, ->(u) { called = true; assert_equal @user, u }) do
-            Enforcer.call(@user)
-          end
+        @user.user_tokens.destroy_all
 
-          assert called, "require_step_up! should have been called"
+        token = UserToken.create!(
+          user: @user,
+          lapses_at: 1.day.from_now,
+          public_id: "test_step_up_#{SecureRandom.hex(4)}",
+        )
+
+        Engine.stub(:score, 60) do
+          Enforcer.call(@user)
         end
+
+        token.reload
+
+        assert_not_nil token.last_step_up_at
+        assert_equal "risk_enforced", token.last_step_up_scope
+      end
+
+      test "requires step up for staff tokens if score is 60" do
+        staff = staffs(:one)
+        staff.staff_tokens.destroy_all
+
+        token = StaffToken.create!(
+          staff: staff,
+          lapses_at: 1.day.from_now,
+          public_id: "stf_#{SecureRandom.hex(4)}",
+        )
+
+        Engine.stub(:score, 60) do
+          Enforcer.call(staff)
+        end
+
+        token.reload
+
+        assert_not_nil token.last_step_up_at
+        assert_equal "risk_enforced", token.last_step_up_scope
       end
 
       test "does nothing if score is 0" do
@@ -75,7 +104,7 @@ module Sign
         # Create token with valid public_id and expiry
         token = UserToken.create!(
           user: @user,
-          refresh_expires_at: 1.day.from_now,
+          lapses_at: 1.day.from_now,
           public_id: "test_#{SecureRandom.hex(4)}",
           # Default status/kind should trigger if FKs exist.
           # If FK check fails, we might need to assume fixtures loaded statuses.
@@ -90,7 +119,7 @@ module Sign
         # 3. Check revocation
         token.reload
 
-        assert_not_nil token.expired_at
+        assert_not_nil token.lapses_at
       end
     end
   end

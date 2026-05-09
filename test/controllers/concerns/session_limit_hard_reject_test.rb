@@ -37,7 +37,7 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
       token.rotate_refresh_token!
     end
     restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
-    restricted.rotate_refresh_token!(expires_at: 15.minutes.from_now)
+    restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
     Rails.application.routes.draw do
       post "/test/hard_reject_login" => "session_limit_hard_reject_test/test#create"

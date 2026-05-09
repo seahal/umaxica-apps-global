@@ -147,6 +147,18 @@ class UserTelephoneTest < ActiveSupport::TestCase
     assert_kind_of Integer, user_telephone.id
   end
 
+  test "finds by normalized number" do
+    user_telephone = UserTelephone.create!(
+      raw_number: "+1 (555) 765-4321",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      user: @user,
+    )
+
+    assert_equal user_telephone, UserTelephone.find_by(number: "+15557654321")
+    assert_nil UserTelephone.find_by(number: "")
+  end
+
   test "number is invalid when blank" do
     @valid_attributes.merge(raw_number: nil).then do |attr|
       UserTelephone.new(attr).tap do |m|

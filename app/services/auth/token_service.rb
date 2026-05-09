@@ -9,30 +9,41 @@ module Auth
     VALID_ACTOR_TYPES = %w(user staff customer).freeze
 
     class << self
-      def encode(resource, host:, session_public_id: nil, resource_type: nil, expires_at: nil, preferences: nil,
-                 acr: nil, amr: nil)
+      def encode(resource, host:, resource_type: nil, dpop_jkt: nil, expires_at: nil,
+                 session_public_id: nil, session_id: nil, preferences: nil,
+                 scopes: nil, acr: nil, amr: nil, access_token_ttl: 1.hour)
+        resource_type ||=
+          case resource
+          when User then "user"
+          when Staff then "staff"
+          when Customer then "customer"
+          end
+
         return nil unless valid_encode_params?(resource, host)
 
-        type = resource_type || resource.class.name.downcase
-        payload = build_payload(
-          resource, session_public_id, type, expires_at: expires_at, preferences: preferences,
-                                             acr: acr, amr: amr,
+        issued_at = Time.current
+        payload = Auth::TokenClaims.build(
+          resource: resource,
+          session_id: session_id,
+          session_public_id: session_public_id,
+          resource_type: resource_type,
+          issued_at: issued_at,
+          access_token_ttl: access_token_ttl,
+          expires_at: expires_at,
+          preferences: preferences,
+          scopes: scopes,
+          acr: acr,
+          amr: amr,
+          dpop_jkt: dpop_jkt,
         )
-        token_type = Authentication::Base::JwtConfiguration.token_type(type)
-        JWT.encode(
-          payload,
-          Jit::Security::Jwt::Keyring.private_key_for_active,
-          JWT_ALGORITHM,
-          { kid: Jit::Security::Jwt::Keyring.active_kid, typ: token_type },
-        )
-      rescue JWT::EncodeError, OpenSSL::PKey::PKeyError, ArgumentError => e
+
+        Jit::Security::Jwt::Keyring.encode(payload)
+      rescue StandardError => e
+        Rails.logger.error("Token encoding failed: #{e.message}")
         Rails.event.notify(
-          "authentication.token.generation.failed",
-          error_class: e.class.name,
-          error_message: e.message,
-          backtrace: e.backtrace.first(5),
-          resource_type: resource.class.name,
-          resource_id: resource.id,
+          "authentication.token.encoding.error",
+          resource_type: resource_type,
+          resource_id: resource&.id,
         )
         nil
       end
@@ -42,12 +53,14 @@ module Auth
 
         header = Jit::Security::Jwt::Keyring.parse_header(token)
         unless valid_header?(header, resource_type)
+          # puts "DEBUG: valid_header? failed for typ #{header["typ"].inspect}"
           report_invalid_header(resource_type: resource_type, host: host, header: header)
           return nil
         end
 
         public_key = Jit::Security::Jwt::Keyring.public_key_for(header["kid"])
         if public_key.nil?
+          # puts "DEBUG: public_key_for failed for kid #{header["kid"].inspect}"
           Jit::Security::Jwt::AnomalyReporter.report_auth(
             resource_type: resource_type,
             host: host,
@@ -59,6 +72,7 @@ module Auth
 
         payload, = JWT.decode(token, public_key, true, decode_options(resource_type, issuer, audiences))
         unless valid_payload_type?(payload, resource_type)
+          # puts "DEBUG: valid_payload_type? failed for typ #{payload["typ"].inspect}"
           Jit::Security::Jwt::AnomalyReporter.report_auth(
             resource_type: resource_type,
             host: host,
@@ -71,6 +85,7 @@ module Auth
 
         payload
       rescue JWT::ExpiredSignature
+        # STDOUT.puts "DEBUG: token expired"
         Jit::Security::Jwt::AnomalyReporter.report_auth(
           resource_type: resource_type,
           host: host,
@@ -80,6 +95,7 @@ module Auth
         Rails.event.notify("authentication.token.verification.expired", host: host)
         nil
       rescue JWT::InvalidIssuerError, JWT::InvalidAudError, JWT::InvalidIatError, JWT::ImmatureSignature => e
+        # STDOUT.puts "DEBUG: claim error: #{e.class} - #{e.message}"
         report_claim_error(resource_type: resource_type, host: host, header: header, error: e)
         Rails.event.notify(
           "authentication.token.verification.claim_invalid",
@@ -88,6 +104,7 @@ module Auth
         )
         nil
       rescue JWT::DecodeError, JWT::VerificationError => e
+        # STDOUT.puts "DEBUG: decode error: #{e.class} - #{e.message}"
         report_decode_error(resource_type: resource_type, host: host, header: header, error: e)
         Rails.event.notify(
           "authentication.token.verification.failed",
@@ -96,6 +113,7 @@ module Auth
         )
         nil
       rescue OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
+        # STDOUT.puts "DEBUG: general error: #{e.class} - #{e.message}"
         Rails.event.notify(
           "authentication.token.verification.error",
           error_class: e.class.name,
@@ -148,24 +166,9 @@ module Auth
 
       def valid_encode_params?(resource, host)
         return false if resource.nil? || host.blank?
-        return false unless resource.respond_to?(:id)
-        return false if resource.id.blank?
 
-        true
-      end
-
-      def build_payload(resource, session_public_id, type, expires_at: nil, preferences: nil, acr: nil, amr: nil)
-        Auth::TokenClaims.build(
-          resource: resource,
-          session_public_id: session_public_id,
-          resource_type: type,
-          issued_at: Time.current,
-          access_token_ttl: Authentication::Base::ACCESS_TOKEN_TTL,
-          expires_at: expires_at,
-          preferences: preferences,
-          acr: acr,
-          amr: amr,
-        )
+        # Ensure resource is User, Staff or Customer
+        resource.is_a?(User) || resource.is_a?(Staff) || resource.is_a?(Customer)
       end
 
       def decode_options(resource_type, issuer, audiences)
@@ -199,65 +202,30 @@ module Auth
       end
 
       def report_invalid_header(resource_type:, host:, header:)
-        reason =
-          if header.blank? || header["alg"].blank?
-            "MALFORMED_TOKEN"
-          elsif header["kid"].blank?
-            "MISSING_KID"
-          elsif header["alg"] == "none"
-            "ALG_NONE"
-          elsif header["alg"] != JWT_ALGORITHM
-            "ALG_MISMATCH"
-          elsif header["typ"].blank?
-            "MISSING_TYP"
-          else
-            "TYP_MISMATCH"
-          end
-
         Jit::Security::Jwt::AnomalyReporter.report_auth(
           resource_type: resource_type,
           host: host,
           header: header,
-          reason: reason,
+          reason: "INVALID_HEADER",
         )
       end
 
       def report_claim_error(resource_type:, host:, header:, error:)
-        reason =
-          case error
-          when JWT::InvalidIssuerError then "ISS_MISMATCH"
-          when JWT::InvalidAudError then "AUD_MISMATCH"
-          when JWT::InvalidIatError then "IAT_INVALID"
-          when JWT::ImmatureSignature then "IMMATURE"
-          else "OTHER"
-          end
-
         Jit::Security::Jwt::AnomalyReporter.report_auth(
           resource_type: resource_type,
           host: host,
           header: header,
-          reason: reason,
+          reason: "CLAIM_INVALID",
           error: error,
         )
       end
 
       def report_decode_error(resource_type:, host:, header:, error:)
-        reason =
-          if error.is_a?(JWT::VerificationError)
-            "SIGNATURE_INVALID"
-          elsif error.message.to_s.include?("Missing required claim")
-            Jit::Security::Jwt::AnomalyReporter.reason_for_missing_claim(error.message)
-          elsif error.message.to_s.match?(/Not enough or too many segments|Invalid segment encoding/)
-            "MALFORMED_TOKEN"
-          else
-            "DECODE_ERROR"
-          end
-
         Jit::Security::Jwt::AnomalyReporter.report_auth(
           resource_type: resource_type,
           host: host,
           header: header,
-          reason: reason,
+          reason: "DECODE_FAILED",
           error: error,
         )
       end

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "base64"
 
 class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
@@ -10,12 +11,18 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
     @customer = create_verified_customer_with_email(email_address: "withdrawal-#{SecureRandom.hex(4)}@example.com")
+    @customer.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)
     @customer.customer_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
       customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
     )
-    @token = CustomerToken.create!(customer: @customer, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
-    satisfy_customer_verification(@token)
+    @token = CustomerToken.create!(
+      customer: @customer,
+      customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
+    )
+    perform_withdrawal_step_up!
     @headers = as_customer_headers(@customer, host: @host).merge("X-TEST-SESSION-PUBLIC-ID" => @token.public_id)
   end
 
@@ -57,15 +64,15 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
 
     assert_not_nil @customer.withdrawal_started_at
     assert_not_nil @customer.deactivated_at
-    assert_not_nil @customer.scheduled_purge_at
-    assert_equal @customer.deactivated_at + 31.days, @customer.scheduled_purge_at
+    assert_equal @customer.deactivated_at + 31.days, @customer.purge_at
   end
 
   test "edit shows recoverable state within 31 days" do
     @customer.update!(
       deactivated_at: 10.days.ago,
       withdrawal_started_at: 10.days.ago,
-      scheduled_purge_at: 21.days.from_now,
+      lapses_at: 1.day.from_now,
+      purge_at: 21.days.from_now,
     )
 
     get edit_sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -78,7 +85,8 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     @customer.update!(
       deactivated_at: 10.days.ago,
       withdrawal_started_at: 10.days.ago,
-      scheduled_purge_at: 21.days.from_now,
+      lapses_at: 1.day.from_now,
+      purge_at: 21.days.from_now,
     )
 
     post sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -89,14 +97,15 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
 
     assert_nil @customer.deactivated_at
     assert_nil @customer.withdrawal_started_at
-    assert_nil @customer.scheduled_purge_at
+    assert_equal Float::INFINITY, @customer.purge_at
   end
 
   test "create does not recover account after 31 days" do
     @customer.update!(
       deactivated_at: 31.days.ago,
       withdrawal_started_at: 31.days.ago,
-      scheduled_purge_at: 1.day.ago,
+      lapses_at: 2.days.ago,
+      purge_at: 1.day.ago,
     )
 
     post sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -105,5 +114,46 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     @customer.reload
 
     assert_not_nil @customer.deactivated_at
+  end
+
+  private
+
+  def perform_withdrawal_step_up!
+    return_to = Base64.urlsafe_encode64(sign_com_configuration_withdrawal_path(ri: "jp"))
+    headers = host_headers(@host).merge(
+      "X-TEST-CURRENT-RESOURCE" => @customer.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    )
+
+    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+      Email::App::RegistrationMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
+        get(sign_com_verification_url(scope: "withdrawal", return_to: return_to, ri: "jp"), headers: headers)
+
+        assert_response :success
+
+        get(new_sign_com_verification_email_url(ri: "jp"), headers: headers)
+
+        assert_response :redirect
+        nonce = response.location[%r{/verification/emails/([^/]+)/edit}, 1]
+
+        with_verify_email_otp_stub(true) do
+          patch(
+            sign_com_verification_email_url(nonce, ri: "jp"),
+            params: { verification: { code: "123456" } },
+            headers: headers,
+          )
+        end
+
+        assert_response :redirect
+      end
+    end
+  end
+
+  def with_verify_email_otp_stub(result)
+    original_method = Sign::Com::Verification::EmailsController.instance_method(:verify_email_otp!)
+    Sign::Com::Verification::EmailsController.define_method(:verify_email_otp!) { result }
+    yield
+  ensure
+    Sign::Com::Verification::EmailsController.define_method(:verify_email_otp!, original_method)
   end
 end

@@ -9,7 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class OrganizationStatus < OperatorRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 1
   has_many :organizations,

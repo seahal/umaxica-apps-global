@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: customer_preferences
-# Database name: guest
+# Database name: setting
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -25,10 +25,6 @@
 #
 #  index_customer_preferences_on_customer_id  (customer_id) UNIQUE
 #
-# Foreign Keys
-#
-#  fk_rails_...  (customer_id => customers.id)
-#
 require "test_helper"
 
 class CustomerPreferenceTest < ActiveSupport::TestCase
@@ -38,7 +34,7 @@ class CustomerPreferenceTest < ActiveSupport::TestCase
     CustomerPreferenceLanguageOption.ensure_defaults!
     CustomerPreferenceTimezoneOption.ensure_defaults!
     CustomerPreferenceRegionOption.ensure_defaults!
-    CustomerPreferenceColorthemeOption.ensure_defaults!
+    CustomerPreferenceThemeOption.ensure_defaults!
   end
 
   test "belongs to customer and keeps defaults" do
@@ -59,11 +55,11 @@ class CustomerPreferenceTest < ActiveSupport::TestCase
     language = CustomerPreferenceLanguage.create!(preference: preference)
     timezone = CustomerPreferenceTimezone.create!(preference: preference)
     region = CustomerPreferenceRegion.create!(preference: preference)
-    colortheme = CustomerPreferenceColortheme.create!(preference: preference)
+    theme = CustomerPreferenceTheme.create!(preference: preference)
 
     assert_equal CustomerPreferenceLanguageOption::JA, language.option_id
     assert_equal CustomerPreferenceTimezoneOption::ASIA_TOKYO, timezone.option_id
     assert_equal CustomerPreferenceRegionOption::JP, region.option_id
-    assert_equal CustomerPreferenceColorthemeOption::SYSTEM, colortheme.option_id
+    assert_equal CustomerPreferenceThemeOption::SYSTEM, theme.option_id
   end
 end

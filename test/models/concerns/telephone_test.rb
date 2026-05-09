@@ -155,6 +155,26 @@ class TelephoneConcernTest < ActiveSupport::TestCase
     assert_operator @telephone.locked_at, :<=, Time.current
   end
 
+  test "increment_attempts! keeps locked_at stable when incrementing beyond threshold" do
+    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+
+    # Increment to threshold
+    3.times { @telephone.increment_attempts! }
+    @telephone.reload
+
+    first_locked_at = @telephone.locked_at
+
+    assert_predicate first_locked_at, :present?
+    assert_not_equal first_locked_at, -Float::INFINITY
+
+    # Increment again beyond threshold
+    @telephone.increment_attempts!
+    @telephone.reload
+
+    # locked_at should remain the same (idempotent)
+    assert_equal first_locked_at.to_i, @telephone.locked_at.to_i
+  end
+
   test "increment_attempts! does not change locked_at if already set" do
     initial_lock_time = 1.hour.ago
     @telephone.update!(locked_at: initial_lock_time, otp_attempts_count: 3)

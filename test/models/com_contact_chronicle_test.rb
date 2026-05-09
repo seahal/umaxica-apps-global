@@ -8,8 +8,9 @@
 #
 #  id           :bigint           not null, primary key
 #  actor_type   :string
-#  expires_at   :datetime
+#  lapses_at    :datetime         default(Infinity), not null
 #  occurred_at  :datetime
+#  purge_at     :datetime
 #  subject_type :string           not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null

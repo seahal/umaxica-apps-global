@@ -8,6 +8,8 @@
 #
 #  id                             :bigint           not null, primary key
 #  address                        :string           not null
+#  address_bidx                   :string
+#  address_digest                 :string
 #  locked_at                      :datetime
 #  notifiable                     :boolean          default(TRUE), not null
 #  otp_attempts_count             :integer          default(0), not null
@@ -27,6 +29,8 @@
 # Indexes
 #
 #  index_staff_emails_on_address                         (address)
+#  index_staff_emails_on_address_bidx                    (address_bidx) UNIQUE WHERE (address_bidx IS NOT NULL)
+#  index_staff_emails_on_address_digest                  (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
 #  index_staff_emails_on_lower_address                   (lower((address)::text)) UNIQUE
 #  index_staff_emails_on_public_id                       (public_id) UNIQUE
 #  index_staff_emails_on_staff_id                        (staff_id)
@@ -51,10 +55,17 @@ class StaffEmail < OperatorRecord
   belongs_to :staff
   validates :address, presence: true, length: { maximum: 255 }
   validates :address, uniqueness: { case_sensitive: false }
+  validates :address_bidx,
+            uniqueness: { conditions: -> { where.not(address_bidx: nil) } },
+            allow_nil: true
+  validates :address_digest,
+            uniqueness: { conditions: -> { where.not(address_digest: nil) } },
+            allow_nil: true
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }
   validates :staff_identity_email_status_id, numericality: { only_integer: true }
+  validate :ensure_unique_address_digest
   validate :enforce_staff_email_limit, on: :create
   before_destroy :prevent_destroy_when_undeletable
   before_validation do
@@ -69,8 +80,6 @@ class StaffEmail < OperatorRecord
     self.address ||= ""
   end
 
-  encrypts :address, deterministic: true
-
   private
 
   def prevent_destroy_when_undeletable
@@ -78,6 +87,13 @@ class StaffEmail < OperatorRecord
 
     errors.add(:base, :undeletable, message: "cannot delete a protected email address")
     throw(:abort)
+  end
+
+  def ensure_unique_address_digest
+    return if address_digest.blank?
+    return unless self.class.where(address_digest: address_digest).where.not(id: id).exists?
+
+    errors.add(:address, :taken)
   end
 
   def enforce_staff_email_limit

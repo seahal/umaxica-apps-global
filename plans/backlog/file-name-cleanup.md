@@ -1,5 +1,10 @@
 # Refactor: File Name Cleanup
 
+## Status
+
+Refreshed (2026-05-07). Phase 1 is already done. Phases 2a, 2b, 2c, 3, 4 are not started. Counts,
+paths, and the Phase 4 database mapping have been re-verified against the current tree.
+
 ## Context
 
 Several file names in this codebase have problematic English: grammatically wrong words, unclear
@@ -8,13 +13,14 @@ changing functionality.
 
 ## Changes (ordered by execution sequence)
 
-### Phase 1: Dead code removal
+### Phase 1: Dead code removal — ✅ DONE (2026-05-07)
 
 **Delete `stagings` orphan view**
 
 - Delete `app/views/core/com/stagings/show.html.erb`
 - No controller, no route, no references anywhere. Confirmed dead code.
 - Risk: none
+- Status: file already removed. This phase needs no further work.
 
 ---
 
@@ -38,25 +44,31 @@ Risk: low (5 files)
 
 ---
 
-**2b: `cat_tag` -> `category_tag`**
+**2b: Delete `cat_tag` concern (dead code)**
 
-"cat" reads like the animal. This abbreviation of "category_tag" is unclear.
+The `cat_tag.rb` concern is an empty module with no callers. Verified 2026-05-07: a repo-wide grep
+for `CatTag` returns only the concern definition and its test file — no `include ::CatTag` or
+`include CatTag` references in `app/models/`. The previous draft of this plan listed nine including
+models (`*_document_*`, `*_timeline_*`); those models do not exist in the current tree (docs / news
+/ timeline content moved to the regional repo per `adr/split-into-regional-and-global-repos.md`).
+The concern is therefore dead code and should be deleted, not renamed.
 
 Files to change:
 
-| Action        | Path                                                                                            |
-| ------------- | ----------------------------------------------------------------------------------------------- |
-| Rename + edit | `app/models/concerns/cat_tag.rb` -> `category_tag.rb` (`module CatTag` -> `module CategoryTag`) |
-| Edit          | `app/models/app_document_category.rb` line 27: `include ::CatTag` -> `include ::CategoryTag`    |
-| Edit          | `app/models/app_document_tag.rb` line 27: same                                                  |
-| Edit          | `app/models/com_document_category.rb` line 27: same                                             |
-| Edit          | `app/models/com_document_tag.rb` line 27: same                                                  |
-| Edit          | `app/models/org_document_category.rb` line 27: same                                             |
-| Edit          | `app/models/org_document_tag.rb` line 27: same                                                  |
-| Edit          | `app/models/org_timeline_category.rb` line 28: same                                             |
-| Edit          | `app/models/org_timeline_tag.rb` line 27: same                                                  |
+| Action | Path                                   |
+| ------ | -------------------------------------- |
+| Delete | `app/models/concerns/cat_tag.rb`       |
+| Delete | `test/models/concerns/cat_tag_test.rb` |
 
-Risk: low (9 files, concern is empty — no behavior change possible)
+Verification:
+
+```bash
+grep -rn "CatTag\|cat_tag" app/ test/ lib/ config/
+```
+
+Should return zero matches after deletion.
+
+Risk: low (2 files, no callers — pure dead-code removal)
 
 ---
 
@@ -93,25 +105,23 @@ Risk: low (4 files)
 naming IS technically correct Rails. Renaming to `HealthController` requires adding
 `controller: "health"` to every route line so Rails finds the right controller.
 
-**Controller files to rename (24 files)**
+**Controller files to rename (16 files)**
 
 All `healths_controller.rb` -> `health_controller.rb`, class `HealthsController` ->
-`HealthController`:
+`HealthController`. Boundaries are `apex`, `sign`, `jump` (no `core`, `acme`, `docs` — those were
+retired per `adr/split-into-regional-and-global-repos.md`):
 
-- `app/controllers/acme/{app,com,org}/healths_controller.rb` (3)
-- `app/controllers/acme/{app,com,org}/edge/v0/healths_controller.rb` (3)
-- `app/controllers/core/{app,com,org}/healths_controller.rb` (3)
-- `app/controllers/core/{app,com,org}/edge/v0/healths_controller.rb` (3)
-- `app/controllers/docs/{app,com,org}/healths_controller.rb` (3)
-- `app/controllers/docs/{app,com,org}/edge/v0/healths_controller.rb` (3)
+- `app/controllers/apex/healths_controller.rb` (boundary-level shared base)
+- `app/controllers/apex/{app,com,org}/healths_controller.rb` (3)
+- `app/controllers/apex/{app,com,org}/edge/v0/healths_controller.rb` (3)
+- `app/controllers/jump/{app,com,org}/healths_controller.rb` (3)
 - `app/controllers/sign/{app,com,org}/healths_controller.rb` (3)
-- `app/controllers/sign/app/edge/v0/healths_controller.rb`
-- `app/controllers/sign/org/edge/v0/healths_controller.rb`
-- `app/controllers/sign/app/web/v0/healths_controller.rb`
+- `app/controllers/sign/{app,org}/edge/v0/healths_controller.rb` (2)
+- `app/controllers/sign/app/web/v0/healths_controller.rb` (1)
 
-**Route files to update (4 files, 24 route lines)**
+**Route files to update (3 files, 19 route lines)**
 
-In `config/routes/{acme,core,docs,sign}.rb`, every occurrence of:
+In `config/routes/apex.rb`, `config/routes/jump.rb`, `config/routes/sign.rb`, every occurrence of:
 
 ```ruby
 resource :health, only: :show
@@ -127,16 +137,21 @@ resource :health, only: :show, controller: "health"
 
 - `app/views/sign/app/web/v0/healths/` -> `health/`
 
-**Test files to rename (~21 files)**
+**Test files to rename (13 files)**
 
-All `healths_controller_test.rb` -> `health_controller_test.rb`, update class names inside.
+All `healths_controller_test.rb` -> `health_controller_test.rb`, update class names inside. Mirror
+the controller paths above (test paths follow `test/controllers/<boundary>/...`).
 
-**Additional test file to update**
+**Verify after renaming**
 
-- `test/controllers/core/controller_inheritance_test.rb` lines 34, 36: `HealthsController` ->
-  `HealthController`
+```bash
+grep -rn "HealthsController\|healths_controller" app/ test/ config/
+```
 
-Risk: medium (~51 files, no DB impact)
+Should return zero matches. The `core/controller_inheritance_test.rb` reference in the previous
+draft no longer applies — that file is gone with the `core/` boundary.
+
+Risk: medium (~30 files, no DB impact)
 
 ---
 
@@ -147,19 +162,24 @@ Risk: medium (~51 files, no DB impact)
 "Colortheme" is a compound word missing the underscore separator. The user decided to shorten it to
 just "theme" since the preference context already implies color.
 
-494 occurrences across 130 files. 12+ DB tables across 4 databases.
+12 DB tables across 3 databases. Re-grep after Phase 2c to confirm the `colortheme` reference count
+for the current tree before starting Step 2 (the previous "494 occurrences across 130 files" figure
+is from an older snapshot and has drifted).
 
-#### Step 1: DB migrations (4 new migration files)
+#### Step 1: DB migrations (3 new migration files)
 
 Create one migration per database using `rename_table`. Check for explicitly named indexes and
-foreign keys that also need renaming.
+foreign keys that also need renaming. Verified table locations as of 2026-05-07:
 
-| Database  | Migration dir            | Tables to rename                                                                         |
-| --------- | ------------------------ | ---------------------------------------------------------------------------------------- |
-| principal | `db/principals_migrate/` | `{app,staff,user}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (6 tables) |
-| commerce  | `db/commerces_migrate/`  | `{app,com}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables)        |
-| operator  | `db/operators_migrate/`  | `org_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (2 tables)              |
-| guest     | `db/guests_migrate/`     | `customer_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (2 tables)         |
+| Database  | Migration dir            | Tables to rename                                                                       |
+| --------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| principal | `db/principals_migrate/` | `{app,user}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables)     |
+| operator  | `db/operators_migrate/`  | `{org,staff}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables)    |
+| setting   | `db/settings_migrate/`   | `{com,customer}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables) |
+
+Note: `staff_preference_colortheme*` lives in `operator` (moved per the staff-preference DB
+migration archived 2026-05-07). `com` and `customer` preference tables live in `setting`. There is
+no `commerce` DB and no colortheme tables in `guest`.
 
 #### Step 2: Rename 12 model files
 
@@ -211,14 +231,19 @@ references inside each file.
 
 #### Step 6: Update helpers
 
-- `app/helpers/docs/common_helper.rb`: `get_colortheme` -> `get_theme`
-- `app/helpers/sign/common_helper.rb`: `get_colortheme` -> `get_theme`
+- `app/helpers/sign/common_helper.rb`: `get_colortheme` -> `get_theme` (the
+  `app/helpers/docs/common_helper.rb` referenced in earlier drafts no longer exists — the `docs/`
+  boundary was retired with the regional repo split.)
 
-#### Step 7: Update views (6 files)
+#### Step 7: Update views (6 edit templates + 2 partials)
 
 - `app/views/sign/{app,com,org}/preference/themes/edit.html.erb`: `@preference_colortheme` ->
   `@preference_theme`, param scope names
-- `app/views/acme/{app,com,org}/preference/themes/edit.html.erb`: same
+- `app/views/apex/{app,com,org}/preference/themes/edit.html.erb`: same (path is `apex/`, not `acme/`
+  — earlier drafts referenced the old `acme/` path.)
+- `app/views/sign/shared/preference/_theme_form.html.erb` and
+  `app/views/apex/shared/preference/_theme_form.html.erb`: any `colortheme` references in the shared
+  partials.
 
 #### Step 8: Update rake task
 
@@ -244,7 +269,8 @@ grep -rn "colortheme" app/ lib/ test/ config/routes/ db/*_schema.rb
 Should return 0 results. Old migration files in `db/*_migrate/` will still contain the old name —
 that is expected and correct (migration history must not be rewritten).
 
-Risk: HIGH (130 files, 4 DB migrations)
+Risk: HIGH (12 model files + ~25 controller / concern / helper / view / test files + 3 DB
+migrations).
 
 ---
 

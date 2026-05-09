@@ -3,6 +3,26 @@
 <h1><%= t("sign.app.registration.new.page_title") %></h1>
 
 <ul>
-  <li><%= link_to t("sign.app.registration.new.methods.email.cta"), new_sign_app_up_email_path %></li>
+  <li data-testid="registration-method">
+    <%= link_to t("sign.app.registration.new.methods.email.cta"),
+                new_sign_app_up_email_path(ri: params[:ri]) %>
+  </li>
+  <li data-testid="registration-method">
+    <%= link_to t("sign.app.registration.new.methods.telephone.cta"),
+                new_sign_app_up_telephone_path(ri: params[:ri]) %>
+  </li>
 </ul>
+
+<%= button_to start_sign_app_social_authentication_path(provider: "google_app", intent: "login", ri: params[:ri]),
+              method: :post,
+              data: { turbo: false, testid: "registration-method" } do %>
+  <%= t("sign.app.registration.new.social.buttons.google") %>
+<% end %>
+
+<%= button_to start_sign_app_social_authentication_path(provider: "apple", intent: "login", ri: params[:ri]),
+              method: :post,
+              data: { turbo: false, testid: "registration-method" } do %>
+  <%= t("sign.app.registration.new.social.buttons.apple") %>
+<% end %>
+
 <%= link_to t("sign.app.registration.new.links.sign_in"), new_sign_app_in_path %>

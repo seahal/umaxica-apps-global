@@ -17,7 +17,7 @@ module Sign
         end
 
         def create
-          invitation_code = params[:invitation_code].to_s.downcase.strip
+          invitation_code = params.expect(:invitation_code).to_s.downcase.strip
 
           if invitation_code.blank?
             @staff_email = StaffEmail.new

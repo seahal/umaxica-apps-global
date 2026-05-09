@@ -12,6 +12,10 @@ module Auth
         self
       end
 
+      def or(_other)
+        self
+      end
+
       def exists?
         true
       end
@@ -23,7 +27,7 @@ module Auth
       end
 
       def self.column_names
-        %w(id public_id revoked_at)
+        %w(id public_id lapses_at session_id)
       end
 
       def self.arel_table

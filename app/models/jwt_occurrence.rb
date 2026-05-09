@@ -6,23 +6,22 @@
 # Table name: jwt_occurrences
 # Database name: occurrence
 #
-#  id           :bigint           not null, primary key
-#  body         :string           default(""), not null
-#  deletable_at :datetime         default(Infinity), not null
-#  memo         :string           default(""), not null
-#  revoked_at   :datetime         default(Infinity), not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#  public_id    :string(21)       default(""), not null
-#  status_id    :bigint           default(0), not null
+#  id         :bigint           not null, primary key
+#  body       :string           default(""), not null
+#  lapses_at  :datetime         default(Infinity), not null
+#  memo       :string           default(""), not null
+#  purge_at   :datetime         default(Infinity), not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  public_id  :string(21)       default(""), not null
+#  status_id  :bigint           default(0), not null
 #
 # Indexes
 #
 #  index_jwt_occurrences_on_body                 (body) UNIQUE
 #  index_jwt_occurrences_on_body_and_created_at  (body,created_at)
-#  index_jwt_occurrences_on_deletable_at         (deletable_at)
 #  index_jwt_occurrences_on_public_id            (public_id) UNIQUE
-#  index_jwt_occurrences_on_revoked_at           (revoked_at)
+#  index_jwt_occurrences_on_purge_at             (purge_at)
 #  index_jwt_occurrences_on_status_id            (status_id)
 #
 # Foreign Keys
@@ -30,6 +29,7 @@
 #  fk_jwt_occurrences_on_status_id  (status_id => jwt_occurrence_statuses.id)
 #
 class JwtOccurrence < OccurrenceRecord
+  include Retainable
   include PublicId
   include Occurrence
 

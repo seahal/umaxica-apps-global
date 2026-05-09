@@ -1,4 +1,4 @@
-web: OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318 rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0 -p 3000
-css: BUNDLE_FORCE_RUBY_PLATFORM=false bin/rails tailwindcss:watch
+web: OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318 rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0 -p ${PORT:-3000}
+css: BUNDLE_FORCE_RUBY_PLATFORM=false bin/rails "tailwindcss:watch[always]"
 job: OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318 bin/jobs start
-vite: bin/vite dev
+vite: ./node_modules/.bin/vite --host 0.0.0.0 --port 3036 --strictPort

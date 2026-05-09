@@ -1,5 +1,13 @@
 # ADR: Remove Polymorphic Owner from SettingPreference
 
+> **Status update (2026-05-06):** Withdrawn. The `settings_preferences` polymorphic-owner table
+> described here was never implemented. Only `com_preference_*` ended up in the `setting` database,
+> and the broader unification target was abandoned (see
+> `plans/archive/gh628-move-preferences-to-setting-db.md`). Polymorphic-owner concerns no longer
+> apply because no polymorphic preference table exists. Per `adr/preference-soft-bubble-doctrine.md`
+> (2026-05-06), preference databases stay separate by design. Treat this document as historical
+> only.
+
 **Status:** Accepted
 
 GitHub: #697

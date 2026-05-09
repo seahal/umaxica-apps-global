@@ -44,7 +44,7 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
       uid: @google_uid,
       provider: "google_app",
       token: "old_token",
-      expires_at: 1.week.from_now.to_i,
+      token_expires_at: 1.week.from_now.to_i,
       user_social_google_status: user_social_google_statuses(:active),
       last_authenticated_at: 1.day.ago,
     )
@@ -57,8 +57,8 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
     time_before = Time.current
 
     # Start reauth flow
-    get sign_app_social_start_url(provider: "google_app", intent: "reauth", ri: "jp"),
-        headers: as_user_headers(@user, host: @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "reauth", ri: "jp"),
+         headers: as_user_headers(@user, host: @host)
 
     assert_response :redirect
 
@@ -90,7 +90,7 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
       uid: @apple_uid,
       provider: "apple",
       token: "old_token",
-      expires_at: 1.week.from_now.to_i,
+      token_expires_at: 1.week.from_now.to_i,
       user_social_apple_status: user_social_apple_statuses(:active),
       last_authenticated_at: 1.day.ago,
     )
@@ -101,8 +101,8 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
 
     time_before = Time.current
 
-    get sign_app_social_start_url(provider: "apple", intent: "reauth", ri: "jp"),
-        headers: as_user_headers(@user, host: @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "reauth", ri: "jp"),
+         headers: as_user_headers(@user, host: @host)
 
     assert_response :redirect
 
@@ -129,7 +129,7 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
       uid: @google_uid,
       provider: "google_app",
       token: "token",
-      expires_at: 1.week.from_now.to_i,
+      token_expires_at: 1.week.from_now.to_i,
       user_social_google_status: user_social_google_statuses(:active),
     )
 
@@ -139,8 +139,8 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
 
     original_reauth_at = @user.last_reauth_at
 
-    get sign_app_social_start_url(provider: "google_app", intent: "reauth", ri: "jp"),
-        headers: as_user_headers(@user, host: @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "reauth", ri: "jp"),
+         headers: as_user_headers(@user, host: @host)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(@user, host: @host))
@@ -161,8 +161,8 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
     # User has no Google linked
     setup_google_mock_auth(uid: "some_unlinked_uid")
 
-    get sign_app_social_start_url(provider: "google_app", intent: "reauth", ri: "jp"),
-        headers: as_user_headers(@user, host: @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "reauth", ri: "jp"),
+         headers: as_user_headers(@user, host: @host)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(@user, host: @host))
@@ -178,8 +178,8 @@ class SocialAuthReauthTest < ActionDispatch::IntegrationTest
     setup_google_mock_auth(uid: "test")
 
     # No auth header
-    get sign_app_social_start_url(provider: "google_app", intent: "reauth", ri: "jp"),
-        headers: { "Host" => @host }
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "reauth", ri: "jp"),
+         headers: { "Host" => @host }
 
     assert_response :redirect
     follow_redirect!

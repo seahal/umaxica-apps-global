@@ -10,6 +10,8 @@
 #
 
 class StaffChronicleEvent < ChronicleRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   LOGIN_SUCCESS = 1
   AUTHORIZATION_FAILED = 2

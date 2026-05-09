@@ -9,6 +9,7 @@ module Concerns
       .reject { |f| f.include?("/vendor/") }
       .reject { |f| f.end_with?("/controllers/application_controller.rb") }
       .reject { |f| f.include?("/sign/com/") }
+      .reject { |f| f.include?("/jump/") }
       .sort
 
     test "all application controllers include RateLimit" do

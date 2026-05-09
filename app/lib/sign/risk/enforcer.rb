@@ -29,24 +29,26 @@ module Sign
       end
 
       def self.revoke_token_set(tokens)
-        expiry_column = tokens.klass.column_names.include?("expired_at") ? :expired_at : :revoked_at
-        tokens.where(expiry_column => nil).find_each do |token|
+        tokens.currently_usable_at.find_each do |token|
           token.revoke!
         end
       end
 
       def self.require_step_up!(resource)
-        # FIXME: Step-up authentication flag storage needs a persistent mechanism.
-        #   Previously used Redis SET with 10-minute TTL. Options:
-        #   (1) Store as an occurrence record with short deletable_at
-        #   (2) Use session-based flag
-        #   (3) Add a column to the token/resource table
-        #   Currently a no-op until the step-up verification reader is implemented.
+        require_step_up_for_token_set(resource.user_tokens) if resource.respond_to?(:user_tokens)
+        require_step_up_for_token_set(resource.staff_tokens) if resource.respond_to?(:staff_tokens)
+
         Rails.event.info(
           "sign.risk.enforcer.step_up_required",
           resource_type: resource.class.name,
           resource_id: resource.id,
         )
+      end
+
+      def self.require_step_up_for_token_set(tokens)
+        tokens.currently_usable_at.find_each do |token|
+          token.update!(last_step_up_at: Time.current, last_step_up_scope: "risk_enforced")
+        end
       end
 
       def self.feature_enabled?
@@ -56,7 +58,7 @@ module Sign
         enabled_config || ENV["RISK_ENFORCEMENT_ENABLED"] == "true" || Rails.env.production?
       end
 
-      private_class_method :revoke_token_set
+      private_class_method :revoke_token_set, :require_step_up_for_token_set
     end
   end
 end

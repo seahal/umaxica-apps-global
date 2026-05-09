@@ -184,12 +184,14 @@ module Auth
     end
 
     test "device cookie helper methods are defined" do
-      assert Authentication::Base.private_method_defined?(:set_device_id_cookie!),
-             "Authentication::Base should define set_device_id_cookie!"
-      assert Authentication::Base.private_method_defined?(:clear_device_id_cookie!),
-             "Authentication::Base should define clear_device_id_cookie!"
-      assert Authentication::Base.private_method_defined?(:read_device_id_cookie),
-             "Authentication::Base should define read_device_id_cookie"
+      # rubocop:disable I18n/RailsI18n/DecorateString
+      assert HeaderKeyHarness.private_method_defined?(:set_device_id_cookie!),
+             "HeaderKeyHarness should define set_device_id_cookie!"
+      assert HeaderKeyHarness.private_method_defined?(:clear_device_id_cookie!),
+             "HeaderKeyHarness should define clear_device_id_cookie!"
+      assert HeaderKeyHarness.private_method_defined?(:read_device_id_cookie),
+             "HeaderKeyHarness should define read_device_id_cookie"
+      # rubocop:enable I18n/RailsI18n/DecorateString
     end
 
     test "ACCESS_TOKEN_TTL is defined" do
@@ -327,7 +329,7 @@ module Auth
       HeaderKeyHarness.reset_encrypted_cookies!
 
       Core::CookieOptions.stub(:for, {}) do
-        harness.send(:set_device_id_cookie!, "dev-123", expires_at: expires_at)
+        harness.send(:set_device_id_cookie!, "dev-123", lapses_at: expires_at)
 
         # Cookie is now stored as plaintext (not encrypted) with options
         cookie_value = harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY]

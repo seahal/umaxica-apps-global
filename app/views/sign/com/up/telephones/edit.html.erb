@@ -1,0 +1,34 @@
+<% content_for :page_title, t("sign.app.authentication.email.edit.page_title") %>
+
+<div>
+  <h1><%= t("sign.app.authentication.email.edit.page_title") %></h1>
+  <p><%= t("sign.app.registration.telephone.create.verification_code_sent") %></p>
+
+  <%= form_with model: @customer_telephone, url: sign_com_up_telephone_path(@customer_telephone, ri: params[:ri]), method: :patch, data: { turbo: false } do |form| %>
+    <% if @customer_telephone.errors.any? %>
+      <div>
+        <ul>
+          <% @customer_telephone.errors.each do |error| %>
+            <li><%= error.full_message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div>
+      <%= form.label :pass_code %>
+      <%= form.text_field :pass_code,
+                          placeholder: "123456",
+                          autofocus: true,
+                          autocomplete: "one-time-code",
+                          inputmode: "numeric",
+                          pattern: "[0-9]*" %>
+    </div>
+
+    <%= form.submit t("views.sign.com.up.telephones.edit.submit") %>
+  <% end %>
+
+  <div>
+    <%= link_to t("controller.sign.app.registration.telephone.edit.return_page"), new_sign_com_up_path(ri: params[:ri]) %>
+  </div>
+</div>

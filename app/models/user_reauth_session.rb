@@ -8,8 +8,9 @@
 #
 #  id            :bigint           not null, primary key
 #  attempt_count :integer          default(0), not null
-#  expires_at    :datetime         not null
+#  lapses_at     :datetime         default(Infinity), not null
 #  method        :string           not null
+#  purge_at      :datetime         default(Infinity), not null
 #  return_to     :text             not null
 #  scope         :string           not null
 #  status        :string           not null
@@ -20,10 +21,11 @@
 #
 # Indexes
 #
-#  index_user_reauth_sessions_on_expires_at          (expires_at)
 #  index_user_reauth_sessions_on_user_id_and_status  (user_id,status)
 #
 class UserReauthSession < MarkRecord
+  include Retainable
+
   STATUSES = %w(PENDING VERIFIED CANCELLED EXPIRED).freeze
   METHODS = %w(passkey totp email_otp).freeze
 
@@ -33,7 +35,7 @@ class UserReauthSession < MarkRecord
   validates :return_to, presence: true
   validates :method, presence: true, inclusion: { in: METHODS }
   validates :status, presence: true, inclusion: { in: STATUSES }
-  validates :expires_at, presence: true
+  validates :lapses_at, presence: true
   validates :attempt_count, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   scope :for_user, ->(user) { where(user_id: user.id) }
@@ -41,6 +43,6 @@ class UserReauthSession < MarkRecord
   scope :pending, -> { where(status: "PENDING") }
 
   def expired?
-    expires_at <= Time.current
+    lapses_at <= Time.current
   end
 end

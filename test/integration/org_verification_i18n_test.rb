@@ -17,7 +17,7 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
       staff_token_status_id: StaffTokenStatus::NOTHING,
       staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
       public_id: "ov_i18n_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
     )
     @headers = browser_headers.merge(
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,

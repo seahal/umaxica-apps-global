@@ -89,4 +89,59 @@ class Sign::Com::Configuration::SessionsControllerTest < ActionDispatch::Integra
 
     assert_predicate other_two.reload, :revoked?
   end
+
+  # ===================================================================
+  # revoke_all
+  # ===================================================================
+
+  test "revoke_all revokes all sessions including current and clears cookies" do
+    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+
+    delete revoke_all_sign_com_configuration_sessions_url(ri: "jp"), headers: request_headers
+
+    assert_response :see_other
+    @token.reload
+    @other_session.reload
+
+    assert_predicate @token, :lapsed?
+    assert_predicate @other_session, :lapsed?
+    assert_not response_has_cookie?(::Authentication::Base::ACCESS_COOKIE_KEY)
+    assert_not response_has_cookie?(::Authentication::Base::REFRESH_COOKIE_KEY)
+  end
+
+  test "revoke_all requires step_up" do
+    @token.update!(created_at: 20.minutes.ago)
+    delete revoke_all_sign_com_configuration_sessions_url(ri: "jp"), headers: request_headers
+
+    assert_response :unauthorized
+  end
+
+  test "revoke_all requires authentication" do
+    delete revoke_all_sign_com_configuration_sessions_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :redirect
+  end
+
+  test "revoke_all records audit event" do
+    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+
+    events = []
+    subscriber = Object.new
+    subscriber.define_singleton_method(:emit) { |event| events << event }
+    Rails.event.subscribe(subscriber)
+
+    delete(revoke_all_sign_com_configuration_sessions_url(ri: "jp"), headers: request_headers)
+
+    assert_response :see_other
+    revoke_events = events.select { |e| e[:name] == "security.session_revoke_all" }
+
+    assert_operator revoke_events.length, :>=, 1
+    event = revoke_events.last
+
+    assert_equal "security.session_revoke_all", event[:name]
+    assert_equal "Customer", event[:payload][:actor_type]
+    assert_predicate event[:payload][:actor_id], :present?
+  ensure
+    Rails.event.unsubscribe(subscriber) if defined?(subscriber) && subscriber
+  end
 end

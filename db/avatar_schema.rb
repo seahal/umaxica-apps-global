@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -67,7 +67,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.index ["actor_id"], name: "index_avatar_memberships_on_actor_id", where: "(valid_to = 'infinity'::timestamp with time zone)"
     t.index ["avatar_id", "actor_id"], name: "index_avatar_memberships_on_avatar_id_and_actor_id", unique: true, where: "(valid_to = 'infinity'::timestamp with time zone)"
     t.index ["avatar_membership_status_id"], name: "index_avatar_memberships_on_avatar_membership_status_id"
-    t.index ["granted_by_actor_id"], name: "index_avatar_memberships_on_granted_by_actor_id"
     t.index ["role_id"], name: "index_avatar_memberships_on_role_id"
     t.check_constraint "avatar_membership_status_id IS NULL OR avatar_membership_status_id >= 0", name: "chk_avatar_memberships_avatar_membership_status_id_positive"
     t.check_constraint "role_id >= 0", name: "chk_avatar_memberships_role_id_positive"
@@ -88,7 +87,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.index ["avatar_id", "valid_from"], name: "index_avatar_monikers_on_avatar_id_and_valid_from", order: { valid_from: :desc }
     t.index ["avatar_id"], name: "index_avatar_monikers_on_avatar_id", unique: true, where: "(valid_to = 'infinity'::timestamp with time zone)"
     t.index ["avatar_moniker_status_id"], name: "index_avatar_monikers_on_avatar_moniker_status_id"
-    t.index ["set_by_actor_id"], name: "index_avatar_monikers_on_set_by_actor_id"
     t.check_constraint "avatar_moniker_status_id IS NULL OR avatar_moniker_status_id >= 0", name: "chk_avatar_monikers_avatar_moniker_status_id_positive"
   end
 
@@ -114,7 +112,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.index ["avatar_id"], name: "index_avatar_ownership_periods_on_avatar_id", unique: true, where: "(valid_to = 'infinity'::timestamp with time zone)"
     t.index ["avatar_ownership_status_id"], name: "index_avatar_ownership_periods_on_avatar_ownership_status_id"
     t.index ["owner_organization_id"], name: "index_avatar_ownership_periods_on_owner_organization_id", where: "(valid_to = 'infinity'::timestamp with time zone)"
-    t.index ["transferred_by_actor_id"], name: "index_avatar_ownership_periods_on_transferred_by_actor_id"
     t.check_constraint "avatar_ownership_status_id IS NULL OR avatar_ownership_status_id >= 0", name: "chk_avatar_ownership_periods_avatar_ownership_status_id_positiv"
   end
 
@@ -127,10 +124,9 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
   create_table "avatar_role_permissions", force: :cascade do |t|
     t.bigint "avatar_permission_id", default: 0, null: false
     t.bigint "avatar_role_id", default: 0, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.index ["avatar_permission_id"], name: "index_avatar_role_permissions_on_avatar_permission_id"
     t.index ["avatar_role_id", "avatar_permission_id"], name: "uniq_avatar_role_permissions", unique: true
+    t.index ["avatar_role_id"], name: "index_avatar_role_permissions_on_avatar_role_id"
     t.check_constraint "avatar_permission_id >= 0", name: "chk_avatar_role_permissions_permission_id_positive"
     t.check_constraint "avatar_role_id >= 0", name: "chk_avatar_role_permissions_role_id_positive"
   end
@@ -142,20 +138,23 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.bigint "active_handle_id", null: false
     t.string "avatar_status_id"
     t.bigint "capability_id", default: 0, null: false
+    t.bigint "client_id"
     t.datetime "created_at", null: false
     t.jsonb "image_data", default: {}, null: false
+    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
     t.integer "lock_version", default: 0, null: false
-    t.bigint "member_id"
     t.string "moniker", null: false
     t.string "owner_organization_id"
     t.string "public_id", null: false
+    t.datetime "purge_at", default: ::Float::INFINITY, null: false
     t.string "representing_organization_id"
     t.datetime "updated_at", null: false
     t.index ["active_handle_id"], name: "index_avatars_on_active_handle_id"
     t.index ["capability_id"], name: "index_avatars_on_capability_id"
-    t.index ["member_id"], name: "index_avatars_on_member_id"
+    t.index ["client_id"], name: "index_avatars_on_client_id"
     t.index ["owner_organization_id"], name: "index_avatars_on_owner_organization_id"
     t.index ["public_id"], name: "index_avatars_on_public_id", unique: true
+    t.index ["purge_at"], name: "index_avatars_on_purge_at"
     t.index ["representing_organization_id"], name: "index_avatars_on_representing_organization_id"
     t.check_constraint "capability_id >= 0", name: "chk_avatars_capability_id_positive"
   end
@@ -167,6 +166,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.datetime "updated_at", null: false
     t.index ["avatar_id"], name: "index_client_avatar_accesses_on_avatar_id"
     t.index ["client_id", "avatar_id"], name: "index_client_avatar_accesses_on_client_id_and_avatar_id", unique: true
+    t.index ["client_id"], name: "index_client_avatar_accesses_on_client_id"
   end
 
   create_table "client_avatar_deletions", force: :cascade do |t|
@@ -176,6 +176,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.datetime "updated_at", null: false
     t.index ["avatar_id"], name: "index_client_avatar_deletions_on_avatar_id"
     t.index ["client_id", "avatar_id"], name: "index_client_avatar_deletions_on_client_and_avatar", unique: true
+    t.index ["client_id"], name: "index_client_avatar_deletions_on_client_id"
   end
 
   create_table "client_avatar_extractions", force: :cascade do |t|
@@ -185,6 +186,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.datetime "updated_at", null: false
     t.index ["avatar_id"], name: "index_client_avatar_extractions_on_avatar_id"
     t.index ["client_id", "avatar_id"], name: "index_client_avatar_extractions_on_client_and_avatar", unique: true
+    t.index ["client_id"], name: "index_client_avatar_extractions_on_client_id"
   end
 
   create_table "client_avatar_impersonations", force: :cascade do |t|
@@ -194,6 +196,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.datetime "updated_at", null: false
     t.index ["avatar_id"], name: "index_client_avatar_impersonations_on_avatar_id"
     t.index ["client_id", "avatar_id"], name: "index_client_avatar_impersonations_on_client_and_avatar", unique: true
+    t.index ["client_id"], name: "index_client_avatar_impersonations_on_client_id"
   end
 
   create_table "client_avatar_oversights", force: :cascade do |t|
@@ -203,6 +206,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.datetime "updated_at", null: false
     t.index ["avatar_id"], name: "index_client_avatar_oversights_on_avatar_id"
     t.index ["client_id", "avatar_id"], name: "index_client_avatar_oversights_on_client_and_avatar", unique: true
+    t.index ["client_id"], name: "index_client_avatar_oversights_on_client_id"
   end
 
   create_table "client_avatar_suspensions", force: :cascade do |t|
@@ -212,6 +216,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.datetime "updated_at", null: false
     t.index ["avatar_id"], name: "index_client_avatar_suspensions_on_avatar_id"
     t.index ["client_id", "avatar_id"], name: "index_client_avatar_suspensions_on_client_and_avatar", unique: true
+    t.index ["client_id"], name: "index_client_avatar_suspensions_on_client_id"
   end
 
   create_table "client_avatar_visibilities", force: :cascade do |t|
@@ -221,6 +226,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.datetime "updated_at", null: false
     t.index ["avatar_id"], name: "index_client_avatar_visibilities_on_avatar_id"
     t.index ["client_id", "avatar_id"], name: "index_client_avatar_visibilities_on_client_and_avatar", unique: true
+    t.index ["client_id"], name: "index_client_avatar_visibilities_on_client_id"
   end
 
   create_table "handle_assignment_statuses", force: :cascade do |t|
@@ -235,7 +241,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.datetime "updated_at", null: false
     t.datetime "valid_from", precision: nil, null: false
     t.datetime "valid_to", precision: nil, default: ::Float::INFINITY, null: false
-    t.index ["assigned_by_actor_id"], name: "index_handle_assignments_on_assigned_by_actor_id"
     t.index ["avatar_id", "valid_from"], name: "index_handle_assignments_on_avatar_id_and_valid_from", order: { valid_from: :desc }
     t.index ["avatar_id"], name: "index_handle_assignments_on_avatar_id", unique: true, where: "(valid_to = 'infinity'::timestamp with time zone)"
     t.index ["handle_assignment_status_id"], name: "index_handle_assignments_on_handle_assignment_status_id"
@@ -356,12 +361,11 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.string "permalink", limit: 200, null: false
     t.bigint "post_id", null: false
     t.string "public_id", default: "", null: false
-    t.datetime "published_at", null: false
+    t.datetime "publish_at", null: false
     t.string "redirect_url"
     t.string "response_mode", null: false
     t.string "title"
     t.datetime "updated_at", null: false
-    t.index ["edited_by_id"], name: "index_post_versions_on_edited_by_id"
     t.index ["post_id", "created_at"], name: "index_post_versions_on_post_id_and_created_at", order: { created_at: :desc }
     t.index ["public_id"], name: "index_post_versions_on_public_id", unique: true
   end
@@ -377,10 +381,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_03_09_000001) do
     t.bigint "published_by_actor_id"
     t.datetime "updated_at", null: false
     t.index ["author_avatar_id", "created_at"], name: "index_posts_on_author_avatar_id_and_created_at", order: { created_at: :desc }
-    t.index ["created_by_actor_id"], name: "index_posts_on_created_by_actor_id"
     t.index ["post_status_id"], name: "index_posts_on_post_status_id"
     t.index ["public_id"], name: "index_posts_on_public_id", unique: true
-    t.index ["published_by_actor_id"], name: "index_posts_on_published_by_actor_id"
     t.check_constraint "post_status_id IS NULL OR post_status_id >= 0", name: "chk_posts_post_status_id_positive"
   end
 

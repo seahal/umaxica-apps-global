@@ -25,6 +25,8 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
         get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
+        assert_response :success
+
         get new_sign_com_verification_email_url(ri: "jp"), headers: @headers
 
         assert_response :redirect
@@ -41,7 +43,11 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
         get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
+        assert_response :success
+
         get new_sign_com_verification_email_url(ri: "jp"), headers: @headers
+
+        assert_response :redirect
         nonce = response.location[%r{/verification/emails/([^/]+)/edit}, 1]
 
         with_verify_email_otp_stub(true) do
@@ -61,6 +67,8 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
         headers: @headers
+
+    assert_response :success
 
     @customer.customer_emails.find_each do |email|
       assert email.update(customer_email_status_id: CustomerEmailStatus::UNVERIFIED)

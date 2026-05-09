@@ -1,8 +1,8 @@
-# ADR: Migrate authorization from Pundit to Action Policy
+# ADR: Use Action Policy for Authorization
 
 ## Status
 
-Partially implemented (Phase 1 and Phase 2 complete). Active enforcement pending.
+Accepted (2026-05-06). Partially implemented; active enforcement rollout is pending.
 
 ## Context
 
@@ -11,19 +11,36 @@ on `include Pundit::Authorization` throughout engine controllers indicated devel
 remove it. The `action_policy` gem was already present in the Gemfile alongside `pundit`, confirming
 the migration was anticipated.
 
+We have decided that authorization in this Rails application will be implemented with
+`gem "action_policy"`. Authentication remains separate; this ADR covers the authorization layer
+only.
+
 Key observations from the feasibility analysis:
 
 - 48 policy files, all inheriting from a custom `ApplicationPolicy` (not `Pundit::Policy` directly),
   which lowered migration cost.
 - `authorize_request!` in `Authorization::Base` was a stub returning `true` — Pundit was never
   actually enforcing authorization in production controllers.
-- `ActionPolicy::Unauthorized` API differs from `ActionPolicy::Unauthorized`:
+- Pundit's unauthorized error API differs from `ActionPolicy::Unauthorized`:
   - Pundit: `.policy`, `.query`, `.record`
   - Action Policy: `.policy`, `.rule`, `.object`
 - Action Policy `initialize(record = nil, **params)` uses keyword `user:` for the actor, which is
   inverted from Pundit's `(user, record)` positional convention.
 
 ## Decision
+
+Use `action_policy` as the standard authorization library for this application.
+
+New authorization work must use Action Policy concepts and APIs:
+
+- policies inherit from `ApplicationPolicy`
+- controllers use `ActionPolicy::Controller`
+- record checks use `authorize!`
+- collection filtering uses `authorized_scope`
+- authorization failures are handled as `ActionPolicy::Unauthorized`
+
+The historical Pundit implementation is not the target architecture. Any remaining Pundit-shaped
+patterns should be treated as migration residue and removed when touched.
 
 Migrate from `pundit` to `action_policy` in phases to reduce risk.
 

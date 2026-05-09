@@ -48,6 +48,8 @@ class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < Action
   test "edit redirects if no valid session" do
     get edit_sign_org_configuration_telephones_registration_url(ri: "jp"), headers: request_headers
 
+    assert_response :redirect
+
     assert_redirected_to new_sign_org_configuration_telephones_registration_url(ri: "jp")
   end
 

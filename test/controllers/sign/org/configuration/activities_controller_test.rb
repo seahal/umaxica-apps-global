@@ -135,7 +135,7 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
       subject_id: staff.id,
       subject_type: "Staff",
       occurred_at: occurred_at,
-      expires_at: 1.year.from_now,
+      lapses_at: 1.year.from_now,
       ip_address: ip_address,
       context: context,
     )

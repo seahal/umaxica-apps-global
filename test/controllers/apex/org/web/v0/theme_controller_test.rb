@@ -32,6 +32,8 @@ class Apex::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
     with_preference_jwt_keys(host: @host) do
       get apex_org_web_v0_theme_path, as: :json
+
+      assert_response :success
     end
 
     assert_response :ok
@@ -58,11 +60,11 @@ class Apex::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     assert_includes set_cookie, "#{Preference::IoKeys::Cookies::THEME}=li"
   end
 
-  test "PATCH update with preference record updates colortheme and issues access token" do
+  test "PATCH update with preference record updates theme and issues access token" do
     preference = OrgPreference.create!(status_id: OrgPreferenceStatus::NOTHING)
-    option_class = Preference::ClassRegistry.option_class("Org", :colortheme)
-    ensure_colortheme_defaults!(option_class)
-    OrgPreferenceColortheme.create!(
+    option_class = Preference::ClassRegistry.option_class("Org", :theme)
+    ensure_theme_defaults!(option_class)
+    OrgPreferenceTheme.create!(
       preference: preference,
       option_id: option_class::SYSTEM,
     )
@@ -81,7 +83,7 @@ class Apex::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
     preference.reload
 
-    assert_equal option_class::DARK, preference.org_preference_colortheme.option_id
+    assert_equal option_class::DARK, preference.org_preference_theme.option_id
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "#{Preference::IoKeys::Cookies::THEME}=dr"
@@ -90,7 +92,7 @@ class Apex::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def ensure_colortheme_defaults!(option_class)
+  def ensure_theme_defaults!(option_class)
     option_class.ensure_defaults! if option_class.respond_to?(:ensure_defaults!)
   end
 end

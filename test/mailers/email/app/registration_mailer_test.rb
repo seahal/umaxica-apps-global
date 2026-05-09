@@ -9,7 +9,7 @@ class Email::App::RegistrationMailerTest < ActionMailer::TestCase
 
     assert_equal I18n.t("mail.email.app.registration_mailer.create.subject"), mail.subject
     assert_equal ["user@example.com"], mail.to
-    assert_equal ["from@umaxica.net"], mail.from
+    assert_equal ["from@umaxica.app"], mail.from
 
     # Check for body content ensuring it contains the OTP code
     # We check decoded body because base64 encoding might differ
@@ -37,6 +37,6 @@ class Email::App::RegistrationMailerTest < ActionMailer::TestCase
   test "mail should have correct from address" do
     mail = Email::App::RegistrationMailer.with(hotp_token: "111111", email_address: "test@example.com").create
 
-    assert_equal ["from@umaxica.net"], mail.from
+    assert_equal ["from@umaxica.app"], mail.from
   end
 end

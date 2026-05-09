@@ -4,16 +4,16 @@
 require "test_helper"
 
 class PreferenceColorThemeTest < ActiveSupport::TestCase
-  test "COLORTHEME_SHORT_MAP contains correct mappings" do
-    assert_equal "li", Preference::Base::COLORTHEME_SHORT_MAP["light"]
-    assert_equal "dr", Preference::Base::COLORTHEME_SHORT_MAP["dark"]
-    assert_equal "sy", Preference::Base::COLORTHEME_SHORT_MAP["system"]
+  test "THEME_SHORT_MAP contains correct mappings" do
+    assert_equal "li", Preference::Base::THEME_SHORT_MAP["light"]
+    assert_equal "dr", Preference::Base::THEME_SHORT_MAP["dark"]
+    assert_equal "sy", Preference::Base::THEME_SHORT_MAP["system"]
   end
 
-  test "COLORTHEME_OPTION_MAP contains correct mappings" do
-    assert_equal "light", Preference::Base::COLORTHEME_OPTION_MAP["li"]
-    assert_equal "dark", Preference::Base::COLORTHEME_OPTION_MAP["dr"]
-    assert_equal "system", Preference::Base::COLORTHEME_OPTION_MAP["sy"]
+  test "THEME_OPTION_MAP contains correct mappings" do
+    assert_equal "light", Preference::Base::THEME_OPTION_MAP["li"]
+    assert_equal "dark", Preference::Base::THEME_OPTION_MAP["dr"]
+    assert_equal "system", Preference::Base::THEME_OPTION_MAP["sy"]
   end
 end
 

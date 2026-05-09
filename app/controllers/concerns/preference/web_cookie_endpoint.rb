@@ -114,7 +114,7 @@ module Preference
       raw_value =
         if params.key?(:consented)
           params[:consented]
-        elsif params.key?(:cookie) && params[:cookie].respond_to?(:key?) && params[:cookie].key?(:consented)
+        elsif params.expect(:cookie).is_a?(Hash) && params.expect(:cookie).key?(:consented)
           params[:cookie][:consented]
         else
           return nil

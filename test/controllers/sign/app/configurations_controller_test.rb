@@ -62,7 +62,7 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
       device_id: device_id,
       device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)),
     )
-    token.rotate_refresh_token!(expires_at: 15.minutes.from_now)
+    token.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
     access_token = jwt_access_token_for(@user, host: @host, session_public_id: token.public_id)
     headers = browser_headers.merge(
       "Host" => @host,
@@ -123,6 +123,8 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     # Should not raise any ReadOnlyError
     assert_nothing_raised do
       get sign_app_configuration_url(ri: "jp")
+
+      assert_response :success
     end
 
     assert_response :success

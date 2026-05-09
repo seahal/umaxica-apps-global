@@ -40,7 +40,12 @@ class UserPreference < PrincipalRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  has_one :user_preference_theme,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
   has_one :user_preference_colortheme,
+          class_name: "UserPreferenceTheme",
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy

@@ -5,6 +5,7 @@ module Sign
   module Com
     class RootsController < ApplicationController
       guest_only! status: :unauthorized
+      skip_before_action :set_preferences_cookie, only: :index, raise: false
 
       def index
       end

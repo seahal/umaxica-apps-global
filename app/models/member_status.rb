@@ -11,11 +11,13 @@
 #  updated_at :datetime         not null
 #
 class MemberStatus < PrincipalRecord
+  include ReferenceRecord
+
   ACTIVE = 1
   INACTIVE = 2
   PENDING = 3
   DELETED = 4
-  NOTHING = 5
+  NOTHING = 5 # FIXME: i want to set nothing as 0.
 
   validates :created_at, :updated_at, presence: true
 

@@ -25,7 +25,7 @@ class CloudflareTurnstileTest < ActionDispatch::IntegrationTest
 
   test "validation in real mode calls verifier" do
     CloudflareTurnstile.test_mode = false
-    @controller.stub(:params, { "cf-turnstile-response" => "tok" }) do
+    @controller.stub(:params, ActionController::Parameters.new({ "cf-turnstile-response" => "tok" })) do
       Jit::Security::TurnstileVerifier.stub(:verify, { "success" => true }) do
         assert_equal({ "success" => true }, @controller.cloudflare_turnstile_validation)
       end

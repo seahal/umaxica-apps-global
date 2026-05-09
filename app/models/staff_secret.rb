@@ -7,9 +7,11 @@
 # Database name: operator
 #
 #  id                              :bigint           not null, primary key
+#  lapses_at                       :datetime         default(Infinity), not null
 #  last_used_at                    :datetime
 #  name                            :string           not null
 #  password_digest                 :string
+#  purge_at                        :datetime         default(Infinity), not null
 #  created_at                      :datetime         not null
 #  updated_at                      :datetime         not null
 #  public_id                       :string(21)       not null
@@ -32,6 +34,8 @@
 #
 
 class StaffSecret < OperatorRecord
+  include Retainable
+
   alias_attribute :staff_secret_status_id, :staff_identity_secret_status_id
   include ::PublicId
   include ::Secret

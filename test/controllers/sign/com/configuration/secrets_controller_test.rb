@@ -92,6 +92,8 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   test "create persists secret and redirects" do
     get new_sign_com_configuration_secret_url(ri: "jp"), headers: request_headers
 
+    assert_response :success
+
     assert_difference("CustomerSecret.count", 1) do
       post sign_com_configuration_secrets_url(ri: "jp"),
            params: { customer_secret: { name: "New Secret", enabled: true } },

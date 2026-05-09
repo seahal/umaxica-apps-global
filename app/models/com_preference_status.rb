@@ -10,6 +10,8 @@
 # frozen_string_literal: true
 
 class ComPreferenceStatus < SettingRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   DELETED = 1
   NOTHING = 2

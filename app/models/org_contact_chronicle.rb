@@ -8,8 +8,9 @@
 #
 #  id           :bigint           not null, primary key
 #  actor_type   :string
-#  expires_at   :datetime
+#  lapses_at    :datetime         default(Infinity), not null
 #  occurred_at  :datetime
+#  purge_at     :datetime
 #  subject_type :string           not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -32,6 +33,7 @@
 #  fk_rails_...  (level_id => org_contact_chronicle_levels.id)
 #
 class OrgContactChronicle < ChronicleRecord
+  include Retainable
   include Behavior
 
   belongs_to :org_contact, optional: true, foreign_key: :subject_id, inverse_of: :org_contact_chronicles

@@ -5,42 +5,34 @@
 # These values are often expected to exist by various tests.
 
 ActiveSupport.on_load(:active_record) do
-  Prosopite.pause do
-    if defined?(UserChronicleEvent)
-      UserChronicleEvent.ensure_defaults!
+  next if ENV["SKIP_DB"] == "1" || defined?(@_test_reference_data_initialized)
+
+  @_test_reference_data_initialized = true
+
+  initializer =
+    lambda do
+      {
+        "UserChronicleEvent" => -> { UserChronicleEvent },
+        "UserChronicleLevel" => -> { UserChronicleLevel },
+        "StaffChronicleEvent" => -> { StaffChronicleEvent },
+        "AppPreferenceChronicleLevel" => -> { AppPreferenceChronicleLevel },
+        "AppPreferenceChronicleEvent" => -> { AppPreferenceChronicleEvent },
+        "ComPreferenceChronicleLevel" => -> { ComPreferenceChronicleLevel },
+        "ComPreferenceChronicleEvent" => -> { ComPreferenceChronicleEvent },
+        "OrgPreferenceChronicleLevel" => -> { OrgPreferenceChronicleLevel },
+        "OrgPreferenceChronicleEvent" => -> { OrgPreferenceChronicleEvent },
+      }.each do |constant_name, resolver|
+        next unless Object.const_defined?(constant_name)
+
+        resolver.call.ensure_defaults!
+      end
+
+      StaffChronicleLevel.insert_missing_fixed_ids!([StaffChronicleLevel::NOTHING]) if defined?(StaffChronicleLevel)
     end
 
-    if defined?(UserChronicleLevel)
-      UserChronicleLevel.ensure_defaults!
-    end
-
-    if defined?(StaffChronicleLevel)
-      StaffChronicleLevel.insert_missing_fixed_ids!([StaffChronicleLevel::NOTHING])
-    end
-
-    if defined?(StaffChronicleEvent)
-      StaffChronicleEvent.ensure_defaults!
-    end
-
-    if defined?(AppPreferenceChronicleLevel)
-      AppPreferenceChronicleLevel.ensure_defaults!
-    end
-    if defined?(AppPreferenceChronicleEvent)
-      AppPreferenceChronicleEvent.ensure_defaults!
-    end
-
-    if defined?(ComPreferenceChronicleLevel)
-      ComPreferenceChronicleLevel.ensure_defaults!
-    end
-    if defined?(ComPreferenceChronicleEvent)
-      ComPreferenceChronicleEvent.ensure_defaults!
-    end
-
-    if defined?(OrgPreferenceChronicleLevel)
-      OrgPreferenceChronicleLevel.ensure_defaults!
-    end
-    if defined?(OrgPreferenceChronicleEvent)
-      OrgPreferenceChronicleEvent.ensure_defaults!
-    end
+  if defined?(Prosopite)
+    Prosopite.pause(&initializer)
+  else
+    initializer.call
   end
 end

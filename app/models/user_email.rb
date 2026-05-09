@@ -52,8 +52,6 @@ class UserEmail < PrincipalRecord
 
   MAX_EMAILS_PER_USER = 4
 
-  before_validation :set_address_digests
-
   attribute :user_email_status_id, default: UserEmailStatus::UNVERIFIED
   belongs_to :user_email_status,
              optional: true,
@@ -82,8 +80,6 @@ class UserEmail < PrincipalRecord
     self.address ||= ""
   end
 
-  encrypts :address, deterministic: true
-
   # Generates a new verification token and saves its digest
   # Returns the raw token
   def generate_verification_token
@@ -110,12 +106,6 @@ class UserEmail < PrincipalRecord
 
     errors.add(:base, :undeletable, message: "cannot delete a protected email address")
     throw(:abort)
-  end
-
-  def set_address_digests
-    digest = IdentifierBlindIndex.bidx_for_email(raw_address)
-    self.address_bidx = digest
-    self.address_digest = digest if respond_to?(:address_digest=)
   end
 
   def ensure_unique_address_digest

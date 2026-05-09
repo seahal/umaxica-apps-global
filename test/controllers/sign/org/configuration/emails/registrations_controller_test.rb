@@ -60,7 +60,9 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
            headers: request_headers
     end
 
-    staff_email = StaffEmail.find_by!(address: "org-config-verify@example.com")
+    staff_email = StaffEmail.find_by(address: "org-config-verify@example.com")
+
+    assert_not_nil staff_email
     otp_data = staff_email.get_otp
     code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 

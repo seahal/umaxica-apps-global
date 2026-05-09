@@ -2,10 +2,20 @@
 # frozen_string_literal: true
 
 class Current < ActiveSupport::CurrentAttributes
+  include CurrentActor
+
   attribute :actor, :actor_type, :session, :token, :domain, :preference,
             :trace_id, :span_id
 
-  resets { self.preference = Current::Preference::NULL }
+  resets do
+    self.actor = Unauthenticated.instance
+    self.actor_type = :unauthenticated
+    self.preference = Current::Preference::NULL
+  end
+
+  def self.preference
+    super || Current::Preference::NULL
+  end
 
   def self.actor
     super || Unauthenticated.instance
@@ -13,41 +23,5 @@ class Current < ActiveSupport::CurrentAttributes
 
   def self.actor_type
     super || :unauthenticated
-  end
-
-  def self.preference
-    super || Current::Preference::NULL
-  end
-
-  def self.user?
-    actor_type == :user
-  end
-
-  def self.staff?
-    actor_type == :staff
-  end
-
-  def self.customer?
-    actor_type == :customer
-  end
-
-  def self.unauthenticated?
-    actor_type == :unauthenticated
-  end
-
-  def self.authenticated?
-    %i(user customer staff).include?(actor_type)
-  end
-
-  def self.user
-    actor if user?
-  end
-
-  def self.staff
-    actor if staff?
-  end
-
-  def self.customer
-    actor if customer?
   end
 end

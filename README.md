@@ -46,8 +46,8 @@ bin/importmap audit             # Audit pinned JS packages
 - Docker and Docker Compose
 - Ruby `4.0.2`
 - Bundler
-- Node.js `20+`
-- `pnpm@10.27.0`
+- Node.js `22.13+`
+- `pnpm@11.0.8`
 
 Start the local stack, install dependencies, and boot the app:
 
@@ -82,6 +82,7 @@ TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/de
 - `web`: Rails server on port `3000`
 - `css`: `bin/rails tailwindcss:watch`
 - `job`: `bin/jobs start`
+- `: `
 
 ## Development URLs
 
@@ -90,10 +91,9 @@ needed.
 
 | Surface | URL                                        |
 | :------ | :----------------------------------------- |
-| Apex    | `http://{app,com,org}.localhost:3000`      |
-| Sign    | `http://sign.{org,com,app}.localhost:3000` |
-| core    | `http://www.{app,com,org}.localhost:3000`  |
-| Docs    | `http://docs.{app,com,org}.localhost:3000` |
+| Apex    | `http://www.{app,com,org}.localhost:3001`  |
+| Sign    | `http://id.{org,com,app}.localhost:3001`   |
+| Jump    | `http://jump.{app,com,org}.localhost:3001` |
 
 ## Linting and Formatting
 

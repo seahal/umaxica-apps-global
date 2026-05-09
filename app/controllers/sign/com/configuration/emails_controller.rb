@@ -16,11 +16,11 @@ module Sign
         end
 
         def edit
-          @user_email = current_customer.customer_emails.find_by!(public_id: params[:id])
+          @user_email = current_customer.customer_emails.find_by!(public_id: params.expect(:id))
         end
 
         def destroy
-          @user_email = current_customer.customer_emails.find_by!(public_id: params[:id])
+          @user_email = current_customer.customer_emails.find_by!(public_id: params.expect(:id))
 
           if @user_email.undeletable?
             redirect_to(

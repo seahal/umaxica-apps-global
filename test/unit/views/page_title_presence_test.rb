@@ -12,6 +12,7 @@ class PageTitlePresenceTest < ActiveSupport::TestCase
   PAGE_TITLE_PATTERNS = [
     /content_for\s+:page_title/,
     /provide\s*\(\s*:page_title/,
+    /page_title\s+/, # ApplicationHelper#page_title
     /<%=?\s*title\s+/, # meta-tags gem helper
     /set_meta_tags.*title/,
   ].freeze

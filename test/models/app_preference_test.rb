@@ -5,14 +5,13 @@
 # Database name: principal
 #
 #  id                       :bigint           not null, primary key
-#  compromised_at           :datetime
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
-#  expires_at               :datetime
 #  jti                      :string
-#  revoked_at               :datetime
+#  lapses_at                :datetime         default(Infinity), not null
+#  purge_at                 :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -34,8 +33,8 @@
 #  index_app_preferences_on_device_id_digest   (device_id_digest)
 #  index_app_preferences_on_jti                (jti) UNIQUE
 #  index_app_preferences_on_public_id          (public_id) UNIQUE
+#  index_app_preferences_on_purge_at           (purge_at)
 #  index_app_preferences_on_replaced_by_id     (replaced_by_id)
-#  index_app_preferences_on_revoked_at         (revoked_at)
 #  index_app_preferences_on_status_id          (status_id)
 #  index_app_preferences_on_token_digest       (token_digest)
 #  index_app_preferences_on_used_at            (used_at)
@@ -148,29 +147,29 @@ class AppPreferenceTest < ActiveSupport::TestCase
     assert_nil AppPreferenceLanguage.find_by(id: language_id)
   end
 
-  test "has one app_preference_colortheme" do
+  test "has one app_preference_theme" do
     preference = AppPreference.create!
-    option = app_preference_colortheme_options(:light)
-    colortheme = preference.create_app_preference_colortheme!(option: option)
+    option = app_preference_theme_options(:light)
+    theme = preference.create_app_preference_theme!(option: option)
 
-    assert_equal colortheme, preference.app_preference_colortheme
+    assert_equal theme, preference.app_preference_theme
   end
 
-  test "destroys app_preference_colortheme when destroyed" do
+  test "destroys app_preference_theme when destroyed" do
     preference = AppPreference.create!
-    option = app_preference_colortheme_options(:light)
-    colortheme = preference.create_app_preference_colortheme!(option: option)
-    colortheme_id = colortheme.id
+    option = app_preference_theme_options(:light)
+    theme = preference.create_app_preference_theme!(option: option)
+    theme_id = theme.id
     preference.destroy!
 
-    assert_nil AppPreferenceColortheme.find_by(id: colortheme_id)
+    assert_nil AppPreferenceTheme.find_by(id: theme_id)
   end
 
   test "consume_once_by_digest! marks token used only once" do
     digest = AppPreference.digest_refresh_token("app-consume-once")
     preference = AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -194,23 +193,21 @@ class AppPreferenceTest < ActiveSupport::TestCase
 
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: revoked_digest,
-      revoked_at: Time.current,
+      lapses_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: compromised_digest,
-      compromised_at: Time.current,
+      lapses_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      expires_at: 1.minute.ago,
+      lapses_at: 1.minute.ago,
       token_digest: expired_digest,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -226,12 +223,7 @@ class AppPreferenceTest < ActiveSupport::TestCase
 
     assert_not preference.revoked?
 
-    preference.revoked_at = Time.current
-
-    assert_predicate preference, :revoked?
-
-    preference.revoked_at = nil
-    preference.compromised_at = Time.current
+    preference.lapses_at = Time.current
 
     assert_predicate preference, :revoked?
   end
@@ -240,7 +232,7 @@ class AppPreferenceTest < ActiveSupport::TestCase
     digest = AppPreference.digest_refresh_token("rotate-me")
     preference = AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: "device-1",

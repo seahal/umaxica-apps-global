@@ -2,7 +2,7 @@
 
 ## Status
 
-Pending
+Completed (allowlist defined)
 
 ## Purpose
 
@@ -132,6 +132,23 @@ For now:
 - audit and security events cover required service and security actions
 - product analytics stays pending until consent-aware rules are finalized
 
+## Pre-Consent Event Allowlist
+
+Before optional `performant` consent is granted, the `AnalyticsConsentGuard` permits only events
+that fall into the following classes. All other events are silently dropped.
+
+| Class             | Event Patterns                                                                                                                                                                                                               | Rationale                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Authentication    | `auth.*`, `authentication.*`, `authorization.*`, `session.*`, `social_auth.*`, `sign.social.omniauth*`, `user.token.*`, `staff.token.*`, `user.occurrence.*`, `staff.occurrence.*`, `otp.*`, `webauthn.*`, `sign.webauthn.*` | Service delivery, fraud detection, audit accountability   |
+| Security          | `rate_limit.*`, `telephone.verification.rate_limited`, `turnstile.*`, `captcha.*`, `security.*`, `redirect.blocked`, `redirect.invalid_url`, `sign.risk.*`                                                                   | Abuse prevention, bot mitigation, platform integrity      |
+| Incident Response | `health_check.*`, `exception.*`, `unhandled_exception`, `error.unhandled`, `preference.*.error`, `preference.*.rotation_error`                                                                                               | Reliability monitoring, incident investigation, debugging |
+| Contact           | `contact.submission.*`                                                                                                                                                                                                       | Confirm delivery of user-initiated contact                |
+
+### Explicit Rule
+
+**Product analytics and marketing analytics remain DISABLED before `performant` consent is
+granted.** Events that answer "how do users move through the product?" require `performant` consent.
+
 ## Event Placement Rule
 
 Use this rule when adding a new event:
@@ -145,7 +162,9 @@ event to serve multiple purposes.
 
 ## Pending Work
 
-1. Define the minimal audit event list for authentication and sensitive settings.
-2. Define the minimal product event list for consent-aware analytics.
+1. ~~Define the minimal audit event list for authentication and sensitive settings.~~ ✅ Completed
+   via `PreConsentAllowlist`
+2. ~~Define the minimal product event list for consent-aware analytics.~~ ✅ Completed via
+   `PreConsentAllowlist`
 3. Define data retention and access rules per layer.
 4. Link optional analytics startup to the consent model.

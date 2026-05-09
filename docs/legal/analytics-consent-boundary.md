@@ -2,7 +2,7 @@
 
 ## Status
 
-Completed
+Completed (guard implemented)
 
 ## Purpose
 
@@ -28,6 +28,7 @@ The repository contains a complete cookie consent model and UI, plus a runtime g
   - `performant`
   - `targetable`
 - **Analytics consent runtime gate** (`app/javascript/analytics_consent_gate.js`)
+- **Server-side analytics consent guard** (`app/services/analytics_consent_guard.rb`)
 
 Relevant implementation references:
 
@@ -37,6 +38,9 @@ Relevant implementation references:
 - `app/javascript/controllers/cookie_toggle_controller.js`
 - `app/controllers/concerns/preference/web_cookie_actions.rb`
 - `app/models/current/preference.rb`
+- `app/services/analytics_consent_guard.rb` — Server-side guard for Rails.event emissions
+- `app/services/analytics_consent_guard/pre_consent_allowlist.rb` — Exact allowlist of pre-consent
+  events
 
 ### Runtime Gate Implementation
 
@@ -47,6 +51,13 @@ provides:
 - Callback mechanism for consent changes (`onConsentChange`)
 - Protection against pre-consent analytics execution
 - OTEL and security events remain unaffected (bypass the gate)
+
+The server-side `AnalyticsConsentGuard` provides:
+
+- Consent checking before `Rails.event.record` / `Rails.event.notify` emissions
+- Silent dropping (with debug logging) of events not in the pre-consent allowlist when `performant`
+  consent is missing
+- Security, audit, and incident events bypass the guard via `PreConsentAllowlist`
 
 ## Current Decision
 
@@ -113,21 +124,77 @@ Before consent for optional analytics is confirmed, only collect events that are
 
 Do not treat product analytics as necessary by default.
 
-## Allowed Before Optional Consent
+## Pre-Consent Event Allowlist
 
-The following event types are acceptable as a conservative starting point:
+The following event classes may be collected **before** optional `performant` consent is granted.
+All other events require `performant` consent.
 
-- authentication success and failure
-- OTP request and failure
-- passkey verification success and failure
-- OAuth callback success and failure
-- rate limit triggers
-- Turnstile verification failures
-- contact submission success and failure
-- critical external API failures
-- unhandled exceptions
+### Authentication and Identity Events
 
-These events should be treated as operational or security events, not as growth analytics.
+- `auth.*`
+- `authentication.*`
+- `authorization.*`
+- `session.*`
+- `social_auth.*`
+- `sign.social.omniauth*` / `sign.social.org.omniauth*`
+- `user.token.*` / `staff.token.*`
+- `user.occurrence.*` / `staff.occurrence.*`
+- `otp.*`
+- `webauthn.*` / `sign.webauthn.*`
+
+**Rationale:** Required for service delivery, session management, fraud detection, and audit
+accountability. These events answer "who accessed the system and how."
+
+### Security and Anti-Abuse Events
+
+- `rate_limit.*`
+- `telephone.verification.rate_limited`
+- `turnstile.*`
+- `captcha.*`
+- `security.*`
+- `redirect.blocked` / `redirect.invalid_url`
+- `sign.risk.*`
+
+**Rationale:** Required for abuse prevention, bot mitigation, and platform integrity. These events
+answer "was an attack or policy violation detected?"
+
+### Incident Response Events
+
+- `health_check.*`
+- `exception.*`
+- `unhandled_exception`
+- `error.unhandled`
+- `preference.*.error`
+- `preference.*.rotation_error`
+
+**Rationale:** Required for reliability monitoring, incident investigation, and critical failure
+notification. These events answer "is the service healthy?"
+
+### Contact Events
+
+- `contact.submission.success`
+- `contact.submission.failure`
+
+**Rationale:** Required to confirm delivery of user-initiated contact requests.
+
+## Explicit Rule: Product and Marketing Analytics Remain Disabled
+
+**Product analytics and marketing analytics are DISABLED before `performant` consent is granted.**
+The server-side guard drops any `Rails.event` emission that is not in the pre-consent allowlist when
+`Current.preference.cookie.performant?` is false.
+
+This means:
+
+- page view analytics
+- clickstream analysis
+- signup funnel analytics
+- onboarding funnel analytics
+- feature usage analytics
+- retention analytics
+- campaign attribution analytics
+- advertising pixels and remarketing identifiers
+
+...are all blocked until the user grants `performant` (and `targetable`, where applicable) consent.
 
 ## Hold Until Performant Consent
 
@@ -155,8 +222,10 @@ The following should remain disabled until targeting consent is granted:
 1. Define the exact mapping from implementation features to consent categories.
 2. Decide whether product analytics uses only `performant` or a refined category model.
 3. ~~Add a runtime gate so optional analytics cannot start before consent is available.~~ ✅
-   Completed via `analytics_consent_gate.js`
+   Completed via `analytics_consent_gate.js` and `AnalyticsConsentGuard`
 4. Add documentation that matches the final behavior in the privacy and cookie notices.
+5. ~~Define the server-side pre-consent event allowlist with rationale.~~ ✅ Completed via
+   `PreConsentAllowlist`
 
 ## Open Questions
 

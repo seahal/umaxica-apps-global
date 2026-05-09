@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: customer_preference_language_options
-# Database name: guest
+# Database name: setting
 #
 #  id :bigint           not null, primary key
 #

@@ -1,6 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
+# FIXME: Find out why this file exists.
 module Contact
   class ActorContext
     attr_reader :subject_type, :subject_id, :email, :telephone

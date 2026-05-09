@@ -3,11 +3,9 @@
 
 module Apex
   module Com
-    class RobotsController < ApplicationController
+    class RobotsController < Apex::PublicController
       include ::Robots
 
-      skip_before_action :canonicalize_query_params, raise: false
-      skip_before_action :set_region, raise: false
       public_strict!
 
       def show

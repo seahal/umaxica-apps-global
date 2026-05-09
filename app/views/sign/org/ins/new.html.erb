@@ -18,7 +18,9 @@
       <span><%= t("sign.org.authentication.new.links.secret") %></span>
     <% end %>
 
-    <%= link_to new_sign_org_social_session_path(provider: "google_org") do %>
+    <%= button_to start_sign_org_social_authentication_path(provider: "google_org", ri: params[:ri]),
+                  method: :post,
+                  data: { turbo: false } do %>
       <span><%= t("sign.org.authentication.new.links.google") %></span>
     <% end %>
 

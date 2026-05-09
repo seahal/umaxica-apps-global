@@ -10,6 +10,8 @@
 #
 
 class StaffTelephoneStatus < OperatorRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   ACTIVE = 1
   DELETED = 2

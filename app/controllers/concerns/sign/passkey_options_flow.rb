@@ -46,7 +46,7 @@ module Sign
     end
 
     def normalized_passkey_identifier
-      params[:identifier].to_s.strip
+      params.expect(:identifier).to_s.strip
     end
 
     def passkey_identifier_required_error_key

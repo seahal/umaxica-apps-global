@@ -36,8 +36,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     assert_equal 0, user.reload.user_social_apple ? 1 : 0
 
     # Simulate Apple callback as logged-in user
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: @callback_headers.merge(as_user_headers(user, host: @host))
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: @callback_headers.merge(as_user_headers(user, host: @host))
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(user, host: @host))
 
@@ -78,8 +78,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     assert_nil user.reload.user_social_google
 
     # Simulate Google callback as logged-in user
-    get sign_app_social_start_url(provider: "google_app", intent: "link", ri: "jp"),
-        headers: @callback_headers.merge(as_user_headers(user, host: @host))
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: @callback_headers.merge(as_user_headers(user, host: @host))
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(user, host: @host))
 
@@ -105,8 +105,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: apple_uid)
 
     # First callback
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: @callback_headers.merge(as_user_headers(user, host: @host))
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: @callback_headers.merge(as_user_headers(user, host: @host))
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(user, host: @host))
 
@@ -120,8 +120,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
     # Second callback with SAME uid and SAME user
     setup_apple_mock_auth(uid: apple_uid)
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: @callback_headers.merge(as_user_headers(user, host: @host))
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: @callback_headers.merge(as_user_headers(user, host: @host))
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(user, host: @host))
 
@@ -159,8 +159,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: apple_uid)
 
     # Callback as userB should fail with conflict
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: @callback_headers.merge(as_user_headers(user_b, host: @host))
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: @callback_headers.merge(as_user_headers(user_b, host: @host))
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(user_b, host: @host))
 
@@ -186,8 +186,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     user_count_before = User.count
 
     # Start OAuth flow to set up session state (required by SocialCallbackGuard)
-    get sign_app_social_start_url(provider: "apple", intent: "login", ri: "jp"),
-        headers: browser_headers.merge(@callback_headers)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "login", ri: "jp"),
+         headers: browser_headers.merge(@callback_headers)
 
     # Callback without login (no headers)
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),

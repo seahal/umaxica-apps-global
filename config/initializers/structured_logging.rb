@@ -137,4 +137,10 @@ ActiveSupport.on_load(:after_initialize) do
     Rails.event.subscribe(subscriber.new)
     Rails.event.subscribe(JwtAnomalySubscriber.new) if defined?(JwtAnomalySubscriber)
   end
+
+  # Guard product analytics before performant consent.
+  # Security, audit, and incident events in PreConsentAllowlist bypass the guard.
+  if defined?(ActiveSupport::EventReporter)
+    ActiveSupport::EventReporter.prepend(AnalyticsConsentGuard::EventReporterPatch)
+  end
 end

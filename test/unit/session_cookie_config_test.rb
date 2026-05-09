@@ -14,6 +14,18 @@ class SessionCookieConfigTest < ActiveSupport::TestCase
     assert_equal "session", SessionCookieConfig.cookie_key(force_secure: false)
   end
 
+  test "partitioned is true in production" do
+    env = ActiveSupport::EnvironmentInquirer.new("production")
+
+    assert SessionCookieConfig.partitioned?(rails_env: env)
+  end
+
+  test "partitioned is false outside production" do
+    env = ActiveSupport::EnvironmentInquirer.new("test")
+
+    assert_not SessionCookieConfig.partitioned?(rails_env: env)
+  end
+
   # --- force_secure? in production ---
 
   test "force_secure is true in production" do

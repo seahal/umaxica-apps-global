@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class StaffTokenDbscStatus < TokenRecord
+  include ReferenceRecord
+
   NOTHING = 0
   PENDING = 1
   ACTIVE = 2

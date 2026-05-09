@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class CustomerTokenDbscStatus < SymbolRecord
+  include ReferenceRecord
+
   NOTHING = 0
   PENDING = 1
   ACTIVE = 2

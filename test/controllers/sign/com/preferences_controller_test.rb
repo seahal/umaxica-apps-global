@@ -9,7 +9,9 @@ class Sign::Com::PreferencesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get show" do
-    get sign_com_preference_url(ri: "jp")
+    assert_no_difference("ComPreference.count") do
+      get sign_com_preference_url(ri: "jp")
+    end
 
     assert_response :success
     assert_select "a[href=?]", new_sign_com_preference_email_path(ri: "jp")

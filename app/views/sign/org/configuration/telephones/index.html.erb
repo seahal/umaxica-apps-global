@@ -20,9 +20,9 @@
         <td><%= telephone.number %></td>
         <td>
           <% if [StaffTelephoneStatus::ACTIVE, StaffTelephoneStatus::VERIFIED].include?(telephone.staff_telephone_status_id) %>
-            <span>認証済み</span>
+            <span><%= t("views.sign.org.configuration.telephones.index.verified") %></span>
           <% else %>
-            <span>未認証</span>
+            <span><%= t("views.sign.org.configuration.telephones.index.unverified") %></span>
           <% end %>
         </td>
         <td>

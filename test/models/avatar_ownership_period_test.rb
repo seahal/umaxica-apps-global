@@ -23,7 +23,6 @@
 #  index_avatar_ownership_periods_on_avatar_id                   (avatar_id) UNIQUE WHERE (valid_to = 'infinity'::timestamp with time zone)
 #  index_avatar_ownership_periods_on_avatar_ownership_status_id  (avatar_ownership_status_id)
 #  index_avatar_ownership_periods_on_owner_organization_id       (owner_organization_id) WHERE (valid_to = 'infinity'::timestamp with time zone)
-#  index_avatar_ownership_periods_on_transferred_by_actor_id     (transferred_by_actor_id)
 #
 # Foreign Keys
 #

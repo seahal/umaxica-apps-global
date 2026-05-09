@@ -9,7 +9,9 @@ class Sign::App::PreferencesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get show" do
-    get sign_app_preference_url(ri: "jp")
+    assert_no_difference("AppPreference.count") do
+      get sign_app_preference_url(ri: "jp")
+    end
 
     assert_response :success
     assert_select "a[href=?]", new_sign_app_preference_email_path(ri: "jp")

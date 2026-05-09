@@ -172,8 +172,8 @@ class Authentication::StaffTest < ActiveSupport::TestCase
       @obj.send(:log_in, @staff)
       token = StaffToken.where(staff_id: @staff.id).order(created_at: :desc).first
 
-      assert_in_delta 12.hours.from_now.to_i, token.revoked_at.to_i, 1
-      assert_in_delta 36.hours.from_now.to_i, token.deletable_at.to_i, 1
+      assert_in_delta 12.hours.from_now.to_i, token.lapses_at.to_i, 1
+      assert_in_delta 36.hours.from_now.to_i, token.purge_at.to_i, 1
     end
   end
 

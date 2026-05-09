@@ -18,11 +18,11 @@ module Secret
   end
 
   class_methods do
-    def issue!(name:, length: SECRET_PASSWORD_LENGTH, expires_at: nil, uses: 1, status: :active, **attributes)
+    def issue!(name:, length: SECRET_PASSWORD_LENGTH, lapses_at: nil, uses: 1, status: :active, **attributes)
       raw_secret = SecureRandom.base58(length)
       record_attributes = attributes.merge(name: name)
       record_attributes[:uses_remaining] = uses if supports_uses_remaining?
-      record_attributes[:expires_at] = expires_at if expires_at && supports_expiration?
+      record_attributes[:lapses_at] = lapses_at if lapses_at && supports_expiration?
       record = new(record_attributes)
       record[identity_secret_status_id_column] = status_id_for(status)
       record.password = raw_secret
@@ -84,9 +84,9 @@ module Secret
 
     def supports_expiration?
       if respond_to?(:column_names)
-        column_names.include?("expires_at")
+        column_names.include?("lapses_at")
       elsif respond_to?(:attribute_types)
-        attribute_types.key?("expires_at")
+        attribute_types.key?("lapses_at")
       else
         false
       end
@@ -166,15 +166,13 @@ module Secret
   end
 
   def expired_by_time?(now)
-    return false unless respond_to?(:expires_at)
-    return false if expires_at.nil?
+    return false unless respond_to?(:lapses_at)
+    return false if lapses_at.nil?
 
     # PostgreSQL infinity/-infinity are used as sentinels for "never expires"
     # When read from DB, they may be converted to Float::INFINITY/-Float::INFINITY
-    return false if expires_at.is_a?(Float) && expires_at.infinite?
+    return false if lapses_at.respond_to?(:infinite?) && lapses_at.infinite?
 
-    # Convert to comparable type if needed (unix timestamp to Time)
-    comparable_time = expires_at.is_a?(Float) ? Time.zone.at(expires_at) : expires_at
-    comparable_time <= now
+    lapses_at <= now
   end
 end

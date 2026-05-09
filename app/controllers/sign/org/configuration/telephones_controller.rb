@@ -21,7 +21,7 @@ module Sign
         end
 
         def edit
-          @staff_telephone = current_staff.staff_telephones.find(params[:id])
+          @staff_telephone = current_staff.staff_telephones.find(params.expect(:id))
         end
 
         def create
@@ -37,7 +37,7 @@ module Sign
         end
 
         def destroy
-          @staff_telephone = current_staff.staff_telephones.find(params[:id])
+          @staff_telephone = current_staff.staff_telephones.find(params.expect(:id))
 
           unless removable_telephone?(@staff_telephone)
             redirect_to(

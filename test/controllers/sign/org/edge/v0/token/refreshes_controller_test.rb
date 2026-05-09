@@ -176,7 +176,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "POST refresh with restricted token returns localized error message" do
     token_record = StaffToken.create!(staff: @staff, status: StaffToken::STATUS_RESTRICTED, device_id: @device_id)
-    refresh_plain = token_record.rotate_refresh_token!(expires_at: 15.minutes.from_now)
+    refresh_plain = token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
     csrf_token = "test_csrf_token"
     cookies["csrf_token"] = csrf_token

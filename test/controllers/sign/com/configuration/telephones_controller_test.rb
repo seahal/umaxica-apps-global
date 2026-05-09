@@ -45,6 +45,8 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
 
     get sign_com_configuration_telephones_url(ri: "jp"), headers: headers
 
+    assert_response :redirect
+
     assert_redirected_to new_sign_com_configuration_telephones_registration_url(ri: "jp")
   end
 

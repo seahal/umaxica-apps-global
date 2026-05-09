@@ -8,7 +8,8 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   setup do
     @user = users(:one)
-    @host = ENV.fetch("ID_SERVICE_URL", "test.umaxica.com")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! @host
     UserToken.where(user: @user).delete_all
   end
 
@@ -123,9 +124,18 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   end
 
   test "GET check includes Cache-Control no-store header" do
+    token_record = UserToken.create!(user: @user)
+    access_token = jwt_access_token_for(
+      @user, host: @host, session_public_id: token_record.public_id,
+             resource_type: "user",
+    )
+    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
         as: :json
+
+    assert_response :success
 
     assert_equal "no-store", response.headers["Cache-Control"]
   end
@@ -161,6 +171,122 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     assert_equal "user", json["type"]
     assert_equal @user.id, json["id"]
     assert_equal token_record.public_id, json["sid"]
+  end
+
+  test "GET check accepts DPoP-bound token with valid proof" do
+    token_record = UserToken.create!(user: @user)
+    private_key, jwk = generate_dpop_jwk
+    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    token_record.update!(dpop_jkt: jkt)
+    access_token = jwt_access_token_for(
+      @user,
+      host: @host,
+      session_public_id: token_record.public_id,
+      resource_type: "user",
+      dpop_jkt: jkt,
+    )
+    proof = build_dpop_proof(
+      private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
+                        access_token: access_token,
+    )
+
+    get "/edge/v0/token/check",
+        headers: {
+          "Host" => @host,
+          "Accept" => "application/json",
+          "Authorization" => "DPoP #{access_token}",
+          "DPoP" => proof,
+        },
+        as: :json
+
+    assert_response :ok
+    assert response.parsed_body["authenticated"]
+    assert_equal token_record.public_id, response.parsed_body["sid"]
+  end
+
+  test "GET check rejects DPoP-bound token presented as Bearer" do
+    token_record = UserToken.create!(user: @user)
+    private_key, jwk = generate_dpop_jwk
+    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    access_token = jwt_access_token_for(
+      @user,
+      host: @host,
+      session_public_id: token_record.public_id,
+      resource_type: "user",
+      dpop_jkt: jkt,
+    )
+    proof = build_dpop_proof(
+      private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
+                        access_token: access_token,
+    )
+
+    get "/edge/v0/token/check",
+        headers: {
+          "Host" => @host,
+          "Accept" => "application/json",
+          "Authorization" => "Bearer #{access_token}",
+          "DPoP" => proof,
+        },
+        as: :json
+
+    assert_response :unauthorized
+    assert_predicate response.headers["DPoP-Nonce"], :present?
+    assert_equal({ "authenticated" => false }, response.parsed_body)
+  end
+
+  test "GET check rejects DPoP-bound token without proof" do
+    token_record = UserToken.create!(user: @user)
+    _private_key, jwk = generate_dpop_jwk
+    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    access_token = jwt_access_token_for(
+      @user,
+      host: @host,
+      session_public_id: token_record.public_id,
+      resource_type: "user",
+      dpop_jkt: jkt,
+    )
+
+    get "/edge/v0/token/check",
+        headers: {
+          "Host" => @host,
+          "Accept" => "application/json",
+          "Authorization" => "DPoP #{access_token}",
+        },
+        as: :json
+
+    assert_response :unauthorized
+    assert_predicate response.headers["DPoP-Nonce"], :present?
+    assert_equal({ "authenticated" => false }, response.parsed_body)
+  end
+
+  test "GET check rejects DPoP proof with wrong ath" do
+    token_record = UserToken.create!(user: @user)
+    private_key, jwk = generate_dpop_jwk
+    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    access_token = jwt_access_token_for(
+      @user,
+      host: @host,
+      session_public_id: token_record.public_id,
+      resource_type: "user",
+      dpop_jkt: jkt,
+    )
+    proof = build_dpop_proof(
+      private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
+                        access_token: "different-token",
+    )
+
+    get "/edge/v0/token/check",
+        headers: {
+          "Host" => @host,
+          "Accept" => "application/json",
+          "Authorization" => "DPoP #{access_token}",
+          "DPoP" => proof,
+        },
+        as: :json
+
+    assert_response :unauthorized
+    assert_predicate response.headers["DPoP-Nonce"], :present?
+    assert_equal({ "authenticated" => false }, response.parsed_body)
   end
 
   test "GET check with missing sid returns 401" do
@@ -213,5 +339,24 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :unauthorized
     assert_equal({ "authenticated" => false }, response.parsed_body)
+  end
+
+  private
+
+  def generate_dpop_jwk
+    ec = OpenSSL::PKey::EC.generate("prime256v1")
+    jwk = JWT::JWK.new(ec).export
+    [ec, jwk]
+  end
+
+  def build_dpop_proof(private_key, jwk, method:, uri:, access_token:)
+    payload = {
+      "htm" => method,
+      "htu" => uri,
+      "iat" => Time.current.to_i,
+      "jti" => SecureRandom.uuid,
+      "ath" => Jit::Security::Jwt::ThumbprintCalculator.ath(access_token),
+    }
+    JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end
 end

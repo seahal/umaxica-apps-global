@@ -36,11 +36,12 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "generates sha3-384 token digest on root" do
-    get sign_org_root_url(ri: "jp")
+  test "does not create preference records on root" do
+    assert_no_difference("OrgPreference.count") do
+      get sign_org_root_url(ri: "jp")
+    end
 
     assert_response :success
-    assert_equal 48, OrgPreference.order(:created_at).last.token_digest.bytesize
   end
 
   test "sets theme cookie" do

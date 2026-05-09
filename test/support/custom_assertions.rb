@@ -8,8 +8,8 @@ module CustomAssertions
   end
 
   def assert_occurrence_lifecycle_defaults(record)
-    assert_infinity_timestamp_default(record, :revoked_at)
-    assert_infinity_timestamp_default(record, :deletable_at)
+    assert_infinity_timestamp_default(record, :lapses_at)
+    assert_infinity_timestamp_default(record, :purge_at)
   end
 
   def build_occurrence(model_class, attributes = {})

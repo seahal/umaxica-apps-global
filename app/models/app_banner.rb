@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: app_banners
-# Database name: notification
+# Database name: principal
 #
 #  id         :bigint           not null, primary key
 #  body       :text             not null
@@ -16,7 +16,7 @@
 #  updated_at :datetime         not null
 #  user_id    :bigint           not null
 #
-class AppBanner < NotificationRecord
+class AppBanner < PrincipalRecord
   include BannerModel
 
   belongs_to :user, optional: false

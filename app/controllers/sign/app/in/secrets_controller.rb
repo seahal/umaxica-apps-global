@@ -71,7 +71,7 @@ module Sign
 
         def handle_mfa_login
           @secret_form = MfaSecretForm.new(mfa_secret_params)
-          @secret_form.turnstile_response = params["cf-turnstile-response"].to_s
+          @secret_form.turnstile_response = params.expect("cf-turnstile-response").to_s
           unless @secret_form.valid?
             return render_failed_login(
               reason: :form_invalid,
@@ -98,7 +98,7 @@ module Sign
 
         def handle_standard_login
           @secret_form = SecretLoginForm.new(secret_params)
-          @secret_form.turnstile_response = params["cf-turnstile-response"].to_s
+          @secret_form.turnstile_response = params.expect("cf-turnstile-response").to_s
           unless @secret_form.valid?
             return render_failed_login(
               reason: :form_invalid,

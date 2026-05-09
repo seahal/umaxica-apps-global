@@ -150,3 +150,24 @@ They should not be collapsed into one undifferentiated stream.
 ## Related
 
 - `plans/backlog/gh659-pre-consent-event-allowlist.md`
+
+## 2026-05-07 現状差分と改善として残すこと
+
+方針自体は有効だが、現行ツリーでは observability / audit 周辺の実装が進んでいる。
+
+確認済み:
+
+- `config/initializers/opentelemetry.rb` が存在する。
+- Chronicle 系 schema / model / test が存在する。
+- `Auth::AuditWriter` が存在する。
+- 一部の WebAuthn / Turnstile 周辺では `Rails.event` が使われている。
+
+この文書は「初期導入計画」ではなく、operational logging の改善方針として残す。
+
+残す改善:
+
+- audit logging / product analytics / operational logging の境界を docs に明記する。
+- 高価値イベント（auth failure、external dependency failure、rate limit、job
+  failure）だけから最小イベントセットを決める。
+- `request_id` / job id / trace id の相関ルールを実装済み logging と照合する。
+- 秘密情報を出さない payload shape をテストまたは lint で固定できるか検討する。

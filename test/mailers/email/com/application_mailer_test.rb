@@ -5,7 +5,7 @@ require "test_helper"
 
 class Email::Com::ApplicationMailerTest < ActionMailer::TestCase
   test "applies default from address" do
-    expected_from = Rails.application.credentials.dig(:SMTP_FROM_ADDRESS)
+    expected_from = "from@umaxica.com"
 
     assert_equal expected_from, Email::Com::ApplicationMailer.default[:from]
 

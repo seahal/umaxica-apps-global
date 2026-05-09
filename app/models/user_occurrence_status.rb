@@ -11,6 +11,8 @@
 #
 
 class UserOccurrenceStatus < OccurrenceRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   LEGACY_NOTHING = 1

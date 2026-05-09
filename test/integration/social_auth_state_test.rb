@@ -23,8 +23,8 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
     uid = "google_login_no_state_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: uid)
 
-    get sign_app_social_start_url(provider: "google_app", intent: "login", ri: "jp"),
-        headers: { "Host" => @host }
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
+         headers: { "Host" => @host }
 
     assert_response :redirect
 
@@ -59,8 +59,8 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
     user = users(:one)
     setup_apple_mock_auth(uid: "apple_link_expired_flow_#{SecureRandom.hex(4)}")
 
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: as_user_headers(user, host: @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: as_user_headers(user, host: @host)
 
     assert_response :redirect
 
@@ -82,7 +82,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
       credentials: {
         token: "google_token_#{SecureRandom.hex(8)}",
         refresh_token: "refresh_token",
-        expires_at: 1.week.from_now.to_i,
+        lapses_at: 1.week.from_now.to_i,
       },
     )
   end
@@ -94,7 +94,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
       info: {},
       credentials: {
         token: "apple_token_#{SecureRandom.hex(8)}",
-        expires_at: 1.week.from_now.to_i,
+        lapses_at: 1.week.from_now.to_i,
       },
     )
   end

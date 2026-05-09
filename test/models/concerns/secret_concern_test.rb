@@ -75,7 +75,7 @@ class SecretConcernTest < ActiveSupport::TestCase
   end
 
   test "verify_and_consume! returns false when expired" do
-    record, raw = DummySecret.issue!(name: "Expired", user: @user, expires_at: 1.hour.ago, user_secret_kind_id: UserSecretKind::LOGIN)
+    record, raw = DummySecret.issue!(name: "Expired", user: @user, lapses_at: 1.hour.ago, user_secret_kind_id: UserSecretKind::LOGIN)
 
     assert_not record.verify_and_consume!(raw)
     assert_predicate record.reload, :expired?
@@ -112,11 +112,11 @@ class SecretConcernTest < ActiveSupport::TestCase
   end
 
   test "expired_by_time? handles Float::INFINITY" do
-    record = DummySecret.new(expires_at: Float::INFINITY)
+    record = DummySecret.new(lapses_at: Float::INFINITY)
 
     assert_not record.send(:expired_by_time?, Time.current)
 
-    record.expires_at = -Float::INFINITY
+    record.lapses_at = -Float::INFINITY
 
     assert_not record.send(:expired_by_time?, Time.current)
   end

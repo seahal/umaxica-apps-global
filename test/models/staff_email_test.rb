@@ -8,6 +8,8 @@
 #
 #  id                             :bigint           not null, primary key
 #  address                        :string           not null
+#  address_bidx                   :string
+#  address_digest                 :string
 #  locked_at                      :datetime
 #  notifiable                     :boolean          default(TRUE), not null
 #  otp_attempts_count             :integer          default(0), not null
@@ -27,6 +29,8 @@
 # Indexes
 #
 #  index_staff_emails_on_address                         (address)
+#  index_staff_emails_on_address_bidx                    (address_bidx) UNIQUE WHERE (address_bidx IS NOT NULL)
+#  index_staff_emails_on_address_digest                  (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
 #  index_staff_emails_on_lower_address                   (lower((address)::text)) UNIQUE
 #  index_staff_emails_on_public_id                       (public_id) UNIQUE
 #  index_staff_emails_on_staff_id                        (staff_id)
@@ -95,6 +99,30 @@ class StaffEmailTest < ActiveSupport::TestCase
 
     assert_not duplicate_email.valid?
     assert_predicate duplicate_email.errors[:address], :any?
+  end
+
+  test "sets address digests from normalized input" do
+    staff_email = StaffEmail.create!(
+      raw_address: "STAFF-BIDX@EXAMPLE.COM",
+      confirm_policy: true,
+      staff: @staff,
+    )
+
+    expected = IdentifierBlindIndex.bidx_for_email("staff-bidx@example.com")
+
+    assert_equal expected, staff_email.address_bidx
+    assert_equal expected, staff_email.address_digest
+  end
+
+  test "finds by normalized address digest" do
+    staff_email = StaffEmail.create!(
+      raw_address: "staff-find@example.com",
+      confirm_policy: true,
+      staff: @staff,
+    )
+
+    assert_equal staff_email, StaffEmail.find_by(address: "STAFF-FIND@example.com")
+    assert_nil StaffEmail.find_by(address: "not-an-email")
   end
 
   test "should downcase email address before saving" do

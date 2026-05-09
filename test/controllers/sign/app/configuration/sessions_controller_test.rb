@@ -31,7 +31,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     expired_token = UserToken.create!(
       user_id: @user.id,
       public_id: "expired_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
     expired_token.revoke!
@@ -53,7 +53,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
 
     refresh_expired = UserToken.create!(
       user_id: @user.id,
-      refresh_expires_at: 1.minute.ago,
+      lapses_at: 1.minute.ago,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
 
@@ -87,7 +87,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     user_token = UserToken.create!(
       user_id: @user.id,
       public_id: "test_session_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
 
@@ -97,7 +97,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
 
     user_token.reload
 
-    assert_not_nil user_token.expired_at
+    assert_predicate user_token, :lapsed?
   end
 
   test "destroy current session returns error redirect instead of revoking" do
@@ -110,7 +110,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     # Current session must remain alive
     current_token = UserToken.find_by!(public_id: current_session_id)
 
-    assert_nil current_token.expired_at
+    assert_predicate current_token, :currently_usable?
   end
 
   test "destroy non-existent session returns 404" do
@@ -123,7 +123,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     user_token = UserToken.create!(
       user_id: @user.id,
       public_id: "noauth_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
 
@@ -133,7 +133,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_response :redirect
     user_token.reload
 
-    assert_nil user_token.expired_at
+    assert_predicate user_token, :currently_usable?
   end
 
   test "destroy does not revoke session belonging to another user" do
@@ -141,7 +141,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     other_user_token = UserToken.create!(
       user_id: other_user.id,
       public_id: "other_user_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
 
@@ -152,7 +152,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_response :not_found
     other_user_token.reload
 
-    assert_nil other_user_token.expired_at
+    assert_predicate other_user_token, :currently_usable?
   end
 
   # ===================================================================
@@ -164,13 +164,13 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     token_one = UserToken.create!(
       user_id: @user.id,
       public_id: "others_one_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
     token_two = UserToken.create!(
       user_id: @user.id,
       public_id: "others_two_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
 
@@ -181,9 +181,9 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     token_one.reload
     token_two.reload
 
-    assert_nil current_session.expired_at
-    assert_not_nil token_one.expired_at
-    assert_not_nil token_two.expired_at
+    assert_predicate current_session, :currently_usable?
+    assert_predicate token_one, :lapsed?
+    assert_predicate token_two, :lapsed?
     assert_not response_has_cookie?(::Authentication::Base::ACCESS_COOKIE_KEY)
     assert_not response_has_cookie?(::Authentication::Base::REFRESH_COOKIE_KEY)
   end
@@ -199,7 +199,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_response :see_other
     current_session = UserToken.find_by!(public_id: current_session_id)
 
-    assert_nil current_session.expired_at
+    assert_predicate current_session, :currently_usable?
   end
 
   test "others requires authentication" do
@@ -212,18 +212,18 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     already_expired = UserToken.create!(
       user_id: @user.id,
       public_id: "already_exp_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
     already_expired.revoke!
-    original_expired_at = already_expired.reload.expired_at
+    original_expired_at = already_expired.reload.lapses_at
 
     delete others_sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
 
     assert_response :see_other
     already_expired.reload
 
-    assert_equal original_expired_at.to_i, already_expired.expired_at.to_i
+    assert_equal original_expired_at.to_i, already_expired.lapses_at.to_i
   end
 
   # ===================================================================
@@ -234,7 +234,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     UserToken.create!(
       user_id: @user.id,
       public_id: "others_btn_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
     )
 
@@ -256,5 +256,73 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
 
     assert_response :success
     assert_select "a[href=?]", sign_app_configuration_path(ri: "jp")
+  end
+
+  # ===================================================================
+  # revoke_all
+  # ===================================================================
+
+  test "revoke_all revokes all sessions including current and clears cookies" do
+    current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
+    token = UserToken.find_by!(public_id: current_session_id)
+    token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+    other_token = UserToken.create!(
+      user_id: @user.id,
+      public_id: "rall_o_#{SecureRandom.hex(4)}",
+      lapses_at: 1.day.from_now,
+      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+    )
+
+    delete revoke_all_sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
+
+    assert_response :see_other
+    token.reload
+    other_token.reload
+
+    assert_predicate token, :lapsed?
+    assert_predicate other_token, :lapsed?
+    assert_not response_has_cookie?(::Authentication::Base::ACCESS_COOKIE_KEY)
+    assert_not response_has_cookie?(::Authentication::Base::REFRESH_COOKIE_KEY)
+  end
+
+  test "revoke_all requires step_up" do
+    current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
+    token = UserToken.find_by!(public_id: current_session_id)
+    token.update!(created_at: 20.minutes.ago)
+
+    delete revoke_all_sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
+
+    assert_response :unauthorized
+  end
+
+  test "revoke_all requires authentication" do
+    delete revoke_all_sign_app_configuration_sessions_url(ri: "jp"), headers: @unauthenticated_headers
+
+    assert_response :redirect
+  end
+
+  test "revoke_all records audit event" do
+    current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
+    token = UserToken.find_by!(public_id: current_session_id)
+    token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+
+    events = []
+    subscriber = Object.new
+    subscriber.define_singleton_method(:emit) { |event| events << event }
+    Rails.event.subscribe(subscriber)
+
+    delete(revoke_all_sign_app_configuration_sessions_url(ri: "jp"), headers: @headers)
+
+    assert_response :see_other
+    revoke_events = events.select { |e| e[:name] == "security.session_revoke_all" }
+
+    assert_operator revoke_events.length, :>=, 1
+    event = revoke_events.last
+
+    assert_equal "security.session_revoke_all", event[:name]
+    assert_equal "User", event[:payload][:actor_type]
+    assert_predicate event[:payload][:actor_id], :present?
+  ensure
+    Rails.event.unsubscribe(subscriber) if defined?(subscriber) && subscriber
   end
 end

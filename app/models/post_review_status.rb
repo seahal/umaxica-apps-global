@@ -10,7 +10,8 @@
 #
 
 class PostReviewStatus < AvatarRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 1
   ACTIVE = 2

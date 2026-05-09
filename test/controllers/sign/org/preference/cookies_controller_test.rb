@@ -8,7 +8,7 @@ module Sign
     module Preference
       class CookiesControllerTest < ActionDispatch::IntegrationTest
         fixtures :staffs, :staff_preferences,
-                 :org_preference_colortheme_options, :org_preferences,
+                 :org_preference_theme_options, :org_preferences,
                  :org_preference_cookies
 
         setup do

@@ -5,14 +5,13 @@
 # Database name: setting
 #
 #  id                       :bigint           not null, primary key
-#  compromised_at           :datetime
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
-#  expires_at               :datetime
 #  jti                      :string
-#  revoked_at               :datetime
+#  lapses_at                :datetime         default(Infinity), not null
+#  purge_at                 :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -34,8 +33,8 @@
 #  index_com_preferences_on_device_id_digest   (device_id_digest)
 #  index_com_preferences_on_jti                (jti) UNIQUE
 #  index_com_preferences_on_public_id          (public_id) UNIQUE
+#  index_com_preferences_on_purge_at           (purge_at)
 #  index_com_preferences_on_replaced_by_id     (replaced_by_id)
-#  index_com_preferences_on_revoked_at         (revoked_at)
 #  index_com_preferences_on_status_id          (status_id)
 #  index_com_preferences_on_token_digest       (token_digest)
 #  index_com_preferences_on_used_at            (used_at)
@@ -148,29 +147,29 @@ class ComPreferenceTest < ActiveSupport::TestCase
     assert_nil ComPreferenceLanguage.find_by(id: language_id)
   end
 
-  test "has one com_preference_colortheme" do
+  test "has one com_preference_theme" do
     preference = ComPreference.create!
-    option = com_preference_colortheme_options(:light)
-    colortheme = preference.create_com_preference_colortheme!(option: option)
+    option = com_preference_theme_options(:light)
+    theme = preference.create_com_preference_theme!(option: option)
 
-    assert_equal colortheme, preference.com_preference_colortheme
+    assert_equal theme, preference.com_preference_theme
   end
 
-  test "destroys com_preference_colortheme when destroyed" do
+  test "destroys com_preference_theme when destroyed" do
     preference = ComPreference.create!
-    option = com_preference_colortheme_options(:light)
-    colortheme = preference.create_com_preference_colortheme!(option: option)
-    colortheme_id = colortheme.id
+    option = com_preference_theme_options(:light)
+    theme = preference.create_com_preference_theme!(option: option)
+    theme_id = theme.id
     preference.destroy!
 
-    assert_nil ComPreferenceColortheme.find_by(id: colortheme_id)
+    assert_nil ComPreferenceTheme.find_by(id: theme_id)
   end
 
   test "consume_once_by_digest! is replay-detectable" do
     digest = ComPreference.digest_refresh_token("com-consume-once")
     preference = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -187,23 +186,21 @@ class ComPreferenceTest < ActiveSupport::TestCase
   test "consume_once_by_digest! rejects revoked compromised and expired rows" do
     revoked = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: ComPreference.digest_refresh_token("com-revoked"),
-      revoked_at: Time.current,
+      lapses_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     compromised = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: ComPreference.digest_refresh_token("com-compromised"),
-      compromised_at: Time.current,
+      lapses_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     expired = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.minute.ago,
+      lapses_at: 1.minute.ago,
       token_digest: ComPreference.digest_refresh_token("com-expired"),
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -218,7 +215,7 @@ class ComPreferenceTest < ActiveSupport::TestCase
     digest = ComPreference.digest_refresh_token("com-rotate")
     original = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: "com-device",

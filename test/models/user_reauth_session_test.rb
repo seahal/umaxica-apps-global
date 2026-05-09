@@ -8,8 +8,9 @@
 #
 #  id            :bigint           not null, primary key
 #  attempt_count :integer          default(0), not null
-#  expires_at    :datetime         not null
+#  lapses_at     :datetime         default(Infinity), not null
 #  method        :string           not null
+#  purge_at      :datetime         default(Infinity), not null
 #  return_to     :text             not null
 #  scope         :string           not null
 #  status        :string           not null
@@ -20,7 +21,6 @@
 #
 # Indexes
 #
-#  index_user_reauth_sessions_on_expires_at          (expires_at)
 #  index_user_reauth_sessions_on_user_id_and_status  (user_id,status)
 #
 require "test_helper"
@@ -35,7 +35,7 @@ class UserReauthSessionTest < ActiveSupport::TestCase
       return_to: "/account",
       method: "passkey",
       status: "PENDING",
-      expires_at: 1.second.ago,
+      lapses_at: 1.second.ago,
     )
 
     assert_predicate session, :expired?

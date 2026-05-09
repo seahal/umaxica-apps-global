@@ -14,8 +14,7 @@ production:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
 
-  # Clean up expired risk occurrence records (deletable_at in the past).
-  # Risk events are short-lived (1-hour TTL set by Sign::Risk::Emitter).
-  purge_expired_risk_occurrences:
-    command: "[UserOccurrence, StaffOccurrence].each { |klass| klass.where('event_type LIKE ?', 'risk.%').where('deletable_at < ?', Time.current).in_batches(of: 500).delete_all }"
+  # Clean up expired records with purgeable timestamps.
+  retention_purge:
+    class: RetentionPurgeJob
     schedule: every 15 minutes

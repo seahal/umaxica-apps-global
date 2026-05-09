@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: com_banners
-# Database name: notification
+# Database name: guest
 #
 #  id         :bigint           not null, primary key
 #  body       :text             not null
@@ -15,6 +15,6 @@
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 #
-class ComBanner < NotificationRecord
+class ComBanner < GuestRecord
   include BannerModel
 end

@@ -29,7 +29,7 @@
 #   app_contact: one
 #   telephone_number: MyString
 #   verifier_digest: MyString
-#   verifier_expires_at: 2024-06-19 14:14:04
+#   verifier_purge_at: 2024-06-19 14:14:04
 #   activated: false
 #   verifier_attempts_left: 1
 
@@ -37,6 +37,6 @@
 #   app_contact: two
 #   telephone_number: MyString
 #   verifier_digest: MyString
-#   verifier_expires_at: 2024-06-19 14:14:04
+#   verifier_purge_at: 2024-06-19 14:14:04
 #   activated: false
 #   verifier_attempts_left: 1

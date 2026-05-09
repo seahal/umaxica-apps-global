@@ -64,6 +64,8 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     headers["Cookie"] = [existing_cookie, "ct=dark"].compact.join("; ")
     get sign_app_configuration_url, headers: headers
 
+    assert_response :success
+
     follow_redirect!(headers: headers) if response.redirect?
 
     assert_select "html.dark"
@@ -72,6 +74,8 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     existing_cookie = headers["Cookie"]
     headers["Cookie"] = [existing_cookie, "ct=light"].compact.join("; ")
     get sign_app_configuration_url, headers: headers
+
+    assert_response :success
     follow_redirect!(headers: headers) if response.redirect?
 
     assert_select "html:not(.dark)"
@@ -80,6 +84,8 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "UI components are used in the page" do
     head = as_user_headers(@user, host: @host)
     get sign_app_configuration_url, headers: head
+
+    assert_response :success
     follow_redirect!(headers: head) if response.redirect?
 
     assert_select "section", minimum: 3

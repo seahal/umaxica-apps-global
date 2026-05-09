@@ -18,7 +18,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
         provider: "apple",
         uid: "flow_uid",
         info: {},
-        credentials: { token: "token", expires_at: 1.week.from_now.to_i },
+        credentials: { token: "token", lapses_at: 1.week.from_now.to_i },
       },
     )
 

@@ -70,7 +70,7 @@ module CookieHelper
     return nil unless match
 
     Time.httpdate(match[1])
-  rescue ArgumentError
+  rescue ArgumentError, TypeError
     nil
   end
 end

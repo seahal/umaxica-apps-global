@@ -19,5 +19,5 @@ reset_by_user_decision:
   id: 4
 update_preference_region:
   id: 6
-update_preference_colortheme:
+update_preference_theme:
   id: 3

@@ -5,6 +5,7 @@ source "https://rubygems.org"
 
 ruby "4.0.3"
 
+gem "rbs"
 # Rake
 gem "rake"
 # Rack
@@ -89,10 +90,16 @@ gem "action_policy"
 gem "stripe"
 # SQL exploration
 gem "blazer"
+# Sentry
 gem "sentry-ruby"
 gem "sentry-rails"
+# front end
 gem "inertia_rails"
 gem "vite_rails"
+gem "store_attribute"
+gem "store_model"
+gem "rails-pg-extras"
+gem "rails_db"
 
 group :development, :test do
   # Test coverage
@@ -112,8 +119,9 @@ group :development, :test do
   gem "debride"
   # type
   gem "tapioca", require: false
-
-  gem "rack-livereload"
+  # test
+  gem "capybara"
+  gem "capybara-playwright-driver"
 end
 
 group :development do
@@ -161,4 +169,5 @@ group :development do
   gem "rails-mermaid_erd", require: false
   # Security
   gem "bundler-audit", require: false
+  gem "rack-livereload"
 end

@@ -8,7 +8,7 @@
     <%= t("apex.org.preference.theme.edit.description") %>
   </p>
 
-  <%= form_with model: @preference_colortheme, scope: :preference_colortheme, url: apex_org_preference_theme_path, method: :patch do |f| %>
+  <%= form_with model: @preference_theme, scope: :preference_theme, url: apex_org_preference_theme_path, method: :patch do |f| %>
     <div>
       <%= f.label :option_id, t("apex.org.preferences.theme.select_theme") %>
       <div>
@@ -19,7 +19,7 @@
                          [t("apex.org.preference.theme.edit.options.dark"), "dark"],
                          [t("apex.org.preference.theme.edit.options.system"), "system"]
                        ],
-                       @preference_colortheme.option&.name || "system"),
+                       @preference_theme.option&.name || "system"),
                      {} %>
       </div>
     </div>

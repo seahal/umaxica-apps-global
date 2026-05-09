@@ -16,4 +16,5 @@ Rails.application.config.session_store(
   secure: Rails.env.production?,
   httponly: true,
   same_site: :lax,
+  partitioned: SessionCookieConfig.partitioned?,
 )

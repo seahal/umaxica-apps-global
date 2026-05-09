@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# FIXME: Find out why this file exists.
+
 module Auth
   class ContactContextBuilder
     # @param user [User, nil]

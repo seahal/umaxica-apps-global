@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: staff_preference_timezone_options
-# Database name: principal
+# Database name: operator
 #
 #  id :bigint           not null, primary key
 #
-class StaffPreferenceTimezoneOption < PrincipalRecord
+class StaffPreferenceTimezoneOption < OperatorRecord
   # Fixed IDs - do not modify these values
   ETC_UTC = 1
   ASIA_TOKYO = 2

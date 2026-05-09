@@ -23,12 +23,22 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "collection get redirects to new email registration" do
+    get sign_app_up_emails_url(ri: "jp", hotwire_spark: true, reload: "123"), headers: default_headers
+
+    assert_response :redirect
+    assert_includes response.location, "/sign/up/emails/new?ri=jp"
+    assert_not_includes response.location, "hotwire_spark"
+    assert_not_includes response.location, "reload"
+  end
+
   test "renders email registration form structure" do
     get new_sign_app_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 
     assert_select "h2", I18n.t("sign.app.registration.email.new.page_title")
+    assert_no_match(/UMAXICA \(sign, app\)/, response.body)
   end
 
   test "includes navigation links to other registration flows" do
@@ -140,7 +150,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    assert_match(%r{/up/emails/[^/]+/edit}, path)
+    assert_match(%r{/sign/up/emails/[^/]+/edit}, path)
   end
 
   test "create with existing email still redirects and does not create a new record" do
@@ -207,9 +217,9 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :redirect
-    assert_match(%r{/up/emails/[^/]+/edit}, response.location)
+    assert_match(%r{/sign/up/emails/[^/]+/edit}, response.location)
     assert_equal existing_notice, flash[:notice]
-    assert_match(%r{/up/emails/[^/]+/edit}, existing_location)
+    assert_match(%r{/sign/up/emails/[^/]+/edit}, existing_location)
   end
 
   test "create enqueues exactly one email" do
@@ -255,7 +265,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_match(%r{/up/emails/[^/]+/edit}, response.location)
+    assert_match(%r{/sign/up/emails/[^/]+/edit}, response.location)
     assert_equal before_otp_last_sent_at, existing_email.reload.otp_last_sent_at
     assert_equal before_otp_counter, existing_email.otp_counter
     assert_equal before_otp_attempts_count, existing_email.otp_attempts_count
@@ -281,7 +291,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :redirect
-    assert_match(%r{/up/emails/[^/]+/edit}, response.location)
+    assert_match(%r{/sign/up/emails/[^/]+/edit}, response.location)
 
     patch sign_app_up_email_url(existing_email, ri: "jp"),
           params: {
@@ -293,7 +303,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     assert_response :redirect
-    assert_redirected_to %r{/in/new}
+    assert_redirected_to %r{/sign/in/new}
     assert_equal I18n.t("sign.app.registration.email.update.sign_in_required"), flash[:notice]
   end
 
@@ -317,7 +327,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :redirect
-    assert_match(%r{/up/emails/[^/]+/edit}, response.location)
+    assert_match(%r{/sign/up/emails/[^/]+/edit}, response.location)
 
     patch sign_app_up_email_url(existing_email, ri: "jp"),
           params: {
@@ -349,6 +359,33 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
+    assert_includes @response.body, I18n.t("sign.app.registration.email.new.error_summary")
+    assert_not_includes @response.body, "prohibited this sample from being saved"
+  end
+
+  test "create without policy confirmation shows localized validation summary" do
+    logs = []
+
+    assert_enqueued_emails 0 do
+      Rails.logger.stub(:info, ->(*args, &block) { logs << (args.first || block&.call).to_s }) do
+        post sign_app_up_emails_url(ri: "jp"),
+             params: {
+               user_email: {
+                 raw_address: "policy_missing@example.com",
+                 confirm_policy: "0",
+               },
+               "cf-turnstile-response": "test",
+             },
+             headers: default_headers
+      end
+    end
+
+    assert_response :unprocessable_content
+    assert_includes @response.body, I18n.t("sign.app.registration.email.new.error_summary")
+    assert_includes @response.body, UserEmail.human_attribute_name(:confirm_policy)
+    assert_not_includes @response.body, "prohibited this sample from being saved"
+    assert_match(/confirm_policy/, logs.join("\n"))
+    assert_no_match(/policy_missing@example\.com/, logs.join("\n"))
   end
 
   test "create with turnstile failure enqueues no emails and returns 422" do
@@ -735,7 +772,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :redirect, "Expected redirect but got #{response.status}: #{response.body[0..500]}"
-    email_id = response.location.match(%r{/up/emails/([^/?]+)})[1]
+    email_id = response.location.match(%r{/sign/up/emails/([^/?]+)})[1]
     user_email = UserEmail.find_by(public_id: email_id)
     otp_data = user_email.get_otp
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
@@ -816,7 +853,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: default_headers
 
-    email_id = response.location.match(%r{/up/emails/([^/?]+)})[1]
+    email_id = response.location.match(%r{/sign/up/emails/([^/?]+)})[1]
     user_email = UserEmail.find_by!(public_id: email_id)
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
@@ -903,6 +940,8 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     # Ensure we have a session
     get new_sign_app_up_email_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
     old_session_id = session.id
 
     # Submit correct OTP

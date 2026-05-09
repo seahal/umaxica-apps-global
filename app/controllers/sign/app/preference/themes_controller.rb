@@ -10,10 +10,12 @@ module Sign
 
         def edit
           set_colortheme_preferences_edit
+          @preference_theme = @preference_colortheme
         end
 
         def update
           set_colortheme_preferences_update
+          @preference_theme = @preference_colortheme
           return render_preference_update_response if request.format.json?
 
           redirect_to(

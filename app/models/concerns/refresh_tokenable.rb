@@ -12,7 +12,7 @@ module RefreshTokenable
   REFRESH_TTL = 30.days
 
   included do
-    before_validation :ensure_refresh_expires_at, on: :create
+    before_validation :ensure_lapses_at, on: :create
     before_validation :ensure_refresh_token_family_id, on: :create
     before_validation :ensure_refresh_token_generation, on: :create
     before_validation :ensure_device_id, on: :create
@@ -63,7 +63,7 @@ module RefreshTokenable
       attrs = {
         refresh_token_family_id: previous_token.refresh_token_family_id.presence || SecureRandom.uuid,
         refresh_token_generation: Integer(previous_token.refresh_token_generation.to_s, 10) + 1,
-        refresh_expires_at: previous_token.refresh_expires_at,
+        lapses_at: previous_token.lapses_at,
         device_id: previous_token.device_id,
         device_id_digest: column_names.include?("device_id_digest") ? digest_device_id(previous_token.device_id) : nil,
         dbsc_session_id: previous_token.dbsc_session_id,
@@ -71,8 +71,7 @@ module RefreshTokenable
         dbsc_challenge: previous_token.dbsc_challenge,
         dbsc_challenge_issued_at: previous_token.dbsc_challenge_issued_at,
       }
-      attrs[:revoked_at] = previous_token.revoked_at if previous_token.has_attribute?(:revoked_at)
-      attrs[:deletable_at] = previous_token.deletable_at if previous_token.has_attribute?(:deletable_at)
+      attrs[:purge_at] = previous_token.purge_at if previous_token.has_attribute?(:purge_at)
 
       attrs[:status] = previous_token.status if previous_token.respond_to?(:status)
       attrs[actor_key] = previous_token.public_send(actor_key) if actor_key
@@ -123,12 +122,15 @@ module RefreshTokenable
 
   # Whether the token is revoked.
   def revoked?
-    expired? || compromised_at.present?
+    expired?
   end
 
   # Whether the refresh token has expired.
   def expired_refresh?
-    refresh_expires_at <= Time.current
+    return false if lapses_at.blank?
+    return false if lapses_at.respond_to?(:infinite?) && lapses_at.infinite?
+
+    lapses_at <= Time.current
   end
 
   # Whether the token is active.
@@ -137,13 +139,20 @@ module RefreshTokenable
   end
 
   # Rotate (refresh) the token and return the raw token for the client.
-  def rotate_refresh_token!(expires_at: nil)
+  def rotate_refresh_token!(lapses_at: nil)
     # Use a transaction to keep token state consistent.
     transaction do
       token, verifier = generate_refresh_token(public_id: public_id)
 
       self.refresh_token_digest = digest_refresh_token(verifier)
-      self.refresh_expires_at = expires_at || default_refresh_expires_at
+      self.lapses_at =
+        if lapses_at
+          lapses_at
+        elsif self.lapses_at.respond_to?(:infinite?) && self.lapses_at.infinite?
+          default_lapses_at
+        else
+          self.lapses_at
+        end
       self.last_used_at = Time.current
       self.refresh_token_generation = Integer(refresh_token_generation.to_s, 10) + 1
       save!
@@ -174,12 +183,14 @@ module RefreshTokenable
 
   private
 
-  def default_refresh_expires_at
+  def default_lapses_at
     Time.current + REFRESH_TTL
   end
 
-  def ensure_refresh_expires_at
-    self.refresh_expires_at ||= default_refresh_expires_at
+  def ensure_lapses_at
+    return if lapses_at.present? && !(lapses_at.respond_to?(:infinite?) && lapses_at.infinite?)
+
+    self.lapses_at = default_lapses_at
   end
 
   def ensure_refresh_token_family_id

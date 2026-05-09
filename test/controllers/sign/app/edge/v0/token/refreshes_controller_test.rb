@@ -201,7 +201,8 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh with expired refresh token returns 401" do
     # Create a token record with expired refresh
     token_record = UserToken.create!(user: @user, device_id: @device_id)
-    refresh_plain = token_record.rotate_refresh_token!(expires_at: 1.day.ago)
+    refresh_plain = token_record.rotate_refresh_token!
+    token_record.update_columns(lapses_at: 1.day.ago)
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -229,7 +230,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "POST refresh with restricted token returns 403 and does not rotate token" do
     token_record = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED, device_id: @device_id)
-    refresh_plain = token_record.rotate_refresh_token!(expires_at: 15.minutes.from_now)
+    refresh_plain = token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
     before_generation = token_record.refresh_token_generation
     before_digest = token_record.refresh_token_digest
 
@@ -253,7 +254,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh with restricted token returns localized error message" do
     token_record = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED, device_id: @device_id)
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] =
-      token_record.rotate_refresh_token!(expires_at: 15.minutes.from_now)
+      token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true, device_id: @device_id),
@@ -335,7 +336,8 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh rejects deactivated user even with valid refresh token" do
     @user.update!(
       deactivated_at: Time.current, withdrawal_started_at: 1.hour.ago,
-      scheduled_purge_at: 31.days.from_now,
+      lapses_at: 30.days.from_now,
+      purge_at: 31.days.from_now,
     )
 
     token_record = UserToken.create!(user: @user, device_id: @device_id)

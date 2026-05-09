@@ -19,7 +19,6 @@
 #
 # Indexes
 #
-#  index_handle_assignments_on_assigned_by_actor_id         (assigned_by_actor_id)
 #  index_handle_assignments_on_avatar_id                    (avatar_id) UNIQUE WHERE (valid_to = 'infinity'::timestamp with time zone)
 #  index_handle_assignments_on_avatar_id_and_valid_from     (avatar_id,valid_from DESC)
 #  index_handle_assignments_on_handle_assignment_status_id  (handle_assignment_status_id)

@@ -34,7 +34,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     # Create Apple identity directly (link flow is handled elsewhere)
     UserSocialApple.create!(
       user: @user, uid: "apple_uid_link", provider: "apple",
-      token: "t", expires_at: 1.hour.from_now.to_i,
+      token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
 
     delete sign_app_configuration_apple_url(ri: "jp"), headers: @headers
@@ -56,7 +56,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
 
     UserSocialApple.create!(
       user: @user, uid: "apple_uid_solo", provider: "apple",
-      token: "t", expires_at: 1.hour.from_now.to_i,
+      token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
 
     # Try to unlink Apple

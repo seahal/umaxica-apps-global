@@ -7,10 +7,11 @@
 # Database name: principal
 #
 #  id                             :bigint           not null, primary key
-#  expires_at                     :datetime         default(Infinity), not null
+#  lapses_at                      :datetime         default(Infinity), not null
 #  last_used_at                   :datetime
 #  name                           :string           default(""), not null
 #  password_digest                :string           default(""), not null
+#  purge_at                       :datetime         default(Infinity), not null
 #  uses_remaining                 :integer          default(1), not null
 #  created_at                     :datetime         not null
 #  updated_at                     :datetime         not null
@@ -21,7 +22,6 @@
 #
 # Indexes
 #
-#  index_user_secrets_on_expires_at                      (expires_at)
 #  index_user_secrets_on_public_id                       (public_id) UNIQUE
 #  index_user_secrets_on_user_id                         (user_id)
 #  index_user_secrets_on_user_identity_secret_status_id  (user_identity_secret_status_id)
@@ -35,6 +35,8 @@
 #
 
 class UserSecret < PrincipalRecord
+  include Retainable
+
   alias_attribute :user_secret_status_id, :user_identity_secret_status_id
   include ::PublicId
   include ::Secret
@@ -139,12 +141,10 @@ class UserSecret < PrincipalRecord
 
   # Secret sign-in keeps expiry inclusive: now <= expires_at is valid.
   def expired_for_secret_sign_in?(now)
-    return false unless respond_to?(:expires_at)
-    return false if expires_at.nil?
-    return false if expires_at.is_a?(Float) && expires_at.infinite?
+    return false if lapses_at.nil?
+    return false if lapses_at.respond_to?(:infinite?) && lapses_at.infinite?
 
-    comparable_time = expires_at.is_a?(Float) ? Time.zone.at(expires_at) : expires_at
-    now > comparable_time
+    now > lapses_at
   end
 
   def enforce_secret_limit

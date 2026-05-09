@@ -6,12 +6,11 @@
 module Identity
   extend ActiveSupport::Concern
 
-  include ::Accountably
+  include ::Accountable
   include ::Withdrawable
 
   included do
     validates :status_id, numericality: { only_integer: true }
-    scope :shreddable, ->(now = Time.current) { where(shreddable_at: ..now) }
   end
 
   def login_allowed?

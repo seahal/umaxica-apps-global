@@ -286,7 +286,119 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     end
   end
 
+  # --- DPoP token exchange tests ---
+
+  test "issues DPoP-bound token when valid DPoP proof is provided" do
+    code_record = issue_code!
+    private_key, jwk = generate_dpop_jwk
+    token_endpoint = "http://id.app.localhost/tokens"
+    proof = build_dpop_proof(private_key, jwk, method: "POST", uri: token_endpoint)
+
+    result =
+      with_authenticated_client do
+        Oidc::TokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core_app",
+          client_secret: @client_secret,
+          code_verifier: @code_verifier,
+          dpop_proof: proof,
+          token_endpoint_uri: token_endpoint,
+          request_method: "POST",
+        )
+      end
+
+    assert_predicate result, :success?
+    assert_equal "DPoP", result.token_response[:token_type]
+    assert_predicate result.token_response[:access_token], :present?
+
+    token_record = UserToken.last
+
+    assert_predicate token_record.dpop_jkt, :present?
+  end
+
+  test "issues Bearer token when no DPoP proof is provided" do
+    code_record = issue_code!
+
+    result =
+      with_authenticated_client do
+        Oidc::TokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core_app",
+          client_secret: @client_secret,
+          code_verifier: @code_verifier,
+        )
+      end
+
+    assert_predicate result, :success?
+    assert_equal "Bearer", result.token_response[:token_type]
+    assert_nil UserToken.last.dpop_jkt
+  end
+
+  test "fails when DPoP proof has wrong htm" do
+    code_record = issue_code!
+    private_key, jwk = generate_dpop_jwk
+    token_endpoint = "http://id.app.localhost/tokens"
+    proof = build_dpop_proof(private_key, jwk, method: "GET", uri: token_endpoint)
+
+    result =
+      with_authenticated_client do
+        Oidc::TokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core_app",
+          client_secret: @client_secret,
+          code_verifier: @code_verifier,
+          dpop_proof: proof,
+          token_endpoint_uri: token_endpoint,
+          request_method: "POST",
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+  end
+
+  test "fails when DPoP proof has wrong htu" do
+    code_record = issue_code!
+    private_key, jwk = generate_dpop_jwk
+    proof = build_dpop_proof(private_key, jwk, method: "POST", uri: "http://other.host/tokens")
+
+    result =
+      with_authenticated_client do
+        Oidc::TokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core_app",
+          client_secret: @client_secret,
+          code_verifier: @code_verifier,
+          dpop_proof: proof,
+          token_endpoint_uri: "http://id.app.localhost/tokens",
+          request_method: "POST",
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+  end
+
   private
+
+  def generate_dpop_jwk
+    ec = OpenSSL::PKey::EC.generate("prime256v1")
+    jwk = JWT::JWK.new(ec).export
+    [ec, jwk]
+  end
+
+  def build_dpop_proof(private_key, jwk, method:, uri:)
+    payload = { "htm" => method, "htu" => uri, "iat" => Time.current.to_i, "jti" => SecureRandom.uuid }
+    JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
+  end
 
   def issue_code!
     UserAuthorizationCode.issue!(

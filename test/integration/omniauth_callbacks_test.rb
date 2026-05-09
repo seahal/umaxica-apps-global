@@ -12,6 +12,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! @host
     @expected_redirect = %r{\Ahttps?://#{Regexp.escape(@host)}/.*}.freeze
   end
 
@@ -49,6 +50,28 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     assert_not_nil user
     assert UserToken.exists?(user_id: user.id), "UserToken should be created for Google login"
+  end
+
+  test "google callback without region parameter is processed without regional redirect" do
+    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
+      {
+        provider: "google_app",
+        uid: "google_no_region_#{SecureRandom.hex(4)}",
+        info: {},
+        credentials: {
+          token: "token",
+          refresh_token: "refresh_token",
+          expires_at: 1.week.from_now.to_i,
+        },
+      },
+    )
+
+    get sign_app_auth_callback_url(provider: "google_app"),
+        headers: SocialCallbackTestHelper.callback_headers(@host)
+
+    assert_response :redirect
+    assert_no_match(%r{/auth/google_app/callback}, response.location)
+    assert_not_includes response.location, "code="
   end
 
   test "should sign in with Apple" do

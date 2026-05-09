@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_preferences
-# Database name: principal
+# Database name: operator
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -25,7 +25,11 @@
 #
 #  index_staff_preferences_on_staff_id  (staff_id) UNIQUE
 #
-class StaffPreference < PrincipalRecord
+# Foreign Keys
+#
+#  fk_rails_...  (staff_id => staffs.id)
+#
+class StaffPreference < OperatorRecord
   belongs_to :staff, inverse_of: :staff_preference
 
   has_one :staff_preference_language,
@@ -40,7 +44,7 @@ class StaffPreference < PrincipalRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :staff_preference_colortheme,
+  has_one :staff_preference_theme,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy

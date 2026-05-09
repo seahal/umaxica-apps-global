@@ -44,7 +44,7 @@ class EmailTest < ActiveSupport::TestCase
     assert_equal "test@example.com", email.address
   end
 
-  test "encrypts address deterministically" do
+  test "stores distinct ciphertexts for distinct addresses" do
     email1 = create_email(address: "test1@example.com", confirm_policy: true)
     email2 = create_email(address: "test2@example.com", confirm_policy: true)
     sql = "SELECT address FROM #{UserEmail.table_name} WHERE id = :id"
@@ -175,6 +175,27 @@ class EmailTest < ActiveSupport::TestCase
     assert_not_equal email.locked_at, Float::INFINITY
     assert_not_equal email.locked_at, -Float::INFINITY
     assert_operator email.locked_at, :<=, Time.current
+  end
+
+  test "increment_attempts! keeps locked_at stable when incrementing beyond threshold" do
+    email = create_email(address: "test@example.com", confirm_policy: true)
+
+    # Increment to threshold
+    3.times { email.increment_attempts! }
+    email.reload
+
+    first_locked_at = email.locked_at
+
+    assert_predicate first_locked_at, :present?
+    assert_not_equal first_locked_at, Float::INFINITY
+    assert_not_equal first_locked_at, -Float::INFINITY
+
+    # Increment again beyond threshold
+    email.increment_attempts!
+    email.reload
+
+    # locked_at should remain the same (idempotent)
+    assert_equal first_locked_at.to_i, email.locked_at.to_i
   end
 
   test "increment_attempts! does not change locked_at if already set" do
@@ -364,7 +385,7 @@ class EmailTest < ActiveSupport::TestCase
     # otp_expires_at is "-infinity". ActiveSupport returns... Time?
     # AR might return nil if logic converts invalid date? No, -infinity is valid.
     # Test expects nil.
-    # I should assert UNLOCKED (locked_at: -infinity) and EXPIRED (expires_at: -infinity).
+    # I should assert UNLOCKED (locked_at: -infinity) and EXPIRED (lapses_at: -infinity).
     assert(
       email.otp_expires_at.is_a?(Time) ||
       email.otp_expires_at.to_s == "-infinity" ||

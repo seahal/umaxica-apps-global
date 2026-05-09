@@ -29,13 +29,13 @@ module Sign::App::Configuration
 
     test "should redirect show when not logged in" do
       get sign_app_configuration_google_url(ri: "jp")
+
+      assert_response :redirect
       rt = Base64.urlsafe_encode64(sign_app_configuration_google_url(ri: "jp"))
 
       assert_redirected_to new_sign_app_in_url(
         rt: rt,
-        host: ENV.fetch(
-          "ID_SERVICE_URL", "id.app.localhost",
-        ),
+        host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       )
     end
   end

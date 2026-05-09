@@ -52,10 +52,10 @@ class UserPreferenceTest < ActiveSupport::TestCase
     assert_predicate pref.user_preference_region, :present?
   end
 
-  test "has one colortheme child" do
+  test "has one theme child" do
     pref = user_preferences(:one)
 
-    assert_predicate pref.user_preference_colortheme, :present?
+    assert_predicate pref.user_preference_theme, :present?
   end
 
   test "user_id is unique" do

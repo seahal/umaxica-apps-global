@@ -28,9 +28,9 @@
               <td><%= email.address %></td>
               <td>
                 <% if [CustomerEmailStatus::VERIFIED, CustomerEmailStatus::VERIFIED_WITH_SIGN_UP].include?(email.customer_email_status_id) %>
-                  <span>認証済み</span>
+                  <span><%= t("views.sign.com.configuration.emails.index.verified") %></span>
                 <% else %>
-                  <span>未認証</span>
+                  <span><%= t("views.sign.com.configuration.emails.index.unverified") %></span>
                 <% end %>
               </td>
               <td>
@@ -43,7 +43,7 @@
             <tr>
               <td colspan="3">
                 <div>
-                  <p>メールアドレスは登録されていません。</p>
+                  <p><%= t("views.sign.com.configuration.emails.index.empty") %></p>
                 </div>
               </td>
             </tr>

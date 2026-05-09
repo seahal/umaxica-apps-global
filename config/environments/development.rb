@@ -93,34 +93,51 @@ Rails.application.configure do
 
   config.action_dispatch.verbose_redirect_logs = true
 
-  # added by user
-  ## for docker
-  # config.web_console.permitted_networks = "127.0.0.1", "::1", "172.19.0.0/16"
+  # Use Solid Queue in Development.
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
 
-  ## to avoid errors
-  config.hosts << "id.app.localhost"
-  config.hosts << "id.com.localhost"
-  config.hosts << "id.org.localhost"
-  config.hosts << "www.app.localhost"
-  config.hosts << "www.com.localhost"
-  config.hosts << "www.org.localhost"
-  config.hosts << "www.net.localhost"
-  config.hosts << "www.dev.localhost"
+  # Enable Gzip compression
+  config.middleware.use(Rack::Deflater)
+
+  # Enable DNS rebinding protection for hosts used in route constraints.
+  config.hosts.concat(
+    ENV.values_at(
+      "APEX_CORPORATE_URL",
+      "APEX_SERVICE_URL",
+      "APEX_STAFF_URL",
+      "APEX_NETWORK_URL",
+      "APEX_DEVELOPER_URL",
+      "SIGN_CORPORATE_URL",
+      "SIGN_SERVICE_URL",
+      "SIGN_STAFF_URL",
+      "JUMP_CORPORATE_URL",
+      "JUMP_SERVICE_URL",
+      "JUMP_STAFF_URL",
+      "MAIN_SERVICE_URL", "MAIN_STAFF_URL", "MAIN_CORPORATE_URL",
+      "CORE_SERVICE_URL", "CORE_STAFF_URL", "CORE_CORPORATE_URL",
+      "DOCS_SERVICE_URL", "DOCS_STAFF_URL", "DOCS_CORPORATE_URL",
+      "NEWS_SERVICE_URL", "NEWS_STAFF_URL", "NEWS_CORPORATE_URL",
+      "HELP_SERVICE_URL", "HELP_STAFF_URL", "HELP_CORPORATE_URL",
+    ).compact_blank,
+  )
 
   ## file watcher
   config.file_watcher = ActiveSupport::EventedFileUpdateChecker
 
   ## Email Settings
-  ### Set localhost to be used by links generated in mailer templates.
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.default_url_options = { host: "localhost", port: 3001 }
   config.action_mailer.smtp_settings = {
     address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",
-    user_name: Rails.app.creds.option(:AWS_SES_SMTP_USER_NAME),
+    user_name: Rails.app.creds.option(:AWS_SES_SMTP_USERNAME),
     password: Rails.app.creds.option(:AWS_SES_SMTP_PASSWORD),
     port: 465,
     tls: true,
     authentication: :login,
+    openssl_verify_mode: "peer",
+    open_timeout: 5,
+    read_timeout: 10,
   }
 
   # static file serve
@@ -128,11 +145,4 @@ Rails.application.configure do
 
   # SMS Provider Configuration - Use test provider in development
   config.sms_provider = ENV.fetch("SMS_PROVIDER", "test")
-
-  # Use Solid Queue in Development.
-  config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
-
-  # Enable Gzip compression
-  config.middleware.use(Rack::Deflater)
 end

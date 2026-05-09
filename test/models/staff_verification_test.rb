@@ -7,9 +7,9 @@
 # Database name: token
 #
 #  id             :bigint           not null, primary key
-#  expires_at     :datetime         not null
+#  lapses_at      :datetime         default(Infinity), not null
 #  last_used_at   :datetime
-#  revoked_at     :datetime
+#  purge_at       :datetime         default(Infinity), not null
 #  token_digest   :string           not null
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
@@ -17,7 +17,6 @@
 #
 # Indexes
 #
-#  index_staff_verifications_on_expires_at      (expires_at)
 #  index_staff_verifications_on_staff_token_id  (staff_token_id)
 #  index_staff_verifications_on_token_digest    (token_digest) UNIQUE
 #
@@ -35,7 +34,7 @@ class StaffVerificationTest < ActiveSupport::TestCase
     first, = StaffVerification.issue_for_token!(token: token)
     second, raw = StaffVerification.issue_for_token!(token: token)
 
-    assert_predicate first.reload.revoked_at, :present?
+    assert_predicate first.reload.lapses_at, :present?
     assert_predicate second, :active?
     assert_equal StaffVerification.digest_token(raw), second.token_digest
   end
@@ -46,8 +45,7 @@ class StaffVerificationTest < ActiveSupport::TestCase
     expired = StaffVerification.create!(
       staff_token: token,
       token_digest: SecureRandom.hex(48),
-      expires_at: 1.minute.ago,
-      revoked_at: nil,
+      lapses_at: 1.minute.ago,
     )
 
     ids = StaffVerification.active.pluck(:id)

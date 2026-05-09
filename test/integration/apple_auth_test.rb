@@ -48,13 +48,13 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       AppPreferenceTimezone.delete_all
       AppPreferenceRegion.delete_all
       AppPreferenceLanguage.delete_all
-      AppPreferenceColortheme.delete_all
+      AppPreferenceTheme.delete_all
       AppPreferenceCookie.delete_all
       AppPreference.delete_all
       AppPreferenceTimezoneOption.delete_all
       AppPreferenceRegionOption.delete_all
       AppPreferenceLanguageOption.delete_all
-      AppPreferenceColorthemeOption.delete_all
+      AppPreferenceThemeOption.delete_all
     end
 
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
@@ -87,7 +87,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       uid: "apple_uid_existing",
       provider: "apple",
       token: "existing_token",
-      expires_at: 1.week.from_now.to_i,
+      token_expires_at: 1.week.from_now.to_i,
     )
 
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(

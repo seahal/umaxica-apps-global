@@ -11,7 +11,7 @@ module Auth
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
       payload = Auth::TokenClaims.build(
         resource: DummyResource.new(42),
-        session_public_id: "sess_abc",
+        session_id: "sess_abc",
         resource_type: "user",
         issued_at: issued_at,
         access_token_ttl: 10.minutes,
@@ -70,7 +70,7 @@ module Auth
       expires_at = issued_at + 5.minutes
       payload = Auth::TokenClaims.build(
         resource: DummyResource.new(42),
-        session_public_id: "sess_abc",
+        session_id: "sess_abc",
         resource_type: "user",
         issued_at: issued_at,
         access_token_ttl: 10.minutes,
@@ -91,7 +91,7 @@ module Auth
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
       payload = Auth::TokenClaims.build(
         resource: DummyResource.new(42),
-        session_public_id: "sess_abc",
+        session_id: "sess_abc",
         resource_type: "user",
         issued_at: issued_at,
         access_token_ttl: 10.minutes,
@@ -105,7 +105,7 @@ module Auth
       prefs = { "lx" => "en", "ri" => "us", "tz" => "America/New_York", "ct" => "dr" }
       payload = Auth::TokenClaims.build(
         resource: DummyResource.new(42),
-        session_public_id: "sess_abc",
+        session_id: "sess_abc",
         resource_type: "user",
         issued_at: issued_at,
         access_token_ttl: 10.minutes,
@@ -119,7 +119,7 @@ module Auth
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
       payload = Auth::TokenClaims.build(
         resource: DummyResource.new(42),
-        session_public_id: "sess_abc",
+        session_id: "sess_abc",
         resource_type: "user",
         issued_at: issued_at,
         access_token_ttl: 10.minutes,
@@ -133,7 +133,7 @@ module Auth
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
       payload = Auth::TokenClaims.build(
         resource: DummyResource.new(42),
-        session_public_id: "sess_abc",
+        session_id: "sess_abc",
         resource_type: "user",
         issued_at: issued_at,
         access_token_ttl: 10.minutes,
@@ -159,7 +159,7 @@ module Auth
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
       payload = Auth::TokenClaims.build(
         resource: DummyResource.new(42),
-        session_public_id: "sess_abc",
+        session_id: "sess_abc",
         resource_type: "user",
         issued_at: issued_at,
         access_token_ttl: 10.minutes,
@@ -174,6 +174,33 @@ module Auth
       assert_equal "dr", pref.theme
       assert_predicate pref, :dark_mode?
       assert_not_predicate pref, :null?
+    end
+
+    test "build includes cnf.jkt when dpop_jkt provided" do
+      issued_at = Time.zone.parse("2026-02-22 12:00:00")
+      payload = Auth::TokenClaims.build(
+        resource: DummyResource.new(42),
+        session_id: "sess_abc",
+        resource_type: "user",
+        issued_at: issued_at,
+        access_token_ttl: 10.minutes,
+        dpop_jkt: "thumb456",
+      )
+
+      assert_equal({ "jkt" => "thumb456" }, payload["cnf"])
+    end
+
+    test "build backward compatible with session_public_id parameter" do
+      issued_at = Time.zone.parse("2026-02-22 12:00:00")
+      payload = Auth::TokenClaims.build(
+        resource: DummyResource.new(42),
+        session_public_id: "legacy_sid",
+        resource_type: "user",
+        issued_at: issued_at,
+        access_token_ttl: 10.minutes,
+      )
+
+      assert_equal "legacy_sid", payload["sid"]
     end
 
     private

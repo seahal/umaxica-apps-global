@@ -21,7 +21,7 @@ Accepted implementation note.
 ジャンプ URL は次の形式に限定する。
 
 ```text
-GET /to/:public_id
+GET /?to=:public_id
 ```
 
 `public_id` は Nanoid 21 文字の opaque identifier とし、公開 URL には `destination_url`
@@ -62,9 +62,12 @@ TLD ごとにモデルとテーブルを 1:1 で分ける。
 リダイレクト処理は `Jump::ToRedirector` controller concern に集約し、各 TLD
 controller が明示的にモデルを指定する。
 
-- `Jump::App::ToController::JUMP_LINK_MODEL = AppJumpLink`
-- `Jump::Com::ToController::JUMP_LINK_MODEL = ComJumpLink`
-- `Jump::Org::ToController::JUMP_LINK_MODEL = OrgJumpLink`
+- `Jump::App::RootsController::JUMP_LINK_MODEL = AppJumpLink`
+- `Jump::Com::RootsController::JUMP_LINK_MODEL = ComJumpLink`
+- `Jump::Org::RootsController::JUMP_LINK_MODEL = OrgJumpLink`
+
+各 controller は root (`GET /`) を redirect endpoint として使い、`to` query parameter から
+`public_id` を取得する。
 
 controller は `public_id` だけでレコードを探し、利用可能性チェックと利用回数加算を同一の row
 lock 内で行う。利用不可、存在しない、または上限到達の場合は `404` を返す。

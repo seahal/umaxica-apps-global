@@ -9,16 +9,10 @@ module RootThemeCookieHelper
 
     assert_response :success
 
-    token = cookies["preference_access"]
+    token = cookies[Preference::IoKeys::Cookies::THEME]
 
-    assert_not_nil token, "#{label} should set cookies[preference_access]"
-
-    # Validate the token is a decodable JWT (3 dot-separated base64 segments)
-    segments = token.split(".")
-
-    assert_equal 3, segments.size,
-                 "#{label}: preference_access cookie should be a valid JWT (got #{segments.size} segments)"
-
-    cookies.delete("preference_access")
+    assert_not_nil token, "#{label} should set the theme cookie"
+    assert_includes %w(dr li sy dark light system), token.to_s
+    cookies.delete(Preference::IoKeys::Cookies::THEME)
   end
 end

@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: app_banners
-# Database name: notification
+# Database name: principal
 #
 #  id         :bigint           not null, primary key
 #  body       :text             not null

@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class OperatorStatus < OperatorRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   ACTIVE = 1
   NOTHING = 2

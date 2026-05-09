@@ -11,10 +11,9 @@
 
 class AppPreferenceLanguageOption < PrincipalRecord
   # Fixed IDs - do not modify these values
-  NOTHING = 0
   JA = 1
   EN = 2
-  DEFAULTS = [NOTHING, JA, EN].freeze
+  DEFAULTS = [JA, EN].freeze
 
   has_many :app_preference_languages,
            class_name: "AppPreferenceLanguage",

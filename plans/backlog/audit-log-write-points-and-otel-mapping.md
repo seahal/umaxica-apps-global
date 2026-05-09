@@ -434,3 +434,23 @@ The first version should prefer:
 - stable event ids
 
 Detailed tamper resistance can be added later.
+
+## 2026-05-07 現状差分と改善として残すこと
+
+この文書の設計方針は有効だが、backlog の個別実装計画というより docs / ADR 向き。
+
+確認済み:
+
+- Chronicle DB / schema が存在する。
+- `Auth::AuditWriter` が存在する。
+- OpenTelemetry initializer が存在する。
+
+この文書は、audit write point と OTEL の分離方針を残す改善メモとして扱う。
+
+残す改善:
+
+- 既存 audit write point を棚卸しし、controller / service / model
+  callback のどこで書いているか一覧化する。
+- business outcome が確定する場所で audit を書く、というルールを docs / ADR に昇格する。
+- OTEL event name と audit event id を無理に統一しない方針を維持する。
+- `request_id` と、必要になった場合の `trace_id` 連携だけを共通 correlation として扱う。

@@ -9,7 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class ComPreferenceChronicleLevel < ChronicleRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   # Fixed IDs - unified across App/Org/Com (aligned to App pattern)
   NOTHING = 0
   INFO = 1

@@ -13,13 +13,13 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
     token1 = UserToken.create!(
       user: @user,
       public_id: SecureRandom.alphanumeric(21),
-      refresh_expires_at: 30.days.from_now,
+      lapses_at: 30.days.from_now,
       status: "active",
     )
     token2 = UserToken.create!(
       user: @user,
       public_id: SecureRandom.alphanumeric(21),
-      refresh_expires_at: 30.days.from_now,
+      lapses_at: 30.days.from_now,
       status: "active",
     )
 
@@ -28,9 +28,9 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
     token1.reload
     token2.reload
 
-    assert_predicate token1.revoked_at, :present?
+    assert_predicate token1.lapses_at, :present?
     assert_equal "revoked", token1.status
-    assert_predicate token2.revoked_at, :present?
+    assert_predicate token2.lapses_at, :present?
     assert_equal "revoked", token2.status
   end
 
@@ -49,16 +49,15 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
     token = UserToken.create!(
       user: @user,
       public_id: SecureRandom.alphanumeric(21),
-      refresh_expires_at: 30.days.from_now,
       status: "revoked",
-      revoked_at: revoked_at,
+      lapses_at: revoked_at,
     )
 
     Oidc::SingleLogoutService.call(user: @user)
 
     token.reload
     # revoked_at should not change since it was already set
-    assert_in_delta Float(revoked_at), Float(token.revoked_at), 1.0
+    assert_in_delta Float(revoked_at), Float(token.lapses_at), 1.0
   end
 
   test "does not affect other users tokens" do
@@ -66,7 +65,7 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
     other_token = UserToken.create!(
       user: other_user,
       public_id: SecureRandom.alphanumeric(21),
-      refresh_expires_at: 30.days.from_now,
+      lapses_at: 30.days.from_now,
       status: "active",
     )
 
@@ -74,7 +73,7 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
 
     other_token.reload
 
-    assert_nil other_token.revoked_at
+    assert_predicate other_token, :currently_usable?
     assert_equal "active", other_token.status
   end
 end

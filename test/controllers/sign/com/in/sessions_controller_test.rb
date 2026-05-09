@@ -52,7 +52,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     # Redirect to configuration because restricted session is promoted after revoking the only active session
     assert_match %r{/configuration\?ri=jp}, response.location
-    assert_not_nil active_token.reload.expired_at
+    assert_not_nil active_token.reload.lapses_at
     assert_equal CustomerToken::STATUS_ACTIVE, @token.reload.status
   end
 
@@ -62,7 +62,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     delete sign_com_in_session_url(ri: "jp"), headers: headers
 
     assert_response :redirect
-    assert_match %r{/in/new\?ri=jp}, response.location
+    assert_match %r{/sign/in/new\?ri=jp}, response.location
   end
 
   test "direct controller session management branches" do
@@ -166,7 +166,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.send(:revoke_session_by_ref, @customer, active_token.signed_ref)
 
     assert_equal I18n.t("sign.app.in.session.session_revoked"), flash_hash[:notice]
-    assert active_token.reload.expired_at
+    assert active_token.reload.lapses_at
 
     batch_token = create_active_session(@customer)
     controller.send(
@@ -174,8 +174,8 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       [restricted_token.signed_ref, batch_token.signed_ref, "bad-ref"],
     )
 
-    assert batch_token.reload.expired_at
-    assert_nil restricted_token.reload.expired_at
+    assert batch_token.reload.lapses_at
+    assert_nil restricted_token.reload.lapses_at
 
     controller.update
 

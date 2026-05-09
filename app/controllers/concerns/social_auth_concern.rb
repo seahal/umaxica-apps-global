@@ -90,7 +90,7 @@ module SocialAuthConcern
   end
 
   def extract_callback_state
-    params[:state].to_s.presence
+    params.expect(:state).to_s.presence
   end
 
   def current_social_auth_intent

@@ -296,7 +296,7 @@ Layout/LeadingCommentSpace:
 
 # ---------- 文字列 ----------
 Style/AsciiComments:
-  Enabled: true
+  Enabled: false
 
 Style/StringLiterals:
   Enabled: true
@@ -1514,6 +1514,8 @@ Style/ConstantVisibility:
     - "db/**/*_migrate/**/*.rb"
 
 Layout/LineLength:
+  Max: 120
+  AllowedPatterns: ['\A#']
   Exclude:
     - "db/**/*_migrate/**/*.rb"
     - "db/initial_schemas/**/*.rb"

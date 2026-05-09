@@ -5,9 +5,9 @@
 # Database name: mark
 #
 #  id            :bigint           not null, primary key
-#  expires_at    :datetime         not null
+#  lapses_at     :datetime         default(Infinity), not null
 #  last_used_at  :datetime
-#  revoked_at    :datetime
+#  purge_at      :datetime         default(Infinity), not null
 #  token_digest  :string           not null
 #  created_at    :datetime         not null
 #  updated_at    :datetime         not null
@@ -15,7 +15,6 @@
 #
 # Indexes
 #
-#  index_user_verifications_on_expires_at     (expires_at)
 #  index_user_verifications_on_token_digest   (token_digest) UNIQUE
 #  index_user_verifications_on_user_token_id  (user_token_id)
 #

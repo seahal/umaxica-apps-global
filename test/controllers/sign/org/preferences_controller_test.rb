@@ -9,7 +9,9 @@ class Sign::Org::PreferencesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get show" do
-    get sign_org_preference_url(ri: "jp")
+    assert_no_difference("OrgPreference.count") do
+      get sign_org_preference_url(ri: "jp")
+    end
 
     assert_response :success
     assert_select "a[href=?]", edit_sign_org_preference_region_path(ri: "jp")

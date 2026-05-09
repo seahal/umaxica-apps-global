@@ -21,11 +21,11 @@ module Sign
         end
 
         def edit
-          @staff_email = current_staff.staff_emails.find_by!(public_id: params[:id])
+          @staff_email = current_staff.staff_emails.find_by!(public_id: params.expect(:id))
         end
 
         def destroy
-          @staff_email = current_staff.staff_emails.find_by!(public_id: params[:id])
+          @staff_email = current_staff.staff_emails.find_by!(public_id: params.expect(:id))
 
           if @staff_email.undeletable?
             redirect_to(

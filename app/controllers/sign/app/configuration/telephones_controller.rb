@@ -21,7 +21,7 @@ module Sign
         end
 
         def edit
-          @user_telephone = current_user.user_telephones.find_by!(public_id: params[:id])
+          @user_telephone = current_user.user_telephones.find_by!(public_id: params.expect(:id))
         end
 
         def create
@@ -38,7 +38,7 @@ module Sign
         end
 
         def destroy
-          telephone = current_user.user_telephones.find_by!(public_id: params[:id])
+          telephone = current_user.user_telephones.find_by!(public_id: params.expect(:id))
 
           unless AuthMethodGuard.can_remove_telephone?(current_user, telephone)
             redirect_to(

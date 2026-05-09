@@ -67,7 +67,7 @@ module Sign
         private
 
         def set_secret
-          @secret = current_customer.customer_secrets.find_by!(public_id: params[:id])
+          @secret = current_customer.customer_secrets.find_by!(public_id: params.expect(:id))
         end
 
         def secret_params

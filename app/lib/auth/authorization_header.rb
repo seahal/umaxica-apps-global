@@ -6,7 +6,29 @@ module Auth
     module_function
 
     def bearer_token(request)
-      token_and_options(request)&.first.presence
+      token_for_scheme(request, "Bearer")
+    end
+
+    def dpop_token(request)
+      token_for_scheme(request, "DPoP")
+    end
+
+    def access_token(request)
+      bearer_token(request) || dpop_token(request)
+    end
+
+    def scheme(request)
+      authorization_value_for(request).to_s.split(/\s+/, 2).first.presence
+    end
+
+    def scheme?(request, expected)
+      scheme(request).to_s.casecmp?(expected)
+    end
+
+    def token_for_scheme(request, expected)
+      header = authorization_value_for(request).to_s
+      match = header.match(/\A#{Regexp.escape(expected)}\s+(.+)\z/i)
+      match&.[](1).to_s.strip.presence
     end
 
     def token_and_options(request)
@@ -31,6 +53,6 @@ module Auth
     def normalize_scheme(header)
       header.sub(/\A(token|bearer)\b/i) { |scheme| scheme.capitalize }
     end
-    private_class_method :authorization_value_for, :normalize_scheme
+    private_class_method :authorization_value_for, :normalize_scheme, :token_for_scheme
   end
 end

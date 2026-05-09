@@ -97,6 +97,8 @@ class Sign::Org::AuthorizesControllerTest < ActionDispatch::IntegrationTest
         host: @host,
         params: authorize_params,
       ), headers: as_staff_headers(@staff, host: @host)
+
+      assert_response :redirect
     end
 
     code = StaffAuthorizationCode.last

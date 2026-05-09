@@ -32,6 +32,8 @@ class Sign::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
     with_preference_jwt_keys(host: @host) do
       get sign_org_web_v0_theme_path, as: :json
+
+      assert_response :success
     end
 
     assert_response :ok

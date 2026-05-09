@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class ComContactStatus < GuestRecord
+  include ReferenceRecord
+
   NOTHING = 1
   COMPLETED = 5
   SET_UP = 7

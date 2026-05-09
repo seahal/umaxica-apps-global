@@ -43,7 +43,7 @@ module Oidc
       expected_state = session.delete(:oidc_state)
       return if expected_state.blank? && params[:state].blank?
 
-      return if ActiveSupport::SecurityUtils.secure_compare(expected_state.to_s, params[:state].to_s)
+      return if ActiveSupport::SecurityUtils.secure_compare(expected_state.to_s, params.expect(:state).to_s)
 
       raise ActionController::InvalidCrossOriginRequest, "OIDC state mismatch"
     end

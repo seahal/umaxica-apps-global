@@ -361,3 +361,27 @@ applications that prioritize security, multiple business domains, and high scala
 ## Change log
 
 - 2025-11-12: Initial version created, recording the current architecture analysis and design policy
+- 2026-05-07: Marked as historical design input. Current DB names, authorization stack, and runtime
+  components have drifted; use this document only as service-layer improvement context.
+
+## 2026-05-07 現状差分と改善として残すこと
+
+この文書は現行アーキテクチャの正確な説明ではない。
+
+主なズレ:
+
+- DB 名が古い。現行は `principal` / `operator` / `setting` / `guest` / `token` / `chronicle` /
+  `cache` / `queue` などが中心。
+- Authorization は Pundit ではなく Action Policy。
+- Solid Queue / Solid Cache は導入済み。
+- `Auth::TokenService` など一部 service は既に存在する。
+
+この文書は backlog の実装計画ではなく、service-layer 改善の historical input として残す。
+
+残す改善:
+
+- 現行 DB 境界に合わせた service-layer 方針を別 docs / ADR として書き直す。
+- UserService / StaffService のような包括 service を先に作らず、実際に複数 model
+  / 複数 DB をまたぐ use case から service boundary を決める。
+- 既存 service (`Auth::TokenService`, `Sign::RefreshTokenService`
+  など) の責務を棚卸ししてから新規 service を追加する。

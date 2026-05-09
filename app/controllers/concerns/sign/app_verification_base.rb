@@ -105,14 +105,14 @@ module Sign
     end
 
     def incoming_scope
-      verification_params[:scope].to_s.presence || params[:scope].to_s
+      verification_params[:scope].to_s.presence || params.expect(:scope).to_s
     end
 
     def incoming_return_to
       verification_params[:return_to].to_s.presence ||
         verification_params[:rd].to_s.presence ||
-        params[:return_to].to_s.presence ||
-        params[:rd].to_s
+        params.expect(:return_to).to_s.presence ||
+        params.expect(:rd).to_s
     end
 
     def reauth_actor_id

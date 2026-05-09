@@ -9,7 +9,7 @@
 #  id :bigint           not null, primary key
 #
 class ScavengerGlobalChronicleStatus < ChronicleRecord
-  self.record_timestamps = false
+  include ReferenceRecord
 
   NOTHING = 0
   STARTED = 1

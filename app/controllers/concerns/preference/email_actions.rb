@@ -105,7 +105,7 @@ module Preference
     end
 
     def email_preference_params
-      params.expect(preference_email: %i(promotional notifiable subscribable))
+      params[preference_email: %i(promotional notifiable subscribable)]
     end
 
     # Override in each domain controller

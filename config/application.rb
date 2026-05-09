@@ -12,6 +12,7 @@ subdomain_static_files_path = File.expand_path("../lib/subdomain_static_files.rb
 require_relative "../lib/subdomain_static_files" if File.exist?(subdomain_static_files_path)
 surface_middleware_path = File.expand_path("../app/middleware/core/surface_middleware.rb", __dir__)
 require_relative "../app/middleware/core/surface_middleware" if File.exist?(surface_middleware_path)
+require_relative "../lib/jit/security/active_record_encryption_key_provider"
 
 module Jit
   class Application < Rails::Application
@@ -46,8 +47,9 @@ module Jit
 
     # Active Record Encryption Configuration
     if %w(test production development).include?(Rails.env)
-      config.active_record.encryption.primary_key =
-        Rails.app.creds.require(:ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY)
+      encryption_keys = Jit::Security::ActiveRecordEncryptionKeyProvider.fetch
+      config.active_record.encryption.primary_key = encryption_keys.fetch(:current)
+      config.active_record.encryption.previous = encryption_keys[:previous].map { |previous_key| { key: previous_key } }
       deterministic_key = Rails.app.creds.require(:ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY)
       config.active_record.encryption.deterministic_key = deterministic_key
       key_derivation_salt = Rails.app.creds.require(:ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT)

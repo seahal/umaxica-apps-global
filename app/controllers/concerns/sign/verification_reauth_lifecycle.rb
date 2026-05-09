@@ -22,7 +22,7 @@ module Sign
       now = Time.current
       verification, raw_token = verification_model.issue_for_token!(token: actor_token)
       actor_token.update!(last_step_up_at: now, last_step_up_scope: scope)
-      set_verification_cookie!(raw_token, expires_at: verification.expires_at)
+      set_verification_cookie!(raw_token, expires_at: verification.lapses_at)
       create_audit_event!(verification_success_event_id, subject: current_verification_actor)
 
       clear_reauth_state!

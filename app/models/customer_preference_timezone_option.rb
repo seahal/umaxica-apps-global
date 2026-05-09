@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: customer_preference_timezone_options
-# Database name: guest
+# Database name: setting
 #
 #  id :bigint           not null, primary key
 #
-class CustomerPreferenceTimezoneOption < GuestRecord
+class CustomerPreferenceTimezoneOption < SettingRecord
   ETC_UTC = 1
   ASIA_TOKYO = 2
 

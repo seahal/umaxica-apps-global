@@ -59,8 +59,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     # User two tries to link the same Google account
     # Start link flow as user_two
-    get sign_app_social_start_url(provider: "google_app", intent: "link", ri: "jp"),
-        headers: as_user_headers(@user_two, host: @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: as_user_headers(@user_two, host: @host)
 
     assert_response :redirect
 
@@ -96,8 +96,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: existing_uid)
 
     # User two starts link flow
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: as_user_headers(@user_two, host: @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: as_user_headers(@user_two, host: @host)
 
     assert_response :redirect
 
@@ -117,7 +117,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "link Apple fails when flow context is missing" do
     setup_apple_mock_auth(uid: "apple_state_mismatch_#{SecureRandom.hex(4)}")
 
-    # Do not call /social/start to simulate missing link context
+    # Do not call /social/auth/:provider/start to simulate missing link context
     # Use X-STRICT-SOCIAL-STATE to prevent test-mode state bypass
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
@@ -133,8 +133,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "link Apple fails when intent TTL exceeded" do
     setup_apple_mock_auth(uid: "apple_state_expired_#{SecureRandom.hex(4)}")
 
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: as_user_headers(@user_one, host: @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: as_user_headers(@user_one, host: @host)
 
     assert_response :redirect
 
@@ -170,8 +170,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     # Note: This depends on implementation - some update, some reject
     setup_google_mock_auth(uid: old_uid)
 
-    get sign_app_social_start_url(provider: "google_app", intent: "link", ri: "jp"),
-        headers: as_user_headers(@user_one, host: @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: as_user_headers(@user_one, host: @host)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
@@ -195,8 +195,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     identity_count_before = UserSocialGoogle.count
 
-    get sign_app_social_start_url(provider: "google_app", intent: "link", ri: "jp"),
-        headers: as_user_headers(@user_one, host: @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: as_user_headers(@user_one, host: @host)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
@@ -220,8 +220,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_google_mock_auth(uid: "unauthenticated_test")
 
     # Start without authentication headers
-    get sign_app_social_start_url(provider: "google_app", intent: "link", ri: "jp"),
-        headers: { "Host" => @host }
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: { "Host" => @host }
 
     # Should redirect to login or return error
     assert_response :redirect
@@ -250,8 +250,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_google_mock_auth(uid: revoked_uid)
 
     # User tries to link again
-    get sign_app_social_start_url(provider: "google_app", intent: "link", ri: "jp"),
-        headers: as_user_headers(@user_one, host: @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: as_user_headers(@user_one, host: @host)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
@@ -283,8 +283,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     setup_apple_mock_auth(uid: revoked_uid)
 
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: as_user_headers(@user_one, host: @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: as_user_headers(@user_one, host: @host)
 
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))

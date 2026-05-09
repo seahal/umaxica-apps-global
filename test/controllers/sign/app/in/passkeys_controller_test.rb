@@ -13,7 +13,7 @@ module Sign::App::In
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       Jit::Security::TurnstileVerifier.test_mode = true
       Jit::Security::TurnstileVerifier.test_response = { "success" => true }
-      @user = create_verified_user_with_email(email_address: "passkey_test_user@example.com")
+      @user = create_verified_user_with_email(email_address: "passkey_test_user_#{SecureRandom.hex(6)}@example.com")
       @user_email = @user.user_emails.first # Use the email created by the helper
 
       @user_telephone = UserTelephone.create!(
@@ -409,7 +409,7 @@ module Sign::App::In
         create_rotated_active_user_session(@user, rotations: 3)
       end
       restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
-      restricted.rotate_refresh_token!(expires_at: 15.minutes.from_now)
+      restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
       post options_sign_app_in_passkeys_path(ri: "jp"),
            params: options_params(identifier: @user_email.address),

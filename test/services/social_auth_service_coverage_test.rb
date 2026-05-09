@@ -80,8 +80,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
       uid: "other-uid",
       provider: "google",
       status_id: UserSocialGoogleStatus::ACTIVE,
-      token: "t",
-      expires_at: 0,
+      token: "t", token_expires_at: 0,
     )
 
     auth_hash = OmniAuth::AuthHash.new({ "provider" => "google", "uid" => "other-uid" })
@@ -97,8 +96,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
       uid: "reauth-uid",
       provider: "google",
       status_id: UserSocialGoogleStatus::ACTIVE,
-      token: "t",
-      expires_at: 0,
+      token: "t", token_expires_at: 0,
     )
     auth_hash = OmniAuth::AuthHash.new(
       {

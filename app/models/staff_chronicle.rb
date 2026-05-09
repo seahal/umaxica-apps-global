@@ -10,10 +10,11 @@
 #  actor_type     :text             default(""), not null
 #  context        :jsonb            not null
 #  current_value  :text             default(""), not null
-#  expires_at     :datetime         not null
 #  ip_address     :inet             default(#<IPAddr: IPv4:0.0.0.0/255.255.255.255>), not null
+#  lapses_at      :datetime         default(Infinity), not null
 #  occurred_at    :datetime         not null
 #  previous_value :text             default(""), not null
+#  purge_at       :datetime         not null
 #  subject_type   :text             not null
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
@@ -28,9 +29,9 @@
 #  index_staff_activities_on_actor                        (actor_type,actor_id)
 #  index_staff_chronicles_on_actor_id_and_occurred_at     (actor_id,occurred_at)
 #  index_staff_chronicles_on_event_id                     (event_id)
-#  index_staff_chronicles_on_expires_at                   (expires_at)
 #  index_staff_chronicles_on_level_id                     (level_id)
 #  index_staff_chronicles_on_occurred_at                  (occurred_at)
+#  index_staff_chronicles_on_purge_at                     (purge_at)
 #  index_staff_chronicles_on_subject_id                   (subject_id)
 #
 # Foreign Keys
@@ -40,6 +41,8 @@
 #
 
 class StaffChronicle < ChronicleRecord
+  include Retainable
+
   belongs_to :staff_chronicle_event, foreign_key: :event_id, inverse_of: :staff_chronicles
   belongs_to :actor, polymorphic: true, optional: true
   belongs_to :staff_chronicle_level, foreign_key: :level_id, inverse_of: :staff_chronicles

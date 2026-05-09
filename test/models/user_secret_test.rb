@@ -7,10 +7,11 @@
 # Database name: principal
 #
 #  id                             :bigint           not null, primary key
-#  expires_at                     :datetime         default(Infinity), not null
+#  lapses_at                      :datetime         default(Infinity), not null
 #  last_used_at                   :datetime
 #  name                           :string           default(""), not null
 #  password_digest                :string           default(""), not null
+#  purge_at                       :datetime         default(Infinity), not null
 #  uses_remaining                 :integer          default(1), not null
 #  created_at                     :datetime         not null
 #  updated_at                     :datetime         not null
@@ -21,7 +22,6 @@
 #
 # Indexes
 #
-#  index_user_secrets_on_expires_at                      (expires_at)
 #  index_user_secrets_on_public_id                       (public_id) UNIQUE
 #  index_user_secrets_on_user_id                         (user_id)
 #  index_user_secrets_on_user_identity_secret_status_id  (user_identity_secret_status_id)
@@ -108,9 +108,9 @@ class UserSecretTest < ActiveSupport::TestCase
     record, raw_secret = UserSecret.issue!(
       name: "API Key",
       user: @user,
-      expires_at: 1.minute.ago,
       user_secret_kind_id: UserSecretKind::LOGIN,
     )
+    record.update_columns(lapses_at: 1.minute.ago, created_at: 2.minutes.ago)
 
     assert_not record.verify_and_consume!(raw_secret)
     assert_equal UserSecretStatus::EXPIRED, record.reload.user_secret_status_id

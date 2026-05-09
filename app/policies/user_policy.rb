@@ -30,6 +30,14 @@ class UserPolicy < ApplicationPolicy
     (owner? && actor.is_a?(User)) || (actor.is_a?(Staff) && operator?)
   end
 
+  def revoke_all?
+    actor.is_a?(User) && actor.id == record.id
+  end
+
+  def purge_sessions?
+    actor.is_a?(Staff)
+  end
+
   relation_scope do |relation|
     if actor.is_a?(Staff) && operator_or_manager?
       # Staff managers see all users

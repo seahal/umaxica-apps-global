@@ -49,7 +49,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
     Struct.new(
       :language, :region, :timezone, :theme,
       :app_preference_language, :app_preference_region, :app_preference_timezone,
-      :app_preference_colortheme, :app_preference_cookie,
+      :app_preference_theme, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -70,7 +70,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
   FakeAssociatedPreference =
     Struct.new(
       :app_preference_language, :app_preference_region, :app_preference_timezone,
-      :app_preference_colortheme, :app_preference_cookie,
+      :app_preference_theme, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -114,7 +114,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
       app_preference_language: FakeAssociation.new(nil, FakeOption.new("EN")),
       app_preference_region: FakeAssociation.new(nil, FakeOption.new("US")),
       app_preference_timezone: FakeAssociation.new(nil, FakeOption.new("Etc/UTC")),
-      app_preference_colortheme: FakeAssociation.new(nil, FakeOption.new("dark")),
+      app_preference_theme: FakeAssociation.new(nil, FakeOption.new("dark")),
       app_preference_cookie: FakeCookie.new(false, true, false, true),
     )
 

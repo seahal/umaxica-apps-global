@@ -68,7 +68,9 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
            headers: request_headers
     end
 
-    user_email = UserEmail.find_by!(address: "config-verify@example.com")
+    user_email = UserEmail.find_by(address: "config-verify@example.com")
+
+    assert_not_nil user_email
     otp_data = user_email.get_otp
     code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
@@ -112,7 +114,9 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
          },
          headers: request_headers
 
-    user_email = UserEmail.find_by!(address: "config-blank-code@example.com")
+    user_email = UserEmail.find_by(address: "config-blank-code@example.com")
+
+    assert_not_nil user_email
     session[:email_registration_public_id] = user_email.public_id
 
     patch sign_app_configuration_emails_registration_url(ri: "jp"),
@@ -137,7 +141,9 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
          },
          headers: request_headers
 
-    user_email = UserEmail.find_by!(address: "config-wrong-code@example.com")
+    user_email = UserEmail.find_by(address: "config-wrong-code@example.com")
+
+    assert_not_nil user_email
     session[:email_registration_public_id] = user_email.public_id
 
     patch sign_app_configuration_emails_registration_url(ri: "jp"),

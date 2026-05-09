@@ -88,14 +88,19 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: ENV.fetch("ID_SERVICE_URL", "id.app.example.com") }
 
-  # Specify outgoing SMTP server. Remember to add credentials via bin/rails credentials:edit.
+  ## Email Settings
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.default_url_options = { host: "localhost", port: 3001 }
   config.action_mailer.smtp_settings = {
     address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",
-    user_name: Rails.app.creds.require(:AWS_SES_SMTP_USER_NAME),
-    password: Rails.app.creds.require(:AWS_SES_SMTP_PASSWORD),
+    user_name: Rails.app.creds.option(:AWS_SES_SMTP_USERNAME),
+    password: Rails.app.creds.option(:AWS_SES_SMTP_PASSWORD),
     port: 465,
     tls: true,
     authentication: :login,
+    openssl_verify_mode: "peer",
+    open_timeout: 5,
+    read_timeout: 10,
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
@@ -111,12 +116,18 @@ Rails.application.configure do
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Collect all host ENV vars used in route constraints.
   config.hosts = ENV.values_at(
-    "ID_SERVICE_URL",
-    "ID_CORPORATE_URL",
-    "ID_STAFF_URL",
-    "JUMP_SERVICE_URL", "JUMP_STAFF_URL", "JUMP_CORPORATE_URL",
+    "APEX_CORPORATE_URL",
+    "APEX_SERVICE_URL",
+    "APEX_STAFF_URL",
+    "APEX_NETWORK_URL",
+    "APEX_DEVELOPER_URL",
+    "SIGN_CORPORATE_URL",
+    "SIGN_SERVICE_URL",
+    "SIGN_STAFF_URL",
+    "JUMP_CORPORATE_URL",
+    "JUMP_SERVICE_URL",
+    "JUMP_STAFF_URL",
     "MAIN_SERVICE_URL", "MAIN_STAFF_URL", "MAIN_CORPORATE_URL",
-    "APEX_SERVICE_URL", "APEX_STAFF_URL", "APEX_CORPORATE_URL",
     "CORE_SERVICE_URL", "CORE_STAFF_URL", "CORE_CORPORATE_URL",
     "DOCS_SERVICE_URL", "DOCS_STAFF_URL", "DOCS_CORPORATE_URL",
     "NEWS_SERVICE_URL", "NEWS_STAFF_URL", "NEWS_CORPORATE_URL",

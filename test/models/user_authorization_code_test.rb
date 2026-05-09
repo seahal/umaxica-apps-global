@@ -13,10 +13,10 @@
 #  code_challenge        :string           not null
 #  code_challenge_method :string(8)        default("S256"), not null
 #  consumed_at           :datetime
-#  expires_at            :datetime         not null
+#  lapses_at             :datetime         default(Infinity), not null
 #  nonce                 :string
+#  purge_at              :datetime         default(Infinity), not null
 #  redirect_uri          :text             not null
-#  revoked_at            :datetime
 #  scope                 :string
 #  state                 :string
 #  created_at            :datetime         not null
@@ -26,9 +26,8 @@
 #
 # Indexes
 #
-#  index_user_authorization_codes_on_code        (code) UNIQUE
-#  index_user_authorization_codes_on_expires_at  (expires_at)
-#  index_user_authorization_codes_on_user_id     (user_id)
+#  index_user_authorization_codes_on_code     (code) UNIQUE
+#  index_user_authorization_codes_on_user_id  (user_id)
 #
 require "test_helper"
 
@@ -49,26 +48,26 @@ class UserAuthorizationCodeTest < ActiveSupport::TestCase
 
     assert_predicate code, :persisted?
     assert_predicate code.code, :present?
-    assert_predicate code.expires_at, :present?
+    assert_predicate code.lapses_at, :present?
     assert_equal "user", code.resource_type
     assert_equal @user, code.resource
   end
 
   test "validates required fields" do
-    code = UserAuthorizationCode.new
+    code = UserAuthorizationCode.new(lapses_at: nil)
 
     assert_not code.valid?
     assert_predicate code.errors[:code], :any?
     assert_predicate code.errors[:client_id], :any?
     assert_predicate code.errors[:redirect_uri], :any?
     assert_predicate code.errors[:code_challenge], :any?
-    assert_predicate code.errors[:expires_at], :any?
+    assert_predicate code.errors[:lapses_at], :any?
   end
 
   test "validates code_challenge_method inclusion" do
     code = UserAuthorizationCode.new(
       @valid_params.merge(
-        code: "abc", expires_at: Time.current,
+        code: "abc", lapses_at: Time.current,
         code_challenge_method: "PLAIN",
       ),
     )
@@ -82,17 +81,17 @@ class UserAuthorizationCodeTest < ActiveSupport::TestCase
 
     assert_predicate code, :usable?
 
-    code.update!(expires_at: 1.minute.ago)
+    code.update_columns(lapses_at: 1.minute.ago)
 
     assert_not_predicate code, :usable?
     assert_predicate code, :expired?
 
-    code.update!(expires_at: 1.minute.from_now, consumed_at: Time.current)
+    code.update!(lapses_at: 1.minute.from_now, consumed_at: Time.current)
 
     assert_not_predicate code, :usable?
     assert_predicate code, :consumed?
 
-    code.update!(consumed_at: nil, revoked_at: Time.current)
+    code.update!(consumed_at: nil, lapses_at: Time.current)
 
     assert_not_predicate code, :usable?
     assert_predicate code, :revoked?
@@ -117,7 +116,7 @@ class UserAuthorizationCodeTest < ActiveSupport::TestCase
   test "valid scope returns only usable codes" do
     valid = UserAuthorizationCode.issue!(**@valid_params)
     expired = UserAuthorizationCode.issue!(**@valid_params)
-    expired.update!(expires_at: 1.minute.ago)
+    expired.update_columns(lapses_at: 1.minute.ago)
 
     consumed = UserAuthorizationCode.issue!(**@valid_params)
     consumed.consume!

@@ -17,7 +17,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
       public_id: "stepup_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
     )
     @token.update!(created_at: 1.hour.ago)
 

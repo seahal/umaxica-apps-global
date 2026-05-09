@@ -4,11 +4,13 @@
 # == Schema Information
 #
 # Table name: customer_preference_language_options
-# Database name: guest
+# Database name: setting
 #
 #  id :bigint           not null, primary key
 #
-class CustomerPreferenceLanguageOption < GuestRecord
+class CustomerPreferenceLanguageOption < SettingRecord
+  include ReferenceRecord
+
   NOTHING = 0
   JA = 1
   EN = 2

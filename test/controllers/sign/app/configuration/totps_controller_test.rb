@@ -114,6 +114,8 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
     with_mocked_totp do |secret|
       get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
+
+      assert_response :success
       token = ROTP::TOTP.new(secret).now
 
       assert_difference("UserOneTimePassword.count") do
@@ -131,6 +133,8 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
     with_mocked_totp do |secret|
       get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
+
+      assert_response :success
       token = ROTP::TOTP.new(secret).now
 
       post sign_app_configuration_totps_url(ri: "jp"),
@@ -147,6 +151,8 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
   test "should not create totp with invalid token" do
     get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
+
+    assert_response :success
 
     assert_no_difference("UserOneTimePassword.count") do
       post sign_app_configuration_totps_url(ri: "jp"),
@@ -202,6 +208,8 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
     with_mocked_totp do |secret|
       get new_sign_app_configuration_totp_url(ri: "jp"), headers: headers
+
+      assert_response :success
       first_code = ROTP::TOTP.new(secret).now
 
       assert_difference("UserOneTimePassword.count", 1) do

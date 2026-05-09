@@ -12,8 +12,7 @@
         <div>
           <div>
             <div>
-              <h3><%= pluralize(@user_email.errors.count, "error") %>
-                prohibited this sample from being saved:</h3>
+              <h3><%= t("sign.app.registration.email.new.error_summary") %></h3>
               <div>
                 <ul role="list">
                   <% @user_email.errors.each do |error| %>
@@ -38,7 +37,7 @@
           <%= form.check_box :confirm_policy %>
         </div>
         <div>
-          <%= form.label :confirm_policy, '利用規約に同意する' %>
+          <%= form.label :confirm_policy, t("views.sign.app.up.emails.new.confirm_policy_label") %>
         </div>
       </div>
 

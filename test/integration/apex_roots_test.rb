@@ -11,6 +11,13 @@ class SurfaceRootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "apex app www root responds successfully with ri parameter" do
+    get "/?ri=jp", headers: { "Host" => "www.app.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
   test "apex com root responds successfully" do
     get "/", headers: { "Host" => "com.localhost" }
     follow_redirect! if response.redirect?
@@ -20,6 +27,13 @@ class SurfaceRootsControllerTest < ActionDispatch::IntegrationTest
 
   test "apex org root responds successfully" do
     get "/", headers: { "Host" => "org.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "apex org www root responds successfully with ri parameter" do
+    get "/?ri=jp", headers: { "Host" => "www.org.localhost" }
     follow_redirect! if response.redirect?
 
     assert_response :success

@@ -26,6 +26,9 @@ en:
       sent: Verification code sent.
       too_soon: Please wait before requesting another code.
       failed: Unable to resend code. Please try again.
+  jump:
+    redirector:
+      unavailable: This jump link is unavailable.
   session_limit:
     gate_expired: The operation has timed out. Please log in again.
     user_not_found: User not found. Please log in again.
@@ -39,6 +42,8 @@ en:
     invalid_session: Invalid session.
     cannot_revoke_current: The current session cannot be revoked.
     session_revoked: Session revoked.
+    all_sessions_revoked: All sessions have been revoked. Please sign in again.
+    sessions_purged: Sessions purged successfully.
     turnstile_failed: Verification failed. Please try again.
     totp_limit_reached: You cannot register more than %{count} TOTP credentials.
     login_limit_exceeded: Login limit exceeded. Please end an existing session and try again.
@@ -64,6 +69,10 @@ en:
           page_description: "Select how you would like to begin using %{product}."
           links:
             registration: Need an account?
+        email:
+          new:
+            page_title: Sign up with email
+            error_summary: Please check your input.
       authentication:
         new:
           page_title: Choose how to sign in
@@ -420,7 +429,8 @@ en:
           sign_in_text: Sign in
         email:
           new:
-            page_title: UMAXICA (sign, app)
+            page_title: Sign up with email
+            error_summary: Please check your input.
           already_logged_in: You are already logged in.
           create:
             verification_code_sent: Verification code has been sent to your email address.
@@ -811,6 +821,10 @@ en:
       verification_required: Verification required.
   activerecord:
     attributes:
+      user_email:
+        address: Email address
+        confirm_policy: Terms of service
+        raw_address: Email address
       user_passkey:
         description: Name
         created_at: Registered
@@ -820,6 +834,18 @@ en:
         description: Name
         created_at: Registered
         sign_count: Usage count
+      user_token:
+        refresh_expires_at: Refresh expires at
+        lapses_at: Lapses at
+        purge_at: Purge at
+      staff_token:
+        refresh_expires_at: Refresh expires at
+        lapses_at: Lapses at
+        purge_at: Purge at
+      customer_token:
+        refresh_expires_at: Refresh expires at
+        lapses_at: Lapses at
+        purge_at: Purge at
       user_identity_email:
         address: Email address
     errors:
@@ -1990,3 +2016,167 @@ en:
         reject_all: Reject all
         open_settings: Manage settings
         accept_all: Accept all
+  views:
+    apex:
+      app:
+        roots:
+          index:
+            redirect_prompt: "Go to %{preference} immediately."
+      com:
+        roots:
+          index:
+            redirect_prompt: "Go to %{preference} immediately."
+      org:
+        roots:
+          index:
+            redirect_prompt: "Go to %{preference} immediately."
+      net:
+        roots:
+          index:
+            redirect_prompt: "Go to %{preference} immediately."
+      dev:
+        roots:
+          index:
+            redirect_prompt: "Go to %{preference} immediately."
+    sign:
+      com:
+        up:
+          telephones:
+            edit:
+              submit: Verify
+            new:
+              confirm_policy_label: I agree to the terms of service
+              confirm_using_mfa_label: I confirm MFA usage
+          emails:
+            new:
+              confirm_policy_label: I agree to the terms of service
+            edit:
+              submit: Verify
+        configuration:
+          emails:
+            index:
+              verified: Verified
+              unverified: Unverified
+              empty: No email addresses registered.
+          telephones:
+            registrations:
+              new:
+                description: Add a new phone number to make your account management more secure.
+                help_text: A verification code will be sent to the entered phone number via SMS.
+              edit:
+                page_title: Enter verification code
+                heading: Enter verification code
+                description: Please enter the verification code sent via SMS.
+            index:
+              actions: Actions
+              verified: Verified
+              unverified: Unverified
+              empty: No phone numbers registered.
+      org:
+        configuration:
+          telephones:
+            index:
+              verified: Verified
+              unverified: Unverified
+          emails:
+            index:
+              verified: Verified
+              unverified: Unverified
+          secrets:
+            new:
+              confirm_secret_saved_label: I have saved the secret
+        verifications:
+          show:
+            no_methods: Please register a passkey.
+      app:
+        configuration:
+          outs:
+            edit:
+              confirm_label: Do you want to log out?
+              confirm_description: Once you log out, you will need to log in again.
+          emails:
+            index:
+              verified: Verified
+              unverified: Unverified
+              empty: No email addresses registered.
+          totps:
+            new:
+              qr_fallback: If you cannot scan the QR code, enter the secret manually into your authenticator app.
+              first_token_label: Verification code
+              first_token_help: Please enter the 6-digit code shown in your authenticator app.
+          telephones:
+            new:
+              description: Add a new phone number to make your account management more secure.
+              help_text: A verification code will be sent to the entered phone number via SMS.
+            index:
+              actions: Actions
+              verified: Verified
+              unverified: Unverified
+              empty: No phone numbers registered.
+            registrations:
+              edit:
+                page_title: Enter verification code
+                heading: Enter verification code
+                description: Please enter the verification code sent via SMS.
+              new:
+                description: Add a new phone number to make your account management more secure.
+                help_text: A verification code will be sent to the entered phone number via SMS.
+          googles:
+            show:
+              description: You can sign in to this account using your Google account.
+              linked: Linked
+              unlinked: Not linked
+          apples:
+            show:
+              description: You can sign in to this account using your Apple ID.
+              linked: Linked
+              unlinked: Not linked
+          secrets:
+            new:
+              confirm_saved_label: I have saved the secret
+              one_time_notice: This value will only be shown once.
+          passkeys:
+            index:
+              actions: Actions
+              empty: No passkeys registered.
+        emails:
+          registrations:
+            verification_fields:
+              submit: Verify
+            new_fields:
+              confirm_policy_label: I agree to the terms of service
+        up:
+          emails:
+            new:
+              confirm_policy_label: I agree to the terms of service
+            edit:
+              submit: Verify
+          telephones:
+            new:
+              confirm_policy_label: I agree to the terms of service
+              confirm_using_mfa_label: I confirm MFA usage
+        verifications:
+          show:
+            no_methods: Please register an email, passkey, or TOTP.
+  models:
+    customer:
+      recovery_identity_required: To register a passkey or secret, please register and verify at least one email address or phone number first.
+    user:
+      recovery_identity_required: To register a passkey or secret, please register and verify at least one email address or phone number first.
+  controllers:
+    restricted_session_guard:
+      blocked_message: Restricted session.
+    sign:
+      verification_passkey_checks:
+        missing_credential_data: Passkey authentication data is missing.
+      com_verification_base:
+        email_unverified: Email address is not verified.
+      verification_totp_checks:
+        invalid_code_format: The verification code is invalid.
+        invalid_code: The verification code is incorrect.
+      app_verification_base:
+        email_unverified: Email address is not verified.
+        invalid_code_format: The verification code is invalid.
+        code_resend_required: Please resend the verification code.
+        code_expired: The verification code has expired.
+        invalid_code: The verification code is incorrect.

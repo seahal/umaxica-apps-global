@@ -44,7 +44,7 @@ module AuthHelpers
     base = host_headers(host).merge(headers).merge(TEST_USER_HEADER => user.id.to_s)
 
     if user.respond_to?(:persisted?) && user.persisted? && user.class.name == "User"
-      token = UserToken.where(user_id: user.id, expired_at: nil).order(created_at: :desc).first
+      token = UserToken.where(user_id: user.id).where("lapses_at > ?", Time.current).order(created_at: :desc).first
       token ||= UserToken.create!(user_id: user.id, user_token_kind_id: UserTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = token.public_id
     end
@@ -57,11 +57,15 @@ module AuthHelpers
   end
 
   def as_customer_headers(customer, host: nil, headers: {})
-    ensure_customer_token_reference_records! if respond_to?(:ensure_customer_token_reference_records!, true)
+    CustomerTokenBindingMethod.ensure_defaults!
+    CustomerTokenKind.find_or_create_by!(id: CustomerTokenKind::BROWSER_WEB)
     base = host_headers(host).merge(headers).merge(TEST_RESOURCE_HEADER => customer.id.to_s)
 
     if customer.respond_to?(:persisted?) && customer.persisted? && customer.class.name == "Customer"
-      token = CustomerToken.where(customer_id: customer.id, expired_at: nil).order(created_at: :desc).first
+      token = CustomerToken.where(customer_id: customer.id).where(
+        "lapses_at > ?",
+        Time.current,
+      ).order(created_at: :desc).first
       token ||= CustomerToken.create!(customer_id: customer.id, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = token.public_id
     end
@@ -73,13 +77,23 @@ module AuthHelpers
     host_headers(host).merge(headers).merge("Authorization" => "Bearer #{token}")
   end
 
-  def jwt_access_token_for(resource, host: nil, session_public_id: nil, resource_type: nil)
+  def jwt_access_token_for(resource, host: nil, session_id: nil, session_public_id: nil, resource_type: nil,
+                           dpop_jkt: nil)
     host_value = host || (respond_to?(:request, true) ? request&.host : nil) || "unknown"
+    resource_type ||=
+      case resource
+      when User then "user"
+      when Staff then "staff"
+      when Customer then "customer"
+      end
+
     ::Authentication::Base::Token.encode(
       resource,
       host: host_value,
+      session_id: session_id,
       session_public_id: session_public_id,
       resource_type: resource_type,
+      dpop_jkt: dpop_jkt,
     )
   end
 

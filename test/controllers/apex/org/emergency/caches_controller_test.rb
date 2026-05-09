@@ -11,15 +11,21 @@ class Apex::Org::Emergency::CachesControllerTest < ActionDispatch::IntegrationTe
   test "routes emergency cache endpoints to apex org controllers" do
     get "http://#{ENV.fetch("APEX_STAFF_URL", "www.org.localhost")}/emergency/app/cache"
 
+    assert_response :success
+
     assert_equal "apex/org/emergency/app/caches", request.path_parameters[:controller]
     assert_equal "show", request.path_parameters[:action]
 
     get "http://#{ENV.fetch("APEX_STAFF_URL", "www.org.localhost")}/emergency/com/cache"
 
+    assert_response :success
+
     assert_equal "apex/org/emergency/com/caches", request.path_parameters[:controller]
     assert_equal "show", request.path_parameters[:action]
 
     get "http://#{ENV.fetch("APEX_STAFF_URL", "www.org.localhost")}/emergency/org/cache"
+
+    assert_response :success
 
     assert_equal "apex/org/emergency/org/caches", request.path_parameters[:controller]
     assert_equal "show", request.path_parameters[:action]

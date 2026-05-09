@@ -35,7 +35,7 @@ module CloudflareTurnstile
     end
 
     Jit::Security::TurnstileVerifier.verify(
-      token: params["cf-turnstile-response"].to_s,
+      token: params.expect("cf-turnstile-response").to_s,
       remote_ip: request.remote_ip,
       mode: :visible,
     )
@@ -50,7 +50,7 @@ module CloudflareTurnstile
     end
 
     Jit::Security::TurnstileVerifier.verify(
-      token: params["cf-turnstile-response"].to_s,
+      token: params.expect("cf-turnstile-response").to_s,
       remote_ip: request.remote_ip,
       mode: :stealth,
     )

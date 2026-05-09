@@ -140,16 +140,14 @@ module Sign
         end
 
         def credential_params
-          params.expect(
-            credential: [
-              :id,
-              :rawId,
-              :type,
-              :authenticatorAttachment,
-              { transports: [] },
-              { response: %i(clientDataJSON attestationObject) },
-              { clientExtensionResults: {} },
-            ],
+          params.expect(:credential)&.permit(
+            :id,
+            :rawId,
+            :type,
+            :authenticatorAttachment,
+            { transports: [] },
+            { response: %i(clientDataJSON attestationObject) },
+            { clientExtensionResults: {} },
           )
         end
 

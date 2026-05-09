@@ -369,6 +369,7 @@ module Preference
       "dark" => "dr",
       "system" => "sy",
     }.freeze
+    THEME_SHORT_MAP = COLORTHEME_SHORT_MAP
 
     COLORTHEME_OPTION_MAP = {
       "li" => "light",
@@ -378,6 +379,7 @@ module Preference
       "dark" => "dark",
       "system" => "system",
     }.freeze
+    THEME_OPTION_MAP = COLORTHEME_OPTION_MAP
 
     PREFERENCE_AUDIT_EVENT_ID_MAP = {
       "AppPreferenceChronicleEvent" => {
@@ -388,7 +390,7 @@ module Preference
         "UPDATE_PREFERENCE_TIMEZONE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
         "RESET_BY_USER_DECISION" => AppPreferenceChronicleEvent::RESET_BY_USER_DECISION,
         "UPDATE_PREFERENCE_REGION" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
+        "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_THEME,
       }.freeze,
       "ComPreferenceChronicleEvent" => {
         "CREATE_NEW_PREFERENCE_TOKEN" => ComPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
@@ -398,7 +400,7 @@ module Preference
         "UPDATE_PREFERENCE_TIMEZONE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
         "RESET_BY_USER_DECISION" => ComPreferenceChronicleEvent::RESET_BY_USER_DECISION,
         "UPDATE_PREFERENCE_REGION" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
+        "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_THEME,
       }.freeze,
       "OrgPreferenceChronicleEvent" => {
         "CREATE_NEW_PREFERENCE_TOKEN" => OrgPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
@@ -408,7 +410,7 @@ module Preference
         "UPDATE_PREFERENCE_TIMEZONE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_TIMEZONE,
         "RESET_BY_USER_DECISION" => OrgPreferenceChronicleEvent::RESET_BY_USER_DECISION,
         "UPDATE_PREFERENCE_REGION" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
-        "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_COLORTHEME,
+        "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_THEME,
       }.freeze,
     }.freeze
 
@@ -713,7 +715,7 @@ module Preference
           event_id: normalized_event_id,
           level_id: preference_audit_level_class::INFO,
           occurred_at: Time.current,
-          expires_at: expires_at_value,
+          lapses_at: expires_at_value,
           ip_address: request.remote_ip || default_audit_ip,
           context: context,
         )
@@ -888,7 +890,10 @@ module Preference
 
       public_id = Token.extract_public_id(payload)
       if public_id.present?
-        @preferences = preference_class.includes(preference_associations_to_preload).find_by(public_id: public_id)
+        @preferences =
+          with_preference_connection(:writing) do
+            preference_class.includes(preference_associations_to_preload).find_by(public_id: public_id)
+          end
         if @preferences.blank?
           cookies.delete(access_token_cookie_name, **preference_cookie_deletion_options)
           @preference_payload = nil
@@ -1165,7 +1170,9 @@ module Preference
     def preference_dbsc_cookie_expires_at(preference, now: Time.current)
       return unless preference&.binding_method_dbsc?
 
-      [now + 10.minutes, preference.expires_at, preference.revoked_at].compact.min
+      times = [now + 10.minutes, preference.expires_at]
+      times << preference.revoked_at if preference.respond_to?(:revoked_at)
+      times.compact.min
     end
 
     def issue_preference_dbsc_registration_header_for(preference)
@@ -1222,7 +1229,7 @@ module Preference
       language = preference.public_send("#{association_prefix}_language")&.option_id
       region = preference.public_send("#{association_prefix}_region")&.option_id
       timezone = preference.public_send("#{association_prefix}_timezone")&.option_id
-      colortheme = preference.public_send("#{association_prefix}_colortheme")&.option_id
+      colortheme = preference.public_send("#{association_prefix}_theme")&.option_id
       consent_state = preference_cookie_consent_state(preference, association_prefix)
 
       {
@@ -1429,7 +1436,19 @@ module Preference
       now = Time.current
 
       with_preference_connection(:writing) do
-        preference.update!(compromised_at: now, revoked_at: now) if preference.compromised_at.nil?
+        updates = { lapses_at: now }
+        updates[:compromised_at] = now if preference.respond_to?(:compromised_at=)
+        updates[:revoked_at] = now if preference.respond_to?(:revoked_at=)
+
+        lapses_at_value = preference.lapses_at
+        is_infinite = lapses_at_value.respond_to?(:infinite?) && lapses_at_value.infinite?
+        already_handled =
+          if preference.respond_to?(:compromised_at)
+            preference.compromised_at.present?
+          else
+            !is_infinite && lapses_at_value <= now
+          end
+        preference.update!(updates) unless already_handled
       end
 
       clear_preference_auth_cookies!
@@ -1545,13 +1564,6 @@ module Preference
     # ==========================================================================
     def load_or_create_preference_child(child_type, default_attributes = {})
       association_name = "#{preference_prefix_underscore}_#{child_type.downcase}"
-      child = @preferences.public_send(association_name)
-      return child if child.present?
-
-      # Ensure the parent preference record is fresh
-      @preferences.reload if @preferences.persisted?
-
-      # Try finding again in case it was created concurrently
       child = @preferences.public_send(association_name)
       return child if child.present?
 

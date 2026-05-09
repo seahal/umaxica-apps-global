@@ -4,11 +4,13 @@
 # == Schema Information
 #
 # Table name: staff_preference_region_options
-# Database name: principal
+# Database name: operator
 #
 #  id :bigint           not null, primary key
 #
-class StaffPreferenceRegionOption < PrincipalRecord
+class StaffPreferenceRegionOption < OperatorRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   US = 1

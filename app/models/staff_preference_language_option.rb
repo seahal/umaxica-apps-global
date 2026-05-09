@@ -4,11 +4,13 @@
 # == Schema Information
 #
 # Table name: staff_preference_language_options
-# Database name: principal
+# Database name: operator
 #
 #  id :bigint           not null, primary key
 #
-class StaffPreferenceLanguageOption < PrincipalRecord
+class StaffPreferenceLanguageOption < OperatorRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   JA = 1

@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class CustomerPasskeyStatus < GuestRecord
+  include ReferenceRecord
+
   ACTIVE = 1
   DISABLED = 2
   REVOKED = 3

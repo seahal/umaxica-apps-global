@@ -1,0 +1,32 @@
+# == Schema Information
+#
+# Table name: app_jump_links
+# Database name: redirector
+#
+#  id              :bigint           not null, primary key
+#  destination_url :text             not null
+#  lapses_at       :datetime         default(Infinity), not null
+#  max_uses        :integer          default(0), not null
+#  policy          :jsonb            not null
+#  purge_at        :datetime         not null
+#  uses_count      :integer          default(0), not null
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  public_id       :string           not null
+#  status_id       :integer          default(0), not null
+#
+# Indexes
+#
+#  index_app_jump_links_on_public_id  (public_id) UNIQUE
+#  index_app_jump_links_on_purge_at   (purge_at)
+#  index_app_jump_links_on_status_id  (status_id)
+#
+active_link:
+  public_id: active-jump-link-0001
+  destination_url: https://example.com/destination
+  status_id: 0
+  max_uses: 0
+  uses_count: 0
+  policy: {}
+  lapses_at: 9999-12-31 23:59:59
+  purge_at: 9999-12-31 23:59:59

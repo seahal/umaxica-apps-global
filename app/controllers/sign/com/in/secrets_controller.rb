@@ -44,7 +44,7 @@ module Sign
 
         def create
           @secret_form = SecretLoginForm.new(secret_params)
-          @secret_form.turnstile_response = params["cf-turnstile-response"].to_s
+          @secret_form.turnstile_response = params.expect("cf-turnstile-response").to_s
           unless @secret_form.valid?
             return render_failed_login(
               reason: :form_invalid,

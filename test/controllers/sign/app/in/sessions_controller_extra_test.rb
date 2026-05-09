@@ -33,7 +33,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
       status: UserToken::STATUS_ACTIVE,
       user_token_status_id: UserTokenStatus::ACTIVE,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      refresh_expires_at: 1.month.from_now,
+      lapses_at: 1.month.from_now,
     )
     active3.save!(validate: false)
     active3.rotate_refresh_token!
@@ -63,7 +63,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
     assert_includes response.body, I18n.t("sign.app.in.session.session_revoked")
     active.reload
 
-    assert_not_nil active.expired_at
+    assert_not_nil active.lapses_at
   end
 
   private
@@ -74,7 +74,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
       status: UserToken::STATUS_RESTRICTED,
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      refresh_expires_at: 1.month.from_now,
+      lapses_at: 1.month.from_now,
     )
     token.save!(validate: false)
     token.rotate_refresh_token!
@@ -87,7 +87,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
       status: UserToken::STATUS_ACTIVE,
       user_token_status_id: UserTokenStatus::ACTIVE,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      refresh_expires_at: 1.month.from_now,
+      lapses_at: 1.month.from_now,
     )
     token.save!(validate: false)
     token.rotate_refresh_token!

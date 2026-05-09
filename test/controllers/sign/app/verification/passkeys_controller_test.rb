@@ -35,6 +35,8 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
               headers: @headers
 
+          assert_response :success
+
           get new_sign_app_verification_passkey_url(ri: "jp"), headers: @headers
 
           assert_response :success
@@ -57,6 +59,8 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
             headers: @headers
+
+        assert_response :success
 
         get new_sign_app_verification_passkey_url(
           ri: "jp",

@@ -1,23 +1,23 @@
 # typed: false
 # frozen_string_literal: true
 
-require Rails.root.join("lib/id_host_env").to_s
-
 scope module: :sign, as: :sign do
   # User auth service (id.app domain)
-  constraints host: IdHostEnv.service_url do
+  constraints host: ENV["SIGN_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
         namespace :v0 do
-          resource :health, only: :show
+          resource :health, only: :show, controller: "health"
           namespace :in do
             namespace :email do
               resource :otp, only: :create
@@ -34,7 +34,7 @@ scope module: :sign, as: :sign do
       # Edge API: token lifecycle management (check, DBSC binding, refresh)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
+          resource :health, only: :show, controller: "health"
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
@@ -67,7 +67,12 @@ scope module: :sign, as: :sign do
       # Sign-up: account registration via email or telephone
       scope path: "sign" do
         resource :up, only: :new
+        # FIXME: how nasty code are there.
         namespace :up do
+          get "emails", to: redirect { |_params, request|
+            query = request.query_parameters.slice("ri", "rd").to_query
+            "/sign/up/emails/new#{query.present? ? "?#{query}" : ""}"
+          }
           resources :emails, only: %i(new create edit update)
           resources :telephones, only: %i(new create edit update) do
             collection do
@@ -100,15 +105,15 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # Social auth: new sets intent/state then redirects to /auth/:provider
+      # Social auth: start sets intent/state then redirects to /auth/:provider
       namespace :social do
-        resource :session, only: [:new]
-        delete ":provider/unlink",
-               to: "sessions#unlink",
-               as: :unlink,
-               constraints: { provider: /google_app|apple/ }
+        resources :authentications,
+                  path: "auth",
+                  param: :provider,
+                  only: [:destroy] do
+          post :start, on: :member
+        end
       end
-
       # OmniAuth callbacks (GET for Google, POST for Apple)
       namespace :auth, path: "auth" do
         match ":provider/callback",
@@ -160,6 +165,7 @@ scope module: :sign, as: :sign do
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
+            delete :revoke_all
           end
         end
         resources :activities, only: :index
@@ -170,16 +176,18 @@ scope module: :sign, as: :sign do
   end
 
   # Corporate id service (id.com domain)
-  constraints host: IdHostEnv.corporate_url do
+  constraints host: ENV["SIGN_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
 
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
 
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
@@ -217,11 +225,16 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # Sign-up: email registration
+      # Sign-up: account registration via email or telephone
       scope path: "sign" do
         resource :up, only: :new
         namespace :up do
+          get "emails", to: redirect { |_params, request|
+            query = request.query_parameters.slice("ri", "rd").to_query
+            "/sign/up/emails/new#{query.present? ? "?#{query}" : ""}"
+          }
           resources :emails, only: %i(new create edit update)
+          resources :telephones, only: %i(new create edit update)
         end
 
         # Sign-in: credential entry and session establishment
@@ -283,6 +296,7 @@ scope module: :sign, as: :sign do
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
+            delete :revoke_all
           end
         end
         resources :activities, only: :index
@@ -293,16 +307,18 @@ scope module: :sign, as: :sign do
   end
 
   # Staff auth management
-  constraints host: IdHostEnv.staff_url do
+  constraints host: ENV["SIGN_STAFF_URL"] do
     scope module: :org, as: :org do
       root to: "roots#index"
 
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
 
       # Public web API: cookie consent, theme
       namespace :web do
@@ -315,7 +331,7 @@ scope module: :sign, as: :sign do
       # Edge API: token lifecycle management (check, DBSC binding, refresh)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
+          resource :health, only: :show, controller: "health"
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
@@ -349,7 +365,6 @@ scope module: :sign, as: :sign do
       scope path: "sign" do
         resource :up, only: :new
         namespace :up do
-          resources :emails, only: %i(new create)
           resources :invitations, only: %i(new create) do
             collection do
               resources :emails, only: %i(new create edit update)
@@ -360,7 +375,12 @@ scope module: :sign, as: :sign do
 
       # Social auth: Google sign-in for staff (login only, no sign-up)
       namespace :social do
-        resource :session, only: [:new]
+        resources :authentications,
+                  path: "auth",
+                  param: :provider,
+                  only: [] do
+          post :start, on: :member
+        end
       end
       # OmniAuth callbacks (GET for Google)
       namespace :auth, path: "auth" do
@@ -418,6 +438,7 @@ scope module: :sign, as: :sign do
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
+            delete :revoke_all
           end
         end
         namespace :emails do
@@ -428,21 +449,35 @@ scope module: :sign, as: :sign do
           resource :registration, only: %i(new create edit update)
         end
         resources :telephones, only: %i(index new edit create destroy)
-        resource :google, only: %i(show create)
+        resource :google, only: :show
         resources :activities, only: :index
         resource :out, only: %i(edit destroy)
         resource :withdrawal, only: %i(show)
       end
     end
+  end
 
-    constraints host: ENV["SIGN_NETWORK_URL"] do
+  constraints host: ENV["SIGN_NETWORK_URL"] do
+    scope module: :net, as: :net do
+      root to: "roots#index"
+
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
     end
 
-    constraints host: ENV["SIGN_DEVELOPER_URL"] do
+    # CSP violation reporting
+    post "/csp-violation-report", to: "/csp_violations#create"
+  end
+
+  constraints host: ENV["SIGN_DEVELOPER_URL"] do
+    scope module: :dev, as: :dev do
+      root to: "roots#index"
+
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
     end
+
+    # CSP violation reporting
+    post "/csp-violation-report", to: "/csp_violations#create"
   end
 end

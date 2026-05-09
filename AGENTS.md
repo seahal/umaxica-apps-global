@@ -1,208 +1,146 @@
-# Ruby on Rails Codebase Guide for AI Coding Agents
+# Umaxica Apps Global Guide for AI Coding Agents
 
-This is the code base of the Ruby on Rails web framework.
+This is a Ruby on Rails application, not the Rails framework monorepo.
 
-## Architecture Overview
+Agents must treat this file as the always-loaded entry point. The former harness rules live under
+`.harnes/`; they are not loaded automatically unless this file points to them or the task explicitly
+requires them.
 
-Rails is a **monorepo containing 10+ independent components** that can work standalone or together.
+## Application Shape
 
-Each component lives in its own directory at the root level:
+This app has three user-facing surfaces:
 
-- **Active Record** (`activerecord/`) - ORM and database abstraction
-- **Action Pack** (`actionpack/`) - Controllers and routing (contains Action Controller and Action
-  Dispatch)
-- **Action View** (`actionview/`) - View templates and helpers (extracted from Action Pack in
-  Rails 3)
-- **Active Model** (`activemodel/`) - Model interfaces without database dependency
-- **Active Support** (`activesupport/`) - Core extensions and utilities used across all Rails
-  components
-- **Action Mailer** (`actionmailer/`), **Action Mailbox** (`actionmailbox/`) - Email
-  sending/receiving
-- **Active Job** (`activejob/`) - Background job abstraction
-- **Action Cable** (`actioncable/`) - WebSocket integration
-- **Active Storage** (`activestorage/`) - File uploads and cloud storage
-- **Action Text** (`actiontext/`) - Rich text content
-- **Railties** (`railties/`) - Rails CLI, generators, and framework glue
+- `app` - end-user application
+- `org` - staff / organization surface
+- `com` - public / corporate surface
 
-**Key architectural principle**: Rails components are loosely coupled. Changes to one of them should
-not break others unless there's an explicit dependency.
+Treat each surface as an independent boundary. Do not mix controllers, routes, views, policies,
+sessions, or state across surfaces unless the existing code has an explicit shared abstraction.
+
+Read `.harnes/context/architecture.md` when a change touches surface boundaries, controllers,
+models, services, policies, or shared concerns.
+
+## Required Harness Context
+
+Use these `.harnes/` files as task-specific instructions:
+
+- Controller or endpoint work: `.harnes/tasks/implement_controller.md`,
+  `.harnes/context/auth_pipeline.md`, `.harnes/context/routing.md`
+- Minitest work: `.harnes/tasks/write_minitest.md`, `.harnes/policies/testing_rules.md`
+- Migration work: `.harnes/tasks/add_migration.md`, `.harnes/policies/migration_rules.md`
+- Security-sensitive work or broad refactors: `.harnes/policies/forbidden_patterns.md`
+- Surface, routing, or authentication changes: `.harnes/context/architecture.md`,
+  `.harnes/context/routing.md`, `.harnes/context/auth_pipeline.md`
+
+If a task touches one of these areas, read the relevant harness file before editing.
+
+## Decision Context
+
+Use `adr/`, `plans/`, and `docs/` as required decision inputs, not as optional background.
+
+Before making non-trivial architecture, routing, authentication, authorization, database,
+preference, engine/surface, or service-layer changes:
+
+- Read `docs/index.md` to confirm the documentation model.
+- Read `adr/README.md` and the ADRs relevant to the change.
+- Read `plans/README.md` and relevant files under `plans/active/`.
+- Check `plans/backlog/` when the task mentions an issue number, feature area, migration, or known
+  follow-up.
+- Use `plans/archive/` only for historical context; do not treat archived plans as current intent
+  unless a current ADR, doc, or active plan points to them.
+
+Decision priority when sources disagree:
+
+1. Explicit user instruction in the current conversation.
+2. Current code and tests.
+3. Accepted ADRs in `adr/`.
+4. Stable docs in `docs/`.
+5. Active plans in `plans/active/`.
+6. Backlog notes in `plans/backlog/`.
+7. Archived plans in `plans/archive/`.
+
+If an ADR or doc conflicts with current code, call out the conflict before choosing an
+implementation path. If implementing an active plan changes stable behavior, update the relevant
+`docs/` file or mention that documentation still needs to be updated.
+
+## Non-Negotiable Rules
+
+Do not:
+
+- Mix the `app`, `org`, and `com` surfaces.
+- Skip authentication, authorization, verification, CSRF, or rate-limit protections.
+- Reorder the authentication and authorization pipeline.
+- Put business logic in controllers.
+- Use `permit!`, `skip_before_action`, `skip_authorization`, `skip_forgery_protection`, `html_safe`,
+  `raw(...)`, `VERIFY_NONE`, `rescue nil`, or ignored rescues.
+- Log tokens, cookies, authorization headers, or full request params.
+- Store request state in class variables, globals, or `Thread.current`.
+
+For database changes, do not use destructive operations such as `drop_table`, `remove_column`,
+`change_column`, `delete_all`, `destroy_all`, `update_all`, or raw `execute(...)` unless the user
+has explicitly approved the risk and migration plan.
+
+## Rails Development Conventions
+
+- Keep controllers focused on HTTP concerns.
+- Put domain behavior in models, services, policies, or existing local abstractions.
+- Use Pundit authorization through the established pipeline.
+- Use RESTful routes and path helpers.
+- Do not hardcode absolute URLs in application code.
+- Prefer existing project patterns over new abstractions.
+- Keep changes scoped to the requested behavior.
 
 ## Testing Commands
 
-### Running Tests in a Component
+Use Minitest for Ruby code.
 
-From within the component directory (preferred method):
-
-```bash
-cd actionview && bin/test                    # Run all tests
-cd actionview && bin/test test/template/form_helper_test.rb
-cd actionview && bin/test -n "/test_name/"   # Filter by test name pattern
-```
-
-How to run specific test method:
+Common commands:
 
 ```bash
-cd actionview && bin/test test/template/form_helper_test.rb::FormHelperTest#test_hidden_field
+bin/rails test
+bin/rails test test/path/to/file_test.rb
+bin/rails test test/path/to/file_test.rb:LINE
 ```
 
-### Running Tests from Root
-
-Run all tests for a given component:
+Use Vitest for JavaScript code:
 
 ```bash
-rake actionview:test
+vp test
 ```
 
-Run tests across all components:
+If behavior changes in both Ruby and JavaScript, add or update coverage on both sides where
+appropriate.
 
-```bash
-rake test          # Run all non-isolated tests
-rake test:isolated # Run isolated tests
-rake smoke         # Quick smoke test
-```
+## Testing Expectations
 
-### Active Record Testing (Multiple Database Adapters)
+All meaningful changes need tests appropriate to their risk.
 
-How to test individual database adapters in Active Record:
+Tests should cover:
 
-```bash
-cd activerecord
-bundle exec rake test:sqlite3 # Default
-bundle exec rake test:postgresql
-bundle exec rake test:mysql2
-bundle exec rake test:trilogy
-```
+- Success paths
+- Failure paths
+- Authentication and authorization when relevant
+- Edge cases for validation, routing, cookies, sessions, tokens, policies, and verification
 
-**Important**: Tests run in parallel using multiple processes. The `bin/test` script wraps Rails'
-custom test runner (`tools/test.rb`) which uses `Rails::TestUnit::Runner`.
+For model-layer validation or classification logic, include boundary value analysis and equivalence
+partitioning where relevant.
 
-## Configuration Testing Patterns
+Do not add placeholder tests, `assert true`, skipped tests, TODO tests, or tests that mock away the
+behavior being verified.
 
-When testing configuration options, use `Object#with` (from Active Support) to temporarily modify
-class attributes:
+## Migration Expectations
 
-```ruby
-# Correct: Use Object#with for temporary config changes
-ActionView::Base.with(remove_hidden_field_autocomplete: true) do
-  # Test code here
-end
+Migrations must be reversible, backward-compatible, and safe for production.
 
-# Avoid: Manual set/restore patterns
-old = ActionView::Base.remove_hidden_field_autocomplete
-ActionView::Base.remove_hidden_field_autocomplete = true
-# ... test code
-ActionView::Base.remove_hidden_field_autocomplete = old
-```
+- Separate schema changes from data changes.
+- Avoid large data updates inside migrations.
+- Do not use application models inside migrations.
+- Check rollback behavior when practical.
+- Consider lock impact before adding indexes or changing large tables.
 
-This pattern is used throughout the test suite, especially for:
+## Before Finishing
 
-- `ActionView::Base.with(config_option: value)`
-- `ActionController::Base.with(config_option: value)`
-- Other framework configuration testing
-
-**Requires**: `require "active_support/core_ext/object/with"` at the top of test files.
-
-## Code Conventions
-
-### Configuration Flags
-
-Configuration options follow a consistent pattern across components:
-
-1. **Define the attribute** in the base class (e.g., `ActionView::Base`):
-
-   ```ruby
-   cattr_accessor :remove_hidden_field_autocomplete, default: false
-   ```
-
-2. **Check the flag** before applying behavior:
-
-   ```ruby
-   @options.reverse_merge!(autocomplete: "off") unless ActionView::Base.remove_hidden_field_autocomplete
-   ```
-
-3. **Enable by default** in new Rails versions via `load_defaults`:
-   ```ruby
-   # In railties/lib/rails/application/configuration.rb
-   case target_version.to_s
-   when "8.1"
-     action_view.remove_hidden_field_autocomplete = true
-   end
-   ```
-
-### Changelog Updates
-
-When fixing bugs or adding features:
-
-- Add an entry to the top of `<component>/CHANGELOG.md`
-- Format: Brief description, then `*Your Name*` on new line
-- See existing entries for style
-
-### Test Naming
-
-- Use descriptive names:
-  `test_hidden_field_omits_autocomplete_when_remove_hidden_field_autocomplete_is_true`
-- Group related tests together in the file
-- Test both default behavior AND explicit overrides
-
-### Code Style
-
-- Run RuboCop: `bundle exec rubocop` (there's a project-wide `.rubocop.yml`)
-- Prefer `assert_not` over `assert !` (`Rails/AssertNot` cop)
-- Prefer `assert_dom_equal` for HTML comparisons in view tests
-- Use `# frozen_string_literal: true` at top of all files
-
-## Common Development Workflows
-
-### Making a Fix Across Multiple Components
-
-Example: Issue #55984 required changes to:
-
-1. Helper class: `actionview/lib/action_view/helpers/tags/hidden_field.rb`
-2. Tests: `actionview/test/template/form_helper_test.rb`
-3. Reference: Similar fixes were in `tags/check_box.rb`, `tags/file_field.rb`, `form_tag_helper.rb`,
-   `url_helper.rb`
-
-**Pattern**: When fixing a configuration flag, grep for similar patterns in other helpers:
-
-```bash
-grep -r "unless ActionView::Base.remove_hidden_field_autocomplete" actionview/lib/
-```
-
-### Finding Related Code
-
-- **Similar functionality**: Look in the same `lib/*/helpers/` or `lib/*/tags/` directory
-- **Tests for a helper**: Check `test/template/<helper_name>_test.rb`
-- **Configuration setup**: Check `railties/lib/rails/application/configuration.rb`
-- **Default values**: Look for `load_defaults` version blocks
-
-### Working with Forms and Helpers
-
-Action View helpers follow this structure:
-
-- **Tag helpers** (`lib/action_view/helpers/tags/`) - Individual form elements
-- **Form helpers** (`lib/action_view/helpers/form_helper.rb`) - Form builders
-- **Form tag helpers** (`lib/action_view/helpers/form_tag_helper.rb`) - Standalone tags
-
-When modifying form behavior, check ALL three locations for consistency.
-
-## Issue References and Pull Requests
-
-- Always reference issue numbers in commits: `Fix #12345: Description`
-- Check for previous related PRs/issues when fixing bugs
-- Look at PR #55336 pattern when working on similar autocomplete-related fixes
-- Bug report templates live in `guides/bug_report_templates/`
-
-## File Organization Principles
-
-- `lib/` - Production code
-- `test/` - Test files (NOT `spec/` - Rails uses Minitest, not RSpec)
-- `bin/` - Executable scripts (e.g., `bin/test`)
-- Each framework is self-contained with its own Gemfile and dependencies
-- Shared tools live in `tools/` (e.g., `tools/test.rb`, `tools/release.rb`)
-
-## Documentation
-
-- API docs use YARD/RDoc format
-- Guides source in `guides/source/` (Markdown)
-- Generate docs: `rake rdoc` (from framework directory)
-- Configuration options documented in `guides/source/configuring.md`
+- Run the narrowest relevant tests first.
+- Run broader tests when the change affects shared behavior or multiple surfaces.
+- Mention any tests that could not be run.
+- Keep changelog or documentation updates scoped to the component or feature being changed.

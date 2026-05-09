@@ -14,7 +14,8 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     @deactivated_user.update!(
       withdrawal_started_at: 1.day.ago,
       deactivated_at: Time.current,
-      scheduled_purge_at: 31.days.from_now,
+      lapses_at: Time.current,
+      purge_at: 31.days.from_now,
     )
     UserToken.where(user: @deactivated_user).delete_all
 
@@ -23,7 +24,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
       public_id: "deactivated_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
     )
     satisfy_user_verification(@token)
 
@@ -68,7 +69,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
       public_id: "normal_#{SecureRandom.hex(4)}",
-      refresh_expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
     )
     satisfy_user_verification(normal_token)
 

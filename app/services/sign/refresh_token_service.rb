@@ -65,9 +65,7 @@ module Sign
       actor_scope = actor_tokens_scope(token)
       now = Time.current
       actor_scope.find_each do |actor|
-        attrs = { compromised_at: now }
-        attrs[:expired_at] = now if actor.has_attribute?(:expired_at)
-        attrs[:revoked_at] = now if actor.has_attribute?(:revoked_at)
+        attrs = { lapses_at: now }
         actor.update!(attrs)
       end
 

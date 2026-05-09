@@ -57,7 +57,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
       create_rotated_active_user_session(@user, rotations: 3)
     end
     restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
-    restricted.rotate_refresh_token!(expires_at: 15.minutes.from_now)
+    restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: raw_secret),
@@ -101,6 +101,8 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     _secret, raw_secret = issue_secret!(kind: UserSecretKind::PERMANENT, uses: 10)
 
     get new_sign_app_in_secret_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
     old_session_id = session.id
 
     post sign_app_in_secret_url(ri: "jp"),
@@ -251,7 +253,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "expired secret fails authentication" do
-    _secret, raw_secret = issue_secret!(expires_at: 1.minute.ago)
+    _secret, raw_secret = issue_secret!(lapses_at: 1.minute.ago)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: raw_secret),
@@ -311,6 +313,8 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     queries =
       capture_sql_queries do
         get(new_sign_app_in_secret_url(ri: "jp"), headers: default_headers)
+
+        assert_response :success
       end
 
     assert_response :success
@@ -329,13 +333,13 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  def issue_secret!(kind: UserSecretKind::PERMANENT, uses: 1, expires_at: nil, status: :active)
+  def issue_secret!(kind: UserSecretKind::PERMANENT, uses: 1, lapses_at: nil, status: :active)
     UserSecret.issue!(
       name: "Secret-#{SecureRandom.hex(4)}",
       user_id: @user.id,
       user_secret_kind_id: kind,
       uses: uses,
-      expires_at: expires_at,
+      lapses_at: lapses_at,
       status: status,
     )
   end

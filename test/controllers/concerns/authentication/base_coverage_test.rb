@@ -50,16 +50,10 @@ class AuthenticationBaseFakeModel
   end
 end
 
-class AuthenticationBaseFakeTokenWithExpiredAt
-  def self.name = "AuthenticationBaseFakeTokenWithExpiredAt"
+class AuthenticationBaseFakeTokenWithLapsesAt
+  def self.name = "AuthenticationBaseFakeTokenWithLapsesAt"
 
-  def self.column_names = %w(expired_at revoked_at)
-end
-
-class AuthenticationBaseFakeTokenWithRevokedAt
-  def self.name = "AuthenticationBaseFakeTokenWithRevokedAt"
-
-  def self.column_names = %w(revoked_at)
+  def self.column_names = %w(lapses_at)
 end
 
 class AuthenticationBaseFakeTokenWithoutExpiry
@@ -117,6 +111,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     token = Authentication::Base::Token.encode(
       @user,
       host: host,
+      resource_type: "user",
       session_public_id: "sid",
       acr: "aal1",
       amr: ["email"],
@@ -265,12 +260,11 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal "/", @controller.after_login_path
     assert_equal "/", @controller.default_after_login_path
 
-    assert_equal :expired_at, @controller.token_expiry_column(AuthenticationBaseFakeTokenWithExpiredAt)
-    assert_equal :revoked_at, @controller.token_expiry_column(AuthenticationBaseFakeTokenWithRevokedAt)
+    assert_equal :lapses_at, @controller.token_expiry_column(AuthenticationBaseFakeTokenWithLapsesAt)
     assert_raises(ArgumentError) { @controller.token_expiry_column(AuthenticationBaseFakeTokenWithoutExpiry) }
 
     now = Time.current
-    token = Struct.new(:revoked_at, :refresh_expires_at).new(now + 30.minutes, now + 2.hours)
+    token = Struct.new(:lapses_at, :refresh_expires_at).new(now + 30.minutes, now + 2.hours)
 
     assert_equal (now + 30.minutes).to_i, @controller.access_token_expires_at_for(token, now: now).to_i
     assert_equal (now + 30.minutes).to_i, @controller.refresh_cookie_expires_at_for(token).to_i
@@ -552,7 +546,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_raises(ActiveRecord::RecordNotFound) { @controller.resolve_token_kind_id("MISSING") }
 
     @controller.define_singleton_method(:resource_type) { "none" }
-    assert_raises(ActiveRecord::RecordNotFound) { Authentication::Base.instance_method(:token_kind_model).bind_call(@controller) }
+    assert_raises(ActiveRecord::RecordNotFound) { Authentication::Base::TokenCreation.instance_method(:token_kind_model).bind_call(@controller) }
   end
 
   test "preference snapshot and reissue access token cover early returns and success" do

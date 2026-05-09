@@ -8,7 +8,7 @@ module Sign
     module Preference
       class CookiesControllerTest < ActionDispatch::IntegrationTest
         fixtures :users, :user_preferences,
-                 :app_preference_colortheme_options, :app_preferences,
+                 :app_preference_theme_options, :app_preferences,
                  :app_preference_cookies
 
         setup do

@@ -96,12 +96,12 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   private
 
   def inject_health_method(method_name, &)
-    Sign::App::HealthsController.send(:define_method, method_name, &)
+    Sign::App::HealthController.send(:define_method, method_name, &)
   end
 
   def remove_health_method(method_name)
-    Sign::App::HealthsController.send(:remove_method, method_name) if Sign::App::HealthsController.private_method_defined?(
+    Sign::App::HealthController.send(:remove_method, method_name) if Sign::App::HealthController.private_method_defined?(
       method_name, false,
-    ) || Sign::App::HealthsController.method_defined?(method_name, false)
+    ) || Sign::App::HealthController.method_defined?(method_name, false)
   end
 end

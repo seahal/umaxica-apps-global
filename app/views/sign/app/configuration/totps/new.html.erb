@@ -40,7 +40,7 @@
               <%= image_tag "data:image/png;base64, #{Base64.strict_encode64(@png.to_s)}", alt: "QR Code" %>
             </div>
             <p>
-              QRコードがスキャンできない場合は、認証アプリに手動でシークレットを入力してください。
+              <%= t("views.sign.app.configuration.totps.new.qr_fallback") %>
             </p>
           </div>
 
@@ -56,11 +56,11 @@
             </div>
 
             <div>
-              <%= form.label :first_token, "認証コード" %>
+              <%= form.label :first_token, t("views.sign.app.configuration.totps.new.first_token_label") %>
               <div>
                 <%= form.text_field :first_token, placeholder: "000000", maxlength: 6, inputmode: "numeric", pattern: "[0-9]*" %>
               </div>
-              <p>認証アプリに表示されている6桁のコードを入力してください。</p>
+              <p><%= t("views.sign.app.configuration.totps.new.first_token_help") %></p>
             </div>
           </div>
         </div>

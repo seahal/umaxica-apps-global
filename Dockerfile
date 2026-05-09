@@ -9,6 +9,12 @@ ARG DOCKER_GID=1000
 ARG DOCKER_USER=global
 ARG DOCKER_GROUP=umaxica
 ARG GITHUB_ACTIONS=""
+ARG NODE_MAJOR=22
+
+# ============================================================================
+# Node.js toolchain
+# ============================================================================
+FROM node:${NODE_MAJOR}-trixie-slim AS node-toolchain
 
 # ============================================================================
 # Production image (multi-stage build)
@@ -133,6 +139,9 @@ USER ${DOCKER_USER}
 
 EXPOSE 8080
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD ruby -rsocket -e "TCPSocket.new('127.0.0.1', Integer(ENV.fetch('PORT', '8080'))).close"
+
 CMD ["bundle", "exec", "puma", "-C", "config/puma.rb", "--port", "8080"]
 
 # ============================================================================
@@ -177,6 +186,13 @@ ARG GITHUB_ACTIONS
 ENV HOME=/home/${DOCKER_USER}
 WORKDIR ${HOME}/workspace
 
+COPY --from=node-toolchain /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-toolchain /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack
+
 # hadolint ignore=DL3008
 RUN curl -1sLf "https://dl.cloudsmith.io/public/evilmartians/lefthook/setup.deb.sh" | bash \
     && apt-get update -qq \
@@ -196,8 +212,6 @@ RUN curl -1sLf "https://dl.cloudsmith.io/public/evilmartians/lefthook/setup.deb.
     yq \
     lsb-release \
     ncdu \
-    nodejs \
-    npm \
     openssl \
     ripgrep \
     silversearcher-ag \
@@ -223,7 +237,7 @@ RUN if [ -z "${GITHUB_ACTIONS}" ]; then \
     fi
 
 # Install pnpm for development use only (available by default on PATH).
-RUN npm install -g pnpm@10.27.0 && \
+RUN npm install -g pnpm@11.0.8 && \
     rm -rf "${HOME}/.cache" "${HOME}/.local"
 
 # Install Vite+ (unified frontend toolchain: Vite, Vitest, Oxlint, Oxfmt, tsdown)

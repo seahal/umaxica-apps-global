@@ -8,8 +8,9 @@
 #
 #  id            :bigint           not null, primary key
 #  attempt_count :integer          default(0), not null
-#  expires_at    :datetime         not null
+#  lapses_at     :datetime         default(Infinity), not null
 #  method        :string           not null
+#  purge_at      :datetime         default(Infinity), not null
 #  return_to     :text             not null
 #  scope         :string           not null
 #  status        :string           not null
@@ -21,7 +22,6 @@
 # Indexes
 #
 #  index_customer_reauth_sessions_on_customer_id_and_status  (customer_id,status)
-#  index_customer_reauth_sessions_on_expires_at              (expires_at)
 #
 require "test_helper"
 
@@ -38,7 +38,7 @@ class CustomerReauthSessionTest < ActiveSupport::TestCase
       return_to: "/account",
       method: "passkey",
       status: "PENDING",
-      expires_at: 10.minutes.from_now,
+      lapses_at: 10.minutes.from_now,
     }.freeze
   end
 
@@ -76,21 +76,21 @@ class CustomerReauthSessionTest < ActiveSupport::TestCase
     assert_predicate session.errors[:status], :any?
   end
 
-  test "is invalid without expires_at" do
-    session = CustomerReauthSession.new(@valid_params.merge(expires_at: nil))
+  test "is invalid without lapses_at" do
+    session = CustomerReauthSession.new(@valid_params.merge(lapses_at: nil))
 
     assert_not session.valid?
-    assert_predicate session.errors[:expires_at], :any?
+    assert_predicate session.errors[:lapses_at], :any?
   end
 
   test "expired? returns true if expired" do
-    session = CustomerReauthSession.new(@valid_params.merge(expires_at: 1.second.ago))
+    session = CustomerReauthSession.new(@valid_params.merge(lapses_at: 1.second.ago))
 
     assert_predicate session, :expired?
   end
 
   test "expired? returns false if not expired" do
-    session = CustomerReauthSession.new(@valid_params.merge(expires_at: 1.minute.from_now))
+    session = CustomerReauthSession.new(@valid_params.merge(lapses_at: 1.minute.from_now))
 
     assert_not session.expired?
   end

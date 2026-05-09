@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: org_banners
-# Database name: notification
+# Database name: operator
 #
 #  id         :bigint           not null, primary key
 #  body       :text             not null

@@ -13,7 +13,31 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       def before_action(*) = nil
 
       def helper_method(*) = nil
+
+      def auth_required!(*) = nil
+
+      def public_strict!(*) = nil
     end
+
+    def verification_model = nil
+
+    def verification_audit_event_class = nil
+
+    def verification_audit_level_class = nil
+
+    def verification_success_event_id = nil
+
+    def verification_success_notice_key = nil
+
+    def verification_success_fallback_path = nil
+
+    def verification_activity_model = nil
+
+    def verification_passkey_model = nil
+
+    def verification_no_passkey_i18n_key = nil
+
+    def verification_unavailable_redirect_path = "/verification?ri=jp"
 
     include Sign::AppVerificationBase
 

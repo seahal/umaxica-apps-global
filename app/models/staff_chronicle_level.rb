@@ -10,6 +10,8 @@
 #
 
 class StaffChronicleLevel < ChronicleRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 1
   has_many :staff_chronicles,

@@ -278,6 +278,7 @@ module Preference::Core
 
   def preference_colortheme_params
     return params.expect(preference_colortheme: [:option_id]) if params[:preference_colortheme]
+    return params.expect(preference_theme: [:option_id]) if params[:preference_theme]
 
     ActionController::Parameters.new(
       option_id: params[:option_id] || params[:theme] || params[:ct],
@@ -305,7 +306,7 @@ module Preference::Core
       language: preference.public_send("#{association_prefix}_language")&.option&.name&.downcase,
       region: preference.public_send("#{association_prefix}_region")&.option&.name&.downcase,
       timezone: preference.public_send("#{association_prefix}_timezone")&.option&.name,
-      theme: colortheme_short_code(preference.public_send("#{association_prefix}_colortheme")&.option&.name),
+      theme: colortheme_short_code(preference.public_send("#{association_prefix}_theme")&.option&.name),
     }.compact
   end
 
@@ -345,7 +346,7 @@ module Preference::Core
   def safe_return_to_path
     return if params[:return_to].blank?
 
-    candidate = params[:return_to].to_s
+    candidate = params.expect(:return_to).to_s
     return unless candidate.start_with?("/")
     return if candidate.start_with?("//")
 

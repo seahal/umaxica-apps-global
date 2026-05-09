@@ -312,8 +312,8 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       # We expect the native names for Japanese and English to appear in both locales
       assert_select "select[name='preference_language[option_id]']" do
-        assert_select "option[value='JA']", text: "日本語"
-        assert_select "option[value='EN']", text: "English"
+        assert_select "option[value='1']", text: "日本語"
+        assert_select "option[value='2']", text: "English"
       end
     end
 
@@ -326,18 +326,18 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       assert_preference_update(
         domain,
         :theme,
-        { preference_colortheme: { option_id: "dr" } },
+        { preference_theme: { option_id: "dr" } },
         state,
       )
 
       assert_select(
-        "select[name='preference_colortheme[option_id]'] option[selected='selected'][value='dark']",
+        "select[name='preference_theme[option_id]'] option[selected='selected'][value='dark']",
         count: 1,
       )
 
       pref.reload
 
-      assert_equal 2, pref.try("#{domain[:name]}_preference_colortheme").option_id
+      assert_equal 2, pref.try("#{domain[:name]}_preference_theme").option_id
     end
 
     test "#{domain[:name]} domain theme edit and update do not change preference count" do
@@ -351,14 +351,14 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
         assert_response :success
 
         patch public_send("sign_#{domain[:name]}_preference_theme_url", state),
-              params: { preference_colortheme: { option_id: "dr" } }
+              params: { preference_theme: { option_id: "dr" } }
 
         assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_theme_url", state)
       end
 
       pref.reload
 
-      assert_equal 2, pref.try("#{domain[:name]}_preference_colortheme").option_id
+      assert_equal 2, pref.try("#{domain[:name]}_preference_theme").option_id
     end
 
     test "#{domain[:name]} domain timezone select omits blank option" do
@@ -430,7 +430,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       # Reset to defaults keeps the preference active (status stays NOTHING)
       assert_includes [0, 2], pref.status_id
-      assert_not_nil pref.expires_at
+      assert_not_nil pref.lapses_at
     end
 
     test "#{domain[:name]} domain reset edit and destroy do not change preference count" do
@@ -452,7 +452,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       pref.reload
 
       assert_includes [0, 2], pref.status_id
-      assert_not_nil pref.expires_at
+      assert_not_nil pref.lapses_at
     end
 
     test "#{domain[:name]} domain keeps same preference after reset" do

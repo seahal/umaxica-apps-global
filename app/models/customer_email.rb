@@ -50,8 +50,6 @@ class CustomerEmail < GuestRecord
 
   MAX_EMAILS_PER_CUSTOMER = 4
 
-  before_validation :set_address_digests
-
   attribute :customer_email_status_id, default: CustomerEmailStatus::UNVERIFIED
 
   belongs_to :customer, inverse_of: :customer_emails
@@ -99,12 +97,6 @@ class CustomerEmail < GuestRecord
 
     errors.add(:base, :undeletable, message: "cannot delete a protected email address")
     throw(:abort)
-  end
-
-  def set_address_digests
-    digest = IdentifierBlindIndex.bidx_for_email(raw_address)
-    self.address_bidx = digest
-    self.address_digest = digest if respond_to?(:address_digest=)
   end
 
   def ensure_unique_address_digest

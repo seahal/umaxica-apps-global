@@ -29,6 +29,8 @@ module Sign::App::Configuration
 
     test "should redirect show when not logged in" do
       get sign_app_configuration_apple_url(ri: "jp")
+
+      assert_response :redirect
       rt = Base64.strict_encode64(sign_app_configuration_apple_url(ri: "jp"))
 
       assert_redirected_to new_sign_app_in_url(rt: rt, host: "id.app.localhost")

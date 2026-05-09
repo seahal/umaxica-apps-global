@@ -7,7 +7,7 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   plugins: [RubyPlugin(), tailwindcss(), inertia(), react()],
   staged: {
-    "*": "vp check --fix",
+    "*": "vp test && vp check",
   },
   test: {
     root: "/home/global/workspace",

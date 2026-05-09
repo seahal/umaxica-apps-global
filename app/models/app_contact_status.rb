@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class AppContactStatus < GuestRecord
+  include ReferenceRecord
+
   NOTHING = 1
   CHECKED_EMAIL_ADDRESS = 2
   EMAIL_PENDING = 3

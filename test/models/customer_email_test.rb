@@ -82,6 +82,17 @@ class CustomerEmailTest < ActiveSupport::TestCase
     assert_not customer_email.verify_verification_token("raw-token")
   end
 
+  test "sets address digest from normalized input" do
+    customer_email = CustomerEmail.create!(
+      @valid_attributes.merge(address: "CUSTOMER-DIGEST@example.com"),
+    )
+
+    expected = IdentifierBlindIndex.bidx_for_email("customer-digest@example.com")
+
+    assert_equal expected, customer_email.address_bidx
+    assert_equal expected, customer_email.address_digest
+  end
+
   test "rejects creating more than the maximum emails per customer" do
     CustomerEmail.where(customer: @customer).delete_all
 

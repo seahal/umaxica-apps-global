@@ -116,6 +116,23 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
+  test "current_banner_for uses the writing connection" do
+    travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
+      roles = []
+
+      PrincipalRecord.stub(
+        :connected_to, ->(role:, &block) do
+                         roles << role
+                         block.call
+                       end,
+      ) do
+        assert_equal app_banners(:newer_current_app_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
+      end
+
+      assert_equal [:writing], roles
+    end
+  end
+
   test "edge_host returns nil when matching edge env is unset" do
     stub_request_host(ENV["MAIN_CORPORATE_URL"])
 

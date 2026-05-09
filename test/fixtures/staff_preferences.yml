@@ -1,7 +1,7 @@
 # == Schema Information
 #
 # Table name: staff_preferences
-# Database name: principal
+# Database name: operator
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -21,6 +21,10 @@
 # Indexes
 #
 #  index_staff_preferences_on_staff_id  (staff_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (staff_id => staffs.id)
 #
 one:
   id: 1

@@ -12,9 +12,9 @@
             <%= form.check_box :confirm, required: true %>
           </div>
           <div>
-            <%= form.label :confirm, "ろぐあうとしますか？" %>
+            <%= form.label :confirm, t("views.sign.app.configuration.outs.edit.confirm_label") %>
             <p>
-              一度ログアウトすると、再度ログインが必要になります。
+              <%= t("views.sign.app.configuration.outs.edit.confirm_description") %>
             </p>
           </div>
         </div>

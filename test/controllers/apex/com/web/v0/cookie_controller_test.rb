@@ -31,6 +31,8 @@ class Apex::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
 
     with_preference_jwt_keys(host: @host) do
       get apex_com_web_v0_cookie_path, as: :json
+
+      assert_response :success
     end
 
     assert_response :ok

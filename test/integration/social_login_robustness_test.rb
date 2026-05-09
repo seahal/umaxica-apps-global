@@ -68,8 +68,8 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     users(:one)
 
     # Set link intent without authentication
-    get sign_app_social_start_url(provider: "google_app", intent: "link", ri: "jp"),
-        headers: { "Host" => @host }
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: { "Host" => @host }
 
     # Should require authentication
     assert_includes [301, 302, 401, 403], response.status,
@@ -98,13 +98,13 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
       provider: "google_app",
       token: "existing_token",
       refresh_token: "existing_refresh",
-      expires_at: 1.week.from_now.to_i,
+      token_expires_at: 1.week.from_now.to_i,
       user_social_google_status: user_social_google_statuses(:active),
     )
 
     # Start reauth
-    get sign_app_social_start_url(provider: "google_app", intent: "reauth", ri: "jp"),
-        headers: as_user_headers(user, host: @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "reauth", ri: "jp"),
+         headers: as_user_headers(user, host: @host)
 
     assert_response :redirect
 
@@ -141,7 +141,7 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
       provider: "google_app",
       token: "test_token",
       refresh_token: "test_refresh",
-      expires_at: 1.week.from_now.to_i,
+      token_expires_at: 1.week.from_now.to_i,
       user_social_google_status: user_social_google_statuses(:active),
     )
 
@@ -158,8 +158,8 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     )
 
     # Start social login
-    get sign_app_social_start_url(provider: "google_app", intent: "login", ri: "jp"),
-        headers: { "Host" => @host }
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
+         headers: { "Host" => @host }
 
     assert_response :redirect
 

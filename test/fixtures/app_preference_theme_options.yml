@@ -1,0 +1,16 @@
+# == Schema Information
+#
+# Table name: app_preference_theme_options
+# Database name: principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 0
+
+light:
+  id: 1
+dark:
+  id: 2
+system:
+  id: 3

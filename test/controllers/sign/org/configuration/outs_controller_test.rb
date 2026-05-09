@@ -15,6 +15,8 @@ class Sign::Org::Configuration::OutsControllerTest < ActionDispatch::Integration
   test "should get edit raises error without session" do
     get edit_sign_org_configuration_out_url(ri: "jp"), headers: { "Host" => @host }
 
+    assert_response :redirect
+
     rt = Base64.urlsafe_encode64(edit_sign_org_configuration_out_url(ri: "jp", host: @host))
 
     assert_redirected_to new_sign_org_in_url(rt: rt, host: @host)

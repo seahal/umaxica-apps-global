@@ -14,7 +14,7 @@ class Apex::Com::Edge::V0::CookieControllerTest < ActionDispatch::IntegrationTes
   test "GET show returns 200 with boolean show_banner" do
     get apex_com_edge_v0_cookie_path, as: :json
 
-    assert_response :ok
+    assert_response :success
     assert_includes [true, false], response.parsed_body["show_banner"]
   end
 

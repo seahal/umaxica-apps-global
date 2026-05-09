@@ -4,14 +4,13 @@
 # Database name: operator
 #
 #  id                       :bigint           not null, primary key
-#  compromised_at           :datetime
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
-#  expires_at               :datetime
 #  jti                      :string
-#  revoked_at               :datetime
+#  lapses_at                :datetime         default(Infinity), not null
+#  purge_at                 :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -33,8 +32,8 @@
 #  index_org_preferences_on_device_id_digest   (device_id_digest)
 #  index_org_preferences_on_jti                (jti) UNIQUE
 #  index_org_preferences_on_public_id          (public_id) UNIQUE
+#  index_org_preferences_on_purge_at           (purge_at)
 #  index_org_preferences_on_replaced_by_id     (replaced_by_id)
-#  index_org_preferences_on_revoked_at         (revoked_at)
 #  index_org_preferences_on_status_id          (status_id)
 #  index_org_preferences_on_token_digest       (token_digest)
 #  index_org_preferences_on_used_at            (used_at)
@@ -52,12 +51,14 @@ one:
   binding_method_id: <%= OrgPreferenceBindingMethod::NOTHING %>
   dbsc_status_id: <%= OrgPreferenceDbscStatus::NOTHING %>
   status_id: 2
-  expires_at: <%= 20.years.from_now %>
+  purge_at: <%= 20.years.from_now %>
+  lapses_at: <%= 20.years.from_now %>
   token_digest: <%= Digest::SHA256.hexdigest("test_token_001") %>
 two:
   public_id: 820 # was org_pref_002
   binding_method_id: <%= OrgPreferenceBindingMethod::NOTHING %>
   dbsc_status_id: <%= OrgPreferenceDbscStatus::NOTHING %>
   status_id: 2
-  expires_at: <%= 20.years.from_now %>
+  purge_at: <%= 20.years.from_now %>
+  lapses_at: <%= 20.years.from_now %>
   token_digest: <%= Digest::SHA256.hexdigest("test_token_002") %>

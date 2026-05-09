@@ -18,7 +18,7 @@ class OrgPreferenceChronicleEvent < ChronicleRecord
   UPDATE_PREFERENCE_TIMEZONE = 5
   RESET_BY_USER_DECISION = 6
   UPDATE_PREFERENCE_REGION = 7
-  UPDATE_PREFERENCE_COLORTHEME = 8
+  UPDATE_PREFERENCE_THEME = 8
 
   # Placeholder for audit event types; ids are string tokens (e.g., 'CREATED')
   has_many :org_preference_chronicles,
@@ -36,7 +36,7 @@ class OrgPreferenceChronicleEvent < ChronicleRecord
     UPDATE_PREFERENCE_TIMEZONE,
     RESET_BY_USER_DECISION,
     UPDATE_PREFERENCE_REGION,
-    UPDATE_PREFERENCE_COLORTHEME,
+    UPDATE_PREFERENCE_THEME,
   ].freeze
 
   def self.ensure_defaults!

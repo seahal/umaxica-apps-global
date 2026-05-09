@@ -8,7 +8,8 @@ module Oidc
         def success? = success
       end
 
-    def initialize(grant_type:, code:, redirect_uri:, client_id:, client_secret:, code_verifier:)
+    def initialize(grant_type:, code:, redirect_uri:, client_id:, client_secret:, code_verifier:,
+                   dpop_proof: nil, token_endpoint_uri: nil, request_method: "POST")
       super()
       @grant_type = grant_type
       @code = code
@@ -16,6 +17,9 @@ module Oidc
       @client_id = client_id
       @client_secret = client_secret
       @code_verifier = code_verifier
+      @dpop_proof = dpop_proof
+      @token_endpoint_uri = token_endpoint_uri
+      @request_method = request_method
     end
 
     def call
@@ -23,7 +27,8 @@ module Oidc
       authenticate_client!
       authorization_code = find_and_validate_code!
       verify_pkce!(authorization_code)
-      consume_and_issue_tokens!(authorization_code)
+      dpop_jkt = validate_dpop_proof!
+      consume_and_issue_tokens!(authorization_code, dpop_jkt: dpop_jkt)
     rescue ArgumentError => e
       failure("invalid_request", e.message)
     rescue ActiveRecord::RecordNotFound
@@ -34,7 +39,8 @@ module Oidc
 
     private
 
-    attr_reader :grant_type, :code, :redirect_uri, :client_id, :client_secret, :code_verifier
+    attr_reader :grant_type, :code, :redirect_uri, :client_id, :client_secret, :code_verifier,
+                :dpop_proof, :token_endpoint_uri, :request_method
 
     def validate_grant_type!
       raise ArgumentError, "grant_type must be 'authorization_code'" unless grant_type == "authorization_code"
@@ -75,7 +81,7 @@ module Oidc
 
     end
 
-    def consume_and_issue_tokens!(authorization_code)
+    def consume_and_issue_tokens!(authorization_code, dpop_jkt: nil)
       client = Oidc::ClientRegistry.find!(client_id)
       resource = authorization_code.is_a?(StaffAuthorizationCode) ? authorization_code.staff : authorization_code.user
 
@@ -84,7 +90,7 @@ module Oidc
       connection_class.connected_to(role: :writing) do
         authorization_code.consume!
 
-        token_record = create_token_record!(client, resource)
+        token_record = create_token_record!(client, resource, dpop_jkt: dpop_jkt)
         refresh_plain = token_record.rotate_refresh_token!
         now = Time.current
         access_expires_at = now + Authentication::Base::ACCESS_TOKEN_TTL
@@ -99,18 +105,21 @@ module Oidc
         access_token = Auth::TokenService.encode(
           resource,
           host: id_host,
-          session_public_id: token_record.public_id,
+          session_id: token_record.public_id,
           resource_type: client.resource_type,
           expires_at: access_expires_at,
           acr: authorization_code.acr,
           amr: Array(authorization_code.auth_method),
+          dpop_jkt: dpop_jkt,
         )
+
+        token_type = dpop_jkt.present? ? "DPoP" : "Bearer"
 
         Result.new(
           success: true,
           token_response: {
             access_token: access_token,
-            token_type: "Bearer",
+            token_type: token_type,
             expires_in: Integer(Authentication::Base::ACCESS_TOKEN_TTL.to_s, 10),
             refresh_token: refresh_plain,
           },
@@ -120,22 +129,38 @@ module Oidc
       end
     end
 
-    def create_token_record!(client, resource)
+    def create_token_record!(client, resource, dpop_jkt: nil)
       if client.resource_type == "staff"
         StaffToken.create!(
           staff: resource,
           public_id: SecureRandom.alphanumeric(21),
-          refresh_expires_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
+          lapses_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
           status: "active",
+          dpop_jkt: dpop_jkt,
         )
       else
         UserToken.create!(
           user: resource,
           public_id: SecureRandom.alphanumeric(21),
-          refresh_expires_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
+          lapses_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
           status: "active",
+          dpop_jkt: dpop_jkt,
         )
       end
+    end
+
+    def validate_dpop_proof!
+      return nil if dpop_proof.blank?
+
+      result = Dpop::ProofValidator.new(
+        proof_jwt: dpop_proof,
+        request_method: request_method,
+        request_uri: token_endpoint_uri.to_s,
+      ).call
+
+      raise ArgumentError, "DPoP proof invalid: #{result.error}" unless result.valid?
+
+      result.jkt
     end
 
     def failure(error, description)

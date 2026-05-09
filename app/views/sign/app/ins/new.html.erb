@@ -10,7 +10,9 @@
   </li>
 </ul>
 
-<%= button_to "/auth/google_app", method: :post, data: { turbo: false } do %>
+<%= button_to start_sign_app_social_authentication_path(provider: "google_app", intent: "login", ri: params[:ri]),
+              method: :post,
+              data: { turbo: false } do %>
   <%= t("sign.app.authentication.new.links.google") %>
 <% end %>
 

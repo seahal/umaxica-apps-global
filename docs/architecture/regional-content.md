@@ -78,7 +78,7 @@ Public read controllers must use `latest_version_id` as the public source.
 An entry is publicly readable only when both conditions are satisfied:
 
 - the entry is in an allowed published status
-- `published_at <= now < expires_at`
+- `publish_at <= now < expires_at`
 
 This rule applies to both `docs` and `news`.
 

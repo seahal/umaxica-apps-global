@@ -48,7 +48,7 @@ class Sign::CommonHelperTest < ActionView::TestCase
     assert_equal "jp", get_region
   end
 
-  test "get_colortheme returns sy" do
-    assert_equal "sy", get_colortheme
+  test "get_theme returns sy" do
+    assert_equal "sy", get_theme
   end
 end

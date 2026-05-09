@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class UserSocialGoogleStatus < PrincipalRecord
+  include ReferenceRecord
+
   ACTIVE = 1
   INACTIVE = 2
   PENDING = 3

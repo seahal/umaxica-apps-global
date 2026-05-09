@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class OrgPreferenceBindingMethod < OperatorRecord
+  include ReferenceRecord
+
   NOTHING = 0
   DBSC = 1
   LEGACY = 2

@@ -69,8 +69,8 @@ class UserTokenDbscStatusTest < ActiveSupport::TestCase
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
       user_token_dbsc_status_id: status.id,
-      refresh_expires_at: 1.day.from_now,
-      deletable_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
+      purge_at: 1.day.from_now,
     )
 
     assert_includes status.user_tokens, user_token

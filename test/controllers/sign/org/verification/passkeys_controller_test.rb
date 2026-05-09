@@ -24,6 +24,8 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           get sign_org_verification_url(scope: "configuration_passkey", return_to: return_to, ri: "jp"),
               headers: @headers
 
+          assert_response :success
+
           get new_sign_org_verification_passkey_url(ri: "jp"), headers: @headers
 
           assert_response :success

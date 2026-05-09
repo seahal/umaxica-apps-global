@@ -29,7 +29,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_match %r{/in/new}, response.location
+    assert_match %r{/sign/in/new}, response.location
   end
 
   test "show with restricted session displays sessions" do
@@ -70,7 +70,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
           )
 
     assert_response :redirect
-    assert_match %r{/in/new}, response.location
+    assert_match %r{/sign/in/new}, response.location
   end
 
   test "update with active session returns forbidden" do
@@ -122,7 +122,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     active_token1.reload
 
-    assert_not_nil active_token1.expired_at
+    assert_not active_token1.currently_usable?
   end
 
   test "update revokes session but does not promote when still at limit" do
@@ -165,7 +165,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.reload
     # Current session should NOT be revoked via batch refs
     assert_equal StaffToken::STATUS_RESTRICTED, restricted_token.status
-    assert_nil restricted_token.revoked_at
+    assert_predicate restricted_token, :currently_usable?
   end
 
   test "update ignores ref belonging to another staff" do
@@ -184,8 +184,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     # Other staff's token must remain untouched
     other_token.reload
 
-    assert_nil other_token.expired_at
-    assert_nil other_token.revoked_at
+    assert_predicate other_token, :currently_usable?
   end
 
   # ===================================================================
@@ -207,7 +206,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     active_token.reload
 
-    assert_not_nil active_token.expired_at
+    assert_not active_token.currently_usable?
 
     # With only 1 active left (now 0 after revoke), restricted should be promoted
     restricted_token.reload
@@ -232,7 +231,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.reload
 
     assert_equal StaffToken::STATUS_RESTRICTED, restricted_token.status
-    assert_nil restricted_token.revoked_at
+    assert_predicate restricted_token, :currently_usable?
   end
 
   test "update with invalid ref param flashes alert and stays on page" do
@@ -330,7 +329,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
            )
 
     assert_response :redirect
-    assert_match %r{/in/new}, response.location
+    assert_match %r{/sign/in/new}, response.location
   end
 
   test "destroy with active session returns forbidden" do
@@ -353,11 +352,11 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     delete sign_org_in_session_url(ri: "jp"), headers: headers
 
     assert_response :redirect
-    assert_match %r{/in/new}, response.location
+    assert_match %r{/sign/in/new}, response.location
 
     token.reload
 
-    assert_not_nil token.expired_at
+    assert_not token.currently_usable?
     assert_equal StaffToken::STATUS_REVOKED, token.status
   end
 
@@ -382,7 +381,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     active_token.reload
 
-    assert_not_nil active_token.expired_at
+    assert_not active_token.currently_usable?
 
     # Restricted session remains (not cancelled)
     restricted_token.reload
@@ -402,7 +401,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.reload
 
     assert_equal StaffToken::STATUS_RESTRICTED, restricted_token.status
-    assert_nil restricted_token.revoked_at
+    assert_predicate restricted_token, :currently_usable?
   end
 
   test "destroy with invalid ref param does not revoke anything" do
@@ -434,7 +433,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     other_token.reload
 
-    assert_nil other_token.expired_at
+    assert_predicate other_token, :currently_usable?
   end
 
   # ===================================================================
@@ -442,11 +441,13 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # ===================================================================
 
   test "restricted session at 14 minutes is still accessible (boundary: within TTL)" do
-    token = create_restricted_session(@staff, expires_at: 15.minutes.from_now)
+    token = create_restricted_session(@staff, lapses_at: 15.minutes.from_now)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
     travel 14.minutes do
       get sign_org_in_session_url(ri: "jp"), headers: headers
+
+      assert_response :success
     end
 
     assert_response :success
@@ -456,7 +457,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "restricted session expires after 15 minutes and is locked" do
-    token = create_restricted_session(@staff, expires_at: 15.minutes.from_now)
+    token = create_restricted_session(@staff, lapses_at: 15.minutes.from_now)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
     events = []
 
@@ -467,6 +468,8 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
                  },
       ) do
         get sign_org_in_session_url(ri: "jp"), headers: headers
+
+        assert_response :success
       end
     end
 
@@ -493,14 +496,14 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def create_restricted_session(staff, expires_at: nil)
+  def create_restricted_session(staff, lapses_at: nil)
     token = StaffToken.create!(
       staff: staff,
       status: StaffToken::STATUS_RESTRICTED,
       staff_token_status_id: StaffTokenStatus::NOTHING,
       staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
     )
-    token.rotate_refresh_token!(expires_at: expires_at)
+    token.rotate_refresh_token!(lapses_at: lapses_at)
     token
   end
 

@@ -6,11 +6,13 @@ scope module: :apex, as: :apex do
     scope module: :com, as: :com do
       root to: "roots#index"
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
       # Edge API endpoint (browser/Rails view)
       namespace :web do
         namespace :v0 do
@@ -21,7 +23,7 @@ scope module: :apex, as: :apex do
       # Edge API endpoint (browser/SPA)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
+          resource :health, only: :show, controller: "health"
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
         end
@@ -49,11 +51,13 @@ scope module: :apex, as: :apex do
     scope module: :app, as: :app do
       root to: "roots#index"
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
       # Edge API endpoint (browser/Rails view)
       namespace :web do
         namespace :v0 do
@@ -64,7 +68,7 @@ scope module: :apex, as: :apex do
       # Edge API endpoint (browser/SPA)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
+          resource :health, only: :show, controller: "health"
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
         end
@@ -96,11 +100,13 @@ scope module: :apex, as: :apex do
         resource :callback, only: :show
       end
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
       # Edge API endpoint (browser/Rails view)
       namespace :web do
         namespace :v0 do
@@ -111,7 +117,7 @@ scope module: :apex, as: :apex do
       # Edge API endpoint (browser/SPA)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
+          resource :health, only: :show, controller: "health"
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
         end
@@ -135,17 +141,32 @@ scope module: :apex, as: :apex do
       namespace :configuration do
         # logged in user's email settings.
         resources :emails, only: %i(edit update new create)
+        resources :sessions, only: [] do
+          collection do
+            post :purge
+          end
+        end
       end
     end
 
     constraints host: ENV["APEX_NETWORK_URL"] do
+      root to: "roots#index", as: :network_root
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
     end
 
     constraints host: ENV["APEX_DEVELOPER_URL"] do
+      root to: "roots#index", as: :developer_root
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
+      # to show the jobs page
+      mount MissionControl::Jobs::Engine, at: "/jobs"
+      # to show the rails db page
+      mount RailsDb::Engine => "/db", :at => "/db"
     end
   end
 end

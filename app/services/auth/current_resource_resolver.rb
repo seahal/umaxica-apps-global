@@ -16,13 +16,18 @@ module Auth
         end
       end
 
-    def initialize(access_token:, request_host:, resource_type:, resource_class:, token_class:, test_env:)
+    def initialize(access_token:, request_host:, resource_type:, resource_class:, token_class:, test_env:,
+                   authorization_scheme: nil, dpop_proof: nil, request_method: nil, request_uri: nil)
       @access_token = access_token
       @request_host = request_host
       @resource_type = resource_type
       @resource_class = resource_class
       @token_class = token_class
       @test_env = test_env
+      @authorization_scheme = authorization_scheme
+      @dpop_proof = dpop_proof
+      @request_method = request_method
+      @request_uri = request_uri
     end
 
     def call
@@ -30,6 +35,7 @@ module Auth
 
       payload = Authentication::Base::Token.decode(@access_token, host: @request_host, resource_type: @resource_type)
       return failure(:token_decode_failed) if payload.blank?
+      return failure(:dpop_verification_failed, payload: payload) unless dpop_valid?(payload)
 
       unless Authentication::Base::Token.validate_actor_claim!(payload, @resource_type)
         return failure(:actor_mismatch, payload: payload)
@@ -47,21 +53,33 @@ module Auth
 
     private
 
+    def dpop_valid?(payload)
+      token_jkt = payload.dig("cnf", "jkt")
+      scheme = @authorization_scheme.to_s
+
+      return true if token_jkt.blank? && !scheme.casecmp?("DPoP")
+      return false unless scheme.casecmp?("DPoP")
+
+      result = Dpop::RequestVerifier.new(
+        access_token_payload: payload,
+        proof_jwt: @dpop_proof,
+        request_method: @request_method,
+        request_uri: @request_uri,
+        access_token: @access_token,
+      ).call
+
+      result.valid?
+    end
+
     def token_exists?(session_public_id)
       check_logic =
         lambda do
-          scope = @token_class.where(public_id: session_public_id)
-          scope =
-            if @token_class.column_names.include?("expired_at")
-              scope.where(expired_at: nil)
-            elsif @token_class.column_names.include?("revoked_at")
-              scope.where(revoked_at: nil)
-            else
-              scope
-            end
-          if @token_class.column_names.include?("revoked_at")
-            revoked_at = @token_class.arel_table[:revoked_at]
-            scope = scope.where(revoked_at.eq(nil).or(revoked_at.gt(Time.current)))
+          scope = @token_class.where(session_id: session_public_id)
+            .or(@token_class.where(public_id: session_public_id))
+
+          if @token_class.column_names.include?("lapses_at")
+            lapses_at = @token_class.arel_table[:lapses_at]
+            scope = scope.where(lapses_at.eq(nil).or(lapses_at.gt(Time.current)))
           end
           scope.exists?
         end

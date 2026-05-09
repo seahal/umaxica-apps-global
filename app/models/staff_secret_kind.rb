@@ -10,6 +10,8 @@
 #
 
 class StaffSecretKind < OperatorRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 1
   LOGIN = 2

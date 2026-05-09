@@ -7,20 +7,18 @@
 # Database name: symbol
 #
 #  id                               :bigint           not null, primary key
-#  compromised_at                   :datetime
 #  dbsc_challenge                   :text
 #  dbsc_challenge_issued_at         :datetime
 #  dbsc_public_key                  :jsonb
-#  deletable_at                     :datetime         default(Infinity), not null
 #  device_id_digest                 :string
-#  expired_at                       :datetime
+#  dpop_jkt                         :string
+#  lapses_at                        :datetime         default(Infinity), not null
 #  last_step_up_at                  :datetime
 #  last_step_up_scope               :string
 #  last_used_at                     :datetime
-#  refresh_expires_at               :datetime         not null
+#  purge_at                         :datetime         default(Infinity), not null
 #  refresh_token_digest             :binary
 #  refresh_token_generation         :integer          default(0), not null
-#  revoked_at                       :datetime
 #  rotated_at                       :datetime
 #  status                           :string(20)       default("active"), not null
 #  created_at                       :datetime         not null
@@ -34,33 +32,29 @@
 #  device_id                        :string           default(""), not null
 #  public_id                        :string(21)       default(""), not null
 #  refresh_token_family_id          :string
+#  session_id                       :string
 #
 # Indexes
 #
-#  index_customer_tokens_on_compromised_at                    (compromised_at)
 #  index_customer_tokens_on_customer_id_and_last_step_up_at   (customer_id,last_step_up_at)
 #  index_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id)
 #  index_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id)
 #  index_customer_tokens_on_customer_token_kind_id            (customer_token_kind_id)
 #  index_customer_tokens_on_customer_token_status_id          (customer_token_status_id)
 #  index_customer_tokens_on_dbsc_session_id                   (dbsc_session_id) UNIQUE
-#  index_customer_tokens_on_deletable_at                      (deletable_at)
 #  index_customer_tokens_on_device_id                         (device_id)
 #  index_customer_tokens_on_device_id_digest                  (device_id_digest)
-#  index_customer_tokens_on_expired_at                        (expired_at)
 #  index_customer_tokens_on_public_id                         (public_id) UNIQUE
-#  index_customer_tokens_on_refresh_expires_at                (refresh_expires_at)
+#  index_customer_tokens_on_purge_at                          (purge_at)
 #  index_customer_tokens_on_refresh_token_digest              (refresh_token_digest) UNIQUE
 #  index_customer_tokens_on_refresh_token_family_id           (refresh_token_family_id)
-#  index_customer_tokens_on_revoked_at                        (revoked_at)
+#  index_customer_tokens_on_session_id                        (session_id)
 #  index_customer_tokens_on_status                            (status)
 #
 # Foreign Keys
 #
-#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id =>
-#                                                           customer_token_binding_methods.id)
-#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id =>
-#                                                           customer_token_dbsc_statuses.id)
+#  fk_customer_tokens_on_customer_token_binding_method_id  (customer_token_binding_method_id => customer_token_binding_methods.id)
+#  fk_customer_tokens_on_customer_token_dbsc_status_id     (customer_token_dbsc_status_id => customer_token_dbsc_statuses.id)
 #  fk_customer_tokens_on_customer_token_kind_id            (customer_token_kind_id => customer_token_kinds.id)
 #  fk_customer_tokens_on_customer_token_status_id          (customer_token_status_id => customer_token_statuses.id)
 #
@@ -127,6 +121,22 @@ class CustomerTokenTest < ActiveSupport::TestCase
     assert_equal @customer.id, @token.customer_id
   end
 
+  test "session_id copies from public_id on create when blank" do
+    ensure_customer_reference_records!
+    customer = Customer.create!
+    token = CustomerToken.create!(customer: customer)
+
+    assert_equal token.public_id, token.session_id
+  end
+
+  test "session_id preserves explicit value on create" do
+    ensure_customer_reference_records!
+    customer = Customer.create!
+    token = CustomerToken.create!(customer: customer, session_id: "custom_sid")
+
+    assert_equal "custom_sid", token.session_id
+  end
+
   test "enforces maximum concurrent sessions per customer" do
     customer = Customer.create!
 
@@ -158,8 +168,8 @@ class CustomerTokenTest < ActiveSupport::TestCase
       token = CustomerToken.create!(
         customer: @customer,
         customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
-        revoked_at: 12.hours.from_now,
-        deletable_at: 36.hours.from_now,
+        lapses_at: 12.hours.from_now,
+        purge_at: 4.days.from_now,
       )
       token.rotate_refresh_token!
 
@@ -171,8 +181,8 @@ class CustomerTokenTest < ActiveSupport::TestCase
       replacement = result[:token]
 
       assert_equal :rotated, result[:status]
-      assert_equal token.revoked_at.to_i, replacement.revoked_at.to_i
-      assert_equal token.deletable_at.to_i, replacement.deletable_at.to_i
+      assert_equal token.lapses_at.to_i, replacement.lapses_at.to_i
+      assert_equal token.purge_at.to_i, replacement.purge_at.to_i
     end
   end
 end

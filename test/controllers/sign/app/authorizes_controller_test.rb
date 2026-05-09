@@ -97,6 +97,8 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
         host: @host,
         params: authorize_params,
       ), headers: as_user_headers(@user, host: @host)
+
+      assert_response :redirect
     end
   end
 

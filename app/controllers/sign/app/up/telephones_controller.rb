@@ -33,9 +33,8 @@ module Sign
         # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
         def create
           @user_telephone = UserTelephone.new(
-            params.expect(
-              user_telephone: %i(raw_number number confirm_policy
-                                 confirm_using_mfa),
+            params.expect(:user_telephone)&.permit(
+              :raw_number, :number, :confirm_policy, :confirm_using_mfa,
             ),
           )
 
@@ -228,7 +227,7 @@ module Sign
         def valid_registration_session?(registration_session)
           session_public_id = session_public_id_from_registration(registration_session)
           registration_session.present? &&
-            session_public_id.to_s == params["id"].to_s
+            session_public_id.to_s == params.expect("id").to_s
         end
 
         def session_public_id_from_registration(registration_session = session[:user_telephone_registration])

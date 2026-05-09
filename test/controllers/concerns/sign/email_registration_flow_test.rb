@@ -52,6 +52,10 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
       target_user
     end
 
+    def verify_email_registration_turnstile!(...)
+      true
+    end
+
     def initiate_email_verification!(*)
       false
     end

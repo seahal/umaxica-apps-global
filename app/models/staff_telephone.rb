@@ -9,6 +9,8 @@
 #  id                                 :bigint           not null, primary key
 #  locked_at                          :datetime
 #  number                             :string           not null
+#  number_bidx                        :string
+#  number_digest                      :string
 #  otp_attempts_count                 :integer          default(0), not null
 #  otp_counter                        :text             not null
 #  otp_expires_at                     :datetime
@@ -21,6 +23,8 @@
 # Indexes
 #
 #  index_staff_telephones_on_lower_number                        (lower((number)::text)) UNIQUE
+#  index_staff_telephones_on_number_bidx                         (number_bidx) UNIQUE WHERE (number_bidx IS NOT NULL)
+#  index_staff_telephones_on_number_digest                       (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
 #  index_staff_telephones_on_staff_id                            (staff_id)
 #  index_staff_telephones_on_staff_identity_telephone_status_id  (staff_identity_telephone_status_id)
 #
@@ -44,10 +48,17 @@ class StaffTelephone < OperatorRecord
 
   # Note: :number validation is now handled by Telephone concern (E.164 normalization)
   validates :number, presence: true, uniqueness: { case_sensitive: false }
+  validates :number_bidx,
+            uniqueness: { conditions: -> { where.not(number_bidx: nil) } },
+            allow_nil: true
+  validates :number_digest,
+            uniqueness: { conditions: -> { where.not(number_digest: nil) } },
+            allow_nil: true
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }
   validates :staff_identity_telephone_status_id, numericality: { only_integer: true }
+  validate :ensure_unique_number_digest
   validate :enforce_staff_telephone_limit, on: :create
   before_validation do
     self.staff_id ||= "00000000-0000-0000-0000-000000000000"
@@ -60,6 +71,13 @@ class StaffTelephone < OperatorRecord
   # Note: :number encryption is handled by Telephone concern
 
   private
+
+  def ensure_unique_number_digest
+    return if number_digest.blank?
+    return unless self.class.where(number_digest: number_digest).where.not(id: id).exists?
+
+    errors.add(:number, :taken)
+  end
 
   def enforce_staff_telephone_limit
     return unless staff_id

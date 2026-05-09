@@ -9,6 +9,9 @@
 #  id :bigint           not null, primary key
 #
 class UserStatus < PrincipalRecord
+  include ReferenceRecord
+
+  NOTHING = 11
   ACTIVE = 1
   INACTIVE = 2
   PENDING = 3
@@ -19,9 +22,11 @@ class UserStatus < PrincipalRecord
   WITHDRAWAL_COMPLETED = 8
   UNVERIFIED_WITH_SIGN_UP = 9
   VERIFIED_WITH_SIGN_UP = 10
-  NOTHING = 11
   GHOST = 12
   RESERVED = 13
+
+  DEFAULTS = [NOTHING, ACTIVE, INACTIVE, PENDING, DELETED, WITHDRAWN, PENDING_DELETION, PRE_WITHDRAWAL_CONDITION,
+              WITHDRAWAL_COMPLETED, UNVERIFIED_WITH_SIGN_UP, VERIFIED_WITH_SIGN_UP, GHOST, RESERVED,].freeze
 
   has_many :users,
            foreign_key: :status_id,

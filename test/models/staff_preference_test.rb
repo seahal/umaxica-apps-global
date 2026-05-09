@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_preferences
-# Database name: principal
+# Database name: operator
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -24,6 +24,10 @@
 # Indexes
 #
 #  index_staff_preferences_on_staff_id  (staff_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (staff_id => staffs.id)
 #
 require "test_helper"
 
@@ -52,10 +56,10 @@ class StaffPreferenceTest < ActiveSupport::TestCase
     assert_predicate pref.staff_preference_region, :present?
   end
 
-  test "has one colortheme child" do
+  test "has one theme child" do
     pref = staff_preferences(:one)
 
-    assert_predicate pref.staff_preference_colortheme, :present?
+    assert_predicate pref.staff_preference_theme, :present?
   end
 
   test "staff_id is unique" do

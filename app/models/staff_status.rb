@@ -10,6 +10,8 @@
 #
 
 class StaffStatus < OperatorRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   ACTIVE = 1
   NOTHING = 2

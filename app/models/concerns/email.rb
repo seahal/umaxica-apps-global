@@ -12,6 +12,11 @@ module Email
 
   included do
     before_validation :normalize_address_from_raw
+    before_validation :set_address_digests
+    scope :with_address, ->(value) do
+      digest = IdentifierBlindIndex.bidx_for_email(value)
+      digest.present? ? where(address_bidx: digest) : none
+    end
 
     after_initialize do
       self.otp_counter = "0" if otp_counter.blank?
@@ -19,7 +24,7 @@ module Email
       self.otp_attempts_count ||= 0
     end
 
-    encrypts :address, downcase: true, deterministic: true
+    encrypts :address, downcase: true
 
     validate :validate_email_address
     validates :confirm_policy, acceptance: true, on: :create,
@@ -28,6 +33,12 @@ module Email
                           length: { is: 6 },
                           presence: true,
                           unless: Proc.new { |a| a.pass_code.blank? && a.raw_address.present? }
+  end
+
+  class_methods do
+    def find_by_address(value)
+      with_address(value).first
+    end
   end
 
   # OTP-related methods for email authentication
@@ -111,7 +122,7 @@ module Email
       .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp OR locked_at = 'infinity'::timestamp")
       .update_all(locked_at: Time.current)
     # rubocop:enable Rails/SkipsModelValidations
-    reload if locked_at_changed?
+    reload
   end
 
   def raw_address
@@ -126,6 +137,12 @@ module Email
 
     normalized = Jit::Utils::EmailValidator.normalize(value)
     self.address = normalized if normalized.present?
+  end
+
+  def set_address_digests
+    digest = IdentifierBlindIndex.bidx_for_email(raw_address)
+    self.address_bidx = digest
+    self.address_digest = digest if respond_to?(:address_digest=)
   end
 
   def validate_email_address

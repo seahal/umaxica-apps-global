@@ -276,14 +276,14 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ## 6. External Interfaces
 
-| Interface            | Endpoint(s)                                                                                               | Details                                                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| HTTP/Turbo           | `/`, `/health`, `/v1/health`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                     |
-| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                     |
-| ActionMailer         | `Email::App::RegistrationMailer`, `Email::App::ContactMailer`, etc.                                       | Default sender from credentials `SMTP_FROM_ADDRESS`; uses `mailer/app/mailer` layout. |
-| SMS                  | `AwsSmsService`                                                                                           | Called via `AwsSmsService.send_message` for OTP-related flows.                        |
-| OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                        |
-| Storage              | MinIO / Google Cloud Storage                                                                              | `google-cloud-storage` + `shrine` used for file storage (future).                     |
+| Interface            | Endpoint(s)                                                                                               | Details                                                                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP/Turbo           | `/`, `/health`, `/v1/health`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                                             |
+| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                                                                                                                             |
+| ActionMailer         | `Email::App::RegistrationMailer`, `Email::App::ContactMailer`, etc.                                       | Default sender is surface-specific (`SMTP_FROM_ADDRESS_APP`, `SMTP_FROM_ADDRESS_COM`, `SMTP_FROM_ADDRESS_ORG`) with `from@umaxica.app`, `from@umaxica.com`, and `from@umaxica.org` fallbacks. |
+| SMS                  | `AwsSmsService`                                                                                           | Called via `AwsSmsService.send_message` for OTP-related flows.                                                                                                                                |
+| OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                                |
+| Storage              | MinIO / Google Cloud Storage                                                                              | `google-cloud-storage` + `shrine` used for file storage (future).                                                                                                                             |
 
 ---
 

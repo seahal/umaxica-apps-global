@@ -12,18 +12,18 @@ module Jump::ToRedirector
   def show
     jump_link_model = self.class::JUMP_LINK_MODEL
     jump_link = jump_link_model.find_by(public_id: params[:public_id])
-    return head :not_found if jump_link.blank?
+    return render_not_found if jump_link.blank?
 
     destination_url =
       RedirectorRecord.connected_to(role: :writing) do
         jump_link.consume_destination_for(user: nil)
       end
-    return head :not_found if destination_url.blank?
+    return render_not_found if destination_url.blank?
 
     # Validate destination URL against allowlist
     unless validate_destination_url!(destination_url)
       Rails.event.notify("redirect.blocked", host: extract_host(destination_url), public_id: params[:public_id])
-      return head :not_found
+      return render_not_found
     end
 
     response.set_header("Referrer-Policy", "no-referrer")
@@ -34,6 +34,10 @@ module Jump::ToRedirector
   end
 
   private
+
+  def render_not_found
+    render plain: I18n.t("jump.redirector.unavailable"), status: :not_found, content_type: "text/plain"
+  end
 
   def disable_cookie_session
     request.session_options[:skip] = true

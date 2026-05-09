@@ -52,7 +52,18 @@ module ApplicationHelper
   def current_banner_for(tld:, region:, domain:)
     region = :ww if region&.to_sym == :global
     validate_banner_args!(tld: tld, region: region, domain: domain)
-    banner_model_for(tld)&.current&.first
+
+    banner_model = banner_model_for(tld)
+    return if banner_model.blank?
+
+    connection_owner = banner_connection_owner_for(banner_model)
+    return banner_model.current.first if connection_owner.blank?
+
+    connection_owner.connected_to(role: :writing) do
+      banner_model.current.first
+    end
+  rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::DatabaseConnectionError
+    nil
   end
 
   def edge_host
@@ -89,6 +100,12 @@ module ApplicationHelper
       OrgBanner
     when :com
       ComBanner
+    end
+  end
+
+  def banner_connection_owner_for(banner_model)
+    banner_model.ancestors.find do |ancestor|
+      ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class?
     end
   end
 end

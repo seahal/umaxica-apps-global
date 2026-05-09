@@ -4,6 +4,7 @@
 module Sign
   module App
     class PreferencesController < ApplicationController
+      skip_before_action :set_preferences_cookie, only: :show, raise: false
       before_action :set_email_path
 
       def show

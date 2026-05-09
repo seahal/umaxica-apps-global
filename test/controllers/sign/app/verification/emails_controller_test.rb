@@ -29,6 +29,8 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
+        assert_response :success
+
         get new_sign_app_verification_email_url(ri: "jp"), headers: @headers
 
         assert_response :redirect
@@ -47,10 +49,10 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         scope: "configuration_email",
         return_to: return_to,
       ), headers: @headers
-    end
 
-    assert_response :redirect
-    assert_match %r{/verification/emails/.+/edit}, response.location
+      assert_response :redirect
+      assert_match %r{/verification/emails/.+/edit}, response.location
+    end
   end
 
   test "update verifies otp and redirects to return_to" do
@@ -61,7 +63,11 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
+        assert_response :success
+
         get new_sign_app_verification_email_url(ri: "jp"), headers: @headers
+
+        assert_response :redirect
         nonce = response.location[%r{/verification/emails/([^/]+)/edit}, 1]
 
         with_verify_email_otp_stub(true) do

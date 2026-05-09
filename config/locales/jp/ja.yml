@@ -178,7 +178,8 @@ ja:
             sign_in_text: ログインする
         email:
           new:
-            page_title: UMAXICA (sign, app)
+            page_title: メールアドレスで登録
+            error_summary: 入力内容を確認してください。
             link_to_other_methods: 他の方法で登録しますか？
             link_to_sign_in: ログインしますか？
           create:
@@ -623,7 +624,8 @@ ja:
             sign_in_link: ログインはこちら
         email:
           new:
-            page_title: UMAXICA (sign, app)
+            page_title: メールアドレスで登録
+            error_summary: 入力内容を確認してください。
             link_to_other_methods: 他の方法で登録しますか？
             link_to_sign_in: ログインしますか？
           create:
@@ -897,6 +899,11 @@ ja:
           document: ドキュメント
           help_center: ヘルプセンター
     com:
+      registration:
+        email:
+          new:
+            page_title: メールアドレスで登録
+            error_summary: 入力内容を確認してください。
       contacts:
         new:
           page_title: お問い合わせ
@@ -1200,6 +1207,8 @@ ja:
     attributes:
       user_email:
         address: メールアドレス
+        confirm_policy: 利用規約
+        raw_address: メールアドレス
       user_telephone:
         number: 電話番号
       user_identity_email:

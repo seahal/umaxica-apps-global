@@ -6,9 +6,9 @@ scope module: :jump, as: :jump do
     scope module: :com, as: :com do
       root to: "roots#index"
       # Health
-      resource :health, only: :show
-      # Jump links
-      get "to/:public_id", to: "to#show"
+      resource :health, only: :show, controller: "health"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
     end
   end
 
@@ -16,9 +16,9 @@ scope module: :jump, as: :jump do
     scope module: :app, as: :app do
       root to: "roots#index"
       # Health
-      resource :health, only: :show
-      # Jump links
-      get "to/:public_id", to: "to#show"
+      resource :health, only: :show, controller: "health"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
     end
   end
 
@@ -26,9 +26,9 @@ scope module: :jump, as: :jump do
     scope module: :org, as: :org do
       root to: "roots#index"
       # Health
-      resource :health, only: :show
-      # Jump links
-      get "to/:public_id", to: "to#show"
+      resource :health, only: :show, controller: "health"
+      # CSP violation reporting
+      post "/csp-violation-report", to: "/csp_violations#create"
     end
   end
 end

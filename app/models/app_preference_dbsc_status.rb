@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class AppPreferenceDbscStatus < PrincipalRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   NOTHING = 0
   ACTIVE = 1

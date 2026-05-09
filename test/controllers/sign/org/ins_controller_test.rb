@@ -23,7 +23,7 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "a[href=?]", new_sign_org_in_passkey_path(query)
     assert_select "a[href=?]", new_sign_org_in_secret_path(query)
-    assert_select "a[href=?]", new_sign_org_social_session_path(query.merge(provider: "google_org"))
+    assert_select "form[action=?]", start_sign_org_social_authentication_path(query.merge(provider: "google_org"))
   end
 
   test "does not render sign up link on sign in page" do

@@ -1,0 +1,13 @@
+# == Schema Information
+#
+# Table name: org_preference_theme_options
+# Database name: operator
+#
+#  id :bigint           not null, primary key
+#
+light:
+  id: 1
+dark:
+  id: 2
+system:
+  id: 3

@@ -10,6 +10,8 @@
 #
 
 class UserTokenStatus < MarkRecord
+  include ReferenceRecord
+
   NOTHING = 0
   ACTIVE = 1
   EXPIRED = 2

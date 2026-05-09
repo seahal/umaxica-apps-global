@@ -8,15 +8,13 @@ module Sign
     private
 
     def credential_params
-      params.expect(
-        credential: [
-          :id,
-          :rawId,
-          :type,
-          :authenticatorAttachment,
-          { response: %i(clientDataJSON authenticatorData signature userHandle) },
-          { clientExtensionResults: {} },
-        ],
+      params.expect(:credential)&.permit(
+        :id,
+        :rawId,
+        :type,
+        :authenticatorAttachment,
+        { response: %i(clientDataJSON authenticatorData signature userHandle) },
+        { clientExtensionResults: {} },
       )
     end
 

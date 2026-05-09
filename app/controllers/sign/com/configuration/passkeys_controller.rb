@@ -148,26 +148,24 @@ module Sign
         private
 
         def set_passkey
-          @passkey = current_customer.customer_passkeys.find(params[:id])
+          @passkey = current_customer.customer_passkeys.find(params.expect(:id))
         end
 
         def credential_params
-          params.expect(
-            credential: [
-              :id,
-              :rawId,
-              :type,
-              :authenticatorAttachment,
-              { transports: [] },
-              { response: %i(clientDataJSON attestationObject) },
-              { clientExtensionResults: {} },
-            ],
+          params.expect(:credential)&.permit(
+            :id,
+            :rawId,
+            :type,
+            :authenticatorAttachment,
+            { transports: [] },
+            { response: %i(clientDataJSON attestationObject) },
+            { clientExtensionResults: {} },
           )
         end
 
         def update_params
           key = params.key?(:customer_passkey) ? :customer_passkey : :passkey
-          params.expect(key => [:description])
+          params[key => [:description]]
         end
 
         def passkey_description

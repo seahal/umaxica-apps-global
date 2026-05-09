@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class CustomerTelephoneStatus < GuestRecord
+  include ReferenceRecord
+
   UNVERIFIED = 1
   VERIFIED = 2
   SUSPENDED = 3

@@ -7,10 +7,11 @@
 # Database name: guest
 #
 #  id                        :bigint           not null, primary key
-#  expires_at                :datetime         default(Infinity), not null
+#  lapses_at                 :datetime         default(Infinity), not null
 #  last_used_at              :datetime
 #  name                      :string           default(""), not null
 #  password_digest           :string           default(""), not null
+#  purge_at                  :datetime         default(Infinity), not null
 #  uses_remaining            :integer          default(1), not null
 #  created_at                :datetime         not null
 #  updated_at                :datetime         not null
@@ -24,7 +25,6 @@
 #  index_customer_secrets_on_customer_id                (customer_id)
 #  index_customer_secrets_on_customer_secret_kind_id    (customer_secret_kind_id)
 #  index_customer_secrets_on_customer_secret_status_id  (customer_secret_status_id)
-#  index_customer_secrets_on_expires_at                 (expires_at)
 #  index_customer_secrets_on_public_id                  (public_id) UNIQUE
 #
 # Foreign Keys
@@ -45,7 +45,7 @@ class CustomerSecretTest < ActiveSupport::TestCase
       name: "My Secret",
       customer_secret_status_id: CustomerSecretStatus::ACTIVE,
       customer_secret_kind_id: CustomerSecretKind::LOGIN,
-      expires_at: 1.year.from_now,
+      lapses_at: 1.year.from_now,
       uses_remaining: 1,
     }.freeze
   end
@@ -129,7 +129,7 @@ class CustomerSecretTest < ActiveSupport::TestCase
   end
 
   test "expired_for_secret_sign_in?" do
-    secret, _ = CustomerSecret.issue!(name: "Expired", customer: @customer, expires_at: 1.second.ago)
+    secret, _ = CustomerSecret.issue!(name: "Expired", customer: @customer, lapses_at: 1.second.ago)
 
     assert_not secret.usable_for_secret_sign_in?
   end
@@ -184,7 +184,7 @@ class CustomerSecretTest < ActiveSupport::TestCase
       customer: @customer,
       customer_secret_kind_id: CustomerSecretKind::API,
     )
-    expired, expired_raw = CustomerSecret.issue!(name: "Expired Secret", customer: @customer, expires_at: 1.second.ago)
+    expired, expired_raw = CustomerSecret.issue!(name: "Expired Secret", customer: @customer, lapses_at: 1.second.ago)
     exhausted, exhausted_raw = CustomerSecret.issue!(
       name: "Exhausted",
       customer: @customer,

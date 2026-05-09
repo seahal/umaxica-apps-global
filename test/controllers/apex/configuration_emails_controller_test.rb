@@ -10,7 +10,7 @@ class ApexConfigurationEmailsControllerTest < ActiveSupport::TestCase
   ].each do |klass|
     test "#{klass.name} sets defaults and responds ok for mutations" do
       controller = klass.new
-      controller.define_singleton_method(:params) { { ct: "jp", lx: "en", tz: "Etc/UTC" }.with_indifferent_access }
+      controller.define_singleton_method(:params) { ActionController::Parameters.new({ ct: "jp", lx: "en", tz: "Etc/UTC" }) }
       controller.define_singleton_method(:head) { |status| @_test_head = status }
 
       controller.send(:set_defaults)

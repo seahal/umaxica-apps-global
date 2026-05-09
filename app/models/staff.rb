@@ -7,10 +7,10 @@
 # Database name: operator
 #
 #  id                   :bigint           not null, primary key
-#  deletable_at         :datetime         default(Infinity), not null
+#  lapses_at            :datetime         default(Infinity), not null
 #  lock_version         :integer          default(0), not null
 #  multi_factor_enabled :boolean          default(FALSE), not null
-#  shreddable_at        :datetime         default(Infinity), not null
+#  purge_at             :datetime         default(Infinity), not null
 #  withdrawn_at         :datetime
 #  created_at           :datetime         not null
 #  updated_at           :datetime         not null
@@ -20,9 +20,8 @@
 #
 # Indexes
 #
-#  index_staffs_on_deletable_at   (deletable_at)
 #  index_staffs_on_public_id      (public_id) UNIQUE
-#  index_staffs_on_shreddable_at  (shreddable_at)
+#  index_staffs_on_purge_at       (purge_at)
 #  index_staffs_on_status_id      (status_id)
 #  index_staffs_on_visibility_id  (visibility_id)
 #  index_staffs_on_withdrawn_at   (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
@@ -34,6 +33,8 @@
 #
 
 class Staff < OperatorRecord
+  include Retainable
+
   # Staff represents an operator accountably for the staff/operator console.
   # It mirrors `User` for identity concerns but is used for staff-scoped access.
   self.ignored_columns += ["operator_id", "webauthn_id"]

@@ -5,14 +5,13 @@
 # Database name: operator
 #
 #  id                       :bigint           not null, primary key
-#  compromised_at           :datetime
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
-#  expires_at               :datetime
 #  jti                      :string
-#  revoked_at               :datetime
+#  lapses_at                :datetime         default(Infinity), not null
+#  purge_at                 :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -34,8 +33,8 @@
 #  index_org_preferences_on_device_id_digest   (device_id_digest)
 #  index_org_preferences_on_jti                (jti) UNIQUE
 #  index_org_preferences_on_public_id          (public_id) UNIQUE
+#  index_org_preferences_on_purge_at           (purge_at)
 #  index_org_preferences_on_replaced_by_id     (replaced_by_id)
-#  index_org_preferences_on_revoked_at         (revoked_at)
 #  index_org_preferences_on_status_id          (status_id)
 #  index_org_preferences_on_token_digest       (token_digest)
 #  index_org_preferences_on_used_at            (used_at)
@@ -142,27 +141,27 @@ class OrgPreferenceTest < ActiveSupport::TestCase
     assert_nil OrgPreferenceLanguage.find_by(id: language_id)
   end
 
-  test "has one org_preference_colortheme" do
+  test "has one org_preference_theme" do
     preference = OrgPreference.create!
-    colortheme = preference.create_org_preference_colortheme!
+    theme = preference.create_org_preference_theme!
 
-    assert_equal colortheme, preference.org_preference_colortheme
+    assert_equal theme, preference.org_preference_theme
   end
 
-  test "destroys org_preference_colortheme when destroyed" do
+  test "destroys org_preference_theme when destroyed" do
     preference = OrgPreference.create!
-    colortheme = preference.create_org_preference_colortheme!
-    colortheme_id = colortheme.id
+    theme = preference.create_org_preference_theme!
+    theme_id = theme.id
     preference.destroy!
 
-    assert_nil OrgPreferenceColortheme.find_by(id: colortheme_id)
+    assert_nil OrgPreferenceTheme.find_by(id: theme_id)
   end
 
   test "consume_once_by_digest! is replay-detectable" do
     digest = OrgPreference.digest_refresh_token("org-consume-once")
     preference = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -179,23 +178,21 @@ class OrgPreferenceTest < ActiveSupport::TestCase
   test "consume_once_by_digest! rejects revoked compromised and expired rows" do
     revoked = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: OrgPreference.digest_refresh_token("org-revoked"),
-      revoked_at: Time.current,
+      lapses_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     compromised = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
       token_digest: OrgPreference.digest_refresh_token("org-compromised"),
-      compromised_at: Time.current,
+      lapses_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     expired = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.minute.ago,
+      lapses_at: 1.minute.ago,
       token_digest: OrgPreference.digest_refresh_token("org-expired"),
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -210,7 +207,7 @@ class OrgPreferenceTest < ActiveSupport::TestCase
     digest = OrgPreference.digest_refresh_token("org-rotate")
     original = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
-      expires_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: "org-device",

@@ -7,9 +7,9 @@
 # Database name: symbol
 #
 #  id                :bigint           not null, primary key
-#  expires_at        :datetime         not null
+#  lapses_at         :datetime         default(Infinity), not null
 #  last_used_at      :datetime
-#  revoked_at        :datetime
+#  purge_at          :datetime         default(Infinity), not null
 #  token_digest      :string           not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -18,7 +18,6 @@
 # Indexes
 #
 #  index_customer_verifications_on_customer_token_id  (customer_token_id)
-#  index_customer_verifications_on_expires_at         (expires_at)
 #  index_customer_verifications_on_token_digest       (token_digest) UNIQUE
 #
 # Foreign Keys
@@ -36,16 +35,19 @@ class CustomerVerificationTest < ActiveSupport::TestCase
   end
 
   test "active? reflects revoked and expiry state" do
-    verification = CustomerVerification.create!(
-      customer_token: @token,
-      token_digest: CustomerVerification.digest_token("raw"),
-      expires_at: 1.hour.from_now,
-      last_used_at: Time.current,
-    )
+    verification =
+      travel_to(10.minutes.ago) do
+        CustomerVerification.create!(
+          customer_token: @token,
+          token_digest: CustomerVerification.digest_token("raw"),
+          lapses_at: 1.hour.from_now,
+          last_used_at: Time.current,
+        )
+      end
 
     assert_predicate verification, :active?
 
-    verification.update!(expires_at: 1.minute.ago)
+    verification.update_columns(lapses_at: 1.minute.ago)
 
     assert_not verification.active?
   end
@@ -57,7 +59,7 @@ class CustomerVerificationTest < ActiveSupport::TestCase
 
     assert_predicate raw_token, :present?
     assert_predicate replacement, :active?
-    assert_predicate previous.reload.revoked_at, :present?
+    assert_predicate previous.reload.lapses_at, :present?
   end
 
   private

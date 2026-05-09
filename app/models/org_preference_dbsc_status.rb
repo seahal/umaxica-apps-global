@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class OrgPreferenceDbscStatus < OperatorRecord
+  include ReferenceRecord
+
   NOTHING = 0
   PENDING = 1
   ACTIVE = 2

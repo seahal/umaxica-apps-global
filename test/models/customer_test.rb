@@ -8,11 +8,10 @@
 #
 #  id                    :bigint           not null, primary key
 #  deactivated_at        :datetime
-#  deletable_at          :datetime         default(Infinity), not null
+#  lapses_at             :datetime         default(Infinity), not null
 #  lock_version          :integer          default(0), not null
 #  multi_factor_enabled  :boolean          default(FALSE), not null
-#  scheduled_purge_at    :datetime
-#  shreddable_at         :datetime         default(Infinity), not null
+#  purge_at              :datetime         default(Infinity), not null
 #  withdrawal_started_at :datetime
 #  withdrawn_at          :datetime         default(Infinity)
 #  created_at            :datetime         not null
@@ -24,10 +23,8 @@
 # Indexes
 #
 #  index_customers_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_customers_on_deletable_at           (deletable_at)
 #  index_customers_on_public_id              (public_id) UNIQUE
-#  index_customers_on_scheduled_purge_at     (scheduled_purge_at) WHERE (scheduled_purge_at IS NOT NULL)
-#  index_customers_on_shreddable_at          (shreddable_at)
+#  index_customers_on_purge_at               (purge_at)
 #  index_customers_on_status_id              (status_id)
 #  index_customers_on_visibility_id          (visibility_id)
 #  index_customers_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)

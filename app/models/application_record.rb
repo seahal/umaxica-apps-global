@@ -4,9 +4,20 @@
 class ApplicationRecord < ActiveRecord::Base
   primary_abstract_class
 
+  FIXED_ID_SEED_CACHE = Concurrent::Map.new
+  private_constant :FIXED_ID_SEED_CACHE
+
   # FIXME: i want to remove these lines.
   def self.insert_missing_fixed_ids!(ids)
     return if ids.blank?
+
+    seed_key =
+      [
+        name,
+        connection_db_config&.name || "default",
+        ids.uniq.sort.join(","),
+      ].join(":")
+    return if FIXED_ID_SEED_CACHE[seed_key]
 
     rows = ids.uniq
     rows.map! { |id| { primary_key => id } }
@@ -25,5 +36,6 @@ class ApplicationRecord < ActiveRecord::Base
     raise unless defined?(Prosopite)
 
     Prosopite.pause(&operation)
+    FIXED_ID_SEED_CACHE[seed_key] = true
   end
 end

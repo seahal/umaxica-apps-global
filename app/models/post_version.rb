@@ -10,7 +10,7 @@
 #  edited_by_type :string
 #  expires_at     :datetime         not null
 #  permalink      :string(200)      not null
-#  published_at   :datetime         not null
+#  publish_at     :datetime         not null
 #  redirect_url   :string
 #  response_mode  :string           not null
 #  title          :string
@@ -22,7 +22,6 @@
 #
 # Indexes
 #
-#  index_post_versions_on_edited_by_id            (edited_by_id)
 #  index_post_versions_on_post_id_and_created_at  (post_id,created_at DESC)
 #  index_post_versions_on_public_id               (public_id) UNIQUE
 #
@@ -41,6 +40,6 @@ class PostVersion < AvatarRecord
 
   validates :permalink, presence: true, length: { maximum: 200 }
   validates :response_mode, presence: true
-  validates :published_at, presence: true
+  validates :publish_at, presence: true
   validates :expires_at, presence: true
 end

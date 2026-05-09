@@ -4,11 +4,9 @@
 require "test_helper"
 
 class Dbsc::VerificationServiceTest < ActiveSupport::TestCase
-  fixtures :users, :user_token_binding_methods, :user_token_dbsc_statuses, :user_tokens,
-           :app_preference_binding_methods, :app_preference_dbsc_statuses, :app_preferences
-
   test "verifies proof and returns ok for active user token without changing status" do
-    token = UserToken.create!(user: users(:one), refresh_expires_at: 1.day.from_now, deletable_at: 1.day.from_now)
+    user = create_verified_user_with_email(email_address: "dbsc-verify-#{SecureRandom.hex(4)}@example.com")
+    token = UserToken.create!(user: user, lapses_at: 1.day.from_now, purge_at: 2.days.from_now)
     private_key = OpenSSL::PKey::EC.generate("prime256v1")
 
     token.update!(
@@ -39,7 +37,16 @@ class Dbsc::VerificationServiceTest < ActiveSupport::TestCase
   end
 
   test "validates active app preference proof with current challenge" do
-    preference = app_preferences(:one)
+    preference = AppPreference.create!(
+      public_id: SecureRandom.hex(10),
+      binding_method_id: AppPreferenceBindingMethod::DBSC,
+      dbsc_status_id: AppPreferenceDbscStatus::ACTIVE,
+      status_id: AppPreferenceStatus::NOTHING,
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
+      created_at: 1.day.ago,
+      updated_at: 1.day.ago,
+    )
     private_key = OpenSSL::PKey::EC.generate("prime256v1")
 
     preference.update!(

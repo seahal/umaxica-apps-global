@@ -5,14 +5,13 @@
 # Database name: operator
 #
 #  id                       :bigint           not null, primary key
-#  compromised_at           :datetime
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
-#  expires_at               :datetime
 #  jti                      :string
-#  revoked_at               :datetime
+#  lapses_at                :datetime         default(Infinity), not null
+#  purge_at                 :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -34,8 +33,8 @@
 #  index_org_preferences_on_device_id_digest   (device_id_digest)
 #  index_org_preferences_on_jti                (jti) UNIQUE
 #  index_org_preferences_on_public_id          (public_id) UNIQUE
+#  index_org_preferences_on_purge_at           (purge_at)
 #  index_org_preferences_on_replaced_by_id     (replaced_by_id)
-#  index_org_preferences_on_revoked_at         (revoked_at)
 #  index_org_preferences_on_status_id          (status_id)
 #  index_org_preferences_on_token_digest       (token_digest)
 #  index_org_preferences_on_used_at            (used_at)
@@ -51,11 +50,13 @@
 # frozen_string_literal: true
 
 class OrgPreference < OperatorRecord
-  # TODO: Add `deletable_at` to OrgPreference for lifecycle-based cleanup.
+  include Retainable
   include ::PublicId
-  include ::ConsumeOnceToken
+  include ::SingleUseToken
   include ::Preference::Resettable
   include ::DbscBindable
+
+  alias_attribute :expires_at, :lapses_at
 
   DBSC_BINDING_METHOD_CLASS = OrgPreferenceBindingMethod
   DBSC_STATUS_CLASS = OrgPreferenceDbscStatus
@@ -95,7 +96,12 @@ class OrgPreference < OperatorRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  has_one :org_preference_theme,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
   has_one :org_preference_colortheme,
+          class_name: "OrgPreferenceTheme",
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy

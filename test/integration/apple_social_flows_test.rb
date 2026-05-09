@@ -36,7 +36,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       uid: "apple_flow_existing",
       provider: "apple",
       token: "token_old",
-      expires_at: 1.week.from_now.to_i,
+      token_expires_at: 1.week.from_now.to_i,
       user_social_apple_status: user_social_apple_statuses(:active),
     )
 
@@ -54,8 +54,8 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     user = users(:one)
     setup_apple_mock_auth(uid: "apple_flow_link")
 
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: as_user_headers(user, host: @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: as_user_headers(user, host: @host)
 
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(user, host: @host))
@@ -75,8 +75,8 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     user = users(:one)
     setup_apple_mock_auth(uid: "apple_flow_link_session_only")
 
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: as_user_headers(user, host: @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: as_user_headers(user, host: @host)
 
     # Simulate Apple POST callback without auth cookies/headers
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
@@ -102,14 +102,14 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       uid: "apple_flow_conflict",
       provider: "apple",
       token: "token_old",
-      expires_at: 1.week.from_now.to_i,
+      token_expires_at: 1.week.from_now.to_i,
       user_social_apple_status: user_social_apple_statuses(:active),
     )
 
     setup_apple_mock_auth(uid: "apple_flow_conflict")
 
-    get sign_app_social_start_url(provider: "apple", intent: "link", ri: "jp"),
-        headers: as_user_headers(other, host: @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
+         headers: as_user_headers(other, host: @host)
 
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: @callback_headers.merge(as_user_headers(other, host: @host))

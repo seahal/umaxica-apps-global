@@ -9,7 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class UserChronicleEvent < ChronicleRecord
-  self.record_timestamps = false
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   ACCOUNT_RECOVERED = 1
   ACCOUNT_WITHDRAWN = 2

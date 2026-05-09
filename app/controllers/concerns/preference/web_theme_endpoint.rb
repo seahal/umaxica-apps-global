@@ -35,7 +35,7 @@ module Preference
 
     def requested_theme_value
       raw_value =
-        if params[:theme].is_a?(String)
+        if params.expect(:theme).is_a?(String)
           params[:theme]
         elsif params.key?(:ct)
           params[:ct]

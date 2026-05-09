@@ -6,7 +6,7 @@
     <div>
       <h3><%= t('controller.sign.app.setting.index.apple') %></h3>
       <p>
-        Apple IDを使用してこのアカウントにログインできます。
+        <%= t("views.sign.app.configuration.apples.show.description") %>
       </p>
     </div>
   </div>
@@ -24,9 +24,9 @@
             <div>
               <h4>Apple</h4>
               <% if current_user.user_social_apple %>
-                <p>連携済み</p>
+                <p><%= t("views.sign.app.configuration.apples.show.linked") %></p>
               <% else %>
-                <p>未連携</p>
+                <p><%= t("views.sign.app.configuration.apples.show.unlinked") %></p>
               <% end %>
             </div>
           </div>
@@ -34,7 +34,7 @@
             <% if current_user.user_social_apple %>
               <% unlink_allowed = current_user.login_methods_remaining?(excluding_provider: "apple") %>
               <%= button_to t('actions.disconnect'),
-                            sign_app_social_unlink_path(provider: "apple"),
+                            sign_app_social_authentication_path(provider: "apple"),
                             method: :delete,
                             disabled: !unlink_allowed %>
               <p><%= t("auth.step_up.required") %></p>
@@ -42,7 +42,10 @@
                 <p><%= t("errors.social_auth.insufficient_login_methods") %></p>
               <% end %>
             <% else %>
-              <%= link_to t('actions.connect'), new_sign_app_social_session_path(provider: "apple", intent: "link"), data: { turbo: false } %>
+              <%= button_to t('actions.connect'),
+                            start_sign_app_social_authentication_path(provider: "apple", intent: "link", ri: params[:ri]),
+                            method: :post,
+                            data: { turbo: false } %>
             <% end %>
           </div>
         </div>

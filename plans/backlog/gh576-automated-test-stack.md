@@ -1,42 +1,59 @@
-# GH-576: Implement Planned Automated Test Stack
+# GH-576: Fill Gaps in the Automated Test Stack
 
 GitHub: #576
 
 ## Summary
 
-Build out the planned testing layers that are documented but not yet implemented.
+Fill the remaining gaps in the automated test stack. Ruby tests use Minitest. JavaScript tests use
+`vp test` (Vitest via Vite+), which is already adopted and has controller-level coverage.
 
 ## Scope
 
-- Add API/contract testing support with Rswag or an agreed equivalent.
-- Add JS unit test coverage for frontend helpers/modules.
-- Add system/integration coverage with Playwright or Capybara for key user flows.
-- Add performance test tooling for important endpoints (e.g., k6 or wrk).
-- Wire the selected tools into local developer workflow and CI.
+- Keep `vp test` as the JavaScript test baseline and expand coverage for frontend helpers/modules
+  when behavior changes.
+- Decide whether API/contract testing needs a dedicated tool beyond existing Rails integration tests
+  and `committee-rails`.
+- Decide whether browser-level E2E/system coverage should use Playwright, Capybara, or remain
+  deferred.
+- Decide whether performance test tooling (for example k6 or wrk) is needed now, and if so add one
+  runnable scenario.
+- Document the selected commands for each adopted layer and wire missing layers into CI only after
+  the tool choice is explicit.
 
 ## Acceptance Criteria
 
-- Contract/API testing is implemented and exercised on at least one surface.
-- Frontend unit testing has a working baseline.
-- End-to-end or system coverage exists for at least one critical flow.
-- Performance tooling is checked in with at least one runnable scenario.
-- The docs are updated to reflect actual selected tools.
+- JavaScript unit tests continue to run through `vp test`.
+- The adopted test layers have named local commands and CI coverage.
+- API/contract, E2E/system, and performance testing each have an explicit decision: adopted with a
+  first runnable scenario, or intentionally deferred with rationale.
+- The docs reflect the actual selected tools, not an aspirational stack.
 
 ## Source
 
 - `docs/test.md`
 
-## Implementation Status (2026-04-07)
+## Implementation Status (2026-05-07)
 
-**Status: NOT STARTED**
+**Status: PARTIALLY DONE / NEEDS DECISIONS**
 
-No Rswag, Playwright, Capybara, or k6 found. Existing stack includes simplecov, minitest-mock,
-test-prof, prosopite, committee-rails, guard. No API contract testing, system tests, or performance
-tooling set up.
+Done:
+
+- Ruby code uses Minitest.
+- JavaScript uses `vp test` as the project test command (`package.json` maps it to `vp test run`).
+- Vitest-style JavaScript tests already exist under `test/javascript/controllers/`, including
+  passkey, WebAuthn utility, theme, cookie, OTP resend, and unsaved-changes coverage.
+
+Still open:
+
+- API/contract testing tool choice and first scenario.
+- Browser-level E2E/system testing tool choice and first flow, if adopted.
+- Performance tooling choice and first scenario, if adopted.
+- Docs/CI alignment for any newly adopted layers.
 
 ## Improvement Points (2026-04-07 Review)
 
-- Pick the concrete tools and first runnable path before adding more categories. The current note is
-  still a target list, not a selected stack.
-- Add one "done means done" matrix that names the baseline command for each layer so this plan can
-  be closed incrementally instead of all at once.
+- Do not replace `vp test`; it is the selected JavaScript test baseline.
+- Pick concrete tools only for the still-open layers. Avoid adding Rswag, Playwright, Capybara, or
+  k6 just because they were named in the older target list.
+- Add one "done means done" matrix that names the baseline command for each adopted layer so this
+  plan can be closed incrementally.

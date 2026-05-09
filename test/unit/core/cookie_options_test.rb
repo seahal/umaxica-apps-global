@@ -108,6 +108,24 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     assert_predicate options[:domain], :present? if options[:domain]
   end
 
+  test "for includes partitioned in production" do
+    request = MockRequest.new("wwww.example.com")
+    env = ActiveSupport::EnvironmentInquirer.new("production")
+
+    options = Core::CookieOptions.for(surface: :app, request: request, rails_env: env)
+
+    assert options[:partitioned]
+  end
+
+  test "for omits partitioned outside production" do
+    request = MockRequest.new("wwww.example.com")
+    env = ActiveSupport::EnvironmentInquirer.new("test")
+
+    options = Core::CookieOptions.for(surface: :app, request: request, rails_env: env)
+
+    assert_not options.key?(:partitioned)
+  end
+
   private
 
   def with_cookie_domain_credentials(overrides)

@@ -10,9 +10,12 @@
 #
 
 class CustomerStatus < GuestRecord
+  include ReferenceRecord
+
   ACTIVE = 1
   NOTHING = 2
   RESERVED = 3
+  DEFAULTS = [ACTIVE, NOTHING, RESERVED].freeze
 
   has_many :customers,
            foreign_key: :status_id,

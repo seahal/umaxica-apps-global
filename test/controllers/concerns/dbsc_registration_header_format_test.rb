@@ -13,8 +13,8 @@ class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_binding_method_id: UserTokenBindingMethod::NOTHING,
       user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
-      refresh_expires_at: 1.day.from_now,
-      deletable_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
     )
 
     controller = Sign::App::Edge::V0::Token::ChecksController.new
@@ -55,8 +55,8 @@ class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
       user_token_status_id: UserTokenStatus::NOTHING,
       user_token_binding_method_id: UserTokenBindingMethod::DBSC,
       user_token_dbsc_status_id: UserTokenDbscStatus::ACTIVE,
-      refresh_expires_at: 1.day.from_now,
-      deletable_at: 1.day.from_now,
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
       public_id: "public-session-id",
       dbsc_session_id: nil,
     )

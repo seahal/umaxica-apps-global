@@ -4,14 +4,12 @@
 require "test_helper"
 
 class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
-  fixtures :users, :user_statuses, :user_token_statuses, :user_token_kinds, :user_tokens
-
-  setup do
-    # UserToken.where(user: users(:one)).delete_all
-  end
-
   test "rotation increments generation counter" do
-    token = UserToken.create!(user: users(:one))
+    token = UserToken.create!(
+      user: create_verified_user_with_email(email_address: "refresh-rotate-#{SecureRandom.hex(4)}@example.com"),
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
+    )
     first_refresh = token.rotate_refresh_token!
     result = Sign::RefreshTokenService.call(refresh_token: first_refresh)
 
@@ -26,8 +24,8 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
   end
 
   test "reuse detection revokes all actor tokens" do
-    user = users(:one)
-    token = UserToken.create!(user: user)
+    user = create_verified_user_with_email(email_address: "refresh-reuse-#{SecureRandom.hex(4)}@example.com")
+    token = UserToken.create!(user: user, lapses_at: 1.day.from_now, purge_at: 2.days.from_now)
     initial_refresh = token.rotate_refresh_token!
     rotated = Sign::RefreshTokenService.call(refresh_token: initial_refresh)
     rotated_refresh = rotated[:refresh_token]
@@ -38,8 +36,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
 
     token.reload
 
-    assert token.expired_at, "Original token should be revoked"
-    assert token.compromised_at, "Compromise timestamp should be recorded"
+    assert token.lapses_at, "Original token should be revoked"
     assert UserToken.where(user_id: user.id).all?(&:revoked?), "All actor tokens should be revoked"
 
     assert_raises(Sign::InvalidRefreshToken) do
@@ -48,7 +45,11 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
   end
 
   test "revoked tokens stay invalid without marking compromise" do
-    token = user_tokens(:one)
+    token = UserToken.create!(
+      user: create_verified_user_with_email(email_address: "refresh-revoked-#{SecureRandom.hex(4)}@example.com"),
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
+    )
     refresh = token.rotate_refresh_token!
     token.revoke!
 
@@ -56,12 +57,17 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
       Sign::RefreshTokenService.call(refresh_token: refresh)
     end
 
-    assert_nil token.reload.compromised_at
+    assert_predicate token.reload.lapses_at, :present?
+    assert_equal "revoked", token.reload.status
   end
 
-  test "scheduled revoked tokens are invalid after revoked_at passes" do
+  test "scheduled revoked tokens are invalid after lapses_at passes" do
     freeze_time do
-      token = UserToken.create!(user: users(:one), revoked_at: 5.minutes.from_now)
+      token = UserToken.create!(
+        user: create_verified_user_with_email(email_address: "refresh-scheduled-#{SecureRandom.hex(4)}@example.com"),
+        lapses_at: 5.minutes.from_now,
+        purge_at: 1.day.from_now,
+      )
       refresh = token.rotate_refresh_token!
       travel 6.minutes
 
@@ -82,7 +88,11 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
       original_method.call(**options, &block)
     end
 
-    token = UserToken.create!(user: users(:one))
+    token = UserToken.create!(
+      user: create_verified_user_with_email(email_address: "refresh-writing-#{SecureRandom.hex(4)}@example.com"),
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
+    )
     refresh = token.rotate_refresh_token!
 
     Sign::RefreshTokenService.call(refresh_token: refresh)
@@ -98,7 +108,11 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
   test "S2: no ReadOnlyError occurs during refresh" do
     # This test verifies that refresh operations do not trigger ReadOnlyError
     # even when using SELECT ... FOR UPDATE
-    token = UserToken.create!(user: users(:one))
+    token = UserToken.create!(
+      user: create_verified_user_with_email(email_address: "refresh-readonly-#{SecureRandom.hex(4)}@example.com"),
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
+    )
     refresh = token.rotate_refresh_token!
 
     assert_nothing_raised do

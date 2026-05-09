@@ -30,7 +30,7 @@
     "vite-plugin-ruby": "^5.2.1",
     "vite-plus": "latest"
   },
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@11.0.8",
   "pnpm": {
     "strictDepBuilds": true,
     "overrides": {

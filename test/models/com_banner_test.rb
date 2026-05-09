@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: com_banners
-# Database name: notification
+# Database name: guest
 #
 #  id         :bigint           not null, primary key
 #  body       :text             not null
@@ -21,6 +21,10 @@ class ComBannerTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :com_banners
+
+  test "inherits from guest record" do
+    assert_operator ComBanner, :<, GuestRecord
+  end
 
   test "actor is not required" do
     banner = ComBanner.new(body: "Banner body")

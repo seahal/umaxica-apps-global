@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class CustomerSecretStatus < GuestRecord
+  include ReferenceRecord
+
   ACTIVE = 1
   EXPIRED = 2
   REVOKED = 3

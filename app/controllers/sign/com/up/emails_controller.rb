@@ -41,7 +41,7 @@ module Sign
         end
 
         def create
-          email_params = params.expect(user_email: %i(raw_address address confirm_policy))
+          email_params = params.expect(customer_email: %i(raw_address address confirm_policy))
           email_address = email_params[:raw_address] || email_params[:address]
 
           unless cloudflare_turnstile_validation["success"]
@@ -73,9 +73,9 @@ module Sign
         def update
           @user_email = CustomerEmail.find_by(public_id: params["id"])
           return redirect_invalid_session unless valid_email_session?
-          return render_code_required if params.dig("user_email", "pass_code").blank?
+          return render_code_required if params.dig("customer_email", "pass_code").blank?
 
-          submitted_code = params.dig("user_email", "pass_code")
+          submitted_code = params.dig("customer_email", "pass_code")
           result =
             existing_signup_email_flow? ? handle_existing_email_verification(submitted_code) :
                                            complete_customer_email_verification!(submitted_code)

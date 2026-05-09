@@ -15,7 +15,7 @@ module Preference
       assert_equal AppPreferenceLanguageOption, Preference::ClassRegistry.option_class("App", :language)
       assert_equal ComPreferenceRegionOption, Preference::ClassRegistry.option_class("Com", "Region")
       assert_equal OrgPreferenceTimezoneOption, Preference::ClassRegistry.option_class("Org", :timezone)
-      assert_equal CustomerPreferenceColorthemeOption, Preference::ClassRegistry.option_class("Customer", :colortheme)
+      assert_equal CustomerPreferenceThemeOption, Preference::ClassRegistry.option_class("Customer", :theme)
     end
 
     test "resolves status and audit classes from preference class" do

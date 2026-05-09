@@ -4,26 +4,16 @@
 require "test_helper"
 
 class OccurrenceTest < ActiveSupport::TestCase
-  test "set_default_lifecycle_timestamps sets defaults when attributes exist" do
+  test "includes retainable defaults" do
     record = UserOccurrence.new
-
-    record.revoked_at = nil
-    record.deletable_at = nil
-    record.send(:set_default_lifecycle_timestamps)
 
     assert_occurrence_lifecycle_defaults(record)
   end
 
-  test "set_default_lifecycle_timestamps skips when has_attribute? is false" do
-    record = UserOccurrence.new
-    record.revoked_at = nil
-    record.deletable_at = nil
+  test "accessible? and purgeable? reflect retainable state" do
+    record = UserOccurrence.new(lapses_at: 1.hour.from_now, purge_at: 1.hour.ago)
 
-    record.stub(:has_attribute?, false) do
-      record.send(:set_default_lifecycle_timestamps)
-    end
-
-    assert_nil record.revoked_at
-    assert_nil record.deletable_at
+    assert_predicate record, :accessible?
+    assert_predicate record, :purgeable?
   end
 end

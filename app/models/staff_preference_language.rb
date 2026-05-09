@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_preference_languages
-# Database name: principal
+# Database name: operator
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -22,7 +22,7 @@
 #  fk_staff_preference_languages_on_option_id      (option_id => staff_preference_language_options.id)
 #  fk_staff_preference_languages_on_preference_id  (preference_id => staff_preferences.id)
 #
-class StaffPreferenceLanguage < PrincipalRecord
+class StaffPreferenceLanguage < OperatorRecord
   belongs_to :preference, class_name: "StaffPreference", inverse_of: :staff_preference_language
   belongs_to :option,
              class_name: "StaffPreferenceLanguageOption",

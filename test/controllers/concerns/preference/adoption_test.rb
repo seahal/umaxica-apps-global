@@ -9,9 +9,9 @@ module Preference
              :app_preferences, :app_preference_statuses,
              :app_preference_binding_methods, :app_preference_dbsc_statuses,
              :app_preference_language_options, :app_preference_timezone_options,
-             :app_preference_region_options, :app_preference_colortheme_options,
+             :app_preference_region_options, :app_preference_theme_options,
              :user_preference_language_options, :user_preference_timezone_options,
-             :user_preference_region_options, :user_preference_colortheme_options
+             :user_preference_region_options, :user_preference_theme_options
 
     setup do
       @user = users(:none_user)
@@ -223,7 +223,7 @@ module Preference
         UserPreferenceLanguage.create!(preference_id: pref.id, option_id: UserPreferenceLanguageOption::JA)
         UserPreferenceTimezone.create!(preference_id: pref.id, option_id: UserPreferenceTimezoneOption::ASIA_TOKYO)
         UserPreferenceRegion.create!(preference_id: pref.id, option_id: UserPreferenceRegionOption::JP)
-        UserPreferenceColortheme.create!(preference_id: pref.id, option_id: UserPreferenceColorthemeOption::SYSTEM)
+        UserPreferenceTheme.create!(preference_id: pref.id, option_id: UserPreferenceThemeOption::SYSTEM)
         pref.reload
         pref
       end
@@ -234,7 +234,7 @@ module Preference
         language: AppPreferenceLanguage,
         timezone: AppPreferenceTimezone,
         region: AppPreferenceRegion,
-        colortheme: AppPreferenceColortheme,
+        theme: AppPreferenceTheme,
       }.fetch(type)
       SettingRecord.connected_to(role: :writing) do
         klass.create!(preference_id: preference.id, option_id: option_id)

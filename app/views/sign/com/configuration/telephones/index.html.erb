@@ -18,7 +18,7 @@
             <th scope="col"><%= CustomerTelephone.human_attribute_name(:number) %></th>
             <th scope="col"><%= t("activerecord.attributes.user_telephone.status") %></th>
             <th scope="col">
-              <span>アクション</span>
+              <span><%= t("views.sign.com.configuration.telephones.index.actions") %></span>
             </th>
           </tr>
           </thead>
@@ -28,9 +28,9 @@
               <td><%= telephone.number %></td>
               <td>
                 <% if [CustomerTelephoneStatus::VERIFIED, CustomerTelephoneStatus::VERIFIED_WITH_SIGN_UP].include?(telephone.customer_telephone_status_id) %>
-                  <span>認証済み</span>
+                  <span><%= t("views.sign.com.configuration.telephones.index.verified") %></span>
                 <% else %>
-                  <span>未認証</span>
+                  <span><%= t("views.sign.com.configuration.telephones.index.unverified") %></span>
                 <% end %>
               </td>
               <td>
@@ -42,7 +42,7 @@
           <% if @user_telephones.empty? %>
             <tr>
               <td colspan="3" class="italic">
-                電話番号は登録されていません。
+                <%= t("views.sign.com.configuration.telephones.index.empty") %>
               </td>
             </tr>
           <% end %>

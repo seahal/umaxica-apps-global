@@ -9,6 +9,8 @@
 #  id                                 :bigint           not null, primary key
 #  locked_at                          :datetime
 #  number                             :string           not null
+#  number_bidx                        :string
+#  number_digest                      :string
 #  otp_attempts_count                 :integer          default(0), not null
 #  otp_counter                        :text             not null
 #  otp_expires_at                     :datetime
@@ -21,6 +23,8 @@
 # Indexes
 #
 #  index_staff_telephones_on_lower_number                        (lower((number)::text)) UNIQUE
+#  index_staff_telephones_on_number_bidx                         (number_bidx) UNIQUE WHERE (number_bidx IS NOT NULL)
+#  index_staff_telephones_on_number_digest                       (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
 #  index_staff_telephones_on_staff_id                            (staff_id)
 #  index_staff_telephones_on_staff_identity_telephone_status_id  (staff_identity_telephone_status_id)
 #
@@ -106,6 +110,32 @@ class StaffTelephoneTest < ActiveSupport::TestCase
 
     assert_not staff_telephone.valid?
     assert_predicate staff_telephone.errors[:confirm_using_mfa], :any?
+  end
+
+  test "sets number digests from normalized input" do
+    staff_telephone = StaffTelephone.create!(
+      raw_number: "+1 (555) 123-4567",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      staff: @staff,
+    )
+
+    expected = IdentifierBlindIndex.bidx_for_telephone("+15551234567")
+
+    assert_equal expected, staff_telephone.number_bidx
+    assert_equal expected, staff_telephone.number_digest
+  end
+
+  test "finds by normalized number digest" do
+    staff_telephone = StaffTelephone.create!(
+      raw_number: "+1 (555) 765-4321",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      staff: @staff,
+    )
+
+    assert_equal staff_telephone, StaffTelephone.find_by(number: "+15557654321")
+    assert_nil StaffTelephone.find_by(number: "12")
   end
 
   test "should generate UUID v7 before creation" do

@@ -9,11 +9,13 @@ module Preference
       :timezone => :timezone,
       :language => :language,
       :region => :region,
-      :colortheme => :colortheme,
+      :colortheme => :theme,
+      :theme => :theme,
       "Timezone" => :timezone,
       "Language" => :language,
       "Region" => :region,
-      "Colortheme" => :colortheme,
+      "Colortheme" => :theme,
+      "Theme" => :theme,
     }.freeze
 
     REGISTRY = {
@@ -28,13 +30,13 @@ module Preference
           timezone: AppPreferenceTimezoneOption,
           language: AppPreferenceLanguageOption,
           region: AppPreferenceRegionOption,
-          colortheme: AppPreferenceColorthemeOption,
+          theme: AppPreferenceThemeOption,
         }.freeze,
         record_classes: {
           timezone: AppPreferenceTimezone,
           language: AppPreferenceLanguage,
           region: AppPreferenceRegion,
-          colortheme: AppPreferenceColortheme,
+          theme: AppPreferenceTheme,
         }.freeze,
       }.freeze,
       "Com" => {
@@ -48,13 +50,13 @@ module Preference
           timezone: ComPreferenceTimezoneOption,
           language: ComPreferenceLanguageOption,
           region: ComPreferenceRegionOption,
-          colortheme: ComPreferenceColorthemeOption,
+          theme: ComPreferenceThemeOption,
         }.freeze,
         record_classes: {
           timezone: ComPreferenceTimezone,
           language: ComPreferenceLanguage,
           region: ComPreferenceRegion,
-          colortheme: ComPreferenceColortheme,
+          theme: ComPreferenceTheme,
         }.freeze,
       }.freeze,
       "Org" => {
@@ -68,13 +70,13 @@ module Preference
           timezone: OrgPreferenceTimezoneOption,
           language: OrgPreferenceLanguageOption,
           region: OrgPreferenceRegionOption,
-          colortheme: OrgPreferenceColorthemeOption,
+          theme: OrgPreferenceThemeOption,
         }.freeze,
         record_classes: {
           timezone: OrgPreferenceTimezone,
           language: OrgPreferenceLanguage,
           region: OrgPreferenceRegion,
-          colortheme: OrgPreferenceColortheme,
+          theme: OrgPreferenceTheme,
         }.freeze,
       }.freeze,
       "User" => {
@@ -83,13 +85,13 @@ module Preference
           timezone: UserPreferenceTimezoneOption,
           language: UserPreferenceLanguageOption,
           region: UserPreferenceRegionOption,
-          colortheme: UserPreferenceColorthemeOption,
+          theme: UserPreferenceThemeOption,
         }.freeze,
         record_classes: {
           timezone: UserPreferenceTimezone,
           language: UserPreferenceLanguage,
           region: UserPreferenceRegion,
-          colortheme: UserPreferenceColortheme,
+          theme: UserPreferenceTheme,
         }.freeze,
       }.freeze,
       "Staff" => {
@@ -98,13 +100,13 @@ module Preference
           timezone: StaffPreferenceTimezoneOption,
           language: StaffPreferenceLanguageOption,
           region: StaffPreferenceRegionOption,
-          colortheme: StaffPreferenceColorthemeOption,
+          theme: StaffPreferenceThemeOption,
         }.freeze,
         record_classes: {
           timezone: StaffPreferenceTimezone,
           language: StaffPreferenceLanguage,
           region: StaffPreferenceRegion,
-          colortheme: StaffPreferenceColortheme,
+          theme: StaffPreferenceTheme,
         }.freeze,
       }.freeze,
       "Customer" => {
@@ -113,13 +115,13 @@ module Preference
           timezone: CustomerPreferenceTimezoneOption,
           language: CustomerPreferenceLanguageOption,
           region: CustomerPreferenceRegionOption,
-          colortheme: CustomerPreferenceColorthemeOption,
+          theme: CustomerPreferenceThemeOption,
         }.freeze,
         record_classes: {
           timezone: CustomerPreferenceTimezone,
           language: CustomerPreferenceLanguage,
           region: CustomerPreferenceRegion,
-          colortheme: CustomerPreferenceColortheme,
+          theme: CustomerPreferenceTheme,
         }.freeze,
       }.freeze,
     }.freeze

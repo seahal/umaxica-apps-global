@@ -53,3 +53,24 @@ Needs fresh audit to determine which placeholder services still exist. `TokenSer
   a present-tense inventory before it can drive implementation.
 - Split boot-safety work from service cleanup. Encryption-credential handling and placeholder
   service removal do not need the same review path.
+
+## 2026-05-07 現状差分と改善として残すこと
+
+この文書の placeholder 前提は一部古い。
+
+確認済み:
+
+- `app/services/auth/token_service.rb` は存在し、テストもある。
+- `test/services/event_publisher_test.rb` が存在するため、`EventPublisher`
+  は少なくとも現行テスト対象。
+
+この文書は「TokenService placeholder cleanup」ではなく、未使用 service / event publisher / boot
+safety の改善メモとして残す。
+
+残す改善:
+
+- `MessageService` / `NotificationService` / `AccountService` / `CoreService`
+  が現存するか再監査する。
+- `EventPublisher` を採用するなら、実際の event path と失敗時の扱いを明文化する。
+- 採用しない service は削除し、テストだけが残っている状態を避ける。
+- Active Record encryption credential 欠落時の boot safety は、service cleanup とは別作業に分ける。

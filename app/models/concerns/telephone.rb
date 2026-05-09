@@ -10,6 +10,11 @@ module Telephone
 
   included do
     before_validation :normalize_number_from_raw
+    before_validation :set_number_digests
+    scope :with_number, ->(value) do
+      digest = IdentifierBlindIndex.bidx_for_telephone(value)
+      digest.present? ? where(number_bidx: digest) : none
+    end
 
     after_initialize do
       self.otp_counter = "0" if otp_counter.blank?
@@ -17,7 +22,7 @@ module Telephone
       self.otp_attempts_count ||= 0
     end
 
-    encrypts :number, deterministic: true
+    encrypts :number
 
     validate :validate_telephone_number
 
@@ -29,6 +34,12 @@ module Telephone
                           length: { is: 6 },
                           presence: true,
                           unless: Proc.new { |a| a.pass_code.blank? && a.raw_number.present? }
+  end
+
+  class_methods do
+    def find_by_number(value)
+      with_number(value).first
+    end
   end
 
   # OTP-related methods for telephone authentication
@@ -95,7 +106,7 @@ module Telephone
       .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp")
       .update_all(locked_at: Time.current)
     # rubocop:enable Rails/SkipsModelValidations
-    reload if locked_at_changed?
+    reload
   end
 
   def raw_number
@@ -110,6 +121,12 @@ module Telephone
 
     normalized = TelephoneNormalization.normalize_to_e164(value)
     self.number = normalized if normalized.present?
+  end
+
+  def set_number_digests
+    digest = IdentifierBlindIndex.bidx_for_telephone(raw_number)
+    self.number_bidx = digest
+    self.number_digest = digest if respond_to?(:number_digest=)
   end
 
   def validate_telephone_number

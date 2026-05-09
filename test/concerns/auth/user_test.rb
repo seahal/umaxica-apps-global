@@ -167,7 +167,7 @@ class Authentication::UserTest < ActiveSupport::TestCase
     assert_equal ::Authentication::Base::ACCESS_TOKEN_TTL.to_i, tokens[:expires_in]
   end
 
-  test "build_refreshed_session caps cookie and jwt expiry to revoked_at" do
+  test "build_refreshed_session caps cookie and jwt expiry to lapses_at" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
 
     freeze_time do
@@ -175,8 +175,7 @@ class Authentication::UserTest < ActiveSupport::TestCase
         user: @user,
         user_token_kind_id: UserTokenKind::BROWSER_WEB,
         device_id: "device-user",
-        refresh_expires_at: 30.days.from_now,
-        revoked_at: 20.minutes.from_now,
+        lapses_at: 20.minutes.from_now,
       )
 
       result = @obj.send(:build_refreshed_session, @user, token, "refresh-token")
@@ -190,10 +189,10 @@ class Authentication::UserTest < ActiveSupport::TestCase
       refresh_opts = @obj.cookies.options_for(::Authentication::User::REFRESH_COOKIE_KEY)
       device_opts = @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY)
 
-      assert_in_delta token.revoked_at.to_i, payload["exp"], 1
-      assert_in_delta token.revoked_at.to_i, access_opts[:expires].to_i, 1
-      assert_in_delta token.revoked_at.to_i, refresh_opts[:expires].to_i, 1
-      assert_in_delta token.revoked_at.to_i, device_opts[:expires].to_i, 1
+      assert_in_delta token.lapses_at.to_i, payload["exp"], 1
+      assert_in_delta token.lapses_at.to_i, access_opts[:expires].to_i, 1
+      assert_in_delta token.lapses_at.to_i, refresh_opts[:expires].to_i, 1
+      assert_in_delta token.lapses_at.to_i, device_opts[:expires].to_i, 1
       assert_equal 20.minutes.to_i, result[:expires_in]
     end
   end
@@ -272,15 +271,15 @@ class Authentication::UserTest < ActiveSupport::TestCase
       token.rotate_refresh_token!
     end
     restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
-    restricted.rotate_refresh_token!(expires_at: 15.minutes.from_now)
-    before_ids = UserToken.where(user_id: @user.id).order(:id).pluck(:id, :status, :expired_at)
+    restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
+    before_ids = UserToken.where(user_id: @user.id).order(:id).pluck(:id, :status, :lapses_at)
 
     result = @obj.send(:log_in, @user, require_totp_check: false)
 
     assert_equal :session_limit_hard_reject, result[:status]
     assert_equal :conflict, result[:http_status]
     assert_equal Authentication::Base::SESSION_LIMIT_HARD_REJECT_MESSAGE, result[:message]
-    assert_equal before_ids, UserToken.where(user_id: @user.id).order(:id).pluck(:id, :status, :expired_at)
+    assert_equal before_ids, UserToken.where(user_id: @user.id).order(:id).pluck(:id, :status, :lapses_at)
   end
 
   test "log_in issues restricted session with 15 minute ttl when active sessions reach limit" do
@@ -298,7 +297,7 @@ class Authentication::UserTest < ActiveSupport::TestCase
       restricted = UserToken.where(user_id: @user.id, status: UserToken::STATUS_RESTRICTED).order(:created_at).last
 
       assert_not_nil restricted
-      assert_in_delta 15.minutes.from_now.to_i, restricted.refresh_expires_at.to_i, 1
+      assert_in_delta 15.minutes.from_now.to_i, restricted.lapses_at.to_i, 1
     end
   end
 end

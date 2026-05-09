@@ -1,0 +1,27 @@
+# typed: false
+# frozen_string_literal: true
+
+if Object.const_defined?("RailsDb")
+  RailsDb.setup do |config|
+    # # enabled or not
+    # config.enabled = Rails.env.development?
+
+    # # automatic engine routes mounting
+    # config.automatic_routes_mount = true
+
+    # # Enable http basic authentication
+    # config.http_basic_authentication_enabled = false
+
+    # # Enable http basic authentication
+    # config.http_basic_authentication_user_name = 'rails_db'
+
+    # # Enable http basic authentication
+    # config.http_basic_authentication_password = 'password'
+
+    # # Enable verify access proc
+    # config.verify_access_proc = proc { |controller| true }
+
+    # # Sandbox mode (only read-only operations)
+    # config.sandbox = false
+  end
+end

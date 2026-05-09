@@ -20,10 +20,8 @@
 # Indexes
 #
 #  index_posts_on_author_avatar_id_and_created_at  (author_avatar_id,created_at DESC)
-#  index_posts_on_created_by_actor_id              (created_by_actor_id)
 #  index_posts_on_post_status_id                   (post_status_id)
 #  index_posts_on_public_id                        (public_id) UNIQUE
-#  index_posts_on_published_by_actor_id            (published_by_actor_id)
 #
 # Foreign Keys
 #
@@ -131,7 +129,7 @@ class PostTest < ActiveSupport::TestCase
       body: "First version",
       permalink: "first-version",
       response_mode: "html",
-      published_at: 3.days.ago,
+      publish_at: 3.days.ago,
       expires_at: 1.year.from_now,
       created_at: 3.days.ago,
     )
@@ -141,7 +139,7 @@ class PostTest < ActiveSupport::TestCase
       body: "Second version",
       permalink: "second-version",
       response_mode: "html",
-      published_at: 2.days.ago,
+      publish_at: 2.days.ago,
       expires_at: 1.year.from_now,
       created_at: 2.days.ago,
     )
@@ -151,7 +149,7 @@ class PostTest < ActiveSupport::TestCase
       body: "Latest version",
       permalink: "latest-version",
       response_mode: "html",
-      published_at: 1.day.ago,
+      publish_at: 1.day.ago,
       expires_at: 1.year.from_now,
       created_at: 1.day.ago,
     )

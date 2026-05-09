@@ -9,6 +9,8 @@
 #  id :bigint           not null, primary key
 #
 class CustomerTokenStatus < SymbolRecord
+  include ReferenceRecord
+
   NOTHING = 0
   ACTIVE = 1
   EXPIRED = 2

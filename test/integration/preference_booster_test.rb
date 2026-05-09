@@ -50,12 +50,12 @@ class PreferenceBoosterTest < ActionDispatch::IntegrationTest
       render json: preference_response_payload
     end
 
-    def edit_colortheme
+    def edit_theme
       set_colortheme_preferences_edit
       render plain: "ok"
     end
 
-    def update_colortheme
+    def update_theme
       set_colortheme_preferences_update
       render json: preference_response_payload
     end
@@ -94,8 +94,8 @@ class PreferenceBoosterTest < ActionDispatch::IntegrationTest
       get "test_timezone_edit" => "preference_booster_test/dummy_preference#edit_timezone"
       post "test_timezone_update" => "preference_booster_test/dummy_preference#update_timezone"
 
-      get "test_colortheme_edit" => "preference_booster_test/dummy_preference#edit_colortheme"
-      post "test_colortheme_update" => "preference_booster_test/dummy_preference#update_colortheme"
+      get "test_theme_edit" => "preference_booster_test/dummy_preference#edit_theme"
+      post "test_theme_update" => "preference_booster_test/dummy_preference#update_theme"
 
       get "test_cookie_edit" => "preference_booster_test/dummy_preference#edit_cookie"
       post "test_cookie_update" => "preference_booster_test/dummy_preference#update_cookie"
@@ -147,13 +147,13 @@ class PreferenceBoosterTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "edits and updates colortheme" do
-    get "/test_colortheme_edit", env: { "HTTP_HOST" => "localhost" }
+  test "edits and updates theme" do
+    get "/test_theme_edit", env: { "HTTP_HOST" => "localhost" }
 
     assert_response :success
 
-    post "/test_colortheme_update", params: { preference_colortheme: { option_id: 1 } },
-                                    env: { "HTTP_HOST" => "localhost" }
+    post "/test_theme_update", params: { preference_theme: { option_id: 1 } },
+                               env: { "HTTP_HOST" => "localhost" }
 
     assert_response :success
   end

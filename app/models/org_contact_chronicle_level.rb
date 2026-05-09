@@ -9,7 +9,7 @@
 #  id :bigint           not null, primary key
 #
 class OrgContactChronicleLevel < ChronicleRecord
-  self.record_timestamps = false
+  include ReferenceRecord
 
   NOTHING = 1
   DEBUG = 2

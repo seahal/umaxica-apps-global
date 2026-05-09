@@ -7,20 +7,18 @@
 # Database name: token
 #
 #  id                            :bigint           not null, primary key
-#  compromised_at                :datetime
 #  dbsc_challenge                :text
 #  dbsc_challenge_issued_at      :datetime
 #  dbsc_public_key               :jsonb
-#  deletable_at                  :datetime         default(Infinity), not null
 #  device_id_digest              :string
-#  expired_at                    :datetime
+#  dpop_jkt                      :string
+#  lapses_at                     :datetime         default(Infinity), not null
 #  last_step_up_at               :datetime
 #  last_step_up_scope            :string
 #  last_used_at                  :datetime
-#  refresh_expires_at            :datetime         not null
+#  purge_at                      :datetime         default(Infinity), not null
 #  refresh_token_digest          :binary
 #  refresh_token_generation      :integer          default(0), not null
-#  revoked_at                    :datetime
 #  rotated_at                    :datetime
 #  status                        :string(20)       default("active"), not null
 #  created_at                    :datetime         not null
@@ -29,6 +27,7 @@
 #  device_id                     :string           default(""), not null
 #  public_id                     :string(21)       default(""), not null
 #  refresh_token_family_id       :string
+#  session_id                    :string
 #  staff_id                      :bigint           not null
 #  staff_token_binding_method_id :bigint           default(0), not null
 #  staff_token_dbsc_status_id    :bigint           default(0), not null
@@ -37,17 +36,14 @@
 #
 # Indexes
 #
-#  index_staff_tokens_on_compromised_at                 (compromised_at)
 #  index_staff_tokens_on_dbsc_session_id                (dbsc_session_id) UNIQUE
-#  index_staff_tokens_on_deletable_at                   (deletable_at)
 #  index_staff_tokens_on_device_id                      (device_id)
 #  index_staff_tokens_on_device_id_digest               (device_id_digest)
-#  index_staff_tokens_on_expired_at                     (expired_at)
 #  index_staff_tokens_on_public_id                      (public_id) UNIQUE
-#  index_staff_tokens_on_refresh_expires_at             (refresh_expires_at)
+#  index_staff_tokens_on_purge_at                       (purge_at)
 #  index_staff_tokens_on_refresh_token_digest           (refresh_token_digest) UNIQUE
 #  index_staff_tokens_on_refresh_token_family_id        (refresh_token_family_id)
-#  index_staff_tokens_on_revoked_at                     (revoked_at)
+#  index_staff_tokens_on_session_id                     (session_id)
 #  index_staff_tokens_on_staff_id_and_last_step_up_at   (staff_id,last_step_up_at)
 #  index_staff_tokens_on_staff_token_binding_method_id  (staff_token_binding_method_id)
 #  index_staff_tokens_on_staff_token_dbsc_status_id     (staff_token_dbsc_status_id)
@@ -89,6 +85,20 @@ class StaffTokenTest < ActiveSupport::TestCase
   test "can be created with staff" do
     assert_not_nil @token
     assert_equal @staff.id, @token.staff_id
+  end
+
+  test "session_id copies from public_id on create when blank" do
+    staff = Staff.create!(staff_status: StaffStatus.find(StaffStatus::NOTHING))
+    token = StaffToken.create!(staff: staff)
+
+    assert_equal token.public_id, token.session_id
+  end
+
+  test "session_id preserves explicit value on create" do
+    staff = Staff.create!(staff_status: StaffStatus.find(StaffStatus::NOTHING))
+    token = StaffToken.create!(staff: staff, session_id: "custom_sid")
+
+    assert_equal "custom_sid", token.session_id
   end
 
   test "assigns numeric id automatically" do
@@ -163,17 +173,22 @@ class StaffTokenTest < ActiveSupport::TestCase
   end
 
   test "active state reflects revoked and expired refresh tokens" do
-    assert_predicate @token, :active?
+    freeze_time do
+      token = StaffToken.create!(staff: @staff)
 
-    @token.update!(expired_at: Time.current)
+      assert_predicate token, :active?
 
-    assert_predicate @token, :revoked?
-    assert_not @token.active?
+      travel 1.minute
+      token.update!(lapses_at: 30.seconds.from_now)
 
-    @token.update!(expired_at: nil, refresh_expires_at: 1.day.ago)
+      assert_not token.expired_refresh?
+      assert_predicate token, :active?
 
-    assert_predicate @token, :expired_refresh?
-    assert_not @token.active?
+      token.update_columns(lapses_at: 30.seconds.ago)
+
+      assert_predicate token, :expired_refresh?
+      assert_not token.active?
+    end
   end
 
   test "rotate_refresh_token! updates digest and timestamps" do
@@ -201,8 +216,8 @@ class StaffTokenTest < ActiveSupport::TestCase
       token = StaffToken.create!(
         staff: @staff,
         staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-        revoked_at: 12.hours.from_now,
-        deletable_at: 36.hours.from_now,
+        lapses_at: 12.hours.from_now,
+        purge_at: 4.days.from_now,
       )
       token.rotate_refresh_token!
 
@@ -214,8 +229,8 @@ class StaffTokenTest < ActiveSupport::TestCase
       replacement = result[:token]
 
       assert_equal :rotated, result[:status]
-      assert_equal token.revoked_at.to_i, replacement.revoked_at.to_i
-      assert_equal token.deletable_at.to_i, replacement.deletable_at.to_i
+      assert_equal token.lapses_at.to_i, replacement.lapses_at.to_i
+      assert_equal token.purge_at.to_i, replacement.purge_at.to_i
     end
   end
 
@@ -228,39 +243,42 @@ class StaffTokenTest < ActiveSupport::TestCase
     assert_predicate verifier, :present?
   end
 
-  test "deletable_at matches refresh_expires_at on create" do
-    expires_at = 2.hours.from_now
+  test "purge_at persists on create when provided" do
+    purge_at = 2.days.from_now
     token = StaffToken.create!(
       staff: @staff,
       staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      refresh_expires_at: expires_at,
+      lapses_at: 1.day.from_now,
+      purge_at: purge_at,
     )
 
-    assert_equal token.refresh_expires_at, token.deletable_at
+    assert_equal purge_at.to_i, token.purge_at.to_i
   end
 
-  test "deletable_at is updated when refresh_expires_at changes" do
+  test "purge_at is preserved when lapses_at changes" do
+    purge_at = 4.days.from_now
     token = StaffToken.create!(
       staff: @staff,
       staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      refresh_expires_at: 1.hour.from_now,
+      lapses_at: 1.day.from_now,
+      purge_at: purge_at,
     )
-    new_expires_at = 3.hours.from_now
+    new_lapses_at = 2.days.from_now
 
-    token.update!(refresh_expires_at: new_expires_at)
+    token.update!(lapses_at: new_lapses_at)
 
-    assert_equal token.refresh_expires_at, token.deletable_at
+    assert_equal purge_at.to_i, token.purge_at.to_i
   end
 
-  test "deletable scope returns only tokens deletable at or before now" do
+  test "purgeability query returns only tokens purgeable at or before now" do
     staff = Staff.create!(staff_status: StaffStatus.find(StaffStatus::NOTHING))
-    past_token = StaffToken.create!(staff: staff, refresh_expires_at: 10.minutes.ago)
-    future_token = StaffToken.create!(staff: staff, refresh_expires_at: 10.minutes.from_now)
+    past_token = StaffToken.create!(staff: staff, lapses_at: 20.minutes.ago, purge_at: 10.minutes.ago)
+    future_token = StaffToken.create!(staff: staff, lapses_at: 10.minutes.ago, purge_at: 10.minutes.from_now)
 
-    deletable_ids = StaffToken.deletable(Time.current).pluck(:id)
+    purgeable_ids = StaffToken.where(purge_at: ..Time.current).pluck(:id)
 
-    assert_includes deletable_ids, past_token.id
-    assert_not_includes deletable_ids, future_token.id
+    assert_includes purgeable_ids, past_token.id
+    assert_not_includes purgeable_ids, future_token.id
   end
 
   test "sha3 digest matches hexdigest packed bytes" do
@@ -331,29 +349,31 @@ class StaffTokenTest < ActiveSupport::TestCase
     revoked_raw = revoked.rotate_refresh_token!
     compromised_raw = compromised.rotate_refresh_token!
     expired_raw = expired.rotate_refresh_token!
-    revoked.update!(expired_at: Time.current)
-    compromised.update!(compromised_at: Time.current)
-    expired.update!(refresh_expires_at: 1.minute.ago)
+    travel 1.minute do
+      revoked.update_columns(lapses_at: 30.seconds.ago)
+      expired.update_columns(lapses_at: 30.seconds.ago)
+      compromised.update!(lapses_at: Time.current)
 
-    revoked_digest = StaffToken.digest_refresh_token(StaffToken.parse_refresh_token(revoked_raw).last)
-    compromised_digest = StaffToken.digest_refresh_token(StaffToken.parse_refresh_token(compromised_raw).last)
-    expired_digest = StaffToken.digest_refresh_token(StaffToken.parse_refresh_token(expired_raw).last)
+      revoked_digest = StaffToken.digest_refresh_token(StaffToken.parse_refresh_token(revoked_raw).last)
+      compromised_digest = StaffToken.digest_refresh_token(StaffToken.parse_refresh_token(compromised_raw).last)
+      expired_digest = StaffToken.digest_refresh_token(StaffToken.parse_refresh_token(expired_raw).last)
 
-    assert_equal :invalid,
-                 StaffToken.rotate_refresh!(
-                   presented_refresh_digest: revoked_digest, device_id: "sd1",
-                   now: Time.current,
-                 )[:status]
-    assert_equal :invalid,
-                 StaffToken.rotate_refresh!(
-                   presented_refresh_digest: compromised_digest, device_id: "sd2",
-                   now: Time.current,
-                 )[:status]
-    assert_equal :invalid,
-                 StaffToken.rotate_refresh!(
-                   presented_refresh_digest: expired_digest, device_id: "sd3",
-                   now: Time.current,
-                 )[:status]
+      assert_equal :invalid,
+                   StaffToken.rotate_refresh!(
+                     presented_refresh_digest: revoked_digest, device_id: "sd1",
+                     now: Time.current,
+                   )[:status]
+      assert_equal :invalid,
+                   StaffToken.rotate_refresh!(
+                     presented_refresh_digest: compromised_digest, device_id: "sd2",
+                     now: Time.current,
+                   )[:status]
+      assert_equal :invalid,
+                   StaffToken.rotate_refresh!(
+                     presented_refresh_digest: expired_digest, device_id: "sd3",
+                     now: Time.current,
+                   )[:status]
+    end
   end
 
   test "find_from_signed_ref resolves token when verifier payload has string keys" do

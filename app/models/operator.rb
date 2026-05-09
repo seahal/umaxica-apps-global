@@ -31,7 +31,7 @@
 # frozen_string_literal: true
 
 class Operator < OperatorRecord
-  # TODO: Add `shreddable_at` to Operator and align deletion lifecycle with shredding flow.
+  include Retainable
   include ::Account
 
   attribute :status_id, default: OperatorStatus::NOTHING

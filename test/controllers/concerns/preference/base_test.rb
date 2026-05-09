@@ -80,10 +80,10 @@ module Preference
       assert_equal AppPreferenceRegionOption::JP, result[:option_id]
     end
 
-    test "resolves valid colortheme constant name" do
-      result = @controller.test_sanitize_option_id({ option_id: "dark" }, option_type: :colortheme)
+    test "resolves valid theme constant name" do
+      result = @controller.test_sanitize_option_id({ option_id: "dark" }, option_type: :theme)
 
-      assert_equal AppPreferenceColorthemeOption::DARK, result[:option_id]
+      assert_equal AppPreferenceThemeOption::DARK, result[:option_id]
     end
 
     test "ignores invalid constant name - returns unchanged" do
@@ -321,8 +321,8 @@ module Preference
   class PreferenceBaseMethodsTest < ActiveSupport::TestCase
     FakePreferenceState =
       Struct.new(
-        :binding_method, :dbsc_status, :dbsc_session_id, :expires_at, :revoked_at,
-        :device_id, :device_id_digest, :status_id, :compromised_at, :replaced_by_id, :public_id,
+        :binding_method, :dbsc_status, :dbsc_session_id, :expires_at,
+        :device_id, :device_id_digest, :status_id, :lapses_at, :replaced_by_id, :public_id,
         keyword_init: true,
       ) do
         def binding_method_dbsc? = binding_method == :dbsc
@@ -339,7 +339,11 @@ module Preference
 
         def replay? = false
 
-        def revoked? = revoked_at.present?
+        def accessible?
+          lapses_at.nil? || (lapses_at.respond_to?(:infinite?) && lapses_at.infinite?) || lapses_at > Time.current
+        end
+
+        def revoked? = lapses_at.present? && lapses_at <= Time.current
       end
 
     setup do
@@ -417,8 +421,7 @@ module Preference
         binding_method: :dbsc,
         dbsc_status: :active,
         dbsc_session_id: "session-1",
-        expires_at: 20.minutes.from_now,
-        revoked_at: 30.minutes.from_now,
+        lapses_at: 20.minutes.from_now,
       )
       legacy = FakePreferenceState.new(binding_method: :legacy, dbsc_status: :pending)
       nothing = FakePreferenceState.new(binding_method: :nothing, dbsc_status: :nothing)
@@ -490,10 +493,10 @@ module Preference
       status_class = Class.new
       status_class.const_set(:DELETED, 99)
       @controller.define_singleton_method(:preference_status_class) { status_class }
-      valid = FakePreferenceState.new(status_id: 1, expires_at: 5.minutes.from_now, revoked_at: nil)
-      deleted = FakePreferenceState.new(status_id: 99, expires_at: 5.minutes.from_now, revoked_at: nil)
-      expired = FakePreferenceState.new(status_id: 1, expires_at: 1.minute.ago, revoked_at: nil)
-      revoked = FakePreferenceState.new(status_id: 1, expires_at: 5.minutes.from_now, revoked_at: Time.current)
+      valid = FakePreferenceState.new(status_id: 1, lapses_at: 5.minutes.from_now)
+      deleted = FakePreferenceState.new(status_id: 99, lapses_at: 5.minutes.from_now)
+      expired = FakePreferenceState.new(status_id: 1, lapses_at: 1.minute.ago)
+      revoked = FakePreferenceState.new(status_id: 1, lapses_at: Time.current)
 
       assert @controller.send(:valid_refresh_preference?, valid)
       assert_not @controller.send(:valid_refresh_preference?, nil)
@@ -562,6 +565,38 @@ module Preference
       end
     end
 
+    test "load access token payload reads preference record through writing connection" do
+      payload = {
+        "preferences" => { "ct" => "dr" },
+        "public_id" => "existing-public",
+      }
+      relation = Struct.new(:record) do
+        define_method(:find_by) do |*|
+          record
+        end
+      end.new(app_preferences(:one))
+
+      roles = []
+      @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
+
+      Preference::Token.stub(:decode, payload) do
+        Preference::Token.stub(:extract_preference_type, AppPreference.name) do
+          Preference::Token.stub(:extract_public_id, "existing-public") do
+            AppPreference.stub(:includes, relation) do
+              @controller.define_singleton_method(:with_preference_connection) do |role, &block|
+                roles << role
+                block.call
+              end
+
+              assert @controller.send(:load_access_token_payload)
+              assert_equal app_preferences(:one), @controller.instance_variable_get(:@preferences)
+              assert_equal [:writing], roles
+            end
+          end
+        end
+      end
+    end
+
     test "banner theme class and audit helper edge branches" do
       assert_not @controller.show_cookie_banner?
       @controller.define_singleton_method(:current_resource) { Object.new }
@@ -575,7 +610,7 @@ module Preference
       assert_equal "app_preference_colortheme", @controller.send(:preference_colortheme_association)
 
       @controller.instance_variable_set(:@preferences, Object.new)
-      association = Struct.new(:option_id).new(AppPreferenceColorthemeOption::DARK)
+      association = Struct.new(:option_id).new(AppPreferenceThemeOption::DARK)
       @controller.instance_variable_get(:@preferences).define_singleton_method(:app_preference_colortheme) {
         association
       }
@@ -684,8 +719,7 @@ module Preference
       rotated = FakePreferenceState.new(
         binding_method: :dbsc,
         dbsc_session_id: "dbsc-session",
-        expires_at: 2.hours.from_now,
-        revoked_at: nil,
+        lapses_at: 2.hours.from_now,
         public_id: "rotated-public",
       )
       rotated.define_singleton_method(:class) { rotated_class }
@@ -696,8 +730,8 @@ module Preference
 
       calls = []
       @controller.define_singleton_method(:create_audit_log) { |**kwargs| calls << [:audit, kwargs] }
-      @controller.define_singleton_method(:set_refresh_token_cookie) { |token, expires_at|
-        calls << [:refresh_cookie, token, expires_at]
+      @controller.define_singleton_method(:set_refresh_token_cookie) { |token, lapses_at|
+        calls << [:refresh_cookie, token, lapses_at]
       }
       @controller.define_singleton_method(:set_preference_dbsc_cookie!) { |token, expires_at:|
         calls << [:dbsc_cookie, token, expires_at]
@@ -721,7 +755,7 @@ module Preference
     end
 
     test "load preference record from refresh token covers valid invalid and create branches" do
-      preference = FakePreferenceState.new(binding_method: :legacy, status_id: 1, expires_at: 2.hours.from_now)
+      preference = FakePreferenceState.new(binding_method: :legacy, status_id: 1, lapses_at: 2.hours.from_now)
       @controller.define_singleton_method(:refresh_token_value) { "refresh-token" }
       @controller.define_singleton_method(:refresh_token_data) { |_| ["public-id", "digest"] }
       @controller.define_singleton_method(:find_refresh_preference) { |*, **| preference }
@@ -751,7 +785,7 @@ module Preference
     FakePreference =
       Struct.new(
         :app_preference_language, :app_preference_region, :app_preference_timezone,
-        :app_preference_colortheme, :app_preference_cookie, keyword_init: true,
+        :app_preference_theme, :app_preference_cookie, keyword_init: true,
       ) do
         def class
           AppPreference

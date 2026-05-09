@@ -1,0 +1,37 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class Sign::Com::UpsControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+  end
+
+  test "shows email and telephone registration methods" do
+    get new_sign_com_up_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+    assert_select "[data-testid=?]", "registration-method", count: 2
+    assert_select "a[href=?]", new_sign_com_up_email_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", new_sign_com_up_telephone_path(ri: "jp"), count: 1
+  end
+
+  test "does not show social login buttons" do
+    get new_sign_com_up_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+    assert_select "form[action*=?]", "/social/auth/google_app/start", count: 0
+    assert_select "form[action*=?]", "/social/auth/apple/start", count: 0
+  end
+
+  private
+
+  def default_headers
+    { "Host" => host, "HTTPS" => "on" }
+  end
+
+  def host
+    ENV["ID_CORPORATE_URL"] || "id.com.localhost"
+  end
+end

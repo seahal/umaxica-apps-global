@@ -36,7 +36,7 @@ module Auth
     end
 
     def extract_access_token_from_request
-      Auth::AuthorizationHeader.bearer_token(request) || cookies[access_cookie_key]
+      Auth::AuthorizationHeader.access_token(request) || cookies[access_cookie_key]
     end
 
     def access_cookie_key

@@ -17,7 +17,7 @@ module Sign
 
         test "PATCH update returns updated preference payload and syncs auth preference" do
           patch sign_app_preference_theme_path,
-                params: { preference_colortheme: { option_id: "dr" } },
+                params: { preference_theme: { option_id: "dr" } },
                 headers: as_user_headers(@user, host: @host),
                 as: :json
 

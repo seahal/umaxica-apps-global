@@ -29,7 +29,7 @@ export default class extends Controller {
           "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
         },
         body: JSON.stringify({
-          preference_colortheme: { option_id: theme },
+          preference_theme: { option_id: theme },
         }),
       });
 

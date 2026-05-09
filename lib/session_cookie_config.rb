@@ -25,4 +25,8 @@ module SessionCookieConfig
   def cookie_key(force_secure:)
     force_secure ? "__Host-session" : "session"
   end
+
+  def partitioned?(rails_env: Rails.env)
+    rails_env.production?
+  end
 end

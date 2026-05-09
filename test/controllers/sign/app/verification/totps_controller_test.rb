@@ -27,6 +27,8 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
+    assert_response :success
+
     get new_sign_app_verification_totp_url(ri: "jp"), headers: @headers
 
     assert_response :success
@@ -63,6 +65,8 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
+    assert_response :success
+
     post sign_app_verification_totp_url(ri: "jp"),
          params: { verification: { code: "000000" } },
          headers: @headers
@@ -83,6 +87,8 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
+    assert_response :success
+
     post sign_app_verification_totp_url(ri: "jp"),
          params: { verification: { code: "abc123" } },
          headers: @headers
@@ -102,6 +108,8 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
     get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
         headers: @headers
+
+    assert_response :success
 
     get new_sign_app_verification_totp_url(
       ri: "jp",

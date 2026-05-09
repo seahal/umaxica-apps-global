@@ -39,13 +39,14 @@ module TokenStatusManagement
   def revoke!
     now = Time.current
     attrs = { status: STATUS_REVOKED }
-    attrs[:expired_at] = now if has_attribute?(:expired_at)
-    attrs[:revoked_at] = now if has_attribute?(:revoked_at)
+    if has_attribute?(:lapses_at)
+      attrs[:lapses_at] = [now, created_at].compact.max
+    end
     update!(attrs)
   end
 
   def expired?
-    return true if respond_to?(:expired_at) && has_attribute?(:expired_at) && expired_at.present?
+    return true if respond_to?(:lapses_at) && has_attribute?(:lapses_at) && past_or_present_time?(lapses_at)
     return true if scheduled_revocation_due?
 
     false
@@ -54,41 +55,46 @@ module TokenStatusManagement
   def currently_usable?(now = Time.current)
     return false if expired?
     return false if has_attribute?(:rotated_at) && rotated_at.present?
-    return false if has_attribute?(:refresh_expires_at) && refresh_expires_at <= now
-    return false if has_attribute?(:compromised_at) && compromised_at.present?
+    return false if has_attribute?(:lapses_at) && past_or_present_time?(lapses_at, now)
 
     true
   end
 
   def scheduled_revocation_due?(now = Time.current)
-    has_attribute?(:revoked_at) && revoked_at.present? && revoked_at <= now
+    has_attribute?(:lapses_at) && past_or_present_time?(lapses_at, now)
   end
 
   module ClassMethods
     def currently_usable_at(now = Time.current)
       scope = currently_valid_at(now)
       scope = scope.where(rotated_at: nil) if column_names.include?("rotated_at")
-      scope = scope.where(compromised_at: nil) if column_names.include?("compromised_at")
 
-      if column_names.include?("refresh_expires_at")
-        scope = scope.where(arel_table[:refresh_expires_at].gt(now))
+      if column_names.include?("lapses_at")
+        scope = scope.where(arel_table[:lapses_at].gt(now))
       end
 
       scope
     end
 
     def currently_valid_at(now = Time.current)
-      scope = where(expiry_column => nil)
-      return scope unless column_names.include?("revoked_at")
+      return all unless column_names.include?("lapses_at")
 
-      scope.where(arel_table[:revoked_at].eq(nil).or(arel_table[:revoked_at].gt(now)))
+      where(arel_table[:lapses_at].gt(now))
     end
 
     def expiry_column
-      return :expired_at if column_names.include?("expired_at")
-      return :revoked_at if column_names.include?("revoked_at")
+      return :lapses_at if column_names.include?("lapses_at")
 
-      raise ArgumentError, "#{name} does not have expired_at/revoked_at column"
+      raise ArgumentError, "#{name} does not have lapses_at column"
     end
+  end
+
+  private
+
+  def past_or_present_time?(value, now = Time.current)
+    return false if value.blank?
+    return false if value.respond_to?(:infinite?) && value.infinite?
+
+    value <= now
   end
 end

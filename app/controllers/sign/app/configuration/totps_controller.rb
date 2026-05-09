@@ -94,7 +94,7 @@ module Sign
         private
 
         def find_totp
-          current_user.user_one_time_passwords.find_by!(public_id: params[:id])
+          current_user.user_one_time_passwords.find_by!(public_id: params.expect(:id))
         end
 
         def generate_totp_session

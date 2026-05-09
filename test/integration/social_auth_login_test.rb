@@ -45,8 +45,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     user_count_before = User.count
 
     # Start login flow
-    get sign_app_social_start_url(provider: "google_app", intent: "login", ri: "jp"),
-        headers: browser_headers.merge("Host" => @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
+         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
 
@@ -85,8 +85,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     user_count_before = User.count
 
-    get sign_app_social_start_url(provider: "apple", intent: "login", ri: "jp"),
-        headers: browser_headers.merge("Host" => @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "login", ri: "jp"),
+         headers: browser_headers.merge("Host" => @host)
 
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: browser_headers.merge(@callback_headers)
@@ -104,8 +104,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     user_count_before = User.count
     identity_count_before = UserSocialGoogle.count
 
-    get sign_app_social_start_url(provider: "google_app", intent: "login", ri: "jp"),
-        headers: browser_headers.merge("Host" => @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
+         headers: browser_headers.merge("Host" => @host)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: browser_headers.merge(@callback_headers)
@@ -131,8 +131,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     user_count_before = User.count
     identity_count_before = UserSocialApple.count
 
-    get sign_app_social_start_url(provider: "apple", intent: "login", ri: "jp"),
-        headers: browser_headers.merge("Host" => @host)
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "login", ri: "jp"),
+         headers: browser_headers.merge("Host" => @host)
 
     get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
         headers: browser_headers.merge(@callback_headers)
@@ -155,8 +155,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     new_uid = "cookie_test_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    get sign_app_social_start_url(provider: "google_app", intent: "login", ri: "jp"),
-        headers: browser_headers.merge("Host" => @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
+         headers: browser_headers.merge("Host" => @host)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: browser_headers.merge(@callback_headers)
@@ -193,8 +193,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     time_before = Time.current
 
-    get sign_app_social_start_url(provider: "google_app", intent: "login", ri: "jp"),
-        headers: browser_headers.merge("Host" => @host)
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
+         headers: browser_headers.merge("Host" => @host)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         headers: browser_headers.merge(@callback_headers)

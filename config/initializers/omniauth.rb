@@ -15,7 +15,7 @@
 # - Failure:  GET/POST /auth/failure
 #
 # Our custom entry point:
-# - GET /social/start?provider=...&intent=... -> prepares intent, redirects to /auth/:provider
+# - POST /social/auth/:provider/start?intent=... -> prepares intent, redirects to /auth/:provider
 #
 # State Parameter:
 # - All providers use state validation (via SocialAuthConcern)
@@ -46,6 +46,31 @@ apple_client_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_CLIENT_ID)
 apple_team_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_TEAM_ID)
 apple_key_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_KEY_ID)
 apple_pem = Rails.app.creds.option(:OMNI_AUTH_APPLE_PRIVATE_KEY)
+
+module OmniAuthCallbackOrigin
+  module_function
+
+  def call(env)
+    request = Rack::Request.new(env)
+    scheme = public_sign_host?(request.host) ? "https" : request.scheme
+
+    "#{scheme}://#{request.host_with_port}"
+  end
+
+  PUBLIC_SIGN_HOSTS = %w(ID_SERVICE_URL SIGN_SERVICE_URL ID_STAFF_URL SIGN_STAFF_URL).filter_map do |key|
+    ENV[key].to_s.downcase.presence
+  end.freeze
+
+  def public_sign_host?(host)
+    public_sign_hosts.include?(host.to_s.downcase)
+  end
+
+  def public_sign_hosts
+    PUBLIC_SIGN_HOSTS
+  end
+end
+
+OmniAuth.config.full_host = ->(env) { OmniAuthCallbackOrigin.call(env) }
 
 # =============================================================================
 # Corporate Social Login Guard
@@ -145,7 +170,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
 end
 
 # Allow both GET and POST for initiating OAuth
-# - GET: Used by our custom /social/start entry point (CSRF protected by state validation)
+# - GET: Used after our custom /social/auth/:provider/start entry point redirects to OmniAuth
 # - POST: Traditional form submission (CSRF protected by Rails token)
 # State validation in SocialAuthConcern provides CSRF protection for both methods
 OmniAuth.config.silence_get_warning = true
