@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 4432dd30b79e6b4d6ef55db3f3a82ec8b9a5926e
+  revision: f26f56ed4e19dea9119fcfe067eff36b7f0b5dc5
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -112,7 +112,7 @@ GEM
       httpx (~> 1.6)
       jwt (>= 2)
       railties (>= 8.0)
-    action_text-trix (2.1.18)
+    action_text-trix (2.1.19)
       railties
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
@@ -1019,7 +1019,7 @@ DEPENDENCIES
 CHECKSUMS
   action_policy (0.7.6) sha256=a80156671e6b7784a2f1fa3a5f347da27c7e13abe7b1c9aab81772839794002d
   action_push_native (0.3.1) sha256=77a234b6da6fdc8f45357662485044a81b1c6d0e3285b88c307fdf8095fda0cc
-  action_text-trix (2.1.18) sha256=3fdb83f8bff4145d098be283cdd47ac41caf5110bfa6df4695ed7127d7fb3642
+  action_text-trix (2.1.19) sha256=7012f59421009cf284aa651294896414d653a61a2417c9b8714c8476d2f74009
   actioncable (8.2.0.alpha)
   actionmailbox (8.2.0.alpha)
   actionmailer (8.2.0.alpha)
