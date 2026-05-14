@@ -8,9 +8,9 @@ module Sign
       include ::Session
       include ::Preference::Global
       include ::Preference::Adoption
-      include ::Authentication::Staff
-      include ::Authorization::Staff
-      include ::Verification::Staff
+      include ::Authentication::Operator
+      include ::Authorization::Operator
+      include ::Verification::Operator
       include ActionPolicy::Controller
       include ::RestrictedSessionGuard
       include ::CurrentSupport
@@ -50,7 +50,7 @@ module Sign
       # Redirect logged-in users from guest_only! pages to the configuration page.
       # Overrides Authentication::Base#after_login_path. ri is added automatically via default_url_options.
       def after_login_path
-        sign_org_configuration_path
+        sign_org_dashboard_path
       rescue StandardError
         "/"
       end

@@ -122,7 +122,7 @@ class UserChronicleTest < ActiveSupport::TestCase
     assert_equal actor_user, audit.actor
   end
 
-  test "can be created with a Staff as actor" do
+  test "can be created with an Operator as actor" do
     actor_staff = staffs(:one)
     audit = UserChronicle.create!(
       user: @user,
@@ -131,11 +131,11 @@ class UserChronicleTest < ActiveSupport::TestCase
     )
 
     assert_equal actor_staff.id, audit.actor_id
-    assert_equal "Staff", audit.actor_type
+    assert_equal "Operator", audit.actor_type
     assert_equal actor_staff, audit.actor
   end
 
-  test "User and Staff can both be actors in different audits" do
+  test "User and Operator can both be actors in different audits" do
     actor_user = users(:one)
     actor_staff = staffs(:one)
 
@@ -154,7 +154,7 @@ class UserChronicleTest < ActiveSupport::TestCase
 
     # Retrieve multiple audits related to the same User
     user_actors = @user.user_chronicles.where(actor_type: "User")
-    staff_actors = @user.user_chronicles.where(actor_type: "Staff")
+    staff_actors = @user.user_chronicles.where(actor_type: "Operator")
 
     assert_not_empty user_actors
     assert_not_empty staff_actors
@@ -167,6 +167,21 @@ class UserChronicleTest < ActiveSupport::TestCase
 
   test "user_id helper method returns user id" do
     assert_equal @user.id.to_s, @audit.user_id
+  end
+
+  test "user helpers return nil for non user subjects" do
+    audit = UserChronicle.new(subject_id: @user.id.to_s, subject_type: "Staff")
+
+    assert_nil audit.user
+    assert_nil audit.user_id
+  end
+
+  test "event validation skips blank event id" do
+    audit = UserChronicle.new(user: @user, event_id: nil)
+
+    audit.send(:event_id_must_exist)
+
+    assert_empty audit.errors[:event_id]
   end
 
   test "occurred_at alias works" do

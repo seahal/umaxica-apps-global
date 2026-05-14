@@ -134,6 +134,51 @@ class UserSocialAppleTest < ActiveSupport::TestCase
     assert identity.changes.key?("token") # Confirms it has unsaved changes
   end
 
+  test "find_or_create_from_auth_hash preserves existing refresh token when omitted" do
+    user = users(:one)
+    UserSocialApple.create!(
+      user: user,
+      uid: "refresh-apple-uid",
+      token: "old-token",
+      refresh_token: "stored-refresh",
+      expires_at: 123,
+      user_social_apple_status: UserSocialAppleStatus.find(UserSocialAppleStatus::ACTIVE),
+    )
+
+    auth = MockAuth.new(
+      uid: "refresh-apple-uid",
+      provider: "apple",
+      info: OpenStruct.new(email: "updated@example.com"),
+      credentials: OpenStruct.new(token: "updated-token", refresh_token: nil, expires_at: 456),
+    )
+
+    identity = UserSocialApple.find_or_create_from_auth_hash(auth)
+
+    assert_equal "stored-refresh", identity.refresh_token
+  end
+
+  test "find_or_create_from_auth_hash updates refresh token when present" do
+    user = users(:one)
+    UserSocialApple.create!(
+      user: user,
+      uid: "present-refresh-apple-uid",
+      token: "old-token",
+      refresh_token: "stored-refresh",
+      expires_at: 123,
+      user_social_apple_status: UserSocialAppleStatus.find(UserSocialAppleStatus::ACTIVE),
+    )
+
+    auth = MockAuth.new(
+      uid: "present-refresh-apple-uid",
+      provider: "apple",
+      credentials: OpenStruct.new(token: "updated-token", refresh_token: "updated-refresh", expires_at: 456),
+    )
+
+    identity = UserSocialApple.find_or_create_from_auth_hash(auth)
+
+    assert_equal "updated-refresh", identity.refresh_token
+  end
+
   test "extract_uid falls back to extra raw_info sub" do
     auth = MockAuth.new(
       uid: "",
@@ -144,6 +189,27 @@ class UserSocialAppleTest < ActiveSupport::TestCase
     )
 
     assert_equal "apple-sub", UserSocialApple.extract_uid(auth)
+  end
+
+  test "extract_uid uses uid when present" do
+    auth = MockAuth.new(
+      uid: "apple-present-uid",
+      provider: "apple",
+      info: OpenStruct.new(email: "apple@example.com"),
+      credentials: OpenStruct.new(token: "apple-token", expires_at: 123),
+    )
+
+    assert_equal "apple-present-uid", UserSocialApple.extract_uid(auth)
+  end
+
+  test "extract_uid returns empty string when uid and extra are missing" do
+    auth = MockAuth.new(
+      uid: nil,
+      provider: "apple",
+      credentials: OpenStruct.new(token: "apple-token", expires_at: 123),
+    )
+
+    assert_equal "", UserSocialApple.extract_uid(auth)
   end
 
   test "update_from_auth_hash updates attributes and timestamp" do
@@ -169,6 +235,27 @@ class UserSocialAppleTest < ActiveSupport::TestCase
     assert_equal "new-refresh", identity.refresh_token
     assert_equal 456, identity.expires_at
     assert_predicate identity.last_authenticated_at, :present?
+  end
+
+  test "update_from_auth_hash preserves existing refresh token when omitted" do
+    identity = UserSocialApple.create!(
+      user: users(:one),
+      uid: "omit-refresh-apple-uid",
+      token: "old-token",
+      refresh_token: "stored-refresh",
+      expires_at: 123,
+    )
+
+    auth = MockAuth.new(
+      uid: "omit-refresh-apple-uid",
+      provider: "apple",
+      info: OpenStruct.new(email: "new-apple@example.com"),
+      credentials: OpenStruct.new(token: "new-token", refresh_token: nil, expires_at: 456),
+    )
+
+    identity.update_from_auth_hash!(auth)
+
+    assert_equal "stored-refresh", identity.refresh_token
   end
 
   test "active scope and active? check status column" do

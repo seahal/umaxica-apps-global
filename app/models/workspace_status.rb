@@ -18,8 +18,6 @@ class WorkspaceStatus < OperatorRecord
   LEGACY_NOTHING = 1
   DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
 
-  has_many :workspaces, dependent: :restrict_with_error
-
   def self.ensure_defaults!
     insert_missing_fixed_ids!(DEFAULTS)
   end

@@ -49,14 +49,16 @@ module Oidc
     def authenticate_client!
       return if Oidc::ClientRegistry.authenticate(client_id, client_secret)
 
-      raise ArgumentError, "Client authentication failed"
+      raise ArgumentError, "OIDC client authentication failed"
 
     end
 
     def find_and_validate_code!
       authorization_code =
         TokenRecord.connected_to(role: :writing) do
-          StaffAuthorizationCode.lock.find_by(code: code)
+          OperatorAuthorizationCode.lock.find_by(code: code)
+        end || SymbolRecord.connected_to(role: :writing) do
+          VisitorAuthorizationCode.lock.find_by(code: code)
         end || MarkRecord.connected_to(role: :writing) do
           UserAuthorizationCode.lock.find_by(code: code)
         end
@@ -83,9 +85,9 @@ module Oidc
 
     def consume_and_issue_tokens!(authorization_code, dpop_jkt: nil)
       client = Oidc::ClientRegistry.find!(client_id)
-      resource = authorization_code.is_a?(StaffAuthorizationCode) ? authorization_code.staff : authorization_code.user
+      resource = authorization_code.resource
 
-      connection_class = authorization_code.is_a?(StaffAuthorizationCode) ? TokenRecord : MarkRecord
+      connection_class = connection_class_for(authorization_code)
 
       connection_class.connected_to(role: :writing) do
         authorization_code.consume!
@@ -96,8 +98,10 @@ module Oidc
         access_expires_at = now + Authentication::Base::ACCESS_TOKEN_TTL
 
         id_host =
-          if client.resource_type == "staff"
+          if operator_client?(client)
             ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+          elsif visitor_client?(client)
+            ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
           else
             ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
           end
@@ -106,7 +110,7 @@ module Oidc
           resource,
           host: id_host,
           session_id: token_record.public_id,
-          resource_type: client.resource_type,
+          resource_type: token_resource_type(client),
           expires_at: access_expires_at,
           acr: authorization_code.acr,
           amr: Array(authorization_code.auth_method),
@@ -130,12 +134,20 @@ module Oidc
     end
 
     def create_token_record!(client, resource, dpop_jkt: nil)
-      if client.resource_type == "staff"
-        StaffToken.create!(
+      if operator_client?(client)
+        OperatorToken.create!(
           staff: resource,
           public_id: SecureRandom.alphanumeric(21),
           lapses_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
-          status: "active",
+          staff_token_status_id: OperatorTokenStatus::ACTIVE,
+          dpop_jkt: dpop_jkt,
+        )
+      elsif visitor_client?(client)
+        VisitorToken.create!(
+          visitor: resource,
+          public_id: SecureRandom.alphanumeric(21),
+          lapses_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
+          visitor_token_status_id: VisitorTokenStatus::ACTIVE,
           dpop_jkt: dpop_jkt,
         )
       else
@@ -143,9 +155,32 @@ module Oidc
           user: resource,
           public_id: SecureRandom.alphanumeric(21),
           lapses_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
-          status: "active",
+          user_token_status_id: UserTokenStatus::ACTIVE,
           dpop_jkt: dpop_jkt,
         )
+      end
+    end
+
+    def operator_client?(client)
+      %w(operator staff).include?(client.resource_type)
+    end
+
+    def visitor_client?(client)
+      %w(visitor customer).include?(client.resource_type)
+    end
+
+    def token_resource_type(client)
+      return "operator" if operator_client?(client)
+      return "visitor" if visitor_client?(client)
+
+      client.resource_type
+    end
+
+    def connection_class_for(authorization_code)
+      case authorization_code
+      when OperatorAuthorizationCode then TokenRecord
+      when VisitorAuthorizationCode then SymbolRecord
+      else MarkRecord
       end
     end
 

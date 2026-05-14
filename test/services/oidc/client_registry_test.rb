@@ -61,25 +61,33 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     expected.each do |client_id|
       client = Oidc::ClientRegistry.find(client_id)
 
-      assert_not_nil client, "Client #{client_id} should be registered"
-      assert_predicate client.redirect_uris, :present?, "Client #{client_id} should have redirect_uris"
-      assert_predicate client.aud, :present?, "Client #{client_id} should have aud"
+      assert_not_nil client, "VisitorAccount #{client_id} should be registered"
+      assert_predicate client.redirect_uris, :present?, "VisitorAccount #{client_id} should have redirect_uris"
+      assert_predicate client.aud, :present?, "VisitorAccount #{client_id} should have aud"
     end
   end
 
-  test "org clients have staff resource_type" do
+  test "org clients have operator resource_type" do
     %w(apex_org core_org docs_org news_org help_org).each do |client_id|
       client = Oidc::ClientRegistry.find(client_id)
 
-      assert_equal "staff", client.resource_type, "#{client_id} should be staff type"
+      assert_equal "operator", client.resource_type, "#{client_id} should be operator type"
     end
   end
 
-  test "app and com clients have user resource_type" do
-    %w(apex_app core_app docs_app news_app help_app apex_com core_com docs_com news_com help_com).each do |client_id|
+  test "app clients have user resource_type" do
+    %w(apex_app core_app docs_app news_app help_app).each do |client_id|
       client = Oidc::ClientRegistry.find(client_id)
 
       assert_equal "user", client.resource_type, "#{client_id} should be user type"
+    end
+  end
+
+  test "com clients have visitor resource_type" do
+    %w(apex_com core_com docs_com news_com help_com).each do |client_id|
+      client = Oidc::ClientRegistry.find(client_id)
+
+      assert_equal "visitor", client.resource_type, "#{client_id} should be visitor type"
     end
   end
 

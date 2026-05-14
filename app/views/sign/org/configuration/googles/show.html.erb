@@ -14,8 +14,14 @@
 </p>
 
 <div>
-  <%= button_to t("actions.connect"),
-                start_sign_org_social_authentication_path(provider: "google_org", ri: params[:ri]),
-                method: :post,
-                data: { turbo: false } %>
+  <% if @google_login_enabled %>
+    <%= button_to t("actions.disconnect"),
+                  sign_org_social_authentication_path(provider: "google_org", ri: params[:ri]),
+                  method: :delete %>
+  <% else %>
+    <%= button_to t("actions.connect"),
+                  sign_org_configuration_google_path(ri: params[:ri]),
+                  method: :post,
+                  data: { turbo: false } %>
+  <% end %>
 </div>

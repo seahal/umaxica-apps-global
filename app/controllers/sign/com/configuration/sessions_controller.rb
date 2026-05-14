@@ -7,7 +7,7 @@ module Sign
       class SessionsController < ApplicationController
         auth_required!
 
-        before_action :authenticate_customer!
+        before_action :authenticate_visitor!
         before_action :set_session, only: %i(destroy)
 
         def index
@@ -33,10 +33,25 @@ module Sign
           render_revoke_success
         end
 
+        def revoke_all
+          return if require_step_up!(scope: "session_revoke_all") == false
+
+          sessions = visible_sessions.to_a
+          revoke_sessions!(sessions)
+          Rails.event.notify(
+            "security.session_revoke_all",
+            actor_type: current_resource.class.name,
+            actor_id: current_resource.id,
+            session_count: sessions.length,
+          )
+          log_out
+          render_revoke_all_success
+        end
+
         private
 
         def visible_sessions
-          current_customer.customer_tokens.session_inventory
+          current_visitor.visitor_tokens.session_inventory
         end
 
         def render_revoke_success
@@ -44,6 +59,14 @@ module Sign
             sign_com_configuration_sessions_path(ri: params[:ri]),
             status: :see_other,
             notice: t("sign.app.configuration.sessions.revoke.success"),
+          )
+        end
+
+        def render_revoke_all_success
+          redirect_to(
+            sign_com_configuration_sessions_path(ri: params[:ri]),
+            status: :see_other,
+            notice: t("session_limit.all_sessions_revoked"),
           )
         end
 

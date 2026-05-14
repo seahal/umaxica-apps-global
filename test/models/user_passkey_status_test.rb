@@ -28,4 +28,20 @@ class UserPasskeyStatusTest < ActiveSupport::TestCase
     assert_kind_of Integer, UserPasskeyStatus::DELETED
     assert_kind_of Integer, UserPasskeyStatus::NOTHING
   end
+
+  test "default ids include every fixed status" do
+    assert_equal [
+      UserPasskeyStatus::ACTIVE,
+      UserPasskeyStatus::DISABLED,
+      UserPasskeyStatus::REVOKED,
+      UserPasskeyStatus::DELETED,
+      UserPasskeyStatus::NOTHING,
+    ], UserPasskeyStatus::DEFAULTS
+  end
+
+  test "ensure_defaults! keeps fixed status rows present" do
+    UserPasskeyStatus.ensure_defaults!
+
+    assert_empty UserPasskeyStatus::DEFAULTS - UserPasskeyStatus.where(id: UserPasskeyStatus::DEFAULTS).pluck(:id)
+  end
 end

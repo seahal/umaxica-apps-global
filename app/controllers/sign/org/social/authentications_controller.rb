@@ -4,22 +4,27 @@
 module Sign
   module Org
     module Social
-      # Controller for staff social auth entry point.
+      # Controller for operators social auth entry point.
       #
       # Routes:
-      #   POST /social/auth/:provider/start -> #start
+      #   POST /social/auth/:provider/continue -> #continue
+      #   POST /social/auth/:provider/start    -> #start (compatibility alias)
+      #   DELETE /social/auth/:provider         -> #destroy
       #
-      # Only supports "login" intent -- staff sign-up via social is not allowed.
+      # Operator social continue signs in existing staff only; unknown staff are not created.
       class AuthenticationsController < Sign::Org::ApplicationController
         include SocialAuthConcern
+        include ::Verification::Operator
 
         SUPPORTED_PROVIDERS = %w(google_org).freeze
 
-        public_strict! only: %i(start)
+        public_strict! only: %i(continue start)
+        auth_required! only: :destroy
+        before_action -> { require_step_up!(scope: "social_unlink") }, only: :destroy
 
-        # POST /social/auth/:provider/start
+        # POST /social/auth/:provider/continue
         # Prepares intent/state in session, then redirects to OmniAuth provider.
-        def start
+        def continue
           provider = params[:provider]
 
           unless SUPPORTED_PROVIDERS.include?(provider)
@@ -39,7 +44,70 @@ module Sign
           handle_social_auth_error(e)
         end
 
+        # POST /social/auth/:provider/start
+        # Compatibility alias for older callers.
+        def start
+          continue
+        end
+
+        def destroy
+          provider = params[:provider]
+          unless SUPPORTED_PROVIDERS.include?(provider)
+            return redirect_to(
+              sign_org_configuration_path,
+              alert: I18n.t("sign.org.social.sessions.invalid_provider"),
+            )
+          end
+
+          unlink_google_org!
+          redirect_to(
+            sign_org_configuration_path(ri: params[:ri]),
+            notice: I18n.t(
+              "sign.app.social.sessions.unlink.success",
+              provider: SocialIdentifiable.normalize_provider(provider).humanize,
+            ),
+          )
+        end
+
         private
+
+        GOOGLE_LOGIN_STATUSES = [
+          OperatorEmailStatus::ACTIVE,
+          OperatorEmailStatus::VERIFIED,
+        ].freeze
+
+        def unlink_google_org!
+          emails = current_operator.staff_emails
+            .where(undeletable: true, staff_identity_email_status_id: GOOGLE_LOGIN_STATUSES)
+            .to_a
+
+          Operator.transaction do
+            current_operator.lock!
+            emails.each { |email| email.update!(undeletable: false) }
+            create_google_unlink_audit! if emails.any?
+          end
+        end
+
+        def create_google_unlink_audit!
+          ChronicleRecord.connected_to(role: :writing) do
+            OperatorChronicleEvent.find_or_create_by!(id: OperatorChronicleEvent::SOCIAL_UNLINKED)
+            OperatorChronicleLevel.find_or_create_by!(id: OperatorChronicleLevel::NOTHING)
+          end
+
+          OperatorChronicle.create!(
+            actor_type: "Operator",
+            actor_id: current_operator.id,
+            event_id: OperatorChronicleEvent::SOCIAL_UNLINKED,
+            level_id: OperatorChronicleLevel::NOTHING,
+            subject_id: current_operator.id.to_s,
+            subject_type: "Operator",
+            occurred_at: Time.current,
+            context: {
+              auth_method: "social",
+              provider: "google",
+            },
+          )
+        end
 
         def social_auth_failure_redirect_path
           new_sign_org_in_path

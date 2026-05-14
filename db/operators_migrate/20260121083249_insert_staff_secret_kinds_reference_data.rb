@@ -5,7 +5,7 @@ class InsertStaffSecretKindsReferenceData < ActiveRecord::Migration[8.2]
     safety_assured do
       execute(<<~SQL.squish)
         INSERT INTO staff_secret_kinds (id) VALUES
-          ('LOGIN'), ('TOTP')
+          ('LOGIN')
         ON CONFLICT (id) DO NOTHING
       SQL
     end
@@ -14,7 +14,7 @@ class InsertStaffSecretKindsReferenceData < ActiveRecord::Migration[8.2]
   def down
     safety_assured do
       execute(<<~SQL.squish)
-        DELETE FROM staff_secret_kinds WHERE id IN ('LOGIN', 'TOTP')
+        DELETE FROM staff_secret_kinds WHERE id IN ('LOGIN')
       SQL
     end
   end

@@ -53,4 +53,5 @@ class HandleAssignment < AvatarRecord
 
   delegate :name, to: :handle
 end
+
 # rubocop:enable Layout/LineLength

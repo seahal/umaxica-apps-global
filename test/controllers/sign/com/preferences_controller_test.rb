@@ -14,6 +14,6 @@ class Sign::Com::PreferencesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "a[href=?]", new_sign_com_preference_email_path(ri: "jp")
+    assert_select "a[href*='/preference/email']", count: 0
   end
 end

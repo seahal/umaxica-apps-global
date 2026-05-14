@@ -86,7 +86,8 @@ module Preference
     def refresh_token_expires_at
       public_id = decoded_preference_payload&.dig("public_id")
       record = find_preference_by_public_id(public_id)
-      return record.expires_at if record&.expires_at.present?
+      expires_at = record&.expires_at
+      return expires_at if expires_at.present? && !expires_at.is_a?(Float)
 
       nil
     rescue StandardError => e
@@ -111,25 +112,26 @@ module Preference
     end
 
     def requested_consented_value
-      raw_value =
-        if params.key?(:consented)
-          params[:consented]
-        elsif params.expect(:cookie).is_a?(Hash) && params.expect(:cookie).key?(:consented)
-          params[:cookie][:consented]
-        else
-          return nil
-        end
+      return ActiveModel::Type::Boolean.new.cast(params[:consented]) if params.key?(:consented)
+
+      cookie_params = params[:cookie]
+      return nil unless cookie_params.is_a?(ActionController::Parameters) || cookie_params.is_a?(Hash)
+
+      cookie_params = cookie_params.to_h.with_indifferent_access
+      return nil unless cookie_params.key?(:consented)
+
+      raw_value = cookie_params[:consented]
       ActiveModel::Type::Boolean.new.cast(raw_value)
     end
 
     def persist_cookie_consent!(consented)
       public_id = decoded_preference_payload&.dig("public_id")
-      return if public_id.blank?
+      raise RuntimeError, "missing_preference_access_token" if public_id.blank?
 
       with_preference_connection(:writing) do
         preference_class.transaction do
           preference = preference_class.lock.find_by(public_id: public_id)
-          return if preference.blank?
+          raise ActiveRecord::RecordNotFound, "preference_not_found" if preference.blank?
 
           cookie = load_or_create_preference_cookie!(preference)
           attrs = { consented: consented }
@@ -138,7 +140,6 @@ module Preference
 
           preference.reload
           issue_access_token_from(preference)
-          raise RuntimeError, "failed_to_issue_preference_access_token" if @preference_payload.blank?
 
           @decoded_preference_payload = nil
         end

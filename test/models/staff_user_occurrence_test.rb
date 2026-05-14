@@ -25,11 +25,11 @@
 
 require "test_helper"
 
-class StaffUserOccurrenceTest < ActiveSupport::TestCase
+class OperatorUserOccurrenceTest < ActiveSupport::TestCase
   test "associations" do
-    staff = StaffOccurrence.create!(body: "staff-001")
+    staff = OperatorOccurrence.create!(body: "staff-001")
     user = UserOccurrence.create!(body: "user-001")
-    record = StaffUserOccurrence.new(
+    record = OperatorUserOccurrence.new(
       staff_occurrence: staff,
       user_occurrence: user,
     )
@@ -40,10 +40,10 @@ class StaffUserOccurrenceTest < ActiveSupport::TestCase
   end
 
   test "uniqueness validation" do
-    staff = StaffOccurrence.create!(body: "staff-002")
+    staff = OperatorOccurrence.create!(body: "staff-002")
     user = UserOccurrence.create!(body: "user-002")
-    StaffUserOccurrence.create!(staff_occurrence: staff, user_occurrence: user)
-    duplicate = StaffUserOccurrence.new(staff_occurrence: staff, user_occurrence: user)
+    OperatorUserOccurrence.create!(staff_occurrence: staff, user_occurrence: user)
+    duplicate = OperatorUserOccurrence.new(staff_occurrence: staff, user_occurrence: user)
 
     assert_not duplicate.valid?
     assert_not_empty duplicate.errors[:staff_occurrence_id]

@@ -13,7 +13,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
 
     # Ensure necessary records exist
     UserTokenKind.find_or_create_by!(id: UserTokenKind::BROWSER_WEB)
-    [UserTokenStatus::NOTHING, UserTokenStatus::ACTIVE, UserTokenStatus::EXPIRED].each do |id|
+    UserTokenStatus::DEFAULTS.each do |id|
       UserTokenStatus.find_or_create_by!(id: id)
     end
     UserTokenBindingMethod.find_or_create_by!(id: 0) # NOTHING
@@ -30,7 +30,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
     # Bypass validation to create 3rd active
     active3 = UserToken.new(
       user: @user,
-      status: UserToken::STATUS_ACTIVE,
+      user_token_status_id: UserTokenStatus::ACTIVE,
       user_token_status_id: UserTokenStatus::ACTIVE,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
       lapses_at: 1.month.from_now,
@@ -47,7 +47,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
 
     restricted.reload
 
-    assert_equal UserToken::STATUS_RESTRICTED, restricted.status
+    assert_equal UserTokenStatus::RESTRICTED, restricted.user_token_status_id
   end
 
   test "destroy with ref param revokes and stays on page" do
@@ -71,8 +71,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
   def create_restricted_session(user)
     token = UserToken.new(
       user: user,
-      status: UserToken::STATUS_RESTRICTED,
-      user_token_status_id: UserTokenStatus::NOTHING,
+      user_token_status_id: UserTokenStatus::RESTRICTED,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
       lapses_at: 1.month.from_now,
     )
@@ -84,7 +83,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
   def create_active_session(user)
     token = UserToken.new(
       user: user,
-      status: UserToken::STATUS_ACTIVE,
+      user_token_status_id: UserTokenStatus::ACTIVE,
       user_token_status_id: UserTokenStatus::ACTIVE,
       user_token_kind_id: UserTokenKind::BROWSER_WEB,
       lapses_at: 1.month.from_now,

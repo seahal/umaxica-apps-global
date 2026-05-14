@@ -100,11 +100,11 @@ class RetentionPurgeJob < ApplicationJob
 
   RETAINABLE_MODELS = [
     User, Customer, Staff, AppPreference, OrgPreference, ComPreference,
-    UserToken, StaffToken, CustomerToken,
-    UserVerification, StaffVerification, CustomerVerification,
-    UserAuthorizationCode, StaffAuthorizationCode, CustomerAuthorizationCode,
-    UserReauthSession, StaffReauthSession, CustomerReauthSession,
-    AreaOccurrence, UserOccurrence, StaffOccurrence, ZipOccurrence,
+    UserToken, OperatorToken, CustomerToken,
+    UserVerification, OperatorVerification, CustomerVerification,
+    UserAuthorizationCode, OperatorAuthorizationCode, CustomerAuthorizationCode,
+    UserReauthSession, OperatorReauthSession, CustomerReauthSession,
+    AreaOccurrence, UserOccurrence, OperatorOccurrence, ZipOccurrence,
     DomainOccurrence, IpOccurrence, EmailOccurrence, JwtOccurrence, TelephoneOccurrence,
     AppJumpLink, ComJumpLink, OrgJumpLink
   ].freeze

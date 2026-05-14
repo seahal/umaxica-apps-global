@@ -3,7 +3,7 @@
 
 class UserPasskeyPolicy < ApplicationPolicy
   def index?
-    actor.present?
+    user.present?
   end
 
   def show?
@@ -11,7 +11,7 @@ class UserPasskeyPolicy < ApplicationPolicy
   end
 
   def create?
-    actor.present?
+    user.present?
   end
 
   def new?
@@ -31,8 +31,8 @@ class UserPasskeyPolicy < ApplicationPolicy
   end
 
   relation_scope do |relation|
-    return relation.none unless actor
+    return relation.none unless user
 
-    relation.where(user_id: actor.id)
+    relation.where(user_id: user.id)
   end
 end

@@ -5,15 +5,15 @@ require "test_helper"
 
 module Apex
   class DomainStructureTest < ActionDispatch::IntegrationTest
-    test "apex/com uses Customer authentication pattern" do
+    test "apex/com uses Visitor authentication pattern" do
       controller = Apex::Com::ApplicationController.new
 
-      assert_includes controller.class, ::Authentication::Customer,
-                      "Apex::Com should use Customer authentication"
-      assert_includes controller.class, ::Authorization::Customer,
-                      "Apex::Com should use Customer authorization"
-      assert_includes controller.class, ::Verification::Customer,
-                      "Apex::Com should use Customer verification"
+      assert_includes controller.class, ::Authentication::Visitor,
+                      "Apex::Com should use Visitor authentication"
+      assert_includes controller.class, ::Authorization::Visitor,
+                      "Apex::Com should use Visitor authorization"
+      assert_includes controller.class, ::Verification::Visitor,
+                      "Apex::Com should use Visitor verification"
     end
 
     test "apex/org has transparent_refresh_access_token callback" do

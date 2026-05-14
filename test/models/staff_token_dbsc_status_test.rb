@@ -10,35 +10,37 @@
 #
 require "test_helper"
 
-class StaffTokenDbscStatusTest < ActiveSupport::TestCase
+class OperatorTokenDbscStatusTest < ActiveSupport::TestCase
   test "constants are defined correctly" do
-    assert_equal 0, StaffTokenDbscStatus::NOTHING
-    assert_equal 1, StaffTokenDbscStatus::PENDING
-    assert_equal 2, StaffTokenDbscStatus::ACTIVE
-    assert_equal 3, StaffTokenDbscStatus::FAILED
-    assert_equal 4, StaffTokenDbscStatus::REVOKE
-    assert_equal [0, 1, 2, 3, 4], StaffTokenDbscStatus::DEFAULTS
+    assert_equal 0, OperatorTokenDbscStatus::NOTHING
+    assert_equal 1, OperatorTokenDbscStatus::ACTIVE
+    assert_equal 2, OperatorTokenDbscStatus::PENDING
+    assert_equal 3, OperatorTokenDbscStatus::FAILED
+    assert_equal 4, OperatorTokenDbscStatus::REVOKE
+    assert_equal [0, 1, 2, 3, 4], OperatorTokenDbscStatus::DEFAULTS
   end
 
   test "ensure_defaults! creates missing records" do
-    StaffTokenDbscStatus.where(id: StaffTokenDbscStatus::DEFAULTS).destroy_all
+    Prosopite.pause do
+      OperatorTokenDbscStatus.where(id: OperatorTokenDbscStatus::DEFAULTS).destroy_all
+    end
 
-    StaffTokenDbscStatus.ensure_defaults!
+    OperatorTokenDbscStatus.ensure_defaults!
 
-    assert StaffTokenDbscStatus.exists?(id: StaffTokenDbscStatus::NOTHING)
+    assert OperatorTokenDbscStatus.exists?(id: OperatorTokenDbscStatus::NOTHING)
   end
 
   test "ensure_defaults! does nothing when all defaults exist" do
-    StaffTokenDbscStatus.ensure_defaults!
-    initial_count = StaffTokenDbscStatus.count
+    OperatorTokenDbscStatus.ensure_defaults!
+    initial_count = OperatorTokenDbscStatus.count
 
-    StaffTokenDbscStatus.ensure_defaults!
+    OperatorTokenDbscStatus.ensure_defaults!
 
-    assert_equal initial_count, StaffTokenDbscStatus.count
+    assert_equal initial_count, OperatorTokenDbscStatus.count
   end
 
   test "has_many staff_tokens association" do
-    status = StaffTokenDbscStatus.new(id: 1)
+    status = OperatorTokenDbscStatus.new(id: 1)
 
     assert_respond_to status, :staff_tokens
   end

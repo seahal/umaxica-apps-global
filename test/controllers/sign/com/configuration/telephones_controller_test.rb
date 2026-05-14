@@ -9,19 +9,19 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    @customer = create_verified_customer_with_email(email_address: "telephones-#{SecureRandom.hex(4)}@example.com")
-    @customer.customer_telephones.create!(
+    @visitor = create_verified_visitor_with_email(email_address: "telephones-#{SecureRandom.hex(4)}@example.com")
+    @visitor.visitor_telephones.create!(
       number: "+10000000027",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @token = CustomerToken.create!(customer: @customer, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
-    satisfy_customer_verification(@token)
+    @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    satisfy_visitor_verification(@token)
   end
 
   def request_headers
     {
       "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => @customer.id,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
   end
@@ -32,14 +32,14 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
     assert_response :success
   end
 
-  test "index redirects customers without a verified telephone to registration" do
-    customer = create_verified_customer_with_email(email_address: "unverified-#{SecureRandom.hex(4)}@example.com")
-    token = CustomerToken.create!(customer: customer, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
-    satisfy_customer_verification(token)
+  test "index redirects visitors without a verified telephone to registration" do
+    visitor = create_verified_visitor_with_email(email_address: "unverified-#{SecureRandom.hex(4)}@example.com")
+    token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    satisfy_visitor_verification(token)
 
     headers = {
       "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => customer.id,
+      "X-TEST-CURRENT-RESOURCE" => visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
@@ -52,27 +52,27 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
 
   test "create registers telephone" do
     assert_enqueued_jobs 1, only: SmsDeliveryJob do
-      assert_difference("CustomerTelephone.count", 1) do
+      assert_difference("VisitorTelephone.count", 1) do
         post sign_com_configuration_telephones_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000028" } },
              headers: request_headers
       end
     end
 
-    created = CustomerTelephone.order(created_at: :desc).first
+    created = VisitorTelephone.order(created_at: :desc).first
 
     assert_redirected_to edit_sign_com_configuration_telephone_url(created.id, ri: "jp")
   end
 
   test "create reuses existing telephone and sends sms when same number is submitted again" do
-    existing = CustomerTelephone.create!(
+    existing = VisitorTelephone.create!(
       number: "+10000000029",
-      customer: @customer,
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor: @visitor,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
     assert_enqueued_jobs 1, only: SmsDeliveryJob do
-      assert_no_difference("CustomerTelephone.count") do
+      assert_no_difference("VisitorTelephone.count") do
         post sign_com_configuration_telephones_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000029" } },
              headers: request_headers
@@ -83,18 +83,18 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
   end
 
   test "destroy removes telephone when not last method" do
-    tel1 = CustomerTelephone.create!(
+    tel1 = VisitorTelephone.create!(
       number: "+10000000030",
-      customer: @customer,
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor: @visitor,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    CustomerTelephone.create!(
+    VisitorTelephone.create!(
       number: "+10000000031",
-      customer: @customer,
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor: @visitor,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    assert_difference("CustomerTelephone.count", -1) do
+    assert_difference("VisitorTelephone.count", -1) do
       delete sign_com_configuration_telephone_url(tel1, ri: "jp"), headers: request_headers
     end
 

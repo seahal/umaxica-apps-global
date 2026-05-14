@@ -16,7 +16,7 @@ module Unauthenticated
     false
   end
 
-  def customer?
+  def visitor?
     false
   end
 

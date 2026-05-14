@@ -10,7 +10,7 @@
 #
 require "test_helper"
 
-class StaffPreferenceTimezoneOptionTest < ActiveSupport::TestCase
+class OperatorPreferenceTimezoneOptionTest < ActiveSupport::TestCase
   fixtures :staff_preference_timezone_options
 
   test "returns Etc/UTC for ETC_UTC id" do
@@ -26,31 +26,35 @@ class StaffPreferenceTimezoneOptionTest < ActiveSupport::TestCase
   end
 
   test "returns nil for unknown id" do
-    option = StaffPreferenceTimezoneOption.new(id: 999)
+    option = OperatorPreferenceTimezoneOption.new(id: 999)
 
     assert_nil option.name
   end
 
   test "ensure_defaults! creates missing default records" do
-    StaffPreferenceTimezoneOption.where(id: StaffPreferenceTimezoneOption::DEFAULTS).destroy_all
+    Prosopite.pause do
+      OperatorPreferenceTimezoneOption.where(id: OperatorPreferenceTimezoneOption::DEFAULTS).destroy_all
+    end
 
-    StaffPreferenceTimezoneOption.ensure_defaults!
+    OperatorPreferenceTimezoneOption.ensure_defaults!
 
-    assert StaffPreferenceTimezoneOption.exists?(id: StaffPreferenceTimezoneOption::ETC_UTC)
-    assert StaffPreferenceTimezoneOption.exists?(id: StaffPreferenceTimezoneOption::ASIA_TOKYO)
+    assert OperatorPreferenceTimezoneOption.exists?(id: OperatorPreferenceTimezoneOption::ETC_UTC)
+    assert OperatorPreferenceTimezoneOption.exists?(id: OperatorPreferenceTimezoneOption::ASIA_TOKYO)
   end
 
   test "ensure_defaults! does nothing when all defaults exist" do
-    StaffPreferenceTimezoneOption.ensure_defaults!
-    initial_count = StaffPreferenceTimezoneOption.count
+    OperatorPreferenceTimezoneOption.ensure_defaults!
+    initial_count = OperatorPreferenceTimezoneOption.count
 
-    StaffPreferenceTimezoneOption.ensure_defaults!
+    OperatorPreferenceTimezoneOption.ensure_defaults!
 
-    assert_equal initial_count, StaffPreferenceTimezoneOption.count
+    assert_equal initial_count, OperatorPreferenceTimezoneOption.count
   end
 
   test "ensure_defaults! uses Prosopite.pause when defined" do
-    StaffPreferenceTimezoneOption.where(id: StaffPreferenceTimezoneOption::DEFAULTS).destroy_all
+    Prosopite.pause do
+      OperatorPreferenceTimezoneOption.where(id: OperatorPreferenceTimezoneOption::DEFAULTS).destroy_all
+    end
     pause_called = false
 
     Prosopite.stub(
@@ -60,16 +64,16 @@ class StaffPreferenceTimezoneOptionTest < ActiveSupport::TestCase
         block.call
       },
     ) do
-      StaffPreferenceTimezoneOption.ensure_defaults!
+      OperatorPreferenceTimezoneOption.ensure_defaults!
     end
 
     assert pause_called
-    assert StaffPreferenceTimezoneOption.exists?(id: StaffPreferenceTimezoneOption::ETC_UTC)
-    assert StaffPreferenceTimezoneOption.exists?(id: StaffPreferenceTimezoneOption::ASIA_TOKYO)
+    assert OperatorPreferenceTimezoneOption.exists?(id: OperatorPreferenceTimezoneOption::ETC_UTC)
+    assert OperatorPreferenceTimezoneOption.exists?(id: OperatorPreferenceTimezoneOption::ASIA_TOKYO)
   end
 
   test "DEFAULTS constant exists" do
-    assert_equal [1, 2], StaffPreferenceTimezoneOption::DEFAULTS
+    assert_equal [1, 2], OperatorPreferenceTimezoneOption::DEFAULTS
   end
 
   test "has_many staff_preference_timezones association" do

@@ -116,19 +116,19 @@ All `*_application_controller.rb` files across acme/core/docs/help/news/sign con
 | --- | ----------------------------------------- | ------------------- |
 | 50  | `app/models/user_token.rb:106`            | UserToken           |
 | 51  | `app/models/customer_token.rb:99`         | CustomerToken       |
-| 52  | `app/models/staff_token.rb:107`           | StaffToken          |
+| 52  | `app/models/staff_token.rb:107`           | OperatorToken          |
 | 53  | `app/models/user_email.rb:133`            | UserEmail           |
 | 54  | `app/models/customer_email.rb:120`        | CustomerEmail       |
-| 55  | `app/models/staff_email.rb:86`            | StaffEmail          |
+| 55  | `app/models/staff_email.rb:86`            | OperatorEmail          |
 | 56  | `app/models/user_telephone.rb:99`         | UserTelephone       |
 | 57  | `app/models/customer_telephone.rb:89`     | CustomerTelephone   |
 | 58  | `app/models/user_secret.rb:153`           | UserSecret          |
 | 59  | `app/models/customer_secret.rb:146`       | CustomerSecret      |
-| 60  | `app/models/staff_secret.rb:129`          | StaffSecret         |
+| 60  | `app/models/staff_secret.rb:129`          | OperatorSecret         |
 | 61  | `app/models/user_passkey.rb:66`           | UserPasskey         |
 | 62  | `app/models/customer_passkey.rb:66`       | CustomerPasskey     |
-| 63  | `app/models/staff_passkey.rb:63`          | StaffPasskey        |
-| 64  | `app/models/staff_telephone.rb:67`        | StaffTelephone      |
+| 63  | `app/models/staff_passkey.rb:63`          | OperatorPasskey        |
+| 64  | `app/models/staff_telephone.rb:67`        | OperatorTelephone      |
 | 65  | `app/models/user_one_time_password.rb:65` | UserOneTimePassword |
 
 ### N+1 — `.count` in Controllers (9)
@@ -137,7 +137,7 @@ All `*_application_controller.rb` files across acme/core/docs/help/news/sign con
 | --- | --------------------------------------------------------------- | ------------------------------ |
 | 66  | `app/controllers/sign/app/configuration/totps_controller.rb:20` | MAX_TOTPS check always hits DB |
 | 67  | `app/controllers/concerns/authentication/base.rb:2115`          | UserToken session count        |
-| 68  | `app/controllers/concerns/authentication/base.rb:2117`          | StaffToken session count       |
+| 68  | `app/controllers/concerns/authentication/base.rb:2117`          | OperatorToken session count       |
 | 69  | `app/controllers/concerns/authentication/base.rb:2119`          | CustomerToken session count    |
 | 70  | `app/controllers/sign/app/in/sessions_controller.rb:164`        | Active session count           |
 | 71  | `app/controllers/sign/com/in/sessions_controller.rb:117`        | Same                           |

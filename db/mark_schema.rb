@@ -42,15 +42,15 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202600) do
     t.integer "attempt_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "method", null: false
+    t.string "method"
     t.datetime "purge_at", default: ::Float::INFINITY, null: false
     t.text "return_to", null: false
     t.string "scope", null: false
     t.string "status", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.bigint "user_token_id", null: false
     t.datetime "verified_at"
-    t.index ["user_id", "status"], name: "index_user_reauth_sessions_on_user_id_and_status"
+    t.index ["user_token_id"], name: "index_user_reauth_sessions_on_user_token_id", unique: true
     t.check_constraint "lapses_at <= purge_at", name: "chk_user_reauth_sessions_retention_order"
   end
 
@@ -86,13 +86,12 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202600) do
     t.integer "refresh_token_generation", default: 0, null: false
     t.datetime "rotated_at"
     t.string "session_id"
-    t.string "status", limit: 20, default: "active", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.bigint "user_token_binding_method_id", default: 0, null: false
     t.bigint "user_token_dbsc_status_id", default: 0, null: false
     t.bigint "user_token_kind_id", default: 11, null: false
-    t.bigint "user_token_status_id", default: 0, null: false
+    t.bigint "user_token_status_id", default: 1, null: false
     t.index ["dbsc_session_id"], name: "index_user_tokens_on_dbsc_session_id", unique: true
     t.index ["device_id"], name: "index_user_tokens_on_device_id"
     t.index ["device_id_digest"], name: "index_user_tokens_on_device_id_digest"
@@ -101,7 +100,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202600) do
     t.index ["refresh_token_digest"], name: "index_user_tokens_on_refresh_token_digest", unique: true
     t.index ["refresh_token_family_id"], name: "index_user_tokens_on_refresh_token_family_id"
     t.index ["session_id"], name: "index_user_tokens_on_session_id"
-    t.index ["status"], name: "index_user_tokens_on_status"
     t.index ["user_id", "last_step_up_at"], name: "index_user_tokens_on_user_id_and_last_step_up_at"
     t.index ["user_token_binding_method_id"], name: "index_user_tokens_on_user_token_binding_method_id"
     t.index ["user_token_dbsc_status_id"], name: "index_user_tokens_on_user_token_dbsc_status_id"
@@ -124,6 +122,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202600) do
     t.check_constraint "lapses_at <= purge_at", name: "chk_user_verifications_retention_order"
   end
 
+  add_foreign_key "user_reauth_sessions", "user_tokens", on_delete: :cascade, validate: false
   add_foreign_key "user_tokens", "user_token_binding_methods", name: "fk_user_tokens_on_user_token_binding_method_id", validate: false
   add_foreign_key "user_tokens", "user_token_dbsc_statuses", name: "fk_user_tokens_on_user_token_dbsc_status_id", validate: false
   add_foreign_key "user_tokens", "user_token_kinds", name: "fk_user_tokens_on_user_token_kind_id", validate: false

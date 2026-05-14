@@ -1,5 +1,8 @@
 <% content_for :page_title, t("sign.app.verification.index.title") %>
 <% title t("sign.app.verification.index.title") %>
+<% verification_method_params = { ri: params[:ri] } %>
+<% verification_method_params[:scope] = params[:scope] if params[:scope].present? %>
+<% verification_method_params[:rt] = params[:rt].presence || params[:return_to].presence if params[:rt].present? || params[:return_to].present? %>
 
 <div>
   <div>
@@ -23,21 +26,21 @@
         <% if @available_methods.include?(:passkey) %>
           <div>
             <%= link_to t("sign.app.verification.new.methods.passkey"),
-                        new_sign_app_verification_passkey_path(ri: params[:ri]) %>
+                        new_sign_app_verification_passkey_path(verification_method_params) %>
           </div>
         <% end %>
 
         <% if @available_methods.include?(:totp) %>
           <div>
             <%= link_to t("sign.app.verification.new.methods.totp"),
-                        new_sign_app_verification_totp_path(ri: params[:ri]) %>
+                        new_sign_app_verification_totp_path(verification_method_params) %>
           </div>
         <% end %>
 
         <% if @available_methods.include?(:email_otp) %>
           <div>
             <%= link_to t("sign.app.verification.new.methods.email_otp"),
-                        new_sign_app_verification_email_path(ri: params[:ri]) %>
+                        new_sign_app_verification_email_path(verification_method_params) %>
           </div>
         <% end %>
       </div>

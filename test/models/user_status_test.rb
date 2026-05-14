@@ -53,4 +53,13 @@ class UserStatusTest < ActiveSupport::TestCase
   test "reserved fixture exists" do
     assert_equal UserStatus::RESERVED, user_statuses(:reserved).id
   end
+
+  test "ensure_defaults restores missing fixed status rows" do
+    UserStatus.find(UserStatus::VERIFIED_WITH_SIGN_UP).destroy!
+
+    UserStatus.ensure_defaults!
+
+    assert UserStatus.exists?(UserStatus::VERIFIED_WITH_SIGN_UP)
+    assert_empty UserStatus::DEFAULTS - UserStatus.where(id: UserStatus::DEFAULTS).pluck(:id)
+  end
 end

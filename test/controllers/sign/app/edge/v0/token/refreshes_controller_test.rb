@@ -229,7 +229,10 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh with restricted token returns 403 and does not rotate token" do
-    token_record = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED, device_id: @device_id)
+    token_record = UserToken.create!(
+      user: @user, user_token_status_id: UserTokenStatus::RESTRICTED,
+      device_id: @device_id,
+    )
     refresh_plain = token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
     before_generation = token_record.refresh_token_generation
     before_digest = token_record.refresh_token_digest
@@ -252,7 +255,10 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh with restricted token returns localized error message" do
-    token_record = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED, device_id: @device_id)
+    token_record = UserToken.create!(
+      user: @user, user_token_status_id: UserTokenStatus::RESTRICTED,
+      device_id: @device_id,
+    )
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] =
       token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 

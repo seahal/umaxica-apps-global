@@ -134,15 +134,13 @@ module Sign
         test "handles OTP in database" do
           user = users(:one)
           # Create existing email
-          UserEmail.create!(user: user, address: "otp_test@example.com", confirm_policy: true)
+          email = UserEmail.create!(user: user, address: "otp_test@example.com", confirm_policy: true)
 
           # Request OTP
           post sign_app_in_email_url(ri: "jp"), params: {
             :user_email => { address: "otp_test@example.com" },
             "cf-turnstile-response" => "test_token",
           }
-
-          email = UserEmail.find_by(address: "otp_test@example.com")
 
           assert_not_nil email.reload.otp_private_key
           assert_not_nil email.otp_counter

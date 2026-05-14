@@ -17,7 +17,7 @@ class Apex::App::Auth::CallbacksControllerTest < ActionDispatch::IntegrationTest
   test "callback route exists" do
     assert_routing(
       { method: :get, path: "http://#{@host}/auth/callback" },
-      { host: @host, controller: "apex/app/auth/callbacks", action: "show" },
+      { controller: "apex/app/auth/callbacks", action: "show" },
     )
   end
 end

@@ -10,7 +10,7 @@ module Sign
         include ::Verification::User
         include Common::Redirect
 
-        before_action :authenticate_customer!
+        before_action :authenticate_visitor!
 
         def new
           @schedule_form = Sign::App::Configuration::Withdrawal::ScheduleForm.new(schedule_params)
@@ -27,7 +27,7 @@ module Sign
         end
 
         def edit
-          unless current_customer.deactivated?
+          unless current_visitor.deactivated?
             return safe_redirect_to(
               new_sign_com_configuration_withdrawal_path(ri: params[:ri]),
               fallback: sign_com_configuration_path(ri: params[:ri]),
@@ -35,7 +35,7 @@ module Sign
             )
           end
 
-          @recovery_deadline = current_customer.deactivated_at + recovery_period
+          @recovery_deadline = current_visitor.deactivated_at + recovery_period
           @recoverable = recoverable_withdrawal?
         end
 
@@ -48,18 +48,18 @@ module Sign
             )
           end
 
-          Customer.transaction do
-            current_customer.update!(
+          Visitor.transaction do
+            current_visitor.update!(
               withdrawal_started_at: nil,
               deactivated_at: nil,
-              deletable_at: Float::INFINITY,
-              scheduled_purge_at: nil,
+              lapses_at: Float::INFINITY,
+              purge_at: Float::INFINITY,
               withdrawn_at: nil,
             )
 
             Rails.event.notify(
-              "customer.withdrawal.recovered",
-              customer_id: current_customer.id,
+              "visitor.withdrawal.recovered",
+              visitor_id: current_visitor.id,
               ip_address: request.remote_ip,
             )
           end
@@ -101,9 +101,9 @@ module Sign
         private
 
         def recoverable_withdrawal?
-          return false if current_customer.deactivated_at.blank?
+          return false if current_visitor.deactivated_at.blank?
 
-          Time.current < current_customer.deactivated_at + recovery_period
+          Time.current < current_visitor.deactivated_at + recovery_period
         end
 
         def recovery_period
@@ -126,36 +126,36 @@ module Sign
         def deactivate_user!
           now = Time.current
 
-          Customer.transaction do
+          Visitor.transaction do
             assign_withdrawal_schedule!(now)
-            current_customer.save!
+            current_visitor.save!
             notify_deactivation!
           end
         end
 
         def assign_withdrawal_schedule!(now)
-          current_customer.withdrawal_started_at ||= now
-          current_customer.deactivated_at ||= now
-          current_customer.scheduled_purge_at ||= current_customer.deactivated_at + 31.days
-          current_customer.deletable_at ||= current_customer.scheduled_purge_at
+          current_visitor.withdrawal_started_at ||= now
+          current_visitor.deactivated_at ||= now
+          deactivated = current_visitor.deactivated_at
+          current_visitor.lapses_at = deactivated
+          current_visitor.purge_at = deactivated + 31.days
         end
 
         def notify_deactivation!
           Rails.event.notify(
-            "customer.withdrawal.deactivated",
-            customer_id: current_customer.id,
-            deactivated_at: current_customer.deactivated_at,
-            deletable_at: current_customer.deletable_at,
-            scheduled_purge_at: current_customer.scheduled_purge_at,
+            "visitor.withdrawal.deactivated",
+            visitor_id: current_visitor.id,
+            deactivated_at: current_visitor.deactivated_at,
+            purge_at: current_visitor.purge_at,
             ip_address: request.remote_ip,
           )
         end
 
         def handle_deactivation_failure
           Rails.event.notify(
-            "customer.withdrawal.deactivation_failed",
-            customer_id: current_customer.id,
-            errors: current_customer.errors.full_messages,
+            "visitor.withdrawal.deactivation_failed",
+            visitor_id: current_visitor.id,
+            errors: current_visitor.errors.full_messages,
             ip_address: request.remote_ip,
           )
           @schedule_confirmed = true

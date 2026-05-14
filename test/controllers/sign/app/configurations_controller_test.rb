@@ -40,7 +40,7 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href^=?]", sign_app_configuration_apple_path(ri: "jp")
     assert_select "a[href^=?]", sign_app_configuration_sessions_path(ri: "jp")
     assert_select "a[href^=?]", new_sign_app_configuration_withdrawal_path(ri: "jp")
-    assert_select "a[href*=?]", edit_sign_app_configuration_out_path(ri: "jp"),
+    assert_select "a[href*=?]", edit_sign_app_out_path(ri: "jp"),
                   text: /#{Regexp.escape(I18n.t("sign.app.configuration.show.logout"))}/
     assert_select "a[href*=?]", sign_app_root_path(ri: "jp")
   end
@@ -58,7 +58,7 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     device_id = SecureRandom.uuid
     token = UserToken.create!(
       user: @user,
-      status: UserToken::STATUS_RESTRICTED,
+      user_token_status_id: UserTokenStatus::RESTRICTED,
       device_id: device_id,
       device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)),
     )
@@ -81,7 +81,7 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     device_id = SecureRandom.uuid
     token = UserToken.create!(
       user: @user,
-      status: UserToken::STATUS_ACTIVE,
+      user_token_status_id: UserTokenStatus::ACTIVE,
       device_id: device_id,
       device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)),
     )

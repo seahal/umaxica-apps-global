@@ -56,19 +56,19 @@ module Sign
             return render_failed_login(reason: :turnstile_failed, identifier: @secret_form.identifier)
           end
 
-          customer = find_user_by_identifier(@secret_form.identifier)
-          return render_session_limit_hard_reject if session_limit_hard_reject_for?(customer)
+          visitor = find_user_by_identifier(@secret_form.identifier)
+          return render_session_limit_hard_reject if session_limit_hard_reject_for?(visitor)
 
-          verification = verify_secret_for_sign_in(customer: customer, raw_secret: @secret_form.secret_value)
+          verification = verify_secret_for_sign_in(visitor: visitor, raw_secret: @secret_form.secret_value)
 
-          if customer && verification.secret
-            process_standard_login(customer)
+          if visitor && verification.secret
+            process_standard_login(visitor)
           else
             failure_reason = verification.reason || :identifier_not_found
             render_failed_login(
               reason: failure_reason,
               identifier: @secret_form.identifier,
-              customer: customer,
+              visitor: visitor,
               details: verification.details,
             )
           end
@@ -90,38 +90,38 @@ module Sign
         private
 
         def identity_email_model
-          CustomerEmail
+          VisitorEmail
         end
 
         def identity_telephone_model
-          CustomerTelephone
+          VisitorTelephone
         end
 
         def identity_from_email_record(record)
-          record&.customer
+          record&.visitor
         end
 
         def identity_from_telephone_record(record)
-          record&.customer
+          record&.visitor
         end
 
-        def verify_secret_for_sign_in(customer:, raw_secret:)
+        def verify_secret_for_sign_in(visitor:, raw_secret:)
           return SecretVerificationResult.new(
             reason: :identifier_not_found,
             details: {},
-          ) unless customer
+          ) unless visitor
           return SecretVerificationResult.new(
             reason: :verified_pii_missing,
             details: {},
-          ) unless customer.has_verified_pii?
+          ) unless visitor.has_verified_pii?
 
-          latest_secret = customer.customer_secrets.order(created_at: :desc).first
+          latest_secret = visitor.visitor_secrets.order(created_at: :desc).first
           return SecretVerificationResult.new(
             reason: :secret_not_found,
             details: {},
           ) unless latest_secret
 
-          secret = customer.customer_secrets.allowed_for_secret_sign_in.order(created_at: :desc).first
+          secret = visitor.visitor_secrets.allowed_for_secret_sign_in.order(created_at: :desc).first
           return SecretVerificationResult.new(reason: :secret_expired, details: {}) unless secret
           return SecretVerificationResult.new(
             reason: :secret_expired,
@@ -141,9 +141,9 @@ module Sign
           )
         end
 
-        def process_standard_login(customer)
+        def process_standard_login(visitor)
           result = complete_sign_in_or_start_mfa!(
-            customer, rt: nil, ri: params[:ri], auth_method: "secret",
+            visitor, rt: nil, ri: params[:ri], auth_method: "secret",
           )
 
           if result[:status] == :mfa_required
@@ -153,14 +153,10 @@ module Sign
           elsif result[:restricted]
             redirect_to(sign_com_in_session_path, notice: I18n.t("sign.app.in.session.restricted_notice"))
           else
-            if issue_bulletin!
-              redirect_to(
-                sign_com_in_bulletin_path(rd: params[:rd], ri: params[:ri]),
-                notice: t("sign.app.authentication.secret.create.success"),
-              )
-            else
-              safe_redirect_to_rd_or_default!(params[:rd], default_path: sign_com_configuration_path(ri: params[:ri]))
-            end
+            redirect_to_sign_in_sequence!(
+              rt: redirect_parameter_value,
+              notice: t("sign.app.authentication.secret.create.success"),
+            )
           end
         end
 
@@ -172,7 +168,7 @@ module Sign
           t("sign.app.authentication.secret.create.invalid")
         end
 
-        def render_failed_login(reason:, identifier: nil, customer: nil, details: {})
+        def render_failed_login(reason:, identifier: nil, visitor: nil, details: {})
           @secret_form ||= SecretLoginForm.new
           @secret_form.errors.add(:base, invalid_secret_message)
 
@@ -181,13 +177,13 @@ module Sign
             reason: reason,
             identifier_type: detect_identifier_type(identifier.to_s),
             identifier_present: identifier.present?,
-            customer_id: customer&.id,
+            visitor_id: visitor&.id,
             ip: request.remote_ip,
             errors: @secret_form.errors.full_messages,
             details: details,
           )
 
-          Sign::Risk::Emitter.emit("auth_failed", customer_id: customer&.id) if customer
+          Sign::Risk::Emitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
 
           render :new, status: :unprocessable_content, formats: :html
         end

@@ -20,7 +20,7 @@ database.
 - Move `AppPreference`, `ComPreference`, `OrgPreference` families into `setting`.
 - Retire `commerce` as a preference store after `ComPreference` is moved.
 - Keep preference activity tables in `activity`.
-- Keep `UserPreference`, `StaffPreference`, `CustomerPreference` in their current databases.
+- Keep `UserPreference`, `OperatorPreference`, `CustomerPreference` in their current databases.
 - Keep dual-write behavior while logged in.
 - Keep `user_app_preferences` and `staff_org_preferences` where they are now.
 
@@ -76,12 +76,12 @@ The target schema exists and runtime cutover is implemented.
   `settings_preference_activities`.
 - `Preference::StorageAdapter` provides dual-read (setting first, fallback to legacy) and dual-write
   (write to both setting and legacy) capabilities.
-- `Preference::Adoption` syncs shared preferences to local layer (UserPreference/StaffPreference/
+- `Preference::Adoption` syncs shared preferences to local layer (UserPreference/OperatorPreference/
   CustomerPreference) with recovery on failure.
 - `SYNC_RECOVERY_FAILED` audit events are logged to surface-specific activity tables.
 - Sync recovery rules:
   - `AppPreference` recovers to `UserPreference`
-  - `OrgPreference` recovers to `StaffPreference`
+  - `OrgPreference` recovers to `OperatorPreference`
   - `ComPreference` recovers to `CustomerPreference`
 - Legacy tables in `principal`, `operator`, and `commerce` remain for rollback safety.
 
@@ -119,7 +119,7 @@ During the migration, login and refresh flows must keep the local preference cop
 ### Recovery target by surface
 
 - `AppPreference` recovers to `UserPreference`
-- `OrgPreference` recovers to `StaffPreference`
+- `OrgPreference` recovers to `OperatorPreference`
 - `ComPreference` recovers to `CustomerPreference`
 
 ### Failure handling

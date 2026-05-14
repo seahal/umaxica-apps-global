@@ -25,12 +25,12 @@
 
 require "test_helper"
 
-class StaffZipOccurrenceTest < ActiveSupport::TestCase
+class OperatorZipOccurrenceTest < ActiveSupport::TestCase
   fixtures :zip_occurrences
 
   test "associations" do
-    staff = StaffOccurrence.create!(body: "staff-001")
-    record = StaffZipOccurrence.new(
+    staff = OperatorOccurrence.create!(body: "staff-001")
+    record = OperatorZipOccurrence.new(
       staff_occurrence: staff,
       zip_occurrence: zip_occurrences(:one),
     )
@@ -41,12 +41,12 @@ class StaffZipOccurrenceTest < ActiveSupport::TestCase
   end
 
   test "uniqueness validation" do
-    staff = StaffOccurrence.create!(body: "staff-002")
-    StaffZipOccurrence.create!(
+    staff = OperatorOccurrence.create!(body: "staff-002")
+    OperatorZipOccurrence.create!(
       staff_occurrence: staff,
       zip_occurrence: zip_occurrences(:one),
     )
-    duplicate = StaffZipOccurrence.new(
+    duplicate = OperatorZipOccurrence.new(
       staff_occurrence: staff,
       zip_occurrence: zip_occurrences(:one),
     )

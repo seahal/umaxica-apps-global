@@ -3,11 +3,11 @@
 
 require "test_helper"
 
-class StaffTimeBasedOneTimePasswordPolicyTest < ActiveSupport::TestCase
+class OperatorTimeBasedOneTimePasswordPolicyTest < ActiveSupport::TestCase
   def setup
     @user = nil
     @record = nil
-    @policy = StaffTimeBasedOneTimePasswordPolicy.new(@record, user: @user)
+    @policy = OperatorTimeBasedOneTimePasswordPolicy.new(@record, user: @user)
   end
 
   def test_index
@@ -37,10 +37,4 @@ class StaffTimeBasedOneTimePasswordPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope
-  #     scope = StaffTimeBasedOneTimePasswordPolicy::Scope.new(nil, user: @user)
-  #     assert_raises(NoMethodError) { scope.resolve }
-  #   end
 end

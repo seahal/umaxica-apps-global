@@ -13,7 +13,7 @@ require "test_helper"
 
 class AppPreferenceThemeOptionTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
   end
 
   test "can be created" do

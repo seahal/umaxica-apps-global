@@ -45,4 +45,10 @@ class OrgPreferenceThemeOptionTest < ActiveSupport::TestCase
 
     assert_predicate option, :valid?
   end
+
+  test "name returns nil for unknown id" do
+    option = OrgPreferenceThemeOption.new(id: 99)
+
+    assert_nil option.name
+  end
 end

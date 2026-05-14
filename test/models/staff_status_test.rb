@@ -11,22 +11,22 @@
 
 require "test_helper"
 
-class StaffStatusTest < ActiveSupport::TestCase
+class OperatorIdentityStatusTest < ActiveSupport::TestCase
   fixtures :staff_statuses
 
   test "status constants are defined" do
-    assert_equal 1, StaffStatus::ACTIVE
-    assert_equal 2, StaffStatus::NOTHING
-    assert_equal 3, StaffStatus::RESERVED
+    assert_equal 1, OperatorIdentityStatus::ACTIVE
+    assert_equal 2, OperatorIdentityStatus::NOTHING
+    assert_equal 3, OperatorIdentityStatus::RESERVED
   end
 
   test "status ids are integers" do
-    assert_kind_of Integer, StaffStatus::ACTIVE
-    assert_kind_of Integer, StaffStatus::NOTHING
-    assert_kind_of Integer, StaffStatus::RESERVED
+    assert_kind_of Integer, OperatorIdentityStatus::ACTIVE
+    assert_kind_of Integer, OperatorIdentityStatus::NOTHING
+    assert_kind_of Integer, OperatorIdentityStatus::RESERVED
   end
 
   test "reserved fixture exists" do
-    assert_equal StaffStatus::RESERVED, staff_statuses(:reserved).id
+    assert_equal OperatorIdentityStatus::RESERVED, staff_statuses(:reserved).id
   end
 end

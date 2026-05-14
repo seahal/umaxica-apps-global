@@ -22,4 +22,8 @@
                       pattern: "[0-9]*" %>
 </div>
 
+<div>
+  <%= render "shared/cloudflare_turnstile_stealth" %>
+</div>
+
 <%= form.submit t("views.sign.app.emails.registrations.verification_fields.submit") %>

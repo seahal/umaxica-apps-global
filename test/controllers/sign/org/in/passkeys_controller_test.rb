@@ -20,16 +20,16 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
     # Setup active staff with email and passkey
     @staff = staffs(:one)
-    @staff.update!(status_id: StaffStatus::ACTIVE)
-    StaffToken.where(staff_id: @staff.id).delete_all
+    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    OperatorToken.where(staff_id: @staff.id).delete_all
 
-    @staff_passkey = StaffPasskey.create!(
+    @staff_passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: Base64.urlsafe_encode64("staff_login_id_bytes_12345", padding: false),
       external_id: SecureRandom.uuid,
       public_key: "staff_login_key",
       name: "Staff Login Key",
-      status_id: StaffPasskeyStatus::ACTIVE,
+      status_id: OperatorPasskeyStatus::ACTIVE,
     )
   end
 
@@ -70,7 +70,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
   test "options returns error if staff has no passkeys" do
     staff_no_passkey = staffs(:two)
-    staff_no_passkey.update!(status_id: StaffStatus::ACTIVE)
+    staff_no_passkey.update!(status_id: OperatorIdentityStatus::ACTIVE)
 
     post options_sign_org_in_passkeys_url(ri: "jp"), params: { identifier: staff_no_passkey.public_id }
 
@@ -182,7 +182,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
       }
 
       # Should log in
-      post verification_sign_org_in_passkeys_url(ri: "jp", rd: "/configuration/passkeys"), params: params
+      post verification_sign_org_in_passkeys_url(ri: "jp", rt: "/configuration/passkeys"), params: params
 
       assert_response :ok
       json = response.parsed_body
@@ -191,7 +191,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
       assert_not_nil json["access_token"]
       assert_equal "Bearer", json["token_type"]
       assert_equal Authentication::Base::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
-      assert_equal sign_org_root_path(ri: "jp"), json["redirect_url"]
+      assert_equal sign_org_dashboard_path(ri: "jp", rt: "/configuration/passkeys"), json["redirect_url"]
 
       # Challenge verification updates sign count
       assert_equal 1, @staff_passkey.reload.sign_count
@@ -229,14 +229,14 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     challenge_id = response.parsed_body["challenge_id"]
 
     other_staff = staffs(:two)
-    other_staff.update!(status_id: StaffStatus::ACTIVE)
-    other_passkey = StaffPasskey.create!(
+    other_staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    other_passkey = OperatorPasskey.create!(
       staff: other_staff,
       webauthn_id: Base64.urlsafe_encode64("other_staff_key_#{SecureRandom.hex(4)}", padding: false),
       external_id: SecureRandom.uuid,
       public_key: "other_staff_key",
       name: "Other Staff Key",
-      status_id: StaffPasskeyStatus::ACTIVE,
+      status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
     mock_credential = Object.new
@@ -353,7 +353,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal "session_restricted", json["status"]
     assert_equal sign_org_in_session_path(ri: "jp"), json["redirect_url"]
-    assert_equal 1, StaffToken.where(staff_id: @staff.id, status: StaffToken::STATUS_RESTRICTED).count
+    assert_equal 1, OperatorToken.where(staff_id: @staff.id, staff_token_status_id: OperatorTokenStatus::RESTRICTED).count
   end
 
   test "verification returns unauthorized for malformed credential payload" do
@@ -372,7 +372,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_rotated_active_staff_session(staff, rotations:)
-    token = StaffToken.create!(staff: staff, status: StaffToken::STATUS_ACTIVE)
+    token = OperatorToken.create!(staff: staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
 
     rotations.times do

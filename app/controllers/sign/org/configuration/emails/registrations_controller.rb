@@ -10,12 +10,12 @@ module Sign
 
           include ::CloudflareTurnstile
           include ::Common::Otp
-          include ::Verification::Staff
+          include ::Verification::Operator
 
-          before_action :authenticate_staff!
+          before_action :authenticate_operator!
 
           def new
-            @staff_email = StaffEmail.new
+            @staff_email = OperatorEmail.new
           end
 
           def edit
@@ -30,10 +30,13 @@ module Sign
           end
 
           def create
-            email_params = params.expect(staff_email: [:raw_address, :address])
+            email_params = params.expect(staff_email: %i(raw_address address notifiable))
             email_address = email_params[:raw_address] || email_params[:address]
-            @staff_email = current_staff.staff_emails.build(raw_address: email_address, confirm_policy: "1")
-            @staff_email.staff_email_status_id = StaffEmailStatus::UNVERIFIED
+            email_preferences = email_params.slice(:notifiable)
+            @staff_email = current_operator.staff_emails.build(
+              { raw_address: email_address, confirm_policy: "1" }.merge(email_preferences),
+            )
+            @staff_email.staff_email_status_id = OperatorEmailStatus::UNVERIFIED
 
             unless cloudflare_turnstile_validation["success"]
               @staff_email.errors.add(:base, t("sign.org.registration.email.create.turnstile_validation_failed"))
@@ -72,6 +75,13 @@ module Sign
               return
             end
 
+            unless cloudflare_turnstile_stealth_validation["success"]
+              @staff_email.errors.add(:base, t("turnstile_error"))
+              flash.now[:alert] = t("turnstile_error")
+              render(:edit, status: :unprocessable_content)
+              return
+            end
+
             submitted_code = params.dig(:staff_email, :pass_code)
             if submitted_code.blank?
               @staff_email.errors.add(:pass_code, t("sign.org.registration.email.update.code_required"))
@@ -98,11 +108,11 @@ module Sign
             end
 
             clear_otp(@staff_email)
-            @staff_email.update!(staff_email_status_id: StaffEmailStatus::VERIFIED)
+            @staff_email.update!(staff_email_status_id: OperatorEmailStatus::VERIFIED)
             reset_registration_session!
 
             redirect_to(
-              sign_org_configuration_emails_path,
+              bootstrap_return_path(sign_org_configuration_emails_path),
               notice: t("sign.org.registration.email.update.success"),
             )
           end
@@ -110,13 +120,13 @@ module Sign
           private
 
           def current_registration_email
-            current_staff.staff_emails.find_by(public_id: session[registration_session_key])
+            current_operator.staff_emails.find_by(public_id: session[registration_session_key])
           end
 
           def valid_registration_session?
             @staff_email.present? &&
               !@staff_email.otp_expired? &&
-              @staff_email.staff_email_status_id == StaffEmailStatus::UNVERIFIED
+              @staff_email.staff_email_status_id == OperatorEmailStatus::UNVERIFIED
           end
 
           def registration_session_key

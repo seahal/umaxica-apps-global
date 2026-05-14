@@ -36,4 +36,29 @@ class Email::Com::ApplicationMailerTest < ActionMailer::TestCase
   test "uses corporate mailer layout" do
     assert_equal "mailer/com/mailer", Email::Com::ApplicationMailer._layout
   end
+
+  test "sets promotional unsubscribe headers when requested" do
+    visitor = create_verified_visitor_with_email(email_address: "mailer-visitor-#{SecureRandom.hex(4)}@example.com")
+    email_record = visitor.visitor_emails.first
+
+    mailer =
+      Class.new(Email::Com::ApplicationMailer) do
+        define_method(:sample) do
+          set_promotional_unsubscribe_headers(params.fetch(:email_record))
+          mail(to: "visitor@example.com", subject: "Visitor Sample") do |format|
+            format.text { render plain: "hello" }
+          end
+        end
+      end
+
+    email = mailer.with(email_record: email_record).sample
+    expected_url = Rails.application.routes.url_helpers.sign_com_preference_email_url(
+      email_record,
+      token: email_record.promotional_unsubscribe_token,
+      host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+    )
+
+    assert_equal "<#{expected_url}>", email["List-Unsubscribe"].value
+    assert_equal "List-Unsubscribe=One-Click", email["List-Unsubscribe-Post"].value
+  end
 end

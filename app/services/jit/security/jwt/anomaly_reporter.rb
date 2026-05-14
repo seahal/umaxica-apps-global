@@ -49,7 +49,8 @@ module Jit
         def auth_context(resource_type)
           case resource_type.to_s
           when "user" then "AUTH_USER"
-          when "staff" then "AUTH_STAFF"
+          when "operator", "staff" then "AUTH_OPERATOR"
+          when "visitor", "customer" then "AUTH_VISITOR"
           end
         end
 

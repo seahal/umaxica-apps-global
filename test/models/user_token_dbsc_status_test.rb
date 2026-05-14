@@ -12,8 +12,10 @@ require "test_helper"
 
 class UserTokenDbscStatusTest < ActiveSupport::TestCase
   def setup
-    UserTokenDbscStatus::DEFAULTS.each do |id|
-      UserTokenDbscStatus.find_or_create_by!(id: id)
+    Prosopite.pause do
+      UserTokenDbscStatus::DEFAULTS.each do |id|
+        UserTokenDbscStatus.find_or_create_by!(id: id)
+      end
     end
   end
 
@@ -42,7 +44,9 @@ class UserTokenDbscStatusTest < ActiveSupport::TestCase
   end
 
   test "ensure_defaults! creates missing status records" do
-    UserTokenDbscStatus.where(id: UserTokenDbscStatus::REVOKE).destroy_all
+    Prosopite.pause do
+      UserTokenDbscStatus.where(id: UserTokenDbscStatus::REVOKE).destroy_all
+    end
 
     assert_difference("UserTokenDbscStatus.count", 1) do
       UserTokenDbscStatus.ensure_defaults!

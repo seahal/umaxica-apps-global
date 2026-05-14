@@ -63,3 +63,11 @@ social_unlinked:
   id: 27
 step_up_verified:
   id: 28
+session_revoked:
+  id: 29
+social_linked:
+  id: 30
+email_registered:
+  id: 31
+telephone_registered:
+  id: 32

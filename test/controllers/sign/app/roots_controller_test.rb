@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/root_theme_cookie_helper"
 
 class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
   fixtures :users, :user_statuses
@@ -68,11 +69,10 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "GET / fails when logged in" do
+  test "GET / redirects to dashboard when logged in" do
     user = users(:one)
-    get sign_app_root_url(ri: "jp"), headers: { "X-TEST-CURRENT-USER" => user.id }
+    get sign_app_root_url(ri: "jp"), headers: as_user_headers(user, host: "id.app.localhost")
 
-    assert_response :unauthorized
-    assert_equal "この操作を行う権限がありません。", response.body
+    assert_redirected_to sign_app_dashboard_url(ri: "jp")
   end
 end

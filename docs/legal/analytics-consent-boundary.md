@@ -113,6 +113,12 @@ Examples:
 - campaign profiling
 - remarketing support
 
+## Turnstile Is Necessary Processing
+
+Cloudflare Turnstile is treated as necessary security and service processing, not optional
+analytics. Its verification events belong with service delivery, anti-abuse, and incident-response
+logging, so they do not require cookie consent.
+
 ## Minimum Safe Rule For Now
 
 Before consent for optional analytics is confirmed, only collect events that are required for:

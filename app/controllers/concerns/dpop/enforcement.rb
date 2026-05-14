@@ -39,7 +39,12 @@ module Dpop
       payload = Auth::TokenService.decode(
         token,
         host: request.host,
-        resource_type: respond_to?(:current_resource_type, true) ? current_resource_type : nil,
+        resource_type:
+          if respond_to?(:current_resource_type, true)
+            current_resource_type
+          elsif respond_to?(:resource_type, true)
+            resource_type
+          end,
       )
 
       if payload.nil?

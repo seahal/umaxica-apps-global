@@ -1,5 +1,7 @@
-<% default_host = ENV.fetch("POSTGRESQL_HOST", "localhost") %>
-<% test_host = ENV.fetch("POSTGRESQL_TEST_HOST", default_host) %>
+<%
+  default_host = ENV.fetch("POSTGRESQL_HOST", "localhost")
+  test_host = ENV.fetch("POSTGRESQL_TEST_HOST", default_host)
+%>
 default: &default
   adapter: postgresql
   encoding: unicode
@@ -14,13 +16,11 @@ default: &default
   advisory_locks: false
 test_default: &test_default
   !!merge <<: *default
-  # Increase test pool to handle parallelization.
-  pool: <%= ENV.fetch("RAILS_TEST_DB_POOL", 16) %>
-  timeout: 60000
+  timeout: 20000
   prepared_statements: false
   advisory_locks: true
-  lock_timeout: 10s
-  statement_timeout: 30s
+  lock_timeout: 2s
+  statement_timeout: 10s
 development:
   guest:
     !!merge <<: *default
@@ -33,6 +33,39 @@ development:
     database: development_guest_db
     host: <%= ENV["POSTGRESQL_GUEST_SUB"] || default_host %>
     migrations_paths: db/guests_migrate
+  visitor:
+    !!merge <<: *default
+    database: development_visitor_db
+    host: <%= ENV["POSTGRESQL_VISITOR_PUB"] || default_host %>
+    migrations_paths: db/visitors_migrate
+  visitor_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_visitor_db
+    host: <%= ENV["POSTGRESQL_VISITOR_SUB"] || default_host %>
+    migrations_paths: db/visitors_migrate
+  resident:
+    !!merge <<: *default
+    database: development_resident_db
+    host: <%= ENV["POSTGRESQL_RESIDENT_PUB"] || default_host %>
+    migrations_paths: db/residents_migrate
+  resident_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_resident_db
+    host: <%= ENV["POSTGRESQL_RESIDENT_SUB"] || default_host %>
+    migrations_paths: db/residents_migrate
+  personnel:
+    !!merge <<: *default
+    database: development_personnel_db
+    host: <%= ENV["POSTGRESQL_PERSONNEL_PUB"] || default_host %>
+    migrations_paths: db/personnel_migrate
+  personnel_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_personnel_db
+    host: <%= ENV["POSTGRESQL_PERSONNEL_SUB"] || default_host %>
+    migrations_paths: db/personnel_migrate
   principal:
     !!merge <<: *default
     database: development_principal_db
@@ -216,6 +249,39 @@ test:
     database: test_guest_db
     host: <%= test_host %>
     migrations_paths: db/guests_migrate
+  visitor:
+    !!merge <<: *test_default
+    database: test_visitor_db
+    host: <%= test_host %>
+    migrations_paths: db/visitors_migrate
+  visitor_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_visitor_db
+    host: <%= test_host %>
+    migrations_paths: db/visitors_migrate
+  resident:
+    !!merge <<: *test_default
+    database: test_resident_db
+    host: <%= test_host %>
+    migrations_paths: db/residents_migrate
+  resident_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_resident_db
+    host: <%= test_host %>
+    migrations_paths: db/residents_migrate
+  personnel:
+    !!merge <<: *test_default
+    database: test_personnel_db
+    host: <%= test_host %>
+    migrations_paths: db/personnel_migrate
+  personnel_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_personnel_db
+    host: <%= test_host %>
+    migrations_paths: db/personnel_migrate
   principal:
     !!merge <<: *test_default
     database: test_principal_db
@@ -399,6 +465,57 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.GUEST_REPLICA&.PASSWORD %>
     migrations_paths: db/guests_migrate
+  visitor:
+    !!merge <<: *default
+    database: production_visitor_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.VISITOR&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.VISITOR&.PASSWORD %>
+    migrations_paths: db/visitors_migrate
+  visitor_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_visitor_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.VISITOR_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.VISITOR_REPLICA&.PASSWORD %>
+    migrations_paths: db/visitors_migrate
+  resident:
+    !!merge <<: *default
+    database: production_resident_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.RESIDENT&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.RESIDENT&.PASSWORD %>
+    migrations_paths: db/residents_migrate
+  resident_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_resident_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.RESIDENT_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.RESIDENT_REPLICA&.PASSWORD %>
+    migrations_paths: db/residents_migrate
+  personnel:
+    !!merge <<: *default
+    database: production_personnel_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.PERSONNEL&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.PERSONNEL&.PASSWORD %>
+    migrations_paths: db/personnel_migrate
+  personnel_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_personnel_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.PERSONNEL_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.PERSONNEL_REPLICA&.PASSWORD %>
+    migrations_paths: db/personnel_migrate
   principal:
     !!merge <<: *default
     database: production_principal_db

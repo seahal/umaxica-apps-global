@@ -1,4 +1,4 @@
-# Move StaffPreference Family to `operator` Database
+# Move OperatorPreference Family to `operator` Database
 
 ## Status
 
@@ -27,7 +27,7 @@ Completed (2026-05-07).
 
 `staff_preference_*` 系のテーブル群が現状 `principal` DB に残置されている。これは org
 TLD バブルの完結性を阻害しており、`Staff` 本体（`operator`）と
-`StaffPreference`（`principal`）の DB が分かれている唯一の不整合である。`operator` DB に統一する。
+`OperatorPreference`（`principal`）の DB が分かれている唯一の不整合である。`operator` DB に統一する。
 
 これは `customer-preferences-move-to-setting-db.md` と並列の作業（com TLD のために customer
 preference を guest → setting に移すのと同じ構造を、org TLD のために principal →
@@ -94,12 +94,12 @@ FK を追加できる（これは別件として扱ってよい）。
 ### モデル参照点
 
 - `app/models/staff_preference.rb` —
-  `# Database name: principal`、`class StaffPreference < PrincipalRecord`
+  `# Database name: principal`、`class OperatorPreference < PrincipalRecord`
 - `app/models/staff_preference_language.rb` 他 8 ファイル — 同様に `PrincipalRecord` 継承
 - `app/models/staff.rb` — `has_one :staff_preference, dependent: :destroy`
 - `app/services/preference/class_registry.rb` — `"Staff"` エントリ
 - `app/controllers/concerns/preference/adoption.rb` — `find_resource_preference` で
-  `resource.staff_preference` を参照（適応経路は OrgPreference ↔ StaffPreference）
+  `resource.staff_preference` を参照（適応経路は OrgPreference ↔ OperatorPreference）
 - `app/controllers/concerns/preference/adoption.rb` — `resolve_cross_db_option_id` ヘルパーが org
   TLD のために存在している（移植後は org TLD では未使用になる）
 
@@ -143,7 +143,7 @@ FK を追加できる（これは別件として扱ってよい）。
    - `Preference::Adoption` の Org→Staff 同期が回帰しないこと（login 時に `org_preferences` と
      `staff_preferences` の updated_at 比較とコピーが同 DB 内で成功する）。
    - `Preference::Core#sync_to_resource_preference!`
-     の OrgPreference→StaffPreference 経路が回帰しないこと。
+     の OrgPreference→OperatorPreference 経路が回帰しないこと。
    - JWT `prf` クレームと `Current::Preference` の整合性が保たれること（org TLD で login →
      preference 更新 → token 再発行）。
 
@@ -162,7 +162,7 @@ FK を追加できる（これは別件として扱ってよい）。
 ## Risks / Notes
 
 - option テーブル（`staff_preference_language_options`
-  等）は ID を保ったままコピーする必要がある。コードが定数（`StaffPreferenceLanguageOption::JA`
+  等）は ID を保ったままコピーする必要がある。コードが定数（`OperatorPreferenceLanguageOption::JA`
   等）で ID を直接参照しているため、新旧で ID が一致していないと回帰する。
 - `Preference::Adoption#resolve_cross_db_option_id`
   が「name で再解決」していたのはまさに ID が一致していないケースを救済するためなので、移植時にこのヘルパーを使えば片付くが、ID を保てるならそちらの方が単純。
@@ -178,7 +178,7 @@ FK を追加できる（これは別件として扱ってよい）。
 - [ ] `principal` DB から `staff_preference_*` 9 テーブルが削除されている。
 - [ ] org TLD の preference 編集 / cookie consent / token rotation の回帰テストが緑。
 - [ ] login 時の double-write（`AppPreference`↔`UserPreference`、
-      `OrgPreference`↔`StaffPreference`、`ComPreference`↔`CustomerPreference`）がすべて同 DB 内で完結する。
+      `OrgPreference`↔`OperatorPreference`、`ComPreference`↔`CustomerPreference`）がすべて同 DB 内で完結する。
 
 ## References
 
@@ -190,5 +190,5 @@ FK を追加できる（これは別件として扱ってよい）。
 - `app/controllers/concerns/preference/adoption.rb` — `resolve_cross_db_option_id`
   を含む double-write ロジック
 - `app/controllers/concerns/preference/core.rb` — `sync_to_resource_preference!` の OrgPreference →
-  StaffPreference 経路
+  OperatorPreference 経路
 - `app/models/staff.rb` — `has_one :staff_preference`

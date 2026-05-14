@@ -17,13 +17,35 @@ module Oidc
       if request.format.json?
         render json: { error: "Unauthorized" }, status: :unauthorized
       else
-        initiate_sso!
+        Sign::Risk::Emitter.emit(
+          "auth_required",
+          ip: request&.remote_ip,
+          user_agent: request&.user_agent,
+          request_id: request&.request_id,
+          path: request&.fullpath,
+          method: request&.request_method,
+        )
+        rt = Base64.urlsafe_encode64(request.original_url)
+        redirect_to(
+          sign_in_url_with_return(rt),
+          allow_other_host: true,
+          alert: I18n.t("errors.messages.login_required"),
+        )
       end
+    end
+
+    def sign_in_url_with_return(return_to)
+      decoded_return_to = decode_return_to(return_to)
+      initiate_oidc_session!(decoded_return_to)
     end
 
     private
 
     def initiate_sso!(return_to: request.original_url)
+      initiate_oidc_session!(return_to)
+    end
+
+    def initiate_oidc_session!(return_to)
       code_verifier = SecureRandom.urlsafe_base64(32)
       code_challenge = Base64.urlsafe_encode64(
         Digest::SHA256.digest(code_verifier),
@@ -35,7 +57,7 @@ module Oidc
       session[:oidc_state] = state
       session[:oidc_return_to] = return_to
 
-      redirect_to(oidc_authorize_url(code_challenge, state), allow_other_host: true)
+      oidc_authorize_url(code_challenge, state)
     end
 
     def oidc_authorize_url(code_challenge, state)
@@ -66,6 +88,12 @@ module Oidc
 
     def oidc_sign_host
       ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    end
+
+    def decode_return_to(return_to)
+      Base64.urlsafe_decode64(return_to.to_s)
+    rescue ArgumentError
+      "/"
     end
 
     # Must be overridden in each RP's application controller

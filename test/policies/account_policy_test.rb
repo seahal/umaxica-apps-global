@@ -37,9 +37,4 @@ class AccountPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
-
-  # test "scope" do
-  #   scope = AccountPolicy::Scope.new(user: @user, user: nil)
-  #   assert_raises(NoMethodError) { scope.resolve }
-  # end
 end

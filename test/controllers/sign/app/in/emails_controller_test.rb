@@ -24,13 +24,12 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "reject already logged in user" do
+  test "redirect already logged in user to dashboard" do
     user = users(:one)
     get new_sign_app_in_email_url(ri: "jp"),
-        headers: { "Host" => @host, "X-TEST-CURRENT-USER" => user.id }
+        headers: as_user_headers(user, host: @host)
 
-    assert_response :bad_request
-    assert_equal I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"), response.body
+    assert_redirected_to sign_app_dashboard_url(ri: "jp")
   end
 
   test "reject already logged in staff" do
@@ -116,6 +115,11 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :found
     assert_redirected_to %r{/sign/in/email/edit}
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
   end
 
   test "timing attack protection in update action" do
@@ -181,7 +185,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   # Login Tests
 
-  test "successful OTP verification redirects to configuration" do
+  test "successful OTP verification redirects to dashboard" do
     # Create email with user association
     user = users(:one)
     test_email = user.user_emails.create!(
@@ -213,9 +217,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
-    # Should redirect to configuration on success
     assert_response :found
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
   end
 
   test "successful OTP verification sets auth cookies with app-localhost domain" do
@@ -360,6 +363,57 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "email sign in locks after five invalid OTP attempts" do
+    user = users(:one)
+    test_email = user.user_emails.create!(
+      address: "lockout_#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: UserEmailStatus::VERIFIED,
+    )
+
+    post sign_app_in_email_url(ri: "jp"),
+         params: {
+           :user_email => { address: test_email.address },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    Email::MAX_OTP_ATTEMPTS.times do
+      patch sign_app_in_email_url(ri: "jp"),
+            params: { user_email: { pass_code: "000000" } },
+            headers: { "Host" => @host }
+    end
+
+    test_email.reload
+
+    assert_response :unprocessable_content
+    assert_predicate test_email, :locked?
+    assert_operator test_email.lockout_expires_at, :>, Time.current
+  end
+
+  test "email sign in create does not send OTP during lockout" do
+    user = users(:one)
+    test_email = user.user_emails.create!(
+      address: "create_locked_#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: UserEmailStatus::VERIFIED,
+      locked_at: 5.minutes.from_now,
+      otp_attempts_count: Email::MAX_OTP_ATTEMPTS,
+    )
+
+    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+      assert_no_difference -> { ActionMailer::Base.deliveries.count } do
+        post sign_app_in_email_url(ri: "jp"),
+             params: {
+               :user_email => { address: test_email.address },
+               "cf-turnstile-response" => "test_token",
+             },
+             headers: { "Host" => @host }
+      end
+    end
+
+    assert_response :found
+    assert_redirected_to %r{/sign/in/email/edit}
+  end
+
   test "successful OTP verification records login audit event" do
     user = users(:one)
     test_email = user.user_emails.create!(address: "audit_login_#{SecureRandom.hex(4)}@example.com")
@@ -462,7 +516,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "redirects to encoded URL after successful login when rd parameter is provided" do
+  test "redirects to encoded URL after successful login when rt parameter is provided" do
     # Create a test user and email
     user = users(:one)
     test_email = user.user_emails.create!(
@@ -470,21 +524,21 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     )
 
     redirect_url = "/dashboard"
-    encoded_rd = Base64.urlsafe_encode64(redirect_url)
+    encoded_rt = Base64.urlsafe_encode64(redirect_url)
 
-    # Start authentication with rd parameter
+    # Start authentication with rt parameter
     post sign_app_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
-           :rd => encoded_rd,
+           :rt => encoded_rt,
          },
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_includes response.location, "rd=#{CGI.escape(encoded_rd)}"
+    assert_includes response.location, "rt=#{CGI.escape(encoded_rt)}"
     assert_equal test_email.id, session[:user_email_authentication_id]
-    assert_equal encoded_rd, session[:user_email_authentication_rd]
+    assert_equal encoded_rt, session[:user_email_authentication_rt]
 
     # Generate valid OTP code
     otp_private_key = ROTP::Base32.random_base32
@@ -495,37 +549,36 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     # Store OTP
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    # Verify OTP with rd parameter
+    # Verify OTP with rt parameter
     patch sign_app_in_email_url(ri: "jp"),
           params: {
             user_email: { pass_code: valid_pass_code },
-            rd: encoded_rd,
+            rt: encoded_rt,
           },
           headers: { "Host" => @host }
 
-    # Should redirect directly to the decoded rd destination
     assert_response :found
-    assert_redirected_to redirect_url
+    assert_redirected_to sign_app_dashboard_path(ri: "jp", rt: encoded_rt)
   end
 
-  test "rejects external rd parameter after successful login" do
+  test "rejects external rt parameter after successful login" do
     user = users(:one)
     test_email = user.user_emails.create!(
       address: "redirect_external_test_#{SecureRandom.hex(4)}@example.com",
     )
 
-    encoded_rd = Base64.urlsafe_encode64("https://example.com/evil")
+    encoded_rt = Base64.urlsafe_encode64("https://example.com/evil")
 
     post sign_app_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
-           :rd => encoded_rd,
+           :rt => encoded_rt,
          },
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_includes response.location, "rd=#{CGI.escape(encoded_rd)}"
+    assert_includes response.location, "rt=#{CGI.escape(encoded_rt)}"
 
     otp_private_key = ROTP::Base32.random_base32
     otp_counter = 12_345
@@ -537,13 +590,12 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     patch sign_app_in_email_url(ri: "jp"),
           params: {
             user_email: { pass_code: valid_pass_code },
-            rd: encoded_rd,
+            rt: encoded_rt,
           },
           headers: { "Host" => @host }
 
-    # External rd is rejected, falls back to configuration
     assert_response :found
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
   end
 
   test "resets session ID after successful email login" do
@@ -624,7 +676,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
     # A restricted token should have been created
-    restricted = UserToken.where(user_id: user.id, status: UserToken::STATUS_RESTRICTED)
+    restricted = UserToken.where(user_id: user.id, user_token_status_id: UserTokenStatus::RESTRICTED)
 
     assert_equal 1, restricted.count
 
@@ -738,7 +790,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_rotated_active_user_session(user, rotations:)
-    token = UserToken.create!(user: user, status: UserToken::STATUS_ACTIVE)
+    token = UserToken.create!(user: user, user_token_status_id: UserTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
 
     rotations.times do

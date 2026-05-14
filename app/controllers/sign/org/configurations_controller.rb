@@ -5,7 +5,7 @@ module Sign
   module Org
     class ConfigurationsController < ApplicationController
       auth_required!
-      before_action :authenticate_staff!
+      before_action :authenticate_operator!
 
       def show
       end

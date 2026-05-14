@@ -4,6 +4,9 @@
 require "test_helper"
 
 class LocaleInitializerTest < ActiveSupport::TestCase
+  self.use_transactional_tests = false
+  self.fixture_table_names = []
+
   INITIALIZER_PATH = Rails.root.join("config/initializers/locale.rb")
 
   setup do
@@ -31,6 +34,213 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_equal :ja, I18n.default_locale
     assert_equal [:en, :ja], I18n.fallbacks[:en]
     assert_equal [:ja, :en], I18n.fallbacks[:ja]
+  end
+
+  test "REGION_CODE=jp provides english labels for app configuration links" do
+    ENV["REGION_CODE"] = "jp"
+
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:en) do
+      assert_equal "Passkey", I18n.t("controller.sign.app.setting.index.passkey")
+      assert_equal "Recovery Code", I18n.t("controller.sign.app.setting.index.secret")
+      assert_equal "Email", I18n.t("controller.sign.app.setting.index.email")
+      assert_equal "Telephone", I18n.t("controller.sign.app.setting.index.telephone")
+      assert_equal "Session", I18n.t("controller.sign.app.setting.index.session")
+      assert_equal "Activity", I18n.t("controller.sign.app.setting.index.activity")
+    end
+  end
+
+  test "REGION_CODE=jp provides english labels for app language preference screen" do
+    ENV["REGION_CODE"] = "jp"
+
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:en) do
+      assert_equal "Language Settings", I18n.t("apex.app.preferences.language_settings")
+      assert_equal "Manage language, theme, and other preferences in one place.",
+                   I18n.t("apex.app.preferences.description")
+      assert_equal "Language Settings", I18n.t("apex.app.preference.language.edit.heading")
+      assert_equal "Change the display language for the application.",
+                   I18n.t("apex.app.preference.language.edit.description")
+      assert_equal "Language", I18n.t("apex.app.preference.language.edit.language_label")
+      assert_equal "Update Settings", I18n.t("apex.app.preferences.update_settings")
+      assert_equal "Submitting...", I18n.t("apex.app.preferences.submitting")
+      assert_equal "Region & Language Settings", I18n.t("apex.app.preferences.region_settings")
+      assert_equal "Back to Preferences", I18n.t("apex.app.preferences.back_to_settings")
+      assert_equal "Japanese", I18n.t("languages.japanese")
+      assert_equal "English", I18n.t("languages.english")
+    end
+  end
+
+  test "REGION_CODE=jp provides english labels for app region preference links" do
+    ENV["REGION_CODE"] = "jp"
+
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:en) do
+      assert_equal "Region & Language Settings", I18n.t("apex.app.preferences.regions.title")
+      assert_equal "Choose your region...", I18n.t("apex.app.preferences.regions.select_region_prompt")
+      assert_equal "Region Settings", I18n.t("apex.app.preferences.regions.region_section")
+      assert_equal "Select Region", I18n.t("apex.app.preferences.regions.select_region")
+      assert_equal "Japan", I18n.t("apex.app.preferences.regions.select_region_selector.JP")
+      assert_equal "United States", I18n.t("apex.app.preferences.regions.select_region_selector.US")
+      assert_equal "Timezone Settings", I18n.t("apex.app.preferences.region.timezone.link")
+      assert_equal "Language Settings", I18n.t("apex.app.preferences.region.language.link")
+      assert_equal "Currency", I18n.t("apex.app.preferences.region.currency.link")
+      assert_equal "Date Format", I18n.t("apex.app.preferences.region.date_format.link")
+      assert_equal "Time Format", I18n.t("apex.app.preferences.region.time_format.link")
+    end
+  end
+
+  test "REGION_CODE=jp provides localized labels for app date format preference screen" do
+    ENV["REGION_CODE"] = "jp"
+
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:ja) do
+      assert_equal "日付形式", I18n.t("apex.app.preference.date_format.edit.heading")
+      assert_equal "アプリケーションで表示する日付形式を選択します。",
+                   I18n.t("apex.app.preference.date_format.edit.description")
+      assert_equal "日付形式", I18n.t("apex.app.preference.date_format.edit.option_label")
+      assert_equal "ISO形式 (YYYY-MM-DD)", I18n.t("apex.app.preference.date_format.options.iso")
+      assert_equal "英国式 (DD/MM/YYYY)", I18n.t("apex.app.preference.date_format.options.uk")
+      assert_equal "米国式 (MM/DD/YYYY)", I18n.t("apex.app.preference.date_format.options.us")
+    end
+  end
+
+  test "REGION_CODE=jp provides localized labels for com region preference links" do
+    ENV["REGION_CODE"] = "jp"
+
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:ja) do
+      assert_equal "地域・言語の設定", I18n.t("apex.com.preferences.regions.title")
+      assert_equal "地域を選択してください…", I18n.t("apex.com.preferences.regions.select_region_prompt")
+      assert_equal "地域設定", I18n.t("apex.com.preferences.regions.region_section")
+      assert_equal "地域を選択", I18n.t("apex.com.preferences.regions.select_region")
+      assert_equal "JP — にほん", I18n.t("apex.com.preferences.regions.select_region_selector.JP")
+      assert_equal "US — あめりかがっしゅうこく", I18n.t("apex.com.preferences.regions.select_region_selector.US")
+      assert_equal "タイムゾーン設定", I18n.t("apex.com.preferences.region.timezone.link")
+      assert_equal "言語設定", I18n.t("apex.com.preferences.region.language.link")
+      assert_equal "通貨設定", I18n.t("apex.com.preferences.region.currency.link")
+      assert_equal "日付形式", I18n.t("apex.com.preferences.region.date_format.link")
+      assert_equal "時刻形式", I18n.t("apex.com.preferences.region.time_format.link")
+    end
+  end
+
+  test "REGION_CODE=us provides localized labels for app region preference links" do
+    ENV["REGION_CODE"] = "us"
+
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:ja) do
+      assert_equal "地域・言語の設定", I18n.t("apex.app.preferences.regions.title")
+      assert_equal "地域を選択してください…", I18n.t("apex.app.preferences.regions.select_region_prompt")
+      assert_equal "地域設定", I18n.t("apex.app.preferences.regions.region_section")
+      assert_equal "地域を選択", I18n.t("apex.app.preferences.regions.select_region")
+      assert_equal "JP — にほん", I18n.t("apex.app.preferences.regions.select_region_selector.JP")
+      assert_equal "US — あめりかがっしゅうこく", I18n.t("apex.app.preferences.regions.select_region_selector.US")
+      assert_equal "タイムゾーン設定", I18n.t("apex.app.preferences.region.timezone.link")
+      assert_equal "言語設定", I18n.t("apex.app.preferences.region.language.link")
+      assert_equal "通貨設定", I18n.t("apex.app.preferences.region.currency.link")
+      assert_equal "日付形式", I18n.t("apex.app.preferences.region.date_format.link")
+      assert_equal "時刻形式", I18n.t("apex.app.preferences.region.time_format.link")
+    end
+  end
+
+  test "REGION_CODE=jp provides localized labels for app display and accessibility preferences" do
+    ENV["REGION_CODE"] = "jp"
+
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:en) do
+      assert_equal "Motion Settings", I18n.t("apex.app.preferences.motion_settings")
+      assert_equal "Density Settings", I18n.t("apex.app.preferences.density_settings")
+      assert_equal "Items Per Page", I18n.t("apex.app.preferences.items_per_page_settings")
+      assert_equal "Reduced motion", I18n.t("apex.app.preference.motion.options.reduced")
+      assert_equal "Compact density", I18n.t("apex.app.preference.density.options.compact")
+      assert_equal "50 items", I18n.t("apex.app.preference.items_per_page.options.50")
+    end
+
+    I18n.with_locale(:ja) do
+      assert_equal "モーション設定", I18n.t("apex.app.preferences.motion_settings")
+      assert_equal "表示密度設定", I18n.t("apex.app.preferences.density_settings")
+      assert_equal "1ページあたりの表示件数", I18n.t("apex.app.preferences.items_per_page_settings")
+      assert_equal "控えめなモーション", I18n.t("apex.app.preference.motion.options.reduced")
+      assert_equal "コンパクト", I18n.t("apex.app.preference.density.options.compact")
+      assert_equal "50件", I18n.t("apex.app.preference.items_per_page.options.50")
+    end
+  end
+
+  test "region preference screens provide localized top back links" do
+    {
+      "jp" => { en: "Back", ja: "もどる" },
+      "us" => { en: "Back", ja: "もどる" },
+    }.each do |region_code, expectations|
+      ENV["REGION_CODE"] = region_code
+      assert_nothing_raised { reload_locale_initializer }
+
+      expectations.each do |locale, expected|
+        I18n.with_locale(locale) do
+          %w(app com org).each do |surface|
+            assert_equal expected, I18n.t("apex.#{surface}.preferences.regions.back_link")
+          end
+        end
+      end
+    end
+  end
+
+  test "region preference screens provide org regional option links" do
+    {
+      "jp" => {
+        en: ["Timezone Settings", "Language Settings", "Currency", "Date Format", "Time Format"],
+        ja: %w(タイムゾーン設定 言語設定 通貨設定 日付形式 時刻形式),
+      },
+      "us" => {
+        en: ["Timezone Settings", "Language Settings", "Currency", "Date Format", "Time Format"],
+        ja: %w(タイムゾーン設定 言語設定 通貨設定 日付形式 時刻形式),
+      },
+    }.each do |region_code, expectations|
+      ENV["REGION_CODE"] = region_code
+      assert_nothing_raised { reload_locale_initializer }
+
+      expectations.each do |locale, expected|
+        I18n.with_locale(locale) do
+          keys = %w(timezone language currency date_format time_format)
+
+          assert_equal expected,
+                       keys.map { |key| I18n.t("apex.org.preferences.region.#{key}.link") }
+        end
+      end
+    end
+  end
+
+  test "REGION_CODE=us provides localized labels for org regional option screens" do
+    ENV["REGION_CODE"] = "us"
+
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:ja) do
+      assert_equal "通貨設定", I18n.t("apex.org.preference.currency.edit.heading")
+      assert_equal "表示に使う通貨を選択します。", I18n.t("apex.org.preference.currency.edit.description")
+      assert_equal "通貨", I18n.t("apex.org.preference.currency.edit.option_label")
+      assert_equal "米ドル (USD)", I18n.t("apex.org.preference.currency.options.usd")
+      assert_equal "日本円 (JPY)", I18n.t("apex.org.preference.currency.options.jpy")
+
+      assert_equal "日付形式", I18n.t("apex.org.preference.date_format.edit.heading")
+      assert_equal "表示する日付形式を選択します。", I18n.t("apex.org.preference.date_format.edit.description")
+      assert_equal "日付形式", I18n.t("apex.org.preference.date_format.edit.option_label")
+      assert_equal "ISO形式 (YYYY-MM-DD)", I18n.t("apex.org.preference.date_format.options.iso")
+      assert_equal "英国式 (DD/MM/YYYY)", I18n.t("apex.org.preference.date_format.options.uk")
+      assert_equal "米国式 (MM/DD/YYYY)", I18n.t("apex.org.preference.date_format.options.us")
+
+      assert_equal "時刻形式", I18n.t("apex.org.preference.time_format.edit.heading")
+      assert_equal "表示する時刻形式を選択します。", I18n.t("apex.org.preference.time_format.edit.description")
+      assert_equal "時刻形式", I18n.t("apex.org.preference.time_format.edit.option_label")
+      assert_equal "24時間表記", I18n.t("apex.org.preference.time_format.options.hour_24")
+      assert_equal "12時間表記", I18n.t("apex.org.preference.time_format.options.hour_12")
+    end
   end
 
   # test "REGION_CODE=us should work correctly" do

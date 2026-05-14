@@ -5,7 +5,7 @@
 ## Context
 
 The `apex`, `sign`, and `jump` boundaries each expose a small number of fully public endpoints that
-do not need authentication, authorization, session, preference, verification, or `Current`/`Jumper`
+do not need authentication, authorization, session, preference, verification, or `Current`/`Actor`
 state:
 
 - `/health` exists in all three boundaries.
@@ -84,8 +84,8 @@ The following are intentionally not included, even with skip directives:
   `canonicalize_query_params`, `reset_flash`, `transparent_refresh_access_token`, `enforce_*`,
   `set_current`, `set_current_observability`, `purge_current`
 
-`Jump::PublicController` does not include the `Jumper` lifecycle. Public endpoints under `jump` do
-not need `Jumper.domain` or `Jumper.actor_type`.
+`Jump::PublicController` does not populate `Current` for the `Actor` facade. Public endpoints under
+`jump` do not need current surface or actor state.
 
 ## Nesting
 
@@ -147,7 +147,7 @@ The following are explicitly deferred and not part of this decision:
 
 - `adr/three-tier-controller-base.md` — overarching doctrine that places this work as Phase 1 of a
   three-tier base hierarchy (`ApplicationController` / `OpenController` / `PublicController`).
-- `adr/jumper-current-boundary.md` — `Jumper` context that `Jump::PublicController` deliberately
-  does not use.
+- `adr/actor-current-facade.md` — current request-context facade. `Jump::PublicController`
+  deliberately does not populate it.
 - `adr/four-engine-restoration-and-base-contract.md` — boundary base class contract.
 - `plans/active/public-controller-base-plan.md` — implementation plan.

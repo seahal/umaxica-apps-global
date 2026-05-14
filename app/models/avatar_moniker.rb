@@ -40,4 +40,5 @@ class AvatarMoniker < AvatarRecord
   validates :valid_from, presence: true
   validates :id, length: { maximum: 255 }
 end
+
 # rubocop:enable Layout/LineLength

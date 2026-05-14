@@ -10,18 +10,18 @@
 #
 require "test_helper"
 
-class StaffVisibilityTest < ActiveSupport::TestCase
+class OperatorVisibilityTest < ActiveSupport::TestCase
   fixtures :staff_visibilities, :staffs
 
   test "has expected fixed ids" do
-    assert StaffVisibility.exists?(id: StaffVisibility::NOBODY)
-    assert StaffVisibility.exists?(id: StaffVisibility::USER)
-    assert StaffVisibility.exists?(id: StaffVisibility::STAFF)
-    assert StaffVisibility.exists?(id: StaffVisibility::BOTH)
+    assert OperatorVisibility.exists?(id: OperatorVisibility::NOBODY)
+    assert OperatorVisibility.exists?(id: OperatorVisibility::USER)
+    assert OperatorVisibility.exists?(id: OperatorVisibility::STAFF)
+    assert OperatorVisibility.exists?(id: OperatorVisibility::BOTH)
   end
 
   test "has many staffs association" do
-    assoc = StaffVisibility.reflect_on_association(:staffs)
+    assoc = OperatorVisibility.reflect_on_association(:staffs)
 
     assert_not_nil assoc
     assert_equal :has_many, assoc.macro

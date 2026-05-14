@@ -205,7 +205,7 @@ get '/sign/failure', to: 'oauth_callbacks#failure'
 ### Phase 5: Configuration & security
 
 1. **Environment variable setup**
-   - Client IDs and secrets.
+   - VisitorAccount IDs and secrets.
    - Provider-specific configuration.
    - Differentiate development and production.
 

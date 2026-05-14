@@ -7,7 +7,7 @@ module Sign
       class BaseController < ApplicationController
         include ::RateLimit
         include ActionPolicy::Controller
-        # Note: Authentication::Staff is NOT included here for unauthenticated sign-up
+        # Note: Authentication::Operator is NOT included here for unauthenticated sign-up
         include ::Preference::Global
         include ::Preference::Adoption
         include ::CurrentSupport

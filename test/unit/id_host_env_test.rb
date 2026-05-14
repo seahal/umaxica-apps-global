@@ -11,6 +11,12 @@ class IdHostEnvTest < ActiveSupport::TestCase
     end
   end
 
+  test "service_url returns nil when blank" do
+    with_env("ID_SERVICE_URL" => "") do
+      assert_nil IdHostEnv.service_url
+    end
+  end
+
   test "staff_url reads ID_STAFF_URL" do
     with_env("ID_STAFF_URL" => "id.org.example.test") do
       assert_equal "id.org.example.test", IdHostEnv.staff_url
@@ -45,6 +51,20 @@ class IdHostEnvTest < ActiveSupport::TestCase
       "ID_STAFF_URL" => "id.org.example.test",
     ) do
       assert_nil IdHostEnv.validate!
+    end
+  end
+
+  test "validate! reports every missing host" do
+    with_env(
+      "ID_SERVICE_URL" => nil,
+      "ID_CORPORATE_URL" => nil,
+      "ID_STAFF_URL" => nil,
+    ) do
+      error = assert_raises(IdHostEnv::MissingHostError) { IdHostEnv.validate! }
+
+      assert_includes error.message, "ID_SERVICE_URL"
+      assert_includes error.message, "ID_CORPORATE_URL"
+      assert_includes error.message, "ID_STAFF_URL"
     end
   end
 

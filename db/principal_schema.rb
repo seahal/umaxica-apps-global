@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_14_143000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -25,18 +25,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.datetime "updated_at", null: false
     t.index ["accountable_type", "accountable_id"], name: "index_accounts_on_accountable_type_and_accountable_id", unique: true
     t.index ["email"], name: "index_accounts_on_email", unique: true
-  end
-
-  create_table "app_banners", force: :cascade do |t|
-    t.text "body", null: false
-    t.datetime "created_at", null: false
-    t.datetime "ends_at", default: "9999-12-31 23:59:59", null: false
-    t.boolean "published", default: false, null: false
-    t.datetime "starts_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.string "title", default: "", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.check_constraint "ends_at > starts_at", name: "app_banners_ends_at_after_starts_at"
   end
 
   create_table "app_preference_binding_methods", force: :cascade do |t|
@@ -55,7 +43,55 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.index ["preference_id"], name: "index_app_preference_cookies_on_preference_id", unique: true
   end
 
+  create_table "app_preference_currencies", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_app_preference_currencies_on_option_id"
+    t.index ["preference_id"], name: "index_app_preference_currencies_on_preference_id", unique: true
+  end
+
+  create_table "app_preference_currency_options", force: :cascade do |t|
+  end
+
+  create_table "app_preference_date_format_options", force: :cascade do |t|
+  end
+
+  create_table "app_preference_date_formats", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_app_preference_date_formats_on_option_id"
+    t.index ["preference_id"], name: "index_app_preference_date_formats_on_preference_id", unique: true
+  end
+
   create_table "app_preference_dbsc_statuses", force: :cascade do |t|
+  end
+
+  create_table "app_preference_densities", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_app_preference_densities_on_option_id"
+    t.index ["preference_id"], name: "index_app_preference_densities_on_preference_id", unique: true
+  end
+
+  create_table "app_preference_density_options", force: :cascade do |t|
+  end
+
+  create_table "app_preference_items_per_page_options", force: :cascade do |t|
+  end
+
+  create_table "app_preference_items_per_pages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_app_preference_items_per_pages_on_option_id"
+    t.index ["preference_id"], name: "index_app_preference_items_per_pages_on_preference_id", unique: true
   end
 
   create_table "app_preference_language_options", force: :cascade do |t|
@@ -68,6 +104,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.datetime "updated_at", null: false
     t.index ["option_id"], name: "index_app_preference_languages_on_option_id"
     t.index ["preference_id"], name: "index_app_preference_languages_on_preference_id", unique: true
+  end
+
+  create_table "app_preference_motion_options", force: :cascade do |t|
+  end
+
+  create_table "app_preference_motions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_app_preference_motions_on_option_id"
+    t.index ["preference_id"], name: "index_app_preference_motions_on_preference_id", unique: true
   end
 
   create_table "app_preference_region_options", force: :cascade do |t|
@@ -95,6 +143,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.datetime "updated_at", null: false
     t.index ["option_id"], name: "index_app_preference_themes_on_option_id"
     t.index ["preference_id"], name: "index_app_preference_themes_on_preference_id", unique: true
+  end
+
+  create_table "app_preference_time_format_options", force: :cascade do |t|
+  end
+
+  create_table "app_preference_time_formats", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_app_preference_time_formats_on_option_id"
+    t.index ["preference_id"], name: "index_app_preference_time_formats_on_preference_id", unique: true
   end
 
   create_table "app_preference_timezone_options", force: :cascade do |t|
@@ -156,6 +216,19 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.index ["user_id"], name: "index_apple_auths_on_user_id"
   end
 
+  create_table "client_banners", force: :cascade do |t|
+    t.text "body", null: false
+    t.bigint "client_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "ends_at", default: "9999-12-31 23:59:59", null: false
+    t.boolean "published", default: false, null: false
+    t.datetime "starts_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "title", default: "", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_client_banners_on_client_id"
+    t.check_constraint "ends_at > starts_at", name: "client_banners_ends_at_after_starts_at"
+  end
+
   create_table "client_statuses", force: :cascade do |t|
   end
 
@@ -174,22 +247,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.index ["public_id"], name: "index_clients_on_public_id", unique: true
     t.index ["status_id"], name: "index_clients_on_status_id"
     t.index ["user_id"], name: "index_clients_on_user_id"
-  end
-
-  create_table "google_auths", force: :cascade do |t|
-    t.text "access_token", null: false
-    t.datetime "created_at", null: false
-    t.string "email", default: "", null: false
-    t.datetime "expires_at", null: false
-    t.string "image_url", default: "", null: false
-    t.string "name", default: "", null: false
-    t.string "provider", default: "", null: false
-    t.text "raw_info", null: false
-    t.text "refresh_token", null: false
-    t.string "uid", default: "", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["user_id"], name: "index_google_auths_on_user_id"
   end
 
   create_table "member_statuses", force: :cascade do |t|
@@ -232,6 +289,19 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.index ["app_preference_id"], name: "index_user_app_preferences_on_app_preference_id"
     t.index ["user_id", "app_preference_id"], name: "index_user_app_preferences_on_user_id_and_app_preference_id", unique: true
     t.index ["user_id"], name: "index_user_app_preferences_on_user_id"
+  end
+
+  create_table "user_banners", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "ends_at", default: "9999-12-31 23:59:59", null: false
+    t.boolean "published", default: false, null: false
+    t.datetime "starts_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "title", default: "", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_user_banners_on_user_id"
+    t.check_constraint "ends_at > starts_at", name: "user_banners_ends_at_after_starts_at"
   end
 
   create_table "user_bulletins", force: :cascade do |t|
@@ -314,7 +384,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
 
   create_table "user_emails", force: :cascade do |t|
     t.string "address", default: "", null: false
-    t.string "address_bidx"
     t.string "address_digest"
     t.datetime "created_at", null: false
     t.datetime "locked_at", default: ::Float::INFINITY, null: false
@@ -333,7 +402,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.bigint "user_id", null: false
     t.binary "verification_token_digest"
     t.index "lower((address)::text)", name: "index_user_identity_emails_on_lower_address", unique: true
-    t.index ["address_bidx"], name: "index_user_emails_on_address_bidx", unique: true, where: "(address_bidx IS NOT NULL)"
     t.index ["address_digest"], name: "index_user_emails_on_address_digest", unique: true, where: "(address_digest IS NOT NULL)"
     t.index ["otp_last_sent_at"], name: "index_user_emails_on_otp_last_sent_at"
     t.index ["public_id"], name: "index_user_emails_on_public_id", unique: true
@@ -415,6 +483,12 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.index ["workspace_id"], name: "index_user_memberships_on_workspace_id"
   end
 
+  create_table "user_multi_factor_statuses", force: :cascade do |t|
+  end
+
+  create_table "user_multi_factors", force: :cascade do |t|
+  end
+
   create_table "user_one_time_password_statuses", force: :cascade do |t|
   end
 
@@ -443,7 +517,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.string "public_id", limit: 21, null: false
     t.text "public_key", null: false
     t.bigint "sign_count", default: 0, null: false
-    t.bigint "status_id", default: 0, null: false
+    t.bigint "status_id", default: 1, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.string "webauthn_id", default: "", null: false
@@ -451,6 +525,54 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.index ["status_id"], name: "index_user_passkeys_on_status_id"
     t.index ["user_id"], name: "index_user_identity_passkeys_on_user_id"
     t.index ["webauthn_id"], name: "index_user_passkeys_on_webauthn_id", unique: true
+  end
+
+  create_table "user_preference_currencies", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_user_preference_currencies_on_option_id"
+    t.index ["preference_id"], name: "index_user_preference_currencies_on_preference_id", unique: true
+  end
+
+  create_table "user_preference_currency_options", force: :cascade do |t|
+  end
+
+  create_table "user_preference_date_format_options", force: :cascade do |t|
+  end
+
+  create_table "user_preference_date_formats", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_user_preference_date_formats_on_option_id"
+    t.index ["preference_id"], name: "index_user_preference_date_formats_on_preference_id", unique: true
+  end
+
+  create_table "user_preference_densities", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_user_preference_densities_on_option_id"
+    t.index ["preference_id"], name: "index_user_preference_densities_on_preference_id", unique: true
+  end
+
+  create_table "user_preference_density_options", force: :cascade do |t|
+  end
+
+  create_table "user_preference_items_per_page_options", force: :cascade do |t|
+  end
+
+  create_table "user_preference_items_per_pages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_user_preference_items_per_pages_on_option_id"
+    t.index ["preference_id"], name: "index_user_preference_items_per_pages_on_preference_id", unique: true
   end
 
   create_table "user_preference_language_options", force: :cascade do |t|
@@ -463,6 +585,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.datetime "updated_at", null: false
     t.index ["option_id"], name: "index_user_preference_languages_on_option_id"
     t.index ["preference_id"], name: "index_user_preference_languages_on_preference_id", unique: true
+  end
+
+  create_table "user_preference_motion_options", force: :cascade do |t|
+  end
+
+  create_table "user_preference_motions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_user_preference_motions_on_option_id"
+    t.index ["preference_id"], name: "index_user_preference_motions_on_preference_id", unique: true
   end
 
   create_table "user_preference_region_options", force: :cascade do |t|
@@ -489,6 +623,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.index ["preference_id"], name: "index_user_preference_themes_on_preference_id", unique: true
   end
 
+  create_table "user_preference_time_format_options", force: :cascade do |t|
+  end
+
+  create_table "user_preference_time_formats", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "option_id", null: false
+    t.bigint "preference_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_user_preference_time_formats_on_option_id"
+    t.index ["preference_id"], name: "index_user_preference_time_formats_on_preference_id", unique: true
+  end
+
   create_table "user_preference_timezone_options", force: :cascade do |t|
   end
 
@@ -506,15 +652,23 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.boolean "consented", default: false, null: false
     t.datetime "consented_at"
     t.datetime "created_at", null: false
+    t.string "currency", default: "jpy", null: false
+    t.string "date_format", default: "iso", null: false
+    t.string "density", default: "standard", null: false
     t.boolean "functional", default: false, null: false
+    t.string "items_per_page", default: "20", null: false
     t.string "language", default: "ja", null: false
+    t.string "motion", default: "standard", null: false
     t.boolean "performant", default: false, null: false
+    t.string "public_id", limit: 21
     t.string "region", default: "jp", null: false
     t.boolean "targetable", default: false, null: false
     t.string "theme", default: "sy", null: false
+    t.string "time_format", default: "hour_24", null: false
     t.string "timezone", default: "Asia/Tokyo", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["public_id"], name: "index_user_preferences_on_public_id", unique: true
     t.index ["user_id"], name: "index_user_preferences_on_user_id", unique: true
   end
 
@@ -594,7 +748,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.datetime "created_at", null: false
     t.datetime "locked_at", default: -::Float::INFINITY, null: false
     t.string "number", default: "", null: false
-    t.string "number_bidx"
     t.string "number_digest"
     t.integer "otp_attempts_count", default: 0, null: false
     t.text "otp_counter", default: "", null: false
@@ -605,7 +758,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.bigint "user_id", null: false
     t.bigint "user_identity_telephone_status_id", default: 0, null: false
     t.index "lower((number)::text)", name: "index_user_telephones_on_lower_number", unique: true
-    t.index ["number_bidx"], name: "index_user_telephones_on_number_bidx", unique: true, where: "(number_bidx IS NOT NULL)"
     t.index ["number_digest"], name: "index_user_telephones_on_number_digest", unique: true, where: "(number_digest IS NOT NULL)"
     t.index ["public_id"], name: "index_user_telephones_on_public_id", unique: true
     t.index ["user_id"], name: "index_user_telephones_on_user_id"
@@ -622,15 +774,19 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
     t.datetime "last_reauth_at"
     t.integer "lock_version", default: 0, null: false
     t.boolean "multi_factor_enabled", default: false, null: false
+    t.bigint "multi_factor_id", default: 0, null: false
+    t.bigint "multi_factor_status_id", default: 5, null: false
     t.string "public_id", limit: 255, default: "", null: false
     t.datetime "purge_at", default: ::Float::INFINITY, null: false
     t.datetime "purged_at"
-    t.bigint "status_id", default: 0, null: false
+    t.bigint "status_id", default: 11, null: false
     t.datetime "updated_at", null: false
     t.bigint "visibility_id", default: 2, null: false
     t.datetime "withdrawal_started_at"
     t.datetime "withdrawn_at", default: ::Float::INFINITY
     t.index ["deactivated_at"], name: "index_users_on_deactivated_at", where: "(deactivated_at IS NOT NULL)"
+    t.index ["multi_factor_id"], name: "index_users_on_multi_factor_id"
+    t.index ["multi_factor_status_id"], name: "index_users_on_multi_factor_status_id"
     t.index ["public_id"], name: "index_users_on_public_id", unique: true
     t.index ["purge_at"], name: "index_users_on_purge_at"
     t.index ["purged_at"], name: "index_users_on_purged_at", where: "(purged_at IS NOT NULL)"
@@ -642,12 +798,24 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
   end
 
   add_foreign_key "app_preference_cookies", "app_preferences", column: "preference_id", validate: false
+  add_foreign_key "app_preference_currencies", "app_preference_currency_options", column: "option_id"
+  add_foreign_key "app_preference_currencies", "app_preferences", column: "preference_id"
+  add_foreign_key "app_preference_date_formats", "app_preference_date_format_options", column: "option_id"
+  add_foreign_key "app_preference_date_formats", "app_preferences", column: "preference_id"
+  add_foreign_key "app_preference_densities", "app_preference_density_options", column: "option_id"
+  add_foreign_key "app_preference_densities", "app_preferences", column: "preference_id"
+  add_foreign_key "app_preference_items_per_pages", "app_preference_items_per_page_options", column: "option_id"
+  add_foreign_key "app_preference_items_per_pages", "app_preferences", column: "preference_id"
   add_foreign_key "app_preference_languages", "app_preference_language_options", column: "option_id", name: "fk_app_preference_languages_on_option_id"
   add_foreign_key "app_preference_languages", "app_preferences", column: "preference_id", validate: false
+  add_foreign_key "app_preference_motions", "app_preference_motion_options", column: "option_id"
+  add_foreign_key "app_preference_motions", "app_preferences", column: "preference_id"
   add_foreign_key "app_preference_regions", "app_preference_region_options", column: "option_id", name: "fk_app_preference_regions_on_option_id"
   add_foreign_key "app_preference_regions", "app_preferences", column: "preference_id", validate: false
   add_foreign_key "app_preference_themes", "app_preference_theme_options", column: "option_id", name: "fk_app_preference_themes_on_option_id"
   add_foreign_key "app_preference_themes", "app_preferences", column: "preference_id", validate: false
+  add_foreign_key "app_preference_time_formats", "app_preference_time_format_options", column: "option_id"
+  add_foreign_key "app_preference_time_formats", "app_preferences", column: "preference_id"
   add_foreign_key "app_preference_timezones", "app_preference_timezone_options", column: "option_id", name: "fk_app_preference_timezones_on_option_id"
   add_foreign_key "app_preference_timezones", "app_preferences", column: "preference_id", validate: false
   add_foreign_key "app_preferences", "app_preference_binding_methods", column: "binding_method_id", name: "fk_app_preferences_on_binding_method_id", validate: false
@@ -655,15 +823,16 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
   add_foreign_key "app_preferences", "app_preference_statuses", column: "status_id", name: "fk_app_preferences_on_status_id", validate: false
   add_foreign_key "app_preferences", "app_preferences", column: "replaced_by_id", on_delete: :nullify, validate: false
   add_foreign_key "apple_auths", "users", validate: false
+  add_foreign_key "client_banners", "clients", validate: false
   add_foreign_key "clients", "client_statuses"
   add_foreign_key "clients", "client_statuses", column: "status_id", name: "fk_clients_on_status_id"
   add_foreign_key "clients", "client_statuses", name: "fk_clients_on_client_status_id"
   add_foreign_key "clients", "users", on_delete: :nullify
-  add_foreign_key "google_auths", "users", validate: false
   add_foreign_key "members", "member_statuses", column: "status_id", validate: false
   add_foreign_key "members", "users", on_delete: :nullify, validate: false
   add_foreign_key "user_app_preferences", "app_preferences", on_delete: :cascade
   add_foreign_key "user_app_preferences", "users", validate: false
+  add_foreign_key "user_banners", "users", validate: false
   add_foreign_key "user_bulletins", "users"
   add_foreign_key "user_client_deletions", "clients", validate: false
   add_foreign_key "user_client_deletions", "users", validate: false
@@ -700,12 +869,24 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
   add_foreign_key "user_one_time_passwords", "users", validate: false
   add_foreign_key "user_passkeys", "user_passkey_statuses", column: "status_id", validate: false
   add_foreign_key "user_passkeys", "users", validate: false
+  add_foreign_key "user_preference_currencies", "user_preference_currency_options", column: "option_id"
+  add_foreign_key "user_preference_currencies", "user_preferences", column: "preference_id"
+  add_foreign_key "user_preference_date_formats", "user_preference_date_format_options", column: "option_id"
+  add_foreign_key "user_preference_date_formats", "user_preferences", column: "preference_id"
+  add_foreign_key "user_preference_densities", "user_preference_density_options", column: "option_id"
+  add_foreign_key "user_preference_densities", "user_preferences", column: "preference_id"
+  add_foreign_key "user_preference_items_per_pages", "user_preference_items_per_page_options", column: "option_id"
+  add_foreign_key "user_preference_items_per_pages", "user_preferences", column: "preference_id"
   add_foreign_key "user_preference_languages", "user_preference_language_options", column: "option_id", name: "fk_user_preference_languages_on_option_id"
   add_foreign_key "user_preference_languages", "user_preferences", column: "preference_id", name: "fk_user_preference_languages_on_preference_id"
+  add_foreign_key "user_preference_motions", "user_preference_motion_options", column: "option_id"
+  add_foreign_key "user_preference_motions", "user_preferences", column: "preference_id"
   add_foreign_key "user_preference_regions", "user_preference_region_options", column: "option_id", name: "fk_user_preference_regions_on_option_id"
   add_foreign_key "user_preference_regions", "user_preferences", column: "preference_id", name: "fk_user_preference_regions_on_preference_id"
   add_foreign_key "user_preference_themes", "user_preference_theme_options", column: "option_id", name: "fk_user_preference_themes_on_option_id"
   add_foreign_key "user_preference_themes", "user_preferences", column: "preference_id", name: "fk_user_preference_themes_on_preference_id"
+  add_foreign_key "user_preference_time_formats", "user_preference_time_format_options", column: "option_id"
+  add_foreign_key "user_preference_time_formats", "user_preferences", column: "preference_id"
   add_foreign_key "user_preference_timezones", "user_preference_timezone_options", column: "option_id", name: "fk_user_preference_timezones_on_option_id"
   add_foreign_key "user_preference_timezones", "user_preferences", column: "preference_id", name: "fk_user_preference_timezones_on_preference_id"
   add_foreign_key "user_secrets", "user_secret_kinds"
@@ -717,6 +898,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_202200) do
   add_foreign_key "user_social_googles", "users", validate: false
   add_foreign_key "user_telephones", "user_telephone_statuses", column: "user_identity_telephone_status_id"
   add_foreign_key "user_telephones", "users", validate: false
+  add_foreign_key "users", "user_multi_factor_statuses", column: "multi_factor_status_id", validate: false
+  add_foreign_key "users", "user_multi_factors", column: "multi_factor_id", validate: false
   add_foreign_key "users", "user_statuses", column: "status_id"
   add_foreign_key "users", "user_visibilities", column: "visibility_id"
 end

@@ -2,6 +2,10 @@
 
 **Status:** Accepted (2026-05-06)
 
+> **Partial supersession (2026-05-13):** `adr/actor-current-facade.md` supersedes this ADR's
+> application-facing read API. `Actor::Preference` is the value-object shape, and application code
+> reads it through `Actor.preference`.
+
 ## Context
 
 The preference subsystem (region / language / timezone / theme / cookie consent) has been through
@@ -28,11 +32,11 @@ The current factual state (2026-05-06) is:
 
 Relevant runtime code is already in place:
 
-- `app/models/current.rb` defines `Current < ActiveSupport::CurrentAttributes` with a `preference`
+- `app/models/actor.rb` defines `Actor < ActiveSupport::CurrentAttributes` with a `preference`
   slot.
-- `app/models/current/preference.rb` defines `Current::Preference`, an immutable value object with a
+- `app/models/actor/preference.rb` defines `Actor::Preference`, an immutable value object with a
   `from_jwt` constructor and a `NULL` instance for guests / bearer-only requests.
-- `app/controllers/concerns/current_support.rb` resolves `Current.preference` via a three-stage
+- `app/controllers/concerns/current_support.rb` resolves `Actor.preference` via a three-stage
   fallback: actor-side DB record → JWT `prf` claim → `NULL`.
 
 Past plans assumed two things that we now reject:
@@ -57,7 +61,7 @@ bubble so that token / preference data does not bleed across TLDs:
 - **com TLD** → `setting` bubble for preference + `guest` bubble for authentication. The split is
   intentional: `guest` is com TLD's authentication DB (`customers` + `customer_passkeys` / `_emails`
   / `_telephones` / `_secrets`) and the name is historical.
-- **org TLD** → `operator` bubble (`OrgPreference` + `StaffPreference`(target) + `Staff` + Staff
+- **org TLD** → `operator` bubble (`OrgPreference` + `OperatorPreference`(target) + `Staff` + Staff
   auth)
 
 Each database is a **soft bubble**: changes inside one bubble must not require coordinated changes
@@ -78,10 +82,10 @@ After both moves complete, login-time double-write between session-side and acto
 operation in all three TLDs, and `Preference::Adoption#resolve_cross_db_option_id` (currently
 required to bridge the cross-DB sync for org and com TLDs) becomes dead code.
 
-### 2. Interface is unified through `Current::Preference`
+### 2. Interface is unified through `Actor::Preference`
 
-`Current::Preference` is the only runtime read interface for preference values. Application code
-(controllers, views, services) reads preference state via `Current.preference.<field>` and never
+`Actor::Preference` is the only runtime read interface for preference values. Application code
+(controllers, views, services) reads preference state via `Actor.preference.<field>` and never
 reaches into per-DB preference models for runtime reads. The differences between DB shapes are
 absorbed at the `CurrentSupport` boundary, not pushed up into callers.
 
@@ -108,7 +112,7 @@ storage.
 ### Positive
 
 - Stops the cycle of contradictory consolidation plans.
-- Code paths that depend on `Current::Preference` are stable — DB rearrangement does not change the
+- Code paths that depend on `Actor::Preference` are stable — DB rearrangement does not change the
   read interface.
 - Each preference DB can evolve at its own pace within its bubble.
 - `guest` becomes single-purpose (com TLD authentication + contact data; no preference data).
@@ -142,7 +146,7 @@ The following are explicitly out of scope of this ADR and will be addressed in s
   allowed DB moves)
 - `plans/backlog/staff-preference-move-to-operator-db.md` — org TLD bubble closure (the other
   allowed DB move)
-- `plans/backlog/gh578-preference-consolidation.md` — `Current::Preference` runtime consolidation
+- `plans/backlog/gh578-preference-consolidation.md` — `Actor::Preference` runtime consolidation
   (still relevant)
 - `plans/backlog/current-support-integration-test-coverage.md` — `CurrentSupport` request-lifecycle
   test coverage gap

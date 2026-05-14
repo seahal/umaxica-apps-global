@@ -3,6 +3,8 @@
 
 module Email::Org
   class ApplicationMailer < ActionMailer::Base
+    include PromotionalEmailUnsubscribeHeaders
+
     default from: ENV.fetch("SMTP_FROM_ADDRESS_ORG", "from@umaxica.org")
     layout "mailer/org/mailer"
   end

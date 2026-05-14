@@ -17,9 +17,16 @@ module Sign
       return if redirect_if_recent_verification_for_post!
       return unless require_method_available!(:totp)
 
+      unless cloudflare_turnstile_stealth_validation["success"]
+        @verification_errors = [t("turnstile_error")]
+        render :new, status: :unprocessable_content
+        return
+      end
+
       if verify_totp!
         consume_reauth_session!
       else
+        record_failed_step_up_attempt!(:totp)
         render :new, status: :unprocessable_content
       end
     end

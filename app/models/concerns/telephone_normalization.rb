@@ -18,7 +18,7 @@
 #
 # Usage:
 #   include TelephoneNormalization
-#   normalize_telephone_field :number  # for UserTelephone/StaffTelephone
+#   normalize_telephone_field :number  # for UserTelephone/OperatorTelephone
 #   normalize_telephone_field :telephone_number  # for ContactTelephones
 #   normalize_telephone_field :body  # for TelephoneOccurrence
 #
@@ -165,7 +165,7 @@ module TelephoneNormalization
     # Pattern: +810... where the next digit after 0 is 1-9
     if input.start_with?("+81") && input.length >= 6
       # Check if there's a 0 right after +81
-      if input[3] == "0" && input[4]&.match?(/[1-9]/)
+      if input[3] == "0" && input[4].match?(/[1-9]/)
         return "+81" + input[4, input.length].to_s
       end
 

@@ -57,7 +57,7 @@ School）に移行します。
 
 | #   | ファイルパス                                                          | 行数 | stub対象メソッド                          |
 | --- | --------------------------------------------------------------------- | ---- | ----------------------------------------- |
-| 1   | `test/controllers/sign/org/configuration/passkeys_controller_test.rb` | 103  | `StaffPasskey.any_instance.stub(:valid?)` |
+| 1   | `test/controllers/sign/org/configuration/passkeys_controller_test.rb` | 103  | `OperatorPasskey.any_instance.stub(:valid?)` |
 | 2   | `test/controllers/apex/app/web/v0/cookie_controller_test.rb`          | 141  | `:issue_access_token_from`                |
 
 ## 変換戦略
@@ -234,7 +234,7 @@ end
 
 ### Phase 3: グループ 5（個別ケース）（0.5日）
 
-- [ ] `sign/org/configuration/passkeys_controller_test.rb` - `StaffPasskey`へのstub
+- [ ] `sign/org/configuration/passkeys_controller_test.rb` - `OperatorPasskey`へのstub
 - [ ] `apex/app/web/v0/cookie_controller_test.rb` - 141行目
 
 ### Phase 4: グループ 4（電話番号登録）（1日）

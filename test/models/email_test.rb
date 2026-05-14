@@ -15,7 +15,7 @@
 require "test_helper"
 
 class IdentityEmailTest < ActiveSupport::TestCase
-  [StaffEmail, UserEmail].each do |model|
+  [OperatorEmail, UserEmail].each do |model|
     test "#{model} valid with address and confirm_policy" do
       record =
         model.new(
@@ -94,8 +94,8 @@ class IdentityEmailTest < ActiveSupport::TestCase
     case record
     when UserEmail
       record.user = User.find_by!(public_id: "none_id")
-    when StaffEmail
-      record.staff = Staff.find_by!(public_id: "CDEF2345GHJK67NM")
+    when OperatorEmail
+      record.staff = Operator.find_by!(public_id: "CDEF2345GHJK67NM")
     end
   end
 end

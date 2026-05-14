@@ -50,7 +50,8 @@ class UserOccurrence < OccurrenceRecord
   has_many :email_occurrences, through: :email_user_occurrences
   has_many :ip_user_occurrences, dependent: :destroy, inverse_of: :user_occurrence
   has_many :ip_occurrences, through: :ip_user_occurrences
-  has_many :staff_user_occurrences, dependent: :destroy, inverse_of: :user_occurrence
+  has_many :staff_user_occurrences, class_name: "OperatorUserOccurrence", dependent: :destroy,
+                                    inverse_of: :user_occurrence
   has_many :staff_occurrences, through: :staff_user_occurrences
   has_many :telephone_user_occurrences, dependent: :destroy, inverse_of: :user_occurrence
   has_many :telephone_occurrences, through: :telephone_user_occurrences

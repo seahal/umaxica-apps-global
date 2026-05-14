@@ -29,6 +29,8 @@
                        autocomplete: "one-time-code" %>
     </div>
 
+    <%= render "shared/cloudflare_turnstile_stealth" %>
+
     <div>
       <%= f.submit t("sign.app.in.mfa.totp.submit") %>
       <%= link_to t("sign.app.in.mfa.totp.back"), sign_app_in_challenge_path %>

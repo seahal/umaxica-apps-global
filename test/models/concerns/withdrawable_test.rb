@@ -24,7 +24,7 @@ class WithdrawableConcernTest < ActiveSupport::TestCase
   end
 
   test "withdrawable methods available on staff" do
-    staff = Staff.create!
+    staff = Operator.create!
 
     assert_respond_to staff, :withdrawn?
     assert_respond_to staff, :active?
@@ -175,7 +175,7 @@ class WithdrawableConcernTest < ActiveSupport::TestCase
 
   # Staff integration tests
   test "staff withdrawn? works correctly" do
-    staff = Staff.create!
+    staff = Operator.create!
     staff.update!(withdrawn_at: Time.current)
 
     assert_predicate staff, :withdrawn?
@@ -186,7 +186,7 @@ class WithdrawableConcernTest < ActiveSupport::TestCase
   end
 
   test "staff active? works correctly" do
-    staff = Staff.create!
+    staff = Operator.create!
     staff.update!(withdrawn_at: nil)
 
     assert_predicate staff, :active?
@@ -197,7 +197,7 @@ class WithdrawableConcernTest < ActiveSupport::TestCase
   end
 
   test "staff can_recover? works correctly" do
-    staff = Staff.create!
+    staff = Operator.create!
     staff.update!(withdrawn_at: 15.days.ago)
 
     assert_predicate staff, :can_recover?
@@ -208,7 +208,7 @@ class WithdrawableConcernTest < ActiveSupport::TestCase
   end
 
   test "staff permanently_deletable? works correctly" do
-    staff = Staff.create!
+    staff = Operator.create!
     staff.update!(withdrawn_at: 15.days.ago)
 
     assert_not staff.permanently_deletable?

@@ -19,18 +19,6 @@ services:
   valkey:
     container_name: global-devcontainer-valkey
     ports: []
-  master:
-    container_name: global-devcontainer-seaweedfs-master
-    ports: []
-  volume:
-    container_name: global-devcontainer-seaweedfs-volume
-    ports: []
-  filer:
-    container_name: global-devcontainer-seaweedfs-filer
-    ports: []
-  s3:
-    container_name: global-devcontainer-seaweedfs-s3
-    ports: []
   loki:
     container_name: global-devcontainer-loki
     ports: []

@@ -73,7 +73,7 @@ DB に揃えるべきである。
    - Sign / Apex 各 surface の preference 編集（region / language / timezone / colortheme / cookie
      consent）の integration test が緑であること。
    - `Preference::Core#sync_to_resource_preference!` の Com → Customer 同期が回帰しないこと。
-   - JWT `prf` クレームと `Current::Preference` の整合性が保たれること。
+   - JWT `prf` クレームと `Actor::Preference` の整合性が保たれること。
 
 ## Out of Scope
 
@@ -102,9 +102,9 @@ DB に揃えるべきである。
 ## References
 
 - 関連方針（draft 予定）: `adr/preference-soft-bubble-doctrine.md`
-  （DB は別バブルのまま維持、interface だけ `Current::Preference` で統一）
+  （DB は別バブルのまま維持、interface だけ `Actor::Preference` で統一）
 - 関連 plan: `plans/backlog/legacy-preference-models-retirement-plan.md`（書き直し予定）
-- 関連 plan: `plans/backlog/gh578-preference-consolidation.md`（`Current::Preference` の集約）
+- 関連 plan: `plans/backlog/gh578-preference-consolidation.md`（`Actor::Preference` の集約）
 - 関連 ADR（既存）: `adr/setting-preference-remove-polymorphic-owner.md`（`SettingRecord`
   採用の前例）
 

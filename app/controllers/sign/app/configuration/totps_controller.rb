@@ -7,10 +7,14 @@ module Sign
       class TotpsController < ApplicationController
         auth_required!
 
+        include ::CloudflareTurnstile
         include ::Verification::User
 
         MAX_TOTPS = 2
         before_action :authenticate_user!
+        before_action only: %i(new create) do
+          require_step_up_unless_bootstrap!(scope: verification_scope)
+        end
 
         def index
           @totps = current_user.user_one_time_passwords
@@ -40,6 +44,13 @@ module Sign
             return
           end
 
+          unless cloudflare_turnstile_stealth_validation["success"]
+            @totp.errors.add(:base, t("turnstile_error"))
+            render_totp_qrcode(@totp.private_key)
+            render :new, status: :unprocessable_content
+            return
+          end
+
           last_otp_at = verify_totp(@totp.private_key, @totp.first_token)
 
           if last_otp_at
@@ -59,8 +70,12 @@ module Sign
         def handle_success(last_otp_at)
           @totp.last_otp_at = Time.zone.at(last_otp_at)
           @totp.save!
+          record_totp_registration_step_up!
           session[:private_key] = nil
-          redirect_to(sign_app_configuration_totps_path, notice: t("messages.totp_successfully_created"))
+          redirect_to(
+            bootstrap_return_path(sign_app_configuration_totps_path),
+            notice: t("messages.totp_successfully_created"),
+          )
         end
 
         def handle_failure
@@ -127,12 +142,36 @@ module Sign
           params.expect(user_one_time_password: [:title])
         end
 
+        def record_totp_registration_step_up!
+          current_session_token&.update!(
+            last_step_up_at: Time.current,
+            last_step_up_scope: verification_scope,
+          )
+          create_audit_event!(UserChronicleEvent::TOTP_ENABLED)
+        end
+
+        def create_audit_event!(event_id)
+          ChronicleRecord.connected_to(role: :writing) do
+            UserChronicleEvent.find_or_create_by!(id: event_id)
+            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+          end
+
+          UserChronicle.create!(
+            actor_type: "User",
+            actor_id: current_user.id,
+            event_id: event_id,
+            subject_id: current_user.id.to_s,
+            subject_type: "User",
+            occurred_at: Time.current,
+          )
+        end
+
         def verification_required_action?
-          true
+          step_up_bootstrap_active?
         end
 
         def verification_scope
-          "manage_totp"
+          "configuration_totp"
         end
       end
     end

@@ -105,7 +105,7 @@ module Sign::App::In
       end
 
       assert_response :found
-      assert_redirected_to sign_app_configuration_path(ri: "jp")
+      assert_redirected_to sign_app_dashboard_path(ri: "jp")
       assert_nil session[:pending_mfa]
       assert_nil session[:mfa_user_id]
       assert_not_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY]

@@ -20,8 +20,16 @@ module RestrictedSessionGuard
   def enforce_restricted_session_guard!
     current_resource if respond_to?(:current_resource, true)
     return unless respond_to?(:current_session_restricted?, true)
-    return unless current_session_restricted?
-    return if allowlisted_for_restricted_session?
+
+    sid = current_session_public_id rescue "N/A"
+    cs = current_session rescue "N/A"
+    restricted = current_session_restricted?
+    Rails.logger.warn("DEBUG enforce: sid=#{sid}, cs=#{cs.class.name}, restricted=#{restricted}")
+    return unless restricted
+
+    allowlisted = allowlisted_for_restricted_session?
+    Rails.logger.warn("DEBUG enforce: allowlisted=#{allowlisted}")
+    return if allowlisted
 
     handle_restricted_session_block
   end
@@ -36,10 +44,10 @@ module RestrictedSessionGuard
     session = current_session
     return false unless session&.restricted?
 
-    expired = session.refresh_expires_at.present? && session.refresh_expires_at <= Time.current
+    expired = session.lapses_at.present? && !session.lapses_at.respond_to?(:infinite?) && session.lapses_at <= Time.current
     return false unless expired
 
-    return true if session.respond_to?(:expired_at) ? session.expired_at.present? : session.revoked_at.present?
+    return true if session.respond_to?(:revoked?) && session.revoked?
 
     # Find the nearest abstract base record that defines the database connection (e.g., MarkRecord, TokenRecord)
     base_class =

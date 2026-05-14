@@ -7,10 +7,15 @@ module Sign
       class ActivitiesController < ApplicationController
         auth_required!
 
-        LOGIN_EVENT_IDS = [StaffChronicleEvent::LOGGED_IN, StaffChronicleEvent::LOGIN_SUCCESS].freeze
+        VISIBLE_EVENT_IDS = [
+          OperatorChronicleEvent::LOGGED_IN,
+          OperatorChronicleEvent::LOGIN_SUCCESS,
+          OperatorChronicleEvent::SOCIAL_UNLINKED,
+        ].freeze
         EVENT_LABELS = {
-          StaffChronicleEvent::LOGGED_IN => "logged_in",
-          StaffChronicleEvent::LOGIN_SUCCESS => "login_success",
+          OperatorChronicleEvent::LOGGED_IN => "logged_in",
+          OperatorChronicleEvent::LOGIN_SUCCESS => "login_success",
+          OperatorChronicleEvent::SOCIAL_UNLINKED => "social_unlinked",
         }.freeze
         SENSITIVE_CONTEXT_PATTERNS = %w(
           user_agent
@@ -24,15 +29,15 @@ module Sign
           otp
         ).freeze
 
-        before_action :authenticate_staff!
+        before_action :authenticate_operator!
 
         helper_method :activity_event_label, :activity_ip_address, :activity_context_text, :activity_occurred_at,
                       :activity_user_agent_summary, :activity_login_method
 
         def index
-          @activities = current_staff_activities.limit(100)
+          @activities = current_operator_activities.limit(100)
         rescue StandardError
-          @activities = StaffChronicle.none
+          @activities = OperatorChronicle.none
         end
 
         def show
@@ -42,9 +47,9 @@ module Sign
 
         private
 
-        def current_staff_activities
-          StaffChronicle
-            .where(subject_type: "Staff", subject_id: current_staff.id, event_id: LOGIN_EVENT_IDS)
+        def current_operator_activities
+          OperatorChronicle
+            .where(subject_type: "Operator", subject_id: current_operator.id, event_id: VISIBLE_EVENT_IDS)
             .order(Arel.sql("COALESCE(occurred_at, created_at) DESC"))
         end
 

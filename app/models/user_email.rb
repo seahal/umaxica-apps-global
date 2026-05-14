@@ -8,7 +8,6 @@
 #
 #  id                        :bigint           not null, primary key
 #  address                   :string           default(""), not null
-#  address_bidx              :string
 #  address_digest            :string
 #  locked_at                 :datetime         default(Infinity), not null
 #  notifiable                :boolean          default(TRUE), not null
@@ -29,7 +28,6 @@
 #
 # Indexes
 #
-#  index_user_emails_on_address_bidx            (address_bidx) UNIQUE WHERE (address_bidx IS NOT NULL)
 #  index_user_emails_on_address_digest          (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
 #  index_user_emails_on_otp_last_sent_at        (otp_last_sent_at)
 #  index_user_emails_on_public_id               (public_id) UNIQUE
@@ -44,9 +42,16 @@
 #
 
 class UserEmail < PrincipalRecord
+  EDITABLE_SUBSCRIPTION_PREFERENCE_STATUS_IDS = [
+    UserEmailStatus::VERIFIED,
+    UserEmailStatus::VERIFIED_WITH_SIGN_UP,
+  ].freeze
+
   include PublicId
   include Email
   include Turnstile
+  include MultiFactorStatusCredential
+  include PromotionalEmailUnsubscribable
 
   self.filter_attributes += %w(address)
 
@@ -57,13 +62,7 @@ class UserEmail < PrincipalRecord
              optional: true,
              inverse_of: :user_emails
   belongs_to :user, inverse_of: :user_emails
-  validates :address, uniqueness: { case_sensitive: false }
-  validates :address_bidx,
-            uniqueness: { conditions: -> { where.not(address_bidx: nil) } },
-            allow_nil: true
-  validates :address_digest,
-            uniqueness: { conditions: -> { where.not(address_digest: nil) } },
-            allow_nil: true
+  multi_factor_status_owner :user
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }
@@ -97,6 +96,14 @@ class UserEmail < PrincipalRecord
       verification_token_digest,
       Digest::SHA256.hexdigest(raw_token),
     )
+  end
+
+  def subscription_preferences_locked?
+    EDITABLE_SUBSCRIPTION_PREFERENCE_STATUS_IDS.exclude?(user_email_status_id)
+  end
+
+  def promotional_unsubscribe_scope
+    :client
   end
 
   private

@@ -21,37 +21,38 @@ class CurrentSupportTest < ActiveSupport::TestCase
 
     # Expose private methods for testing.
     public :set_current_observability, :resolved_resource_preference
+    public :resolved_current_session, :resolved_current_token, :resolved_current_preference
   end
 
   setup do
-    Current.reset
+    Actor.reset
     @host = Host.new
   end
 
-  teardown { Current.reset }
+  teardown { Actor.reset }
 
   # --- set_current_observability ---
 
   test "set_current_observability is no-op when OpenTelemetry is not loaded" do
     @host.set_current_observability
 
-    assert_nil Current.trace_id
-    assert_nil Current.span_id
+    assert_nil Actor.trace_id
+    assert_nil Actor.span_id
   end
 
-  test "set_current_observability does not mutate unrelated Current attributes" do
-    Current.actor = "existing_actor"
-    Current.domain = :app
+  test "set_current_observability does not mutate unrelated Actor attributes" do
+    Actor.actor = "existing_actor"
+    Actor.domain = :app
 
     @host.set_current_observability
 
-    assert_equal "existing_actor", Current.actor
-    assert_equal :app, Current.domain
+    assert_equal "existing_actor", Actor.actor
+    assert_equal :app, Actor.domain
   end
 
   test "set_current_observability skips when performant cookie is not consented" do
     # Default preference has performant? == false
-    assert_not Current.preference.cookie.performant?
+    assert_not Actor.preference.cookie.performant?
 
     hex_trace_id = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
     hex_span_id  = "f1e2d3c4b5a6f1e2"
@@ -71,16 +72,16 @@ class CurrentSupportTest < ActiveSupport::TestCase
       @host.set_current_observability
     end
 
-    assert_nil Current.trace_id, "trace_id must not be set without performant consent"
-    assert_nil Current.span_id, "span_id must not be set without performant consent"
+    assert_nil Actor.trace_id, "trace_id must not be set without performant consent"
+    assert_nil Actor.span_id, "span_id must not be set without performant consent"
   end
 
   test "set_current_observability sets trace_id and span_id when performant is consented" do
-    cookie = Current::Preference::Cookie.new(
+    cookie = Actor::Preference::Cookie.new(
       consented: true, functional: true, performant: true,
       targetable: false, consent_version: "1", consented_at: Time.current,
     )
-    Current.preference = Current::Preference.new(cookie: cookie)
+    Actor.preference = Actor::Preference.new(cookie: cookie)
 
     hex_trace_id = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
     hex_span_id  = "f1e2d3c4b5a6f1e2"
@@ -100,19 +101,19 @@ class CurrentSupportTest < ActiveSupport::TestCase
       @host.set_current_observability
     end
 
-    assert_equal hex_trace_id, Current.trace_id
-    assert_equal hex_span_id, Current.span_id
+    assert_equal hex_trace_id, Actor.trace_id
+    assert_equal hex_span_id, Actor.span_id
 
     span_context.verify
     span.verify
   end
 
   test "set_current_observability skips when span context is invalid" do
-    cookie = Current::Preference::Cookie.new(
+    cookie = Actor::Preference::Cookie.new(
       consented: true, functional: true, performant: true,
       targetable: false, consent_version: "1", consented_at: Time.current,
     )
-    Current.preference = Current::Preference.new(cookie: cookie)
+    Actor.preference = Actor::Preference.new(cookie: cookie)
 
     span_context = Minitest::Mock.new
     span_context.expect(:valid?, false)
@@ -127,8 +128,8 @@ class CurrentSupportTest < ActiveSupport::TestCase
       @host.set_current_observability
     end
 
-    assert_nil Current.trace_id
-    assert_nil Current.span_id
+    assert_nil Actor.trace_id
+    assert_nil Actor.span_id
 
     span_context.verify
     span.verify
@@ -138,13 +139,13 @@ class CurrentSupportTest < ActiveSupport::TestCase
     custom_host_class =
       Class.new(Host) do
         define_method(:set_current_observability) do
-          Current.trace_id = "custom_trace"
+          Actor.trace_id = "custom_trace"
         end
       end
 
     custom_host_class.new.set_current_observability
 
-    assert_equal "custom_trace", Current.trace_id
+    assert_equal "custom_trace", Actor.trace_id
   end
 
   # --- resolved_resource_preference does NOT call set_current_observability ---
@@ -176,7 +177,7 @@ class CurrentSupportTest < ActiveSupport::TestCase
         public :safe_current_resource
       end
 
-    Current.actor = Unauthenticated.instance
+    Actor.actor = Unauthenticated.instance
 
     assert_equal :resolved_resource, host_class.new.safe_current_resource
   end
@@ -191,9 +192,116 @@ class CurrentSupportTest < ActiveSupport::TestCase
         public :safe_current_resource
       end
 
-    Current.actor = :existing_actor
+    Actor.actor = :existing_actor
 
     assert_equal :existing_actor, host_class.new.safe_current_resource
+  end
+
+  test "resolved_current_session prefers Actor.session when present" do
+    Actor.session = "existing-session"
+
+    assert_equal "existing-session", @host.resolved_current_session
+  end
+
+  test "resolved_current_session falls back to request session public id" do
+    @host.instance_variable_set(:@current_session_public_id, "header-session")
+
+    assert_equal "header-session", @host.resolved_current_session
+  end
+
+  test "resolved_current_session falls back to token sid" do
+    Actor.token = { "sid" => "token-session" }
+
+    assert_equal "token-session", @host.resolved_current_session
+  end
+
+  test "resolved_current_token prefers access_token_payload" do
+    @host.define_singleton_method(:access_token_payload) do
+      { "sid" => "from-access", "prf" => { "lx" => "en" } }
+    end
+
+    assert_equal({ "sid" => "from-access", "prf" => { "lx" => "en" } }, @host.resolved_current_token)
+  end
+
+  test "resolved_current_token falls back to load_access_token_payload" do
+    @host.define_singleton_method(:load_access_token_payload) do
+      { "sid" => "from-load" }
+    end
+
+    assert_equal({ "sid" => "from-load" }, @host.resolved_current_token)
+  end
+
+  test "resolved_current_token ignores non-hash payloads" do
+    @host.define_singleton_method(:access_token_payload) { "not-a-hash" }
+
+    assert_nil @host.resolved_current_token
+  end
+
+  test "resolved_current_token rescues resolution errors" do
+    @host.define_singleton_method(:access_token_payload) do
+      raise StandardError, "boom"
+    end
+
+    assert_nil @host.resolved_current_token
+  end
+
+  test "resolved_current_preference uses database preference record" do
+    user = User.create!(
+      status_id: UserStatus::ACTIVE,
+      public_id: SecureRandom.hex(10),
+      created_at: Time.current,
+      updated_at: Time.current,
+    )
+    UserPreference.create!(
+      user: user,
+      language: "en",
+      region: "us",
+      timezone: "America/New_York",
+      theme: "dr",
+      consented: true,
+      functional: true,
+      performant: false,
+      targetable: true,
+      consent_version: SecureRandom.uuid,
+      consented_at: Time.current,
+    )
+
+    preference = @host.resolved_current_preference(user)
+
+    assert_equal "en", preference.language
+    assert_equal "us", preference.region
+    assert_equal "America/New_York", preference.timezone
+    assert_equal "dr", preference.theme
+    assert_predicate preference.cookie, :consented?
+    assert_predicate preference.cookie, :functional?
+    assert_not_predicate preference.cookie, :performant?
+    assert_predicate preference.cookie, :targetable?
+    assert_predicate preference.cookie.consent_version, :present?
+  end
+
+  test "resolved_current_preference uses prf claim when no preference record exists" do
+    Actor.token = {
+      "prf" => { "lx" => "en", "ri" => "us", "tz" => "America/New_York", "ct" => "dr" },
+    }
+
+    preference = @host.resolved_current_preference(nil)
+
+    assert_equal "en", preference.language
+    assert_equal "us", preference.region
+    assert_equal "America/New_York", preference.timezone
+    assert_equal "dr", preference.theme
+    assert_equal Actor::Preference::NULL_COOKIE, preference.cookie
+  end
+
+  test "resolved_current_preference falls back to null preference" do
+    preference = @host.resolved_current_preference(nil)
+
+    assert_predicate preference, :null?
+    assert_equal "ja", preference.language
+    assert_equal "jp", preference.region
+    assert_equal "Asia/Tokyo", preference.timezone
+    assert_equal "sy", preference.theme
+    assert_equal Actor::Preference::NULL_COOKIE, preference.cookie
   end
 
   private

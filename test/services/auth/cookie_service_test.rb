@@ -159,4 +159,60 @@ class CookieServiceTest < ActiveSupport::TestCase
 
     assert_nil result
   end
+
+  test "set_auth_cookies writes access refresh and device cookies" do
+    cookies = MockCookies.new
+    request = MockRequest.new
+    service = Auth::CookieService.new(cookies, request)
+
+    service.set_auth_cookies(
+      access_token: "access-token",
+      refresh_token: "refresh-token",
+      device_id: "device-id",
+      access_ttl: 5.minutes,
+      refresh_ttl: 30.days,
+    )
+
+    assert_equal "access-token", cookies.cookies_hash["auth_access"][:value]
+    assert_equal "refresh-token", cookies.cookies_hash["auth_refresh"][:value]
+    assert_equal "device-id", cookies.cookies_hash["auth_device_id"][:value]
+  end
+
+  test "set_device_id_cookie writes only device cookie" do
+    cookies = MockCookies.new
+    request = MockRequest.new
+    service = Auth::CookieService.new(cookies, request)
+
+    service.set_device_id_cookie("device-only", 1.day.from_now)
+
+    assert_equal "device-only", cookies.cookies_hash["auth_device_id"][:value]
+    assert_nil cookies.cookies_hash["auth_access"]
+    assert_nil cookies.cookies_hash["auth_refresh"]
+  end
+
+  test "clear_auth_cookies deletes all auth cookies" do
+    cookies = MockCookies.new
+    request = MockRequest.new
+    service = Auth::CookieService.new(cookies, request)
+    cookies.cookies_hash["auth_access"] = "access-token"
+    cookies.cookies_hash["auth_refresh"] = "refresh-token"
+    cookies.cookies_hash["auth_device_id"] = "device-id"
+
+    service.clear_auth_cookies
+
+    assert_empty cookies.cookies_hash
+  end
+
+  test "clear_device_id_cookie deletes only device cookie" do
+    cookies = MockCookies.new
+    request = MockRequest.new
+    service = Auth::CookieService.new(cookies, request)
+    cookies.cookies_hash["auth_access"] = "access-token"
+    cookies.cookies_hash["auth_device_id"] = "device-id"
+
+    service.clear_device_id_cookie
+
+    assert_equal "access-token", cookies.cookies_hash["auth_access"]
+    assert_nil cookies.cookies_hash["auth_device_id"]
+  end
 end

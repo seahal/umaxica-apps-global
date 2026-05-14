@@ -8,10 +8,11 @@ module Sign
       include ::Session
       include ::Preference::Global
       include ::Preference::Adoption
-      include ::Authentication::Customer
-      include ::Authorization::Customer
-      include ::Verification::Customer
+      include ::Authentication::Visitor
+      include ::Authorization::Visitor
+      include ::Verification::Visitor
       include ActionPolicy::Controller
+      include ::RestrictedSessionGuard
       include Sign::Com::RouteAliasHelper
       include ::CurrentSupport
       include ::Finisher
@@ -25,7 +26,9 @@ module Sign
                            ),
                            with: :exception
 
-      guest_only! # FIXME: remove this line.
+      # The com surface allows public sign-up/sign-in pages and redirects authenticated visitors
+      # away from guest-only endpoints through the shared authentication pipeline.
+      guest_only!
 
       before_action :check_default_rate_limit
       before_action :reset_flash
@@ -34,6 +37,8 @@ module Sign
       prepend_before_action :set_region
 
       prepend_before_action :set_color_theme
+      before_action :enforce_restricted_session_guard!
+      before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :enforce_required_telephone_registration!
       before_action :enforce_access_policy!
       before_action :enforce_verification_if_required
@@ -52,11 +57,11 @@ module Sign
       private
 
       def current_user
-        current_customer
+        current_visitor
       end
 
       def authenticate_user!
-        authenticate_customer!
+        authenticate_visitor!
       end
 
       def actor_staff?
@@ -64,62 +69,58 @@ module Sign
       end
 
       def current_actor
-        current_customer
+        current_visitor
       end
 
       def verification_model
-        CustomerVerification
+        VisitorVerification
       end
 
       def verification_token_foreign_key
-        :customer_token_id
+        :visitor_token_id
       end
 
       def identity_email_model
-        CustomerEmail
+        VisitorEmail
       end
 
       def identity_telephone_model
-        CustomerTelephone
+        VisitorTelephone
       end
 
       def identity_from_email_record(record)
-        record&.customer
+        record&.visitor
       end
 
       def identity_from_telephone_record(record)
-        record&.customer
+        record&.visitor
       end
 
       def actor_verification_path(attrs)
         sign_com_verification_path(attrs)
       end
 
-      def verification_redirect_path(rd:, scope_override: nil)
-        attrs = { ri: params[:ri], rd: rd }
+      def verification_redirect_path(rt: nil, scope_override: nil)
+        attrs = { ri: params[:ri], rt: rt }
         scope = scope_override.to_s.presence || verification_scope.to_s.presence
         attrs[:scope] = scope if scope
         sign_com_verification_path(attrs)
       end
 
-      def verification_setup_redirect_path(rd: nil)
-        new_sign_com_verification_setup_path(ri: params[:ri], rd: rd || encoded_step_up_rd)
+      def verification_setup_redirect_path(rt: nil)
+        new_sign_com_verification_setup_path(ri: params[:ri], rt: rt || encoded_step_up_rt)
       end
 
       def after_login_path
-        if current_customer&.respond_to?(:verified_telephone?) && !current_customer.verified_telephone?
-          return new_sign_com_configuration_telephones_registration_path(ri: params[:ri])
-        end
-
-        sign_com_configuration_path
+        sign_com_dashboard_path
       rescue StandardError
         "/"
       end
 
       def enforce_required_telephone_registration!
         return unless request.format.html?
-        return unless current_customer&.respond_to?(:verified_telephone?)
-        return if current_customer.verified_telephone?
+        return unless current_visitor&.respond_to?(:verified_telephone?)
+        return if current_visitor.verified_telephone?
         return if telephone_registration_allowed_path?
 
         redirect_to(

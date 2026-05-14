@@ -31,7 +31,7 @@ module Sign
     end
 
     def verification_scope
-      current_reauth_session&.fetch("scope", nil)
+      current_reauth_session&.scope
     end
 
     def redirect_if_recent_verification_for_get!

@@ -6,9 +6,16 @@ require "minitest/mock"
 require "base64"
 
 class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_secret_kinds, :user_secret_statuses, :user_email_statuses
+  fixtures :users, :user_statuses, :user_secret_kinds, :user_secret_statuses, :user_email_statuses,
+           :user_chronicle_events, :user_chronicle_levels
 
   setup do
+    @original_webauthn_env = {
+      "WEBAUTHN_APP_RP_ID" => ENV["WEBAUTHN_APP_RP_ID"],
+      "WEBAUTHN_APP_ORIGIN" => ENV["WEBAUTHN_APP_ORIGIN"],
+    }
+    @original_webauthn_env.each_key { |key| ENV.delete(key) }
+
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = create_verified_user_with_email(email_address: "passkey_config_test_user@example.com")
     @other_user = create_verified_user_with_email(email_address: "other_passkey_config_test_user@example.com")
@@ -42,6 +49,9 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
 
   teardown do
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+    @original_webauthn_env.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
   end
 
   # Case D-1: Not logged in
@@ -123,6 +133,17 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     end
   end
 
+  test "options uses configured app rp id" do
+    ENV["WEBAUTHN_APP_RP_ID"] = "id.umaxica.app"
+    ENV["WEBAUTHN_APP_ORIGIN"] = "http://id.app.localhost"
+    Webauthn.stub(:trusted_origins, ["http://id.app.localhost"]) do
+      post options_sign_app_configuration_passkeys_path(ri: "jp"), headers: @headers
+    end
+
+    assert_response :ok
+    assert_equal "id.umaxica.app", response.parsed_body.dig("options", "rp", "id")
+  end
+
   # Case D-3: Untrusted origin
   test "options rejects untrusted origin" do
     # Temporarily remove trusted origins
@@ -173,14 +194,31 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
         description: "New Passkey",
       }
 
+      step_up_before = Time.current
+
       assert_difference("UserPasskey.count", 1) do
-        post verification_sign_app_configuration_passkeys_path(ri: "jp"), params: params, headers: @headers
+        assert_difference(
+          -> {
+            UserChronicle.where(
+              actor_type: "User",
+              actor_id: @user.id,
+              subject_type: "User",
+              subject_id: @user.id,
+              event_id: UserChronicleEvent::PASSKEY_REGISTERED,
+            ).count
+          },
+          1,
+        ) do
+          post verification_sign_app_configuration_passkeys_path(ri: "jp"), params: params, headers: @headers
+        end
       end
 
       assert_response :created
       assert_equal "ok", response.parsed_body["status"]
       # Skip checking exact path - just verify it returns a valid path
       assert_predicate response.parsed_body["redirect_url"], :present?
+      assert_operator @token.reload.last_step_up_at, :>=, step_up_before
+      assert_equal "configuration_passkey", @token.last_step_up_scope
     end
   end
 
@@ -260,9 +298,10 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     get new_sign_app_configuration_passkey_path(ri: "jp"), headers: @headers
 
     assert_response :ok
+    assert_select "a[href=?]", sign_app_configuration_passkeys_path(ri: "jp")
   end
 
-  test "new returns forbidden plain message when user has no verified recovery identity" do
+  test "new allows bootstrap passkey registration without verified recovery identity" do
     unverified_user = User.create!(status_id: UserStatus::NOTHING, public_id: SecureRandom.hex(10))
     token = UserToken.create!(user: unverified_user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
     satisfy_user_verification(token)
@@ -276,29 +315,40 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
 
     get new_sign_app_configuration_passkey_path(ri: "jp"), headers: headers
 
-    assert_response :forbidden
-    assert_includes response.body, User::RECOVERY_IDENTITY_REQUIRED_MESSAGE
+    assert_response :ok
   end
 
-  test "create returns forbidden plain message when user has no verified recovery identity" do
+  test "create allows bootstrap passkey registration without verified recovery identity" do
     unverified_user = User.create!(status_id: UserStatus::NOTHING, public_id: SecureRandom.hex(10))
     headers = as_user_headers(unverified_user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
-    assert_no_difference("UserPasskey.count") do
-      post sign_app_configuration_passkeys_path(ri: "jp"),
-           params: {
-             user_passkey: {
-               webauthn_id: "wk_#{SecureRandom.hex(8)}",
-               public_key: "public_key",
-               sign_count: 0,
-               description: "Test",
+    assert_difference("UserPasskey.count", 1) do
+      assert_difference(
+        -> {
+          UserChronicle.where(
+            actor_type: "User",
+            actor_id: unverified_user.id,
+            subject_type: "User",
+            subject_id: unverified_user.id,
+            event_id: UserChronicleEvent::PASSKEY_REGISTERED,
+          ).count
+        },
+        1,
+      ) do
+        post sign_app_configuration_passkeys_path(ri: "jp"),
+             params: {
+               user_passkey: {
+                 webauthn_id: "wk_#{SecureRandom.hex(8)}",
+                 public_key: "public_key",
+                 sign_count: 0,
+                 description: "Test",
+               },
              },
-           },
-           headers: headers
+             headers: headers
+      end
     end
 
-    assert_response :forbidden
-    assert_includes response.body, User::RECOVERY_IDENTITY_REQUIRED_MESSAGE
+    assert_response :created
   end
 
   test "should get edit with public_id" do

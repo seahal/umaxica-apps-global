@@ -128,7 +128,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 - Refresh deny behavior: missing/mismatched `device_id` returns `401`; browser clients are
   force-logged-out (session reset + auth cookies cleared). Mobile/bearer clients should clear local
   tokens on `401` and redirect to login.
-- Refresh deny and reuse telemetry is persisted to `UserOccurrence`/`StaffOccurrence` with
+- Refresh deny and reuse telemetry is persisted to `UserOccurrence`/`OperatorOccurrence` with
   structured `context` JSON.
 
 ### 3.5 Help Namespace
@@ -233,7 +233,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
    `webauthn_id`, collects exclude credentials.
 2. `WebAuthn::Credential.options_for_create` returns challenge; stored in
    `session[:webauthn_create_challenge]`.
-3. Client JS uses `navigator.credentials.create` with challenge; POSTs `/setting/passkeys/verify`.
+3. VisitorAccount JS uses `navigator.credentials.create` with challenge; POSTs `/setting/passkeys/verify`.
 4. Server verifies challenge (TODO) and persists `UserPasskey` with `webauthn_id`, `public_key`,
    `sign_count`.
 
@@ -250,7 +250,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 | `ServiceSiteContact`                   | `GuestRecord`       | Encrypts email/phone/title/description, validates OTP codes, stores `ip_address` |
 | `TimeBasedOneTimePassword`             | `OccurrenceRecord`  | Encrypts `private_key`, stores `last_otp_at`, `first_token` virtual attr         |
 | `UserPasskey`                          | `ApplicationRecord` | Validates `webauthn_id`, `public_key`, `description`, `sign_count`               |
-| `UserToken`, `StaffToken`              | `TokensRecord`      | Reference tokens for JWT refresh handling                                        |
+| `UserToken`, `OperatorToken`              | `TokensRecord`      | Reference tokens for JWT refresh handling                                        |
 | `IdentifierRegionCode` and join tables | `OccurrenceRecord`  | Future mapping for personas/staff region codes                                   |
 
 ### 5.2 Cookies & Sessions

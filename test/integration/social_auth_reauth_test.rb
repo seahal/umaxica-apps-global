@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/social_callback_test_helper"
 
 # Integration tests for social auth reauth intent
 #

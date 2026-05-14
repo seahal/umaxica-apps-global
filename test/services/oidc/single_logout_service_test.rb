@@ -14,13 +14,13 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
       user: @user,
       public_id: SecureRandom.alphanumeric(21),
       lapses_at: 30.days.from_now,
-      status: "active",
+      user_token_status_id: UserTokenStatus::ACTIVE,
     )
     token2 = UserToken.create!(
       user: @user,
       public_id: SecureRandom.alphanumeric(21),
       lapses_at: 30.days.from_now,
-      status: "active",
+      user_token_status_id: UserTokenStatus::ACTIVE,
     )
 
     Oidc::SingleLogoutService.call(user: @user)
@@ -29,9 +29,9 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
     token2.reload
 
     assert_predicate token1.lapses_at, :present?
-    assert_equal "revoked", token1.status
+    assert_equal UserTokenStatus::REVOKED, token1.user_token_status_id
     assert_predicate token2.lapses_at, :present?
-    assert_equal "revoked", token2.status
+    assert_equal UserTokenStatus::REVOKED, token2.user_token_status_id
   end
 
   test "uses mark connection for user logout" do
@@ -49,7 +49,7 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
     token = UserToken.create!(
       user: @user,
       public_id: SecureRandom.alphanumeric(21),
-      status: "revoked",
+      user_token_status_id: UserTokenStatus::REVOKED,
       lapses_at: revoked_at,
     )
 
@@ -66,7 +66,7 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
       user: other_user,
       public_id: SecureRandom.alphanumeric(21),
       lapses_at: 30.days.from_now,
-      status: "active",
+      user_token_status_id: UserTokenStatus::ACTIVE,
     )
 
     Oidc::SingleLogoutService.call(user: @user)
@@ -74,6 +74,20 @@ class Oidc::SingleLogoutServiceTest < ActiveSupport::TestCase
     other_token.reload
 
     assert_predicate other_token, :currently_usable?
-    assert_equal "active", other_token.status
+    assert_equal UserTokenStatus::ACTIVE, other_token.user_token_status_id
+  end
+
+  test "revokes all active visitor tokens" do
+    visitor = create_verified_visitor_with_email(email_address: "slo-visitor-#{SecureRandom.hex(4)}@example.com")
+    token = VisitorToken.create!(
+      visitor: visitor,
+      public_id: SecureRandom.alphanumeric(21),
+      lapses_at: 30.days.from_now,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+    )
+
+    Oidc::SingleLogoutService.call_for_visitor(visitor: visitor)
+
+    assert_equal VisitorTokenStatus::REVOKED, token.reload.visitor_token_status_id
   end
 end

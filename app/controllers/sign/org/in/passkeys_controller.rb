@@ -4,10 +4,10 @@
 module Sign
   module Org
     module In
-      # PasskeysController handles Passkey-based staff authentication.
+      # PasskeysController handles Passkey-based operator authentication.
       #
       # Flow:
-      # 1. Staff visits /in/passkeys/new and enters their staff public_id
+      # 1. Operator visits /in/passkeys/new and enters their operator public_id
       # 2. POST /in/passkeys/options with identifier to get WebAuthn challenge
       # 3. Browser performs navigator.credentials.get()
       # 4. POST /in/passkeys/verification with credential + challenge_id
@@ -15,7 +15,7 @@ module Sign
       #
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, identifier is required to look up
-      # the staff's registered passkeys.
+      # the operator's registered passkeys.
       class PasskeysController < ApplicationController
         include Sign::Webauthn
         include Sign::PasskeyAuthentication
@@ -44,11 +44,11 @@ module Sign
         end
 
         def normalized_passkey_identifier
-          Staff.normalize_public_id(params[:identifier])
+          Operator.normalize_public_id(params[:identifier])
         end
 
         def valid_passkey_identifier?(identifier)
-          Staff::PUBLIC_ID_FORMAT.match?(identifier)
+          Operator::PUBLIC_ID_FORMAT.match?(identifier)
         end
 
         def passkey_identifier_invalid_error_key
@@ -56,15 +56,15 @@ module Sign
         end
 
         def find_active_passkey_actor(identifier)
-          normalized_identifier = Staff.normalize_public_id(identifier)
+          normalized_identifier = Operator.normalize_public_id(identifier)
           return if normalized_identifier.blank?
 
-          staff = Staff.find_by(public_id: normalized_identifier)
+          staff = Operator.find_by(public_id: normalized_identifier)
           staff if staff&.login_allowed?
         end
 
         def active_passkeys_for_actor(staff)
-          staff.staff_passkeys.where(status_id: StaffPasskeyStatus::ACTIVE)
+          staff.staff_passkeys.where(status_id: OperatorPasskeyStatus::ACTIVE)
         end
 
         def passkey_challenge_actor_id_key
@@ -72,7 +72,7 @@ module Sign
         end
 
         def passkey_sign_in_model
-          StaffPasskey
+          OperatorPasskey
         end
 
         def passkey_belongs_to_challenge_actor?(passkey, actor_id)
@@ -85,15 +85,12 @@ module Sign
 
         def perform_passkey_sign_in(passkey)
           complete_sign_in_or_start_mfa!(
-            passkey.staff, rt: retrieve_redirect_parameter_for_bulletin, ri: params[:ri], auth_method: "passkey",
+            passkey.staff, rt: retrieve_redirect_parameter_for_checkpoint, ri: params[:ri], auth_method: "passkey",
           )
         end
 
         def handle_domain_specific_login_status(result)
           case result[:status]
-          when :totp_required
-            render json: { status: "totp_required", redirect_url: new_sign_org_in_totp_path }, status: :ok
-            true
           when :session_limit_hard_reject
             render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
             true
@@ -120,8 +117,8 @@ module Sign
           }, status: :ok
         end
 
-        def passkey_bulletin_redirect_url
-          sign_org_in_bulletin_path(rd: retrieve_redirect_parameter_for_bulletin, ri: params[:ri])
+        def passkey_checkpoint_redirect_url
+          sign_org_in_checkpoint_path(rt: retrieve_redirect_parameter_for_checkpoint, ri: params[:ri])
         end
 
         def passkey_default_redirect_url

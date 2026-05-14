@@ -9,12 +9,16 @@
 # frozen_string_literal: true
 
 class UserTokenKind < MarkRecord
+  include ReferenceRecord
+
   self.primary_key = :id
   self.record_timestamps = false
 
   BROWSER_WEB = 11
   CLIENT_IOS = 12
   CLIENT_ANDROID = 13
+
+  DEFAULTS = [BROWSER_WEB, CLIENT_IOS, CLIENT_ANDROID].freeze
 
   has_many :user_tokens, dependent: :restrict_with_error
 end

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/social_callback_test_helper"
 
 class SocialAuthStateTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
@@ -35,6 +36,23 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_equal user_count_before + 1, User.count
+    assert UserSocialGoogle.exists?(uid: uid)
+  end
+
+  test "google callback without ri is processed without regional canonicalization redirect" do
+    uid = "google_callback_no_ri_#{SecureRandom.hex(4)}"
+    setup_google_mock_auth(uid: uid)
+
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
+         headers: { "Host" => @host }
+
+    assert_response :redirect
+
+    get sign_app_auth_callback_url(provider: "google_app"),
+        headers: SocialCallbackTestHelper.callback_headers(@host)
+
+    assert_response :redirect
+    assert_no_match %r{/auth/google_app/callback}, response.location
     assert UserSocialGoogle.exists?(uid: uid)
   end
 

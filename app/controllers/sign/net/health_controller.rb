@@ -3,7 +3,7 @@
 
 module Sign
   module Net
-    class HealthController < Sign::PublicController
+    class HealthController < Sign::Net::ApplicationController
       include ::Health
 
       public_strict!

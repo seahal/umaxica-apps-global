@@ -99,6 +99,8 @@ module Sign
       def issue_and_send!(normalized_target)
         records = target_records(normalized_target)
 
+        return if records.any?(&:locked?)
+
         records.find_each do |record|
           clear_otp(record)
         rescue StandardError => e

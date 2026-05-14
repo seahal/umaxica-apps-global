@@ -42,7 +42,9 @@ class OrgPreferenceStatusTest < ActiveSupport::TestCase
   end
 
   test "ensure_defaults! creates missing default records" do
-    OrgPreferenceStatus.where(id: OrgPreferenceStatus::DEFAULTS).destroy_all
+    Prosopite.pause do
+      OrgPreferenceStatus.where(id: OrgPreferenceStatus::DEFAULTS).destroy_all
+    end
 
     assert_difference("OrgPreferenceStatus.count") do
       OrgPreferenceStatus.ensure_defaults!

@@ -66,10 +66,10 @@ module AuthorizationAudit
   end
 
   def create_audit_record(actor, log_data)
-    # Create audit record if actor is User or Staff
+    # Create audit record if actor is User or Operator
     if actor.is_a?(User)
       create_user_authorization_audit(actor, log_data)
-    elsif actor.is_a?(Staff)
+    elsif actor.is_a?(Operator)
       create_staff_authorization_audit(actor, log_data)
     end
   end
@@ -89,9 +89,9 @@ module AuthorizationAudit
   end
 
   def create_staff_authorization_audit(staff, log_data)
-    audit = StaffChronicle.new(
+    audit = OperatorChronicle.new(
       actor: staff,
-      event_id: StaffChronicleEvent::AUTHORIZATION_FAILED,
+      event_id: OperatorChronicleEvent::AUTHORIZATION_FAILED,
       ip_address: log_data[:ip_address],
       occurred_at: log_data[:timestamp],
     )
@@ -106,8 +106,8 @@ module AuthorizationAudit
     # Try current_user first (for User controllers)
     return current_user if respond_to?(:current_user) && current_user
 
-    # Try current_staff (for Staff controllers)
-    return current_staff if respond_to?(:current_staff) && current_staff
+    # Try current_operator (for Operator controllers)
+    return current_operator if respond_to?(:current_operator) && current_operator
 
     nil
   end

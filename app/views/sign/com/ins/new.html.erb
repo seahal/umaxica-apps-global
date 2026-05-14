@@ -1,12 +1,13 @@
 <% content_for :page_title, t("sign.com.authentication.new.page_title") %>
+<% return_to = params[:rt].presence %>
 <h1><%= t("sign.com.authentication.new.page_title") %></h1>
 <p><%= t("sign.com.authentication.new.description") %></p>
 
 <ul>
-  <li><%= link_to t("sign.com.authentication.new.links.email"), new_sign_com_in_email_path %></li>
-  <li><%= link_to t("sign.com.authentication.new.links.passkey"), new_sign_com_in_passkey_path %>
+  <li><%= link_to t("sign.com.authentication.new.links.email"), new_sign_com_in_email_path(rt: return_to) %></li>
+  <li><%= link_to t("sign.com.authentication.new.links.passkey"), new_sign_com_in_passkey_path(rt: return_to) %>
   </li>
-  <li><%= link_to t("sign.com.authentication.new.links.secret"), new_sign_com_in_secret_path %>
+  <li><%= link_to t("sign.com.authentication.new.links.secret"), new_sign_com_in_secret_path(rt: return_to) %>
   </li>
 </ul>
 

@@ -25,8 +25,8 @@
 
 require "test_helper"
 
-class IpStaffOccurrenceTest < ActiveSupport::TestCase
+class IpOperatorOccurrenceTest < ActiveSupport::TestCase
   test "class is defined" do
-    assert_equal "IpStaffOccurrence", IpStaffOccurrence.name
+    assert_equal "IpOperatorOccurrence", IpOperatorOccurrence.name
   end
 end

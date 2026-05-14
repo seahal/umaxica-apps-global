@@ -10,20 +10,20 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
-    @customer = create_verified_customer_with_email(email_address: "withdrawal-#{SecureRandom.hex(4)}@example.com")
-    @customer.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)
-    @customer.customer_telephones.create!(
+    @visitor = create_verified_visitor_with_email(email_address: "withdrawal-#{SecureRandom.hex(4)}@example.com")
+    @visitor.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)
+    @visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @token = CustomerToken.create!(
-      customer: @customer,
-      customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
+    @token = VisitorToken.create!(
+      visitor: @visitor,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
       lapses_at: 1.day.from_now,
       purge_at: 2.days.from_now,
     )
     perform_withdrawal_step_up!
-    @headers = as_customer_headers(@customer, host: @host).merge("X-TEST-SESSION-PUBLIC-ID" => @token.public_id)
+    @headers = as_visitor_headers(@visitor, host: @host).merge("X-TEST-SESSION-PUBLIC-ID" => @token.public_id)
   end
 
   test "new requires schedule confirmation to proceed" do
@@ -47,7 +47,7 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
           headers: @headers
 
     assert_response :unprocessable_content
-    assert_nil @customer.reload.deactivated_at
+    assert_nil @visitor.reload.deactivated_at
   end
 
   test "update sets deactivation timestamps" do
@@ -60,15 +60,15 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     assert_response :see_other
     assert_redirected_to edit_sign_com_configuration_url(ri: "jp")
 
-    @customer.reload
+    @visitor.reload
 
-    assert_not_nil @customer.withdrawal_started_at
-    assert_not_nil @customer.deactivated_at
-    assert_equal @customer.deactivated_at + 31.days, @customer.purge_at
+    assert_not_nil @visitor.withdrawal_started_at
+    assert_not_nil @visitor.deactivated_at
+    assert_equal @visitor.deactivated_at + 31.days, @visitor.purge_at
   end
 
   test "edit shows recoverable state within 31 days" do
-    @customer.update!(
+    @visitor.update!(
       deactivated_at: 10.days.ago,
       withdrawal_started_at: 10.days.ago,
       lapses_at: 1.day.from_now,
@@ -82,7 +82,7 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   end
 
   test "create recovers account within 31 days" do
-    @customer.update!(
+    @visitor.update!(
       deactivated_at: 10.days.ago,
       withdrawal_started_at: 10.days.ago,
       lapses_at: 1.day.from_now,
@@ -93,15 +93,15 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
 
     assert_response :see_other
     assert_redirected_to sign_com_configuration_url(ri: "jp")
-    @customer.reload
+    @visitor.reload
 
-    assert_nil @customer.deactivated_at
-    assert_nil @customer.withdrawal_started_at
-    assert_equal Float::INFINITY, @customer.purge_at
+    assert_nil @visitor.deactivated_at
+    assert_nil @visitor.withdrawal_started_at
+    assert_equal Float::INFINITY, @visitor.purge_at
   end
 
   test "create does not recover account after 31 days" do
-    @customer.update!(
+    @visitor.update!(
       deactivated_at: 31.days.ago,
       withdrawal_started_at: 31.days.ago,
       lapses_at: 2.days.ago,
@@ -111,9 +111,9 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     post sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :see_other
-    @customer.reload
+    @visitor.reload
 
-    assert_not_nil @customer.deactivated_at
+    assert_not_nil @visitor.deactivated_at
   end
 
   private
@@ -121,7 +121,7 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   def perform_withdrawal_step_up!
     return_to = Base64.urlsafe_encode64(sign_com_configuration_withdrawal_path(ri: "jp"))
     headers = host_headers(@host).merge(
-      "X-TEST-CURRENT-RESOURCE" => @customer.id.to_s,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     )
 
@@ -145,6 +145,7 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
         end
 
         assert_response :redirect
+        @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
       end
     end
   end

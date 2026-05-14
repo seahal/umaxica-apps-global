@@ -41,12 +41,74 @@ class Preference::GlobalTest < ActiveSupport::TestCase
     assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "utc" }, context)
   end
 
+  test "requested_context ignores unsupported lx values" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(ri: "jp", lx: "kr")
+
+    context = controller.requested_context
+
+    assert_equal({ ri: "jp" }, context)
+  end
+
+  test "requested_context ignores unsupported ct and tz values" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(ri: "jp", ct: "purple", tz: "Mars/Base")
+
+    context = controller.requested_context
+
+    assert_equal({ ri: "jp" }, context)
+  end
+
+  test "requested_context keeps supported ct and tz aliases" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(ri: "jp", ct: "DR", tz: "UTC")
+
+    context = controller.requested_context
+
+    assert_equal({ ri: "jp", ct: "dr", tz: "utc" }, context)
+  end
+
+  test "effective_context re-reads preference context after payload changes" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new
+    preferences = { "lx" => "ja" }
+    controller.define_singleton_method(:preference_payload_preferences) { preferences }
+
+    assert_equal "ja", controller.effective_context[:lx]
+
+    preferences = { "lx" => "en" }
+
+    assert_equal "en", controller.effective_context[:lx]
+  end
+
   test "default_url_options merges requested context" do
     controller = PreferenceGlobalTestController.new
     controller.request = ActionDispatch::TestRequest.create
     controller.params = ActionController::Parameters.new(ri: "us", lx: "EN", ct: "DR", tz: "UTC")
 
     assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "utc" }, controller.default_url_options)
+  end
+
+  test "get_region uses persisted context when ri is missing" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new
+    controller.define_singleton_method(:preference_payload_preferences) { { "ri" => "us" } }
+
+    assert_equal "us", controller.send(:get_region)
+  end
+
+  test "get_region keeps explicit ri ahead of persisted context" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(ri: "jp")
+    controller.define_singleton_method(:preference_payload_preferences) { { "ri" => "us" } }
+
+    assert_equal "jp", controller.send(:get_region)
   end
 
   test "ensure_required_ri! redirects when required ri differs" do

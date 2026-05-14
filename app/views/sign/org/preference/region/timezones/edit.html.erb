@@ -1,5 +1,9 @@
 <% content_for :page_title, 'Edit Timezone' %>
 <section>
+  <div>
+    <%= link_to t("actions.back"), edit_sign_org_preference_region_path %>
+  </div>
+
   <h1>
     <%= t("apex.org.preference.timezone.edit.heading") %>
   </h1>
@@ -33,7 +37,6 @@
       <%= f.submit t("apex.org.preferences.update_settings"),
                    data: { turbo_submits_with: t("apex.org.preferences.submitting") } %>
       <%= link_to t("apex.org.preferences.region_settings"), edit_sign_org_preference_region_path %>
-      <%= link_to t("apex.org.preferences.back_to_settings"), sign_org_preference_url %>
     </div>
   <% end %>
 </section>

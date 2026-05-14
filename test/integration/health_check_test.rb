@@ -4,7 +4,7 @@
 require "test_helper"
 
 class HealthCheckTest < ActionDispatch::IntegrationTest
-  # Use the sign.app health endpoint for integration testing of the Health concern.
+  # Use the sign.app edge health endpoint for integration testing of the Health concern.
   # The concern logic is shared across all health controllers.
 
   setup do
@@ -12,7 +12,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   end
 
   test "returns 200 OK when all dependencies are healthy" do
-    get sign_app_health_url(ri: "jp")
+    get sign_app_edge_v0_health_url(ri: "jp")
 
     assert_response :success
     assert_includes response.body, "OK"
@@ -23,7 +23,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
       errors << "Database PrincipalRecord(writing) failed: connection refused"
     end
 
-    get(sign_app_health_url(ri: "jp"))
+    get(sign_app_edge_v0_health_url(ri: "jp"))
 
     assert_response :service_unavailable
     assert_includes response.body, "UNHEALTHY"
@@ -36,7 +36,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
       errors << "Database PrincipalRecord(reading) failed: replica unavailable"
     end
 
-    get(sign_app_health_url(ri: "jp"))
+    get(sign_app_edge_v0_health_url(ri: "jp"))
 
     assert_response :service_unavailable
     assert_includes response.body, "UNHEALTHY"
@@ -49,7 +49,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
       errors << "Redis connection failed: Redis down"
     end
 
-    get(sign_app_health_url(ri: "jp"))
+    get(sign_app_edge_v0_health_url(ri: "jp"))
 
     assert_response :service_unavailable
     assert_includes response.body, "UNHEALTHY"
@@ -65,7 +65,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
       ]
     end
 
-    get(sign_app_health_url(ri: "jp"))
+    get(sign_app_edge_v0_health_url(ri: "jp"))
 
     assert_response :service_unavailable
     assert_includes response.body, "UNHEALTHY"
@@ -75,7 +75,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
 
   test "returns 503 BOOTING when Rails is not initialized" do
     Rails.application.stub(:initialized?, false) do
-      get sign_app_health_url(ri: "jp")
+      get "/edge/v0/health?ri=jp"
     end
 
     assert_response :service_unavailable
@@ -85,7 +85,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   test "returns 503 ERROR when an unexpected exception occurs" do
     inject_health_method(:check_dependencies) { raise RuntimeError, "unexpected" }
 
-    get(sign_app_health_url(ri: "jp"))
+    get(sign_app_edge_v0_health_url(ri: "jp"))
 
     assert_response :service_unavailable
     assert_includes response.body, "ERROR"
@@ -96,12 +96,12 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   private
 
   def inject_health_method(method_name, &)
-    Sign::App::HealthController.send(:define_method, method_name, &)
+    Sign::App::Edge::V0::HealthController.send(:define_method, method_name, &)
   end
 
   def remove_health_method(method_name)
-    Sign::App::HealthController.send(:remove_method, method_name) if Sign::App::HealthController.private_method_defined?(
+    Sign::App::Edge::V0::HealthController.send(:remove_method, method_name) if Sign::App::Edge::V0::HealthController.private_method_defined?(
       method_name, false,
-    ) || Sign::App::HealthController.method_defined?(method_name, false)
+    ) || Sign::App::Edge::V0::HealthController.method_defined?(method_name, false)
   end
 end

@@ -12,10 +12,10 @@ module Auth
       case resource
       when User
         UserToken.where(user_id: resource.id)
-      when Staff
-        StaffToken.where(staff_id: resource.id)
-      when Customer
-        CustomerToken.where(customer_id: resource.id)
+      when Operator
+        OperatorToken.where(staff_id: resource.id)
+      when Visitor
+        VisitorToken.where(visitor_id: resource.id)
       else
         raise ArgumentError, "Unsupported resource type: #{resource.class}"
       end

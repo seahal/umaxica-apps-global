@@ -90,7 +90,6 @@ Rails.application.configure do
 
   ## Email Settings
   config.action_mailer.delivery_method = :smtp
-  config.action_mailer.default_url_options = { host: "localhost", port: 3001 }
   config.action_mailer.smtp_settings = {
     address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",
     user_name: Rails.app.creds.option(:AWS_SES_SMTP_USERNAME),

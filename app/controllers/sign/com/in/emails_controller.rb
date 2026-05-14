@@ -17,28 +17,27 @@ module Sign
         before_action :load_user_email, only: %i(edit update)
 
         def identity_email_model
-          CustomerEmail
+          VisitorEmail
         end
 
         def new
-          @user_email = CustomerEmail.new
+          @user_email = VisitorEmail.new
         end
 
         def edit
         end
 
         def create
-          address_params = params.expect(user_email: [:address])
+          address_params = params.permit(user_email: [:address])[:user_email] || {}
           address = address_params[:address]
-
           unless cloudflare_turnstile_validation["success"] && address.present?
-            @user_email = CustomerEmail.new(address: address)
+            @user_email = VisitorEmail.new(address: address)
             return render :new, status: :unprocessable_content
           end
 
           normalized_address = validate_and_normalize_email(address)
           unless normalized_address
-            @user_email = CustomerEmail.new(address: address)
+            @user_email = VisitorEmail.new(address: address)
             @user_email.errors.add(:address, t("sign.app.authentication.email.create.invalid_format"))
             return render :new, status: :unprocessable_content
           end
@@ -61,7 +60,7 @@ module Sign
           preserve_redirect_parameter
 
           flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
-          redirect_to(edit_sign_com_in_email_path(rd: peek_redirect_parameter, ri: params[:ri]))
+          redirect_to(edit_sign_com_in_email_path(rt: peek_redirect_parameter, ri: params[:ri]))
         end
 
         def update
@@ -102,18 +101,11 @@ module Sign
           elsif result[:redirect_path]
             redirect_to(result[:redirect_path], notice: t("sign.app.in.mfa.required"))
           else
-            rd_param = retrieve_redirect_parameter
-            if issue_bulletin!
-              redirect_to(
-                sign_com_in_bulletin_path(rd: rd_param, ri: params[:ri]),
-                notice: t("sign.app.authentication.email.update.success"),
-              )
-            else
-              safe_redirect_to_rd_or_default!(
-                rd_param,
-                default_path: sign_com_configuration_path(ri: params[:ri]),
-              )
-            end
+            rt_param = retrieve_redirect_parameter
+            redirect_to_sign_in_sequence!(
+              rt: rt_param,
+              notice: t("sign.app.authentication.email.update.success"),
+            )
           end
         end
 
@@ -147,26 +139,26 @@ module Sign
           if session[:user_email_authentication_id].present?
             @user_email = load_session_record(
               :user_email_authentication_id,
-              CustomerEmail,
+              VisitorEmail,
               check_otp_expiry: false,
               custom: ->(email) { email.present? && !email.otp_expired? },
             )
 
             unless @user_email
               flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-              redirect_to(new_sign_com_in_email_path(rd: peek_redirect_parameter, ri: params[:ri]))
+              redirect_to(new_sign_com_in_email_path(rt: peek_redirect_parameter, ri: params[:ri]))
               return
             end
             @otp_resend_state = Sign::In::OtpResendState.issue(kind: :email, target: @user_email.address)
           elsif session[:user_email_authentication_address].present?
-            @user_email = CustomerEmail.new(address: session[:user_email_authentication_address])
+            @user_email = VisitorEmail.new(address: session[:user_email_authentication_address])
             @otp_resend_state = Sign::In::OtpResendState.issue(
               kind: :email,
               target: session[:user_email_authentication_address],
             )
           else
             flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-            redirect_to(new_sign_com_in_email_path(rd: peek_redirect_parameter, ri: params[:ri]))
+            redirect_to(new_sign_com_in_email_path(rt: peek_redirect_parameter, ri: params[:ri]))
           end
         end
 
@@ -175,11 +167,11 @@ module Sign
 
           Rails.logger.debug { "Inside controller existing_email: #{existing_email.inspect}" }
           Rails.logger.debug { "Inside controller identity_email_model: #{identity_email_model}" }
-          Rails.logger.debug { "Inside controller login_allowed: #{existing_email&.customer&.login_allowed?}" }
+          Rails.logger.debug { "Inside controller login_allowed: #{existing_email&.visitor&.login_allowed?}" }
 
-          if existing_email&.customer&.login_allowed?
-            customer = existing_email.customer
-            if session_limit_hard_reject_for?(customer)
+          if existing_email&.visitor&.login_allowed?
+            visitor = existing_email.visitor
+            if session_limit_hard_reject_for?(visitor)
               @session_limit_hard_reject = true
               return
             end
@@ -187,6 +179,7 @@ module Sign
             session[:user_email_authentication_id] = existing_email.id
             session[:user_email_authentication_address] = nil
 
+            return :ok if existing_email.locked?
             return :cooldown if otp_request_rate_limited?(existing_email)
 
             otp_code = generate_otp_for(existing_email)
@@ -217,15 +210,15 @@ module Sign
           result = verify_otp_code(user_email, user_email.pass_code)
 
           if result[:success]
-            customer = customer_from_customer_email(user_email)
-            unless customer&.login_allowed?
+            visitor = visitor_from_visitor_email(user_email)
+            unless visitor&.login_allowed?
               return { success: false, error: t("sign.app.authentication.email.update.invalid_code") }
             end
 
             clear_otp(user_email)
             session[:user_email_authentication_id] = nil
-            rd = peek_redirect_parameter
-            result = complete_sign_in_or_start_mfa!(customer, rt: rd, ri: params[:ri], auth_method: "email")
+            rt = peek_redirect_parameter
+            result = complete_sign_in_or_start_mfa!(visitor, rt: rt, ri: params[:ri], auth_method: "email")
 
             if result[:status] == :mfa_required
               { success: true, redirect_path: result[:redirect_path] }
@@ -240,8 +233,8 @@ module Sign
             end
           else
             increment_otp_attempts!(user_email)
-            customer = customer_from_customer_email(user_email)
-            handle_failed_otp_attempt(user_email, customer)
+            visitor = visitor_from_visitor_email(user_email)
+            handle_failed_otp_attempt(user_email, visitor)
           end
         end
 
@@ -250,20 +243,20 @@ module Sign
           { success: false, error: t("sign.app.authentication.email.update.invalid_code") }
         end
 
-        def handle_failed_otp_attempt(user_email, customer = nil)
-          customer ||= customer_from_customer_email(user_email)
-          audit_customer_login_failed(customer) if customer
-          Sign::Risk::Emitter.emit("auth_failed", customer_id: customer&.id) if customer
+        def handle_failed_otp_attempt(user_email, visitor = nil)
+          visitor ||= visitor_from_visitor_email(user_email)
+          audit_visitor_login_failed(visitor) if visitor
+          Sign::Risk::Emitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
 
           if user_email.locked?
-            { success: false, error: t("sign.app.authentication.email.locked") }
+            { success: false, error: email_locked_message }
           else
             { success: false, error: t("sign.app.authentication.email.update.invalid_code") }
           end
         end
 
-        def customer_from_customer_email(customer_email)
-          customer_email&.customer
+        def visitor_from_visitor_email(visitor_email)
+          visitor_email&.visitor
         end
 
         def update_pass_code_params
@@ -288,6 +281,10 @@ module Sign
         def record_sign_in_email_cooldown!(normalized_address)
           session[:sign_in_email_cooldown_address] = normalized_address
           session[:sign_in_email_cooldown_at] = Time.current.to_i
+        end
+
+        def email_locked_message
+          t("sign.app.authentication.email.locked", default: t("errors.otp_locked"))
         end
       end
     end

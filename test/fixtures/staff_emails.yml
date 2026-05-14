@@ -5,7 +5,6 @@
 #
 #  id                             :bigint           not null, primary key
 #  address                        :string           not null
-#  address_bidx                   :string
 #  address_digest                 :string
 #  locked_at                      :datetime
 #  notifiable                     :boolean          default(TRUE), not null
@@ -26,7 +25,6 @@
 # Indexes
 #
 #  index_staff_emails_on_address                         (address)
-#  index_staff_emails_on_address_bidx                    (address_bidx) UNIQUE WHERE (address_bidx IS NOT NULL)
 #  index_staff_emails_on_address_digest                  (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
 #  index_staff_emails_on_lower_address                   (lower((address)::text)) UNIQUE
 #  index_staff_emails_on_public_id                       (public_id) UNIQUE
@@ -35,7 +33,7 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_id => staffs.id)
+#  fk_rails_...  (staff_id => operators.id)
 #  fk_rails_...  (staff_identity_email_status_id => staff_email_statuses.id)
 #
 

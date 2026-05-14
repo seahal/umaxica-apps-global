@@ -9,19 +9,19 @@ module Oidc
 
     class InvalidRedirectUri < StandardError; end
 
-    Client = Data.define(:client_id, :client_secret, :redirect_uris, :aud, :resource_type)
+    VisitorAccount = Data.define(:client_id, :client_secret, :redirect_uris, :aud, :resource_type)
     CLIENTS_MUTEX = Mutex.new
     CLIENTS_CACHE = Concurrent::AtomicReference.new(nil)
 
     module_function
 
     # @param client_id [String]
-    # @return [Client, nil]
+    # @return [VisitorAccount, nil]
     def find(client_id)
       config = clients[client_id.to_s]
       return nil unless config
 
-      Client.new(
+      VisitorAccount.new(
         client_id: client_id.to_s,
         client_secret: resolve_secret(client_id.to_s),
         redirect_uris: config[:redirect_uris],
@@ -31,7 +31,7 @@ module Oidc
     end
 
     # @param client_id [String]
-    # @return [Client]
+    # @return [VisitorAccount]
     # @raise [ClientNotFound]
     def find!(client_id)
       find(client_id) || raise(ClientNotFound, "Unknown OIDC client: #{client_id}")
@@ -88,12 +88,12 @@ module Oidc
         "apex_org" => {
           redirect_uris: build_redirect_uris("APEX_STAFF_URL", "www.org.localhost"),
           aud: "umaxica-apex-org",
-          resource_type: "staff",
+          resource_type: "operator",
         },
         "apex_com" => {
           redirect_uris: build_redirect_uris("APEX_CORPORATE_URL", "www.com.localhost"),
           aud: "umaxica-apex-com",
-          resource_type: "user",
+          resource_type: "visitor",
         },
         # Core
         "core_app" => {
@@ -104,12 +104,12 @@ module Oidc
         "core_org" => {
           redirect_uris: build_redirect_uris("MAIN_STAFF_URL", "main.org.localhost"),
           aud: "umaxica-core-org",
-          resource_type: "staff",
+          resource_type: "operator",
         },
         "core_com" => {
           redirect_uris: build_redirect_uris("MAIN_CORPORATE_URL", "main.com.localhost"),
           aud: "umaxica-core-com",
-          resource_type: "user",
+          resource_type: "visitor",
         },
         # Docs
         "docs_app" => {
@@ -120,12 +120,12 @@ module Oidc
         "docs_org" => {
           redirect_uris: build_redirect_uris("DOCS_STAFF_URL", "docs.org.localhost"),
           aud: "umaxica-docs-org",
-          resource_type: "staff",
+          resource_type: "operator",
         },
         "docs_com" => {
           redirect_uris: build_redirect_uris("DOCS_CORPORATE_URL", "docs.com.localhost"),
           aud: "umaxica-docs-com",
-          resource_type: "user",
+          resource_type: "visitor",
         },
         # News
         "news_app" => {
@@ -136,12 +136,12 @@ module Oidc
         "news_org" => {
           redirect_uris: build_redirect_uris("NEWS_STAFF_URL", "news.org.localhost"),
           aud: "umaxica-news-org",
-          resource_type: "staff",
+          resource_type: "operator",
         },
         "news_com" => {
           redirect_uris: build_redirect_uris("NEWS_CORPORATE_URL", "news.com.localhost"),
           aud: "umaxica-news-com",
-          resource_type: "user",
+          resource_type: "visitor",
         },
         # Help
         "help_app" => {
@@ -152,12 +152,12 @@ module Oidc
         "help_org" => {
           redirect_uris: build_redirect_uris("HELP_STAFF_URL", "help.org.localhost"),
           aud: "umaxica-help-org",
-          resource_type: "staff",
+          resource_type: "operator",
         },
         "help_com" => {
           redirect_uris: build_redirect_uris("HELP_CORPORATE_URL", "help.com.localhost"),
           aud: "umaxica-help-com",
-          resource_type: "user",
+          resource_type: "visitor",
         },
       }.freeze
     end

@@ -5,14 +5,24 @@
   <h1><%= t("sign.app.verification.setup.title") %></h1>
   <p><%= t("sign.app.verification.setup.description") %></p>
 
+  <% if @return_to.present? %>
+    <p>
+      <%= link_to t("actions.back"), @return_to %>
+    </p>
+  <% end %>
+
   <ul>
+    <% if @missing_methods.include?(:email_otp) %>
     <li>
       <%= link_to t("sign.app.verification.setup.methods.email"),
-                  new_sign_com_configuration_emails_registration_path(ri: params[:ri], rd: @rd) %>
+                  new_sign_com_configuration_emails_registration_path(ri: params[:ri], rt: @rt) %>
     </li>
+    <% end %>
+    <% if @missing_methods.include?(:passkey) %>
     <li>
       <%= link_to t("sign.app.verification.setup.methods.passkey"),
-                  new_sign_com_configuration_passkey_path(ri: params[:ri], rd: @rd) %>
+                  new_sign_com_configuration_passkey_path(ri: params[:ri], rt: @rt) %>
     </li>
+    <% end %>
   </ul>
 </div>

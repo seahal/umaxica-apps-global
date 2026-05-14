@@ -154,7 +154,7 @@ module Auth
       assert_nil Auth::TokenClaims.preferences(nil)
     end
 
-    test "prf claim roundtrips through Current::Preference.from_jwt" do
+    test "prf claim roundtrips through Actor::Preference.from_jwt" do
       prefs = { "lx" => "en", "ri" => "us", "tz" => "America/New_York", "ct" => "dr" }
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
       payload = Auth::TokenClaims.build(
@@ -166,7 +166,7 @@ module Auth
         preferences: prefs,
       )
 
-      pref = Current::Preference.from_jwt(payload["prf"])
+      pref = Actor::Preference.from_jwt(payload["prf"])
 
       assert_equal "en", pref.language
       assert_equal "us", pref.region

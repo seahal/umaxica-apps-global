@@ -25,12 +25,12 @@
 
 require "test_helper"
 
-class StaffTelephoneOccurrenceTest < ActiveSupport::TestCase
+class OperatorTelephoneOccurrenceTest < ActiveSupport::TestCase
   fixtures :telephone_occurrences
 
   test "associations" do
-    staff = StaffOccurrence.create!(body: "staff-001")
-    record = StaffTelephoneOccurrence.new(
+    staff = OperatorOccurrence.create!(body: "staff-001")
+    record = OperatorTelephoneOccurrence.new(
       staff_occurrence: staff,
       telephone_occurrence: telephone_occurrences(:one),
     )
@@ -41,12 +41,12 @@ class StaffTelephoneOccurrenceTest < ActiveSupport::TestCase
   end
 
   test "uniqueness validation" do
-    staff = StaffOccurrence.create!(body: "staff-002")
-    StaffTelephoneOccurrence.create!(
+    staff = OperatorOccurrence.create!(body: "staff-002")
+    OperatorTelephoneOccurrence.create!(
       staff_occurrence: staff,
       telephone_occurrence: telephone_occurrences(:one),
     )
-    duplicate = StaffTelephoneOccurrence.new(
+    duplicate = OperatorTelephoneOccurrence.new(
       staff_occurrence: staff,
       telephone_occurrence: telephone_occurrences(:one),
     )

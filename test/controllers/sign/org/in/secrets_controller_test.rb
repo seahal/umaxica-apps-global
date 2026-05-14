@@ -12,8 +12,8 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
     @staff = staffs(:sample_staff)
-    @staff.update!(status_id: StaffStatus::ACTIVE)
-    StaffToken.where(staff_id: @staff.id).delete_all
+    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    OperatorToken.where(staff_id: @staff.id).delete_all
     @raw_secret = "11111111111111111111111111111111"
   end
 
@@ -33,7 +33,6 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='secret_login_form[identifier]'][pattern='[0-9A-FGHJKMNPQRSTVWXYZ]{16}']"
     assert_select "input[name='secret_login_form[identifier]'][autocapitalize='characters']"
     assert_select "input[name='secret_login_form[identifier]'][spellcheck='false']"
-    assert_select "input[name='secret_login_form[totp_code]']", count: 0
   end
 
   test "create signs in with staff public_id and secret" do
@@ -46,8 +45,8 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :redirect
-    assert_includes response.headers["Location"], sign_org_root_path(ri: "jp")
-    assert_equal StaffSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_includes response.headers["Location"], sign_org_dashboard_path(ri: "jp")
+    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
     assert_predicate staff_secrets(:sample_login).reload.last_used_at, :present?
   end
 
@@ -64,7 +63,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
       assert_response :redirect
     end
 
-    assert_equal StaffSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects blank form" do
@@ -72,7 +71,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          params: { secret_login_form: { identifier: "", secret_value: "" } }
 
     assert_response :unprocessable_content
-    assert_equal StaffSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects email identifier" do
@@ -85,7 +84,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :unprocessable_content
-    assert_equal StaffSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects invalid secret" do
@@ -98,11 +97,12 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :unprocessable_content
-    assert_equal StaffSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
   end
 
-  test "create rejects totp secret for secret login" do
-    staff_secrets(:sample_login).update!(staff_secret_kind_id: StaffSecretKind::TOTP)
+  test "create rejects non login secret for secret login" do
+    OperatorSecretKind.find_or_create_by!(id: OperatorSecretKind::NOTHING)
+    staff_secrets(:sample_login).update!(staff_secret_kind_id: OperatorSecretKind::NOTHING)
 
     post sign_org_in_secret_url(ri: "jp"),
          params: {
@@ -113,15 +113,15 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :unprocessable_content
-    assert_equal StaffSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects reserved staff" do
     reserved_staff = staffs(:reserved_staff)
-    secret, raw_secret = StaffSecret.issue!(
+    secret, raw_secret = OperatorSecret.issue!(
       name: "Reserved login",
       staff_id: reserved_staff.id,
-      staff_secret_kind_id: StaffSecretKind::LOGIN,
+      staff_secret_kind_id: OperatorSecretKind::LOGIN,
     )
 
     post sign_org_in_secret_url(ri: "jp"),
@@ -133,15 +133,15 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :unprocessable_content
-    assert_equal StaffSecretStatus::ACTIVE, secret.reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, secret.reload.staff_secret_status_id
   end
 
   test "create rejects withdrawn staff without consuming secret" do
-    @staff.update!(status_id: StaffStatus::ACTIVE, withdrawn_at: Time.current)
-    secret, raw_secret = StaffSecret.issue!(
+    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE, withdrawn_at: Time.current)
+    secret, raw_secret = OperatorSecret.issue!(
       name: "Withdrawn login",
       staff_id: @staff.id,
-      staff_secret_kind_id: StaffSecretKind::LOGIN,
+      staff_secret_kind_id: OperatorSecretKind::LOGIN,
     )
 
     post sign_org_in_secret_url(ri: "jp"),
@@ -153,7 +153,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :unprocessable_content
-    assert_equal StaffSecretStatus::ACTIVE, secret.reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, secret.reload.staff_secret_status_id
   end
 
   test "create renders invalid when log_in returns non-success status" do
@@ -170,10 +170,10 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create redirects to session management when logical staff limit is reached despite rotated rows" do
-    _secret, raw_secret = StaffSecret.issue!(
+    _secret, raw_secret = OperatorSecret.issue!(
       name: "Rotated session limit login",
       staff_id: @staff.id,
-      staff_secret_kind_id: StaffSecretKind::LOGIN,
+      staff_secret_kind_id: OperatorSecretKind::LOGIN,
     )
     create_rotated_active_staff_session(@staff, rotations: 4)
 
@@ -188,13 +188,13 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to sign_org_in_session_path(ri: "jp")
     assert_equal "セッション数が上限に達しています。既存セッションを管理してください。", flash[:notice]
-    assert_equal 1, StaffToken.where(staff_id: @staff.id, status: StaffToken::STATUS_RESTRICTED).count
+    assert_equal 1, OperatorToken.where(staff_id: @staff.id, staff_token_status_id: OperatorTokenStatus::RESTRICTED).count
   end
 
   private
 
   def create_rotated_active_staff_session(staff, rotations:)
-    token = StaffToken.create!(staff: staff, status: StaffToken::STATUS_ACTIVE)
+    token = OperatorToken.create!(staff: staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
 
     rotations.times do

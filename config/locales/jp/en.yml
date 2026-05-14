@@ -91,6 +91,17 @@ en:
             secret: Recovery Code
             google: Google
             apple: Apple
+        setting:
+          index:
+            totp: TOTP
+            passkey: Passkey
+            secret: Recovery Code
+            google: Google
+            apple: Apple
+            email: Email
+            telephone: Telephone
+            session: Session
+            activity: Activity
         registration:
           email: registration with email address???
           telephone: registration with telephone.
@@ -156,8 +167,8 @@ en:
             passkey: Passkey
             recovery: Recovery code
             secret: Secret
-            google: Sign in with Google
-            apple: Sign in with Apple
+            google: Continue with Google
+            apple: Continue with Apple
             registration: Need an account?
         secret:
           new:
@@ -181,6 +192,8 @@ en:
             page_title: Sign in with email
             you_have_already_logged_in: You are already signed in.
             registration: Need an account?
+          edit:
+            submit: Register with Email
           create:
             you_have_already_logged_in: You are already signed in.
             email_not_found: We couldn't find an account matching that email address.
@@ -291,6 +304,23 @@ en:
           events:
             logged_in: Login success
             login_success: Login success
+            logged_out: Logged out
+            logout: Logged out
+            signed_up_with_apple: Signed up with Apple
+            signed_up_with_email: Signed up with email
+            signed_up_with_google: Signed up with Google
+            signed_up_with_telephone: Signed up with telephone
+            social_linked: Social account linked
+            social_unlinked: Social account unlinked
+            session_revoked: Session revoked
+            email_registered: Email address registered
+            email_removed: Email address removed
+            telephone_registered: Telephone number registered
+            telephone_removed: Telephone number removed
+            totp_enabled: Authenticator app registered
+            passkey_registered: Passkey registered
+            user_secret_created: Secret created
+            recovery_codes_generated: Recovery codes generated
             unknown: Unknown event (%{event_id})
         passkeys:
           edit:
@@ -434,6 +464,7 @@ en:
           title: Verification
           description:
             Please enter the code or use passkey authentication for identity verification.
+          email_description: Please enter the code for identity verification.
           authenticate_with_passkey: Authenticate with Passkey
           code_label: Verification Code
           code_placeholder: 6 digits
@@ -455,7 +486,7 @@ en:
       social:
         sessions:
           create:
-            success: Account created and signed in with %{provider}.
+            success: Registered with %{provider}.
             failure: Authentication failed. Please try again.
     org:
       social:
@@ -594,7 +625,7 @@ en:
             submit: Save theme preference
   languages:
     english: English
-    japanese: 日本語
+    japanese: Japanese
   themes:
     light: Light Theme
     dark: Dark Theme
@@ -754,7 +785,7 @@ en:
             language_label: Language
             language_prompt: Choose your language...
             language_options:
-              ja: 日本語
+              ja: Japanese
               en: English
             timezone_section: Timezone Settings
             timezone_label: Timezone
@@ -779,12 +810,12 @@ en:
               system: Keeps theme in sync with enterprise-managed preferences.
             submit: Save theme preference
     org:
-      customers:
-        created: Customer %{name} created successfully
-        updated: Customer updated successfully
-        deleted: Customer %{name} deleted successfully
+      visitors:
+        created: Visitor %{name} created successfully
+        updated: Visitor updated successfully
+        deleted: Visitor %{name} deleted successfully
         name_email_required: Name and email are required
-        invalid_data: Invalid customer data
+        invalid_data: Invalid visitor data
       preferences:
         title: Operator Preferences
         cookie_settings: Cookie Settings
@@ -1191,6 +1222,11 @@ en:
             accept_performance_cookies: Allow performance cookies
             accept_targeting_cookies: Allow targeting cookies
             accept_consent_cookies: Allow consent cookies
+        language:
+          edit:
+            heading: Language Settings
+            description: Change the display language for the application.
+            language_label: Language
         resets:
           title: Reset Preferences
           description: Remove saved preference data for this browser.
@@ -1198,12 +1234,45 @@ en:
           confirm: This action deletes saved preference data for this browser. Continue?
           destroyed: Preferences have been reset
           back: Back to preferences
+        currency:
+          edit:
+            heading: Currency
+            description: Choose the currency used for regional display.
+            option_label: Currency
+          options:
+            usd: US Dollar (USD)
+            jpy: Japanese Yen (JPY)
+        date_format:
+          edit:
+            heading: Date Format
+            description: Choose how dates are displayed.
+            option_label: Date format
+          options:
+            iso: ISO (YYYY-MM-DD)
+            uk: UK (DD/MM/YYYY)
+            us: US (MM/DD/YYYY)
+        time_format:
+          edit:
+            heading: Time Format
+            description: Choose how times are displayed.
+            option_label: Time format
+          options:
+            hour_24: 24-hour
+            hour_12: 12-hour
       preferences:
         title: Preferences
+        description: Manage language, theme, and other preferences in one place.
         cookie_settings: Cookie Settings
         region_settings: Region & Language Settings
+        language_settings: Language Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        items_per_page_settings: Items Per Page
         theme_settings: Theme Settings
         reset_settings: Reset Settings
+        update_settings: Update Settings
+        submitting: Submitting...
+        back_to_settings: Back to Preferences
         up_link: Back to top
         footer:
           home: Home
@@ -1215,6 +1284,69 @@ en:
           invalid: Invalid theme selected
         timezones:
           invalid: Invalid timezone selected
+        regions:
+          title: Region & Language Settings
+          back_link: Back
+          region_section: Region Settings
+          select_region: Select Region
+          select_region_prompt: Choose your region...
+          select_region_selector:
+            USA: United States
+            JAPAN: Japan
+            US: United States
+            JP: Japan
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
+      preference:
+        language:
+          edit:
+            heading: Language Settings
+            description: Change the display language for the application.
+            language_label: Language
+        date_format:
+          edit:
+            heading: Date Format
+            description: Choose how dates are displayed in the application.
+            option_label: Date format
+          options:
+            iso: ISO (YYYY-MM-DD)
+            uk: UK (DD/MM/YYYY)
+            us: US (MM/DD/YYYY)
+        motion:
+          edit:
+            heading: Motion Settings
+            description: Choose how much animation and movement the interface uses.
+            option_label: Motion
+          options:
+            standard: Standard motion
+            reduced: Reduced motion
+        density:
+          edit:
+            heading: Density Settings
+            description: Choose how compact the interface should be.
+            option_label: Density
+          options:
+            standard: Standard density
+            compact: Compact density
+        items_per_page:
+          edit:
+            heading: Items Per Page
+            description: Choose how many items are shown in each paginated list.
+            option_label: Items per page
+          options:
+            "10": 10 items
+            "20": 20 items
+            "50": 50 items
+            "100": 100 items
     com:
       configurations:
         title: Configuration
@@ -1260,6 +1392,19 @@ en:
           invalid: Invalid theme selected
         timezones:
           invalid: Invalid timezone selected
+        regions:
+          back_link: Back
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
     org:
       configurations:
         title: Configuration
@@ -1301,6 +1446,19 @@ en:
           invalid: Invalid theme selected
         timezones:
           invalid: Invalid timezone selected
+        regions:
+          back_link: Back
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
   description: Withdrawal
   org_document_tags:
     technology: Technology

@@ -7,7 +7,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   fixtures :users, :user_statuses
 
   setup do
-    @user = users(:one)
+    @user = create_verified_user_with_email(email_address: "ui-foundation-#{SecureRandom.hex(4)}@example.com")
     @host = ENV["ID_SERVICE_URL"]
   end
 
@@ -46,7 +46,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
       sign_app_configuration_sessions_path(ri: "jp"),
       sign_app_configuration_google_path(ri: "jp"),
       new_sign_app_configuration_withdrawal_path(ri: "jp"),
-      edit_sign_app_configuration_out_path(ri: "jp"),
+      edit_sign_app_out_path(ri: "jp"),
     ]
 
     pages.each do |path|
@@ -64,9 +64,9 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     headers["Cookie"] = [existing_cookie, "ct=dark"].compact.join("; ")
     get sign_app_configuration_url, headers: headers
 
-    assert_response :success
-
     follow_redirect!(headers: headers) if response.redirect?
+
+    assert_response :success
 
     assert_select "html.dark"
 
@@ -75,8 +75,9 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     headers["Cookie"] = [existing_cookie, "ct=light"].compact.join("; ")
     get sign_app_configuration_url, headers: headers
 
-    assert_response :success
     follow_redirect!(headers: headers) if response.redirect?
+
+    assert_response :success
 
     assert_select "html:not(.dark)"
   end
@@ -85,8 +86,9 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     head = as_user_headers(@user, host: @host)
     get sign_app_configuration_url, headers: head
 
-    assert_response :success
     follow_redirect!(headers: head) if response.redirect?
+
+    assert_response :success
 
     assert_select "section", minimum: 3
     assert_select "a[href*='configuration/totps']"

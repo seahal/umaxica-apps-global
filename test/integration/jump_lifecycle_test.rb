@@ -5,48 +5,58 @@ require "test_helper"
 
 class JumpLifecycleTest < ActionDispatch::IntegrationTest
   setup do
-    Jumper.reset
+    @original_jump_allowed_hosts = ENV["JUMP_ALLOWED_HOSTS"]
+    ENV["JUMP_ALLOWED_HOSTS"] = "example.com"
+    Actor.reset
   end
 
   teardown do
-    Jumper.reset
+    if @original_jump_allowed_hosts.nil?
+      ENV.delete("JUMP_ALLOWED_HOSTS")
+    else
+      ENV["JUMP_ALLOWED_HOSTS"] = @original_jump_allowed_hosts
+    end
+    Actor.reset
   end
 
-  test "app jump host is routed and resets Jumper.domain" do
+  test "app jump host renders landing page without Actor surface state" do
     host! ENV.fetch("JUMP_APP_URL", "app.localhost")
 
-    get "/", params: { to: "test-link" }
+    get "/"
 
-    assert_response :not_found
-    assert_nil Jumper.domain
+    assert_response :success
+    assert_select "title", "UMAXICA (app) | Jump"
+    assert_nil Actor.surface
   end
 
-  test "com jump host is routed and resets Jumper.domain" do
+  test "com jump host renders landing page without Actor surface state" do
     host! ENV.fetch("JUMP_COM_URL", "com.localhost")
 
-    get "/", params: { to: "test-link" }
+    get "/"
 
-    assert_response :not_found
-    assert_nil Jumper.domain
+    assert_response :success
+    assert_select "title", "UMAXICA (com) | Jump"
+    assert_nil Actor.surface
   end
 
-  test "org jump host is routed and resets Jumper.domain" do
+  test "org jump host renders landing page without Actor surface state" do
     host! ENV.fetch("JUMP_ORG_URL", "org.localhost")
 
-    get "/", params: { to: "test-link" }
+    get "/"
 
-    assert_response :not_found
-    assert_nil Jumper.domain
+    assert_response :success
+    assert_select "title", "UMAXICA (org) | Jump"
+    assert_nil Actor.surface
   end
 
-  test "Jumper is reset after the response" do
+  test "Actor remains reset after the response" do
     host! ENV.fetch("JUMP_APP_URL", "app.localhost")
 
-    get "/", params: { to: "test-link" }
+    get "/"
 
-    # Jumper should be reset after the request completes
-    assert_nil Jumper.domain
-    assert_equal :unauthenticated, Jumper.actor_type
+    assert_nil Actor.surface
+    assert_nil Actor.domain
+    assert_equal :unauthenticated, Actor.actor_type
   end
 
   test "existing redirect success still works" do
@@ -72,7 +82,7 @@ class JumpLifecycleTest < ActionDispatch::IntegrationTest
   test "cookie session skip behavior still applies" do
     host! ENV.fetch("JUMP_APP_URL", "app.localhost")
 
-    get "/", params: { to: "test-link" }
+    get "/"
 
     # Jump endpoints should not set session cookies
     # The Set-Cookie header should not contain session-related cookies

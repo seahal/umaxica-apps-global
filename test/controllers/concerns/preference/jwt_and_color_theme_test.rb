@@ -113,6 +113,23 @@ class PreferenceTokenTest < ActiveSupport::TestCase
     assert_not Preference::Token.send(:host_matches?, "app.localhost", "evil.localhost")
   end
 
+  test "token issued on id host decodes on same TLD sibling when audience is configured" do
+    previous = ENV["PREFERENCE_JWT_AUDIENCES"]
+    ENV["PREFERENCE_JWT_AUDIENCES"] = "umaxica.app"
+    token = Preference::Token.encode(
+      { "lx" => "ja" },
+      host: "id.umaxica.app",
+      preference_type: "AppPreference",
+      public_id: "pref_123",
+      jti: "jti_123",
+    )
+
+    assert Preference::Token.decode(token, host: "id.umaxica.app")
+    assert Preference::Token.decode(token, host: "www.umaxica.app")
+  ensure
+    ENV["PREFERENCE_JWT_AUDIENCES"] = previous
+  end
+
   test "audience_matches handles allowed and rejected audiences" do
     assert Preference::Token.send(:audience_matches?, ["app.localhost"], "id.app.localhost")
     assert_not Preference::Token.send(:audience_matches?, ["app.localhost"], "evil.localhost")

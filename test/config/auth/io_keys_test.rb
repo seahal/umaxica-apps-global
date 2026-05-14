@@ -16,8 +16,8 @@ class AuthIoKeysTest < ActiveSupport::TestCase
     assert_equal "auth_device_id", Auth::IoKeys::Cookies::DEVICE_BASENAME
     assert_equal "Authorization", Auth::IoKeys::Headers::AUTHORIZATION
     assert_equal "X-Device-Id", Auth::IoKeys::Headers::DEVICE_ID
-    assert_equal :rd, Auth::IoKeys::Params::RD
-    assert_equal :user_email_authentication_rd, Auth::IoKeys::Session::DEFAULT_RD
+    assert_equal :rt, Auth::IoKeys::Params::RT
+    assert_equal :user_email_authentication_rt, Auth::IoKeys::Session::DEFAULT_RT
   end
 
   test "preference io key values stay stable" do

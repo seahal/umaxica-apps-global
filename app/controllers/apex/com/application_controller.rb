@@ -7,9 +7,9 @@ module Apex
       include ::RateLimit
       include ::Session
       include ::Preference::Global
-      include ::Authentication::Customer
-      include ::Authorization::Customer
-      include ::Verification::Customer
+      include ::Authentication::Visitor
+      include ::Authorization::Visitor
+      include ::Verification::Visitor
       include ActionPolicy::Controller
       include ::Oidc::SsoInitiator
       include ::CurrentSupport
@@ -51,10 +51,36 @@ module Apex
       end
 
       def oidc_sign_host
-        ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+        ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+      end
+
+      def sign_in_url_with_return(return_to)
+        decoded_return_to = decode_return_to(return_to)
+        initiate_oidc_session!(decoded_return_to)
       end
 
       private
+
+      def initiate_oidc_session!(return_to)
+        code_verifier = SecureRandom.urlsafe_base64(32)
+        code_challenge = Base64.urlsafe_encode64(
+          Digest::SHA256.digest(code_verifier),
+          padding: false,
+        )
+        state = SecureRandom.urlsafe_base64(24)
+
+        session[:oidc_code_verifier] = code_verifier
+        session[:oidc_state] = state
+        session[:oidc_return_to] = return_to
+
+        oidc_authorize_url(code_challenge, state)
+      end
+
+      def decode_return_to(return_to)
+        Base64.urlsafe_decode64(return_to.to_s)
+      rescue ArgumentError
+        "/"
+      end
     end
   end
 end

@@ -26,11 +26,11 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_id => staffs.id)
+#  fk_rails_...  (staff_id => operators.id)
 #  fk_rails_...  (status_id => staff_passkey_statuses.id)
 #
 one:
-  staff: one
+  staff_id: <%= ActiveRecord::FixtureSet.identify(:one) %>
   name: "My Passkey"
   webauthn_id: "webauthn_id_1"
   external_id: "external_id_1"

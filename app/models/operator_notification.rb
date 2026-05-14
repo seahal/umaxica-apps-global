@@ -29,4 +29,5 @@ class OperatorNotification < NotificationRecord
 
   belongs_to :staff_notification, optional: false, inverse_of: :operator_notifications
 end
+
 # rubocop:enable Layout/LineLength

@@ -58,6 +58,20 @@ pnpm install
 TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/setup
 ```
 
+`docker compose up` starts the `core` service with `bin/dev`. The PostgreSQL services use Compose
+environment variables instead of inline fixed credentials:
+
+```bash
+POSTGRESQL_USER=root
+POSTGRESQL_PASSWORD=development_password
+POSTGRESQL_DATABASE=db
+POSTGRESQL_REPLICATION_USER=replicator
+POSTGRESQL_REPLICATION_PASSWORD=development_replication_password
+```
+
+The values above are local defaults only. Override them in your shell or local Compose environment
+when you need different credentials.
+
 `TRUSTED_ORIGINS` is required for boot because WebAuthn origin validation fails fast when it is
 missing.
 

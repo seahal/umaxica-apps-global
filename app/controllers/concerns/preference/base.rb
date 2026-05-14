@@ -59,12 +59,25 @@ module Preference
       matched = all.select { |aud| aud.split(".").last == host_tld }
 
       # In non-production, keep "localhost" if present in the configured audiences
-      unless Rails.env.production?
+      if !Rails.env.production? && (matched.present? || host_tld == "localhost")
         localhost_aud = all.find { |aud| aud == "localhost" || aud.end_with?(".localhost") }
         matched << localhost_aud if localhost_aud && matched.exclude?(localhost_aud)
       end
 
-      matched.presence || all
+      matched.presence || [host]
+    end
+
+    def self.host_scope_for(host)
+      return host if host.blank?
+
+      matching_audience =
+        audience_for(host).sort_by { |aud| -aud.to_s.length }.find do |aud|
+          next false if aud.blank?
+
+          host == aud || host.end_with?(".#{aud}")
+        end
+
+      matching_audience.presence || host
     end
 
     def self.private_key_for_active
@@ -214,7 +227,7 @@ module Preference
         now = Time.current.to_i
         {
           preferences: preferences,
-          host: host,
+          host: JwtConfiguration.host_scope_for(host),
           preference_type: preference_type,
           public_id: public_id,
           jti: jti,
@@ -391,6 +404,12 @@ module Preference
         "RESET_BY_USER_DECISION" => AppPreferenceChronicleEvent::RESET_BY_USER_DECISION,
         "UPDATE_PREFERENCE_REGION" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
         "UPDATE_PREFERENCE_COLORTHEME" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_THEME,
+        "UPDATE_PREFERENCE_CURRENCY" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_CURRENCY,
+        "UPDATE_PREFERENCE_DATE_FORMAT" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_DATE_FORMAT,
+        "UPDATE_PREFERENCE_TIME_FORMAT" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_TIME_FORMAT,
+        "UPDATE_PREFERENCE_MOTION" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_MOTION,
+        "UPDATE_PREFERENCE_DENSITY" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_DENSITY,
+        "UPDATE_PREFERENCE_ITEMS_PER_PAGE" => AppPreferenceChronicleEvent::UPDATE_PREFERENCE_ITEMS_PER_PAGE,
       }.freeze,
       "ComPreferenceChronicleEvent" => {
         "CREATE_NEW_PREFERENCE_TOKEN" => ComPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
@@ -401,6 +420,12 @@ module Preference
         "RESET_BY_USER_DECISION" => ComPreferenceChronicleEvent::RESET_BY_USER_DECISION,
         "UPDATE_PREFERENCE_REGION" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
         "UPDATE_PREFERENCE_COLORTHEME" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_THEME,
+        "UPDATE_PREFERENCE_CURRENCY" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_CURRENCY,
+        "UPDATE_PREFERENCE_DATE_FORMAT" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_DATE_FORMAT,
+        "UPDATE_PREFERENCE_TIME_FORMAT" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_TIME_FORMAT,
+        "UPDATE_PREFERENCE_MOTION" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_MOTION,
+        "UPDATE_PREFERENCE_DENSITY" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_DENSITY,
+        "UPDATE_PREFERENCE_ITEMS_PER_PAGE" => ComPreferenceChronicleEvent::UPDATE_PREFERENCE_ITEMS_PER_PAGE,
       }.freeze,
       "OrgPreferenceChronicleEvent" => {
         "CREATE_NEW_PREFERENCE_TOKEN" => OrgPreferenceChronicleEvent::CREATE_NEW_PREFERENCE_TOKEN,
@@ -411,6 +436,12 @@ module Preference
         "RESET_BY_USER_DECISION" => OrgPreferenceChronicleEvent::RESET_BY_USER_DECISION,
         "UPDATE_PREFERENCE_REGION" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_REGION,
         "UPDATE_PREFERENCE_COLORTHEME" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_THEME,
+        "UPDATE_PREFERENCE_CURRENCY" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_CURRENCY,
+        "UPDATE_PREFERENCE_DATE_FORMAT" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_DATE_FORMAT,
+        "UPDATE_PREFERENCE_TIME_FORMAT" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_TIME_FORMAT,
+        "UPDATE_PREFERENCE_MOTION" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_MOTION,
+        "UPDATE_PREFERENCE_DENSITY" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_DENSITY,
+        "UPDATE_PREFERENCE_ITEMS_PER_PAGE" => OrgPreferenceChronicleEvent::UPDATE_PREFERENCE_ITEMS_PER_PAGE,
       }.freeze,
     }.freeze
 
@@ -436,7 +467,7 @@ module Preference
       return render_preference_refresh_error! if preference_refresh_failed?
       return if preference.blank?
 
-      # If a new preference was created and user is logged in, restore from UserPreference/StaffPreference
+      # If a new preference was created and user is logged in, restore from UserPreference/OperatorPreference
       restore_preference_from_resource!(preference) if created && respond_to?(:current_resource, true)
 
       # Rotate refresh token on access token re-issue to limit replay if leaked.
@@ -532,68 +563,74 @@ module Preference
     # 3) Preference option/domain mapping
     # ==========================================================================
     def preference_option_ids(prefix, params_hash)
-      option_classes = preference_option_classes(prefix)
-
-      {
-        timezone: resolve_option_id_from_param(
-          params_hash[:tz],
-          :timezone,
-          option_classes[:timezone]::ASIA_TOKYO,
+      Preference::ClassRegistry::CHILD_RECORD_TYPES.index_with do |type|
+        resolve_option_id_from_param(
+          preference_param_value(params_hash, type),
+          type,
+          Preference::ClassRegistry.default_option_id(prefix, type),
           prefix,
-        ),
-        language: resolve_option_id_from_param(
-          params_hash[:lx],
-          :language,
-          option_classes[:language]::JA,
-          prefix,
-        ),
-        region: resolve_option_id_from_param(
-          params_hash[:ri],
-          :region,
-          option_classes[:region]::JP,
-          prefix,
-        ),
-        colortheme: resolve_option_id_from_param(
-          params_hash[:ct],
-          :colortheme,
-          option_classes[:colortheme]::SYSTEM,
-          prefix,
-        ),
-      }
+        )
+      end
     end
 
     def preference_option_classes(prefix)
-      {
-        timezone: Preference::ClassRegistry.option_class(prefix, :timezone),
-        language: Preference::ClassRegistry.option_class(prefix, :language),
-        region: Preference::ClassRegistry.option_class(prefix, :region),
-        colortheme: Preference::ClassRegistry.option_class(prefix, :colortheme),
-      }
+      classes =
+        Preference::ClassRegistry::CHILD_RECORD_TYPES.index_with do |type|
+          Preference::ClassRegistry.option_class(prefix, type)
+        end
+      classes[:colortheme] = classes[:theme]
+      classes
     end
 
     def create_preference_cookie(prefix, preference)
-      Preference::ClassRegistry.cookie_class(prefix).create!(
-        preference_id: preference.id,
-        targetable: false,
-        performant: false,
-        functional: false,
-        consented: false,
-      )
+      klass = Preference::ClassRegistry.cookie_class(prefix)
+      with_model_writing_connection(klass) do
+        create_preference_association!(
+          preference,
+          "#{prefix.underscore}_preference_cookie",
+          targetable: false,
+          performant: false,
+          functional: false,
+          consented: false,
+        )
+      end
     end
 
     def ensure_preference_option_defaults(prefix)
-      %w(Timezone Language Region Colortheme).each do |type|
+      Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
         klass = Preference::ClassRegistry.option_class(prefix, type)
         ensure_model_defaults!(klass)
       end
     end
 
     def create_preference_option_records(prefix, preference, option_ids)
-      %w(Timezone Language Region Colortheme).each do |type|
-        Preference::ClassRegistry.record_class(prefix, type).create!(
-          preference_id: preference.id,
-          option_id: option_ids[type.downcase.to_sym],
-        )
+      Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
+        klass = Preference::ClassRegistry.record_class(prefix, type)
+        with_model_writing_connection(klass) do
+          create_preference_association!(
+            preference,
+            "#{prefix.underscore}_preference_#{type}",
+            option_id: option_ids[type],
+          )
+        end
+      end
+    end
+
+    def create_preference_association!(preference, association_name, attributes)
+      creator = :"create_#{association_name}!"
+      return preference.public_send(creator, attributes) if preference.respond_to?(creator)
+
+      association = preference.association(association_name.to_sym)
+      association.klass.create!(attributes.merge(preference: preference))
+    end
+
+    def preference_param_value(params_hash, type)
+      case type
+      when :language then params_hash[:lx]
+      when :region then params_hash[:ri]
+      when :timezone then params_hash[:tz]
+      when :theme then params_hash[:ct]
+      else params_hash[type]
       end
     end
 
@@ -767,23 +804,18 @@ module Preference
 
       # If option_id is already an integer, use it as-is
       option_id_key = Preference::IoKeys::Params::OPTION_ID
-      if params[option_id_key].is_a?(Integer) || params[option_id_key].to_s.match?(/^\d+$/)
+      if option_type != :items_per_page &&
+          (params[option_id_key].is_a?(Integer) || params[option_id_key].to_s.match?(/^\d+$/))
         params[option_id_key] = Integer(params[option_id_key].to_s, 10)
         return params
       end
 
       prefix = preference_class.name.delete_suffix("Preference")
-      option_class =
-        case option_type
-        when :colortheme, :theme then Preference::ClassRegistry.option_class(prefix, option_type)
-        when :language then Preference::ClassRegistry.option_class(prefix, :language)
-        when :region then Preference::ClassRegistry.option_class(prefix, :region)
-        when :timezone then Preference::ClassRegistry.option_class(prefix, :timezone)
-        end
+      option_class = Preference::ClassRegistry.option_class(prefix, option_type) if option_type
 
       if option_class
         name =
-          if option_type == :colortheme || option_type == :theme
+          if %i(colortheme theme).include?(option_type)
             canonical_colortheme_option_id(params[option_id_key])
           else
             params[option_id_key]
@@ -846,11 +878,7 @@ module Preference
     def ensure_model_defaults!(klass)
       return if klass.blank? || !klass.respond_to?(:ensure_defaults!)
 
-      connection_owner =
-        klass.ancestors.find do |ancestor|
-          ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class?
-        end
-
+      connection_owner = model_connection_owner(klass)
       if connection_owner.blank?
         klass.ensure_defaults!
         return
@@ -858,6 +886,19 @@ module Preference
 
       connection_owner.connected_to(role: :writing) do
         klass.ensure_defaults!
+      end
+    end
+
+    def with_model_writing_connection(klass)
+      connection_owner = model_connection_owner(klass)
+      return yield if connection_owner.blank?
+
+      connection_owner.connected_to(role: :writing) { yield }
+    end
+
+    def model_connection_owner(klass)
+      klass.ancestors.find do |ancestor|
+        ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class?
       end
     end
 
@@ -1137,7 +1178,7 @@ module Preference
       when "ComPreference" then ComPreferenceBindingMethod
       when "OrgPreference" then OrgPreferenceBindingMethod
       when "UserToken" then UserTokenBindingMethod
-      when "StaffToken" then StaffTokenBindingMethod
+      when "OperatorToken" then OperatorTokenBindingMethod
       else
         raise ArgumentError, "Unknown preference class: #{preference_class.name}"
       end
@@ -1149,7 +1190,7 @@ module Preference
       when "ComPreference" then ComPreferenceDbscStatus
       when "OrgPreference" then OrgPreferenceDbscStatus
       when "UserToken" then UserTokenDbscStatus
-      when "StaffToken" then StaffTokenDbscStatus
+      when "OperatorToken" then OperatorTokenDbscStatus
       else
         raise ArgumentError, "Unknown preference class: #{preference_class.name}"
       end
@@ -1230,6 +1271,12 @@ module Preference
       region = preference.public_send("#{association_prefix}_region")&.option_id
       timezone = preference.public_send("#{association_prefix}_timezone")&.option_id
       colortheme = preference.public_send("#{association_prefix}_theme")&.option_id
+      currency = preference.public_send("#{association_prefix}_currency")&.option_id
+      date_format = preference.public_send("#{association_prefix}_date_format")&.option_id
+      time_format = preference.public_send("#{association_prefix}_time_format")&.option_id
+      motion = preference.public_send("#{association_prefix}_motion")&.option_id
+      density = preference.public_send("#{association_prefix}_density")&.option_id
+      items_per_page = preference.public_send("#{association_prefix}_items_per_page")&.option_id
       consent_state = preference_cookie_consent_state(preference, association_prefix)
 
       {
@@ -1237,6 +1284,12 @@ module Preference
         "ri" => option_id_to_region(region, option_prefix) || "jp",
         "tz" => option_id_to_timezone(timezone, option_prefix) || "Asia/Tokyo",
         "ct" => normalize_colortheme(option_id_to_colortheme(colortheme, option_prefix)) || "sy",
+        "cu" => option_id_to_preference_value(currency, option_prefix, :currency) || "jpy",
+        "df" => option_id_to_preference_value(date_format, option_prefix, :date_format) || "iso",
+        "tf" => option_id_to_preference_value(time_format, option_prefix, :time_format) || "hour_24",
+        "mo" => option_id_to_preference_value(motion, option_prefix, :motion) || "standard",
+        "dn" => option_id_to_preference_value(density, option_prefix, :density) || "standard",
+        "ipp" => option_id_to_preference_value(items_per_page, option_prefix, :items_per_page) || "20",
         "consented" => consent_state[:consented],
         "functional" => consent_state[:functional],
         "performant" => consent_state[:performant],
@@ -1297,6 +1350,12 @@ module Preference
       return "system" if option_id == option_class::SYSTEM
 
       option_id.to_s
+    end
+
+    def option_id_to_preference_value(option_id, prefix, type)
+      return if option_id.blank?
+
+      Preference::ClassRegistry.option_class(prefix, type).find_by(id: option_id)&.name
     end
 
     def preference_payload_preferences
@@ -1544,6 +1603,12 @@ module Preference
         "#{prefix}_region",
         "#{prefix}_timezone",
         "#{prefix}_colortheme",
+        "#{prefix}_currency",
+        "#{prefix}_date_format",
+        "#{prefix}_time_format",
+        "#{prefix}_motion",
+        "#{prefix}_density",
+        "#{prefix}_items_per_page",
       ].map(&:to_sym)
     end
 
@@ -1563,7 +1628,7 @@ module Preference
     # 7) Child-record lazy helpers
     # ==========================================================================
     def load_or_create_preference_child(child_type, default_attributes = {})
-      association_name = "#{preference_prefix_underscore}_#{child_type.downcase}"
+      association_name = "#{preference_prefix_underscore}_#{child_type.to_s.underscore}"
       child = @preferences.public_send(association_name)
       return child if child.present?
 

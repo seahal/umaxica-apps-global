@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/preference_jwt_helper"
 
 module Sign
   module Com
@@ -13,20 +14,20 @@ module Sign
 
         setup do
           @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-          @customer = create_verified_customer_with_email(
+          @visitor = create_verified_visitor_with_email(
             email_address: "preference-#{SecureRandom.hex(4)}@example.com",
           )
-          @customer.customer_telephones.create!(
+          @visitor.visitor_telephones.create!(
             number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
-            customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+            visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
           )
           host! @host
         end
 
-        test "PATCH update syncs region to com preference and customer preference" do
+        test "PATCH update syncs region to com preference and visitor preference" do
           preference = com_preferences(:one)
           ComPreferenceRegion.create!(preference: preference, option_id: ComPreferenceRegionOption::JP)
-          @customer.create_customer_preference!(
+          @visitor.create_visitor_preference!(
             region: "jp",
             language: "ja",
             timezone: "Asia/Tokyo",
@@ -44,16 +45,16 @@ module Sign
 
             patch sign_com_preference_region_path,
                   params: { preference_region: { option_id: "us" } },
-                  headers: as_customer_headers(@customer, host: @host)
+                  headers: as_visitor_headers(@visitor, host: @host)
           end
 
           assert_redirected_to edit_sign_com_preference_region_url(ri: "us")
 
           preference.reload
-          @customer.customer_preference.reload
+          @visitor.visitor_preference.reload
 
           assert_equal ComPreferenceRegionOption::US, preference.com_preference_region.option_id
-          assert_equal "us", @customer.customer_preference.region
+          assert_equal "us", @visitor.visitor_preference.region
         end
       end
     end

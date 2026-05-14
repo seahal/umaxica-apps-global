@@ -43,7 +43,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     assert_equal "/verification", uri.path
     assert_equal "configuration_email", query["scope"]
     assert_equal "jp", query["ri"]
-    assert_predicate query["rd"], :present?
+    assert_predicate query["rt"], :present?
   end
 
   test "POST sensitive action returns 401 when step-up is not satisfied" do
@@ -66,7 +66,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_email", query["scope"]
-    assert_predicate query["rd"], :present?
+    assert_predicate query["rt"], :present?
   end
 
   test "step-up older than 15 minutes redirects to verification" do
@@ -78,7 +78,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
 
     assert_equal "/verification", uri.path
-    assert_predicate Rack::Utils.parse_query(uri.query)["rd"], :present?
+    assert_predicate Rack::Utils.parse_query(uri.query)["rt"], :present?
   end
 
   test "step-up within TTL and matching scope passes through" do
@@ -100,7 +100,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     assert_equal "/verification", uri.path
     assert_equal "configuration_email", query["scope"]
     assert_equal "jp", query["ri"]
-    assert_predicate query["rd"], :present?
+    assert_predicate query["rt"], :present?
   end
 
   test "HEAD step-up within TTL and matching scope passes through" do

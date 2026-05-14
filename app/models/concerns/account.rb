@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Shared account logic for Member and Operator.
-# These are the organizational accounts linked to an identity (User or Staff).
+# These are the organizational accounts linked to an identity (User or Operator).
 module Account
   extend ActiveSupport::Concern
 

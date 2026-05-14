@@ -3,7 +3,7 @@
 
 module Sign
   module Dev
-    class HealthController < Sign::PublicController
+    class HealthController < Sign::Dev::ApplicationController
       include ::Health
 
       public_strict!

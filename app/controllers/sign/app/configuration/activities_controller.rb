@@ -7,10 +7,47 @@ module Sign
       class ActivitiesController < ApplicationController
         auth_required!
 
-        LOGIN_EVENT_IDS = [UserChronicleEvent::LOGGED_IN, UserChronicleEvent::LOGIN_SUCCESS].freeze
+        VISIBLE_EVENT_IDS = [
+          UserChronicleEvent::LOGGED_IN,
+          UserChronicleEvent::LOGIN_SUCCESS,
+          UserChronicleEvent::LOGGED_OUT,
+          UserChronicleEvent::LOGOUT,
+          UserChronicleEvent::SIGNED_UP_WITH_APPLE,
+          UserChronicleEvent::SIGNED_UP_WITH_EMAIL,
+          UserChronicleEvent::SIGNED_UP_WITH_GOOGLE,
+          UserChronicleEvent::SIGNED_UP_WITH_TELEPHONE,
+          UserChronicleEvent::SOCIAL_LINKED,
+          UserChronicleEvent::SOCIAL_UNLINKED,
+          UserChronicleEvent::SESSION_REVOKED,
+          UserChronicleEvent::EMAIL_REGISTERED,
+          UserChronicleEvent::EMAIL_REMOVED,
+          UserChronicleEvent::TELEPHONE_REGISTERED,
+          UserChronicleEvent::TELEPHONE_REMOVED,
+          UserChronicleEvent::TOTP_ENABLED,
+          UserChronicleEvent::PASSKEY_REGISTERED,
+          UserChronicleEvent::USER_SECRET_CREATED,
+          UserChronicleEvent::RECOVERY_CODES_GENERATED,
+        ].freeze
         EVENT_LABELS = {
           UserChronicleEvent::LOGGED_IN => "logged_in",
           UserChronicleEvent::LOGIN_SUCCESS => "login_success",
+          UserChronicleEvent::LOGGED_OUT => "logged_out",
+          UserChronicleEvent::LOGOUT => "logout",
+          UserChronicleEvent::SIGNED_UP_WITH_APPLE => "signed_up_with_apple",
+          UserChronicleEvent::SIGNED_UP_WITH_EMAIL => "signed_up_with_email",
+          UserChronicleEvent::SIGNED_UP_WITH_GOOGLE => "signed_up_with_google",
+          UserChronicleEvent::SIGNED_UP_WITH_TELEPHONE => "signed_up_with_telephone",
+          UserChronicleEvent::SOCIAL_LINKED => "social_linked",
+          UserChronicleEvent::SOCIAL_UNLINKED => "social_unlinked",
+          UserChronicleEvent::SESSION_REVOKED => "session_revoked",
+          UserChronicleEvent::EMAIL_REGISTERED => "email_registered",
+          UserChronicleEvent::EMAIL_REMOVED => "email_removed",
+          UserChronicleEvent::TELEPHONE_REGISTERED => "telephone_registered",
+          UserChronicleEvent::TELEPHONE_REMOVED => "telephone_removed",
+          UserChronicleEvent::TOTP_ENABLED => "totp_enabled",
+          UserChronicleEvent::PASSKEY_REGISTERED => "passkey_registered",
+          UserChronicleEvent::USER_SECRET_CREATED => "user_secret_created",
+          UserChronicleEvent::RECOVERY_CODES_GENERATED => "recovery_codes_generated",
         }.freeze
         SENSITIVE_CONTEXT_PATTERNS = %w(
           user_agent
@@ -45,7 +82,15 @@ module Sign
         # UserChronicle is currently written with numeric user.id in subject_id.
         def current_user_activities
           UserChronicle
-            .where(subject_type: "User", subject_id: current_user.id, event_id: LOGIN_EVENT_IDS)
+            .where(event_id: VISIBLE_EVENT_IDS)
+            .where(
+              UserChronicle.arel_table[:subject_type].eq("User")
+                .and(UserChronicle.arel_table[:subject_id].eq(current_user.id))
+                .or(
+                  UserChronicle.arel_table[:actor_type].eq("User")
+                    .and(UserChronicle.arel_table[:actor_id].eq(current_user.id)),
+                ),
+            )
             .order(Arel.sql("COALESCE(occurred_at, created_at) DESC"))
         end
 
@@ -107,6 +152,9 @@ module Sign
             "auth_method",
           ) || activity_context_value(activity, "method")
           return "-" if method.blank?
+
+          provider = activity_context_value(activity, "provider")
+          return provider.to_s if method.to_s == "social" && provider.present?
 
           method.to_s
         end

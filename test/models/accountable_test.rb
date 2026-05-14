@@ -2,19 +2,16 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require_relative "../../app/models/concerns/accountable"
-require_relative "../../app/models/user"
-require_relative "../../app/models/staff"
 
 class AccountableTest < ActiveSupport::TestCase
-  { "User" => ::User, "Staff" => ::Staff }.each do |_klass_name, klass|
+  { "User" => ::User, "Operator" => ::Operator }.each do |_klass_name, klass|
     test "#{klass} is a ..." do
       assert_includes klass.included_modules, ::Accountable
     end
   end
 
   test "user and staff are different classes" do
-    assert_not_equal ::User, ::Staff
+    assert_not_equal ::User, ::Operator
   end
 
   test "should raise NotImplementedError for staff?" do

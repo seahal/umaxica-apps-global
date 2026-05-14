@@ -169,8 +169,8 @@ end
 
 認証関連:
 
-- UserEmail, StaffEmail
-- UserTelephone, StaffTelephone
+- UserEmail, OperatorEmail
+- UserTelephone, OperatorTelephone
 - UserIdentitySocialApple, UserIdentitySocialGoogle
 - UserWebauthnCredential, StaffWebauthnCredential
 - UserTimeBasedOneTimePassword, StaffTimeBasedOneTimePassword

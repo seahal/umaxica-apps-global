@@ -110,9 +110,8 @@ class OrgPreference < OperatorRecord
            inverse_of: :org_preference,
            dependent: :destroy
   # waht is this?
-  has_many :staff_org_preferences,
-           dependent: :delete_all,
-           inverse_of: :org_preference
+  has_many :staff_org_preferences, class_name: "OperatorOrgPreference", dependent: :delete_all,
+                                   inverse_of: :org_preference
   # waht is this?
   has_many :replacements,
            class_name: "OrgPreference",

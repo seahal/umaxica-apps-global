@@ -11,29 +11,58 @@ module CurrentSupport
   private
 
   def set_current
-    Current.domain = resolved_current_domain
+    context = resolved_current_context
+    Actor.surface = context.surface
+    Actor.domain = context.surface
+    Actor.account = context.account
+    Actor.tenant = context.tenant
 
     resource = safe_current_resource
-    Current.actor = resource.presence || Unauthenticated.instance
-    Current.actor_type = resolved_current_actor_type(resource)
-    Current.session ||= resolved_current_session
-    Current.token ||= resolved_current_token
-    Current.preference = resolved_current_preference(resource)
+    actor = resource.presence || Unauthenticated.instance
+    actor_type = resolved_current_actor_type(resource)
+    Actor.actor = actor
+    Actor.actor_type = actor_type
+    Actor.session ||= resolved_current_session
+    Actor.token ||= resolved_current_token
+    Actor.preference = resolved_current_preference(resource)
   end
 
   def _reset_current_state
-    Current.reset
+    Actor.reset
+  end
+
+  def resolved_current_context
+    if Actor.surface.present?
+      return HostContextResolver::Context.new(
+        surface: Actor.surface,
+        account: Actor.account,
+        tenant: Actor.tenant,
+      )
+    end
+    if Actor.domain.present?
+      return HostContextResolver::Context.new(
+        surface: Actor.domain,
+        account: Actor.account,
+        tenant: Actor.tenant,
+      )
+    end
+    unless respond_to?(:request, true) && request.present?
+      return HostContextResolver::Context.new(
+        surface: nil,
+        account: Actor.account,
+        tenant: Actor.tenant,
+      )
+    end
+
+    HostContextResolver.call(request)
   end
 
   def resolved_current_domain
-    return Current.domain if Current.domain.present?
-    return unless respond_to?(:request, true) && request.present?
-
-    Core::Surface.current(request)
+    resolved_current_context.surface
   end
 
   def safe_current_resource
-    current_actor = Current.actor
+    current_actor = Actor.actor
     if current_actor.present?
       return current_actor unless current_actor.equal?(Unauthenticated.instance)
     end
@@ -45,27 +74,28 @@ module CurrentSupport
   end
 
   def resolved_current_actor_type(resource)
-    return Current.actor_type if Current.actor_type.present?
+    actor_type = Actor.attributes[:actor_type]
+    return actor_type if actor_type.present? && actor_type != :unauthenticated
     return :unauthenticated if resource.blank?
 
-    if resource.respond_to?(:staff?) && resource.staff?
-      :staff
-    elsif resource.respond_to?(:customer?) && resource.customer?
-      :customer
+    if resource.respond_to?(:operator?) && resource.operator?
+      :operator
+    elsif resource.respond_to?(:visitor?) && resource.visitor?
+      :visitor
     else
       :user
     end
   end
 
   def resolved_current_session
-    return Current.session if Current.session.present?
+    return Actor.session if Actor.session.present?
     return @current_session_public_id if defined?(@current_session_public_id) && @current_session_public_id.present?
 
     resolved_current_token&.dig("sid")
   end
 
   def resolved_current_token
-    return Current.token if Current.token.present?
+    return Actor.token if Actor.token.present?
 
     payload = nil
     payload = access_token_payload if respond_to?(:access_token_payload, true)
@@ -82,15 +112,15 @@ module CurrentSupport
     return preference_from_record(preference_record, cookie: cookie) if preference_record.present?
 
     prf_claim = resolved_current_token&.dig("prf")
-    return Current::Preference.from_jwt(prf_claim, cookie: cookie) if prf_claim.is_a?(Hash)
+    return Actor::Preference.from_jwt(prf_claim, cookie: cookie) if prf_claim.is_a?(Hash)
 
-    Current::Preference::NULL.with_cookie(cookie)
+    Actor::Preference::NULL.with_cookie(cookie)
   end
 
   def resolved_current_cookie(resource)
     preference_record = resolved_resource_preference(resource)
     if preference_record.present?
-      return Current::Preference.cookie_from(
+      return Actor::Preference.cookie_from(
         consented: preference_record.consented,
         functional: preference_record.functional,
         performant: preference_record.performant,
@@ -103,7 +133,7 @@ module CurrentSupport
     if respond_to?(:preference_payload_preferences, true)
       payload_preferences = preference_payload_preferences
       if payload_preferences.is_a?(Hash)
-        return Current::Preference.cookie_from(
+        return Actor::Preference.cookie_from(
           consented: payload_preferences["consented"],
           functional: payload_preferences["functional"],
           performant: payload_preferences["performant"],
@@ -114,40 +144,41 @@ module CurrentSupport
       end
     end
 
-    Current::Preference::NULL_COOKIE
+    Actor::Preference::NULL_COOKIE
   end
 
   def resolved_resource_preference(resource)
     return if resource.blank?
 
-    if resource.respond_to?(:staff?) && resource.staff?
+    if resource.respond_to?(:operator?) && resource.operator?
       resource.try(:staff_preference)
-    elsif resource.respond_to?(:customer?) && resource.customer?
-      resource.try(:customer_preference)
+    elsif resource.respond_to?(:visitor?) && resource.visitor?
+      resource.try(:visitor_preference)
     else
       resource.try(:user_preference)
     end
   end
 
   def preference_from_record(preference_record, cookie:)
-    Current::Preference.new(
-      language: preference_record.language.presence || Current::Preference::DEFAULTS[:language],
-      region: preference_record.region.presence || Current::Preference::DEFAULTS[:region],
-      timezone: preference_record.timezone.presence || Current::Preference::DEFAULTS[:timezone],
-      theme: preference_record.theme.presence || Current::Preference::DEFAULTS[:theme],
+    Actor::Preference.new(
+      language: preference_record.language.presence || Actor::Preference::DEFAULTS[:language],
+      region: preference_record.region.presence || Actor::Preference::DEFAULTS[:region],
+      timezone: preference_record.timezone.presence || Actor::Preference::DEFAULTS[:timezone],
+      theme: preference_record.theme.presence || Actor::Preference::DEFAULTS[:theme],
       cookie: cookie,
+      public_id: preference_record.try(:public_id),
     )
   end
 
   def set_current_observability
     return unless defined?(OpenTelemetry::Trace)
-    return unless Current.preference.cookie.performant?
+    return unless Actor.preference.cookie.performant?
 
     span = OpenTelemetry::Trace.current_span
     context = span.context
     return unless context.valid?
 
-    Current.trace_id = context.hex_trace_id
-    Current.span_id = context.hex_span_id
+    Actor.trace_id = context.hex_trace_id
+    Actor.span_id = context.hex_span_id
   end
 end

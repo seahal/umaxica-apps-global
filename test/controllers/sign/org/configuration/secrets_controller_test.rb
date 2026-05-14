@@ -8,26 +8,26 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = Staff.create!(
-      status_id: StaffStatus::ACTIVE,
+    @staff = Operator.create!(
+      status_id: OperatorIdentityStatus::ACTIVE,
     )
-    @staff_passkey = StaffPasskey.create!(
+    @staff_passkey = OperatorPasskey.create!(
       staff: @staff,
       name: "Test Passkey",
-      status_id: StaffPasskeyStatus::ACTIVE,
+      status_id: OperatorPasskeyStatus::ACTIVE,
       public_key: "test_public_key",
       sign_count: 0,
       external_id: "test_external_id",
       webauthn_id: "test_webauthn_id",
     )
-    @token = StaffToken.create!(staff: @staff)
+    @token = OperatorToken.create!(staff: @staff)
     satisfy_staff_verification(@token)
-    @staff_secret = StaffSecret.create!(
+    @staff_secret = OperatorSecret.create!(
       staff: @staff,
       name: "Test Secret",
       password_digest: "test_password_digest",
       last_used_at: Time.zone.now,
-      staff_secret_kind_id: StaffSecret::Kinds::LOGIN,
+      staff_secret_kind_id: OperatorSecret::Kinds::LOGIN,
     )
   end
 
@@ -39,9 +39,9 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     # browser_headers sets an explicit 'Cookie' header which overwrites the cookie jar.
     # We must manually append our verification cookie if it exists.
-    verification_token = cookies[StaffVerification.cookie_name]
+    verification_token = cookies[OperatorVerification.cookie_name]
     if verification_token
-      headers["Cookie"] = "#{headers["Cookie"]}; #{StaffVerification.cookie_name}=#{verification_token}"
+      headers["Cookie"] = "#{headers["Cookie"]}; #{OperatorVerification.cookie_name}=#{verification_token}"
     end
 
     headers
@@ -73,7 +73,7 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
   test "should create secret and redirect to index" do
     satisfy_staff_verification(@token)
-    assert_difference("StaffSecret.count", 1) do
+    assert_difference("OperatorSecret.count", 1) do
       post sign_org_configuration_secrets_url(ri: "jp"),
            params: { staff_secret: { name: "New Secret", enabled: true } },
            headers: authenticated_headers

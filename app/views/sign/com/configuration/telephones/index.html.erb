@@ -15,7 +15,7 @@
         <table>
           <thead>
           <tr>
-            <th scope="col"><%= CustomerTelephone.human_attribute_name(:number) %></th>
+            <th scope="col"><%= VisitorTelephone.human_attribute_name(:number) %></th>
             <th scope="col"><%= t("activerecord.attributes.user_telephone.status") %></th>
             <th scope="col">
               <span><%= t("views.sign.com.configuration.telephones.index.actions") %></span>
@@ -27,7 +27,7 @@
             <tr>
               <td><%= telephone.number %></td>
               <td>
-                <% if [CustomerTelephoneStatus::VERIFIED, CustomerTelephoneStatus::VERIFIED_WITH_SIGN_UP].include?(telephone.customer_telephone_status_id) %>
+                <% if [VisitorTelephoneStatus::VERIFIED, VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP].include?(telephone.visitor_telephone_status_id) %>
                   <span><%= t("views.sign.com.configuration.telephones.index.verified") %></span>
                 <% else %>
                   <span><%= t("views.sign.com.configuration.telephones.index.unverified") %></span>

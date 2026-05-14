@@ -4,7 +4,7 @@
 module Accountable
   extend ActiveSupport::Concern
 
-  # Shared account interface for User, Staff, and Customer.
+  # Shared account interface for User, Operator, and Visitor.
   def staff?
     raise NotImplementedError, "#{self.class} must implement staff? method"
   end

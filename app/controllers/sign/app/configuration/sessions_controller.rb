@@ -28,13 +28,28 @@ module Sign
             return render_current_session_error
           end
 
-          revoke_sessions!([@session])
+          revoke_sessions!([@session], action: "session.revoke")
           render_revoke_success
         end
 
         def others
-          revoke_sessions!(other_active_sessions)
+          revoke_sessions!(other_active_sessions, action: "session.revoke_others")
           render_revoke_success
+        end
+
+        def revoke_all
+          return if require_step_up!(scope: "session_revoke_all") == false
+
+          sessions = visible_sessions.to_a
+          revoke_sessions!(sessions, action: "session.revoke_all")
+          Rails.event.notify(
+            "security.session_revoke_all",
+            actor_type: current_resource.class.name,
+            actor_id: current_resource.id,
+            session_count: sessions.length,
+          )
+          log_out
+          render_revoke_all_success
         end
 
         private
@@ -51,6 +66,14 @@ module Sign
           )
         end
 
+        def render_revoke_all_success
+          redirect_to(
+            sign_app_configuration_sessions_path,
+            status: :see_other,
+            notice: t("session_limit.all_sessions_revoked"),
+          )
+        end
+
         def other_active_sessions
           sessions = visible_sessions
           return sessions if current_session_public_id.blank?
@@ -58,12 +81,26 @@ module Sign
           sessions.where.not(public_id: current_session_public_id)
         end
 
-        def revoke_sessions!(sessions)
-          if sessions.respond_to?(:find_each)
-            sessions.find_each(&:revoke!)
-          else
-            sessions.each(&:revoke!)
+        def revoke_sessions!(sessions, action:)
+          revoked_count = 0
+          each_session(sessions) do |session|
+            session.revoke!
+            revoked_count += 1
           end
+
+          Sign::App::SessionRevokeAudit.record!(
+            actor: current_user,
+            revoked_session_count: revoked_count,
+            action: action,
+            ip_address: request.remote_ip,
+            user_agent: request.user_agent,
+          )
+        end
+
+        def each_session(sessions, &)
+          return sessions.find_each(&) if sessions.respond_to?(:find_each)
+
+          sessions.each(&)
         end
 
         def render_current_session_error

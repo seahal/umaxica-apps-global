@@ -29,16 +29,16 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_id => staffs.id)
+#  fk_rails_...  (staff_id => operators.id)
 #  fk_rails_...  (status_id => staff_passkey_statuses.id)
 #
 
 require "test_helper"
 
-class StaffPasskeyTest < ActiveSupport::TestCase
+class OperatorPasskeyTest < ActiveSupport::TestCase
   test "should create passkey with valid attributes" do
-    passkey = StaffPasskey.new(
-      staff: Staff.find_by!(public_id: "BCDE2345FGHJ67KM"),
+    passkey = OperatorPasskey.new(
+      staff: Operator.find_by!(public_id: "BCDE2345FGHJ67KM"),
       name: "Staff Passkey",
       public_key: "test_staff_public_key",
       sign_count: 1,
@@ -52,8 +52,8 @@ class StaffPasskeyTest < ActiveSupport::TestCase
   end
 
   test "defaults status_id to active" do
-    passkey = StaffPasskey.new(
-      staff: Staff.find_by!(public_id: "BCDE2345FGHJ67KM"),
+    passkey = OperatorPasskey.new(
+      staff: Operator.find_by!(public_id: "BCDE2345FGHJ67KM"),
       name: "Staff Passkey",
       public_key: "test_staff_public_key",
       sign_count: 1,
@@ -61,13 +61,13 @@ class StaffPasskeyTest < ActiveSupport::TestCase
       webauthn_id: SecureRandom.hex(32),
     )
 
-    assert_equal StaffPasskeyStatus::ACTIVE, passkey.status_id
+    assert_equal OperatorPasskeyStatus::ACTIVE, passkey.status_id
   end
 
   test "status association uses status_id" do
-    status = StaffPasskeyStatus.find(StaffPasskeyStatus::ACTIVE)
-    passkey = StaffPasskey.create!(
-      staff: Staff.find_by!(public_id: "BCDE2345FGHJ67KM"),
+    status = OperatorPasskeyStatus.find(OperatorPasskeyStatus::ACTIVE)
+    passkey = OperatorPasskey.create!(
+      staff: Operator.find_by!(public_id: "BCDE2345FGHJ67KM"),
       name: "Staff Passkey",
       public_key: "test_staff_public_key",
       sign_count: 1,
@@ -81,39 +81,39 @@ class StaffPasskeyTest < ActiveSupport::TestCase
   end
 
   test "should belong to staff" do
-    assert_respond_to StaffPasskey.new, :staff
+    assert_respond_to OperatorPasskey.new, :staff
   end
 
   test "should have name field" do
-    passkey = StaffPasskey.new(name: "Example Name")
+    passkey = OperatorPasskey.new(name: "Example Name")
 
     assert_equal "Example Name", passkey.name
   end
 
   test "should have public_key field" do
-    passkey = StaffPasskey.new(public_key: "staff_key")
+    passkey = OperatorPasskey.new(public_key: "staff_key")
 
     assert_equal "staff_key", passkey.public_key
   end
 
   test "should inherit from OperatorRecord" do
-    assert_operator StaffPasskey, :<, OperatorRecord
+    assert_operator OperatorPasskey, :<, OperatorRecord
   end
 
   test "should have required database columns" do
     required_columns = %w(name public_key sign_count external_id staff_id webauthn_id)
 
     required_columns.each do |column|
-      assert_includes StaffPasskey.column_names, column
+      assert_includes OperatorPasskey.column_names, column
     end
   end
 
   test "enforces maximum passkeys per staff" do
-    staff = Staff.find_by!(public_id: "BCDE2345FGHJ67KM")
-    relation_stub = Struct.new(:count).new(StaffPasskey::MAX_PASSKEYS_PER_STAFF)
+    staff = Operator.find_by!(public_id: "BCDE2345FGHJ67KM")
+    relation_stub = Struct.new(:count).new(OperatorPasskey::MAX_PASSKEYS_PER_STAFF)
 
-    StaffPasskey.stub(:where, relation_stub) do
-      extra_passkey = StaffPasskey.new(
+    OperatorPasskey.stub(:where, relation_stub) do
+      extra_passkey = OperatorPasskey.new(
         staff: staff,
         name: "Overflow Staff Key",
         public_key: "overflow-key",
@@ -124,7 +124,7 @@ class StaffPasskeyTest < ActiveSupport::TestCase
 
       assert_not extra_passkey.valid?
       assert_includes extra_passkey.errors[:base],
-                      "exceeds maximum passkeys per staff (#{StaffPasskey::MAX_PASSKEYS_PER_STAFF})"
+                      "exceeds maximum passkeys per staff (#{OperatorPasskey::MAX_PASSKEYS_PER_STAFF})"
     end
   end
 end

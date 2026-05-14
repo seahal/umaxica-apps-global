@@ -10,7 +10,7 @@ module Sign
       def show
         result = Oidc::AuthorizeService.call(
           params: authorize_params,
-          resource: current_customer,
+          resource: current_visitor,
         )
 
         if result.success?

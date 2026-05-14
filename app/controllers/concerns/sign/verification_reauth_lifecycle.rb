@@ -16,8 +16,8 @@ module Sign
 
     def consume_reauth_session!
       rs = current_reauth_session
-      return_to = rs["return_to"]
-      scope = rs["scope"]
+      return_to = rs.return_to
+      scope = rs.scope
 
       now = Time.current
       verification, raw_token = verification_model.issue_for_token!(token: actor_token)
@@ -26,6 +26,7 @@ module Sign
       create_audit_event!(verification_success_event_id, subject: current_verification_actor)
 
       clear_reauth_state!
+      rs.destroy!
 
       flash[:notice] = I18n.t(verification_success_notice_key)
       safe_redirect_to(return_to, fallback: verification_success_fallback_path)
@@ -41,6 +42,11 @@ module Sign
 
     def clear_reauth_state!
       raise NotImplementedError, "#{self.class} must define #clear_reauth_state!"
+    end
+
+    def record_failed_step_up_attempt!(method)
+      current_reauth_session&.increment!(:attempt_count) if current_reauth_session.respond_to?(:increment!)
+      StepUp::CooldownStamp.call(current_verification_actor, method) if current_verification_actor.present?
     end
 
     def verification_model

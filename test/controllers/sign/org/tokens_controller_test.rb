@@ -4,6 +4,11 @@
 require "test_helper"
 
 class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
+  Result =
+    Struct.new(:success, :token_response, :error, :error_description, keyword_init: true) do
+      def success? = success
+    end
+
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
@@ -96,7 +101,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
   test "returns error for expired code" do
     code_record = issue_code!
 
-    travel StaffAuthorizationCode::CODE_TTL + 1.second do
+    travel OperatorAuthorizationCode::CODE_TTL + 1.second do
       with_authenticated_client do
         post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
           code: code_record.code,
@@ -126,10 +131,34 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_grant", body["error"]
   end
 
+  test "passes DPoP proof details to token exchange service" do
+    code_record = issue_code!
+    result = Result.new(success: true, token_response: { access_token: "access", refresh_token: "refresh" })
+    captured = nil
+
+    Oidc::TokenExchangeService.stub(
+      :call,
+      ->(**kwargs) do
+        captured = kwargs
+        result
+      end,
+    ) do
+      with_authenticated_client do
+        post sign_org_token_url(host: @host, ri: "jp"),
+             params: token_params(code: code_record.code),
+             headers: browser_headers.merge("DPoP" => "proof-jwt")
+      end
+    end
+
+    assert_equal "proof-jwt", captured[:dpop_proof]
+    assert_equal request.original_url, captured[:token_endpoint_uri]
+    assert_equal "POST", captured[:request_method]
+  end
+
   test "creates staff token record" do
     code_record = issue_code!
 
-    assert_difference "StaffToken.count", 1 do
+    assert_difference "OperatorToken.count", 1 do
       with_authenticated_client do
         post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
           code: code_record.code,
@@ -152,7 +181,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
   end
 
   def issue_code!
-    StaffAuthorizationCode.issue!(
+    OperatorAuthorizationCode.issue!(
       staff: @staff,
       client_id: "core_org",
       redirect_uri: @redirect_uri,

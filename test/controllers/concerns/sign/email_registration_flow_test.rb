@@ -32,8 +32,8 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
       (path.to_s.start_with?("/") && !path.to_s.start_with?("//")) ? path : nil
     end
 
-    def build_notice_params(message)
-      { notice: message, rd: Base64.urlsafe_encode64("/configuration/emails") }
+    def build_notice_params(message, _session_key = nil)
+      { notice: message, rt: Base64.urlsafe_encode64("/configuration/emails") }
     end
 
     def reset_email_flow!
@@ -78,16 +78,16 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
     assert_empty empty_params
 
     safe_path = "/configuration/emails"
-    params = { rd: Base64.urlsafe_encode64(safe_path) }
+    params = { rt: Base64.urlsafe_encode64(safe_path) }
 
     harness.send(:sanitize_redirect_params!, params)
 
-    assert_equal Base64.urlsafe_encode64(safe_path), params[:rd]
+    assert_equal Base64.urlsafe_encode64(safe_path), params[:rt]
 
-    params = { rd: Base64.urlsafe_encode64("https://evil.example") }
+    params = { rt: Base64.urlsafe_encode64("https://evil.example") }
     harness.send(:sanitize_redirect_params!, params)
 
-    assert_not params.key?(:rd)
+    assert_not params.key?(:rt)
 
     assert_nil harness.send(:sanitize_encoded_redirect, "")
     assert_nil harness.send(:sanitize_encoded_redirect, "not-base64%%%")
@@ -160,7 +160,7 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
     harness.update
 
     assert_predicate harness, :reset_called
-    assert_equal ["/emails/new?rd=#{Base64.urlsafe_encode64("/configuration/emails")}"], harness.redirect_args
+    assert_equal ["/emails/new?rt=#{Base64.urlsafe_encode64("/configuration/emails")}"], harness.redirect_args
   end
 
   test "abstract path hooks raise not implemented" do

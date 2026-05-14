@@ -138,50 +138,46 @@ class EmailTest < ActiveSupport::TestCase
     assert_equal initial_count + 1, email.reload.otp_attempts_count
   end
 
-  test "locked? returns false when attempts < 3" do
+  test "locked? returns false when attempts are below threshold" do
     email = create_email(address: "test@example.com", confirm_policy: true)
 
     assert_not email.locked?
 
-    email.increment_attempts!
+    (Email::MAX_OTP_ATTEMPTS - 1).times do
+      email.increment_attempts!
 
-    assert_not email.reload.locked?
-
-    email.increment_attempts!
-
-    assert_not email.reload.locked?
+      assert_not email.reload.locked?
+    end
   end
 
-  test "locked? returns true when attempts >= 3" do
+  test "locked? returns true when attempts reach threshold within observation window" do
     email = create_email(address: "test@example.com", confirm_policy: true)
 
-    3.times { email.increment_attempts! }
+    Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
 
     assert_predicate email.reload, :locked?
   end
 
-  test "increment_attempts! sets locked_at timestamp when threshold is reached" do
+  test "increment_attempts! sets lockout expiry when threshold is reached" do
     email = create_email(address: "test@example.com", confirm_policy: true)
 
     # Initially locked_at should be a sentinel (infinity or nil)
     assert email.locked_at.nil? || email.locked_at == Float::INFINITY || email.locked_at.to_s == "infinity"
 
-    # Increment to threshold
-    3.times { email.increment_attempts! }
+    Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
     email.reload
 
-    # locked_at should now be a real timestamp
     assert_predicate email.locked_at, :present?
     assert_not_equal email.locked_at, Float::INFINITY
     assert_not_equal email.locked_at, -Float::INFINITY
-    assert_operator email.locked_at, :<=, Time.current
+    assert_operator email.locked_at, :>, Time.current
+    assert_operator email.locked_at, :<=, Email::OTP_LOCKOUT_DURATION.from_now
   end
 
   test "increment_attempts! keeps locked_at stable when incrementing beyond threshold" do
     email = create_email(address: "test@example.com", confirm_policy: true)
 
-    # Increment to threshold
-    3.times { email.increment_attempts! }
+    Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
     email.reload
 
     first_locked_at = email.locked_at
@@ -200,8 +196,8 @@ class EmailTest < ActiveSupport::TestCase
 
   test "increment_attempts! does not change locked_at if already set" do
     email = create_email(address: "test@example.com", confirm_policy: true)
-    initial_lock_time = 1.hour.ago
-    email.update!(locked_at: initial_lock_time, otp_attempts_count: 3)
+    initial_lock_time = 1.hour.from_now
+    email.update!(locked_at: initial_lock_time, otp_attempts_count: Email::MAX_OTP_ATTEMPTS)
 
     # Increment again
     email.increment_attempts!
@@ -213,15 +209,35 @@ class EmailTest < ActiveSupport::TestCase
 
   test "locked? returns true when locked_at is set" do
     email = create_email(address: "test@example.com", confirm_policy: true)
-    email.update!(locked_at: Time.current)
+    email.update!(locked_at: 1.minute.from_now)
 
     assert_predicate email, :locked?
   end
 
+  test "locked? returns false after lockout expires" do
+    email = create_email(address: "test@example.com", confirm_policy: true)
+    email.update!(locked_at: 1.second.ago, otp_attempts_count: Email::MAX_OTP_ATTEMPTS)
+
+    assert_not email.locked?
+  end
+
+  test "attempts outside observation window reset before lockout" do
+    email = create_email(address: "test@example.com", confirm_policy: true)
+    email.update!(
+      otp_attempts_count: Email::MAX_OTP_ATTEMPTS - 1,
+      otp_last_sent_at: (Email::OTP_ATTEMPT_WINDOW + 1.second).ago,
+    )
+
+    email.increment_attempts!
+
+    assert_equal 1, email.reload.otp_attempts_count
+    assert_not email.locked?
+  end
+
   test "clear_otp resets attempts and locked_at" do
     email = create_email(address: "test@example.com", confirm_policy: true)
-    3.times { email.increment_attempts! }
-    email.update!(locked_at: Time.current)
+    Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
+    email.update!(locked_at: 1.minute.from_now)
 
     email.clear_otp
 
@@ -246,7 +262,8 @@ class EmailTest < ActiveSupport::TestCase
 
     Concurrent::Promises.zip(*futures).value!
 
-    assert_equal 100, email.reload.otp_attempts_count
+    assert_equal Email::MAX_OTP_ATTEMPTS, email.reload.otp_attempts_count
+    assert_predicate email, :locked?
   end
 
   # OTP method tests
@@ -298,7 +315,7 @@ class EmailTest < ActiveSupport::TestCase
     expires_at = 1.hour.from_now.to_i
 
     email.store_otp(otp_key, otp_counter, expires_at)
-    email.update!(locked_at: Time.current)
+    email.update!(locked_at: 1.minute.from_now)
 
     otp_data = email.get_otp
 
@@ -349,7 +366,7 @@ class EmailTest < ActiveSupport::TestCase
 
   test "otp_active? returns false when OTP is locked" do
     email = create_email(address: "otp11@example.com", confirm_policy: true)
-    email.update!(otp_expires_at: 1.hour.from_now, locked_at: Time.current)
+    email.update!(otp_expires_at: 1.hour.from_now, locked_at: 1.minute.from_now)
 
     assert_not email.otp_active?
   end
@@ -357,7 +374,7 @@ class EmailTest < ActiveSupport::TestCase
   test "clear_otp clears all OTP data" do
     email = create_email(address: "otp12@example.com", confirm_policy: true)
     email.store_otp("key", 50, 1.hour.from_now.to_i)
-    email.update!(locked_at: Time.current, otp_attempts_count: 2)
+    email.update!(locked_at: 1.minute.from_now, otp_attempts_count: 2)
 
     email.clear_otp
 
@@ -440,5 +457,21 @@ class EmailTest < ActiveSupport::TestCase
     email.update!(otp_last_sent_at: "-infinity")
 
     assert_not email.otp_cooldown_active?
+  end
+
+  test "reregistration_window_active? uses independent ten second window" do
+    email = create_email(address: "rereg-window@example.com", confirm_policy: true)
+
+    email.update!(otp_last_sent_at: 9.seconds.ago)
+
+    assert_predicate email, :reregistration_window_active?
+
+    email.update!(otp_last_sent_at: 11.seconds.ago)
+
+    assert_not email.reregistration_window_active?
+
+    email.update!(otp_last_sent_at: "-infinity")
+
+    assert_not email.reregistration_window_active?
   end
 end

@@ -7,13 +7,13 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    @customer = create_verified_customer_with_email(email_address: "sessions-#{SecureRandom.hex(4)}@example.com")
-    @customer.customer_telephones.create!(
+    @visitor = create_verified_visitor_with_email(email_address: "sessions-#{SecureRandom.hex(4)}@example.com")
+    @visitor.visitor_telephones.create!(
       number: "+10000000991",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @token = create_restricted_session(@customer)
-    satisfy_customer_verification(@token)
+    @token = create_restricted_session(@visitor)
+    satisfy_visitor_verification(@token)
   end
 
   test "show redirects to login when not authenticated" do
@@ -23,8 +23,35 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/sign/in/new\?ri=jp}
   end
 
+  test "protected configuration redirects to public sign host and preserves absolute return target" do
+    with_env(
+      "ID_CORPORATE_URL" => "id.com.localhost",
+      "SIGN_CORPORATE_URL" => "id.umaxica.com",
+    ) do
+      Rails.application.reload_routes!
+
+      get(
+        "https://id.umaxica.com/configuration/sessions?ri=jp",
+        headers: { "Host" => "id.umaxica.com" },
+      )
+
+      assert_response :redirect
+      location = URI.parse(response.location)
+      params = Rack::Utils.parse_query(location.query)
+
+      assert_equal "https", location.scheme
+      assert_equal "id.umaxica.com", location.host
+      assert_equal "/sign/in/new", location.path
+      assert_equal "jp", params["ri"]
+      assert_equal "https://id.umaxica.com/configuration/sessions?ri=jp",
+                   Base64.urlsafe_decode64(params.fetch("rt"))
+    end
+  ensure
+    Rails.application.reload_routes!
+  end
+
   test "show with restricted session displays sessions" do
-    create_active_session(@customer)
+    create_active_session(@visitor)
     headers = request_headers(@token)
 
     get sign_com_in_session_url(ri: "jp"), headers: headers
@@ -44,7 +71,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update with ref param revokes specific session" do
-    active_token = create_active_session(@customer)
+    active_token = create_active_session(@visitor)
     headers = request_headers(@token)
 
     patch sign_com_in_session_url(ri: "jp"), params: { ref: active_token.signed_ref }, headers: headers
@@ -53,7 +80,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     # Redirect to configuration because restricted session is promoted after revoking the only active session
     assert_match %r{/configuration\?ri=jp}, response.location
     assert_not_nil active_token.reload.lapses_at
-    assert_equal CustomerToken::STATUS_ACTIVE, @token.reload.status
+    assert_equal VisitorTokenStatus::ACTIVE, @token.reload.visitor_token_status_id
   end
 
   test "destroy without ref logs out and redirects to login" do
@@ -106,13 +133,13 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     controller.instance_variable_set(:@logged_in_for_test, false)
     controller.instance_variable_set(:@gate_for_test, true)
-    session_hash[:pending_login_customer_id] = @customer.id
+    session_hash[:pending_login_visitor_id] = @visitor.id
 
     assert_nil controller.send(:require_authentication_or_gate)
 
     controller.instance_variable_set(:@logged_in_for_test, true)
     controller.instance_variable_set(:@restricted_for_test, false)
-    session_hash.delete(:pending_login_customer_id)
+    session_hash.delete(:pending_login_visitor_id)
     controller.send(:require_authentication_or_gate)
 
     assert_equal :forbidden, heads.last
@@ -123,14 +150,14 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_match "/sign/in/new?ri=jp", redirects.last.first.first
 
-    controller.instance_variable_set(:@resource_for_test, @customer)
+    controller.instance_variable_set(:@resource_for_test, @visitor)
 
-    assert_equal @customer, controller.send(:resolve_current_customer)
+    assert_equal @visitor, controller.send(:resolve_current_visitor)
 
     controller.instance_variable_set(:@resource_for_test, nil)
-    session_hash[:pending_login_customer_id] = @customer.id
+    session_hash[:pending_login_visitor_id] = @visitor.id
 
-    assert_equal @customer, controller.send(:resolve_current_customer)
+    assert_equal @visitor, controller.send(:resolve_current_visitor)
 
     controller.instance_variable_set(:@return_to_for_test, "/after")
     controller.send(:redirect_to_return_path, notice: "promoted")
@@ -143,45 +170,45 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal [["/configuration?ri=jp"], { notice: "promoted" }], redirects.last
 
-    active_token = create_active_session(@customer)
+    active_token = create_active_session(@visitor)
     restricted_token = @token
-    restricted_token.update!(status: CustomerToken::STATUS_RESTRICTED)
+    restricted_token.update!(visitor_token_status_id: VisitorTokenStatus::RESTRICTED)
     controller.instance_variable_set(:@session_for_test, restricted_token)
 
-    assert_includes [true, false], controller.send(:can_promote_session?, @customer)
+    assert_includes [true, false], controller.send(:can_promote_session?, @visitor)
     controller.send(:promote_current_session!)
 
-    assert_equal CustomerToken::STATUS_ACTIVE, restricted_token.reload.status
+    assert_equal VisitorTokenStatus::ACTIVE, restricted_token.reload.visitor_token_status_id
 
     controller.instance_variable_set(:@session_for_test, active_token)
-    controller.send(:revoke_session_by_ref, @customer, "bad-ref")
+    controller.send(:revoke_session_by_ref, @visitor, "bad-ref")
 
     assert_equal I18n.t("sign.app.in.session.invalid_session"), flash_hash[:alert]
 
-    controller.send(:revoke_session_by_ref, @customer, active_token.signed_ref)
+    controller.send(:revoke_session_by_ref, @visitor, active_token.signed_ref)
 
     assert_equal I18n.t("sign.app.in.session.cannot_revoke_current"), flash_hash[:alert]
 
     controller.instance_variable_set(:@session_for_test, restricted_token)
-    controller.send(:revoke_session_by_ref, @customer, active_token.signed_ref)
+    controller.send(:revoke_session_by_ref, @visitor, active_token.signed_ref)
 
     assert_equal I18n.t("sign.app.in.session.session_revoked"), flash_hash[:notice]
     assert active_token.reload.lapses_at
 
-    batch_token = create_active_session(@customer)
+    batch_token = create_active_session(@visitor)
     controller.send(
-      :revoke_sessions_by_refs, @customer,
+      :revoke_sessions_by_refs, @visitor,
       [restricted_token.signed_ref, batch_token.signed_ref, "bad-ref"],
     )
 
     assert batch_token.reload.lapses_at
-    assert_nil restricted_token.reload.lapses_at
+    assert_not_predicate restricted_token.reload, :revoked?
 
     controller.update
 
     assert_equal [[:show], { status: :unprocessable_content }], renders.last
 
-    destroy_token = create_active_session(@customer)
+    destroy_token = create_active_session(@visitor)
     controller.params[:ref] = destroy_token.signed_ref
     controller.destroy
 
@@ -197,23 +224,22 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def create_restricted_session(customer)
-    token = CustomerToken.create!(
-      customer: customer,
-      status: CustomerToken::STATUS_RESTRICTED,
-      customer_token_status_id: CustomerTokenStatus::NOTHING,
-      customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
+  def create_restricted_session(visitor)
+    token = VisitorToken.create!(
+      visitor: visitor,
+      visitor_token_status_id: VisitorTokenStatus::RESTRICTED,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
     )
     token.rotate_refresh_token!
     token
   end
 
-  def create_active_session(customer)
-    token = CustomerToken.create!(
-      customer: customer,
-      status: CustomerToken::STATUS_ACTIVE,
-      customer_token_status_id: CustomerTokenStatus::NOTHING,
-      customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
+  def create_active_session(visitor)
+    token = VisitorToken.create!(
+      visitor: visitor,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      skip_session_limit_check: true,
     )
     token.rotate_refresh_token!
     token
@@ -222,8 +248,23 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   def request_headers(token)
     {
       "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => @customer.id,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
+  end
+
+  def with_env(vars)
+    original = {}
+    vars.each_key { |key| original[key] = ENV[key] }
+
+    vars.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
+
+    yield
+  ensure
+    original.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
   end
 end

@@ -5,18 +5,34 @@ require "test_helper"
 
 module Preference
   class AdoptionTest < ActiveSupport::TestCase
-    fixtures :users, :user_statuses,
+    fixtures :users, :user_statuses, :staffs, :staff_statuses,
              :app_preferences, :app_preference_statuses,
              :app_preference_binding_methods, :app_preference_dbsc_statuses,
+             :org_preferences, :org_preference_statuses,
+             :org_preference_binding_methods, :org_preference_dbsc_statuses,
              :app_preference_language_options, :app_preference_timezone_options,
              :app_preference_region_options, :app_preference_theme_options,
              :user_preference_language_options, :user_preference_timezone_options,
-             :user_preference_region_options, :user_preference_theme_options
+             :user_preference_region_options, :user_preference_theme_options,
+             :staff_preference_language_options, :staff_preference_timezone_options,
+             :staff_preference_region_options, :staff_preference_theme_options
 
     setup do
       @user = users(:none_user)
-      @preference = app_preferences(:one)
-      @new_preference = app_preferences(:two)
+      @preference = AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING,
+        binding_method_id: AppPreferenceBindingMethod::NOTHING,
+        dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
+        lapses_at: 20.years.from_now,
+        purge_at: 20.years.from_now,
+      )
+      @new_preference = AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING,
+        binding_method_id: AppPreferenceBindingMethod::NOTHING,
+        dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
+        lapses_at: 20.years.from_now,
+        purge_at: 20.years.from_now,
+      )
       @adoption = build_adoption_context(@preference)
 
       # Clean up any existing UserPreference for our test user
@@ -61,6 +77,50 @@ module Preference
       assert_difference "UserPreference.count", 1 do
         @adoption.send(:find_or_create_resource_preference!, @user)
       end
+    end
+
+    test "find_or_create_resource_preference! keeps UserPreference generated public_id" do
+      user_pref = @adoption.send(:find_or_create_resource_preference!, @user)
+
+      assert_predicate user_pref.public_id, :present?
+      assert_not_equal @preference.public_id, user_pref.public_id
+    end
+
+    test "sync_preferences! does not copy resource public_id to shared preference" do
+      app_preference = AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING,
+        binding_method_id: AppPreferenceBindingMethod::NOTHING,
+        dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
+        lapses_at: 20.years.from_now,
+        purge_at: 20.years.from_now,
+      )
+      user_pref = create_user_preference!(@user)
+      adoption = build_adoption_context(app_preference)
+      original_public_id = app_preference.public_id
+
+      adoption.send(:sync_preferences!, user_pref)
+
+      assert_equal original_public_id, app_preference.reload.public_id
+    end
+
+    test "adopt_preference_for! does not poison app preference public_id after collision" do
+      existing_app_preference = AppPreference.create!(
+        status_id: AppPreferenceStatus::NOTHING,
+        binding_method_id: AppPreferenceBindingMethod::NOTHING,
+        dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
+        lapses_at: 20.years.from_now,
+        purge_at: 20.years.from_now,
+      )
+      user_pref = create_user_preference!(@user)
+      user_pref.update!(public_id: existing_app_preference.public_id)
+      @user.reload
+
+      assert_nothing_raised do
+        @adoption.send(:adopt_preference_for!, @user)
+        @preference.update!(jti: Jit::Security::Jwt::JtiGenerator.generate)
+      end
+
+      assert_not_equal existing_app_preference.public_id, @preference.reload.public_id
     end
 
     test "find_or_create_resource_preference! returns existing UserPreference" do
@@ -121,6 +181,26 @@ module Preference
       user_pref.user_preference_language.reload
 
       assert_equal UserPreferenceLanguageOption::EN, user_pref.user_preference_language.option_id
+    end
+
+    test "sync_preferences! treats newer resource preference as whole-record winner" do
+      create_child_record!(@preference, :language, AppPreferenceLanguageOption::EN)
+      create_child_record!(@preference, :region, AppPreferenceRegionOption::US)
+      user_pref = create_user_preference!(@user)
+      @user.reload
+
+      travel_to Time.current.change(usec: 0) do
+        @preference.update!(updated_at: 2.minutes.ago)
+        user_pref.update!(updated_at: 1.minute.ago)
+
+        @adoption.send(:sync_preferences!, user_pref)
+      end
+
+      @preference.app_preference_language.reload
+      @preference.app_preference_region.reload
+
+      assert_equal AppPreferenceLanguageOption::JA, @preference.app_preference_language.option_id
+      assert_equal AppPreferenceRegionOption::JP, @preference.app_preference_region.option_id
     end
 
     test "adopt_preference_for! does not raise on error and logs event" do
@@ -236,9 +316,9 @@ module Preference
         region: AppPreferenceRegion,
         theme: AppPreferenceTheme,
       }.fetch(type)
-      SettingRecord.connected_to(role: :writing) do
-        klass.create!(preference_id: preference.id, option_id: option_id)
-      end
+      record = klass.find_or_initialize_by(preference_id: preference.id)
+      record.update!(option_id: option_id)
+      record
     end
   end
 end

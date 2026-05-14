@@ -6,7 +6,8 @@ require "test_helper"
 class ApplicationHelperTest < ActionView::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :app_banners, :org_banners, :com_banners, :users, :user_statuses, :staffs, :staff_statuses
+  fixtures :user_banners, :staff_banners, :client_banners, :users, :user_statuses, :staffs, :staff_statuses,
+           :clients, :client_statuses
 
   setup do
     extend ApplicationHelper
@@ -110,9 +111,9 @@ class ApplicationHelperTest < ActionView::TestCase
 
   test "current_banner_for returns current banner for each surface" do
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
-      assert_equal app_banners(:newer_current_app_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
-      assert_equal org_banners(:current_org_banner), current_banner_for(tld: :org, region: :jp, domain: :news)
-      assert_equal com_banners(:current_com_banner), current_banner_for(tld: :com, region: :jp, domain: :news)
+      assert_equal user_banners(:newer_current_user_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
+      assert_equal staff_banners(:current_staff_banner), current_banner_for(tld: :org, region: :jp, domain: :news)
+      assert_equal client_banners(:current_client_banner), current_banner_for(tld: :com, region: :jp, domain: :news)
     end
   end
 
@@ -126,7 +127,7 @@ class ApplicationHelperTest < ActionView::TestCase
                          block.call
                        end,
       ) do
-        assert_equal app_banners(:newer_current_app_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
+        assert_equal user_banners(:newer_current_user_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
       end
 
       assert_equal [:writing], roles
@@ -141,7 +142,7 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
-  test "edge_host resolves service edge host for app surface" do
+  test "edge_host resolves service edge host for user surface" do
     stub_request_host(ENV["MAIN_SERVICE_URL"])
 
     with_edge_env("EDGE_SERVICE_URL" => "https://edge.app.localhost:5171") do
@@ -149,7 +150,7 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
-  test "edge_host resolves staff edge host for org surface" do
+  test "edge_host resolves staff edge host for staff surface" do
     stub_request_host(ENV["SIDE_STAFF_URL"])
 
     with_edge_env("EDGE_STAFF_URL" => "edge.org.localhost") do
@@ -157,7 +158,7 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
-  test "edge_host resolves corporate edge host for com surface" do
+  test "edge_host resolves corporate edge host for client surface" do
     stub_request_host(ENV["DOCS_CORPORATE_URL"])
 
     with_edge_env("EDGE_CORPORATE_URL" => "http://edge.com.localhost") do

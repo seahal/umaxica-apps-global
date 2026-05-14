@@ -3,13 +3,13 @@
 # ============================================================================
 # Shared build arguments
 # ============================================================================
-ARG RUBY_VERSION=4.0.3
+ARG RUBY_VERSION=4.0.4
 ARG DOCKER_UID=1000
 ARG DOCKER_GID=1000
 ARG DOCKER_USER=global
 ARG DOCKER_GROUP=umaxica
 ARG GITHUB_ACTIONS=""
-ARG NODE_MAJOR=22
+ARG NODE_MAJOR=26
 
 # ============================================================================
 # Node.js toolchain

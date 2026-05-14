@@ -68,7 +68,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
 
   test "check_login_cooldown! does not raise when last login was over 30 seconds ago" do
     TokenRecord.connected_to(role: :writing) do
-      UserToken.create!(user: @user, status: "active")
+      UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
     end
 
     travel 31.seconds do
@@ -80,7 +80,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
 
   test "check_login_cooldown! raises LoginCooldownError when last login was within 30 seconds" do
     TokenRecord.connected_to(role: :writing) do
-      UserToken.create!(user: @user, status: "active")
+      UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
     end
 
     assert_raises(Authentication::Base::LoginCooldownError) do
@@ -90,7 +90,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
 
   test "check_login_cooldown! raises at exactly 30 seconds boundary" do
     TokenRecord.connected_to(role: :writing) do
-      UserToken.create!(user: @user, status: "active")
+      UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
     end
 
     travel 30.seconds do
@@ -102,7 +102,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
 
   test "check_login_cooldown! does not raise at 31 seconds" do
     TokenRecord.connected_to(role: :writing) do
-      UserToken.create!(user: @user, status: "active")
+      UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
     end
 
     travel 31.seconds do
@@ -115,8 +115,8 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
   test "check_login_cooldown! considers only the most recent token" do
     freeze_time do
       TokenRecord.connected_to(role: :writing) do
-        UserToken.create!(user: @user, status: "active", created_at: 60.seconds.ago)
-        UserToken.create!(user: @user, status: "active", created_at: 10.seconds.ago)
+        UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE, created_at: 60.seconds.ago)
+        UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE, created_at: 10.seconds.ago)
       end
 
       assert_raises(Authentication::Base::LoginCooldownError) do
@@ -129,7 +129,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
     other_user = users(:two)
 
     TokenRecord.connected_to(role: :writing) do
-      UserToken.create!(user: other_user, status: "active")
+      UserToken.create!(user: other_user, user_token_status_id: UserTokenStatus::ACTIVE)
     end
 
     assert_nothing_raised do
@@ -138,14 +138,14 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
   end
 
   test "check_login_cooldown! works for staff" do
-    staff = Staff.first
+    staff = Operator.first
     harness = CooldownHarness.new
     # Override token_class for staff
-    harness.define_singleton_method(:token_class) { StaffToken }
+    harness.define_singleton_method(:token_class) { OperatorToken }
 
-    StaffToken.where(staff_id: staff.id).delete_all
+    OperatorToken.where(staff_id: staff.id).delete_all
     TokenRecord.connected_to(role: :writing) do
-      StaffToken.create!(staff: staff, status: "active")
+      OperatorToken.create!(staff: staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     end
 
     assert_raises(Authentication::Base::LoginCooldownError) do

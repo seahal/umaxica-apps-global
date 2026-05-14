@@ -3,27 +3,27 @@
 
 require "test_helper"
 
-class CloudflareTurnstileTest < ActionDispatch::IntegrationTest
+class CloudflareTurnstileTest < Minitest::Test
   class TestController < ApplicationController
     include CloudflareTurnstile
 
     public :cloudflare_turnstile_validation, :cloudflare_turnstile_stealth_validation, :verify_turnstile_stealth!
   end
 
-  setup do
+  def setup
     @controller = TestController.new
     @request = ActionDispatch::TestRequest.create
     @controller.request = @request
   end
 
-  test "validation in test mode" do
+  def test_validation_in_test_mode
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
     assert_equal({ "success" => true }, @controller.cloudflare_turnstile_validation)
   end
 
-  test "validation in real mode calls verifier" do
+  def test_validation_in_real_mode_calls_verifier
     CloudflareTurnstile.test_mode = false
     @controller.stub(:params, ActionController::Parameters.new({ "cf-turnstile-response" => "tok" })) do
       Jit::Security::TurnstileVerifier.stub(:verify, { "success" => true }) do
@@ -32,7 +32,21 @@ class CloudflareTurnstileTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "verify_turnstile_stealth! failure" do
+  def test_validation_in_real_mode_tolerates_missing_token
+    CloudflareTurnstile.test_mode = false
+    @controller.stub(:params, ActionController::Parameters.new({})) do
+      missing_response = { "success" => false, "error" => "missing cf-turnstile-response" }
+      result = nil
+
+      Jit::Security::TurnstileVerifier.stub(:verify, missing_response) do
+        result = @controller.cloudflare_turnstile_validation
+      end
+
+      assert_equal(missing_response, result)
+    end
+  end
+
+  def test_verify_turnstile_stealth_failure
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => false }
 

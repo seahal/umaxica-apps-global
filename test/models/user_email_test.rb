@@ -8,7 +8,6 @@
 #
 #  id                        :bigint           not null, primary key
 #  address                   :string           default(""), not null
-#  address_bidx              :string
 #  address_digest            :string
 #  locked_at                 :datetime         default(Infinity), not null
 #  notifiable                :boolean          default(TRUE), not null
@@ -29,7 +28,6 @@
 #
 # Indexes
 #
-#  index_user_emails_on_address_bidx            (address_bidx) UNIQUE WHERE (address_bidx IS NOT NULL)
 #  index_user_emails_on_address_digest          (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
 #  index_user_emails_on_otp_last_sent_at        (otp_last_sent_at)
 #  index_user_emails_on_public_id               (public_id) UNIQUE
@@ -140,8 +138,9 @@ class UserEmailTest < ActiveSupport::TestCase
       user: @user,
     )
 
-    assert_equal user_email, UserEmail.find_by(address: "USER-FIND@example.com")
-    assert_nil UserEmail.find_by(address: "")
+    assert_equal user_email,
+                 UserEmail.find_by(address_digest: IdentifierBlindIndex.bidx_for_email("USER-FIND@example.com"))
+    assert_nil UserEmail.find_by(address_digest: IdentifierBlindIndex.bidx_for_email(""))
   end
 
   test "should downcase email address before saving" do
@@ -206,5 +205,13 @@ class UserEmailTest < ActiveSupport::TestCase
     assert user_email.verify_verification_token(token)
     assert_not user_email.verify_verification_token("wrong-token")
     assert_not user_email.verify_verification_token("")
+  end
+
+  test "subscription preferences are locked until the email is verified" do
+    locked_email = UserEmail.new(@valid_attributes.merge(user_email_status_id: UserEmailStatus::UNVERIFIED))
+    unlocked_email = UserEmail.new(@valid_attributes.merge(user_email_status_id: UserEmailStatus::VERIFIED))
+
+    assert_predicate locked_email, :subscription_preferences_locked?
+    assert_not unlocked_email.subscription_preferences_locked?
   end
 end

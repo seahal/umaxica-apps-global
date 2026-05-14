@@ -10,6 +10,7 @@ module Sign
 
       setup do
         UserOccurrenceStatus.find_or_create_by!(id: UserOccurrenceStatus::ACTIVE)
+        VisitorOccurrenceStatus.ensure_defaults!
         @user = users(:one)
 
         original_disabled = ENV["RISK_ENFORCEMENT_DISABLED"]
@@ -87,6 +88,13 @@ module Sign
 
         assert_equal 60, Engine.score(user_id: @user.id)
         assert_equal 0, Engine.score(user_id: other_user.id)
+      end
+
+      test "score is scoped to specific visitor" do
+        5.times { Emitter.send(:persist, Event.new("auth_failed", payload: { visitor_id: 123 })) }
+
+        assert_equal 60, Engine.score(visitor_id: 123)
+        assert_equal 0, Engine.score(visitor_id: 456)
       end
 
       test "safe events return 0" do

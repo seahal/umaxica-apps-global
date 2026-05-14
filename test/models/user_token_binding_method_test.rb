@@ -19,7 +19,9 @@ class UserTokenBindingMethodTest < ActiveSupport::TestCase
   end
 
   test "ensure_defaults! creates missing records" do
-    UserTokenBindingMethod.where(id: UserTokenBindingMethod::DEFAULTS).destroy_all
+    Prosopite.pause do
+      UserTokenBindingMethod.where(id: UserTokenBindingMethod::DEFAULTS).destroy_all
+    end
 
     UserTokenBindingMethod.ensure_defaults!
 

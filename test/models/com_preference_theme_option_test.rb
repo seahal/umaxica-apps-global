@@ -51,4 +51,10 @@ class ComPreferenceThemeOptionTest < ActiveSupport::TestCase
     assert_equal ComPreferenceThemeOption::DEFAULTS,
                  ComPreferenceThemeOption.order(:id).pluck(:id)
   end
+
+  test "name returns nil for unknown id" do
+    option = ComPreferenceThemeOption.new(id: 99)
+
+    assert_nil option.name
+  end
 end

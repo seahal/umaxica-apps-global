@@ -101,9 +101,12 @@ module SocialCallbackGuard
     @allowed_hosts ||=
       begin
         hosts =
-          [ENV["ID_SERVICE_URL"], ENV["ID_STAFF_URL"]].compact.filter_map { |v|
-            normalize_host_port(v)
-          }
+          %w(
+            ID_SERVICE_URL
+            SIGN_SERVICE_URL
+            ID_STAFF_URL
+            SIGN_STAFF_URL
+          ).filter_map { |key| normalize_host_port(ENV[key]) }
         hosts.uniq
       end
   end
@@ -113,7 +116,7 @@ module SocialCallbackGuard
       begin
         origins = []
         schemes = %w(https)
-        schemes << "http" if Rails.env.local?
+        schemes << "http" if Rails.env.local? || Rails.env.test?
 
         allowed_hosts.each do |host|
           schemes.each do |scheme|
@@ -331,6 +334,12 @@ module SocialCallbackGuard
 
   def reject_social_callback!(reason:, provider:, details: {})
     clear_social_state!
+    failure_redirect_path =
+      if respond_to?(:social_auth_failure_redirect_path, true)
+        social_auth_failure_redirect_path
+      else
+        new_sign_app_in_path
+      end
 
     Rails.logger.warn(
       "[SocialCallbackGuard] phase=callback provider=#{provider.inspect} reason=#{reason} details=#{details.inspect} " \
@@ -338,7 +347,7 @@ module SocialCallbackGuard
     )
 
     redirect_to(
-      new_sign_app_in_path,
+      failure_redirect_path,
       alert: I18n.t("sign.app.social.sessions.create.failure"),
       status: :forbidden,
     )

@@ -33,10 +33,10 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
     @user = users(:one)
     UserToken.where(user_id: @user.id).delete_all
     2.times do
-      token = UserToken.create!(user: @user, status: UserToken::STATUS_ACTIVE)
+      token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
       token.rotate_refresh_token!
     end
-    restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
+    restricted = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
     restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
     Rails.application.routes.draw do

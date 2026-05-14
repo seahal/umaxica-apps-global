@@ -16,6 +16,10 @@ services:
     command:
     - sleep
     - infinity
+    environment:
+      POSTGRESQL_USER: "${POSTGRESQL_USER:-root}"
+      POSTGRESQL_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
+      POSTGRESQL_DATABASE: "${POSTGRESQL_DATABASE:-db}"
     restart: always
     user: "${UID:-1000}:${GID:-1000}"
     tmpfs:
@@ -47,8 +51,6 @@ services:
         condition: service_healthy
       otel-collector:
         condition: service_started
-  kumo:
-    image: ghcr.io/sivchari/kumo:latest
   primary:
     image: postgres:18.1-alpine
     command:
@@ -57,11 +59,12 @@ services:
     - "-c"
     - hba_file=/etc/postgresql/pg_hba.conf
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: db
+      POSTGRES_USER: "${POSTGRESQL_USER:-root}"
+      POSTGRES_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
+      POSTGRES_DB: "${POSTGRESQL_DATABASE:-db}"
+      POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
+      POSTGRES_REPLICATION_PASSWORD: "${POSTGRESQL_REPLICATION_PASSWORD:-development_replication_password}"
       TZ: UTC
-      POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_INITDB_WAL_LEVEL: replica
       POSTGRES_INITDB_MAX_WAL_SENDERS: 10
       POSTGRES_INITDB_MAX_REPLICATION_SLOTS: 10
@@ -77,7 +80,7 @@ services:
     healthcheck:
       test:
       - CMD-SHELL
-      - pg_isready -U root -d db -h 127.0.0.1
+      - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -h 127.0.0.1
       interval: 3s
       timeout: 3s
       retries: 20
@@ -86,11 +89,12 @@ services:
     image: postgres:18.1-alpine
     entrypoint: "/entrypoint.sh"
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: db
+      POSTGRES_USER: "${POSTGRESQL_USER:-root}"
+      POSTGRES_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
+      POSTGRES_DB: "${POSTGRESQL_DATABASE:-db}"
+      POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
+      POSTGRES_REPLICATION_PASSWORD: "${POSTGRESQL_REPLICATION_PASSWORD:-development_replication_password}"
       TZ: UTC
-      POSTGRES_HOST_AUTH_METHOD: trust
     tmpfs:
     - "/var/lib/postgresql/18"
     volumes:
@@ -121,21 +125,25 @@ services:
       start_period: 3s
   kafka:
     image: confluentinc/cp-kafka:7.9.0
+    hostname: kafka
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: CONTROLLER://kafka:29093,INTERNAL://kafka:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      CLUSTER_ID: UmaxicaCluster01
+      CLUSTER_ID: q1Sh-9_ISia_zwGINzRvyQ
     networks:
     - backend
     restart: unless-stopped
+    ports:
+    - "9092:9092"
     healthcheck:
       test:
       - CMD
@@ -157,9 +165,14 @@ services:
   tempo:
     image: grafana/tempo:latest
     command: "-config.file=/etc/tempo.yaml"
+    ports:
+    - "3200:3200"
+    - "4317:4317"
+    - "4318:4318"
+    - "9411:9411"
     volumes:
     - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro"
-    - tempo-volume:/tmp/tempo
+    - tempo-volume:/var/tempo/traces
     networks:
     - observability
     restart: unless-stopped
@@ -207,47 +220,6 @@ services:
     depends_on:
     - loki
     restart: unless-stopped
-  master:
-    image: chrislusf/seaweedfs:4.03
-    command: master -ip=master -ip.bind=0.0.0.0
-    volumes:
-    - master_data:/data
-    networks:
-    - backend
-    restart: unless-stopped
-  volume:
-    image: chrislusf/seaweedfs:4.03
-    command: volume -ip=volume -master="master:9333" -ip.bind=0.0.0.0 -port=8080
-    volumes:
-    - volume_data:/data
-    networks:
-    - backend
-    depends_on:
-    - master
-    restart: unless-stopped
-  filer:
-    image: chrislusf/seaweedfs:4.03
-    command: filer -ip=filer -master="master:9333" -ip.bind=0.0.0.0
-    volumes:
-    - filer_data:/data
-    networks:
-    - backend
-    tty: true
-    stdin_open: true
-    depends_on:
-    - master
-    - volume
-    restart: unless-stopped
-  s3:
-    image: chrislusf/seaweedfs:4.03
-    command: s3 -filer="filer:8888" -ip.bind=0.0.0.0
-    networks:
-    - backend
-    depends_on:
-    - master
-    - volume
-    - filer
-    restart: unless-stopped
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
     depends_on:
@@ -273,6 +245,3 @@ volumes:
   tempo-volume: {}
   grafana-volume: {}
   prometheus-volume: {}
-  master_data: {}
-  volume_data: {}
-  filer_data: {}

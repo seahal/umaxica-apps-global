@@ -44,7 +44,11 @@ class Department < OperatorRecord
              inverse_of: :departments
 
   belongs_to :workspace, class_name: "Organization", optional: true, inverse_of: :departments
-  has_many :operators, dependent: :nullify, inverse_of: :department
+  has_many :operator_accounts, dependent: :nullify, inverse_of: :department
+  has_many :operators,
+           class_name: "OperatorAccount",
+           dependent: :nullify,
+           inverse_of: :department
 
   validates :name, presence: true
   validates :department_status_id,

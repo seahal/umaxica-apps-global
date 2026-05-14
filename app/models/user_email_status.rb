@@ -22,4 +22,8 @@ class UserEmailStatus < PrincipalRecord
               VERIFIED_WITH_SIGN_UP,].freeze
 
   has_many :user_emails, inverse_of: :user_email_status, dependent: :restrict_with_error
+
+  def self.ensure_defaults!
+    insert_missing_fixed_ids!(DEFAULTS)
+  end
 end

@@ -77,4 +77,39 @@ class ApplicationRecordTest < ActiveSupport::TestCase
     assert_not_nil record.created_at
     assert_not_nil record.updated_at
   end
+
+  test "insert_missing_fixed_ids! skips blank ids and de-duplicates rows" do
+    calls = []
+
+    ApplicationRecordTestModel.stub(:insert_all, ->(rows, **options) { calls << [rows, options] }) do
+      assert_nil ApplicationRecordTestModel.insert_missing_fixed_ids!(nil)
+      assert_nil ApplicationRecordTestModel.insert_missing_fixed_ids!([])
+
+      ApplicationRecordTestModel.insert_missing_fixed_ids!([501, 501])
+    end
+
+    assert_equal 1, calls.size
+    assert_equal 501, calls.first.first.first["id"]
+  end
+
+  test "insert_missing_fixed_ids! uses cache when fixed rows are still present" do
+    ApplicationRecordTestModel.insert_missing_fixed_ids!([551])
+
+    ApplicationRecordTestModel.stub(:insert_all, ->(*) { flunk("insert_all should not run for cached present ids") }) do
+      assert_no_difference "ApplicationRecordTestModel.count" do
+        ApplicationRecordTestModel.insert_missing_fixed_ids!([551])
+      end
+    end
+  end
+
+  test "insert_missing_fixed_ids! repairs stale cache when a fixed row is missing" do
+    ApplicationRecordTestModel.insert_missing_fixed_ids!([601])
+    ApplicationRecordTestModel.where(id: 601).delete_all
+
+    assert_difference "ApplicationRecordTestModel.count", 1 do
+      ApplicationRecordTestModel.insert_missing_fixed_ids!([601])
+    end
+
+    assert ApplicationRecordTestModel.exists?(id: 601)
+  end
 end

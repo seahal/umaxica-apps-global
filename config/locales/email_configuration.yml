@@ -1,0 +1,63 @@
+en:
+  sign:
+    com:
+      configuration:
+        email:
+          edit:
+            title: Email Address Settings
+            always_on: Important account notifications
+            always_on_description: Security and account-critical messages are always sent.
+            promotional_label: Promotional emails
+            promotional_description: Receive campaigns, offers, and event announcements.
+            notifiable_label: Notification emails
+            notifiable_description: Receive product updates and operational notifications.
+            save: Save email settings
+          update:
+            success: Email settings updated.
+            failure: Email settings could not be updated.
+    org:
+      configuration:
+        email:
+          edit:
+            always_on: Important staff notifications
+            always_on_description: Security and staff account-critical messages are always sent.
+            promotional_label: Promotional emails
+            promotional_description: Receive campaigns, events, and staff announcements.
+            notifiable_label: Notification emails
+            notifiable_description: Receive product updates and operational notifications.
+            save: Save email settings
+          update:
+            success: Email settings updated.
+            failure: Email settings could not be updated.
+
+ja:
+  sign:
+    com:
+      configuration:
+        email:
+          edit:
+            title: メールアドレス設定
+            always_on: 重要なアカウント通知
+            always_on_description: セキュリティやアカウント上重要なメールは常に送信されます。
+            promotional_label: プロモーションメール
+            promotional_description: キャンペーン、特典、イベント案内を受け取ります。
+            notifiable_label: 通知メール
+            notifiable_description: 製品アップデートや運用上のお知らせを受け取ります。
+            save: メール設定を保存
+          update:
+            success: メール設定を更新しました。
+            failure: メール設定を更新できませんでした。
+    org:
+      configuration:
+        email:
+          edit:
+            always_on: 重要なスタッフ通知
+            always_on_description: セキュリティやスタッフアカウント上重要なメールは常に送信されます。
+            promotional_label: プロモーションメール
+            promotional_description: キャンペーン、イベント、スタッフ向け案内を受け取ります。
+            notifiable_label: 通知メール
+            notifiable_description: 製品アップデートや運用上のお知らせを受け取ります。
+            save: メール設定を保存
+          update:
+            success: メール設定を更新しました。
+            failure: メール設定を更新できませんでした。

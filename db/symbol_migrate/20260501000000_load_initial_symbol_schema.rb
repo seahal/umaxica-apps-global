@@ -5,18 +5,19 @@ class LoadInitialSymbolSchema < ActiveRecord::Migration[8.2]
     enable_extension "pgcrypto"
 
     create_table "customer_reauth_sessions" do |t|
-      t.bigint "customer_id", null: false
       t.integer "attempt_count", default: 0, null: false
       t.datetime "created_at", null: false
-      t.datetime "expires_at", null: false
-      t.string "method", null: false
+      t.bigint "customer_token_id", null: false
+      t.datetime "lapses_at", default: ::Float::INFINITY, null: false
+      t.string "method"
+      t.datetime "purge_at", default: ::Float::INFINITY, null: false
       t.text "return_to", null: false
       t.string "scope", null: false
       t.string "status", null: false
       t.datetime "updated_at", null: false
       t.datetime "verified_at"
-      t.index ["customer_id", "status"], name: "index_customer_reauth_sessions_on_customer_id_and_status"
-      t.index ["expires_at"], name: "index_customer_reauth_sessions_on_expires_at"
+      t.index ["customer_token_id"], name: "index_customer_reauth_sessions_on_customer_token_id", unique: true
+      t.check_constraint "lapses_at <= purge_at", name: "chk_customer_reauth_sessions_retention_order"
     end
 
     create_table "customer_token_binding_methods" do |t|
@@ -38,7 +39,7 @@ class LoadInitialSymbolSchema < ActiveRecord::Migration[8.2]
       t.bigint "customer_token_binding_method_id", default: 0, null: false
       t.bigint "customer_token_dbsc_status_id", default: 0, null: false
       t.bigint "customer_token_kind_id", default: 1, null: false
-      t.bigint "customer_token_status_id", default: 0, null: false
+      t.bigint "customer_token_status_id", default: 1, null: false
       t.text "dbsc_challenge"
       t.datetime "dbsc_challenge_issued_at"
       t.jsonb "dbsc_public_key"
@@ -57,7 +58,6 @@ class LoadInitialSymbolSchema < ActiveRecord::Migration[8.2]
       t.integer "refresh_token_generation", default: 0, null: false
       t.datetime "revoked_at"
       t.datetime "rotated_at"
-      t.string "status", limit: 20, default: "active", null: false
       t.datetime "updated_at", null: false
       t.index ["compromised_at"], name: "index_customer_tokens_on_compromised_at"
       t.index ["customer_id", "last_step_up_at"], name: "index_customer_tokens_on_customer_id_and_last_step_up_at"
@@ -75,7 +75,6 @@ class LoadInitialSymbolSchema < ActiveRecord::Migration[8.2]
       t.index ["refresh_token_digest"], name: "index_customer_tokens_on_refresh_token_digest", unique: true
       t.index ["refresh_token_family_id"], name: "index_customer_tokens_on_refresh_token_family_id"
       t.index ["revoked_at"], name: "index_customer_tokens_on_revoked_at"
-      t.index ["status"], name: "index_customer_tokens_on_status"
       t.check_constraint "customer_token_kind_id >= 0", name: "chk_customer_tokens_kind_id_positive"
       t.check_constraint "customer_token_status_id >= 0", name: "chk_customer_tokens_status_id_positive"
     end
@@ -97,6 +96,7 @@ class LoadInitialSymbolSchema < ActiveRecord::Migration[8.2]
     add_foreign_key "customer_tokens", "customer_token_dbsc_statuses", name: "fk_customer_tokens_on_customer_token_dbsc_status_id", validate: false
     add_foreign_key "customer_tokens", "customer_token_kinds", name: "fk_customer_tokens_on_customer_token_kind_id", validate: false
     add_foreign_key "customer_tokens", "customer_token_statuses", name: "fk_customer_tokens_on_customer_token_status_id", validate: false
+    add_foreign_key "customer_reauth_sessions", "customer_tokens", on_delete: :cascade, validate: false
     add_foreign_key "customer_verifications", "customer_tokens", validate: false
   end
 end

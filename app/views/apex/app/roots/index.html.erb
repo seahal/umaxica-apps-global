@@ -1,4 +1,4 @@
-<% content_for :page_title, "#{ENV['BRAND_NAME']} (app)" %>
+<% page_title t("apex.app.preferences.footer.home") %>
 
 <section>
   <h1>
@@ -15,10 +15,6 @@
         data-turbo-frame="_top">
         <%= t("apex.app.preferences.footer.home") %>
       </a>
-    </li>
-    <li>
-      <%= link_to t("apex.app.configurations.title"), apex_app_configuration_path,
-                  data: { turbo_frame: "_top" } %>
     </li>
     <li>
       <%= link_to t("apex.app.preferences.footer.preference"), sign_app_preference_path,

@@ -4,7 +4,9 @@
 module Email
   extend ActiveSupport::Concern
 
-  MAX_OTP_ATTEMPTS = 3
+  MAX_OTP_ATTEMPTS = 5
+  OTP_ATTEMPT_WINDOW = 15.minutes
+  OTP_LOCKOUT_DURATION = 15.minutes
   OTP_COOLDOWN_PERIOD = Common::OtpPolicy::SEND_COOLDOWN
 
   attr_accessor :confirm_policy, :pass_code
@@ -15,7 +17,7 @@ module Email
     before_validation :set_address_digests
     scope :with_address, ->(value) do
       digest = IdentifierBlindIndex.bidx_for_email(value)
-      digest.present? ? where(address_bidx: digest) : none
+      digest.present? ? where(address_digest: digest) : none
     end
 
     after_initialize do
@@ -37,21 +39,29 @@ module Email
 
   class_methods do
     def find_by_address(value)
-      with_address(value).first
+      digest = IdentifierBlindIndex.bidx_for_email(value)
+      return nil if digest.blank?
+
+      find_by(address_digest: digest)
     end
   end
 
   # OTP-related methods for email authentication
   # Stores OTP secret on this email record
   def store_otp(otp_private_key, otp_counter, expires_at)
-    update!(
+    attrs = {
       otp_private_key: otp_private_key,
       otp_counter: otp_counter,
       otp_expires_at: Time.zone.at(expires_at),
-      otp_attempts_count: 0,
-      locked_at: "infinity", # Sentinel for unlocked: "locks at infinity" = never locked
       otp_last_sent_at: Time.current,
-    )
+    }
+
+    unless locked?
+      attrs[:otp_attempts_count] = 0
+      attrs[:locked_at] = "infinity"
+    end
+
+    update!(attrs)
   end
 
   # Retrieves OTP secret from this email record
@@ -89,14 +99,17 @@ module Email
   end
 
   def locked?
-    # locked_at == Float::INFINITY  -> new sentinel for "unlocked" (set by store_otp/clear_otp)
-    # locked_at == -Float::INFINITY -> old sentinel for "unlocked" (backward-compatible with existing rows)
-    # Any real timestamp in the past means the account is locked by time.
-    is_locked_by_time = locked_at.present? &&
-      locked_at != -Float::INFINITY &&
-      locked_at != Float::INFINITY
-    is_locked_by_attempts = otp_attempts_count >= MAX_OTP_ATTEMPTS
-    is_locked_by_time || is_locked_by_attempts
+    lockout_active? || attempts_locked_without_expiry?
+  end
+
+  def lockout_active?
+    lockout_expires_at.present? && lockout_expires_at > Time.current
+  end
+
+  def lockout_expires_at
+    return nil if locked_at.blank? || locked_at == -Float::INFINITY || locked_at == Float::INFINITY
+
+    locked_at
   end
 
   def otp_cooldown_active?
@@ -112,17 +125,32 @@ module Email
     (otp_last_sent_at + OTP_COOLDOWN_PERIOD) - Time.current
   end
 
+  def reregistration_window_active?
+    return false if otp_last_sent_at.blank?
+    return false if otp_last_sent_at == -Float::INFINITY
+
+    otp_last_sent_at > Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW.ago
+  end
+
   def increment_attempts!
-    # rubocop:disable Rails/SkipsModelValidations
-    increment!(:otp_attempts_count)
-    # Conditionally set locked_at when threshold is reached and not already locked
-    self.class
-      .where(id: id)
-      .where(otp_attempts_count: MAX_OTP_ATTEMPTS..)
-      .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp OR locked_at = 'infinity'::timestamp")
-      .update_all(locked_at: Time.current)
-    # rubocop:enable Rails/SkipsModelValidations
-    reload
+    operation =
+      lambda do
+        with_lock do
+          next if lockout_active?
+
+          unless attempt_window_active?
+            self.otp_last_sent_at = Time.current
+            self.otp_attempts_count = 0
+          end
+
+          self.otp_attempts_count = otp_attempts_count.to_i + 1
+          self.locked_at = OTP_LOCKOUT_DURATION.from_now if otp_attempts_count >= MAX_OTP_ATTEMPTS
+          save!
+        end
+        reload
+      end
+
+    defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
   end
 
   def raw_address
@@ -130,6 +158,16 @@ module Email
   end
 
   private
+
+  def attempt_window_active?
+    return false if otp_last_sent_at.blank? || otp_last_sent_at == -Float::INFINITY
+
+    otp_last_sent_at > OTP_ATTEMPT_WINDOW.ago
+  end
+
+  def attempts_locked_without_expiry?
+    lockout_expires_at.blank? && attempt_window_active? && otp_attempts_count.to_i >= MAX_OTP_ATTEMPTS
+  end
 
   def normalize_address_from_raw
     value = raw_address
@@ -141,7 +179,7 @@ module Email
 
   def set_address_digests
     digest = IdentifierBlindIndex.bidx_for_email(raw_address)
-    self.address_bidx = digest
+    self.address_bidx = digest if respond_to?(:address_bidx=)
     self.address_digest = digest if respond_to?(:address_digest=)
   end
 

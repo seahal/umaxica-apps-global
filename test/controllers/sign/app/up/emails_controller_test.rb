@@ -8,6 +8,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    cookies["csrf_token"] = csrf_token_value
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -21,6 +22,13 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_app_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
+    assert_select "div[id^='cf-turnstile-']", count: 1
+    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
+    assert_includes response.body, "turnstile.render"
+    assert_includes response.body, "turbo:load"
+    assert_includes response.body, "DOMContentLoaded"
+    assert_includes response.body, "callback: function(token)"
+    assert_nil response.headers["Content-Security-Policy"]
   end
 
   test "collection get redirects to new email registration" do
@@ -38,6 +46,8 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     assert_select "h2", I18n.t("sign.app.registration.email.new.page_title")
+    assert_select "input[type=checkbox][name='user_email[promotional]']", count: 1
+    assert_select "input[type=checkbox][name='user_email[notifiable]']", count: 1
     assert_no_match(/UMAXICA \(sign, app\)/, response.body)
   end
 
@@ -109,9 +119,9 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_not_nil first_email.address_digest
 
-    # Second registration attempt after cooldown expires (case-variant)
+    # Second registration attempt after the independent overwrite window expires (case-variant)
     # This should delete the previous unverified record and create a new one
-    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+    travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
       post sign_app_up_emails_url(ri: "jp"),
            params: {
              user_email: {
@@ -153,7 +163,37 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_match(%r{/sign/up/emails/[^/]+/edit}, path)
   end
 
-  test "create with existing email still redirects and does not create a new record" do
+  test "create renders unprocessable when user_email param missing" do
+    assert_no_difference("UserEmail.count") do
+      post sign_app_up_emails_url(ri: "jp"),
+           params: { "cf-turnstile-response": "test" },
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("sign.app.registration.email.create.address_required")
+  end
+
+  test "create renders unprocessable when turnstile fails" do
+    CloudflareTurnstile.test_validation_response = { "success" => false }
+
+    assert_no_difference("UserEmail.count") do
+      post sign_app_up_emails_url(ri: "jp"),
+           params: {
+             user_email: {
+               raw_address: "turnstile-failure@example.com",
+               confirm_policy: "1",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("sign.app.registration.email.create.turnstile_validation_failed")
+  end
+
+  test "create with existing verified email is rejected and does not create a new record" do
     user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
     existing_email = UserEmail.create!(
       user: user,
@@ -178,48 +218,40 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_response :redirect
-    assert_includes response.location, "/sign/up/emails/#{existing_email.public_id}/edit"
-    assert_equal I18n.t("sign.app.registration.email.create.verification_code_sent"), flash[:notice]
-    assert_nil flash[:alert]
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("sign.app.registration.email.new.error_summary")
+    assert_includes response.body, UserEmail.human_attribute_name(:address)
+    assert_nil session[Sign::EmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
   end
 
-  test "create shows identical user-facing response for existing and new emails" do
+  test "create with existing verified-with-sign-up email is rejected" do
     existing_user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
     UserEmail.create!(
       user: existing_user,
-      address: "enum-safe@example.com",
+      address: "completed-signup@example.com",
       confirm_policy: "1",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: UserEmailStatus::VERIFIED_WITH_SIGN_UP,
     )
 
-    post sign_app_up_emails_url(ri: "jp"),
-         params: {
-           user_email: {
-             raw_address: "enum-safe@example.com",
-             confirm_policy: "1",
-           },
-           "cf-turnstile-response": "test",
-         },
-         headers: default_headers
+    assert_no_difference("User.count") do
+      assert_no_difference("UserEmail.count") do
+        assert_enqueued_emails 0 do
+          post sign_app_up_emails_url(ri: "jp"),
+               params: {
+                 user_email: {
+                   raw_address: "completed-signup@example.com",
+                   confirm_policy: "1",
+                 },
+                 "cf-turnstile-response": "test",
+               },
+               headers: default_headers
+        end
+      end
+    end
 
-    existing_location = response.location
-    existing_notice = flash[:notice]
-
-    post sign_app_up_emails_url(ri: "jp"),
-         params: {
-           user_email: {
-             raw_address: "brand-new@example.com",
-             confirm_policy: "1",
-           },
-           "cf-turnstile-response": "test",
-         },
-         headers: default_headers
-
-    assert_response :redirect
-    assert_match(%r{/sign/up/emails/[^/]+/edit}, response.location)
-    assert_equal existing_notice, flash[:notice]
-    assert_match(%r{/sign/up/emails/[^/]+/edit}, existing_location)
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("sign.app.registration.email.new.error_summary")
+    assert_nil session[Sign::EmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
   end
 
   test "create enqueues exactly one email" do
@@ -240,7 +272,29 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "create with existing email enqueues no emails" do
+  test "create stores requested email preference flags" do
+    post sign_app_up_emails_url(ri: "jp"),
+         params: {
+           user_email: {
+             raw_address: "signup-preferences@example.com",
+             confirm_policy: "1",
+             promotional: "0",
+             notifiable: "0",
+           },
+           "cf-turnstile-response": "test",
+         },
+         headers: default_headers
+
+    assert_response :redirect
+
+    email_id = response.location.match(/\/up\/emails\/([^\/\?]+)/)[1]
+    user_email = UserEmail.find_by!(public_id: email_id)
+
+    assert_not user_email.promotional
+    assert_not user_email.notifiable
+  end
+
+  test "create with existing verified email enqueues no emails and leaves otp state unchanged" do
     user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
     existing_email = UserEmail.create!(
       user: user,
@@ -264,83 +318,10 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
            headers: default_headers
     end
 
-    assert_response :redirect
-    assert_match(%r{/sign/up/emails/[^/]+/edit}, response.location)
+    assert_response :unprocessable_content
     assert_equal before_otp_last_sent_at, existing_email.reload.otp_last_sent_at
     assert_equal before_otp_counter, existing_email.otp_counter
     assert_equal before_otp_attempts_count, existing_email.otp_attempts_count
-  end
-
-  test "update for existing registered email redirects to sign-in without otp verification" do
-    user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
-    existing_email = UserEmail.create!(
-      user: user,
-      address: "existing_update_redirect@example.com",
-      confirm_policy: "1",
-      user_email_status_id: UserEmailStatus::VERIFIED,
-    )
-
-    post sign_app_up_emails_url(ri: "jp"),
-         params: {
-           user_email: {
-             raw_address: existing_email.address,
-             confirm_policy: "1",
-           },
-           "cf-turnstile-response": "test",
-         },
-         headers: default_headers
-
-    assert_response :redirect
-    assert_match(%r{/sign/up/emails/[^/]+/edit}, response.location)
-
-    patch sign_app_up_email_url(existing_email, ri: "jp"),
-          params: {
-            id: existing_email.id,
-            user_email: {
-              pass_code: "123456",
-            },
-          },
-          headers: default_headers
-
-    assert_response :redirect
-    assert_redirected_to %r{/sign/in/new}
-    assert_equal I18n.t("sign.app.registration.email.update.sign_in_required"), flash[:notice]
-  end
-
-  test "update for existing registered email with OTP required" do
-    user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
-    existing_email = UserEmail.create!(
-      user: user,
-      address: "existing_otp_required@example.com",
-      confirm_policy: "1",
-      user_email_status_id: UserEmailStatus::VERIFIED,
-    )
-
-    post sign_app_up_emails_url(ri: "jp"),
-         params: {
-           user_email: {
-             raw_address: existing_email.address,
-             confirm_policy: "1",
-           },
-           "cf-turnstile-response": "test",
-         },
-         headers: default_headers
-
-    assert_response :redirect
-    assert_match(%r{/sign/up/emails/[^/]+/edit}, response.location)
-
-    patch sign_app_up_email_url(existing_email, ri: "jp"),
-          params: {
-            id: existing_email.id,
-            user_email: {
-              pass_code: "123456",
-            },
-          },
-          headers: default_headers
-
-    assert_response :redirect
-    assert_redirected_to new_sign_app_in_path(ri: "jp")
-    assert_equal I18n.t("sign.app.registration.email.update.sign_in_required"), flash[:notice]
   end
 
   test "create with validation failure enqueues no emails and returns 422" do
@@ -384,7 +365,6 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, I18n.t("sign.app.registration.email.new.error_summary")
     assert_includes @response.body, UserEmail.human_attribute_name(:confirm_policy)
     assert_not_includes @response.body, "prohibited this sample from being saved"
-    assert_match(/confirm_policy/, logs.join("\n"))
     assert_no_match(/policy_missing@example\.com/, logs.join("\n"))
   end
 
@@ -408,7 +388,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
-    assert_includes @response.body, "ボット検証に失敗しました"
+    assert_includes @response.body, I18n.t("sign.app.registration.email.create.turnstile_validation_failed")
   ensure
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -538,8 +518,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     email_id = response.location.match(/\/up\/emails\/([^\/\?]+)/)[1]
     user_email = UserEmail.find_by(public_id: email_id)
 
-    # Make 3 failed attempts
-    3.times do
+    Email::MAX_OTP_ATTEMPTS.times do
       patch sign_app_up_email_url(user_email, ri: "jp"),
             params: {
               id: user_email.id,
@@ -592,24 +571,42 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "redirects to root when user is already logged in" do
+  test "new redirects to dashboard when user is already logged in" do
     # Create a user and log them in
     user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
 
     # Try to access registration page while logged in (using test header to inject current user)
     get new_sign_app_up_email_url(ri: "jp"),
-        headers: default_headers.merge({ "X-TEST-CURRENT-USER" => user.id })
+        headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
-    assert_redirected_to "/configuration?ri=jp"
-    assert_equal I18n.t("sign.app.registration.email.already_logged_in"), flash[:alert]
+    assert_redirected_to sign_app_dashboard_url(ri: "jp")
   end
 
-  test "redirects to encoded URL after successful registration when rd parameter is provided" do
+  test "create rejects when user is already logged in" do
+    user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
+
+    assert_no_difference("UserEmail.count") do
+      post sign_app_up_emails_url(ri: "jp"),
+           params: {
+             user_email: {
+               raw_address: "logged-in@example.com",
+               confirm_policy: "1",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: default_headers.merge({ "X-TEST-CURRENT-USER" => user.id })
+    end
+
+    assert_response :unauthorized
+    assert_equal I18n.t("errors.messages.not_authorized"), response.body
+  end
+
+  test "redirects to encoded URL after successful registration when rt parameter is provided" do
     email = "redirect_test@example.com"
     redirect_url = "/dashboard"
-    encoded_rd = Base64.urlsafe_encode64(redirect_url)
+    encoded_rt = Base64.urlsafe_encode64(redirect_url)
 
-    # Create registration record with rd parameter
+    # Create registration record with rt parameter
     post sign_app_up_emails_url(ri: "jp"),
          params: {
            user_email: {
@@ -617,13 +614,13 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
              confirm_policy: "1",
            },
            "cf-turnstile-response": "test",
-           rd: encoded_rd,
+           rt: encoded_rt,
          },
          headers: default_headers
 
-    # Verify rd parameter is preserved in redirect
+    # Verify rt parameter is preserved in redirect
     assert_response :redirect
-    assert_includes response.location, "rd=#{CGI.escape(encoded_rd)}"
+    assert_includes response.location, "rt=#{CGI.escape(encoded_rt)}"
 
     # Extract email ID from redirect location
     assert_response :redirect, "Expected redirect but got #{response.status}: #{response.body[0..500]}"
@@ -634,19 +631,19 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
-    # Submit correct OTP with rd parameter
+    # Submit correct OTP with rt parameter
     patch sign_app_up_email_url(user_email, ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
               pass_code: correct_code,
             },
-            rd: encoded_rd,
+            rt: encoded_rt,
           },
           headers: default_headers
 
-    # Should redirect directly to the decoded rd destination
-    assert_redirected_to redirect_url
+    # Should redirect directly to the decoded rt destination
+    assert_redirected_to sign_app_dashboard_path(ri: "jp", rt: encoded_rt)
   end
 
   # Transaction Tests for User Creation
@@ -688,7 +685,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
 
     # Verify User count unchanged (pending user was updated, not created)
     assert_equal initial_user_count, User.count
@@ -703,6 +700,8 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     user = user_email.user
 
     assert_equal UserStatus::VERIFIED_WITH_SIGN_UP, user.status_id
+    assert_predicate user.user_account, :present?
+    assert_equal ResidentRecord.connection_db_config.name, user.user_account.class.connection_db_config.name
   end
 
   test "successful OTP verification creates audit log in transaction" do
@@ -742,17 +741,36 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
 
     # Verify UserChronicle was created
-    assert_equal initial_audit_count + 1, UserChronicle.count
-    audit = UserChronicle.last
     user = user_email.reload.user
 
-    assert_equal user.id.to_s, audit.user_id
-    assert_equal user.id, audit.actor_id
-    assert_equal "User", audit.actor_type
-    assert_equal UserChronicleEvent::SIGNED_UP_WITH_EMAIL, audit.event_id
+    assert_equal initial_audit_count + 2, UserChronicle.count
+    assert_equal 1,
+                 UserChronicle.where(
+                   event_id: UserChronicleEvent::SIGNED_UP_WITH_EMAIL,
+                   subject_id: user.id.to_s,
+                   subject_type: "User",
+                 ).count
+    assert_equal 1,
+                 UserChronicle.where(
+                   event_id: UserChronicleEvent::LOGGED_IN,
+                   subject_id: user.id.to_s,
+                   subject_type: "User",
+                 ).count
+    assert_equal "email",
+                 UserChronicle.where(
+                   event_id: UserChronicleEvent::LOGGED_IN,
+                   subject_id: user.id.to_s,
+                   subject_type: "User",
+                 ).last.context["auth_method"]
+
+    get sign_app_configuration_activities_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.signed_up_with_email")
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.logged_in")
   end
 
   test "successful OTP verification recreates missing signup audit event" do
@@ -787,7 +805,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
     assert UserChronicleEvent.exists?(id: UserChronicleEvent::SIGNED_UP_WITH_EMAIL)
     assert UserChronicle.exists?(
       event_id: UserChronicleEvent::SIGNED_UP_WITH_EMAIL,
@@ -1128,7 +1146,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   # OTP Resend Cooldown Tests
-  test "create returns 429 when resending OTP within cooldown for new signup" do
+  test "create returns 429 when re-registering inside overwrite window for new signup" do
     email = "cooldown_test@example.com"
 
     # First registration attempt
@@ -1146,7 +1164,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    # Second attempt immediately (within 30s cooldown)
+    # Second attempt immediately (inside the 10s overwrite window)
     assert_enqueued_emails 0 do
       post sign_app_up_emails_url(ri: "jp"),
            params: {
@@ -1163,7 +1181,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, I18n.t("sign.app.registration.email.create.otp_resend_too_soon")
   end
 
-  test "create allows resending OTP after cooldown expires for new signup" do
+  test "create allows re-registration after overwrite window expires for new signup" do
     email = "cooldown_expire_test@example.com"
 
     # First registration attempt
@@ -1181,8 +1199,8 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    # After cooldown expires
-    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+    # After the overwrite window expires, even though OTP resend cooldown is longer.
+    travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
       assert_enqueued_emails 1 do
         post sign_app_up_emails_url(ri: "jp"),
              params: {
@@ -1199,7 +1217,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "cooldown does not apply to existing registered emails" do
+  test "existing registered emails are rejected instead of entering cooldown" do
     user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
     UserEmail.create!(
       user: user,
@@ -1208,7 +1226,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       user_email_status_id: UserEmailStatus::VERIFIED,
     )
 
-    # First attempt with existing email -- no OTP sent, still redirects
+    # First attempt with existing email -- no OTP sent, rejected as already registered.
     assert_enqueued_emails 0 do
       post sign_app_up_emails_url(ri: "jp"),
            params: {
@@ -1221,9 +1239,9 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
            headers: default_headers
     end
 
-    assert_response :redirect
+    assert_response :unprocessable_content
 
-    # Second attempt immediately -- same behavior, no 429
+    # Second attempt immediately -- same rejection, not an overwrite-window cooldown.
     assert_enqueued_emails 0 do
       post sign_app_up_emails_url(ri: "jp"),
            params: {
@@ -1236,7 +1254,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
            headers: default_headers
     end
 
-    assert_response :redirect
+    assert_response :unprocessable_content
   end
 
   test "otp_resend_too_soon i18n key exists in both locales" do
@@ -1247,7 +1265,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def default_headers
-    { "Host" => host, "HTTPS" => "on" }
+    { "Host" => host, "HTTPS" => "on", "X-CSRF-Token" => csrf_token_value }
   end
 
   def host

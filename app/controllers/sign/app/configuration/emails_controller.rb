@@ -7,6 +7,7 @@ module Sign
       class EmailsController < ApplicationController
         auth_required!
 
+        include CloudflareTurnstile
         include ::Verification::User
 
         before_action :authenticate_user!
@@ -19,20 +20,42 @@ module Sign
           @user_email = current_user.user_emails.find_by!(public_id: params.expect(:id))
         end
 
+        def update
+          @user_email = current_user.user_emails.find_by!(public_id: params.expect(:id))
+
+          unless cloudflare_turnstile_stealth_validation["success"]
+            @user_email.errors.add(:base, t("turnstile_error"))
+            flash.now[:alert] = t("turnstile_error")
+            render(:edit, status: :unprocessable_content)
+            return
+          end
+
+          if @user_email.update(email_preference_params)
+            redirect_to(
+              edit_sign_app_configuration_email_path(@user_email.public_id, ri: params[:ri]),
+              notice: t("sign.app.configuration.email.update.success"),
+              status: :see_other,
+            )
+          else
+            flash.now[:alert] = t("sign.app.configuration.email.update.failure")
+            render(:edit, status: :unprocessable_content)
+          end
+        end
+
         def destroy
           @user_email = current_user.user_emails.find_by!(public_id: params.expect(:id))
 
           if @user_email.undeletable?
             redirect_to(
-              sign_app_configuration_emails_path,
+              sign_app_configuration_emails_path(ri: params[:ri]),
               alert: t("sign.app.configuration.email.destroy.protected"),
             )
             return
           end
 
-          unless AuthMethodGuard.can_remove_email?(current_user, @user_email)
+          if verified_email?(@user_email) && !AuthMethodGuard.can_remove_email?(current_user, @user_email)
             redirect_to(
-              sign_app_configuration_emails_path,
+              sign_app_configuration_emails_path(ri: params[:ri]),
               alert: t("sign.app.configuration.email.destroy.last_method"),
             )
             return
@@ -42,7 +65,7 @@ module Sign
           create_audit_event!(UserChronicleEvent::EMAIL_REMOVED, subject: @user_email)
 
           redirect_to(
-            sign_app_configuration_emails_path,
+            sign_app_configuration_emails_path(ri: params[:ri]),
             notice: t("sign.app.configuration.email.destroy.success"),
             status: :see_other,
           )
@@ -66,8 +89,22 @@ module Sign
           )
         end
 
+        def verified_email?(email)
+          AuthMethodGuard::VERIFIED_EMAIL_STATUSES.include?(email.user_email_status_id)
+        end
+
+        def email_preference_params
+          permitted_params = params.fetch(:user_email, {}).permit(:promotional, :notifiable)
+          return permitted_params unless @user_email.subscription_preferences_locked?
+
+          permitted_params.to_h.symbolize_keys.merge(
+            promotional: @user_email.promotional,
+            notifiable: @user_email.notifiable,
+          )
+        end
+
         def verification_required_action?
-          true
+          step_up_bootstrap_active?
         end
 
         def verification_scope

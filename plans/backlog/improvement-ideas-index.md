@@ -11,5 +11,5 @@ This index groups the remaining ideas by theme so each note stays focused.
 Defense-in-depth items raised by the security review of the `develop` branch. Verified against the
 working tree — most originally-listed items have already been implemented. These two remain.
 
-- [Audit visibility boundary in `Common::Redirect` after `private` restoration](security-private-keyword-restoration.md)
+- [Audit visibility boundary in `Common::Redirect` after `private` restoration](../archive/security-private-keyword-restoration.md)
 - [Restore `locked_at` timestamp when OTP attempts reach threshold](security-otp-attempts-atomic-increment.md)

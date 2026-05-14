@@ -8,15 +8,16 @@ module Sign
         class RegistrationsController < ApplicationController
           auth_required!
 
+          include CloudflareTurnstile
           include Common::Otp
           include ::Verification::User
 
           TELEPHONE_VERIFICATION_RATE_LIMIT = 5
           TELEPHONE_VERIFICATION_RATE_WINDOW = 60
-          before_action :authenticate_customer!
+          before_action :authenticate_visitor!
 
           def new
-            @user_telephone = CustomerTelephone.new
+            @user_telephone = VisitorTelephone.new
             reset_registration_session!
           end
 
@@ -32,13 +33,21 @@ module Sign
           end
 
           def create
-            customer = current_customer
-            return head :unauthorized if customer.blank?
+            visitor = current_visitor
+            return head :unauthorized if visitor.blank?
+
+            unless cloudflare_turnstile_stealth_validation["success"]
+              @user_telephone = VisitorTelephone.new
+              @user_telephone.errors.add(:base, t("turnstile_error"))
+              flash.now[:alert] = t("turnstile_error")
+              render(:new, status: :unprocessable_content)
+              return
+            end
 
             tel_params = params.expect(user_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
 
-            unless initiate_customer_telephone_verification(customer, number, auto_accept_confirmations: true)
+            unless initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: true)
               render :new, status: :unprocessable_content
               return
             end
@@ -62,6 +71,13 @@ module Sign
               return
             end
 
+            unless cloudflare_turnstile_stealth_validation["success"]
+              @user_telephone.errors.add(:base, t("turnstile_error"))
+              flash.now[:alert] = t("turnstile_error")
+              render(:edit, status: :unprocessable_content)
+              return
+            end
+
             submitted_code = params.dig(:user_telephone, :pass_code)
             if submitted_code.blank?
               @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
@@ -70,9 +86,9 @@ module Sign
             end
 
             status =
-              complete_customer_telephone_verification(@user_telephone.id, submitted_code) do |customer_telephone|
-                customer_telephone.customer = current_customer
-                customer_telephone.save!
+              complete_visitor_telephone_verification(@user_telephone.id, submitted_code) do |visitor_telephone|
+                visitor_telephone.visitor = current_visitor
+                visitor_telephone.save!
               end
 
             case status
@@ -102,14 +118,14 @@ module Sign
           private
 
           def current_registration_telephone
-            CustomerTelephone.find_by(id: session[registration_session_key])
+            VisitorTelephone.find_by(id: session[registration_session_key])
           end
 
           def valid_registration_session?
             @user_telephone.present? &&
-              @user_telephone.customer_id == current_customer.id &&
+              @user_telephone.visitor_id == current_visitor.id &&
               !@user_telephone.otp_expired? &&
-              @user_telephone.customer_telephone_status_id == CustomerTelephoneStatus::UNVERIFIED
+              @user_telephone.visitor_telephone_status_id == VisitorTelephoneStatus::UNVERIFIED
           end
 
           def registration_session_key
@@ -121,35 +137,35 @@ module Sign
           end
 
           def verification_required_action?
-            true
+            current_visitor&.verified_telephone?
           end
 
           def verification_scope
             "configuration_telephone"
           end
 
-          def initiate_customer_telephone_verification(customer, number, auto_accept_confirmations: false)
-            return false if customer.blank?
+          def initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: false)
+            return false if visitor.blank?
 
             check_telephone_verification_rate_limit!
 
             digest = IdentifierBlindIndex.bidx_for_telephone(number)
-            existing_customer_telephone =
-              digest.present? ? customer.customer_telephones.find_by(number_digest: digest) : nil
+            existing_visitor_telephone =
+              digest.present? ? visitor.visitor_telephones.find_by(number_digest: digest) : nil
 
-            @user_telephone = existing_customer_telephone || customer.customer_telephones.build(raw_number: number)
-            @user_telephone.raw_number = number if existing_customer_telephone
-            @user_telephone.customer_telephone_status_id = CustomerTelephoneStatus::UNVERIFIED
+            @user_telephone = existing_visitor_telephone || visitor.visitor_telephones.build(raw_number: number)
+            @user_telephone.raw_number = number if existing_visitor_telephone
+            @user_telephone.visitor_telephone_status_id = VisitorTelephoneStatus::UNVERIFIED
             if auto_accept_confirmations
               @user_telephone.confirm_policy = true
               @user_telephone.confirm_using_mfa = true
             end
 
-            if digest.present? && existing_customer_telephone.blank?
-              CustomerTelephone.where(
+            if digest.present? && existing_visitor_telephone.blank?
+              VisitorTelephone.where(
                 number_digest: digest,
-                customer_id: customer.id,
-                customer_telephone_status_id: CustomerTelephoneStatus::UNVERIFIED,
+                visitor_id: visitor.id,
+                visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
               ).destroy_all
             end
 
@@ -161,11 +177,11 @@ module Sign
             true
           end
 
-          def complete_customer_telephone_verification(id, submitted_code)
-            @user_telephone = CustomerTelephone.find_by(id: id)
+          def complete_visitor_telephone_verification(id, submitted_code)
+            @user_telephone = VisitorTelephone.find_by(id: id)
             if @user_telephone.blank? ||
                 @user_telephone.otp_expired? ||
-                @user_telephone.customer_telephone_status_id != CustomerTelephoneStatus::UNVERIFIED
+                @user_telephone.visitor_telephone_status_id != VisitorTelephoneStatus::UNVERIFIED
               return :session_expired
             end
 
@@ -183,15 +199,15 @@ module Sign
             end
 
             clear_otp(@user_telephone)
-            @user_telephone.customer_telephone_status_id = CustomerTelephoneStatus::VERIFIED
+            @user_telephone.visitor_telephone_status_id = VisitorTelephoneStatus::VERIFIED
             yield(@user_telephone) if block_given?
             :success
           end
 
-          def send_telephone_verification_sms(customer_telephone, otp_number)
+          def send_telephone_verification_sms(visitor_telephone, otp_number)
             message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
             SmsDeliveryJob.perform_later(
-              to: customer_telephone.number,
+              to: visitor_telephone.number,
               message: message,
               subject: message,
             )

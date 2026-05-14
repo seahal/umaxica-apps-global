@@ -8,13 +8,14 @@ module Sign
         class RegistrationsController < ::Sign::Org::ApplicationController
           auth_required!
 
-          include Sign::StaffTelephoneRegistrable
-          include ::Verification::Staff
+          include CloudflareTurnstile
+          include Sign::OperatorTelephoneRegistrable
+          include ::Verification::Operator
 
-          before_action :authenticate_staff!
+          before_action :authenticate_operator!
 
           def new
-            @staff_telephone = StaffTelephone.new
+            @staff_telephone = OperatorTelephone.new
             reset_registration_session!
           end
 
@@ -30,10 +31,18 @@ module Sign
           end
 
           def create
+            unless cloudflare_turnstile_stealth_validation["success"]
+              @staff_telephone = OperatorTelephone.new
+              @staff_telephone.errors.add(:base, t("turnstile_error"))
+              flash.now[:alert] = t("turnstile_error")
+              render(:new, status: :unprocessable_content)
+              return
+            end
+
             tel_params = params.expect(staff_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
 
-            unless initiate_staff_telephone_verification(current_staff, number)
+            unless initiate_staff_telephone_verification(current_operator, number)
               render :new, status: :unprocessable_content
               return
             end
@@ -56,6 +65,13 @@ module Sign
               return
             end
 
+            unless cloudflare_turnstile_stealth_validation["success"]
+              @staff_telephone.errors.add(:base, t("turnstile_error"))
+              flash.now[:alert] = t("turnstile_error")
+              render(:edit, status: :unprocessable_content)
+              return
+            end
+
             submitted_code = params.dig(:staff_telephone, :pass_code)
             if submitted_code.blank?
               @staff_telephone.errors.add(:pass_code, t("sign.org.registration.telephone.update.code_required"))
@@ -65,7 +81,7 @@ module Sign
 
             result =
               complete_staff_telephone_verification(@staff_telephone.id, submitted_code) do |staff_telephone|
-                staff_telephone.staff = current_staff
+                staff_telephone.staff = current_operator
                 staff_telephone.save!
               end
 
@@ -96,13 +112,13 @@ module Sign
           private
 
           def current_registration_telephone
-            current_staff.staff_telephones.find_by(id: session[registration_session_key])
+            current_operator.staff_telephones.find_by(id: session[registration_session_key])
           end
 
           def valid_registration_session?
             @staff_telephone.present? &&
               !@staff_telephone.otp_expired? &&
-              @staff_telephone.staff_telephone_status_id == StaffTelephoneStatus::UNVERIFIED
+              @staff_telephone.staff_telephone_status_id == OperatorTelephoneStatus::UNVERIFIED
           end
 
           def registration_session_key

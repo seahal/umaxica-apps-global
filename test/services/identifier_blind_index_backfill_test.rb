@@ -21,22 +21,22 @@ class IdentifierBlindIndexBackfillTest < ActiveSupport::TestCase
       confirm_using_mfa: true,
       user: @user,
     )
-    staff_email = StaffEmail.create!(
+    staff_email = OperatorEmail.create!(
       raw_address: "backfill-staff-email@example.com",
       confirm_policy: true,
       staff: @staff,
     )
-    staff_telephone = StaffTelephone.create!(
+    staff_telephone = OperatorTelephone.create!(
       raw_number: "+1 (555) 444-5555",
       confirm_policy: true,
       confirm_using_mfa: true,
       staff: @staff,
     )
 
-    user_email.update_columns(address_bidx: nil, address_digest: nil)
-    user_telephone.update_columns(number_bidx: nil, number_digest: nil)
-    staff_email.update_columns(address_bidx: nil, address_digest: nil)
-    staff_telephone.update_columns(number_bidx: nil, number_digest: nil)
+    user_email.update_columns(columns_to_clear(UserEmail, address_bidx: nil, address_digest: nil))
+    user_telephone.update_columns(columns_to_clear(UserTelephone, number_bidx: nil, number_digest: nil))
+    staff_email.update_columns(columns_to_clear(OperatorEmail, address_bidx: nil, address_digest: nil))
+    staff_telephone.update_columns(columns_to_clear(OperatorTelephone, number_bidx: nil, number_digest: nil))
 
     result = IdentifierBlindIndexBackfill.new.call
 
@@ -54,7 +54,7 @@ class IdentifierBlindIndexBackfillTest < ActiveSupport::TestCase
   end
 
   test "is idempotent when digests are already current" do
-    staff_email = StaffEmail.create!(
+    staff_email = OperatorEmail.create!(
       raw_address: "idempotent-staff@example.com",
       confirm_policy: true,
       staff: @staff,
@@ -63,5 +63,11 @@ class IdentifierBlindIndexBackfillTest < ActiveSupport::TestCase
     IdentifierBlindIndexBackfill.new.call
 
     assert_equal IdentifierBlindIndex.bidx_for_email("idempotent-staff@example.com"), staff_email.reload.address_digest
+  end
+
+  private
+
+  def columns_to_clear(model, columns)
+    columns.slice(*model.column_names.map(&:to_sym))
   end
 end

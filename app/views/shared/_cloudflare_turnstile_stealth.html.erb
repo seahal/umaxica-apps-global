@@ -1,122 +1,82 @@
-<%# Cloudflare Turnstile — stealth (invisible) mode %>
-<%# Usage: render "cloudflare_turnstile_stealth" %>
-<%# Token is set as hidden field "cf-turnstile-response" on form submit. %>
-<% stealth_id = "cf-turnstile-stealth-#{SecureRandom.hex(4)}" %>
-<% site_key = Jit::Security::TurnstileConfig.stealth_site_key %>
+<% site_key = Rails.app.creds.option(:CLOUDFLARE_TURNSTILE_SITE_STEALTH_KEY) %>
+<% widget_id = "cf-turnstile-stealth-#{SecureRandom.hex(8)}" %>
+<% response_id = "#{widget_id}-response" %>
 
-<% if site_key.blank? %>
-  <!-- Cloudflare Turnstile stealth site key is missing. Set credentials or CLOUDFLARE_TURNSTILE_SITE_STEALTH_KEY. -->
-<% else %>
-  <input type="hidden"
-         name="cf-turnstile-response"
-         id="<%= stealth_id %>-response"
-         value=""
-         autocomplete="off"
-         data-site-key="<%= site_key %>" />
+<div id="<%= widget_id %>" class="cf-turnstile" data-sitekey="<%= site_key %>"></div>
+<input id="<%= response_id %>" type="hidden" name="cf-turnstile-response" autocomplete="off" />
+<script>
+  (function() {
+    var executed = false;
+    var container = document.getElementById("<%= widget_id %>");
+    var responseInput = document.getElementById("<%= response_id %>");
 
-  <script nonce="<%= content_security_policy_nonce %>">
-      (function () {
-          const currentScript = document.currentScript;
-          const hiddenField = currentScript && currentScript.previousElementSibling;
-          if (!hiddenField) return;
+    function executeTurnstile() {
+      if (executed || !window.turnstile || !container || !responseInput) {
+        return;
+      }
 
-          const form = hiddenField.closest('form');
-          if (!form) {
-              console.error('Turnstile stealth: no parent form found for', hiddenField.id);
-              return;
-          }
+      executed = true;
+      window.turnstile.execute(container, {
+        sitekey: container.dataset.sitekey,
+        callback: function(token) {
+          responseInput.value = token;
+          window.dispatchEvent(
+            new CustomEvent("turnstile:success", { detail: { widgetId: "<%= widget_id %>" } }),
+          );
+        },
+        "error-callback": function(errorCode) {
+          responseInput.value = "";
+          console.error("Turnstile error occurred:", errorCode);
+          window.dispatchEvent(
+            new CustomEvent("turnstile:error", { detail: { errorCode: errorCode, widgetId: "<%= widget_id %>" } }),
+          );
+          return true;
+        },
+        "expired-callback": function() {
+          responseInput.value = "";
+          window.dispatchEvent(
+            new CustomEvent("turnstile:expired", { detail: { widgetId: "<%= widget_id %>" } }),
+          );
+        },
+        "timeout-callback": function() {
+          responseInput.value = "";
+          console.error("Turnstile challenge timed out");
+          window.dispatchEvent(
+            new CustomEvent("turnstile:timeout", { detail: { widgetId: "<%= widget_id %>" } }),
+          );
+        },
+        "unsupported-callback": function() {
+          responseInput.value = "";
+          console.error("Turnstile client is unsupported");
+          window.dispatchEvent(
+            new CustomEvent("turnstile:unsupported", { detail: { widgetId: "<%= widget_id %>" } }),
+          );
+        },
+      });
+    }
 
-          const siteKey = hiddenField.dataset.siteKey;
-          let widgetId = null;
+    function scheduleExecute() {
+      if (executed) {
+        return;
+      }
 
-          function ensureScript(callback) {
-              if (window.turnstileScriptLoaded) {
-                  callback();
-                  return;
-              }
+      executeTurnstile();
+    }
 
-              if (!window.turnstileScriptLoading) {
-                  window.turnstileScriptLoading = true;
-                  const s = document.createElement('script');
-                  s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-                  s.nonce = currentScript && currentScript.nonce;
-                  s.async = true;
-                  s.onload = function () {
-                      window.turnstileScriptLoaded = true;
-                      window.turnstileScriptLoading = false;
-                      callback();
-                  };
-                  s.onerror = function () {
-                      console.error('Failed to load Turnstile script');
-                      window.turnstileScriptLoading = false;
-                  };
-                  document.head.appendChild(s);
-              } else {
-                  var iv = setInterval(function () {
-                      if (window.turnstileScriptLoaded) {
-                          clearInterval(iv);
-                          callback();
-                      }
-                  }, 100);
-              }
-          }
+    var apiScript = document.querySelector("script[src*='challenges.cloudflare.com/turnstile/v0/api.js']");
+    if (apiScript) {
+      apiScript.addEventListener("load", scheduleExecute, { once: true });
+      apiScript.addEventListener("error", function() {
+        console.error("Turnstile script failed to load");
+      }, { once: true });
+    }
 
-          function initWidget() {
-              if (typeof turnstile === 'undefined') return;
+    document.addEventListener("turbo:load", scheduleExecute, { once: true });
 
-              // Render an invisible widget to obtain a token
-              var container = document.createElement('div');
-              container.style.display = 'none';
-              form.appendChild(container);
-
-              widgetId = turnstile.render(container, {
-                  sitekey: siteKey,
-                  size: 'invisible',
-                  callback: function (token) {
-                      hiddenField.value = token;
-                  },
-                  'error-callback': function () {
-                      console.error('Turnstile stealth error');
-                  },
-                  'expired-callback': function () {
-                      hiddenField.value = '';
-                  }
-              });
-          }
-
-          form.addEventListener('submit', function (e) {
-              // If we already have a valid token, allow submission
-              if (hiddenField.value !== '') return;
-
-              // Prevent default, request a fresh token, then re-submit
-              e.preventDefault();
-
-              ensureScript(function () {
-                  if (widgetId == null) initWidget();
-
-                  // Execute / refresh the challenge
-                  if (typeof turnstile !== 'undefined' && widgetId != null) {
-                      turnstile.execute(widgetId);
-                  }
-
-                  // Wait for the token to arrive, then re-submit
-                  var attempts = 0;
-                  var poll = setInterval(function () {
-                      attempts++;
-                      if (hiddenField.value !== '') {
-                          clearInterval(poll);
-                          form.submit();
-                      } else if (attempts > 50) { // ~5 seconds
-                          clearInterval(poll);
-                          console.error('Turnstile stealth: timed out waiting for token');
-                          form.submit(); // submit anyway; server-side will reject
-                      }
-                  }, 100);
-              });
-          });
-
-          // Eagerly load the script and render the widget so the token is ready before submit
-          ensureScript(initWidget);
-      })();
-  </script>
-<% end %>
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", scheduleExecute, { once: true });
+    } else {
+      scheduleExecute();
+    }
+  })();
+</script>

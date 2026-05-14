@@ -1,5 +1,11 @@
 <section class="animate-fade-in-up">
   <div>
+    <%= link_to sign_app_root_path(ct: "dr", lx: "en", ri: "us", tz: "jst") do %>
+      <span><%= t("apex.app.preferences.up_link") %></span>
+    <% end %>
+  </div>
+
+  <div>
     <div>
       <div>
         <div>
@@ -35,6 +41,24 @@
         </div>
       <% end %>
 
+      <%= link_to edit_sign_app_preference_accessibility_motion_url do %>
+        <div>
+          <span><%= t("apex.app.preferences.motion_settings") %></span>
+        </div>
+      <% end %>
+
+      <%= link_to edit_sign_app_preference_display_density_url do %>
+        <div>
+          <span><%= t("apex.app.preferences.density_settings") %></span>
+        </div>
+      <% end %>
+
+      <%= link_to edit_sign_app_preference_display_items_per_page_url do %>
+        <div>
+          <span><%= t("apex.app.preferences.items_per_page_settings") %></span>
+        </div>
+      <% end %>
+
       <!-- Theme -->
       <%= link_to edit_sign_app_preference_theme_url do %>
         <div>
@@ -56,18 +80,6 @@
         </div>
       <% end %>
 
-      <!-- Email -->
-      <%= link_to @preference_email_path do %>
-        <div>
-          <span><%= t("apex.app.preferences.email_settings") %></span>
-        </div>
-      <% end %>
     </div>
-  </div>
-
-  <div>
-    <%= link_to sign_app_root_path(ct: "dr", lx: "en", ri: "us", tz: "jst") do %>
-      <span><%= t("apex.app.preferences.up_link") %></span>
-    <% end %>
   </div>
 </section>

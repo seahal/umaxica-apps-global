@@ -24,33 +24,40 @@ module RefreshTokenable
     def rotate_refresh!(presented_refresh_digest:, device_id:, now: Time.current)
       return { status: :invalid, token: nil } if presented_refresh_digest.blank?
 
-      current_token = find_by(refresh_token_digest: presented_refresh_digest)
+      operation = -> { find_by(refresh_token_digest: presented_refresh_digest) }
+      current_token = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
+
       return { status: :invalid, token: nil } unless current_token
 
       if device_id.present? && current_token.device_id.present? && current_token.device_id != device_id
         return { status: :invalid, token: current_token }
       end
 
-      transaction do
-        current_token.lock!
-        current_token.reload
+      operation =
+        lambda do
+          transaction do
+            current_token.lock!
+            current_token.reload
 
-        return { status: :replay, token: current_token } if current_token.rotated_at.present?
-        return { status: :invalid, token: current_token } unless current_token.currently_usable?(now)
-        return { status: :invalid,
-                 token: current_token, } unless current_token.refresh_token_digest == presented_refresh_digest
+            return { status: :replay, token: current_token } if current_token.rotated_at.present?
+            return { status: :invalid, token: current_token } unless current_token.currently_usable?(now)
+            return { status: :invalid,
+                     token: current_token, } unless current_token.refresh_token_digest == presented_refresh_digest
 
-        current_token.update!(rotated_at: now, last_used_at: now, updated_at: now)
+            current_token.update!(rotated_at: now, last_used_at: now, updated_at: now)
 
-        replacement, raw_refresh_token = create_rotated_token_record!(current_token)
+            replacement, raw_refresh_token = create_rotated_token_record!(current_token)
 
-        {
-          status: :rotated,
-          token: replacement,
-          previous_token: current_token,
-          refresh_token: raw_refresh_token,
-        }
-      end
+            {
+              status: :rotated,
+              token: replacement,
+              previous_token: current_token,
+              refresh_token: raw_refresh_token,
+            }
+          end
+        end
+
+      defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
     end
 
     private
@@ -73,26 +80,32 @@ module RefreshTokenable
       }
       attrs[:purge_at] = previous_token.purge_at if previous_token.has_attribute?(:purge_at)
 
-      attrs[:status] = previous_token.status if previous_token.respond_to?(:status)
-      attrs[actor_key] = previous_token.public_send(actor_key) if actor_key
-      attrs[token_status_key] = previous_token.public_send(token_status_key) if token_status_key
-      attrs[token_kind_key] = previous_token.public_send(token_kind_key) if token_kind_key
+      operation =
+        lambda do
+          attrs[actor_key] = previous_token.public_send(actor_key) if actor_key
+          attrs[token_status_key] = previous_token.public_send(token_status_key) if token_status_key
+          attrs[token_kind_key] = previous_token.public_send(token_kind_key) if token_kind_key
+        end
+      defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
       attrs[:user_token_binding_method_id] =
         previous_token.user_token_binding_method_id if previous_token.has_attribute?(:user_token_binding_method_id)
       attrs[:staff_token_binding_method_id] =
         previous_token.staff_token_binding_method_id if previous_token.has_attribute?(:staff_token_binding_method_id)
-      attrs[:customer_token_binding_method_id] =
-        previous_token.customer_token_binding_method_id if previous_token.has_attribute?(
-          :customer_token_binding_method_id,
+      attrs[:visitor_token_binding_method_id] =
+        previous_token.visitor_token_binding_method_id if previous_token.has_attribute?(
+          :visitor_token_binding_method_id,
         )
       attrs[:user_token_dbsc_status_id] =
         previous_token.user_token_dbsc_status_id if previous_token.has_attribute?(:user_token_dbsc_status_id)
       attrs[:staff_token_dbsc_status_id] =
         previous_token.staff_token_dbsc_status_id if previous_token.has_attribute?(:staff_token_dbsc_status_id)
-      attrs[:customer_token_dbsc_status_id] =
-        previous_token.customer_token_dbsc_status_id if previous_token.has_attribute?(:customer_token_dbsc_status_id)
+      attrs[:visitor_token_dbsc_status_id] =
+        previous_token.visitor_token_dbsc_status_id if previous_token.has_attribute?(:visitor_token_dbsc_status_id)
 
-      replacement = create!(attrs)
+      replacement = new(attrs)
+      replacement.skip_session_limit_check = true if replacement.respond_to?(:skip_session_limit_check=)
+      replacement.save!
+
       raw_refresh_token, verifier = generate_refresh_token(public_id: replacement.public_id)
       replacement.update!(refresh_token_digest: digest_refresh_token(verifier))
       [replacement, raw_refresh_token]
@@ -102,27 +115,22 @@ module RefreshTokenable
       return :user_id if token.has_attribute?(:user_id)
       return :staff_id if token.has_attribute?(:staff_id)
 
-      :customer_id
+      :visitor_id
     end
 
     def token_status_key_from(token)
       return :user_token_status_id if token.has_attribute?(:user_token_status_id)
       return :staff_token_status_id if token.has_attribute?(:staff_token_status_id)
 
-      :customer_token_status_id
+      :visitor_token_status_id
     end
 
     def token_kind_key_from(token)
       return :user_token_kind_id if token.has_attribute?(:user_token_kind_id)
       return :staff_token_kind_id if token.has_attribute?(:staff_token_kind_id)
 
-      :customer_token_kind_id
+      :visitor_token_kind_id
     end
-  end
-
-  # Whether the token is revoked.
-  def revoked?
-    expired?
   end
 
   # Whether the refresh token has expired.

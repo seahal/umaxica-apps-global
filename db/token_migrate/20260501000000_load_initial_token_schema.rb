@@ -43,18 +43,19 @@ class LoadInitialTokenSchema < ActiveRecord::Migration[8.2]
     end
 
     create_table "staff_reauth_sessions" do |t|
-      t.bigint "staff_id", null: false
       t.integer "attempt_count", default: 0, null: false
       t.datetime "created_at", null: false
-      t.datetime "expires_at", null: false
-      t.string "method", null: false
+      t.datetime "lapses_at", default: ::Float::INFINITY, null: false
+      t.string "method"
+      t.datetime "purge_at", default: ::Float::INFINITY, null: false
       t.text "return_to", null: false
       t.string "scope", null: false
+      t.bigint "staff_token_id", null: false
       t.string "status", null: false
       t.datetime "updated_at", null: false
       t.datetime "verified_at"
-      t.index ["staff_id", "status"], name: "index_staff_reauth_sessions_on_staff_id_and_status"
-      t.index ["expires_at"], name: "index_staff_reauth_sessions_on_expires_at"
+      t.index ["staff_token_id"], name: "index_staff_reauth_sessions_on_staff_token_id", unique: true
+      t.check_constraint "lapses_at <= purge_at", name: "chk_staff_reauth_sessions_retention_order"
     end
 
     create_table "staff_token_binding_methods" do |t|
@@ -94,8 +95,7 @@ class LoadInitialTokenSchema < ActiveRecord::Migration[8.2]
       t.bigint "staff_token_binding_method_id", default: 0, null: false
       t.bigint "staff_token_dbsc_status_id", default: 0, null: false
       t.bigint "staff_token_kind_id", default: 0, null: false
-      t.bigint "staff_token_status_id", default: 0, null: false
-      t.string "status", limit: 20, default: "active", null: false
+      t.bigint "staff_token_status_id", default: 1, null: false
       t.datetime "updated_at", null: false
       t.index ["compromised_at"], name: "index_staff_tokens_on_compromised_at"
       t.index ["dbsc_session_id"], name: "index_staff_tokens_on_dbsc_session_id", unique: true
@@ -113,7 +113,6 @@ class LoadInitialTokenSchema < ActiveRecord::Migration[8.2]
       t.index ["staff_token_dbsc_status_id"], name: "index_staff_tokens_on_staff_token_dbsc_status_id"
       t.index ["staff_token_kind_id"], name: "index_staff_tokens_on_staff_token_kind_id"
       t.index ["staff_token_status_id"], name: "index_staff_tokens_on_staff_token_status_id"
-      t.index ["status"], name: "index_staff_tokens_on_status"
       t.check_constraint "staff_token_kind_id >= 0", name: "chk_staff_tokens_kind_id_positive"
       t.check_constraint "staff_token_status_id >= 0", name: "chk_staff_tokens_status_id_positive"
     end
@@ -135,6 +134,7 @@ class LoadInitialTokenSchema < ActiveRecord::Migration[8.2]
     add_foreign_key "staff_tokens", "staff_token_dbsc_statuses", name: "fk_staff_tokens_on_staff_token_dbsc_status_id", validate: false
     add_foreign_key "staff_tokens", "staff_token_kinds", name: "fk_staff_tokens_on_staff_token_kind_id", validate: false
     add_foreign_key "staff_tokens", "staff_token_statuses", name: "fk_staff_tokens_on_staff_token_status_id", validate: false
+    add_foreign_key "staff_reauth_sessions", "staff_tokens", on_delete: :cascade, validate: false
     add_foreign_key "staff_verifications", "staff_tokens", on_delete: :cascade, validate: false
   end
 end

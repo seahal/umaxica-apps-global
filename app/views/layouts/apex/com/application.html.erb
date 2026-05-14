@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html lang="<%= get_language %>" data-theme="<%= theme_cookie_value %>" class="<%= theme_html_class %>">
 <head>
-  <%= display_meta_tags site: "#{ENV.fetch('BRAND_NAME', 'Umaxica')} (com) Apex", title: page_title %>
+  <%= display_meta_tags site: "#{ENV.fetch('BRAND_NAME', 'UMAXICA').upcase} (com)", title: page_title %>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="turbo-refresh-method" content="morph">
   <meta name="turbo-refresh-scroll" content="preserve">
   <%= csrf_meta_tags %>
-  <%= csp_meta_tag %>
   <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "apex/main", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "apex/com/main", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-  <%= javascript_importmap_tags %>  <%= inertia_ssr_head %>
+  <%= javascript_importmap_tags %>
+  <%= inertia_ssr_head %>
+  <%= render "layouts/shared/cloudflare_turnstile_api" %>
   <%= yield :head %>
 </head>
 

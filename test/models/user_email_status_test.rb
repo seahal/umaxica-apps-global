@@ -26,6 +26,15 @@ class UserEmailStatusTest < ActiveSupport::TestCase
     assert_equal 7, UserEmailStatus::VERIFIED_WITH_SIGN_UP
   end
 
+  test "ensure_defaults restores missing fixed status rows" do
+    UserEmailStatus.find(UserEmailStatus::DELETED).delete
+    UserEmailStatus.clear_fixed_id_seed_cache!
+
+    UserEmailStatus.ensure_defaults!
+
+    assert UserEmailStatus.exists?(UserEmailStatus::DELETED)
+  end
+
   test "restrict_with_error prevents deletion when emails exist" do
     status = UserEmailStatus.find(UserEmailStatus::VERIFIED)
     # Create a user identity email with this status

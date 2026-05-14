@@ -6,5 +6,11 @@
 <% end %>
 
 <div>
+  <%= button_to t("otp.resend.button"),
+                resend_sign_app_configuration_emails_registration_path(ri: params[:ri], rt: params[:rt]),
+                method: :post %>
+</div>
+
+<div>
   <%= link_to t("sign.app.common.cancel"), sign_app_configuration_emails_path %>
 </div>

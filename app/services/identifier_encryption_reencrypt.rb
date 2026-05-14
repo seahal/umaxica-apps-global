@@ -7,17 +7,17 @@ class IdentifierEncryptionReencrypt
     :user_telephones_reencrypted,
     :staff_emails_reencrypted,
     :staff_telephones_reencrypted,
-    :customer_emails_reencrypted,
-    :customer_telephones_reencrypted,
+    :visitor_emails_reencrypted,
+    :visitor_telephones_reencrypted,
   )
 
   MODELS = [
     UserEmail,
     UserTelephone,
-    StaffEmail,
-    StaffTelephone,
-    CustomerEmail,
-    CustomerTelephone,
+    OperatorEmail,
+    OperatorTelephone,
+    VisitorEmail,
+    VisitorTelephone,
   ].freeze
 
   def initialize(models: MODELS)
@@ -34,10 +34,10 @@ class IdentifierEncryptionReencrypt
     Result.new(
       user_emails_reencrypted: counts["UserEmail"],
       user_telephones_reencrypted: counts["UserTelephone"],
-      staff_emails_reencrypted: counts["StaffEmail"],
-      staff_telephones_reencrypted: counts["StaffTelephone"],
-      customer_emails_reencrypted: counts["CustomerEmail"],
-      customer_telephones_reencrypted: counts["CustomerTelephone"],
+      staff_emails_reencrypted: counts["OperatorEmail"],
+      staff_telephones_reencrypted: counts["OperatorTelephone"],
+      visitor_emails_reencrypted: counts["VisitorEmail"],
+      visitor_telephones_reencrypted: counts["VisitorTelephone"],
     )
   end
 
@@ -47,9 +47,23 @@ class IdentifierEncryptionReencrypt
     return 0 unless model.column_names.any?
 
     updated = 0
-    model.find_each(batch_size: 1000) do |record|
-      record.encrypt
-      updated += 1
+    model.in_batches(of: 1000, load: false) do |relation|
+      relation.pluck(model.primary_key).each do |record_id|
+        begin
+          record = model.unscoped.find(record_id)
+
+          model.encrypted_attributes.each do |attr_name|
+            value = record.public_send(attr_name)
+            record.public_send("#{attr_name}_will_change!")
+            record.public_send("#{attr_name}=", value)
+          end
+
+          record.save!
+          updated += 1
+        rescue ActiveRecord::Encryption::Errors::Decryption, OpenSSL::Cipher::CipherError, OpenSSL::Cipher::AuthTagError
+          next
+        end
+      end
     end
     updated
   end

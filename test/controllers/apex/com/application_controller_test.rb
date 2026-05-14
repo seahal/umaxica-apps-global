@@ -11,9 +11,9 @@ module Apex
 
         assert_includes controller.class, RateLimit
         assert_includes controller.class, ::Preference::Global
-        assert_includes controller.class, ::Authentication::Customer
-        assert_includes controller.class, ::Authorization::Customer
-        assert_includes controller.class, ::Verification::Customer
+        assert_includes controller.class, ::Authentication::Visitor
+        assert_includes controller.class, ::Authorization::Visitor
+        assert_includes controller.class, ::Verification::Visitor
         assert_includes controller.class, ActionPolicy::Controller
         assert_includes controller.class, ::Oidc::SsoInitiator
         assert_includes controller.class, ::CurrentSupport
@@ -72,6 +72,7 @@ module Apex
         controller = ApplicationController.new
 
         assert_respond_to controller, :oidc_sign_host
+        assert_equal "id.com.localhost", controller.send(:oidc_sign_host)
       end
     end
   end

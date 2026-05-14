@@ -3,11 +3,11 @@
 
 require "test_helper"
 
-class StaffWebauthnCredentialPolicyTest < ActiveSupport::TestCase
+class OperatorWebauthnCredentialPolicyTest < ActiveSupport::TestCase
   def setup
     @user = nil
     @record = nil
-    @policy = StaffWebauthnCredentialPolicy.new(@record, user: @user)
+    @policy = OperatorWebauthnCredentialPolicy.new(@record, user: @user)
   end
 
   def test_index
@@ -37,10 +37,4 @@ class StaffWebauthnCredentialPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope
-  #     scope = StaffWebauthnCredentialPolicy::Scope.new(nil, user: @user)
-  #     assert_raises(NoMethodError) { scope.resolve }
-  #   end
 end

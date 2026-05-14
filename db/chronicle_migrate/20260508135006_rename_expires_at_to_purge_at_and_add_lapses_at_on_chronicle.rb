@@ -1,7 +1,7 @@
 class RenameExpiresAtToPurgeAtAndAddLapsesAtOnChronicle < ActiveRecord::Migration[8.0]
   def change
     safety_assured do
-    tables = %w[app_contact_chronicles com_contact_chronicles org_contact_chronicles app_preference_chronicles com_preference_chronicles org_preference_chronicles staff_chronicles user_chronicles]
+    tables = %w[app_preference_chronicles com_preference_chronicles org_preference_chronicles staff_chronicles user_chronicles]
     
     tables.each do |t|
       if table_exists?(t)

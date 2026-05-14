@@ -12,10 +12,13 @@
 # - TRUSTED_ORIGINS: Comma-separated list of allowed origins (required)
 #   - Development: http://id.app.localhost:3000,http://id.org.localhost:3000
 #   - Production: https://id.app.example.com,https://id.org.example.com
+# - WEBAUTHN_APP_RP_ID / WEBAUTHN_COM_RP_ID / WEBAUTHN_ORG_RP_ID: Public RP IDs.
+# - WEBAUTHN_APP_ORIGIN / WEBAUTHN_COM_ORIGIN / WEBAUTHN_ORG_ORIGIN: Public origins.
+# - WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN: Shared fallback values.
 #
-# Note: rp_id is NOT configured here. It is dynamically determined per-request
-# using request.host in the Webauthn::Config concern. This allows different
-# rp_id values for service (id.app.localhost) and staff (id.org.localhost).
+# Note: rp_id is NOT configured on the global gem object. It is dynamically
+# determined per-request in Sign::Webauthn, with environment overrides for
+# deployments where Rails sees an internal host behind a proxy.
 
 module Webauthn
   class TrustedOriginsNotConfiguredError < StandardError; end
@@ -36,9 +39,18 @@ module Webauthn
     private
 
     def parse_trusted_origins
-      raw = ENV["TRUSTED_ORIGINS"].to_s.strip
-      origins = raw.split(",")
-      origins.map!(&:strip)
+      origins = []
+      origins.concat(ENV["TRUSTED_ORIGINS"].to_s.strip.split(","))
+      origins.concat(
+        [
+          ENV["WEBAUTHN_APP_ORIGIN"],
+          ENV["WEBAUTHN_COM_ORIGIN"],
+          ENV["WEBAUTHN_ORG_ORIGIN"],
+          ENV["WEBAUTHN_ORIGIN"],
+        ],
+      )
+      origins.compact!
+      origins.map! { |origin| origin.to_s.strip }
       origins.reject!(&:empty?)
 
       if origins.empty?
@@ -83,7 +95,7 @@ WebAuthn.configure do |config|
   config.rp_name = ENV.fetch("WEBAUTHN_RP_NAME", "Umaxica")
 
   # IMPORTANT: allowed_origins and rp_id are NOT set here.
-  # They are dynamically configured per-request in Webauthn::Config concern.
+  # They are dynamically configured per-request in Sign::Webauthn.
   # This allows:
   # - rp_id to vary by host (id.app.localhost vs id.org.localhost)
   # - origin validation to use our stricter Webauthn.validate_origin!

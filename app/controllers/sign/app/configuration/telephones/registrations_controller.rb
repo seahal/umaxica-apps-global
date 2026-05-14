@@ -8,6 +8,7 @@ module Sign
         class RegistrationsController < ::Sign::App::ApplicationController
           auth_required!
 
+          include CloudflareTurnstile
           include Sign::TelephoneRegistrable
           include ::Verification::User
 
@@ -32,6 +33,14 @@ module Sign
           def create
             user = current_user
             return head :unauthorized if user.blank?
+
+            unless cloudflare_turnstile_stealth_validation["success"]
+              @user_telephone = UserTelephone.new
+              @user_telephone.errors.add(:base, t("turnstile_error"))
+              flash.now[:alert] = t("turnstile_error")
+              render(:new, status: :unprocessable_content)
+              return
+            end
 
             tel_params = params.expect(user_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
@@ -60,6 +69,13 @@ module Sign
               return
             end
 
+            unless cloudflare_turnstile_stealth_validation["success"]
+              @user_telephone.errors.add(:base, t("turnstile_error"))
+              flash.now[:alert] = t("turnstile_error")
+              render(:edit, status: :unprocessable_content)
+              return
+            end
+
             submitted_code = params.dig(:user_telephone, :pass_code)
             if submitted_code.blank?
               @user_telephone.errors.add(
@@ -78,6 +94,7 @@ module Sign
 
             case status
             when :success
+              record_telephone_registration_step_up!
               reset_registration_session!
               redirect_to(
                 sign_app_configuration_telephones_path,
@@ -117,6 +134,30 @@ module Sign
 
           def reset_registration_session!
             session.delete(registration_session_key)
+          end
+
+          def record_telephone_registration_step_up!
+            current_session_token&.update!(
+              last_step_up_at: Time.current,
+              last_step_up_scope: verification_scope,
+            )
+            create_audit_event!(UserChronicleEvent::TELEPHONE_REGISTERED)
+          end
+
+          def create_audit_event!(event_id)
+            ChronicleRecord.connected_to(role: :writing) do
+              UserChronicleEvent.find_or_create_by!(id: event_id)
+              UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            end
+
+            UserChronicle.create!(
+              actor_type: "User",
+              actor_id: current_user.id,
+              event_id: event_id,
+              subject_id: current_user.id.to_s,
+              subject_type: "User",
+              occurred_at: Time.current,
+            )
           end
 
           def verification_required_action?

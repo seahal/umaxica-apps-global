@@ -9,39 +9,21 @@ module Sign
 
         include Sign::AppVerificationBase
 
+        skip_before_action :enforce_verification_if_required, raise: false
+
         private
 
-        def reauth_actor_id
-          current_customer.id
-        end
+        def reauth_session_model = VisitorReauthSession
 
-        def start_reauth_session!(scope:, return_to_param:)
-          decoded = Base64.urlsafe_decode64(return_to_param.to_s)
-          safe_path = safe_internal_path(decoded)
-          raise ActionController::BadRequest, "invalid return_to" if safe_path.blank?
-
-          scope_str = scope.to_s
-          raise ActionController::BadRequest, "invalid scope" unless self.class::ALLOWED_SCOPES.key?(scope_str)
-
-          pattern = self.class::ALLOWED_SCOPES[scope_str]
-          raise ActionController::BadRequest, "scope mismatch" unless safe_path.match?(pattern)
-
-          session[self.class::REAUTH_SESSION_KEY] = {
-            "customer_id" => reauth_actor_id,
-            "scope" => scope_str,
-            "return_to" => safe_path,
-            "expires_at" => self.class::REAUTH_TTL.from_now.to_i,
-          }
-        rescue ArgumentError
-          raise ActionController::BadRequest, "invalid return_to encoding"
-        end
+        def reauth_session_token_foreign_key = :visitor_token_id
 
         def valid_reauth_session?(rs)
           rs.present? &&
-            rs["expires_at"].to_i > Time.current.to_i &&
-            rs["customer_id"] == current_customer.id &&
-            rs["scope"].present? &&
-            rs["return_to"].present?
+            rs.lapses_at > Time.current &&
+            rs.visitor_token_id == actor_token.id &&
+            rs.status == "PENDING" &&
+            rs.scope.present? &&
+            rs.return_to.present?
         end
 
         def handle_invalid_reauth_session!
@@ -63,12 +45,11 @@ module Sign
         end
 
         def clear_reauth_state!
-          session.delete(self.class::REAUTH_SESSION_KEY)
-          session.delete(self.class::EMAIL_OTP_SESSION_KEY)
+          Rails.cache.delete(email_otp_cache_key) if current_reauth_session.present?
         end
 
         def verification_model
-          CustomerVerification
+          VisitorVerification
         end
 
         def verification_success_event_id
@@ -91,32 +72,28 @@ module Sign
 
         def verification_activity_model = UserChronicle
 
-        def current_verification_actor = current_customer
+        def current_verification_actor = current_visitor
 
-        def verification_actor_type = "Customer"
+        def verification_actor_type = "Visitor"
 
         def verification_token_foreign_key
-          :customer_token_id
+          :visitor_token_id
         end
 
         def verification_passkeys_scope
-          current_customer.customer_passkeys
+          current_visitor.visitor_passkeys
         end
 
         def verification_passkey_model
-          CustomerPasskey
+          VisitorPasskey
         end
 
         def passkey_actor_matches?(passkey)
-          passkey.customer_id == current_customer.id
+          passkey.visitor_id == current_visitor.id
         end
 
         def verification_no_passkey_i18n_key
           "sign.app.verification.errors.no_passkey"
-        end
-
-        def active_totp_credentials
-          []
         end
 
         def step_up_supported_methods
@@ -124,27 +101,27 @@ module Sign
         end
 
         def send_email_otp!
-          customer_email =
-            current_customer.customer_emails.where(
-              customer_email_status_id: CustomerEmailStatus::VERIFIED,
+          visitor_email =
+            current_visitor.visitor_emails.where(
+              visitor_email_status_id: VisitorEmailStatus::VERIFIED,
             ).order(created_at: :desc).first
-          unless customer_email
+          unless visitor_email
             @verification_errors = [I18n.t("sign.app.verification.errors.email_not_verified")]
             return false
           end
 
           secret, counter, pass_code = generate_hotp_code
-          rs = current_reauth_session
-          session[self.class::EMAIL_OTP_SESSION_KEY] = {
-            "secret" => secret,
-            "counter" => counter,
-            "expires_at" => rs["expires_at"],
-          }
+          Rails.cache.write(
+            email_otp_cache_key, {
+              "secret" => secret,
+              "counter" => counter,
+            }, expires_in: [current_reauth_session.lapses_at - Time.current, 0].max,
+          )
 
           Email::App::RegistrationMailer.with(
             hotp_token: pass_code,
-            email_address: customer_email.address,
-            public_id: current_customer.public_id,
+            email_address: visitor_email.address,
+            public_id: current_visitor.public_id,
             verification_token: nil,
           ).create.deliver_later
 

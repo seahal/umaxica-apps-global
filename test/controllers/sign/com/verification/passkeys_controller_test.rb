@@ -8,21 +8,21 @@ class Sign::Com::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
-    @customer = create_verified_customer_with_email(
+    @visitor = create_verified_visitor_with_email(
       email_address: "com-passkey-stepup-#{SecureRandom.hex(4)}@example.com",
     )
-    @customer.customer_telephones.create!(
+    @visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @headers = as_customer_headers(@customer, host: @host)
-    @token = CustomerToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
-    @customer.customer_passkeys.create!(
+    @headers = as_visitor_headers(@visitor, host: @host)
+    @token = VisitorToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    @visitor.visitor_passkeys.create!(
       description: "Test passkey",
       webauthn_id: "test",
       public_key: "public_key",
       sign_count: 0,
-      status_id: CustomerPasskeyStatus::ACTIVE,
+      status_id: VisitorPasskeyStatus::ACTIVE,
     )
   end
 

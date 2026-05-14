@@ -44,7 +44,7 @@ class ZipOccurrence < OccurrenceRecord
   has_many :email_occurrences, through: :email_zip_occurrences
   has_many :ip_zip_occurrences, dependent: :destroy, inverse_of: :zip_occurrence
   has_many :ip_occurrences, through: :ip_zip_occurrences
-  has_many :staff_zip_occurrences, dependent: :destroy, inverse_of: :zip_occurrence
+  has_many :staff_zip_occurrences, class_name: "OperatorZipOccurrence", dependent: :destroy, inverse_of: :zip_occurrence
   has_many :staff_occurrences, through: :staff_zip_occurrences
   has_many :telephone_zip_occurrences, dependent: :destroy, inverse_of: :zip_occurrence
   has_many :telephone_occurrences, through: :telephone_zip_occurrences

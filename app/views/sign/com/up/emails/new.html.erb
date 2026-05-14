@@ -6,7 +6,8 @@
 
   <div>
     <%= form_with model: @user_email, url: sign_com_up_emails_path, method: :post, data: { turbo: false } do |form| %>
-      <%= hidden_field_tag :rd, params[:rd] if params[:rd].present? %>
+      <% return_to = params[:rt].presence %>
+      <%= hidden_field_tag :rt, return_to if return_to.present? %>
 
       <% if @user_email.errors.any? %>
         <div>
@@ -26,7 +27,7 @@
       <% end %>
 
       <div>
-        <%= form.label :raw_address, CustomerEmail.human_attribute_name(:address) %>
+        <%= form.label :raw_address, VisitorEmail.human_attribute_name(:address) %>
         <div>
           <%= form.email_field :raw_address, autocomplete: "email", required: true %>
         </div>
@@ -42,7 +43,13 @@
       </div>
 
       <div>
-        <%= render "shared/cloudflare_turnstile" %>
+        <%= form.check_box :notifiable %>
+        <%= form.label :notifiable, t("sign.com.configuration.email.edit.notifiable_label") %>
+        <p><%= t("sign.com.configuration.email.edit.notifiable_description") %></p>
+      </div>
+
+      <div>
+        <%= render "shared/cloudflare_turnstile_visible" %>
       </div>
 
       <div>
@@ -52,6 +59,9 @@
 
     <div>
       <div>
+        <div>
+          <%= link_to t("sign.app.registration.new.page_title"), new_sign_com_up_path(ri: params[:ri]) %>
+        </div>
         <div>
           <%= link_to t("sign.app.registration.email.new.link_to_sign_in"), new_sign_com_in_path(ri: params[:ri]) %>
         </div>

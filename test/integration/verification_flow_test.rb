@@ -44,7 +44,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_match %r{/verification}, response.location
     assert_match(/scope=configuration_email/, response.location)
-    assert_match(/rd=/, response.location)
+    assert_match(/rt=/, response.location)
   end
 
   test "high-risk operation redirects to verification when step-up not satisfied (HEAD)" do
@@ -57,7 +57,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_match %r{/verification}, response.location
     assert_match(/scope=configuration_email/, response.location)
-    assert_match(/rd=/, response.location)
+    assert_match(/rt=/, response.location)
   end
 
   test "successful passkey verification redirects to return_to" do

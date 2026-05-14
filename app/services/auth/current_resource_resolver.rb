@@ -34,7 +34,16 @@ module Auth
       return failure(:blank_access_token) if @access_token.blank?
 
       payload = Authentication::Base::Token.decode(@access_token, host: @request_host, resource_type: @resource_type)
-      return failure(:token_decode_failed) if payload.blank?
+      if payload.blank?
+        sid = Authentication::Base::Token.extract_session_id_allow_expired(
+          @access_token,
+          host: @request_host,
+          resource_type: @resource_type,
+        )
+        return failure(:token_decode_failed, session_public_id: sid) if sid.present?
+
+        return failure(:token_decode_failed)
+      end
       return failure(:dpop_verification_failed, payload: payload) unless dpop_valid?(payload)
 
       unless Authentication::Base::Token.validate_actor_claim!(payload, @resource_type)
@@ -56,9 +65,11 @@ module Auth
     def dpop_valid?(payload)
       token_jkt = payload.dig("cnf", "jkt")
       scheme = @authorization_scheme.to_s
+      scheme_dpop = scheme.casecmp?("DPoP")
 
-      return true if token_jkt.blank? && !scheme.casecmp?("DPoP")
-      return false unless scheme.casecmp?("DPoP")
+      return true if token_jkt.blank? && !scheme_dpop && @dpop_proof.blank?
+      return false unless scheme_dpop
+      return false if token_jkt.blank?
 
       result = Dpop::RequestVerifier.new(
         access_token_payload: payload,
@@ -74,14 +85,15 @@ module Auth
     def token_exists?(session_public_id)
       check_logic =
         lambda do
-          scope = @token_class.where(session_id: session_public_id)
-            .or(@token_class.where(public_id: session_public_id))
-
-          if @token_class.column_names.include?("lapses_at")
-            lapses_at = @token_class.arel_table[:lapses_at]
-            scope = scope.where(lapses_at.eq(nil).or(lapses_at.gt(Time.current)))
-          end
-          scope.exists?
+          usable_tokens =
+            if @token_class.respond_to?(:currently_usable_at)
+              @token_class.currently_usable_at
+            else
+              @token_class.where(nil)
+            end
+          usable_tokens.where(session_id: session_public_id)
+            .or(usable_tokens.where(public_id: session_public_id))
+            .exists?
         end
 
       # Use the primary database for revocation-sensitive checks so a recently

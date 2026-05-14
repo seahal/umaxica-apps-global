@@ -8,9 +8,9 @@ module Apex
       include ::Session
       include ::Preference::Global
       include ::Preference::Adoption # FIXME: I hate this line.
-      include ::Authentication::Staff
-      include ::Authorization::Staff
-      include ::Verification::Staff
+      include ::Authentication::Operator
+      include ::Authorization::Operator
+      include ::Verification::Operator
       include ActionPolicy::Controller # FIXME: I hate this line.
       include ::Oidc::SsoInitiator # FIXME: I hate this line.
       include ::CurrentSupport

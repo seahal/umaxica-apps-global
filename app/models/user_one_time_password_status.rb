@@ -16,6 +16,8 @@ class UserOneTimePasswordStatus < PrincipalRecord
   REVOKED = 3
   DELETED = 4
   NOTHING = 5
+  DEFAULTS = [ACTIVE, INACTIVE, REVOKED, DELETED, NOTHING].freeze
+
   has_many :user_one_time_passwords, dependent: :restrict_with_error,
                                      inverse_of: :user_one_time_password_status
 end

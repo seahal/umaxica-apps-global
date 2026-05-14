@@ -6,6 +6,11 @@ Run an end-to-end smoke verification of Sign Up and Sign In on `app` and `com` s
 recent disruptive changes — the abandoned Rails engine extraction and the Resend → AWS SES
 email-provider switch — and repair any defect surfaced.
 
+## Status
+
+**Code cleanup / automated smoke implemented 2026-05-10.** Manual real-delivery checks for SES SMTP
+and SMS remain environment-dependent and were not run in this workspace.
+
 ## Background
 
 Two recent changes left Sign Up / Sign In in an unverified state:
@@ -40,6 +45,8 @@ ceremonies — the user explicitly noted that real-world correctness has not bee
    (`address: email-smtp.<region>.amazonaws.com`, port 465, `tls: true`, `authentication: :login`,
    explicit timeouts).
 2. Production env counterpart matches.
+   - Fixed 2026-05-10: removed a second production `default_url_options` assignment that overwrote
+     the real `ID_SERVICE_URL` host with `localhost:3001`.
 3. dev sign-up with email → OTP email actually arrives via SES.
 4. ADR follow-ups (production prerequisite, document outcome here):
    - SES sandbox status.
@@ -72,14 +79,17 @@ ceremonies — the user explicitly noted that real-world correctness has not bee
 
 13. `app/controllers/sign/com/application_controller.rb` — investigate
     `guest_only! # FIXME: remove this line.` and resolve (delete, document, or replace).
+    - Resolved 2026-05-10: retained `guest_only!` and replaced the FIXME with the boundary reason.
 14. `app/controllers/sign/app/application_controller.rb` — investigate
     `include ::Preference::Adoption # FIXME: what is this?` and replace the comment with a real
     explanation or remove the include if dead.
+    - Resolved 2026-05-10: retained the include and documented anonymous preference adoption.
 
 ### Documentation correction
 
 15. Update `adr/email-provider-resend-to-amazon-ses.md:13-14` to reflect the post-engine path
     (`app/controllers/concerns/sign/email_registrable.rb`).
+    - Completed 2026-05-10.
 
 ## Critical Files
 
@@ -98,6 +108,20 @@ ceremonies — the user explicitly noted that real-world correctness has not bee
 - Manual E2E: every checklist item above on a dev environment with real SES SMTP creds (sandbox is
   fine for the `to:` addresses you control) and a real phone for SMS.
 - Production prerequisite: items 4.a-d documented and confirmed before production cutover.
+
+2026-05-10 automated verification:
+
+- `bin/rails test test/controllers/sign/app/up/emails_controller_test.rb test/controllers/sign/com/up/emails_controller_test.rb test/controllers/sign/app/up/telephones_controller_test.rb test/controllers/sign/com/up/telephones_controller_test.rb test/models/concerns/email_test.rb test/models/concerns/telephone_test.rb`
+  passed: 145 runs, 599 assertions.
+- The social smoke command in `plans/backlog/social-login-apple-google-smoke-verification.md` passed
+  after callback guard cleanup.
+
+Manual checks not run here:
+
+- Real SES SMTP delivery.
+- Real SMS delivery.
+- Real browser WebAuthn / DBSC ceremony.
+- Production SES sandbox, DNS, IAM, and SNS bounce/complaint verification.
 
 ## Out of Scope
 

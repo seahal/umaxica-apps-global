@@ -3,106 +3,58 @@
 
 require "test_helper"
 
-class Sign::App::Preference::EmailControllerTest < ActionDispatch::IntegrationTest
-  setup do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    CloudflareTurnstile.test_mode = true
-    CloudflareTurnstile.test_validation_response = { "success" => true }
-  end
+module Sign
+  module App
+    module Preference
+      class EmailsControllerTest < ActionDispatch::IntegrationTest
+        setup do
+          @host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+          @user = create_verified_user_with_email(email_address: "client-unsubscribe-#{SecureRandom.hex(4)}@example.com")
+          @email = @user.user_emails.first
+          @token = @email.promotional_unsubscribe_token
+          host! @host
+        end
 
-  teardown do
-    CloudflareTurnstile.test_mode = nil
-    CloudflareTurnstile.test_validation_response = nil
-  end
+        test "GET edit renders unsubscribe confirmation for a valid token" do
+          get edit_sign_app_preference_email_path(@email, ri: "jp", token: @token)
 
-  test "new renders email input form" do
-    get new_sign_app_preference_email_url(ri: "jp")
+          assert_response :success
+          assert_match "Unsubscribe", response.body
+        end
 
-    assert_response :success
-  end
+        test "DELETE destroy turns promotional email off" do
+          delete sign_app_preference_email_path(@email), params: { token: @token }
 
-  test "create with valid email redirects with success notice" do
-    post sign_app_preference_email_url(ri: "jp"),
-         params: { preference_email: { email: "test@example.com" } }
+          assert_redirected_to edit_sign_app_preference_email_path(@email, token: @token)
+          assert_not @email.reload.promotional
+        end
 
-    assert_redirected_to new_sign_app_preference_email_url(ri: "jp")
-    assert_equal I18n.t("base.app.preference.emails.new.success"), flash[:notice]
-  end
+        test "POST create supports one-click unsubscribe without csrf token" do
+          post sign_app_preference_email_path(@email), params: { token: @token }
 
-  test "create with blank email re-renders new" do
-    post sign_app_preference_email_url(ri: "jp"),
-         params: { preference_email: { email: "" } }
+          assert_response :ok
+          assert_not @email.reload.promotional
+        end
 
-    assert_response :unprocessable_content
-  end
+        test "POST create supports one-click unsubscribe when forgery protection is enabled" do
+          previous = ActionController::Base.allow_forgery_protection
+          ActionController::Base.allow_forgery_protection = true
 
-  test "edit with invalid token redirects to new" do
-    get edit_sign_app_preference_email_url(ri: "jp", token: "invalid")
+          post(sign_app_preference_email_path(@email), params: { token: @token })
 
-    assert_response :redirect
+          assert_response :ok
+          assert_not @email.reload.promotional
+        ensure
+          ActionController::Base.allow_forgery_protection = previous
+        end
 
-    assert_redirected_to new_sign_app_preference_email_url(ri: "jp")
-    assert_equal I18n.t("base.shared.preference_emails.token_invalid"), flash[:alert]
-  end
+        test "invalid token does not unsubscribe" do
+          delete sign_app_preference_email_path(@email), params: { token: "invalid" }
 
-  test "update with invalid token redirects to new" do
-    patch sign_app_preference_email_url(ri: "jp"),
-          params: { preference_email: { token: "invalid", promotional: "1" } }
-
-    assert_redirected_to new_sign_app_preference_email_url(ri: "jp")
-  end
-
-  test "edit with valid token renders form" do
-    user = users(:one)
-    email_record = UserEmail.create!(user: user, address: "valid@example.com")
-    token = Sign::Preference::EmailToken.issue(
-      email_record_id: email_record.id,
-      email_record_type: "UserEmail",
-      audience: "app",
-    )
-
-    get edit_sign_app_preference_email_url(ri: "jp", token: token)
-
-    assert_response :success
-    assert_select "input[type=hidden][name='preference_email[token]'][value='#{token}']"
-  end
-
-  test "update with valid token updates preferences" do
-    user = users(:one)
-    email_record = UserEmail.create!(user: user, address: "valid2@example.com", promotional: true)
-    token = Sign::Preference::EmailToken.issue(
-      email_record_id: email_record.id,
-      email_record_type: "UserEmail",
-      audience: "app",
-    )
-
-    patch sign_app_preference_email_url(ri: "jp"),
-          params: { token: token, preference_email: { promotional: "0", subscribable: "1", notifiable: "1" } }
-
-    assert_redirected_to new_sign_app_preference_email_url(ri: "jp")
-    assert_equal I18n.t("base.app.preference.emails.edit.submit"), flash[:notice]
-    email_record.reload
-
-    assert_not email_record.promotional
-  end
-
-  test "unsubscribe with valid token unsubscribes user" do
-    user = users(:one)
-    email_record = UserEmail.create!(user: user, address: "valid3@example.com", promotional: true, subscribable: true)
-    token = Sign::Preference::EmailToken.issue(
-      email_record_id: email_record.id,
-      email_record_type: "UserEmail",
-      audience: "app",
-    )
-
-    post unsubscribe_sign_app_preference_email_url(ri: "jp"),
-         params: { token: token }
-
-    assert_redirected_to new_sign_app_preference_email_url(ri: "jp")
-    assert_equal I18n.t("base.app.preference.emails.edit.submit"), flash[:notice]
-    email_record.reload
-
-    assert_not email_record.promotional
-    assert_not email_record.subscribable
+          assert_response :not_found
+          assert @email.reload.promotional
+        end
+      end
+    end
   end
 end

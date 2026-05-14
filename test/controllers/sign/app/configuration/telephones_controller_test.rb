@@ -6,7 +6,8 @@ require "test_helper"
 require "ostruct"
 
 class Sign::App::Configuration::TelephonesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_telephone_statuses, :user_email_statuses
+  fixtures :users, :user_statuses, :user_telephone_statuses, :user_email_statuses,
+           :user_chronicle_events, :user_chronicle_levels
   include ActiveJob::TestHelper
 
   setup do
@@ -93,7 +94,20 @@ class Sign::App::Configuration::TelephonesControllerTest < ActionDispatch::Integ
     )
 
     assert_difference("UserTelephone.count", -1) do
-      delete sign_app_configuration_telephone_url(tel1, ri: "jp"), headers: request_headers
+      assert_difference(
+        -> {
+          UserChronicle.where(
+            actor_type: "User",
+            actor_id: @user.id,
+            subject_type: "UserTelephone",
+            subject_id: tel1.id,
+            event_id: UserChronicleEvent::TELEPHONE_REMOVED,
+          ).count
+        },
+        1,
+      ) do
+        delete sign_app_configuration_telephone_url(tel1, ri: "jp"), headers: request_headers
+      end
     end
 
     assert_response :see_other

@@ -3,11 +3,11 @@
 
 require "test_helper"
 
-class StaffTokenPolicyTest < ActiveSupport::TestCase
+class OperatorTokenPolicyTest < ActiveSupport::TestCase
   def setup
     @user = nil
     @record = nil
-    @policy = StaffTokenPolicy.new(@record, user: @user)
+    @policy = OperatorTokenPolicy.new(@record, user: @user)
   end
 
   def test_index
@@ -37,10 +37,4 @@ class StaffTokenPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope
-  #     scope = StaffTokenPolicy::Scope.new(nil, user: @user)
-  #     assert_raises(NoMethodError) { scope.resolve }
-  #   end
 end

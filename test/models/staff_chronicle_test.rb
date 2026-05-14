@@ -42,15 +42,15 @@
 
 require "test_helper"
 
-class StaffChronicleTest < ActiveSupport::TestCase
+class OperatorChronicleTest < ActiveSupport::TestCase
   fixtures :staffs, :users, :staff_chronicle_events, :staff_chronicle_levels, :staff_statuses, :user_statuses
 
   def setup
     @staff = staffs(:one)
     @actor = users(:none_user)
-    @audit_event = StaffChronicleEvent.find(StaffChronicleEvent::LOGIN_SUCCESS)
-    @audit_level = StaffChronicleLevel.find(StaffChronicleLevel::NOTHING)
-    @audit = StaffChronicle.create!(
+    @audit_event = OperatorChronicleEvent.find(OperatorChronicleEvent::LOGIN_SUCCESS)
+    @audit_level = OperatorChronicleLevel.find(OperatorChronicleLevel::NOTHING)
+    @audit = OperatorChronicle.create!(
       staff: @staff,
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,
@@ -65,7 +65,7 @@ class StaffChronicleTest < ActiveSupport::TestCase
   end
 
   test "inherits from ChronicleRecord" do
-    assert_operator StaffChronicle, :<, ChronicleRecord
+    assert_operator OperatorChronicle, :<, ChronicleRecord
   end
 
   test "ip_address can be stored" do
@@ -73,7 +73,7 @@ class StaffChronicleTest < ActiveSupport::TestCase
   end
 
   test "requires staff" do
-    audit = StaffChronicle.new(
+    audit = OperatorChronicle.new(
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,
     )
@@ -83,7 +83,7 @@ class StaffChronicleTest < ActiveSupport::TestCase
   end
 
   test "requires staff_chronicle_event" do
-    audit = StaffChronicle.new(
+    audit = OperatorChronicle.new(
       staff: @staff,
       staff_chronicle_level: @audit_level,
     )
@@ -93,7 +93,7 @@ class StaffChronicleTest < ActiveSupport::TestCase
   end
 
   test "belongs to polymorphic actor" do
-    association = StaffChronicle.reflect_on_association(:actor)
+    association = OperatorChronicle.reflect_on_association(:actor)
 
     assert_not_nil association
     assert_equal :belongs_to, association.macro
@@ -102,7 +102,7 @@ class StaffChronicleTest < ActiveSupport::TestCase
 
   test "can be created with a User as actor" do
     actor_user = users(:one)
-    audit = StaffChronicle.create!(
+    audit = OperatorChronicle.create!(
       staff: @staff,
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,
@@ -114,9 +114,9 @@ class StaffChronicleTest < ActiveSupport::TestCase
     assert_equal actor_user, audit.actor
   end
 
-  test "can be created with a Staff as actor" do
+  test "can be created with an Operator as actor" do
     actor_staff = staffs(:one)
-    audit = StaffChronicle.create!(
+    audit = OperatorChronicle.create!(
       staff: @staff,
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,
@@ -124,23 +124,23 @@ class StaffChronicleTest < ActiveSupport::TestCase
     )
 
     assert_equal actor_staff.id, audit.actor_id
-    assert_equal "Staff", audit.actor_type
+    assert_equal "Operator", audit.actor_type
     assert_equal actor_staff, audit.actor
   end
 
-  test "User and Staff can both be actors in different audits" do
+  test "User and Operator can both be actors in different audits" do
     actor_user = users(:one)
     actor_staff = staffs(:one)
 
     # Multiple audits for the same staff can have different actors
-    StaffChronicle.create!(
+    OperatorChronicle.create!(
       staff: @staff,
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,
       actor: actor_user,
     )
 
-    StaffChronicle.create!(
+    OperatorChronicle.create!(
       staff: @staff,
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,
@@ -149,26 +149,26 @@ class StaffChronicleTest < ActiveSupport::TestCase
 
     # Retrieve multiple audits related to the same Staff
     user_actors = @staff.staff_chronicles.where(actor_type: "User")
-    staff_actors = @staff.staff_chronicles.where(actor_type: "Staff")
+    staff_actors = @staff.staff_chronicles.where(actor_type: "Operator")
 
     assert_not_empty user_actors
     assert_not_empty staff_actors
   end
 
   test "defaults level_id to NOTHING if not provided" do
-    audit = StaffChronicle.create!(
+    audit = OperatorChronicle.create!(
       staff: @staff,
       staff_chronicle_event: @audit_event,
       actor: @actor,
       timestamp: Time.current,
     )
 
-    assert_equal StaffChronicleLevel::NOTHING, audit.level_id
-    assert_equal StaffChronicleLevel::NOTHING, audit.staff_chronicle_level.id
+    assert_equal OperatorChronicleLevel::NOTHING, audit.level_id
+    assert_equal OperatorChronicleLevel::NOTHING, audit.staff_chronicle_level.id
   end
 
   test "sets timestamp on create when missing" do
-    audit = StaffChronicle.create!(
+    audit = OperatorChronicle.create!(
       staff: @staff,
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,
@@ -180,7 +180,7 @@ class StaffChronicleTest < ActiveSupport::TestCase
   end
 
   test "staff assignment sets subject attributes" do
-    audit = StaffChronicle.new(
+    audit = OperatorChronicle.new(
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,
     )
@@ -188,12 +188,26 @@ class StaffChronicleTest < ActiveSupport::TestCase
     audit.staff = @staff
 
     assert_equal @staff.id, audit.subject_id
-    assert_equal "Staff", audit.subject_type
+    assert_equal "Operator", audit.subject_type
     assert_equal @staff, audit.staff
   end
 
+  test "staff helper returns nil for non staff subjects" do
+    audit = OperatorChronicle.new(subject_id: @staff.id, subject_type: "User")
+
+    assert_nil audit.staff
+  end
+
+  test "event validation skips blank event id" do
+    audit = OperatorChronicle.new(staff: @staff, event_id: nil)
+
+    audit.send(:event_id_must_exist)
+
+    assert_empty audit.errors[:event_id]
+  end
+
   test "invalid when event_id is unknown" do
-    audit = StaffChronicle.new(
+    audit = OperatorChronicle.new(
       staff: @staff,
       staff_chronicle_level: @audit_level,
       event_id: 999_999,
@@ -205,7 +219,7 @@ class StaffChronicleTest < ActiveSupport::TestCase
 
   test "occurred_at aliases timestamp" do
     timestamp = Time.current
-    audit = StaffChronicle.create!(
+    audit = OperatorChronicle.create!(
       staff: @staff,
       staff_chronicle_event: @audit_event,
       staff_chronicle_level: @audit_level,

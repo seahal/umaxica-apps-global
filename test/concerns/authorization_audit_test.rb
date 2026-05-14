@@ -20,11 +20,11 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
 
     include AuthorizationAudit
 
-    attr_accessor :current_user, :current_staff, :request, :action_name, :controller_name
+    attr_accessor :current_user, :current_operator, :request, :action_name, :controller_name
 
-    def initialize(current_user: nil, current_staff: nil)
+    def initialize(current_user: nil, current_operator: nil)
       @current_user = current_user
-      @current_staff = current_staff
+      @current_operator = current_operator
       @action_name = "show"
       @controller_name = "widgets"
       @request = OpenStruct.new(remote_ip: "127.0.0.1", user_agent: "TestAgent")
@@ -73,14 +73,14 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   test "current_user_or_staff prefers current_user" do
     user = users(:one)
     staff = staffs(:one)
-    audit = DummyAudit.new(current_user: user, current_staff: staff)
+    audit = DummyAudit.new(current_user: user, current_operator: staff)
 
     assert_equal user, audit.send(:current_user_or_staff)
   end
 
-  test "current_user_or_staff falls back to current_staff" do
+  test "current_user_or_staff falls back to current_operator" do
     staff = staffs(:one)
-    audit = DummyAudit.new(current_user: nil, current_staff: staff)
+    audit = DummyAudit.new(current_user: nil, current_operator: staff)
 
     assert_equal staff, audit.send(:current_user_or_staff)
   end
@@ -109,7 +109,7 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   test "log_authorization_failure routes to staff audit" do
     staff = staffs(:one)
     exception = build_exception(record: staff)
-    audit = DummyAudit.new(current_staff: staff)
+    audit = DummyAudit.new(current_operator: staff)
 
     result = capture_log_data(audit, exception)
 
@@ -200,15 +200,15 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   test "log_authorization_failure creates real staff audit record" do
     staff = staffs(:one)
     exception = build_exception(record: staff)
-    audit = DummyAudit.new(current_staff: staff)
+    audit = DummyAudit.new(current_operator: staff)
 
-    assert_difference "StaffChronicle.count", 1 do
+    assert_difference "OperatorChronicle.count", 1 do
       audit.send(:log_authorization_failure, exception)
     end
 
-    record = StaffChronicle.last
+    record = OperatorChronicle.last
 
-    assert_equal staff, record.staff
+    assert_equal staff.id, record.staff.id
     assert_equal 2, record.event_id
   end
 

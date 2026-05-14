@@ -42,7 +42,7 @@ class IdentifierBlindIndexBackfill
 
   def backfill_staff_emails
     backfill_records(
-      model: StaffEmail,
+      model: OperatorEmail,
       digest_column: :address_digest,
       bidx_column: :address_bidx,
       identifier_method: :bidx_for_email,
@@ -52,7 +52,7 @@ class IdentifierBlindIndexBackfill
 
   def backfill_staff_telephones
     backfill_records(
-      model: StaffTelephone,
+      model: OperatorTelephone,
       digest_column: :number_digest,
       bidx_column: :number_bidx,
       identifier_method: :bidx_for_telephone,
@@ -63,21 +63,30 @@ class IdentifierBlindIndexBackfill
   def backfill_records(model:, digest_column:, bidx_column:, identifier_method:, identifier_method_argument:)
     return 0 unless model.column_names.include?(digest_column.to_s)
 
+    bidx_column = nil unless model.column_names.include?(bidx_column.to_s)
     updated = 0
 
     model.find_each(batch_size: 1000) do |record|
       identifier = record.public_send(identifier_method_argument)
       digest = IdentifierBlindIndex.public_send(identifier_method, identifier)
       next if digest.blank?
-      next if record.public_send(digest_column) == digest && record.public_send(bidx_column) == digest
+      next if digest_current?(record, digest_column, bidx_column, digest)
 
-      record.update_columns( # rubocop:disable Rails/SkipsModelValidations
-        digest_column => digest,
-        bidx_column => digest,
-      )
+      record.update_columns(columns_to_backfill(digest_column, bidx_column, digest)) # rubocop:disable Rails/SkipsModelValidations
       updated += 1
     end
 
     updated
+  end
+
+  def digest_current?(record, digest_column, bidx_column, digest)
+    record.public_send(digest_column) == digest &&
+      (bidx_column.nil? || record.public_send(bidx_column) == digest)
+  end
+
+  def columns_to_backfill(digest_column, bidx_column, digest)
+    columns = { digest_column => digest }
+    columns[bidx_column] = digest if bidx_column
+    columns
   end
 end

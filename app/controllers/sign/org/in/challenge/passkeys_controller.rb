@@ -87,7 +87,7 @@ module Sign
           end
 
           def active_passkeys_for(staff)
-            staff.staff_passkeys.where(status_id: StaffPasskeyStatus::ACTIVE)
+            staff.staff_passkeys.where(status_id: OperatorPasskeyStatus::ACTIVE)
           end
 
           def passkey_params
@@ -100,7 +100,7 @@ module Sign
               credential_payload,
               relying_party: webauthn_relying_party,
             )
-            passkey = StaffPasskey.find_by(webauthn_id: credential.id)
+            passkey = OperatorPasskey.find_by(webauthn_id: credential.id)
 
             staff = pending_mfa_user
             unless passkey && staff && passkey.staff_id == staff.id
@@ -139,17 +139,10 @@ module Sign
                 ),
               )
             when :success
-              if issue_bulletin!
-                redirect_to(
-                  sign_org_in_bulletin_path(rd: result[:redirect_path], ri: params[:ri]),
-                  notice: I18n.t("sign.org.in.mfa.passkey.success"),
-                )
-              else
-                safe_redirect_to_rd_or_default!(
-                  result[:redirect_path],
-                  default_path: sign_org_root_path(ri: params[:ri]),
-                )
-              end
+              redirect_to_sign_in_sequence!(
+                rt: result[:redirect_path],
+                notice: I18n.t("sign.org.in.mfa.passkey.success"),
+              )
             else
               redirect_to(
                 new_sign_org_in_path,

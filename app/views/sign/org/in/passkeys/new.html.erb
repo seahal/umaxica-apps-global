@@ -1,4 +1,5 @@
 <% title t("sign.org.authentication.passkey.new.page_title") %>
+<% return_to = params[:rt].presence %>
 
 <div>
   <div>
@@ -8,8 +9,8 @@
 
   <div
     data-controller="passkey-authentication"
-    data-passkey-authentication-options-url-value="<%= options_sign_org_in_passkeys_path %>"
-    data-passkey-authentication-verification-url-value="<%= verification_sign_org_in_passkeys_path %>"
+    data-passkey-authentication-options-url-value="<%= options_sign_org_in_passkeys_path(rt: return_to) %>"
+    data-passkey-authentication-verification-url-value="<%= verification_sign_org_in_passkeys_path(rt: return_to) %>"
     data-passkey-authentication-identifier-param-value="identifier">
 
     <div>
@@ -22,8 +23,8 @@
              placeholder="<%= t("sign.org.authentication.passkey.new.identifier_placeholder") %>"
              autocomplete="username webauthn"
              autocapitalize="characters"
-             minlength="<%= Staff::PUBLIC_ID_LENGTH %>"
-             maxlength="<%= Staff::PUBLIC_ID_LENGTH %>"
+             minlength="<%= Operator::PUBLIC_ID_LENGTH %>"
+             maxlength="<%= Operator::PUBLIC_ID_LENGTH %>"
              pattern="[0-9A-FGHJKMNPQRSTVWXYZ]{16}"
              spellcheck="false"
              required>
@@ -37,7 +38,7 @@
               data-action="click->passkey-authentication#authenticate">
         <%= t("sign.org.authentication.passkey.new.submit") %>
       </button>
-      <%= link_to t("sign.org.authentication.new.back"), new_sign_org_in_path %>
+      <%= link_to t("sign.org.authentication.new.back"), new_sign_org_in_path(rt: return_to, ri: params[:ri]) %>
     </div>
   </div>
 </div>

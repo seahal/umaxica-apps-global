@@ -22,6 +22,7 @@ each base record file (`app/models/*_record.rb`).
 | -------------- | -------------------- | ---------------------- |
 | `principal`    | `PrincipalRecord`    | User identity          |
 | `operator`     | `OperatorRecord`     | Staff management       |
+| `visitor`      | `VisitorRecord`      | Public/com banners     |
 | `token`        | `TokenRecord`        | Authentication tokens  |
 | `preference`   | `PreferenceRecord`   | User/staff preferences |
 | `occurrence`   | `OccurrenceRecord`   | Rate limiting          |
@@ -36,6 +37,7 @@ each base record file (`app/models/*_record.rb`).
 | `document` | `DocumentRecord` | CMS documents   |
 | `news`     | `NewsRecord`     | News/blog posts |
 | `guest`    | `GuestRecord`    | Guest contacts  |
+| `visitor`  | `VisitorRecord`  | Com banners     |
 | `behavior` | `BehaviorRecord` | User behavior   |
 | `message`  | `MessageRecord`  | Messages        |
 | `finder`   | `FinderRecord`   | Search (finder) |

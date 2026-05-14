@@ -30,7 +30,7 @@ require "test_helper"
 
 class AppPreferenceCookieTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
     @preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
   end
 
@@ -71,5 +71,37 @@ class AppPreferenceCookieTest < ActiveSupport::TestCase
     assert_not cookie.targetable
     assert_not cookie.performant
     assert_not cookie.functional
+  end
+
+  test "loading an existing cookie preserves stored flags" do
+    cookie = AppPreferenceCookie.create!(
+      preference: @preference,
+      targetable: true,
+      performant: true,
+      functional: true,
+      consented: true,
+    )
+
+    loaded = AppPreferenceCookie.find(cookie.id)
+
+    assert loaded.targetable
+    assert loaded.performant
+    assert loaded.functional
+    assert loaded.consented
+  end
+
+  test "set_defaults fills nil booleans on new records" do
+    cookie = AppPreferenceCookie.new(preference: @preference)
+    cookie.targetable = nil
+    cookie.performant = nil
+    cookie.functional = nil
+    cookie.consented = nil
+
+    cookie.send(:set_defaults)
+
+    assert_not cookie.targetable
+    assert_not cookie.performant
+    assert_not cookie.functional
+    assert_not cookie.consented
   end
 end

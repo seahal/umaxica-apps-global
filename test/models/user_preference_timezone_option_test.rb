@@ -32,7 +32,9 @@ class UserPreferenceTimezoneOptionTest < ActiveSupport::TestCase
   end
 
   test "ensure_defaults! creates missing default records" do
-    UserPreferenceTimezoneOption.where(id: UserPreferenceTimezoneOption::DEFAULTS).destroy_all
+    Prosopite.pause do
+      UserPreferenceTimezoneOption.where(id: UserPreferenceTimezoneOption::DEFAULTS).destroy_all
+    end
 
     UserPreferenceTimezoneOption.ensure_defaults!
 

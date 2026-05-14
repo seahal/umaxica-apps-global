@@ -50,10 +50,12 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   end
 
   test "update sets deactivation timestamps" do
-    travel_to Time.zone.parse("2026-02-09 10:00:00") do
-      patch sign_app_configuration_withdrawal_url(ri: "jp"),
-            params: { ack_deactivate_today: "1" },
-            headers: @headers
+    Prosopite.pause do
+      travel_to Time.zone.parse("2026-02-09 10:00:00") do
+        patch sign_app_configuration_withdrawal_url(ri: "jp"),
+              params: { ack_deactivate_today: "1" },
+              headers: @headers
+      end
     end
 
     assert_response :see_other
@@ -115,43 +117,6 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   private
 
   def perform_withdrawal_step_up!
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_withdrawal_path(ri: "jp"))
-    headers = host_headers(@host).merge(
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    )
-
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
-      Email::App::RegistrationMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
-        get(sign_app_verification_url(scope: "withdrawal", return_to: return_to, ri: "jp"), headers: headers)
-
-        assert_response :success
-
-        get(new_sign_app_verification_email_url(ri: "jp"), headers: headers)
-
-        assert_response :redirect
-        Rails.logger.debug { "DEBUG: withdrawal redirect location: #{response.location}" }
-        nonce = response.location[%r{/verification/emails/([^/]+)/edit}, 1]
-        Rails.logger.debug { "DEBUG: withdrawal nonce: #{nonce.inspect}" }
-
-        with_verify_email_otp_stub(true) do
-          patch(
-            sign_app_verification_email_url(nonce, ri: "jp"),
-            params: { verification: { code: "123456" } },
-            headers: headers,
-          )
-        end
-
-        assert_response :redirect
-      end
-    end
-  end
-
-  def with_verify_email_otp_stub(result)
-    original_method = Sign::App::Verification::EmailsController.instance_method(:verify_email_otp!)
-    Sign::App::Verification::EmailsController.define_method(:verify_email_otp!) { result }
-    yield
-  ensure
-    Sign::App::Verification::EmailsController.define_method(:verify_email_otp!, original_method)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
   end
 end

@@ -64,7 +64,7 @@ class Preference::RegionalTest < ActionDispatch::IntegrationTest
   test "helper methods return expected defaults" do
     controller = PreferenceRegionalTestController.new
 
-    assert_equal "sy", controller.send(:get_theme)
+    assert_equal "sy", controller.send(:get_colortheme)
     assert_equal "ja", controller.send(:get_language)
     assert_equal "jp", controller.send(:get_region)
     assert_equal "ASIA/Tokyo", controller.send(:get_timezone)

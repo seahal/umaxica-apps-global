@@ -10,90 +10,92 @@
 #
 require "test_helper"
 
-class StaffPreferenceLanguageOptionTest < ActiveSupport::TestCase
+class OperatorPreferenceLanguageOptionTest < ActiveSupport::TestCase
   def setup
-    StaffPreferenceLanguageOption::DEFAULTS.each do |id|
-      StaffPreferenceLanguageOption.find_or_create_by!(id: id)
+    Prosopite.pause do
+      OperatorPreferenceLanguageOption::DEFAULTS.each do |id|
+        OperatorPreferenceLanguageOption.find_or_create_by!(id: id)
+      end
     end
   end
 
   test "NOTHING constant is defined" do
-    assert_equal 0, StaffPreferenceLanguageOption::NOTHING
+    assert_equal 0, OperatorPreferenceLanguageOption::NOTHING
   end
 
   test "JA constant is defined" do
-    assert_equal 1, StaffPreferenceLanguageOption::JA
+    assert_equal 1, OperatorPreferenceLanguageOption::JA
   end
 
   test "EN constant is defined" do
-    assert_equal 2, StaffPreferenceLanguageOption::EN
+    assert_equal 2, OperatorPreferenceLanguageOption::EN
   end
 
   test "DEFAULTS constant contains JA and EN" do
-    assert_equal [1, 2], StaffPreferenceLanguageOption::DEFAULTS
+    assert_equal [1, 2], OperatorPreferenceLanguageOption::DEFAULTS
   end
 
   test "name returns ja for JA id" do
-    option = StaffPreferenceLanguageOption.find_or_create_by!(id: StaffPreferenceLanguageOption::JA)
+    option = OperatorPreferenceLanguageOption.find_or_create_by!(id: OperatorPreferenceLanguageOption::JA)
 
     assert_equal "ja", option.name
   end
 
   test "name returns en for EN id" do
-    option = StaffPreferenceLanguageOption.find_or_create_by!(id: StaffPreferenceLanguageOption::EN)
+    option = OperatorPreferenceLanguageOption.find_or_create_by!(id: OperatorPreferenceLanguageOption::EN)
 
     assert_equal "en", option.name
   end
 
   test "name returns nil for NOTHING id" do
-    option = StaffPreferenceLanguageOption.create!(id: StaffPreferenceLanguageOption::NOTHING)
+    option = OperatorPreferenceLanguageOption.create!(id: OperatorPreferenceLanguageOption::NOTHING)
 
     assert_nil option.name
   end
 
   test "name returns nil for unknown id" do
-    option = StaffPreferenceLanguageOption.create!(id: 999)
+    option = OperatorPreferenceLanguageOption.create!(id: 999)
 
     assert_nil option.name
   end
 
   test "has_many staff_preference_languages association" do
-    assert_respond_to StaffPreferenceLanguageOption.new, :staff_preference_languages
+    assert_respond_to OperatorPreferenceLanguageOption.new, :staff_preference_languages
   end
 
   test "ensure_defaults! creates missing option records" do
-    StaffPreferenceLanguage.where(option_id: StaffPreferenceLanguageOption::EN).delete_all
-    StaffPreferenceLanguageOption.where(id: StaffPreferenceLanguageOption::EN).delete_all
+    OperatorPreferenceLanguage.where(option_id: OperatorPreferenceLanguageOption::EN).delete_all
+    OperatorPreferenceLanguageOption.where(id: OperatorPreferenceLanguageOption::EN).delete_all
 
-    assert_difference("StaffPreferenceLanguageOption.count", 1) do
-      StaffPreferenceLanguageOption.ensure_defaults!
+    assert_difference("OperatorPreferenceLanguageOption.count", 1) do
+      OperatorPreferenceLanguageOption.ensure_defaults!
     end
 
-    assert StaffPreferenceLanguageOption.exists?(id: StaffPreferenceLanguageOption::EN)
+    assert OperatorPreferenceLanguageOption.exists?(id: OperatorPreferenceLanguageOption::EN)
   end
 
   test "ensure_defaults! skips existing records" do
-    assert_no_difference("StaffPreferenceLanguageOption.count") do
-      StaffPreferenceLanguageOption.ensure_defaults!
+    assert_no_difference("OperatorPreferenceLanguageOption.count") do
+      OperatorPreferenceLanguageOption.ensure_defaults!
     end
   end
 
   test "ensure_defaults! does nothing when all exist" do
-    assert_no_difference("StaffPreferenceLanguageOption.count") do
-      StaffPreferenceLanguageOption.ensure_defaults!
+    assert_no_difference("OperatorPreferenceLanguageOption.count") do
+      OperatorPreferenceLanguageOption.ensure_defaults!
     end
   end
 
   test "primary_key is id" do
-    assert_equal "id", StaffPreferenceLanguageOption.primary_key
+    assert_equal "id", OperatorPreferenceLanguageOption.primary_key
   end
 
   test "staff_preference_languages association works with dependent restrict" do
-    option = StaffPreferenceLanguageOption.find(StaffPreferenceLanguageOption::JA)
-    staff = Staff.create!(status_id: StaffStatus::ACTIVE)
+    option = OperatorPreferenceLanguageOption.find(OperatorPreferenceLanguageOption::JA)
+    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
 
-    pref = StaffPreference.create!(staff: staff)
-    language = StaffPreferenceLanguage.create!(
+    pref = OperatorPreference.create!(staff: staff)
+    language = OperatorPreferenceLanguage.create!(
       preference: pref,
       option_id: option.id,
     )

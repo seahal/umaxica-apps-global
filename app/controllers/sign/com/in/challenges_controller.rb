@@ -10,8 +10,7 @@ module Sign
 
         def show
           @mfa_user = pending_mfa_user
-          @can_use_totp = false
-          @can_use_passkey = @mfa_user&.customer_passkeys&.exists?(status_id: CustomerPasskeyStatus::ACTIVE)
+          @can_use_passkey = @mfa_user&.visitor_passkeys&.exists?(status_id: VisitorPasskeyStatus::ACTIVE)
         end
 
         private

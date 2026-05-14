@@ -3,7 +3,7 @@
 
 <div>
   <div>
-    <%= link_to t('sign.app.configuration.email.index.new_link'), new_sign_app_configuration_emails_registration_path %>
+    <%= link_to t('sign.app.configuration.email.index.new_link'), new_sign_app_configuration_emails_registration_path(ri: params[:ri]) %>
   </div>
 </div>
 
@@ -44,7 +44,7 @@
               </td>
               <td>
                 <%= link_to t("sign.app.configuration.email.index.edit"),
-                            edit_sign_app_configuration_email_path(email.public_id) %>
+                            edit_sign_app_configuration_email_path(email.public_id, ri: params[:ri]) %>
               </td>
             </tr>
           <% end %>

@@ -175,8 +175,8 @@ Table structure:
 
 Authentication-related models:
 
-- UserEmail, StaffEmail
-- UserTelephone, StaffTelephone
+- UserEmail, OperatorEmail
+- UserTelephone, OperatorTelephone
 - UserIdentitySocialApple, UserIdentitySocialGoogle
 - UserWebauthnCredential, StaffWebauthnCredential
 - UserTimeBasedOneTimePassword, StaffTimeBasedOneTimePassword

@@ -54,22 +54,22 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, org_link.reload.uses_count
   end
 
-  test "missing to param returns not found with plain text body" do
+  test "missing to param renders landing page" do
     host! ENV["JUMP_SERVICE_URL"]
     get "/", headers: { "User-Agent" => MODERN_UA }
 
-    assert_response :not_found
-    assert_match %r{\Atext/plain}, response.content_type
-    assert_equal I18n.t("jump.redirector.unavailable"), response.body
+    assert_response :success
+    assert_select "title", "UMAXICA (app) | Jump"
+    assert_select "h1", "Jump::App::Roots#index"
   end
 
-  test "empty to param returns not found with plain text body" do
+  test "empty to param renders landing page" do
     host! ENV["JUMP_SERVICE_URL"]
     get "/", params: { to: "" }, headers: { "User-Agent" => MODERN_UA }
 
-    assert_response :not_found
-    assert_match %r{\Atext/plain}, response.content_type
-    assert_equal I18n.t("jump.redirector.unavailable"), response.body
+    assert_response :success
+    assert_select "title", "UMAXICA (app) | Jump"
+    assert_select "h1", "Jump::App::Roots#index"
   end
 
   test "missing or unavailable public id returns not found with plain text body" do
@@ -83,5 +83,11 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
 
   test "route generation uses root with query param" do
     assert_equal "/?to=opaque123", jump_app_root_path(to: "opaque123")
+  end
+
+  test "concrete to controllers use the expected jump link models" do
+    assert_equal AppJumpLink, Jump::App::ToController::JUMP_LINK_MODEL
+    assert_equal ComJumpLink, Jump::Com::ToController::JUMP_LINK_MODEL
+    assert_equal OrgJumpLink, Jump::Org::ToController::JUMP_LINK_MODEL
   end
 end

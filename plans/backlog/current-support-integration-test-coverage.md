@@ -4,7 +4,7 @@
 
 Add integration tests that verify `CurrentSupport#set_current` correctly populates `Current`
 attributes during the request lifecycle and resets them afterward. The existing unit tests cover
-`Current` model attributes and `Current::Preference` value objects well, but do not exercise the
+`Actor` current attributes and `Actor::Preference` value objects well, but do not exercise the
 `before_action` / `after_action` wiring through real requests.
 
 ## Missing Coverage
@@ -13,17 +13,17 @@ attributes during the request lifecycle and resets them afterward. The existing 
 
 Verify that a request through a controller with `CurrentSupport` included:
 
-- Sets `Current.actor`, `Current.actor_type`, `Current.domain`, `Current.surface`, `Current.realm`,
-  `Current.session`, `Current.token`, and `Current.preference` during the action.
-- Resets all `Current` attributes via `_reset_current_state` after the response.
+- Sets `Actor.actor`, `Actor.actor_type`, `Actor.domain`, `Actor.surface`,
+  `Actor.session`, `Actor.token`, and `Actor.preference` during the action.
+- Resets all `Actor` attributes via `_reset_current_state` after the response.
 
 ### 2. `resolved_current_preference` fallback chain
 
 Test the three-stage fallback in order:
 
-1. DB preference record present → `Current.preference` built from record.
-2. No DB record, JWT `prf` claim present → `Current.preference` built from JWT.
-3. Neither present → `Current.preference` is `NULL` with safe defaults.
+1. DB preference record present → `Actor.preference` built from record.
+2. No DB record, JWT `prf` claim present → `Actor.preference` built from JWT.
+3. Neither present → `Actor.preference` is `NULL` with safe defaults.
 
 Each stage should also verify cookie consent propagation.
 
@@ -45,16 +45,16 @@ Test type detection from resource:
 - Resource responds to `customer?` and returns `true` → `:customer`.
 - Resource is a `User` → `:user`.
 - Resource is `nil` → `:unauthenticated`.
-- `Current.actor_type` already set → preserved.
+- `Actor.actor_type` already set → preserved.
 
 ### 5. Controller integration (real request round-trip)
 
 For at least one surface per realm (sign, acme, core), verify:
 
-- Authenticated request → `Current.actor` matches the authenticated resource.
-- Unauthenticated request → `Current.actor` is `Unauthenticated.instance`.
-- `Current.preference` reflects the actor's preference record or JWT claim.
-- After response completes, `Current` attributes are reset.
+- Authenticated request → `Actor.actor` matches the authenticated resource.
+- Unauthenticated request → `Actor.actor` is `Unauthenticated.instance`.
+- `Actor.preference` reflects the actor's preference record or JWT claim.
+- After response completes, `Actor` attributes are reset.
 
 ## Approach
 

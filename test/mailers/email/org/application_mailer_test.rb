@@ -36,4 +36,34 @@ class Email::Org::ApplicationMailerTest < ActionMailer::TestCase
   test "uses organization mailer layout" do
     assert_equal "mailer/org/mailer", Email::Org::ApplicationMailer._layout
   end
+
+  test "sets promotional unsubscribe headers when requested" do
+    operator = staffs(:one)
+    email_record = OperatorEmail.create!(
+      staff: operator,
+      address: "mailer-operator-#{SecureRandom.hex(4)}@example.com",
+      staff_identity_email_status_id: OperatorEmailStatus::VERIFIED,
+      confirm_policy: "1",
+    )
+
+    mailer =
+      Class.new(Email::Org::ApplicationMailer) do
+        define_method(:sample) do
+          set_promotional_unsubscribe_headers(params.fetch(:email_record))
+          mail(to: "operator@example.com", subject: "Operator Sample") do |format|
+            format.text { render plain: "hello" }
+          end
+        end
+      end
+
+    email = mailer.with(email_record: email_record).sample
+    expected_url = Rails.application.routes.url_helpers.sign_org_preference_email_url(
+      email_record,
+      token: email_record.promotional_unsubscribe_token,
+      host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
+    )
+
+    assert_equal "<#{expected_url}>", email["List-Unsubscribe"].value
+    assert_equal "List-Unsubscribe=One-Click", email["List-Unsubscribe-Post"].value
+  end
 end

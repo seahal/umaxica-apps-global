@@ -37,7 +37,7 @@ Done:
 
 - `deletable_at` and `shreddable_at` columns exist on `users` and `staffs` tables (defaults to
   INFINITY).
-- Token models (UserToken, StaffToken, CustomerToken) have `deletable_at`.
+- Token models (UserToken, OperatorToken, CustomerToken) have `deletable_at`.
 
 Remaining:
 

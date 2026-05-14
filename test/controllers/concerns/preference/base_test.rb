@@ -101,10 +101,12 @@ module Preference
         Kernel
       )
 
-      malicious_inputs.each do |input|
-        result = @controller.test_sanitize_option_id({ option_id: input }, option_type: :timezone)
+      Prosopite.pause do
+        malicious_inputs.each do |input|
+          result = @controller.test_sanitize_option_id({ option_id: input }, option_type: :timezone)
 
-        assert_equal input, result[:option_id], "Expected malicious input '#{input}' to be returned unchanged"
+          assert_equal input, result[:option_id], "Expected malicious input '#{input}' to be returned unchanged"
+        end
       end
     end
 
@@ -138,6 +140,10 @@ module Preference
       @controller = PreferenceSanitizeTestController.new
     end
 
+    teardown do
+      ApplicationRecord.clear_fixed_id_seed_cache!
+    end
+
     test "recreates missing app preference activity level defaults" do
       AppPreferenceChronicle.delete_all
       AppPreferenceChronicleLevel.where(id: AppPreferenceChronicleLevel::INFO).delete_all
@@ -159,6 +165,24 @@ module Preference
       @controller.test_ensure_preference_reference_defaults!
 
       assert_not_nil OrgPreferenceChronicleLevel.find_by(id: OrgPreferenceChronicleLevel::INFO)
+    end
+
+    test "recreates missing app preference parent reference defaults" do
+      called = []
+
+      AppPreferenceStatus.stub(:ensure_defaults!, -> { called << :status }) do
+        AppPreferenceChronicleLevel.stub(:ensure_defaults!, -> { called << :chronicle_level }) do
+          AppPreferenceChronicleEvent.stub(:ensure_defaults!, -> { called << :chronicle_event }) do
+            AppPreferenceBindingMethod.stub(:ensure_defaults!, -> { called << :binding_method }) do
+              AppPreferenceDbscStatus.stub(:ensure_defaults!, -> { called << :dbsc_status }) do
+                @controller.test_ensure_preference_reference_defaults!
+              end
+            end
+          end
+        end
+      end
+
+      assert_equal %i(status chronicle_level chronicle_event binding_method dbsc_status), called
     end
   end
 
@@ -225,11 +249,32 @@ module Preference
       end
     end
 
-    test "audience_for falls back to all audiences when no TLD matches" do
+    test "audience_for falls back to the current host when no TLD matches" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
         result = Preference::JwtConfiguration.audience_for("example.org")
 
-        assert_equal %w(umaxica.app umaxica.com), result
+        assert_equal %w(example.org), result
+      end
+    end
+
+    test "audience_for keeps org preference tokens host-scoped when org audience is not configured" do
+      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
+        result = Preference::JwtConfiguration.audience_for("id.umaxica.org")
+
+        assert_equal %w(id.umaxica.org), result
+      end
+    end
+
+    test "host_scope_for uses matching configured audience for sibling hosts" do
+      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
+        assert_equal "umaxica.app", Preference::JwtConfiguration.host_scope_for("id.umaxica.app")
+        assert_equal "umaxica.com", Preference::JwtConfiguration.host_scope_for("www.umaxica.com")
+      end
+    end
+
+    test "host_scope_for falls back to host when no configured audience matches" do
+      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
+        assert_equal "id.umaxica.org", Preference::JwtConfiguration.host_scope_for("id.umaxica.org")
       end
     end
 
@@ -283,7 +328,7 @@ module Preference
 
             assert_not_nil decoded
             assert_equal @preferences, decoded["preferences"]
-            assert_equal @host, decoded["host"]
+            assert_equal Preference::JwtConfiguration.host_scope_for(@host), decoded["host"]
             assert_equal @type, decoded["preference_type"]
             assert_equal @public_id, decoded["public_id"]
             assert_equal @jti, decoded["jti"]
@@ -360,6 +405,81 @@ module Preference
     test "resolve_option_id_from_param returns integer for valid input" do
       assert_equal AppPreferenceTimezoneOption::ASIA_TOKYO,
                    @controller.send(:resolve_option_id_from_param, "Asia/Tokyo", :timezone, 99, "prefix")
+    end
+
+    test "preference child records are created with the parent association" do
+      preference = Object.new
+      option_ids = Preference::ClassRegistry::CHILD_RECORD_TYPES.index_with.with_index { |_, index| index + 1 }
+      created_records = []
+      record_class =
+        Class.new do
+          define_singleton_method(:create!) { |attributes| created_records << attributes }
+        end
+      Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
+        preference.define_singleton_method(:"create_app_preference_#{type}!") do |attributes|
+          created_records << attributes
+        end
+      end
+
+      Preference::ClassRegistry.stub(:record_class, ->(_prefix, _type) { record_class }) do
+        @controller.send(:create_preference_option_records, "App", preference, option_ids)
+      end
+
+      assert_equal Preference::ClassRegistry::CHILD_RECORD_TYPES.size, created_records.size
+      assert_equal option_ids.values, created_records.pluck(:option_id)
+      assert created_records.none? { |attributes| attributes.key?(:preference_id) }
+      assert created_records.none? { |attributes| attributes.key?(:preference) }
+    end
+
+    test "preference child records are created on their model writing connection" do
+      preference = Object.new
+      option_ids = Preference::ClassRegistry::CHILD_RECORD_TYPES.index_with.with_index { |_, index| index + 1 }
+      roles = []
+      created_records = []
+      Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
+        preference.define_singleton_method(:"create_app_preference_#{type}!") do |attributes|
+          created_records << attributes
+        end
+      end
+
+      connection_owner =
+        Class.new(ApplicationRecord) do
+          self.abstract_class = true
+        end
+      connection_owner.define_singleton_method(:connected_to) do |role:, &block|
+        roles << role
+        block.call
+      end
+
+      record_class = Class.new(connection_owner)
+      record_class.define_singleton_method(:create!) { |attributes| created_records << attributes }
+
+      Preference::ClassRegistry.stub(:record_class, ->(_prefix, _type) { record_class }) do
+        @controller.send(:create_preference_option_records, "App", preference, option_ids)
+      end
+
+      assert_equal Array.new(Preference::ClassRegistry::CHILD_RECORD_TYPES.size, :writing), roles
+      assert_equal Preference::ClassRegistry::CHILD_RECORD_TYPES.size, created_records.size
+    end
+
+    test "preference cookie is created with the parent association" do
+      preference = Object.new
+      created_attributes = nil
+      preference.define_singleton_method(:create_app_preference_cookie!) do |attributes|
+        created_attributes = attributes
+      end
+      cookie_class =
+        Class.new do
+          define_singleton_method(:create!) { |attributes| created_attributes = attributes }
+        end
+
+      Preference::ClassRegistry.stub(:cookie_class, ->(_prefix) { cookie_class }) do
+        @controller.send(:create_preference_cookie, "App", preference)
+      end
+
+      assert_not created_attributes[:functional]
+      assert_not created_attributes.key?(:preference_id)
+      assert_not created_attributes.key?(:preference)
     end
 
     test "normalized_locale returns sym for valid locale" do
@@ -785,7 +905,9 @@ module Preference
     FakePreference =
       Struct.new(
         :app_preference_language, :app_preference_region, :app_preference_timezone,
-        :app_preference_theme, :app_preference_cookie, keyword_init: true,
+        :app_preference_theme, :app_preference_currency, :app_preference_date_format,
+        :app_preference_time_format, :app_preference_motion, :app_preference_density,
+        :app_preference_items_per_page, :app_preference_cookie, keyword_init: true,
       ) do
         def class
           AppPreference

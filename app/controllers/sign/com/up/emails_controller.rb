@@ -10,20 +10,21 @@ module Sign
         include Common::Otp
 
         SESSION_KEY = :sign_com_up_email_flow_state
-        EXISTING_EMAIL_SESSION_KEY = :sign_com_up_existing_customer_email_id
-        EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :sign_com_up_existing_customer_email_skip_otp
-        PENDING_CUSTOMER_ID_SESSION_KEY = :sign_com_up_pending_customer_id
+        EXISTING_EMAIL_SESSION_KEY = :sign_com_up_existing_visitor_email_id
+        EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :sign_com_up_existing_visitor_email_skip_otp
+        PENDING_VISITOR_ID_SESSION_KEY = :sign_com_up_pending_visitor_id
 
-        guest_only! message: I18n.t("sign.app.registration.email.already_logged_in")
+        guest_only! status: :unauthorized
 
+        prepend_before_action :reject_logged_in_session, only: %i(new create)
         before_action :enforce_email_flow!
 
         def new
-          @user_email = CustomerEmail.new
+          @user_email = VisitorEmail.new
         end
 
         def edit
-          @user_email = CustomerEmail.find_by(public_id: params["id"])
+          @user_email = VisitorEmail.find_by(public_id: params["id"])
           if @user_email.blank?
             reset_email_flow!
             redirect_to(
@@ -41,58 +42,69 @@ module Sign
         end
 
         def create
-          email_params = params.expect(customer_email: %i(raw_address address confirm_policy))
-          email_address = email_params[:raw_address] || email_params[:address]
-
           unless cloudflare_turnstile_validation["success"]
-            @user_email = CustomerEmail.new(address: email_address)
+            @user_email = VisitorEmail.new
             @user_email.errors.add(
               :base,
-              t("session_limit.turnstile_failed"),
+              t("sign.com.registration.email.create.turnstile_validation_failed"),
             )
             render :new, status: :unprocessable_content
             return
           end
 
-          result = initiate_customer_email_verification!(email_address, confirm_policy: email_params[:confirm_policy])
+          email_params = params.permit(visitor_email: %i(raw_address address confirm_policy notifiable))[:visitor_email]
+          email_address = email_params&.[](:raw_address).presence || email_params&.[](:address).presence
+
+          if email_address.blank?
+            @user_email = VisitorEmail.new
+            @user_email.errors.add(
+              :base,
+              t("sign.com.registration.email.create.address_required"),
+            )
+            render :new, status: :unprocessable_content
+            return
+          end
+
+          result = initiate_visitor_email_verification!(
+            email_address,
+            confirm_policy: email_params[:confirm_policy],
+            email_preferences: email_params.slice(:notifiable),
+          )
           if result == :cooldown
             render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
             return
           end
 
           unless result
+            strip_visitor_owner_errors!
             render :new, status: :unprocessable_content
             return
           end
 
           progress_email_flow!(:create)
-          flash[:notice] = t("sign.app.registration.email.create.verification_code_sent")
-          redirect_to(edit_sign_com_up_email_path(@user_email, ri: params[:ri], rd: sanitized_rd_param))
+          flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
+          redirect_to(edit_sign_com_up_email_path(@user_email, ri: params[:ri], rt: sanitized_rt_param))
         end
 
         def update
-          @user_email = CustomerEmail.find_by(public_id: params["id"])
+          @user_email = VisitorEmail.find_by(public_id: params["id"])
           return redirect_invalid_session unless valid_email_session?
-          return render_code_required if params.dig("customer_email", "pass_code").blank?
+          return render_code_required if params.dig("visitor_email", "pass_code").blank?
 
-          submitted_code = params.dig("customer_email", "pass_code")
+          submitted_code = params.dig("visitor_email", "pass_code")
           result =
             existing_signup_email_flow? ? handle_existing_email_verification(submitted_code) :
-                                           complete_customer_email_verification!(submitted_code)
+                                           complete_visitor_email_verification!(submitted_code)
           return if result == :redirected
           return handle_locked_result if result == :locked
           return render :edit, status: :unprocessable_content unless result
 
           progress_email_flow!(:update)
           create_welcome_bulletin!(current_resource)
-          if issue_bulletin!
-            redirect_to(
-              sign_com_in_bulletin_path(rd: params[:rd], ri: params[:ri]),
-              notice: t("sign.app.registration.email.update.success"),
-            )
-          else
-            safe_redirect_to_rd_or_default!(params[:rd], default_path: sign_com_configuration_path(ri: params[:ri]))
-          end
+          redirect_to_sign_in_sequence!(
+            rt: redirect_parameter_value,
+            notice: t("sign.app.registration.email.update.success"),
+          )
         end
 
         private
@@ -128,7 +140,7 @@ module Sign
           session[SESSION_KEY] = "init"
           session.delete(EXISTING_EMAIL_SESSION_KEY)
           session.delete(EXISTING_EMAIL_SKIP_OTP_SESSION_KEY)
-          session.delete(PENDING_CUSTOMER_ID_SESSION_KEY)
+          session.delete(PENDING_VISITOR_ID_SESSION_KEY)
         end
 
         def redirect_invalid_session
@@ -158,7 +170,7 @@ module Sign
           else
             return false if @user_email.otp_expired?
 
-            @user_email.customer_email_status_id == CustomerEmailStatus::UNVERIFIED_WITH_SIGN_UP
+            @user_email.visitor_email_status_id == VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP
           end
         end
 
@@ -174,18 +186,20 @@ module Sign
           session[EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] == true
         end
 
-        def initiate_customer_email_verification!(email_address, confirm_policy: "1")
-          @user_email = CustomerEmail.new(raw_address: email_address, confirm_policy: confirm_policy)
-          @user_email.customer_email_status_id = CustomerEmailStatus::UNVERIFIED_WITH_SIGN_UP
+        def initiate_visitor_email_verification!(email_address, confirm_policy: "1", email_preferences: {})
+          @user_email = VisitorEmail.new(
+            { raw_address: email_address, confirm_policy: confirm_policy }.merge(email_preferences),
+          )
+          @user_email.visitor_email_status_id = VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP
           @user_email.validate
 
           existing_email =
             @user_email.address_digest.present? ?
-              CustomerEmail.find_by(address_digest: @user_email.address_digest) : nil
-          uniqueness_only = customer_email_uniqueness_only_error?(@user_email)
+              VisitorEmail.find_by(address_digest: @user_email.address_digest) : nil
+          uniqueness_only = visitor_email_uniqueness_only_error?(@user_email)
 
           if existing_email &&
-              existing_email.customer_email_status_id != CustomerEmailStatus::UNVERIFIED_WITH_SIGN_UP &&
+              existing_email.visitor_email_status_id != VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP &&
               (uniqueness_only || @user_email.errors.empty?)
             @user_email = existing_email
             session[EXISTING_EMAIL_SESSION_KEY] = @user_email.id
@@ -193,17 +207,17 @@ module Sign
             return true
           end
 
-          return :cooldown if existing_email&.customer_email_status_id ==
-            CustomerEmailStatus::UNVERIFIED_WITH_SIGN_UP && existing_email.otp_cooldown_active?
+          return :cooldown if existing_email&.visitor_email_status_id ==
+            VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP && existing_email.reregistration_window_active?
 
-          return false if @user_email.errors.details.except(:customer, :customer_id).any? && !uniqueness_only
+          return false if @user_email.errors.details.except(:visitor, :visitor_id).any? && !uniqueness_only
 
-          CustomerEmail.transaction do
-            cleanup_pending_customer_signup!
-            remove_existing_unverified_customer_emails!
-            pending_customer = Customer.create!(status_id: CustomerStatus::ACTIVE, visibility_id: CustomerVisibility::CUSTOMER)
-            session[PENDING_CUSTOMER_ID_SESSION_KEY] = pending_customer.id
-            @user_email.customer = pending_customer
+          VisitorEmail.transaction do
+            cleanup_pending_visitor_signup!
+            remove_existing_unverified_visitor_emails!
+            pending_visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+            session[PENDING_VISITOR_ID_SESSION_KEY] = pending_visitor.id
+            @user_email.visitor = pending_visitor
             otp_number = generate_otp_attributes(@user_email)
             @user_email.otp_last_sent_at = Time.current
             @user_email.save!
@@ -216,11 +230,12 @@ module Sign
 
           true
         rescue ActiveRecord::RecordInvalid => e
-          @user_email = e.record if e.record.is_a?(CustomerEmail)
+          @user_email = e.record if e.record.is_a?(VisitorEmail)
+          strip_visitor_owner_errors!
           false
         end
 
-        def complete_customer_email_verification!(submitted_code)
+        def complete_visitor_email_verification!(submitted_code)
           result = verify_otp_code(@user_email, submitted_code)
           unless result[:success]
             increment_otp_attempts!(@user_email)
@@ -232,12 +247,17 @@ module Sign
             return false
           end
 
-          CustomerEmail.transaction do
+          VisitorEmail.transaction do
             clear_otp(@user_email)
-            @user_email.update!(customer_email_status_id: CustomerEmailStatus::VERIFIED_WITH_SIGN_UP)
-            customer = @user_email.customer
-            create_signup_audit!(customer)
-            log_in(customer, record_login_audit: false)
+            @user_email.update!(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
+            visitor = @user_email.visitor
+            visitor.create_client_account! unless visitor.client_account
+            create_signup_audit!(visitor)
+            log_in(
+              visitor,
+              record_login_audit: true,
+              audit_context: { auth_method: "email" },
+            )
           end
 
           true
@@ -274,54 +294,62 @@ module Sign
           :redirected
         end
 
-        def cleanup_pending_customer_signup!
-          pending_customer_id = session[PENDING_CUSTOMER_ID_SESSION_KEY]
-          return if pending_customer_id.blank?
+        def cleanup_pending_visitor_signup!
+          pending_visitor_id = session[PENDING_VISITOR_ID_SESSION_KEY]
+          return if pending_visitor_id.blank?
 
-          Customer.find_by(id: pending_customer_id)&.destroy!
+          Visitor.find_by(id: pending_visitor_id)&.destroy!
         end
 
-        def remove_existing_unverified_customer_emails!
+        def remove_existing_unverified_visitor_emails!
           return if @user_email.address_digest.blank?
 
-          existing_emails = CustomerEmail.where(address_digest: @user_email.address_digest, customer_email_status_id: [CustomerEmailStatus::UNVERIFIED_WITH_SIGN_UP]).to_a
-          pending_customer_ids = existing_emails.filter_map(&:customer_id)
-          Customer.where(id: pending_customer_ids).find_each(&:destroy!) if pending_customer_ids.any?
-          existing_emails.each { |email| email.destroy! if email.customer_id.blank? }
+          existing_emails = VisitorEmail.where(address_digest: @user_email.address_digest, visitor_email_status_id: [VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP]).to_a
+          pending_visitor_ids = existing_emails.filter_map(&:visitor_id)
+          Visitor.where(id: pending_visitor_ids).find_each(&:destroy!) if pending_visitor_ids.any?
+          existing_emails.each { |email| email.destroy! if email.visitor_id.blank? }
         end
 
-        def customer_email_uniqueness_only_error?(customer_email)
-          errors_to_check = customer_email.errors.details.except(:customer, :customer_id)
+        def visitor_email_uniqueness_only_error?(visitor_email)
+          errors_to_check = visitor_email.errors.details.except(:visitor, :visitor_id)
           return false if errors_to_check.empty?
 
-          uniqueness_fields = %i(address raw_address address_bidx address_digest)
+          uniqueness_fields = %i(address raw_address address_digest)
           errors_to_check.each do |field, errors|
             return false unless uniqueness_fields.include?(field)
             return false unless errors.all? { |error| error[:error] == :taken }
           end
-          customer_email.errors.details.any?
+          visitor_email.errors.details.any?
         end
 
-        def create_signup_audit!(customer)
+        def create_signup_audit!(visitor)
           event_id = UserChronicleEvent::SIGNED_UP_WITH_EMAIL
           ChronicleRecord.connected_to(role: :writing) do
             UserChronicleEvent.find_or_create_by!(id: event_id)
             UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
             UserChronicle.create!(
-              actor_type: "Customer", actor_id: customer.id, event_id: event_id,
-              subject_id: customer.id.to_s, subject_type: "Customer",
+              actor_type: "Visitor", actor_id: visitor.id, event_id: event_id,
+              subject_id: visitor.id.to_s, subject_type: "Visitor",
             )
           end
         end
 
-        def sanitized_rd_param
-          return if params[:rd].blank?
+        def sanitized_rt_param
+          encoded = redirect_parameter_value
+          return if encoded.blank?
 
-          decoded_url = Base64.urlsafe_decode64(params[:rd])
+          decoded_url = Base64.urlsafe_decode64(encoded)
           safe_path = safe_internal_path(decoded_url)
           Base64.urlsafe_encode64(safe_path) if safe_path
         rescue ArgumentError, URI::InvalidURIError
           nil
+        end
+
+        def strip_visitor_owner_errors!
+          return if @user_email.blank?
+
+          @user_email.errors.delete(:visitor)
+          @user_email.errors.delete(:visitor_id)
         end
       end
     end

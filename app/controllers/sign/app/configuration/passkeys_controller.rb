@@ -28,7 +28,9 @@ module Sign
         include Sign::Webauthn
 
         before_action :authenticate_user!
-        before_action :ensure_verified_recovery_identity_for_registration!, only: [:new, :create]
+        before_action only: %i(new create options verification) do
+          require_step_up_unless_bootstrap!(scope: verification_scope)
+        end
         before_action :set_passkey, only: %i(show edit update destroy)
 
         # GET /configuration/passkeys
@@ -54,10 +56,11 @@ module Sign
         # POST /configuration/passkeys
         def create
           @passkey = current_user.user_passkeys.new(create_params)
-          authorize!(@passkey, :create?)
+          authorize!(@passkey)
 
           return unless @passkey.save
 
+          record_passkey_registration_step_up!
           render plain: "ok", status: :created
         end
 
@@ -120,6 +123,7 @@ module Sign
             persist_passkey!(passkey)
 
             issue_emergency_key!
+            record_passkey_registration_step_up!
             render_verification_success
           end
         rescue Sign::Webauthn::ChallengeNotFoundError,
@@ -205,7 +209,7 @@ module Sign
         end
 
         def credential_params
-          params.expect(:credential)&.permit(
+          params.fetch(:credential, {}).permit(
             :id,
             :rawId,
             :type,
@@ -244,12 +248,13 @@ module Sign
         end
 
         def render_verification_success
-          redirect_url =
+          default_redirect_url =
             if respond_to?(:sign_app_configuration_emergency_key_path, true)
               sign_app_configuration_emergency_key_path(ri: params[:ri])
             else
               sign_app_configuration_passkeys_path(ri: params[:ri])
             end
+          redirect_url = bootstrap_return_path(default_redirect_url)
 
           render json: {
             status: "ok",
@@ -259,7 +264,7 @@ module Sign
 
         def update_params
           key = params.key?(:user_passkey) ? :user_passkey : :passkey
-          params[key => [:description]]
+          params.fetch(key, {}).permit(:description)
         end
 
         def create_params
@@ -274,18 +279,36 @@ module Sign
           session[:recovery_secret_raw] = result.raw_secret
         end
 
-        def ensure_verified_recovery_identity_for_registration!
-          return if current_user.has_verified_recovery_identity?
-
-          render plain: User::RECOVERY_IDENTITY_REQUIRED_MESSAGE, status: :forbidden
-        end
-
         def passkey_description
           params[:description].presence || I18n.t("sign.default_passkey_description")
         end
 
+        def record_passkey_registration_step_up!
+          current_session_token&.update!(
+            last_step_up_at: Time.current,
+            last_step_up_scope: verification_scope,
+          )
+          create_audit_event!(UserChronicleEvent::PASSKEY_REGISTERED)
+        end
+
+        def create_audit_event!(event_id)
+          ChronicleRecord.connected_to(role: :writing) do
+            UserChronicleEvent.find_or_create_by!(id: event_id)
+            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+          end
+
+          UserChronicle.create!(
+            actor_type: "User",
+            actor_id: current_user.id,
+            event_id: event_id,
+            subject_id: current_user.id.to_s,
+            subject_type: "User",
+            occurred_at: Time.current,
+          )
+        end
+
         def verification_required_action?
-          %w(new options verification edit update destroy).include?(action_name)
+          step_up_bootstrap_active?
         end
 
         def verification_scope

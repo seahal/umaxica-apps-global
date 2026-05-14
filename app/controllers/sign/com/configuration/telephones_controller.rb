@@ -12,27 +12,27 @@ module Sign
 
         TELEPHONE_VERIFICATION_RATE_LIMIT = 5
         TELEPHONE_VERIFICATION_RATE_WINDOW = 60
-        before_action :authenticate_customer!
+        before_action :authenticate_visitor!
 
         def index
-          @user_telephones = current_customer.customer_telephones.order(created_at: :asc)
+          @user_telephones = current_visitor.visitor_telephones.order(created_at: :asc)
         end
 
         def new
-          @user_telephone = CustomerTelephone.new
+          @user_telephone = VisitorTelephone.new
         end
 
         def edit
-          @user_telephone = current_customer.customer_telephones.find_by!(public_id: params.expect(:id))
+          @user_telephone = current_visitor.visitor_telephones.find_by!(public_id: params.expect(:id))
         end
 
         def create
-          customer = current_customer
-          return head :unauthorized if customer.blank?
+          visitor = current_visitor
+          return head :unauthorized if visitor.blank?
 
           tel_params = params.expect(user_telephone: [:raw_number, :number])
           number = tel_params[:raw_number] || tel_params[:number]
-          if initiate_customer_telephone_verification(customer, number, auto_accept_confirmations: true)
+          if initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: true)
             redirect_to(edit_sign_com_configuration_telephone_path(@user_telephone.id, ri: params[:ri]))
           else
             render :new, status: :unprocessable_content
@@ -40,9 +40,9 @@ module Sign
         end
 
         def destroy
-          telephone = current_customer.customer_telephones.find_by!(public_id: params.expect(:id))
+          telephone = current_visitor.visitor_telephones.find_by!(public_id: params.expect(:id))
 
-          unless AuthMethodGuard.can_remove_telephone?(current_customer, telephone)
+          unless AuthMethodGuard.can_remove_telephone?(current_visitor, telephone)
             redirect_to(
               sign_com_configuration_telephones_path(ri: params[:ri]),
               alert: t("sign.app.configuration.telephone.destroy.last_method"),
@@ -69,8 +69,8 @@ module Sign
           end
 
           UserChronicle.create!(
-            actor_type: "Customer",
-            actor_id: current_customer.id,
+            actor_type: "Visitor",
+            actor_id: current_visitor.id,
             event_id: event_id,
             subject_id: subject.id.to_s,
             subject_type: subject.class.name,
@@ -86,28 +86,28 @@ module Sign
           "configuration_telephone"
         end
 
-        def initiate_customer_telephone_verification(customer, number, auto_accept_confirmations: false)
-          return false if customer.blank?
+        def initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: false)
+          return false if visitor.blank?
 
           check_telephone_verification_rate_limit!
 
           digest = IdentifierBlindIndex.bidx_for_telephone(number)
-          existing_customer_telephone =
-            digest.present? ? customer.customer_telephones.find_by(number_digest: digest) : nil
+          existing_visitor_telephone =
+            digest.present? ? visitor.visitor_telephones.find_by(number_digest: digest) : nil
 
-          @user_telephone = existing_customer_telephone || customer.customer_telephones.build(raw_number: number)
-          @user_telephone.raw_number = number if existing_customer_telephone
-          @user_telephone.customer_telephone_status_id = CustomerTelephoneStatus::UNVERIFIED
+          @user_telephone = existing_visitor_telephone || visitor.visitor_telephones.build(raw_number: number)
+          @user_telephone.raw_number = number if existing_visitor_telephone
+          @user_telephone.visitor_telephone_status_id = VisitorTelephoneStatus::UNVERIFIED
           if auto_accept_confirmations
             @user_telephone.confirm_policy = true
             @user_telephone.confirm_using_mfa = true
           end
 
-          if digest.present? && existing_customer_telephone.blank?
-            CustomerTelephone.where(
+          if digest.present? && existing_visitor_telephone.blank?
+            VisitorTelephone.where(
               number_digest: digest,
-              customer_id: customer.id,
-              customer_telephone_status_id: CustomerTelephoneStatus::UNVERIFIED,
+              visitor_id: visitor.id,
+              visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
             ).destroy_all
           end
 
@@ -119,10 +119,10 @@ module Sign
           true
         end
 
-        def send_telephone_verification_sms(customer_telephone, otp_number)
+        def send_telephone_verification_sms(visitor_telephone, otp_number)
           message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
           SmsDeliveryJob.perform_later(
-            to: customer_telephone.number,
+            to: visitor_telephone.number,
             message: message,
             subject: message,
           )

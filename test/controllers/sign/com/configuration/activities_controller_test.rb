@@ -9,13 +9,13 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    @customer = create_verified_customer_with_email(email_address: "activities-#{SecureRandom.hex(4)}@example.com")
-    @customer.customer_telephones.create!(
+    @visitor = create_verified_visitor_with_email(email_address: "activities-#{SecureRandom.hex(4)}@example.com")
+    @visitor.visitor_telephones.create!(
       number: "+10000000992",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @token = CustomerToken.create!(customer: @customer, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
-    satisfy_customer_verification(@token)
+    @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    satisfy_visitor_verification(@token)
 
     ChronicleRecord.connected_to(role: :writing) do
       UserChronicle.delete_all
@@ -29,18 +29,18 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     assert_match(/ri=jp/, response.headers["Location"])
   end
 
-  test "shows only current customer activity logs" do
+  test "shows only current visitor activity logs" do
     create_user_audit(
-      customer: @customer,
+      visitor: @visitor,
       event_id: UserChronicleEvent::LOGGED_IN,
       occurred_at: 2.minutes.ago,
       context: { tag: "my-login-event" },
     )
 
     other_email = "activities-other-#{SecureRandom.hex(4)}@example.com"
-    other_customer = create_verified_customer_with_email(email_address: other_email)
+    other_visitor = create_verified_visitor_with_email(email_address: other_email)
     create_user_audit(
-      customer: other_customer,
+      visitor: other_visitor,
       event_id: UserChronicleEvent::LOGGED_IN,
       occurred_at: 1.minute.ago,
       context: { tag: "other-user-event" },
@@ -55,19 +55,19 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "orders activity by occurred_at desc" do
     create_user_audit(
-      customer: @customer,
+      visitor: @visitor,
       event_id: UserChronicleEvent::LOGGED_IN,
       occurred_at: 3.hours.ago,
       context: { tag: "oldest-entry" },
     )
     create_user_audit(
-      customer: @customer,
+      visitor: @visitor,
       event_id: UserChronicleEvent::LOGGED_IN,
       occurred_at: 2.hours.ago,
       context: { tag: "middle-entry" },
     )
     create_user_audit(
-      customer: @customer,
+      visitor: @visitor,
       event_id: UserChronicleEvent::LOGGED_IN,
       occurred_at: 1.hour.ago,
       context: { tag: "newest-entry" },
@@ -87,13 +87,13 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "filters to login success events" do
     create_user_audit(
-      customer: @customer,
+      visitor: @visitor,
       event_id: UserChronicleEvent::LOGGED_IN,
       occurred_at: 2.minutes.ago,
       context: { tag: "login-success-event" },
     )
     create_user_audit(
-      customer: @customer,
+      visitor: @visitor,
       event_id: UserChronicleEvent::ACCOUNT_WITHDRAWN,
       occurred_at: 1.minute.ago,
       context: { tag: "non-login-event" },
@@ -108,7 +108,7 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "renders user agent summary and login method" do
     create_user_audit(
-      customer: @customer,
+      visitor: @visitor,
       event_id: UserChronicleEvent::LOGGED_IN,
       occurred_at: Time.current,
       context: {
@@ -160,18 +160,18 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   def request_headers
     {
       "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => @customer.id,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
   end
 
-  def create_user_audit(customer:, event_id:, occurred_at:, context:, ip_address: "203.0.113.25")
+  def create_user_audit(visitor:, event_id:, occurred_at:, context:, ip_address: "203.0.113.25")
     UserChronicle.create!(
       actor_type: "User",
-      actor_id: customer.id,
+      actor_id: visitor.id,
       event_id: event_id,
       level_id: UserChronicleLevel::NOTHING,
-      subject_id: customer.id,
+      subject_id: visitor.id,
       subject_type: "User",
       occurred_at: occurred_at,
       ip_address: ip_address,

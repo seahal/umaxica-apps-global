@@ -9,27 +9,28 @@ module Sign
 
         include ::Verification::User
 
-        before_action :authenticate_customer!
+        before_action :authenticate_visitor!
 
         def show
-          @user = current_customer
-          @passkeys = current_customer.customer_passkeys.active.order(created_at: :desc)
-          @totps = []
+          @user = current_visitor
+          @passkeys = current_visitor.visitor_passkeys.active.order(created_at: :desc)
           @secrets =
-            current_customer.customer_secrets
-              .where(customer_secret_status_id: CustomerSecretStatus::ACTIVE)
+            current_visitor.visitor_secrets
+              .where(visitor_secret_status_id: VisitorSecretStatus::ACTIVE)
               .order(created_at: :desc)
         end
 
         def update
-          enabled = ActiveModel::Type::Boolean.new.cast(params.dig(:user, :multi_factor_enabled))
-          current_customer.update!(multi_factor_enabled: enabled)
+          multi_factor_id = requested_multi_factor_id
+          current_visitor.multi_factor_id = multi_factor_id
+          current_visitor.multi_factor_enabled = multi_factor_id != VisitorMultiFactor::NOTHING
+          current_visitor.save!
 
           redirect_to(
             sign_com_configuration_challenge_path(ri: params[:ri]),
             notice: t("sign.app.configuration.mfa.update.success"),
           )
-        rescue ActiveRecord::RecordInvalid
+        rescue ActiveRecord::RecordInvalid, ArgumentError
           show
           flash.now[:alert] = t("sign.app.configuration.mfa.update.failure")
           render :show, status: :unprocessable_content
@@ -43,6 +44,13 @@ module Sign
 
         def verification_scope
           "configuration_mfa"
+        end
+
+        def requested_multi_factor_id
+          multi_factor_id = Integer(params.dig(:user, :multi_factor_id).to_s, 10)
+          return multi_factor_id if [VisitorMultiFactor::NOTHING, VisitorMultiFactor::FULL].include?(multi_factor_id)
+
+          raise ArgumentError, "unsupported multi factor level"
         end
       end
     end

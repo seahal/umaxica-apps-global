@@ -4,6 +4,8 @@
 require "test_helper"
 
 class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :staffs, :staff_statuses
+
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
   end
@@ -23,7 +25,17 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "a[href=?]", new_sign_org_in_passkey_path(query)
     assert_select "a[href=?]", new_sign_org_in_secret_path(query)
-    assert_select "form[action=?]", start_sign_org_social_authentication_path(query.merge(provider: "google_org"))
+    assert_select "form[action=?]", continue_sign_org_social_authentication_path(query.merge(provider: "google_org"))
+  end
+
+  test "authentication links carry rt" do
+    rt = Base64.urlsafe_encode64("https://id.umaxica.org/configuration/sessions?ri=jp", padding: false)
+
+    get new_sign_org_in_url(ri: "jp", rt: rt), headers: { "Host" => @host }
+
+    assert_response :success
+    assert_select "a[href=?]", new_sign_org_in_passkey_path(rt: rt, ri: "jp")
+    assert_select "a[href=?]", new_sign_org_in_secret_path(rt: rt, ri: "jp")
   end
 
   test "does not render sign up link on sign in page" do
@@ -38,6 +50,14 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "a[href=?]", apex_org_root_path(ri: "jp"), text: "UMAXICA"
+    assert_select "a[href=?]", apex_org_root_path(ri: "jp")
+  end
+
+  test "redirects to dashboard when logged in" do
+    staff = staffs(:one)
+
+    get new_sign_org_in_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
+
+    assert_redirected_to sign_org_dashboard_url(ri: "jp")
   end
 end

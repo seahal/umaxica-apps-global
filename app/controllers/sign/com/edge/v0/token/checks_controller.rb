@@ -1,0 +1,31 @@
+# typed: false
+# frozen_string_literal: true
+
+class Sign::Com::Edge::V0::Token::ChecksController < Sign::Com::ApplicationController
+  include Sign::EdgeV0JsonApi
+
+  public_strict!
+  skip_before_action :set_preferences_cookie
+  skip_before_action :transparent_refresh_access_token
+
+  def show
+    response.set_header("Cache-Control", "no-store")
+
+    authenticated = logged_in?
+    issue_dbsc_registration_header_for(current_session) if authenticated
+    body =
+      if authenticated
+        {
+          authenticated: true,
+          type: resource_type,
+          id: current_resource.id,
+          sid: current_session_public_id,
+          dbsc: dbsc_payload_for(current_session),
+        }
+      else
+        { authenticated: false }
+      end
+
+    render json: body, status: authenticated ? :ok : :unauthorized
+  end
+end

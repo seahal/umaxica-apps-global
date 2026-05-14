@@ -26,7 +26,7 @@ VALKEY_URL=redis://valkey:6379/0
 RATE_LIMIT_REDIS_URL=redis://valkey:6379/1
 REDIS_NORMAL_URL=redis://valkey:6379/7
 ## PostgreSQL (use local PostgreSQL services inside Compose)
-# POSTGRESQL_PASSWORD defaults to Rails credentials (DATABASE.PASSWORD) and can be overridden in CI/test
+# Compose injects POSTGRESQL_PASSWORD from the host environment, with a local-only default.
 POSTGRESQL_USER=root
 POSTGRESQL_PORT=5432
 POSTGRESQL_HOST=primary
@@ -111,5 +111,11 @@ ASSET_URL=asset.localhost
 # JWT Configuration
 PREFERENCE_JWT_AUDIENCES=umaxica.app,umaxica.com,localhost
 # WebAuthn
-TRUSTED_ORIGINS=http://id.app.localhost:3001,http://id.com.localhost:3001,http://id.org.localhost:3001
+TRUSTED_ORIGINS=https://id.umaxica.app,https://id.umaxica.org,https://id.umaxica.com
+WEBAUTHN_APP_RP_ID=id.umaxica.app
+WEBAUTHN_APP_ORIGIN=https://id.umaxica.app
+WEBAUTHN_ORG_RP_ID=id.umaxica.org
+WEBAUTHN_ORG_ORIGIN=https://id.umaxica.org
+WEBAUTHN_COM_RP_ID=id.umaxica.com
+WEBAUTHN_COM_ORIGIN=https://id.umaxica.com
 # HMAC Secret is resolved from encrypted credentials via Rails.app.creds.

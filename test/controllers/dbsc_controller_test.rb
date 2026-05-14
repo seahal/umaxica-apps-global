@@ -258,12 +258,12 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
-    token = StaffToken.create!(
+    token = OperatorToken.create!(
       staff: staff,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_binding_method_id: StaffTokenBindingMethod::NOTHING,
-      staff_token_dbsc_status_id: StaffTokenDbscStatus::NOTHING,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::NOTHING,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
       lapses_at: 1.day.from_now,
       purge_at: 1.day.from_now,
       dbsc_challenge: SecureRandom.hex(16),
@@ -288,8 +288,8 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
 
     token.reload
 
-    assert_equal StaffTokenBindingMethod::DBSC, token.staff_token_binding_method_id
-    assert_equal StaffTokenDbscStatus::ACTIVE, token.staff_token_dbsc_status_id
+    assert_equal OperatorTokenBindingMethod::DBSC, token.staff_token_binding_method_id
+    assert_equal OperatorTokenDbscStatus::ACTIVE, token.staff_token_dbsc_status_id
     assert_equal response_body["session_identifier"], token.dbsc_session_id
     assert_predicate token.dbsc_public_key, :present?
     assert_nil token.dbsc_challenge
@@ -299,12 +299,12 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
-    token = StaffToken.create!(
+    token = OperatorToken.create!(
       staff: staff,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_binding_method_id: StaffTokenBindingMethod::NOTHING,
-      staff_token_dbsc_status_id: StaffTokenDbscStatus::NOTHING,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::NOTHING,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
       lapses_at: 1.day.from_now,
       purge_at: 1.day.from_now,
       dbsc_challenge: SecureRandom.hex(16),
@@ -326,12 +326,12 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
-    token = StaffToken.create!(
+    token = OperatorToken.create!(
       staff: staff,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_binding_method_id: StaffTokenBindingMethod::NOTHING,
-      staff_token_dbsc_status_id: StaffTokenDbscStatus::NOTHING,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::NOTHING,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
       lapses_at: 1.day.from_now,
       purge_at: 1.day.from_now,
     )
@@ -355,12 +355,12 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
-    token = StaffToken.create!(
+    token = OperatorToken.create!(
       staff: staff,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_binding_method_id: StaffTokenBindingMethod::DBSC,
-      staff_token_dbsc_status_id: StaffTokenDbscStatus::ACTIVE,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::DBSC,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::ACTIVE,
       lapses_at: 1.day.from_now,
       purge_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
@@ -384,12 +384,12 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
-    token = StaffToken.create!(
+    token = OperatorToken.create!(
       staff: staff,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_binding_method_id: StaffTokenBindingMethod::DBSC,
-      staff_token_dbsc_status_id: StaffTokenDbscStatus::ACTIVE,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::DBSC,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::ACTIVE,
       lapses_at: 1.day.from_now,
       purge_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
@@ -412,12 +412,12 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
-    token = StaffToken.create!(
+    token = OperatorToken.create!(
       staff: staff,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_binding_method_id: StaffTokenBindingMethod::DBSC,
-      staff_token_dbsc_status_id: StaffTokenDbscStatus::ACTIVE,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::DBSC,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::ACTIVE,
       lapses_at: 1.day.from_now,
       purge_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
@@ -456,12 +456,12 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     staff = staffs(:one)
-    token = StaffToken.create!(
+    token = OperatorToken.create!(
       staff: staff,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_binding_method_id: StaffTokenBindingMethod::NOTHING,
-      staff_token_dbsc_status_id: StaffTokenDbscStatus::NOTHING,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::NOTHING,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
       lapses_at: 1.day.from_now,
       purge_at: 1.day.from_now,
     )

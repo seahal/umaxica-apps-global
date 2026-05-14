@@ -1,6 +1,11 @@
 <% content_for :page_title, t('apex.app.preference.resets.title') %>
 
 <section>
+  <div>
+    <%= link_to t("apex.app.preferences.regions.back_link"),
+                sign_app_preference_path(lx: params[:lx], ri: params[:ri]) %>
+  </div>
+
   <h1>
     <%= t("apex.app.preference.resets.title") %>
   </h1>

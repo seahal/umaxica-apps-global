@@ -4,7 +4,8 @@
 require "test_helper"
 
 class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_chronicle_events, :user_chronicle_levels
+  fixtures :users, :user_statuses, :user_email_statuses, :user_telephone_statuses,
+           :user_chronicle_events, :user_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -98,12 +99,90 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     assert_not_includes response.body, "limit-entry-0"
   end
 
-  test "filters to login success events" do
+  test "filters to visible security events" do
     create_user_audit(
       user: @user,
       event_id: UserChronicleEvent::LOGGED_IN,
       occurred_at: 2.minutes.ago,
       context: { tag: "login-success-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::LOGGED_OUT,
+      occurred_at: 110.seconds.ago,
+      context: { tag: "logged-out-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::SIGNED_UP_WITH_GOOGLE,
+      occurred_at: 100.seconds.ago,
+      context: { tag: "google-signup-event", auth_method: "social", provider: "google" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::SOCIAL_LINKED,
+      occurred_at: 95.seconds.ago,
+      context: { tag: "social-linked-event", auth_method: "social", provider: "apple" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::SOCIAL_UNLINKED,
+      occurred_at: 92.seconds.ago,
+      context: { tag: "social-unlinked-event", auth_method: "social", provider: "google" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::SESSION_REVOKED,
+      occurred_at: 90.seconds.ago,
+      context: { tag: "session-revoked-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::EMAIL_REGISTERED,
+      occurred_at: 80.seconds.ago,
+      context: { tag: "email-registered-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::EMAIL_REMOVED,
+      occurred_at: 70.seconds.ago,
+      context: { tag: "email-removed-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::TELEPHONE_REGISTERED,
+      occurred_at: 60.seconds.ago,
+      context: { tag: "telephone-registered-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::TELEPHONE_REMOVED,
+      occurred_at: 50.seconds.ago,
+      context: { tag: "telephone-removed-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::TOTP_ENABLED,
+      occurred_at: 40.seconds.ago,
+      context: { tag: "totp-enabled-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::PASSKEY_REGISTERED,
+      occurred_at: 30.seconds.ago,
+      context: { tag: "passkey-registered-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::USER_SECRET_CREATED,
+      occurred_at: 20.seconds.ago,
+      context: { tag: "user-secret-created-event" },
+    )
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::RECOVERY_CODES_GENERATED,
+      occurred_at: 10.seconds.ago,
+      context: { tag: "recovery-codes-generated-event" },
     )
     create_user_audit(
       user: @user,
@@ -116,7 +195,80 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
     assert_response :success
     assert_includes response.body, "login-success-event"
+    assert_includes response.body, "logged-out-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.logged_out")
+    assert_includes response.body, "google-signup-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.signed_up_with_google")
+    assert_includes response.body, "social-linked-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.social_linked")
+    assert_includes response.body, "social-unlinked-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.social_unlinked")
+    assert_includes response.body, "session-revoked-event"
+    assert_includes response.body, "email-registered-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.email_registered")
+    assert_includes response.body, "email-removed-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.email_removed")
+    assert_includes response.body, "telephone-registered-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.telephone_registered")
+    assert_includes response.body, "telephone-removed-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.telephone_removed")
+    assert_includes response.body, "totp-enabled-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.totp_enabled")
+    assert_includes response.body, "passkey-registered-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.passkey_registered")
+    assert_includes response.body, "user-secret-created-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.user_secret_created")
+    assert_includes response.body, "recovery-codes-generated-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.recovery_codes_generated")
     assert_not_includes response.body, "non-login-event"
+  end
+
+  test "shows email removal logs recorded with email subject when actor is current user" do
+    email = UserEmail.create!(
+      user: @user,
+      address: "removed-activity@example.com",
+      user_email_status_id: UserEmailStatus::VERIFIED,
+    )
+    UserChronicle.create!(
+      actor_type: "User",
+      actor_id: @user.id,
+      event_id: UserChronicleEvent::EMAIL_REMOVED,
+      level_id: UserChronicleLevel::NOTHING,
+      subject_id: email.id,
+      subject_type: "UserEmail",
+      occurred_at: Time.current,
+      context: { tag: "email-subject-removal" },
+    )
+
+    get sign_app_configuration_activities_url(ri: "jp"), headers: @headers
+
+    assert_response :success
+    assert_includes response.body, "email-subject-removal"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.email_removed")
+  end
+
+  test "shows telephone removal logs recorded with telephone subject when actor is current user" do
+    telephone = UserTelephone.create!(
+      user: @user,
+      number: "+10000000123",
+      user_telephone_status_id: UserTelephoneStatus::VERIFIED,
+    )
+    UserChronicle.create!(
+      actor_type: "User",
+      actor_id: @user.id,
+      event_id: UserChronicleEvent::TELEPHONE_REMOVED,
+      level_id: UserChronicleLevel::NOTHING,
+      subject_id: telephone.id,
+      subject_type: "UserTelephone",
+      occurred_at: Time.current,
+      context: { tag: "telephone-subject-removal" },
+    )
+
+    get sign_app_configuration_activities_url(ri: "jp"), headers: @headers
+
+    assert_response :success
+    assert_includes response.body, "telephone-subject-removal"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.telephone_removed")
   end
 
   test "renders user agent summary and login method" do
@@ -136,6 +288,25 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     assert_response :success
     assert_includes response.body, "Chrome / Desktop"
     assert_includes response.body, "passkey"
+  end
+
+  test "renders social provider as login method when present" do
+    create_user_audit(
+      user: @user,
+      event_id: UserChronicleEvent::LOGGED_IN,
+      occurred_at: Time.current,
+      context: {
+        tag: "social-login-entry",
+        auth_method: "social",
+        provider: "apple",
+      },
+    )
+
+    get sign_app_configuration_activities_url(ri: "jp"), headers: @headers
+
+    assert_response :success
+    assert_includes response.body, "social-login-entry"
+    assert_includes response.body, "apple"
   end
 
   private

@@ -30,17 +30,17 @@ region_dirs.each do |dir|
         }.join(", ")}, all"
 end
 
-# Collect region locale files in priority order (later entries win in i18n)
+# Collect region locale files in priority order (later entries win in i18n).
+# Keep locale file order deterministic so reloading the initializer in tests
+# cannot let previous REGION_CODE values keep stale files in the load path.
 region_locale_files = region_dirs.flat_map { |dir| Dir[dir.join("**", "*.{rb,yml}")] }
 
-# Identify all region directories to exclude others
+# Identify all region files, including the currently selected region, so reloads
+# can replace the regional portion of the load path atomically.
 all_region_dirs = locale_root.children.select(&:directory?)
-included_region_dirs = region_dirs.to_set
-other_region_dirs = all_region_dirs.reject { |dir| included_region_dirs.include?(dir) }
-other_region_files = other_region_dirs.flat_map { |dir| Dir[dir.join("**", "*.{rb,yml}")] }.map(&:to_s)
+all_region_files = all_region_dirs.flat_map { |dir| Dir[dir.join("**", "*.{rb,yml}")] }.map(&:to_s)
 
-# Reject only files from other regions
-I18n.load_path.reject! { |path| other_region_files.include?(path.to_s) }
+I18n.load_path.reject! { |path| all_region_files.include?(path.to_s) }
 I18n.load_path += region_locale_files
 I18n.load_path.uniq!
 

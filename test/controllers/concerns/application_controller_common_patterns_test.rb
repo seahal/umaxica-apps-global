@@ -133,7 +133,7 @@ module Concerns
       staff_controllers =
         ALL_CONTROLLER_FILES.select do |file|
           content = File.read(file)
-          content.include?("Authentication::Staff")
+          content.include?("Authentication::Operator")
         end
 
       staff_controllers.each do |file|
@@ -142,30 +142,30 @@ module Concerns
           .gsub("/application_controller.rb", "")
           .gsub("/", "::")
 
-        assert_includes content, "Authorization::Staff",
-                        "#{controller_name} should include Authorization::Staff when using Authentication::Staff"
-        assert_includes content, "Verification::Staff",
-                        "#{controller_name} should include Verification::Staff when using Authentication::Staff"
+        assert_includes content, "Authorization::Operator",
+                        "#{controller_name} should include Authorization::Operator when using Authentication::Operator"
+        assert_includes content, "Verification::Operator",
+                        "#{controller_name} should include Verification::Operator when using Authentication::Operator"
       end
     end
 
-    test "application controllers with customer auth include required concerns" do
-      customer_controllers =
+    test "application controllers with visitor auth include required concerns" do
+      visitor_controllers =
         ALL_CONTROLLER_FILES.select do |file|
           content = File.read(file)
-          content.include?("Authentication::Customer")
+          content.include?("Authentication::Visitor")
         end
 
-      customer_controllers.each do |file|
+      visitor_controllers.each do |file|
         content = File.read(file)
         controller_name = file.gsub(Rails.root.join("app/controllers/").to_s, "")
           .gsub("/application_controller.rb", "")
           .gsub("/", "::")
 
-        assert_includes content, "Authorization::Customer",
-                        "#{controller_name} should include Authorization::Customer when using Authentication::Customer"
-        assert_includes content, "Verification::Customer",
-                        "#{controller_name} should include Verification::Customer when using Authentication::Customer"
+        assert_includes content, "Authorization::Visitor",
+                        "#{controller_name} should include Authorization::Visitor when using Authentication::Visitor"
+        assert_includes content, "Verification::Visitor",
+                        "#{controller_name} should include Verification::Visitor when using Authentication::Visitor"
       end
     end
 

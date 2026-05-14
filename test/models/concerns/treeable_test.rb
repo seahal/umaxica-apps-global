@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/treeable_shared_tests"
 
 class TreeableTest < ActiveSupport::TestCase
   include TreeableSharedTests

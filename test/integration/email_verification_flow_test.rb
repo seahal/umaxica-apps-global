@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/social_callback_test_helper"
 
 class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
   setup do
@@ -10,7 +11,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     @user = User.create!(status_id: UserStatus::UNVERIFIED_WITH_SIGN_UP)
   end
 
-  test "social login flow does not trigger email verification and redirects to configuration" do
+  test "social login flow does not trigger email verification and redirects to dashboard" do
     OmniAuth.config.test_mode = true
     # IMPORTANT: Social login uses provider+uid ONLY, NOT email
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
@@ -32,8 +33,8 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     follow_redirect!
 
-    # Verify we are on configuration page, NOT email verification page
-    assert_equal sign_app_configuration_path, path
+    # Verify we are on dashboard, NOT email verification page
+    assert_equal sign_app_dashboard_path, path
 
     # User status should still be UNVERIFIED_WITH_SIGN_UP if it was new,
     # but no UserEmail should have been created from the IdP info

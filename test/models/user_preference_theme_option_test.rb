@@ -42,7 +42,9 @@ class UserPreferenceThemeOptionTest < ActiveSupport::TestCase
   end
 
   test "ensure_defaults! creates missing records" do
-    UserPreferenceThemeOption.where(id: UserPreferenceThemeOption::DEFAULTS).destroy_all
+    Prosopite.pause do
+      UserPreferenceThemeOption.where(id: UserPreferenceThemeOption::DEFAULTS).destroy_all
+    end
 
     UserPreferenceThemeOption.ensure_defaults!
 

@@ -45,6 +45,7 @@ class SocialAuthService
     provider = extract_provider
     uid = extract_uid
     identity_class = SocialIdentifiable.model_for_provider(provider)
+    ensure_identity_status!(identity_class)
 
     Rails.logger.debug do
       "[SocialAuth] Extracted - provider: #{provider}, uid: #{uid&.first(8)}***, " \
@@ -79,29 +80,19 @@ class SocialAuthService
     identity_class = SocialIdentifiable.model_for_provider(provider)
     identity = identity_for_user(identity_class, provider)
 
-    return { success: true, provider: provider, already_unlinked: true } unless identity&.active?
+    return { success: true, provider: provider, already_unlinked: true } unless identity
 
     PrincipalRecord.transaction do
       # Lock the user to prevent race conditions
       @current_user.lock!
 
       # Check if this is the last authentication method
-      unless @current_user.login_methods_remaining?(excluding_provider: provider)
+      if identity.active? && !@current_user.login_methods_remaining?(excluding_provider: provider)
         raise SocialAuth::LastIdentityError.new("errors.social_auth.insufficient_login_methods")
       end
 
-      # Soft delete: set status to REVOKED instead of destroying
-      revoked_status =
-        case identity_class.name
-        when "UserSocialGoogle"
-          UserSocialGoogleStatus::REVOKED
-        when "UserSocialApple"
-          UserSocialAppleStatus::REVOKED
-        end
-
-      identity.update!(identity_class.status_column => revoked_status)
-
-      create_audit_event!(UserChronicleEvent::SOCIAL_UNLINKED, subject: identity)
+      create_social_unlink_audit!(identity, provider)
+      identity.destroy!
 
       Rails.event.notify(
         "social_auth.unlinked",
@@ -224,6 +215,7 @@ class SocialAuthService
       persist_user!(user, context: "login_new_identity")
       identity.save!
       identity.touch_authenticated!
+      create_social_signup_audit!(user, provider)
       Rails.logger.debug { "[SocialAuth] New user created - user_id: #{user.id}" }
 
       build_result(user, identity, reauthenticated: false, existing_account: false)
@@ -256,6 +248,8 @@ class SocialAuthService
     end
 
     if existing_for_user
+      was_active = existing_for_user.active?
+
       # User already has this provider - update and ensure it's ACTIVE
       existing_for_user.update_from_auth_hash!(@auth_hash)
 
@@ -269,6 +263,7 @@ class SocialAuthService
         end
 
       existing_for_user.update!(identity_class.status_column => active_status)
+      create_social_link_audit!(existing_for_user, provider) unless was_active
       Rails.logger.debug { "[SocialAuth] Reactivated existing identity" }
       return build_result(@current_user, existing_for_user, reauthenticated: false)
     end
@@ -294,7 +289,9 @@ class SocialAuthService
 
       # Belongs to current user (shouldn't happen due to unique constraint, but handle it)
       Rails.logger.debug { "[SocialAuth] Identity already belongs to current user, updating" }
+      was_active = identity.active?
       identity.update_from_auth_hash!(@auth_hash)
+      create_social_link_audit!(identity, provider) unless was_active
       build_result(@current_user, identity, reauthenticated: false)
     else
       # Create new identity for current user
@@ -302,6 +299,7 @@ class SocialAuthService
       identity = build_identity_for_user(identity_class, @current_user, provider, uid)
       identity.save!
       identity.touch_authenticated!
+      create_social_link_audit!(identity, provider)
 
       Rails.event.notify(
         "social_auth.linked",
@@ -372,6 +370,8 @@ class SocialAuthService
   def build_login_user
     user = User.new
     ensure_user_status(user)
+    ensure_user_visibility(user)
+    ensure_user_multi_factor(user)
     user
   end
 
@@ -381,24 +381,87 @@ class SocialAuthService
       return
     end
 
-    status_id =
-      if UserStatus.exists?(id: UserStatus::UNVERIFIED_WITH_SIGN_UP)
-        UserStatus::UNVERIFIED_WITH_SIGN_UP
-      elsif UserStatus.exists?(id: UserStatus::NOTHING)
-        UserStatus::NOTHING
-      else
-        UserStatus.first&.id
-      end
+    status = ensure_user_status_record(UserStatus::UNVERIFIED_WITH_SIGN_UP, "UNVERIFIED_WITH_SIGN_UP") ||
+      ensure_user_status_record(UserStatus::NOTHING, "NEYO") ||
+      UserStatus.first
 
-    if status_id.present?
-      user.status_id = status_id
+    if status.present?
+      user.status_id = status.id
     else
       Rails.logger.error("[SocialAuth] User status missing - unable to assign default status")
     end
   end
 
+  def ensure_user_status_record(id, code)
+    ensure_reference_record!(UserStatus, id, code)
+  end
+
+  def ensure_user_visibility(user)
+    visibility = ensure_user_visibility_record(user.visibility_id, "STAFF") ||
+      ensure_user_visibility_record(UserVisibility::STAFF, "STAFF") ||
+      ensure_user_visibility_record(UserVisibility::USER, "USER") ||
+      UserVisibility.first
+
+    if visibility.present?
+      user.visibility_id = visibility.id
+    else
+      Rails.logger.error("[SocialAuth] User visibility missing - unable to assign default visibility")
+    end
+  end
+
+  def ensure_user_visibility_record(id, code)
+    return nil if id.blank?
+
+    ensure_reference_record!(UserVisibility, id, code)
+  end
+
+  def ensure_user_multi_factor(user)
+    multi_factor = ensure_user_multi_factor_record(user.multi_factor_id) ||
+      ensure_user_multi_factor_record(UserMultiFactor::NOTHING) ||
+      UserMultiFactor.first
+
+    if multi_factor.present?
+      user.multi_factor_id = multi_factor.id
+    else
+      Rails.logger.error("[SocialAuth] User multi factor missing - unable to assign default multi factor")
+    end
+  end
+
+  def ensure_user_multi_factor_record(id)
+    return nil if id.blank?
+
+    ensure_reference_record!(UserMultiFactor, id, nil)
+  end
+
+  def ensure_identity_status!(identity_class)
+    status_class = identity_class.status_class if identity_class.respond_to?(:status_class)
+    return unless status_class
+
+    ensure_reference_record!(status_class, status_class::ACTIVE, "ACTIVE")
+  end
+
+  def ensure_reference_record!(model, id, code)
+    PrincipalRecord.connected_to(role: :writing) do
+      attributes = { id: id }
+      attributes[:code] = code if model.column_names.include?("code")
+
+      model.find_or_create_by!(id: id) do |record|
+        attributes.each do |attribute, value|
+          record.public_send("#{attribute}=", value)
+        end
+      end
+    end
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.logger.warn(
+      "[SocialAuth] Failed to ensure reference record - model: #{model.name}, id: #{id.inspect}, " \
+      "error: #{e.class.name}: #{e.message}",
+    )
+    nil
+  end
+
   def persist_user!(user, context:)
     user.save!
+    user.create_user_account! unless user.user_account
   rescue ActiveRecord::RecordInvalid => e
     log_user_status_error(user, e, context: context)
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
@@ -464,6 +527,78 @@ class SocialAuthService
       subject_type: subject.class.name,
       occurred_at: Time.current,
     )
+  end
+
+  def create_social_signup_audit!(user, provider)
+    event_id = social_signup_event_id(provider)
+    return unless event_id
+
+    ChronicleRecord.connected_to(role: :writing) do
+      UserChronicleEvent.find_or_create_by!(id: event_id)
+      UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+    end
+
+    UserChronicle.create!(
+      actor_type: "User",
+      actor_id: user.id,
+      event_id: event_id,
+      level_id: UserChronicleLevel::NOTHING,
+      subject_id: user.id.to_s,
+      subject_type: "User",
+      occurred_at: Time.current,
+      context: {
+        auth_method: "social",
+        provider: SocialIdentifiable.normalize_provider(provider),
+      },
+    )
+  end
+
+  def create_social_link_audit!(identity, provider)
+    create_user_social_audit!(
+      event_id: UserChronicleEvent::SOCIAL_LINKED,
+      provider: provider,
+      subject: @current_user,
+      extra_context: { social_identity_type: identity.class.name },
+    )
+  end
+
+  def create_social_unlink_audit!(identity, provider)
+    create_user_social_audit!(
+      event_id: UserChronicleEvent::SOCIAL_UNLINKED,
+      provider: provider,
+      subject: @current_user,
+      extra_context: { social_identity_type: identity.class.name },
+    )
+  end
+
+  def create_user_social_audit!(event_id:, provider:, subject:, extra_context: {})
+    ChronicleRecord.connected_to(role: :writing) do
+      UserChronicleEvent.find_or_create_by!(id: event_id)
+      UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+    end
+
+    UserChronicle.create!(
+      actor_type: "User",
+      actor_id: subject.id,
+      event_id: event_id,
+      level_id: UserChronicleLevel::NOTHING,
+      subject_id: subject.id.to_s,
+      subject_type: "User",
+      occurred_at: Time.current,
+      context: {
+        auth_method: "social",
+        provider: SocialIdentifiable.normalize_provider(provider),
+      }.merge(extra_context),
+    )
+  end
+
+  def social_signup_event_id(provider)
+    case SocialIdentifiable.normalize_provider(provider)
+    when "google"
+      UserChronicleEvent::SIGNED_UP_WITH_GOOGLE
+    when "apple"
+      UserChronicleEvent::SIGNED_UP_WITH_APPLE
+    end
   end
 
   def last_authentication_method?(excluding_provider: nil)

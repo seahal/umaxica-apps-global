@@ -40,6 +40,10 @@ class UserChronicleEvent < ChronicleRecord
   TELEPHONE_REMOVED = 26
   SOCIAL_UNLINKED = 27
   STEP_UP_VERIFIED = 28
+  SESSION_REVOKED = 29
+  SOCIAL_LINKED = 30
+  EMAIL_REGISTERED = 31
+  TELEPHONE_REGISTERED = 32
 
   # Association with user_chronicles
   has_many :user_chronicles,
@@ -76,6 +80,10 @@ class UserChronicleEvent < ChronicleRecord
     TELEPHONE_REMOVED,
     SOCIAL_UNLINKED,
     STEP_UP_VERIFIED,
+    SESSION_REVOKED,
+    SOCIAL_LINKED,
+    EMAIL_REGISTERED,
+    TELEPHONE_REGISTERED,
   ].freeze
 
   public_constant :ACCOUNT_RECOVERED
@@ -106,6 +114,10 @@ class UserChronicleEvent < ChronicleRecord
   public_constant :TELEPHONE_REMOVED
   public_constant :SOCIAL_UNLINKED
   public_constant :STEP_UP_VERIFIED
+  public_constant :SESSION_REVOKED
+  public_constant :SOCIAL_LINKED
+  public_constant :EMAIL_REGISTERED
+  public_constant :TELEPHONE_REGISTERED
   public_constant :DEFAULTS
 
   def self.ensure_defaults!

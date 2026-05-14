@@ -16,10 +16,10 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
-    @token = StaffToken.create!(
+    @token = OperatorToken.create!(
       staff: @staff,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       public_id: "ovf#{SecureRandom.hex(4)}",
       lapses_at: 1.day.from_now,
     )
@@ -29,7 +29,7 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
 
   test "org verification show page does not display email option" do
     # Create passkey for staff to ensure link is rendered
-    StaffPasskey.create!(
+    OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id",
       public_key: "test_public_key",

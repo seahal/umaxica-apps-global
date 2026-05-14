@@ -138,6 +138,20 @@ module Jit
           assert_equal [], result[:previous]
         end
       end
+
+      test "use_secrets_manager? returns true in production when secret id is present" do
+        with_env("SECRET_KEY_BASE_SECRET_ID" => "arn:aws:secretsmanager:ap-northeast-1:123:secret:test") do
+          Rails.env.stub(:production?, true) do
+            assert_predicate SecretKeyBaseProvider, :use_secrets_manager?
+          end
+        end
+      end
+
+      test "parse_local_previous wraps invalid JSON as a single previous key" do
+        with_env("SECRET_KEY_BASE_PREVIOUS" => "invalid-json") do
+          assert_equal ["invalid-json"], SecretKeyBaseProvider.parse_local_previous
+        end
+      end
     end
   end
 end

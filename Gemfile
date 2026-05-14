@@ -3,7 +3,7 @@
 source "https://rubygems.org"
 # source "https://gem.coop"
 
-ruby "4.0.3"
+ruby "4.0.4"
 
 gem "rbs"
 # Rake
@@ -111,6 +111,7 @@ group :development, :test do
   gem "test-prof"
   # N+1 query detector
   gem "prosopite"
+  # SQL query analyzer
   gem "pg_query"
   # Database consistency checks
   gem "database_consistency", require: false
@@ -121,7 +122,11 @@ group :development, :test do
   gem "tapioca", require: false
   # test
   gem "capybara"
+  gem "playwright-ruby-client"
   gem "capybara-playwright-driver"
+  gem "memory_profiler"
+  gem "ruby-prof"
+  gem "derailed_benchmarks"
 end
 
 group :development do

@@ -29,8 +29,10 @@ require "test_helper"
 
 class OrganizationInvitationTest < ActiveSupport::TestCase
   def setup
-    [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) }
-    @staff = Staff.create!
+    Prosopite.pause do
+      [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) }
+    end
+    @staff = Operator.create!
     @organization = Organization.create!(name: "Test Org")
     @invitation = OrganizationInvitation.create!(
       email: "invitee@example.com",

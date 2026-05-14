@@ -13,7 +13,7 @@ require "test_helper"
 
 class AppPreferenceLanguageOptionTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
   end
 
   test "has correct constants" do

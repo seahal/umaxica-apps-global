@@ -28,43 +28,43 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...                              (staff_id => staffs.id)
+#  fk_rails_...                              (staff_id => operators.id)
 #  fk_rails_...                              (staff_identity_secret_status_id => staff_secret_statuses.id)
 #  fk_staff_secrets_on_staff_secret_kind_id  (staff_secret_kind_id => staff_secret_kinds.id)
 #
 
 require "test_helper"
 
-class StaffSecretTest < ActiveSupport::TestCase
+class OperatorSecretTest < ActiveSupport::TestCase
   fixtures :staffs, :staff_secret_statuses, :staff_secret_kinds
 
   setup do
-    # Set up StaffSecretKind records
-    StaffSecretKind.find_or_create_by!(id: StaffSecretKind::LOGIN)
-    StaffSecretKind.find_or_create_by!(id: StaffSecretKind::TOTP)
+    # Set up OperatorSecretKind records
+    OperatorSecretKind.find_or_create_by!(id: OperatorSecretKind::NOTHING)
+    OperatorSecretKind.find_or_create_by!(id: OperatorSecretKind::LOGIN)
 
-    @staff = Staff.find_by!(public_id: "BCDE2345FGHJ67KM")
+    @staff = Operator.find_by!(public_id: "BCDE2345FGHJ67KM")
   end
 
   test "allows up to the maximum number of secrets per staff" do
     Prosopite.pause do
-      StaffSecret::MAX_SECRETS_PER_STAFF.times do
+      OperatorSecret::MAX_SECRETS_PER_STAFF.times do
         create_secret!
       end
     end
 
-    assert_equal StaffSecret::MAX_SECRETS_PER_STAFF,
-                 StaffSecret.where(staff: @staff).count
+    assert_equal OperatorSecret::MAX_SECRETS_PER_STAFF,
+                 OperatorSecret.where(staff: @staff).count
   end
 
   test "rejects creating more than the maximum secrets per staff" do
-    Prosopite.pause { StaffSecret::MAX_SECRETS_PER_STAFF.times { create_secret! } }
+    Prosopite.pause { OperatorSecret::MAX_SECRETS_PER_STAFF.times { create_secret! } }
 
     assert_raises(ActiveRecord::RecordInvalid) { create_secret! }
   end
 
   test "issue! returns raw secret and persists a digest" do
-    record, raw_secret = StaffSecret.issue!(name: "API Key", staff: @staff, staff_secret_kind_id: StaffSecretKind::LOGIN)
+    record, raw_secret = OperatorSecret.issue!(name: "API Key", staff: @staff, staff_secret_kind_id: OperatorSecretKind::LOGIN)
 
     assert_predicate record, :persisted?
     assert_predicate raw_secret, :present?
@@ -73,29 +73,29 @@ class StaffSecretTest < ActiveSupport::TestCase
   end
 
   test "verify_and_consume! marks secret as used after success" do
-    record, raw_secret = StaffSecret.issue!(name: "API Key", staff: @staff, uses: 2, staff_secret_kind_id: StaffSecretKind::LOGIN)
+    record, raw_secret = OperatorSecret.issue!(name: "API Key", staff: @staff, uses: 2, staff_secret_kind_id: OperatorSecretKind::LOGIN)
 
     assert record.verify_and_consume!(raw_secret)
-    assert_equal StaffSecretStatus::USED, record.reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::USED, record.reload.staff_secret_status_id
   end
 
   test "verify_and_consume! marks used when uses_remaining reaches zero" do
-    record, raw_secret = StaffSecret.issue!(name: "API Key", staff: @staff, uses: 1, staff_secret_kind_id: StaffSecretKind::LOGIN)
+    record, raw_secret = OperatorSecret.issue!(name: "API Key", staff: @staff, uses: 1, staff_secret_kind_id: OperatorSecretKind::LOGIN)
 
     assert record.verify_and_consume!(raw_secret)
-    assert_equal StaffSecretStatus::USED, record.reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::USED, record.reload.staff_secret_status_id
   end
 
   test "sample fixture secret authenticates with fixed raw secret" do
     secret = staff_secrets(:sample_login)
 
     assert secret.authenticate("11111111111111111111111111111111")
-    assert_equal StaffSecretKind::LOGIN, secret.staff_secret_kind_id
-    assert_equal StaffSecretStatus::ACTIVE, secret.staff_secret_status_id
+    assert_equal OperatorSecretKind::LOGIN, secret.staff_secret_kind_id
+    assert_equal OperatorSecretStatus::ACTIVE, secret.staff_secret_status_id
   end
 
   test "requires name to be present" do
-    record = StaffSecret.new(
+    record = OperatorSecret.new(
       staff: @staff,
       name: "",
       password: "SecretPass123!",
@@ -106,7 +106,7 @@ class StaffSecretTest < ActiveSupport::TestCase
   end
 
   test "validates kind_id is required" do
-    record = StaffSecret.new(
+    record = OperatorSecret.new(
       staff: @staff,
       name: "Test Secret",
       password: secure_secret,
@@ -118,36 +118,65 @@ class StaffSecretTest < ActiveSupport::TestCase
   end
 
   test "login_secret? predicate returns true for LOGIN kind" do
-    record = StaffSecret.new(staff: @staff, name: "Key", staff_secret_kind_id: StaffSecretKind::LOGIN)
+    record = OperatorSecret.new(staff: @staff, name: "Key", staff_secret_kind_id: OperatorSecretKind::LOGIN)
 
     assert_predicate record, :login_secret?
-    assert_not record.totp_secret?
-  end
-
-  test "totp_secret? predicate returns true for TOTP kind" do
-    record = StaffSecret.new(staff: @staff, name: "Key", staff_secret_kind_id: StaffSecretKind::TOTP)
-
-    assert_predicate record, :totp_secret?
-    assert_not record.login_secret?
   end
 
   test "permanent_secret? predicate returns true for LOGIN kind" do
-    record = StaffSecret.new(staff: @staff, name: "Key", staff_secret_kind_id: StaffSecretKind::LOGIN)
+    record = OperatorSecret.new(staff: @staff, name: "Key", staff_secret_kind_id: OperatorSecretKind::LOGIN)
 
     assert_predicate record, :permanent_secret?
     assert_not record.one_time_secret?
   end
 
+  test "usable_for_secret_sign_in? rejects revoked kind and expired secrets" do
+    record, _raw_secret = OperatorSecret.issue!(name: "Sign In Secret", staff: @staff, staff_secret_kind_id: OperatorSecretKind::LOGIN)
+
+    assert_predicate record, :usable_for_secret_sign_in?
+
+    record.staff_secret_status_id = OperatorSecretStatus::REVOKED
+
+    assert_not record.usable_for_secret_sign_in?
+
+    record.staff_secret_status_id = OperatorSecretStatus::ACTIVE
+    record.staff_secret_kind_id = OperatorSecretKind::NOTHING
+
+    assert_not record.usable_for_secret_sign_in?
+
+    record.staff_secret_kind_id = OperatorSecretKind::LOGIN
+    record.define_singleton_method(:expires_at) { 1.minute.ago }
+
+    assert_not record.usable_for_secret_sign_in?
+  end
+
+  test "verify_for_secret_sign_in! rejects wrong secret and disallowed states" do
+    record, raw_secret = OperatorSecret.issue!(name: "Sign In Secret", staff: @staff, staff_secret_kind_id: OperatorSecretKind::LOGIN)
+
+    assert_not record.verify_for_secret_sign_in!("wrong-secret")
+
+    record.update!(staff_identity_secret_status_id: OperatorSecretStatus::REVOKED)
+
+    assert_not record.verify_for_secret_sign_in!(raw_secret)
+
+    record.update!(
+      staff_identity_secret_status_id: OperatorSecretStatus::ACTIVE,
+      staff_secret_kind_id: OperatorSecretKind::NOTHING,
+    )
+
+    assert_not record.verify_for_secret_sign_in!(raw_secret)
+  end
+
   test "verify_for_secret_sign_in! keeps permanent login secret active" do
-    record, raw_secret = StaffSecret.issue!(name: "Permanent Key", staff: @staff, staff_secret_kind_id: StaffSecretKind::LOGIN)
+    record, raw_secret = OperatorSecret.issue!(name: "Permanent Key", staff: @staff, staff_secret_kind_id: OperatorSecretKind::LOGIN)
 
     assert record.verify_for_secret_sign_in!(raw_secret)
-    assert_equal StaffSecretStatus::ACTIVE, record.reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, record.reload.staff_secret_status_id
     assert_predicate record.last_used_at, :present?
   end
 
   test "verify_for_secret_sign_in! allows repeated use for permanent login secret" do
-    record, raw_secret = StaffSecret.issue!(name: "Permanent Key", staff: @staff, staff_secret_kind_id: StaffSecretKind::LOGIN)
+    record, raw_secret = OperatorSecret.issue!(name: "Permanent Key", staff: @staff, staff_secret_kind_id: OperatorSecretKind::LOGIN)
 
     assert record.verify_for_secret_sign_in!(raw_secret)
     first_last_used_at = record.reload.last_used_at
@@ -158,26 +187,26 @@ class StaffSecretTest < ActiveSupport::TestCase
 
     record.reload
 
-    assert_equal StaffSecretStatus::ACTIVE, record.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, record.staff_secret_status_id
     assert_operator record.last_used_at, :>, first_last_used_at
   end
 
-  test "allowed_for_secret_sign_in excludes totp secrets" do
-    login_secret, = StaffSecret.issue!(name: "Login Key", staff: @staff, staff_secret_kind_id: StaffSecretKind::LOGIN)
-    totp_secret, = StaffSecret.issue!(name: "TOTP Key", staff: @staff, staff_secret_kind_id: StaffSecretKind::TOTP)
+  test "allowed_for_secret_sign_in excludes non login secrets" do
+    login_secret, = OperatorSecret.issue!(name: "Login Key", staff: @staff, staff_secret_kind_id: OperatorSecretKind::LOGIN)
+    non_login_secret, = OperatorSecret.issue!(name: "Inactive Key", staff: @staff, staff_secret_kind_id: OperatorSecretKind::NOTHING)
 
-    assert_includes StaffSecret.allowed_for_secret_sign_in, login_secret
-    assert_not_includes StaffSecret.allowed_for_secret_sign_in, totp_secret
+    assert_includes OperatorSecret.allowed_for_secret_sign_in, login_secret
+    assert_not_includes OperatorSecret.allowed_for_secret_sign_in, non_login_secret
   end
 
   test "usable_for_secret_sign_in? allows records without expires_at column" do
-    secret, = StaffSecret.issue!(name: "Permanent Key", staff: @staff, staff_secret_kind_id: StaffSecretKind::LOGIN)
+    secret, = OperatorSecret.issue!(name: "Permanent Key", staff: @staff, staff_secret_kind_id: OperatorSecretKind::LOGIN)
 
     assert_predicate secret, :usable_for_secret_sign_in?
   end
 
   test "expired_for_secret_sign_in? handles nil infinite and elapsed expires_at values" do
-    secret = StaffSecret.new
+    secret = OperatorSecret.new
 
     secret.define_singleton_method(:respond_to?) do |name, include_private = false|
       name == :expires_at || super(name, include_private)
@@ -197,11 +226,11 @@ class StaffSecretTest < ActiveSupport::TestCase
   end
 
   test "public_id is automatically generated on create" do
-    record = StaffSecret.create!(
+    record = OperatorSecret.create!(
       staff: @staff,
       name: "Test Secret",
       password: secure_secret,
-      staff_secret_kind_id: StaffSecretKind::LOGIN,
+      staff_secret_kind_id: OperatorSecretKind::LOGIN,
     )
 
     assert_predicate record.public_id, :present?
@@ -209,29 +238,29 @@ class StaffSecretTest < ActiveSupport::TestCase
   end
 
   test "to_param returns public_id" do
-    record = StaffSecret.create!(
+    record = OperatorSecret.create!(
       staff: @staff,
       name: "Test Secret",
       password: secure_secret,
-      staff_secret_kind_id: StaffSecretKind::LOGIN,
+      staff_secret_kind_id: OperatorSecretKind::LOGIN,
     )
 
     assert_equal record.public_id, record.to_param
   end
 
   test "public_id is unique" do
-    record1 = StaffSecret.create!(
+    record1 = OperatorSecret.create!(
       staff: @staff,
       name: "Test Secret 1",
       password: secure_secret,
-      staff_secret_kind_id: StaffSecretKind::LOGIN,
+      staff_secret_kind_id: OperatorSecretKind::LOGIN,
     )
 
-    record2 = StaffSecret.new(
+    record2 = OperatorSecret.new(
       staff: @staff,
       name: "Test Secret 2",
       password: secure_secret,
-      staff_secret_kind_id: StaffSecretKind::LOGIN,
+      staff_secret_kind_id: OperatorSecretKind::LOGIN,
     )
     record2.public_id = record1.public_id
 
@@ -242,12 +271,12 @@ class StaffSecretTest < ActiveSupport::TestCase
   private
 
   def create_secret!
-    StaffSecret.create!(
+    OperatorSecret.create!(
       staff: @staff,
       name: "Secret-#{SecureRandom.hex(4)}",
       password: secure_secret,
       password_confirmation: secure_secret,
-      staff_secret_kind_id: StaffSecretKind::LOGIN,
+      staff_secret_kind_id: OperatorSecretKind::LOGIN,
     )
   end
 

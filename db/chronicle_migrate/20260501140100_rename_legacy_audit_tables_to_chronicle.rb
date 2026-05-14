@@ -11,17 +11,6 @@ class RenameLegacyAuditTablesToChronicle < ActiveRecord::Migration[8.2]
       rename_table :staff_activity_events, :staff_chronicle_events
       rename_table :staff_activity_levels, :staff_chronicle_levels
 
-      # Behavior Group
-      rename_table :app_contact_behaviors, :app_contact_chronicles
-      rename_table :app_contact_behavior_events, :app_contact_chronicle_events
-      rename_table :app_contact_behavior_levels, :app_contact_chronicle_levels
-      rename_table :com_contact_behaviors, :com_contact_chronicles
-      rename_table :com_contact_behavior_events, :com_contact_chronicle_events
-      rename_table :com_contact_behavior_levels, :com_contact_chronicle_levels
-      rename_table :org_contact_behaviors, :org_contact_chronicles
-      rename_table :org_contact_behavior_events, :org_contact_chronicle_events
-      rename_table :org_contact_behavior_levels, :org_contact_chronicle_levels
-
       # Preference Group
       rename_table :app_preference_activities, :app_preference_chronicles
       rename_table :app_preference_activity_events, :app_preference_chronicle_events

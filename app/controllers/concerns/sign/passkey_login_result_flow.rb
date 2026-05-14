@@ -19,7 +19,7 @@ module Sign
         return render_passkey_restricted_success(result)
       end
 
-      has_bulletin = issue_bulletin!
+      rt = retrieve_redirect_parameter_for_checkpoint if respond_to?(:retrieve_redirect_parameter_for_checkpoint, true)
       render json: {
         status: "ok",
         access_token: result[:access_token],
@@ -28,7 +28,7 @@ module Sign
         # It may be shorter than the default access TTL when the backing token
         # has an earlier revocation boundary.
         expires_in: result[:expires_in],
-        redirect_url: has_bulletin ? passkey_bulletin_redirect_url : passkey_default_redirect_url,
+        redirect_url: sign_in_sequence_redirect_path(rt: rt, default_path: passkey_default_redirect_url),
         dbsc: result[:dbsc],
       }, status: :ok
     end
@@ -45,9 +45,11 @@ module Sign
       raise NotImplementedError, "#{self.class} must define #render_passkey_restricted_success"
     end
 
-    def passkey_bulletin_redirect_url
-      raise NotImplementedError, "#{self.class} must define #passkey_bulletin_redirect_url"
+    def passkey_checkpoint_redirect_url
+      raise NotImplementedError, "#{self.class} must define #passkey_checkpoint_redirect_url"
     end
+
+    alias_method :passkey_bulletin_redirect_url, :passkey_checkpoint_redirect_url
 
     def passkey_default_redirect_url
       raise NotImplementedError, "#{self.class} must define #passkey_default_redirect_url"

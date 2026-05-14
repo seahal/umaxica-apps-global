@@ -1,0 +1,9 @@
+# == Schema Information
+#
+# Table name: client_statuses
+# Database name: principal
+#
+#  id :bigint           not null, primary key
+#
+default:
+  id: 1

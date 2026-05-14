@@ -49,4 +49,10 @@ class OrgPreferenceTimezoneOptionTest < ActiveSupport::TestCase
       option.destroy!
     end
   end
+
+  test "name returns nil for unknown id" do
+    option = OrgPreferenceTimezoneOption.new(id: 99)
+
+    assert_nil option.name
+  end
 end

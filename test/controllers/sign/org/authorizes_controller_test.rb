@@ -92,7 +92,7 @@ class Sign::Org::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates authorization code record with staff_id" do
-    assert_difference "StaffAuthorizationCode.count", 1 do
+    assert_difference "OperatorAuthorizationCode.count", 1 do
       get sign_org_authorize_url(
         host: @host,
         params: authorize_params,
@@ -101,7 +101,7 @@ class Sign::Org::AuthorizesControllerTest < ActionDispatch::IntegrationTest
       assert_response :redirect
     end
 
-    code = StaffAuthorizationCode.last
+    code = OperatorAuthorizationCode.last
 
     assert_equal @staff.id, code.staff_id
     assert_not_nil code.staff_id

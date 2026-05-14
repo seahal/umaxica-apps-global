@@ -6,35 +6,41 @@
 # Table name: users
 # Database name: principal
 #
-#  id                    :bigint           not null, primary key
-#  deactivated_at        :datetime
-#  lapses_at             :datetime         default(Infinity), not null
-#  last_reauth_at        :datetime
-#  lock_version          :integer          default(0), not null
-#  multi_factor_enabled  :boolean          default(FALSE), not null
-#  purge_at              :datetime         default(Infinity), not null
-#  purged_at             :datetime
-#  withdrawal_started_at :datetime
-#  withdrawn_at          :datetime         default(Infinity)
-#  created_at            :datetime         not null
-#  updated_at            :datetime         not null
-#  public_id             :string(255)      default(""), not null
-#  status_id             :bigint           default(11), not null
-#  visibility_id         :bigint           default(2), not null
+#  id                     :bigint           not null, primary key
+#  deactivated_at         :datetime
+#  lapses_at              :datetime         default(Infinity), not null
+#  last_reauth_at         :datetime
+#  lock_version           :integer          default(0), not null
+#  multi_factor_enabled   :boolean          default(FALSE), not null
+#  purge_at               :datetime         default(Infinity), not null
+#  purged_at              :datetime
+#  withdrawal_started_at  :datetime
+#  withdrawn_at           :datetime         default(Infinity)
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  multi_factor_id        :bigint           default(0), not null
+#  multi_factor_status_id :bigint           default(5), not null
+#  public_id              :string(255)      default(""), not null
+#  status_id              :bigint           default(11), not null
+#  visibility_id          :bigint           default(2), not null
 #
 # Indexes
 #
-#  index_users_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_users_on_public_id              (public_id) UNIQUE
-#  index_users_on_purge_at               (purge_at)
-#  index_users_on_purged_at              (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_users_on_status_id              (status_id)
-#  index_users_on_visibility_id          (visibility_id)
-#  index_users_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_users_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_users_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_users_on_multi_factor_id         (multi_factor_id)
+#  index_users_on_multi_factor_status_id  (multi_factor_status_id)
+#  index_users_on_public_id               (public_id) UNIQUE
+#  index_users_on_purge_at                (purge_at)
+#  index_users_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
+#  index_users_on_status_id               (status_id)
+#  index_users_on_visibility_id           (visibility_id)
+#  index_users_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_users_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
+#  fk_rails_...  (multi_factor_id => user_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => user_multi_factor_statuses.id)
 #  fk_rails_...  (status_id => user_statuses.id)
 #  fk_rails_...  (visibility_id => user_visibilities.id)
 #
@@ -45,7 +51,9 @@ class UserTest < ActiveSupport::TestCase
   NIL_UUID = "00000000-0000-0000-0000-000000000000"
 
   def setup
-    [0, 1, 2, 3].each { |id| UserVisibility.find_or_create_by!(id: id) }
+    Prosopite.pause do
+      [0, 1, 2, 3].each { |id| UserVisibility.find_or_create_by!(id: id) }
+    end
 
     @user =
       User.create!(public_id: "u_#{SecureRandom.hex(8)}") do |u|
@@ -84,6 +92,12 @@ class UserTest < ActiveSupport::TestCase
     user = User.create!
 
     assert_equal UserStatus::NOTHING, user.status_id
+  end
+
+  test "database default status matches the nothing status" do
+    status_column = User.columns.find { |column| column.name == "status_id" }
+
+    assert_equal UserStatus::NOTHING, status_column.default.to_i
   end
 
   test "should default visibility_id to staff (2)" do

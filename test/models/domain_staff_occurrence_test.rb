@@ -25,13 +25,13 @@
 
 require "test_helper"
 
-class DomainStaffOccurrenceTest < ActiveSupport::TestCase
+class DomainOperatorOccurrenceTest < ActiveSupport::TestCase
   fixtures :domain_occurrences
 
   test "associations" do
     domain = domain_occurrences(:one)
-    staff = StaffOccurrence.create!(body: "staff-001")
-    record = DomainStaffOccurrence.new(
+    staff = OperatorOccurrence.create!(body: "staff-001")
+    record = DomainOperatorOccurrence.new(
       domain_occurrence: domain,
       staff_occurrence: staff,
     )
@@ -43,9 +43,9 @@ class DomainStaffOccurrenceTest < ActiveSupport::TestCase
 
   test "uniqueness validation" do
     domain = domain_occurrences(:one)
-    staff = StaffOccurrence.create!(body: "staff-002")
-    DomainStaffOccurrence.create!(domain_occurrence: domain, staff_occurrence: staff)
-    duplicate = DomainStaffOccurrence.new(domain_occurrence: domain, staff_occurrence: staff)
+    staff = OperatorOccurrence.create!(body: "staff-002")
+    DomainOperatorOccurrence.create!(domain_occurrence: domain, staff_occurrence: staff)
+    duplicate = DomainOperatorOccurrence.new(domain_occurrence: domain, staff_occurrence: staff)
 
     assert_not duplicate.valid?
     assert_not_empty duplicate.errors[:domain_occurrence_id]

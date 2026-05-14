@@ -9,5 +9,6 @@ class Sign::Net::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_net_root_url
 
     assert_response :success
+    assert_select "title", "#{ENV.fetch("BRAND_NAME", "Umaxica")} (net) | Network Roots"
   end
 end

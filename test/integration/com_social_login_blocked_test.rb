@@ -46,6 +46,6 @@ class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "/auth/google_org"
     assert_not_includes response.body, "/auth/apple"
     # Check for i18n keys absence if they were social-specific
-    assert_not_includes response.body, "Googleでサインイン" if I18n.locale == :ja
+    assert_not_includes response.body, "Googleで続行" if I18n.locale == :ja
   end
 end

@@ -24,4 +24,22 @@ class HostOriginEnvTest < ActiveSupport::TestCase
       assert_equal ["https://id.app.example.com"], origins
     end
   end
+
+  test "trusted_origins removes blanks and deduplicates origins" do
+    env = ActiveSupport::EnvironmentInquirer.new("development")
+
+    Rails.stub(:env, env) do
+      origins = HostOriginEnv.trusted_origins(nil, "", "id.app.localhost", "id.app.localhost")
+
+      assert_equal ["http://id.app.localhost", "https://id.app.localhost"], origins
+    end
+  end
+
+  test "origins_for uses https only in production for bare hosts" do
+    env = ActiveSupport::EnvironmentInquirer.new("production")
+
+    Rails.stub(:env, env) do
+      assert_equal ["https://id.app.localhost"], HostOriginEnv.origins_for("id.app.localhost")
+    end
+  end
 end

@@ -6,6 +6,8 @@ require "test_helper"
 class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
+  fixtures :users
+
   UserStruct = Struct.new(:id, :public_id, :user_passkeys, :user_one_time_passwords)
 
   class Harness
@@ -41,18 +43,20 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
     include Sign::AppVerificationBase
 
-    attr_accessor :user, :params_hash, :session_hash, :redirect_args, :started_reauth_session, :hotp_result
+    attr_accessor :user, :user_token, :params_hash, :redirect_args, :hotp_result
 
-    def initialize(user:)
+    def initialize(user:, user_token: nil)
       @user = user
+      @user_token = user_token
       @params_hash = {}
-      @session_hash = {}
       @hotp_result = true
     end
 
     def current_user = user
 
-    def session = session_hash
+    def actor_token = user_token
+
+    def current_session_token = user_token
 
     def params = ActionController::Parameters.new(params_hash)
 
@@ -60,18 +64,24 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       "/verification?#{params.to_query}"
     end
 
+    def sign_app_configuration_path(params = {})
+      "/configuration?#{params.to_query}"
+    end
+
+    def sign_app_root_path(params = {})
+      "/?#{params.to_query}"
+    end
+
     def current_reauth_session
-      session[Sign::AppVerificationBase::REAUTH_SESSION_KEY]
+      user_token&.reauth_session
     end
 
     def start_reauth_session!(scope:, return_to_param:)
-      self.started_reauth_session = { scope: scope, return_to_param: return_to_param }
-      session[Sign::AppVerificationBase::REAUTH_SESSION_KEY] = {
-        "user_id" => current_user.id,
-        "scope" => scope,
-        "return_to" => Base64.urlsafe_decode64(return_to_param),
-        "expires_at" => 5.minutes.from_now.to_i,
-      }
+      Sign::VerificationReauthSessionStore.instance_method(:start_reauth_session!).bind_call(
+        self,
+        scope: scope,
+        return_to_param: return_to_param,
+      )
     end
 
     def safe_redirect_to(*args, **kwargs)
@@ -99,6 +109,15 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     end
   end
 
+  setup do
+    @previous_cache_store = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+  end
+
+  teardown do
+    Rails.cache = @previous_cache_store
+  end
+
   test "verification params and incoming redirect helpers prefer verification payload" do
     user = UserStruct.new(7, "user-public-id", [], [])
     harness = Harness.new(user: user)
@@ -106,7 +125,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     harness.params_hash = {
       ri: "jp",
       scope: "configuration_secret",
-      rd: Base64.urlsafe_encode64("/configuration/secrets"),
+      rt: Base64.urlsafe_encode64("/configuration/secrets"),
       verification: {
         scope: "configuration_email",
         return_to: return_to,
@@ -124,25 +143,20 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   end
 
   test "email otp session active and nonce helpers use reauth session" do
-    user = UserStruct.new(7, "user-public-id", [], [])
-    harness = Harness.new(user: user)
+    user = users(:one)
+    token = UserToken.create!(user: user)
+    harness = Harness.new(user: user, user_token: token)
 
     assert_not harness.app_call(:email_otp_session_active?)
 
-    harness.session_hash[Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY] = { "expires_at" => 5.minutes.from_now.to_i }
+    reauth_session = create_user_reauth_session(user_token: token)
+    Rails.cache.write("reauth_session:#{reauth_session.id}:email_otp", { "secret" => "secret" }, expires_in: 5.minutes)
 
     assert harness.app_call(:email_otp_session_active?)
 
-    harness.session_hash[Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY] = { "expires_at" => 1.minute.ago.to_i }
+    Rails.cache.delete("reauth_session:#{reauth_session.id}:email_otp")
 
     assert_not harness.app_call(:email_otp_session_active?)
-
-    harness.session_hash[Sign::AppVerificationBase::REAUTH_SESSION_KEY] = {
-      "user_id" => 7,
-      "scope" => "configuration_email",
-      "return_to" => "/configuration/emails",
-      "expires_at" => 5.minutes.from_now.to_i,
-    }
 
     nonce = harness.app_call(:ensure_email_nonce!)
 
@@ -153,26 +167,30 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   end
 
   test "reauth session validation and restore from params" do
-    user = UserStruct.new(7, "user-public-id", [], [])
-    harness = Harness.new(user: user)
-    valid_session = {
-      "user_id" => 7,
-      "scope" => "configuration_email",
-      "return_to" => "/configuration/emails",
-      "expires_at" => 5.minutes.from_now.to_i,
-    }
+    user = users(:one)
+    token = UserToken.create!(user: user)
+    other_token = UserToken.create!(user: user)
+    harness = Harness.new(user: user, user_token: token)
+    valid_session = create_user_reauth_session(user_token: token)
 
     assert harness.app_call(:valid_reauth_session?, valid_session)
-    assert_not harness.app_call(:valid_reauth_session?, valid_session.merge("user_id" => 8))
-    assert_not harness.app_call(:valid_reauth_session?, valid_session.merge("expires_at" => 1.minute.ago.to_i))
-    assert_not harness.app_call(:valid_reauth_session?, valid_session.merge("scope" => ""))
-    assert_not harness.app_call(:valid_reauth_session?, valid_session.merge("return_to" => ""))
+    assert_not harness.app_call(
+      :valid_reauth_session?, valid_session.dup.tap { |rs|
+                                rs.user_token_id = other_token.id
+                              },
+    )
+    assert_not harness.app_call(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.lapses_at = 1.minute.ago })
+    assert_not harness.app_call(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.scope = "" })
+    assert_not harness.app_call(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.return_to = "" })
 
     return_to = Base64.urlsafe_encode64("/configuration/emails")
     harness.params_hash = { scope: "configuration_email", return_to: return_to }
 
     assert harness.app_call(:restore_reauth_session_from_params!)
-    assert_equal({ scope: "configuration_email", return_to_param: return_to }, harness.started_reauth_session)
+    restored = token.reload.reauth_session
+
+    assert_equal "configuration_email", restored.scope
+    assert_equal "/configuration/emails", restored.return_to
 
     harness.params_hash = {}
 
@@ -180,16 +198,16 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   end
 
   test "invalid reauth session redirects and clears state" do
-    user = UserStruct.new(7, "user-public-id", [], [])
-    harness = Harness.new(user: user)
+    user = users(:one)
+    token = UserToken.create!(user: user)
+    harness = Harness.new(user: user, user_token: token)
     harness.params_hash = { ri: "jp" }
-    harness.session_hash[Sign::AppVerificationBase::REAUTH_SESSION_KEY] = { "user_id" => 7 }
-    harness.session_hash[Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY] = { "secret" => "old" }
+    reauth_session = create_user_reauth_session(user_token: token)
+    Rails.cache.write("reauth_session:#{reauth_session.id}:email_otp", { "secret" => "old" })
 
     assert_not harness.app_call(:handle_invalid_reauth_session!)
-    assert_nil harness.session_hash[Sign::AppVerificationBase::REAUTH_SESSION_KEY]
-    assert_nil harness.session_hash[Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY]
-    assert_match "/verification?", harness.redirect_args.first.first
+    assert_nil Rails.cache.read("reauth_session:#{reauth_session.id}:email_otp")
+    assert_match "/configuration?", harness.redirect_args.first.first
   end
 
   test "app verification exposes user specific models and values" do
@@ -198,7 +216,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     harness = Harness.new(user: user)
     harness.params_hash = { ri: "jp" }
 
-    assert_equal 7, harness.app_call(:reauth_actor_id)
+    assert_equal :user_token_id, harness.app_call(:reauth_session_token_foreign_key)
     assert_equal "/verification?ri=jp", harness.app_call(:verification_unavailable_redirect_path)
     assert_equal UserVerification, harness.app_call(:verification_model)
     assert_equal UserChronicleEvent::STEP_UP_VERIFIED, harness.app_call(:verification_success_event_id)
@@ -217,8 +235,10 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   end
 
   test "verify_email_otp handles invalid missing expired wrong and valid codes" do
-    user = UserStruct.new(7, "user-public-id", [], [])
-    harness = Harness.new(user: user)
+    user = users(:one)
+    token = UserToken.create!(user: user)
+    harness = Harness.new(user: user, user_token: token)
+    reauth_session = create_user_reauth_session(user_token: token)
 
     harness.params_hash = { verification: { code: "abc" } }
 
@@ -230,16 +250,18 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     assert_not harness.app_call(:verify_email_otp!)
     assert_equal ["確認コードの再送信が必要です"], harness.instance_variable_get(:@verification_errors)
 
-    harness.session_hash[Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY] = {
-      "secret" => "secret",
-      "counter" => 1,
-      "expires_at" => 1.minute.ago.to_i,
-    }
+    Rails.cache.write(
+      "reauth_session:#{reauth_session.id}:email_otp", {
+        "secret" => "secret",
+        "counter" => 1,
+      },
+    )
+    reauth_session.update_columns(lapses_at: 1.minute.ago, purge_at: 1.minute.ago)
 
     assert_not harness.app_call(:verify_email_otp!)
     assert_equal ["確認コードの有効期限が切れました"], harness.instance_variable_get(:@verification_errors)
 
-    harness.session_hash[Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY]["expires_at"] = 5.minutes.from_now.to_i
+    reauth_session.update!(lapses_at: 5.minutes.from_now, purge_at: 5.minutes.from_now)
     harness.hotp_result = false
 
     assert_not harness.app_call(:verify_email_otp!)
@@ -248,5 +270,20 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     harness.hotp_result = true
 
     assert harness.app_call(:verify_email_otp!)
+  end
+
+  private
+
+  def create_user_reauth_session(user_token:, scope: "configuration_email", return_to: "/configuration/emails")
+    UserReauthSession.create!(
+      user_token: user_token,
+      scope: scope,
+      return_to: return_to,
+      method: nil,
+      status: "PENDING",
+      attempt_count: 0,
+      lapses_at: 5.minutes.from_now,
+      purge_at: 5.minutes.from_now,
+    )
   end
 end

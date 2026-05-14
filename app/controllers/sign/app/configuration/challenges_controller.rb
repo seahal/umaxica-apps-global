@@ -25,14 +25,16 @@ module Sign
         end
 
         def update
-          enabled = ActiveModel::Type::Boolean.new.cast(params.dig(:user, :multi_factor_enabled))
-          current_user.update!(multi_factor_enabled: enabled)
+          multi_factor_id = requested_multi_factor_id
+          current_user.multi_factor_id = multi_factor_id
+          current_user.multi_factor_enabled = multi_factor_id != UserMultiFactor::NOTHING
+          current_user.save!
 
           redirect_to(
-            sign_app_configuration_challenge_path,
+            sign_app_configuration_challenge_path(ri: params[:ri]),
             notice: t("sign.app.configuration.mfa.update.success"),
           )
-        rescue ActiveRecord::RecordInvalid
+        rescue ActiveRecord::RecordInvalid, ArgumentError
           show
           flash.now[:alert] = t("sign.app.configuration.mfa.update.failure")
           render :show, status: :unprocessable_content
@@ -41,11 +43,18 @@ module Sign
         private
 
         def verification_required_action?
-          action_name == "update"
+          %w(show update).include?(action_name)
         end
 
         def verification_scope
           "configuration_mfa"
+        end
+
+        def requested_multi_factor_id
+          multi_factor_id = Integer(params.dig(:user, :multi_factor_id).to_s, 10)
+          return multi_factor_id if [UserMultiFactor::NOTHING, UserMultiFactor::FULL].include?(multi_factor_id)
+
+          raise ArgumentError, "unsupported multi factor level"
         end
       end
     end

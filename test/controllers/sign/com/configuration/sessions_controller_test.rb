@@ -7,49 +7,51 @@ class Sign::Com::Configuration::SessionsControllerTest < ActionDispatch::Integra
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    CustomerStatus.find_or_create_by!(id: CustomerStatus::ACTIVE)
-    CustomerVisibility.find_or_create_by!(id: CustomerVisibility::CUSTOMER)
-    CustomerEmailStatus.find_or_create_by!(id: CustomerEmailStatus::VERIFIED)
-    CustomerTelephoneStatus.find_or_create_by!(id: CustomerTelephoneStatus::VERIFIED)
-    CustomerTokenKind.find_or_create_by!(id: CustomerTokenKind::BROWSER_WEB)
-    CustomerTokenBindingMethod.find_or_create_by!(id: CustomerTokenBindingMethod::NOTHING)
-    CustomerTokenStatus.find_or_create_by!(id: CustomerTokenStatus::NOTHING)
-    CustomerTokenDbscStatus.find_or_create_by!(id: CustomerTokenDbscStatus::NOTHING)
-    @customer = Customer.create!(
-      status_id: CustomerStatus::ACTIVE,
-      visibility_id: CustomerVisibility::CUSTOMER,
+    Prosopite.pause do
+      VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
+      VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+      VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
+      VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
+      VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
+      VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
+      VisitorTokenStatus.ensure_defaults!
+      VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
+    end
+    @visitor = Visitor.create!(
+      status_id: VisitorStatus::ACTIVE,
+      visibility_id: VisitorVisibility::VISITOR,
     )
-    CustomerEmail.create!(
-      customer: @customer,
+    VisitorEmail.create!(
+      visitor: @visitor,
       address: "com-sessions-#{SecureRandom.hex(4)}@example.com",
-      customer_email_status_id: CustomerEmailStatus::VERIFIED,
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
       confirm_policy: "1",
     )
-    @customer.customer_telephones.create!(
+    @visitor.visitor_telephones.create!(
       number: "+819000000003",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @token = CustomerToken.create!(
-      customer: @customer,
-      customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
-      customer_token_binding_method_id: CustomerTokenBindingMethod::NOTHING,
-      customer_token_status_id: CustomerTokenStatus::NOTHING,
-      customer_token_dbsc_status_id: CustomerTokenDbscStatus::NOTHING,
+    @token = VisitorToken.create!(
+      visitor: @visitor,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
-    satisfy_customer_verification(@token)
-    @other_session = CustomerToken.create!(
-      customer: @customer,
-      customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
-      customer_token_binding_method_id: CustomerTokenBindingMethod::NOTHING,
-      customer_token_status_id: CustomerTokenStatus::NOTHING,
-      customer_token_dbsc_status_id: CustomerTokenDbscStatus::NOTHING,
+    satisfy_visitor_verification(@token)
+    @other_session = VisitorToken.create!(
+      visitor: @visitor,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
   end
 
   def request_headers(token = @token)
     {
       "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => @customer.id,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
   end
@@ -81,7 +83,7 @@ class Sign::Com::Configuration::SessionsControllerTest < ActionDispatch::Integra
 
     assert_predicate @other_session, :revoked?
 
-    other_two = CustomerToken.create!(customer: @customer, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
+    other_two = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
     delete others_sign_com_configuration_sessions_url(ri: "jp"), headers: request_headers
 
@@ -139,7 +141,7 @@ class Sign::Com::Configuration::SessionsControllerTest < ActionDispatch::Integra
     event = revoke_events.last
 
     assert_equal "security.session_revoke_all", event[:name]
-    assert_equal "Customer", event[:payload][:actor_type]
+    assert_equal "Visitor", event[:payload][:actor_type]
     assert_predicate event[:payload][:actor_id], :present?
   ensure
     Rails.event.unsubscribe(subscriber) if defined?(subscriber) && subscriber

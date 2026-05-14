@@ -150,7 +150,8 @@ class UserSecret < PrincipalRecord
   def enforce_secret_limit
     return unless user_id
 
-    count = self.class.where(user_id: user_id).count
+    operation = -> { self.class.where(user_id: user_id).count }
+    count = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
     return if count < MAX_SECRETS_PER_USER
 
     errors.add(:base, :too_many, message: "exceeds maximum secrets per user (#{MAX_SECRETS_PER_USER})")

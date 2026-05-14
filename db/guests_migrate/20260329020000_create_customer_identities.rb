@@ -84,7 +84,7 @@ class CreateCustomerIdentities < ActiveRecord::Migration[8.2]
       seed_reference_ids(:customer_email_statuses, [1, 2, 3, 4, 5, 6, 7])
       seed_reference_ids(:customer_telephone_statuses, [1, 2, 3, 4, 5, 6, 7])
       seed_reference_ids(:customer_secret_statuses, [1, 2, 3, 4, 5, 6])
-      seed_reference_ids(:customer_secret_kinds, [1, 2, 3, 4])
+      seed_reference_ids(:customer_secret_kinds, [1, 3, 4])
       seed_reference_ids(:customer_passkey_statuses, [1, 2, 3, 4, 5])
     end
   end

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/root_theme_cookie_helper"
 
 class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   include RootThemeCookieHelper
@@ -51,5 +52,17 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
       label: "sign com root",
       ri: "jp",
     )
+  end
+
+  test "GET / redirects to dashboard when logged in" do
+    visitor = create_verified_visitor_with_email(email_address: "com-root-logged-in@example.com")
+    visitor.visitor_telephones.create!(
+      number: "+15550002223",
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
+
+    get sign_com_root_url(ri: "jp"), headers: as_visitor_headers(visitor, host: "id.com.localhost")
+
+    assert_redirected_to sign_com_dashboard_url(ri: "jp")
   end
 end

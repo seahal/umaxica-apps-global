@@ -21,5 +21,8 @@ class UserTokenStatusTest < ActiveSupport::TestCase
   test "constants are defined" do
     assert_equal 1, UserTokenStatus::ACTIVE
     assert_equal 0, UserTokenStatus::NOTHING
+    assert_equal 102, UserTokenStatus::EXPIRED
+    assert_equal 103, UserTokenStatus::RESTRICTED
+    assert_equal 104, UserTokenStatus::REVOKED
   end
 end

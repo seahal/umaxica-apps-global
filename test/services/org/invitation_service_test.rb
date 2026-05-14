@@ -6,7 +6,7 @@ require "test_helper"
 class Org::InvitationServiceTest < ActiveSupport::TestCase
   setup do
     [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) }
-    @staff = Staff.create!(status_id: StaffStatus::ACTIVE)
+    @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
     @organization = Organization.create!(name: "Test Org")
   end
 

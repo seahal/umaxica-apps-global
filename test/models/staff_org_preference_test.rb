@@ -20,12 +20,12 @@
 # Foreign Keys
 #
 #  fk_rails_...  (org_preference_id => org_preferences.id) ON DELETE => cascade
-#  fk_rails_...  (staff_id => staffs.id)
+#  fk_rails_...  (staff_id => operators.id)
 #
 require "test_helper"
 
-class StaffOrgPreferenceTest < ActiveSupport::TestCase
+class OperatorOrgPreferenceTest < ActiveSupport::TestCase
   test "class is defined" do
-    assert_equal "StaffOrgPreference", StaffOrgPreference.name
+    assert_equal "OperatorOrgPreference", OperatorOrgPreference.name
   end
 end

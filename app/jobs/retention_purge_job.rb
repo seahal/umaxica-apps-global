@@ -5,12 +5,12 @@ class RetentionPurgeJob < ApplicationJob
   queue_as :retention
 
   RETAINABLE_MODELS = %w(
-    User Customer Staff AppPreference OrgPreference ComPreference
-    UserToken StaffToken CustomerToken
-    UserVerification StaffVerification CustomerVerification
-    UserAuthorizationCode StaffAuthorizationCode CustomerAuthorizationCode
-    UserReauthSession StaffReauthSession CustomerReauthSession
-    AreaOccurrence UserOccurrence StaffOccurrence ZipOccurrence
+    User Visitor Operator AppPreference OrgPreference ComPreference
+    UserToken OperatorToken VisitorToken
+    UserVerification OperatorVerification VisitorVerification
+    UserAuthorizationCode OperatorAuthorizationCode VisitorAuthorizationCode
+    UserReauthSession OperatorReauthSession VisitorReauthSession
+    AreaOccurrence UserOccurrence VisitorOccurrence OperatorOccurrence ZipOccurrence
     DomainOccurrence IpOccurrence EmailOccurrence JwtOccurrence TelephoneOccurrence
     AppJumpLink ComJumpLink OrgJumpLink
   ).filter_map(&:safe_constantize).freeze

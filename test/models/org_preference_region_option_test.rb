@@ -51,4 +51,10 @@ class OrgPreferenceRegionOptionTest < ActiveSupport::TestCase
 
     assert_equal "JP", option.name
   end
+
+  test "name returns nil for unknown id" do
+    option = OrgPreferenceRegionOption.new(id: 99)
+
+    assert_nil option.name
+  end
 end

@@ -66,16 +66,23 @@ module Sign
             if @user.status_id == UserStatus::UNVERIFIED_WITH_SIGN_UP
               @user.update!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
             end
+            @user.create_user_account! unless @user.user_account
 
             record_signup_audit!(@user)
-            log_in(@user, record_login_audit: false)
+            log_in(
+              @user,
+              record_login_audit: true,
+              audit_context: { auth_method: "passkey" },
+            )
             create_welcome_bulletin!(@user)
-            has_bulletin = issue_bulletin!
             session[:user_telephone_registration] = nil
 
             render json: {
               status: "ok",
-              redirect_url: has_bulletin ? success_redirect_url : sign_app_configuration_path(ri: params[:ri]),
+              redirect_url: sign_in_sequence_redirect_path(
+                rt: params[:rt].presence,
+                default_path: sign_app_configuration_path(ri: params[:ri]),
+              ),
             }, status: :created
           end
         rescue Sign::Webauthn::ChallengeNotFoundError,
@@ -140,15 +147,17 @@ module Sign
         end
 
         def credential_params
-          params.expect(:credential)&.permit(
-            :id,
-            :rawId,
-            :type,
-            :authenticatorAttachment,
-            { transports: [] },
-            { response: %i(clientDataJSON attestationObject) },
-            { clientExtensionResults: {} },
-          )
+          params.expect(
+            credential: [
+              :id,
+              :rawId,
+              :type,
+              :authenticatorAttachment,
+              { transports: [] },
+              { response: %i(clientDataJSON attestationObject) },
+              { clientExtensionResults: {} },
+            ],
+          ) || {}
         end
 
         def passkey_description
@@ -156,8 +165,8 @@ module Sign
         end
 
         def success_redirect_url
-          rd_param = params[:rd].presence || generate_redirect_url(params[:rt])
-          sign_app_in_bulletin_path(rd: rd_param, ri: params[:ri])
+          rt_param = params[:rt].presence
+          sign_in_checkpoint_path(rt: rt_param)
         end
       end
     end

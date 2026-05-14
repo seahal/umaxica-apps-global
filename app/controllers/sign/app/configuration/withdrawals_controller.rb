@@ -52,8 +52,8 @@ module Sign
             current_user.update!(
               withdrawal_started_at: nil,
               deactivated_at: nil,
-              deletable_at: Float::INFINITY,
-              scheduled_purge_at: nil,
+              lapses_at: Float::INFINITY,
+              purge_at: Float::INFINITY,
               withdrawn_at: nil,
             )
 
@@ -137,8 +137,9 @@ module Sign
         def assign_withdrawal_schedule!(now)
           current_user.withdrawal_started_at ||= now
           current_user.deactivated_at ||= now
-          current_user.scheduled_purge_at ||= current_user.deactivated_at + 31.days
-          current_user.deletable_at ||= current_user.scheduled_purge_at
+          deactivated = current_user.deactivated_at
+          current_user.lapses_at = deactivated
+          current_user.purge_at = deactivated + 31.days
         end
 
         def notify_deactivation!
@@ -146,8 +147,7 @@ module Sign
             "user.withdrawal.deactivated",
             user_id: current_user.id,
             deactivated_at: current_user.deactivated_at,
-            deletable_at: current_user.deletable_at,
-            scheduled_purge_at: current_user.scheduled_purge_at,
+            purge_at: current_user.purge_at,
             ip_address: request.remote_ip,
           )
         end

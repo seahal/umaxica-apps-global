@@ -152,7 +152,7 @@ concerns scoped.
   or phone exists.
 - Turnstile result is logged; failures add model errors and re-render the form.
 - On success, controller redirects to `new` after immediate email notification handling.
-- Client-side guard (`app/javascript/views/www/app/inquiry/before_submit.js`) prevents submission
+- VisitorAccount-side guard (`app/javascript/views/www/app/inquiry/before_submit.js`) prevents submission
   when policy checkbox unchecked.
 
 ### 4.4 Docs & News
@@ -187,6 +187,7 @@ concerns scoped.
 | ------------------------------------------------------------ | ------------------------------------------------------ | ----------------------------------------------------------- |
 | `IdentitiesRecord`                                           | `identity`, `identity_replica`                         | `users`, `staffs`, `user_passkeys`, `user_sessions`         |
 | `GuestRecord`                                                | `guest`, `guest_replica`                               | `service_site_contacts`, `corporate_site_contacts`          |
+| `VisitorRecord`                                              | `visitor`, `visitor_replica`                           | `com_banners`                                               |
 | `OccurrenceRecord`                                           | `occurrence`, `occurrence_replica`                     | `time_based_one_time_passwords`, `occurrence_*_identifiers` |
 | `TokensRecord`                                               | `token`, `token_replica`                               | `user_tokens`, `staff_tokens`, `user_sessions`              |
 | `BusinessesRecord`, `ProfilesRecord`, `StoragesRecord`, etc. | `business`, `profile`, `storage`, `notification`, etc. | Owners/customers/timeline data (future modules)             |

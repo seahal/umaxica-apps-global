@@ -61,7 +61,7 @@ module Sign::App::Up
       finish_path = sign_app_up_telephone_passkey_registration_path(telephone, ri: "jp")
 
       assert_select "[data-passkey-registration-finish-url-value='#{finish_path}']"
-      assert_select "[data-passkey-registration-success-redirect-url-value='#{sign_app_in_bulletin_path(
+      assert_select "[data-passkey-registration-success-redirect-url-value='#{sign_app_in_checkpoint_path(
         ri: "jp",
       )}']"
     end
@@ -83,6 +83,54 @@ module Sign::App::Up
 
       assert_predicate challenge, :present?
       assert_equal "registration", challenge["purpose"]
+    end
+
+    test "POST begin excludes existing passkey credentials" do
+      telephone = verify_telephone_via_otp!
+      telephone.user.user_passkeys.create!(
+        webauthn_id: "existing_webauthn_id",
+        public_key: "existing_public_key",
+        sign_count: 0,
+      )
+
+      post begin_sign_app_up_telephone_passkey_registration_url(telephone, ri: "jp")
+
+      assert_response :ok
+      excluded_ids = response.parsed_body.dig("options", "excludeCredentials").to_a.pluck("id")
+
+      assert_includes excluded_ids, "existing_webauthn_id"
+    end
+
+    test "POST begin returns json error when registration session is missing" do
+      post begin_sign_app_up_telephone_passkey_registration_url("missing", ri: "jp"), as: :json
+
+      assert_response :unprocessable_content
+      assert_predicate response.parsed_body["error"], :present?
+    end
+
+    test "GET show redirects when registration session is missing" do
+      get sign_app_up_telephone_passkey_registration_url("missing", ri: "jp")
+
+      assert_redirected_to new_sign_app_up_telephone_path(ri: "jp")
+    end
+
+    test "POST begin rejects unverified telephone registration" do
+      telephone = verify_telephone_via_otp!
+      telephone.update!(user_telephone_status_id: UserTelephoneStatus::UNVERIFIED)
+
+      post begin_sign_app_up_telephone_passkey_registration_url(telephone, ri: "jp"), as: :json
+
+      assert_response :unprocessable_content
+      assert_predicate response.parsed_body["error"], :present?
+    end
+
+    test "GET show redirects unverified telephone registration to edit" do
+      telephone = verify_telephone_via_otp!
+      telephone.update!(user_telephone_status_id: UserTelephoneStatus::UNVERIFIED)
+
+      get sign_app_up_telephone_passkey_registration_url(telephone, ri: "jp")
+
+      assert_redirected_to edit_sign_app_up_telephone_path(telephone, ri: "jp")
     end
 
     test "POST create saves passkey and returns completion redirect on success" do
@@ -112,9 +160,23 @@ module Sign::App::Up
 
       assert_response :created
       assert_equal "ok", response.parsed_body["status"]
-      assert_equal sign_app_configuration_path(ri: "jp"), response.parsed_body["redirect_url"]
+      assert_equal sign_app_dashboard_path(ri: "jp"), response.parsed_body["redirect_url"]
       assert_nil session[:user_telephone_registration]
       assert_equal UserStatus::VERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
+    end
+
+    test "POST create requires challenge id" do
+      telephone = verify_telephone_via_otp!
+
+      post sign_app_up_telephone_passkey_registration_url(telephone, ri: "jp"), params: {
+        credential: {
+          id: "new_webauthn_id",
+          response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+        },
+      }
+
+      assert_response :bad_request
+      assert_predicate response.parsed_body["error"], :present?
     end
 
     test "POST create establishes login session for configuration access" do
@@ -174,7 +236,7 @@ module Sign::App::Up
       end
 
       assert_response :created
-      assert_equal sign_app_configuration_path(ri: "jp"),
+      assert_equal sign_app_dashboard_path(ri: "jp", rt: rt),
                    response.parsed_body["redirect_url"]
     end
 
@@ -191,7 +253,7 @@ module Sign::App::Up
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
-        assert_difference("UserChronicle.count", 1) do
+        assert_difference("UserChronicle.count", 2) do
           post sign_app_up_telephone_passkey_registration_url(telephone, ri: "jp"), params: {
             challenge_id: challenge_id,
             credential: {
@@ -203,10 +265,27 @@ module Sign::App::Up
         end
       end
 
-      audit = UserChronicle.last
-
-      assert_equal UserChronicleEvent::SIGNED_UP_WITH_TELEPHONE, audit.event_id
-      assert_equal telephone.user.id, audit.actor_id
+      assert_equal 1,
+                   UserChronicle.where(
+                     event_id: UserChronicleEvent::SIGNED_UP_WITH_TELEPHONE,
+                     actor_id: telephone.user.id,
+                     subject_id: telephone.user.id.to_s,
+                     subject_type: "User",
+                   ).count
+      assert_equal 1,
+                   UserChronicle.where(
+                     event_id: UserChronicleEvent::LOGGED_IN,
+                     actor_id: telephone.user.id,
+                     subject_id: telephone.user.id.to_s,
+                     subject_type: "User",
+                   ).count
+      assert_equal "passkey",
+                   UserChronicle.where(
+                     event_id: UserChronicleEvent::LOGGED_IN,
+                     actor_id: telephone.user.id,
+                     subject_id: telephone.user.id.to_s,
+                     subject_type: "User",
+                   ).last.context["auth_method"]
     end
 
     test "POST create returns unprocessable on verifier error" do

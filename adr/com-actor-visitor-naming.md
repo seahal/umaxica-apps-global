@@ -1,0 +1,28 @@
+# Com Actor Uses Visitor Naming
+
+**Status:** Accepted (2026-05-13)
+
+## Context
+
+The `com` surface historically used `Customer` as its authenticated actor name. That name overlaps
+with policy concepts during the Action Policy rollout and makes actor/policy lookup ambiguous.
+
+The repository also has visitor-database client/account records. Those models are client-side
+visitor records, not the authenticated `com` actor.
+
+## Decision
+
+The authenticated `com` actor is named `Visitor`.
+
+- `Visitor < GuestRecord` owns the former customer account and credential tables.
+- Visitor tokens, verification, reauth, preferences, and occurrences use `visitor_*` names.
+- `VisitorClient < VisitorRecord` remains a separate client-side visitor record backed by the
+  legacy `client_visitors` table.
+- No `Customer` compatibility constants, helpers, params, or policy names are retained.
+
+## Consequences
+
+- `sign/com` uses `current_visitor`, `authenticate_visitor!`, and `VisitorPolicy`.
+- Database tables and foreign keys use `visitor_*` names.
+- Historical migration filenames may still mention customer, but current runtime code, schema, and
+  tests use visitor naming.

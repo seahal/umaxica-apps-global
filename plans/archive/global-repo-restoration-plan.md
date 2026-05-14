@@ -25,7 +25,7 @@ Archived (2026-05-07). Split into per-item backlog files.
 > - A6 → `plans/backlog/restoration-a6-token-endpoint-csrf.md`
 > - A7 → `plans/backlog/restoration-a7-self-service-session-revoke.md`
 > - A8 → `plans/backlog/restoration-a8-csp-permissions-policy.md`
-> - A9 → `plans/backlog/restoration-a9-turnstile-environment-toggle.md`
+> - A9 → `plans/archive/restoration-a9-turnstile-environment-toggle.md`
 > - A10 → `plans/backlog/restoration-a10-sign-configuration-sprint-spec.md`
 >
 > **B. Data model / Database**

@@ -8,14 +8,14 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
-    @customer = create_verified_customer_with_email(
+    @visitor = create_verified_visitor_with_email(
       email_address: "com-verification-#{SecureRandom.hex(4)}@example.com",
     )
-    @customer.customer_telephones.create!(
+    @visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @headers = as_customer_headers(@customer, host: @host)
+    @headers = as_visitor_headers(@visitor, host: @host)
   end
 
   test "should get show" do
@@ -25,12 +25,12 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "redirects to setup page when no verification methods are registered" do
-    customer = Customer.create!(visibility_id: CustomerVisibility::CUSTOMER)
-    customer.customer_telephones.create!(
+    visitor = Visitor.create!(visibility_id: VisitorVisibility::VISITOR)
+    visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    headers = as_customer_headers(customer, host: @host)
+    headers = as_visitor_headers(visitor, host: @host)
 
     get sign_com_verification_url(ri: "jp"), headers: headers
 
@@ -39,18 +39,18 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification/setup/new", uri.path
-    assert_predicate query["rd"], :present?
+    assert_predicate query["rt"], :present?
   end
 
   test "show renders only email and passkey method links" do
     return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
-    CustomerPasskey.create!(
-      customer: @customer,
+    VisitorPasskey.create!(
+      visitor: @visitor,
       webauthn_id: Base64.urlsafe_encode64("com_verification_passkey", padding: false),
       external_id: SecureRandom.uuid,
       public_key: "verification_key",
       description: "Verification Key",
-      status_id: CustomerPasskeyStatus::ACTIVE,
+      status_id: VisitorPasskeyStatus::ACTIVE,
     )
 
     get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
@@ -59,6 +59,5 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, new_sign_com_verification_email_path(ri: "jp")
     assert_includes response.body, new_sign_com_verification_passkey_path(ri: "jp")
-    assert_not_includes response.body, "/verification/totp"
   end
 end

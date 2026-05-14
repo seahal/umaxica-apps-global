@@ -3,7 +3,9 @@
 
 require "test_helper"
 
-class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
+class Preference::BaseExtraCoverageTest < Minitest::Test
+  extend ActiveSupport::Testing::Declarative
+
   class Harness < ApplicationController
     include Preference::Base
 
@@ -83,7 +85,7 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
     end
   end
 
-  setup do
+  def setup
     @harness = Harness.new
   end
 

@@ -36,8 +36,9 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
 
     token.reload
 
-    assert token.lapses_at, "Original token should be revoked"
-    assert UserToken.where(user_id: user.id).all?(&:revoked?), "All actor tokens should be revoked"
+    assert_operator token.lapses_at, :<=, Time.current, "Original token should be revoked"
+    assert_operator UserToken.where(user_id: user.id).maximum(:lapses_at), :<=, Time.current,
+                    "All actor tokens should be revoked"
 
     assert_raises(Sign::InvalidRefreshToken) do
       Sign::RefreshTokenService.call(refresh_token: rotated_refresh)
@@ -58,7 +59,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     end
 
     assert_predicate token.reload.lapses_at, :present?
-    assert_equal "revoked", token.reload.status
+    assert_equal UserTokenStatus::REVOKED, token.reload.user_token_status_id
   end
 
   test "scheduled revoked tokens are invalid after lapses_at passes" do
@@ -121,5 +122,55 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
       assert_kind_of Hash, result
       assert_not_equal token.id, result[:token].id
     end
+  end
+
+  test "rotation supports visitor refresh tokens" do
+    visitor = create_refresh_visitor
+    token = VisitorToken.create!(
+      visitor: visitor,
+      lapses_at: 1.day.from_now,
+      purge_at: 2.days.from_now,
+    )
+    refresh = token.rotate_refresh_token!
+
+    result = Sign::RefreshTokenService.call(refresh_token: refresh)
+
+    assert_instance_of VisitorToken, result[:token]
+    assert_not_equal token.id, result[:token].id
+    assert_equal token.refresh_token_generation + 1, result[:token].refresh_token_generation
+    assert_equal token.refresh_token_family_id, result[:token].refresh_token_family_id
+    assert_predicate token.reload.rotated_at, :present?
+  end
+
+  test "visitor refresh reuse revokes all visitor tokens" do
+    visitor = create_refresh_visitor
+    token = VisitorToken.create!(visitor: visitor, lapses_at: 1.day.from_now, purge_at: 2.days.from_now)
+    first_refresh = token.rotate_refresh_token!
+    rotated = Sign::RefreshTokenService.call(refresh_token: first_refresh)
+
+    assert_raises(Sign::InvalidRefreshToken) do
+      Sign::RefreshTokenService.call(refresh_token: first_refresh)
+    end
+
+    assert_operator VisitorToken.where(visitor_id: visitor.id).maximum(:lapses_at), :<=, Time.current
+    assert_raises(Sign::InvalidRefreshToken) do
+      Sign::RefreshTokenService.call(refresh_token: rotated[:refresh_token])
+    end
+  end
+
+  private
+
+  def create_refresh_visitor
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
+    VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
+    VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
+    VisitorTokenStatus.ensure_defaults!
+
+    Visitor.create!(
+      status_id: VisitorStatus::ACTIVE,
+      visibility_id: VisitorVisibility::VISITOR,
+    )
   end
 end

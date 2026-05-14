@@ -13,6 +13,18 @@ module Sign
         def edit
         end
 
+        def create
+          unless ActiveModel::Type::Boolean.new.cast(params[:confirm])
+            redirect_to(
+              edit_sign_app_out_path(ri: params[:ri]),
+              alert: t("views.sign.app.configuration.outs.edit.confirm_label"),
+            )
+            return
+          end
+
+          destroy
+        end
+
         def destroy
           Oidc::SingleLogoutService.call(user: current_user) if current_user
           log_out

@@ -102,12 +102,12 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     token_record = UserToken.create!(user: @user)
     token_record.rotate_refresh_token!
 
-    # Generate a JWT with wrong resource type (staff instead of user)
+    # Generate a JWT with wrong resource type (operator instead of user)
     access_token = jwt_access_token_for(
       @user,
       host: @host,
       session_public_id: token_record.public_id,
-      resource_type: "staff", # wrong type for user endpoint
+      resource_type: "operator", # wrong type for user endpoint
     )
 
     cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token

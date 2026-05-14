@@ -17,24 +17,24 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     @original_trusted_origins = Webauthn.method(:trusted_origins)
     Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host_value}", "http://id.app.localhost"] }
 
-    @customer = create_verified_customer_with_email(email_address: "com_mfa_passkey_#{SecureRandom.hex(4)}@example.com")
-    @customer.update!(multi_factor_enabled: true)
-    @customer.customer_telephones.create!(
+    @visitor = create_verified_visitor_with_email(email_address: "com_mfa_passkey_#{SecureRandom.hex(4)}@example.com")
+    @visitor.update!(multi_factor_enabled: true)
+    @visitor.visitor_telephones.create!(
       number: "+8190" + format("%08d", SecureRandom.random_number(100_000_000)),
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    @passkey = CustomerPasskey.create!(
-      customer: @customer,
+    @passkey = VisitorPasskey.create!(
+      visitor: @visitor,
       webauthn_id: Base64.urlsafe_encode64("com_mfa_passkey_id_eeec6cca6c4c1cbd", padding: false),
       external_id: SecureRandom.uuid,
       public_key: "mfa-passkey-public",
       sign_count: 5,
       description: "MFA Passkey",
-      status_id: CustomerPasskeyStatus::ACTIVE,
+      status_id: VisitorPasskeyStatus::ACTIVE,
     )
 
-    @secret = @customer.customer_secrets.create!(name: "Passkey MFA secret", password: "a" * 32)
+    @secret = @visitor.visitor_secrets.create!(name: "Passkey MFA secret", password: "a" * 32)
     @raw_secret = "a" * 32
   end
 
@@ -78,7 +78,7 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
                    clientDataJSON: "dummy",
                    authenticatorData: "dummy",
                    signature: "dummy",
-                   userHandle: @customer.public_id,
+                   userHandle: @visitor.public_id,
                  },
                }.to_json,
              },
@@ -88,7 +88,7 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
     assert_response :redirect
 
-    assert_redirected_to sign_com_configuration_path(ri: "jp")
+    assert_redirected_to sign_com_dashboard_path(ri: "jp")
     assert_nil session[:pending_mfa]
     assert_equal 6, @passkey.reload.sign_count
   end
@@ -99,7 +99,7 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     post(
       sign_com_in_secret_path(ri: "jp"), params: {
         secret_login_form: {
-          identifier: @customer.customer_emails.first.address,
+          identifier: @visitor.visitor_emails.first.address,
           secret_value: @raw_secret,
         },
         "cf-turnstile-response": "test_token",

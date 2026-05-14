@@ -120,6 +120,56 @@ module Preference::Core
     write_preference_cookie(Preference::Base::THEME_COOKIE_KEY, short_code) if short_code.present?
   end
 
+  def set_selectable_preference_edit(type)
+    @preference_option_type = type.to_sym
+    with_preference_connection(:writing) do
+      ensure_model_defaults!(Preference::ClassRegistry.option_class(preference_prefix, type))
+      @preference_option = load_or_build_selectable_preference_child(type)
+    end
+  end
+
+  def set_selectable_preference_update(type)
+    type = type.to_sym
+    @preference_option_type = type
+
+    with_preference_connection(:writing) do
+      ensure_model_defaults!(Preference::ClassRegistry.option_class(preference_prefix, type))
+      @preference_option = load_or_refresh_preference_child(preference_child_class_suffix(type), option_id: nil)
+
+      update_preference_child_with_audit(
+        @preference_option,
+        sanitize_option_id(selectable_preference_params(type), option_type: type),
+        "UPDATE_PREFERENCE_#{type.to_s.upcase}",
+      )
+      reload_preferences_and_reissue_token!
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ArgumentError
+      raise PreferenceOperationError
+    end
+  end
+
+  def set_selectable_preference_view_context(type)
+    @preference_option_type = type.to_sym
+    @preference_surface_key = preference_surface_key
+    @preference_option_scope = :"preference_#{type}"
+    @preference_option_update_url = preference_update_url(type)
+    @preference_option_choices =
+      Preference::ClassRegistry.option_class(
+        preference_prefix,
+        type,
+      ).order(:id).filter_map do |option|
+        next if option.name.blank?
+
+        [preference_option_label(type, option.name), option.id]
+      end
+    group_screen = preference_group_screen(type)
+    @preference_option_back_url =
+      if group_screen
+        preference_edit_url(group_screen, preference_context_redirect_params)
+      else
+        preference_index_url(preference_context_redirect_params)
+      end
+  end
+
   def set_cookie_preferences_edit
     with_preference_connection(:writing) do
       @preference_cookie = load_or_refresh_preference_child(
@@ -150,7 +200,7 @@ module Preference::Core
   private
 
   def load_or_refresh_preference_child(child_type, default_attributes = {})
-    association_name = :"#{preference_prefix_underscore}_#{child_type.downcase}"
+    association_name = :"#{preference_prefix_underscore}_#{child_type.to_s.underscore}"
 
     # Access-token loading can leave a child association memoized on @preferences.
     # Reload it here so preference edit/update screens render the latest DB value
@@ -166,11 +216,12 @@ module Preference::Core
   def reload_preferences_and_reissue_token!
     @preferences.reload
     # Force reload all preference associations to ensure they reflect DB state
-    %w(language region timezone colortheme).each do |type|
+    Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
       assoc_name = "#{preference_prefix_underscore}_#{type}"
       @preferences.association(assoc_name.to_sym).reload if @preferences.respond_to?(assoc_name)
     end
     issue_access_token_from(@preferences)
+
     sync_to_resource_preference!
   end
 
@@ -183,10 +234,16 @@ module Preference::Core
     cookie = resolved_preference_cookie(@preferences)
 
     {
-      lx: snapshot[:language] || Current::Preference::DEFAULTS[:language],
-      ct: snapshot[:theme] || Current::Preference::DEFAULTS[:theme],
-      ri: snapshot[:region] || Current::Preference::DEFAULTS[:region],
-      tz: snapshot[:timezone] || Current::Preference::DEFAULTS[:timezone],
+      lx: snapshot[:language] || Actor::Preference::DEFAULTS[:language],
+      ct: snapshot[:theme] || Actor::Preference::DEFAULTS[:theme],
+      ri: snapshot[:region] || Actor::Preference::DEFAULTS[:region],
+      tz: snapshot[:timezone] || Actor::Preference::DEFAULTS[:timezone],
+      cu: snapshot[:currency] || "jpy",
+      df: snapshot[:date_format] || "iso",
+      tf: snapshot[:time_format] || "hour_24",
+      mo: snapshot[:motion] || "standard",
+      dn: snapshot[:density] || "standard",
+      ipp: snapshot[:items_per_page] || "20",
       consented: cookie[:consented],
       functional: cookie[:functional],
       performant: cookie[:performant],
@@ -195,7 +252,7 @@ module Preference::Core
   end
 
   # Dual-write: when logged in, sync current AppPreference/ComPreference/OrgPreference values
-  # to the corresponding UserPreference/CustomerPreference/StaffPreference.
+  # to the corresponding UserPreference/VisitorPreference/OperatorPreference.
   def sync_to_resource_preference!
     return unless respond_to?(:current_resource, true)
 
@@ -205,11 +262,12 @@ module Preference::Core
     resource_pref =
       case preference_class.name
       when "AppPreference" then resource.user_preference
-      when "ComPreference" then ensure_customer_resource_preference_for_sync(resource)
+      when "ComPreference" then ensure_visitor_resource_preference_for_sync(resource)
       when "OrgPreference" then resource.staff_preference
       end
     return if resource_pref.blank?
 
+    sync_direct_resource_preference!(resource_pref)
     copy_preference_values!(@preferences, resource_pref, resource_pref_prefix_for_sync)
   rescue StandardError => e
     Rails.event.record("preference.sync_to_resource.error", error: e.class.name, message: e.message)
@@ -218,30 +276,40 @@ module Preference::Core
   def resource_pref_prefix_for_sync
     case preference_class.name
     when "AppPreference" then "User"
-    when "ComPreference" then "Customer"
-    when "OrgPreference" then "Staff"
+    when "ComPreference" then "Visitor"
+    when "OrgPreference" then "Operator"
     end
   end
 
-  def ensure_customer_resource_preference_for_sync(resource)
-    return unless resource.respond_to?(:customer_preference)
+  def sync_direct_resource_preference!(resource_pref)
+    snapshot = preference_snapshot_for(@preferences)
+    cookie = resolved_preference_cookie(@preferences)
+    attrs = snapshot.merge(cookie).compact
+    return if attrs.blank?
 
-    resource.customer_preference || build_customer_resource_preference_for_sync(resource)
+    resource_pref.update!(attrs)
   end
 
-  def build_customer_resource_preference_for_sync(resource)
-    preference = resource.create_customer_preference
-    CustomerPreferenceLanguage.create(preference: preference)
-    CustomerPreferenceTimezone.create(preference: preference)
-    CustomerPreferenceRegion.create(preference: preference)
-    CustomerPreferenceColortheme.create(preference: preference)
+  def ensure_visitor_resource_preference_for_sync(resource)
+    return unless resource.respond_to?(:visitor_preference)
+
+    resource.visitor_preference || build_visitor_resource_preference_for_sync(resource)
+  end
+
+  def build_visitor_resource_preference_for_sync(resource)
+    preference = resource.create_visitor_preference
+    Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
+      Preference::ClassRegistry.record_class("Visitor", type).create!(
+        preference: preference,
+        option_id: Preference::ClassRegistry.default_option_id("Visitor", type),
+      )
+    end
     preference.reload
   end
 
   def preference_cookie_params
-    return params.expect(
-      preference_cookie: %i(functional performant targetable consented
-                            consented_at),
+    return params.fetch(:preference_cookie, {}).permit(
+      :functional, :performant, :targetable, :consented, :consented_at,
     ) if params[:preference_cookie]
 
     params.permit(:functional, :performant, :targetable, :consented, :consented_at)
@@ -265,24 +333,56 @@ module Preference::Core
   end
 
   def preference_language_params
-    params.expect(preference_language: [:option_id])
+    params.fetch(:preference_language, {}).permit(:option_id)
   end
 
   def preference_timezone_params
-    params.expect(preference_timezone: [:option_id])
+    params.fetch(:preference_timezone, {}).permit(:option_id)
   end
 
   def preference_region_params
-    params.expect(preference_region: [:option_id])
+    params.fetch(:preference_region, {}).permit(:option_id)
   end
 
   def preference_colortheme_params
-    return params.expect(preference_colortheme: [:option_id]) if params[:preference_colortheme]
-    return params.expect(preference_theme: [:option_id]) if params[:preference_theme]
+    return params.fetch(:preference_colortheme, {}).permit(:option_id) if params[:preference_colortheme]
+    return params.fetch(:preference_theme, {}).permit(:option_id) if params[:preference_theme]
 
     ActionController::Parameters.new(
       option_id: params[:option_id] || params[:theme] || params[:ct],
     ).permit(:option_id)
+  end
+
+  def selectable_preference_params(type)
+    param_scope = :"preference_#{type}"
+    return params.fetch(param_scope, {}).permit(:option_id) if params[param_scope]
+
+    ActionController::Parameters.new(
+      option_id: params[:option_id] || params[type],
+    ).permit(:option_id)
+  end
+
+  def preference_child_class_suffix(type)
+    {
+      currency: "Currency",
+      date_format: "DateFormat",
+      time_format: "TimeFormat",
+      motion: "Motion",
+      density: "Density",
+      items_per_page: "ItemsPerPage",
+    }.fetch(type.to_sym)
+  end
+
+  def load_or_build_selectable_preference_child(type)
+    type = type.to_sym
+    association_name = :"#{preference_prefix_underscore}_#{type}"
+    child = @preferences.public_send(association_name)
+    return child if child.present?
+
+    Preference::ClassRegistry.record_class(preference_prefix, type).new(
+      preference: @preferences,
+      option_id: Preference::ClassRegistry.default_option_id(preference_prefix, type),
+    )
   end
 
   def resolved_preference_snapshot(preference)
@@ -292,22 +392,22 @@ module Preference::Core
         preference.respond_to?(:region) &&
         preference.respond_to?(:timezone) &&
         preference.respond_to?(:theme)
-      return {
-        language: preference.language,
-        region: preference.region,
-        timezone: preference.timezone,
-        theme: preference.theme,
-      }.compact
+      return Preference::ClassRegistry::CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
+        next unless preference.respond_to?(type)
+
+        snapshot[type] = preference.public_send(type)
+      end.compact
     end
 
     association_prefix = preference.class.name.underscore
 
-    {
-      language: preference.public_send("#{association_prefix}_language")&.option&.name&.downcase,
-      region: preference.public_send("#{association_prefix}_region")&.option&.name&.downcase,
-      timezone: preference.public_send("#{association_prefix}_timezone")&.option&.name,
-      theme: colortheme_short_code(preference.public_send("#{association_prefix}_theme")&.option&.name),
-    }.compact
+    Preference::ClassRegistry::CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
+      child = preference.public_send("#{association_prefix}_#{type}")
+      value = child&.option&.name
+      value = value&.downcase if %i(language region currency).include?(type)
+      value = colortheme_short_code(value) if type == :theme
+      snapshot[type] = value if value.present?
+    end
   end
 
   def resolved_preference_cookie(preference)
@@ -353,6 +453,54 @@ module Preference::Core
     candidate
   end
 
+  def preference_edit_url(screen, params_hash = {})
+    public_send(preference_edit_url_helper_name(screen), params_hash)
+  end
+
+  def preference_update_url(screen, params_hash = {})
+    public_send(preference_url_helper_name(screen), params_hash)
+  end
+
+  def preference_index_url(params_hash = {})
+    public_send("sign_#{preference_surface_key}_preference_url", params_hash)
+  end
+
+  def preference_update_notice
+    t("#{preference_translation_scope}.update_success")
+  end
+
+  def preference_reset_destroyed_notice
+    t("apex.#{preference_surface_key}.preference.resets.destroyed")
+  end
+
+  def preference_operation_failed_alert
+    I18n.t("errors.messages.preference_operation_failed")
+  end
+
+  def preference_context_redirect_params
+    Preference::Global::PARAM_CONTEXT_KEYS.each_with_object({}) do |key, memo|
+      memo[key] = params[key] if params[key].present?
+    end
+  end
+
+  def language_preference_redirect_params
+    return {} if params[:lx].blank? || @preference_language&.option_id.blank?
+
+    { lx: option_id_to_language(@preference_language.option_id, preference_prefix) }
+  end
+
+  def apply_language_preference_to_session
+    return if @preference_language&.option_id.blank?
+
+    session[:language] = option_id_to_language(@preference_language.option_id, preference_prefix)
+  end
+
+  def updated_region_redirect_params
+    return {} if @preference_region&.option_id.blank?
+
+    { ri: option_id_to_region(@preference_region.option_id, preference_prefix) }
+  end
+
   def delete_preference_cookie
     preference = find_preference_for_delete
     if preference.present?
@@ -365,7 +513,7 @@ module Preference::Core
   end
 
   # Reset preferences to defaults (explicit user action, not logout).
-  # Resets BOTH AppPreference/OrgPreference AND UserPreference/StaffPreference.
+  # Resets BOTH AppPreference/OrgPreference AND UserPreference/OperatorPreference.
   def reset_preference_to_defaults!
     return if @preferences.blank?
 
@@ -416,14 +564,8 @@ module Preference::Core
         child = preference.public_send("#{association_prefix}_#{type}")
         next unless child
 
-        option_classes = preference_option_classes(prefix)
-        default_id =
-          case type
-          when :timezone then option_classes[:timezone]::ASIA_TOKYO
-          when :language then option_classes[:language]::JA
-          when :region then option_classes[:region]::JP
-          when :colortheme then option_classes[:colortheme]::SYSTEM
-          end
+        ensure_model_defaults!(Preference::ClassRegistry.option_class(prefix, type))
+        default_id = Preference::ClassRegistry.default_option_id(prefix, type)
         child.update!(option_id: default_id) if child.option_id != default_id
       end
 
@@ -447,26 +589,23 @@ module Preference::Core
     resource_pref =
       case preference_class.name
       when "AppPreference" then resource.user_preference
+      when "ComPreference" then ensure_visitor_resource_preference_for_sync(resource)
       when "OrgPreference" then resource.staff_preference
       end
     return if resource_pref.blank?
 
     res_prefix = resource_pref_prefix_for_sync
     resource_assoc = resource_pref.class.name.underscore
+    connection_class =
+      resource_pref.class.ancestors.find { |ancestor| ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class? }
 
-    PrincipalRecord.connected_to(role: :writing) do
+    connection_class.connected_to(role: :writing) do
       Preference::Adoption::CHILD_RECORD_TYPES.each do |type|
         child = resource_pref.public_send("#{resource_assoc}_#{type}")
         next unless child
 
-        option_classes = preference_option_classes(res_prefix)
-        default_id =
-          case type
-          when :timezone then option_classes[:timezone]::ASIA_TOKYO
-          when :language then option_classes[:language]::JA
-          when :region then option_classes[:region]::JP
-          when :colortheme then option_classes[:colortheme]::SYSTEM
-          end
+        ensure_model_defaults!(Preference::ClassRegistry.option_class(res_prefix, type))
+        default_id = Preference::ClassRegistry.default_option_id(res_prefix, type)
         child.update!(option_id: default_id) if child.option_id != default_id
       end
 
@@ -485,5 +624,51 @@ module Preference::Core
     @preferences = nil
     @preference_payload = nil
     @refresh_token_value = nil
+  end
+
+  def preference_surface_key
+    preference_class.name.delete_suffix("Preference").downcase
+  end
+
+  def preference_translation_scope
+    "apex.#{preference_surface_key}.preferences"
+  end
+
+  def preference_edit_url_helper_name(screen)
+    "edit_#{preference_url_helper_name(screen)}"
+  end
+
+  def preference_url_helper_name(screen)
+    suffix =
+      case screen
+      when :region then "region"
+      when :language then "region_language"
+      when :timezone then "region_timezone"
+      when :currency then "region_currency"
+      when :date_format then "region_date_format"
+      when :time_format then "region_time_format"
+      when :motion then "accessibility_motion"
+      when :density then "display_density"
+      when :items_per_page then "display_items_per_page"
+      when :theme then "theme"
+      when :cookie then "cookie"
+      when :reset then "reset"
+      else
+        raise ArgumentError, "Unknown preference screen: #{screen.inspect}"
+      end
+
+    "sign_#{preference_surface_key}_preference_#{suffix}_url"
+  end
+
+  def preference_group_screen(screen)
+    case screen.to_sym
+    when :currency, :date_format, :time_format then :region
+    end
+  end
+
+  def preference_option_label(type, value)
+    key = "apex.#{preference_surface_key}.preference.#{type}.options.#{value}"
+    default = value.to_s.tr("_", " ").titleize
+    I18n.t(key, default: default)
   end
 end

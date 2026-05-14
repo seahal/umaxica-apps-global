@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Authentication::StaffTest < ActiveSupport::TestCase
+class Authentication::OperatorTest < ActiveSupport::TestCase
   fixtures :staffs, :staff_statuses, :staff_tokens, :staff_token_kinds, :staff_token_statuses
   class FormatMock
     attr_accessor :format_type
@@ -18,7 +18,7 @@ class Authentication::StaffTest < ActiveSupport::TestCase
   end
 
   class DummyClass
-    include Authentication::Staff
+    include Authentication::Operator
 
     attr_accessor :session, :cookies, :request, :response
 
@@ -85,11 +85,11 @@ class Authentication::StaffTest < ActiveSupport::TestCase
   setup do
     @obj = DummyClass.new
     @staff = staffs(:one)
-    StaffToken.where(staff_id: @staff.id).delete_all
+    OperatorToken.where(staff_id: @staff.id).delete_all
   end
 
   test "module can be included" do
-    assert_kind_of Authentication::Staff, @obj
+    assert_kind_of Authentication::Operator, @obj
   end
 
   test "log_in sets access token in cookie" do
@@ -97,9 +97,9 @@ class Authentication::StaffTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @staff)
 
-    assert @obj.cookies[::Authentication::Staff::ACCESS_COOKIE_KEY]
+    assert @obj.cookies[::Authentication::Operator::ACCESS_COOKIE_KEY]
     assert_predicate @obj, :logged_in?
-    assert_equal @staff, @obj.current_staff
+    assert_equal @staff.id, @obj.current_operator.id
   end
 
   test "log_in sets cookie expirations" do
@@ -107,8 +107,8 @@ class Authentication::StaffTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @staff)
 
-    access_opts = @obj.cookies.options_for(::Authentication::Staff::ACCESS_COOKIE_KEY)
-    refresh_opts = @obj.cookies.options_for(::Authentication::Staff::REFRESH_COOKIE_KEY)
+    access_opts = @obj.cookies.options_for(::Authentication::Operator::ACCESS_COOKIE_KEY)
+    refresh_opts = @obj.cookies.options_for(::Authentication::Operator::REFRESH_COOKIE_KEY)
     device_opts = @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY)
 
     assert_operator access_opts[:expires], :>, 10.minutes.from_now
@@ -119,35 +119,35 @@ class Authentication::StaffTest < ActiveSupport::TestCase
     assert_operator device_opts[:expires], :<, 13.hours.from_now
   end
 
-  test "log_out clears session and current_staff" do
+  test "log_out clears session and current_operator" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
 
     @obj.send(:log_in, @staff)
     @obj.send(:log_out)
 
     assert_not_predicate @obj, :logged_in?
-    assert_nil @obj.current_staff
+    assert_nil @obj.current_operator
   end
 
   test "log_out removes refresh token and cookies" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
     @obj.send(:log_in, @staff)
 
-    assert_difference("StaffToken.count", -1) { @obj.send(:log_out) }
-    assert_nil @obj.cookies[::Authentication::Staff::ACCESS_COOKIE_KEY]
-    assert_nil @obj.cookies.encrypted[::Authentication::Staff::REFRESH_COOKIE_KEY]
+    assert_difference("OperatorToken.count", -1) { @obj.send(:log_out) }
+    assert_nil @obj.cookies[::Authentication::Operator::ACCESS_COOKIE_KEY]
+    assert_nil @obj.cookies.encrypted[::Authentication::Operator::REFRESH_COOKIE_KEY]
     assert_nil @obj.cookies[::Authentication::Base::DEVICE_COOKIE_KEY]
   end
 
-  test "log_in derives shared cookie domain from localhost host" do
+  test "log_in uses host-only cookies" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
     @obj.request.host = "id.org.localhost"
 
     @obj.send(:log_in, @staff)
 
-    assert_equal ".org.localhost", @obj.cookies.options_for(::Authentication::Staff::ACCESS_COOKIE_KEY)[:domain]
-    assert_equal ".org.localhost", @obj.cookies.options_for(::Authentication::Staff::REFRESH_COOKIE_KEY)[:domain]
-    assert_equal ".org.localhost", @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY)[:domain]
+    assert_not @obj.cookies.options_for(::Authentication::Operator::ACCESS_COOKIE_KEY).key?(:domain)
+    assert_not @obj.cookies.options_for(::Authentication::Operator::REFRESH_COOKIE_KEY).key?(:domain)
+    assert_not @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY).key?(:domain)
   end
 
   test "log_in returns tokens hash" do
@@ -170,19 +170,19 @@ class Authentication::StaffTest < ActiveSupport::TestCase
 
     freeze_time do
       @obj.send(:log_in, @staff)
-      token = StaffToken.where(staff_id: @staff.id).order(created_at: :desc).first
+      token = OperatorToken.where(staff_id: @staff.id).order(created_at: :desc).first
 
       assert_in_delta 12.hours.from_now.to_i, token.lapses_at.to_i, 1
       assert_in_delta 36.hours.from_now.to_i, token.purge_at.to_i, 1
     end
   end
 
-  test "current_staff works with Bearer token" do
+  test "current_operator works with Bearer token" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
 
     token_record =
       TokenRecord.connected_to(role: :writing) do
-        StaffToken.create!(staff: @staff)
+        OperatorToken.create!(staff: @staff)
       end
 
     # Generate access token using Authentication::Base::Token
@@ -190,10 +190,10 @@ class Authentication::StaffTest < ActiveSupport::TestCase
       @staff,
       host: @obj.request.host,
       session_public_id: token_record.public_id,
-      resource_type: "staff",
+      resource_type: "operator",
     )
     @obj.request.headers["Authorization"] = "Bearer #{access_token}"
 
-    assert_equal @staff, @obj.current_staff
+    assert_equal @staff.id, @obj.current_operator.id
   end
 end

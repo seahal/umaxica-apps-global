@@ -1,6 +1,12 @@
 # ADR: Jumper Current Boundary
 
-**Status:** Accepted (2026-05-06)
+**Status:** Obsolete (2026-05-13)
+
+> Superseded by `adr/actor-current-facade.md`.
+>
+> The provisional per-surface `CurrentAttributes` direction (`Jumper`, and later `Apexer` /
+> `Signer`) is abandoned. Current request context will be exposed to application code through the
+> unified `Actor` facade instead. This document is historical only.
 
 ## Context
 

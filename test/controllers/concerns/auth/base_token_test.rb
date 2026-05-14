@@ -43,9 +43,9 @@ module Auth
     end
 
     test "Token.extract_act returns act from payload" do
-      payload = { "act" => "staff" }
+      payload = { "act" => "operator" }
 
-      assert_equal "staff", Authentication::Base::Token.extract_act(payload)
+      assert_equal "operator", Authentication::Base::Token.extract_act(payload)
     end
 
     test "Token.extract_act returns nil for nil payload" do
@@ -64,16 +64,16 @@ module Auth
       assert Authentication::Base::Token.validate_actor_claim!(payload, "user")
     end
 
-    test "Token.validate_actor_claim! returns true for matching staff" do
-      payload = { "act" => "staff" }
+    test "Token.validate_actor_claim! returns true for matching operator" do
+      payload = { "act" => "operator" }
 
-      assert Authentication::Base::Token.validate_actor_claim!(payload, "staff")
+      assert Authentication::Base::Token.validate_actor_claim!(payload, "operator")
     end
 
     test "Token.validate_actor_claim! returns false for mismatched actor" do
       payload = { "act" => "user" }
 
-      assert_not Authentication::Base::Token.validate_actor_claim!(payload, "staff")
+      assert_not Authentication::Base::Token.validate_actor_claim!(payload, "operator")
     end
 
     test "Token.validate_actor_claim! returns false for nil payload" do
@@ -93,7 +93,7 @@ module Auth
     end
 
     test "Token.validate_actor_claim! returns false for unrecognized value" do
-      payload = { "act" => "operator" }
+      payload = { "act" => "staff" }
 
       assert_not Authentication::Base::Token.validate_actor_claim!(payload, "operator")
     end
@@ -198,12 +198,12 @@ module Auth
       assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "user")
     end
 
-    test "Token.decode rejects user token for staff resource type" do
+    test "Token.decode rejects user token for operator resource type" do
       token = Authentication::Base::Token.encode(
         users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
       )
 
-      assert_nil Authentication::Base::Token.decode(token, host: "example.com", resource_type: "staff")
+      assert_nil Authentication::Base::Token.decode(token, host: "example.com", resource_type: "operator")
     end
   end
 end

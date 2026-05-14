@@ -191,6 +191,47 @@ class UserSecretTest < ActiveSupport::TestCase
     assert_not record.enabled?
   end
 
+  test "usable_for_secret_sign_in? rejects revoked kind and expired secrets" do
+    record, _raw = UserSecret.issue!(name: "Sign In Secret", user: @user, user_secret_kind_id: UserSecretKind::LOGIN)
+
+    assert_predicate record, :usable_for_secret_sign_in?
+
+    record.user_identity_secret_status_id = UserSecretStatus::REVOKED
+
+    assert_not record.usable_for_secret_sign_in?
+
+    record.user_identity_secret_status_id = UserSecretStatus::ACTIVE
+    record.user_secret_kind_id = UserSecretKind::TOTP
+
+    assert_not record.usable_for_secret_sign_in?
+
+    record.user_secret_kind_id = UserSecretKind::LOGIN
+    record.define_singleton_method(:lapses_at) { 1.minute.ago }
+
+    assert_not record.usable_for_secret_sign_in?
+
+    record.define_singleton_method(:lapses_at) { nil }
+
+    assert_predicate record, :usable_for_secret_sign_in?
+  end
+
+  test "verify_for_secret_sign_in! rejects wrong secret and disallowed states" do
+    record, raw_secret = UserSecret.issue!(name: "Sign In Secret", user: @user, user_secret_kind_id: UserSecretKind::LOGIN)
+
+    assert_not record.verify_for_secret_sign_in!("wrong-secret")
+
+    record.update!(user_identity_secret_status_id: UserSecretStatus::REVOKED)
+
+    assert_not record.verify_for_secret_sign_in!(raw_secret)
+
+    record.update!(
+      user_identity_secret_status_id: UserSecretStatus::ACTIVE,
+      user_secret_kind_id: UserSecretKind::TOTP,
+    )
+
+    assert_not record.verify_for_secret_sign_in!(raw_secret)
+  end
+
   test "validates kind_id is required" do
     record = UserSecret.new(
       user: @user,

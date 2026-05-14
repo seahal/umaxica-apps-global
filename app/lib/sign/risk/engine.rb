@@ -7,13 +7,15 @@ module Sign
       WINDOW = 5.minutes
 
       # Returns integer score 0..100
-      def self.score(user_id: nil, staff_id: nil)
-        return 0 unless user_id || staff_id
+      def self.score(user_id: nil, staff_id: nil, visitor_id: nil)
+        return 0 unless user_id || staff_id || visitor_id
 
         window_start = WINDOW.ago
 
         if staff_id
           score_for_staff(staff_id, window_start)
+        elsif visitor_id
+          score_for_visitor(visitor_id, window_start)
         else
           score_for_user(user_id, window_start)
         end
@@ -29,9 +31,18 @@ module Sign
       end
 
       def self.score_for_staff(staff_id, window_start)
-        scope = StaffOccurrence
+        scope = OperatorOccurrence
           .where("event_type LIKE ?", "risk.%")
           .where("context @> ?", { staff_id: staff_id }.to_json)
+          .where(created_at: window_start..)
+
+        evaluate_rules(scope)
+      end
+
+      def self.score_for_visitor(visitor_id, window_start)
+        scope = VisitorOccurrence
+          .where("event_type LIKE ?", "risk.%")
+          .where("context @> ?", { visitor_id: visitor_id }.to_json)
           .where(created_at: window_start..)
 
         evaluate_rules(scope)
@@ -56,7 +67,7 @@ module Sign
         0
       end
 
-      private_class_method :score_for_user, :score_for_staff, :evaluate_rules
+      private_class_method :score_for_user, :score_for_staff, :score_for_visitor, :evaluate_rules
     end
   end
 end

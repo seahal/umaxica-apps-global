@@ -9,9 +9,7 @@ module Sign
         include Common::Redirect
         include Common::Otp
 
-        guest_only! message: I18n.t(
-          "sign.app.registration.telephone.already_logged_in",
-        )
+        guest_only! status: :unauthorized
 
         def new
           @user_telephone = UserTelephone.new
@@ -32,11 +30,18 @@ module Sign
 
         # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
         def create
-          @user_telephone = UserTelephone.new(
-            params.expect(:user_telephone)&.permit(
-              :raw_number, :number, :confirm_policy, :confirm_using_mfa,
-            ),
+          telephone_params = params.fetch(:user_telephone, {}).permit(
+            :raw_number, :number, :confirm_policy, :confirm_using_mfa,
           )
+
+          if telephone_params.blank?
+            @user_telephone = UserTelephone.new
+            @user_telephone.errors.add(:raw_number, :blank)
+            render :new, status: :unprocessable_content
+            return
+          end
+
+          @user_telephone = UserTelephone.new(telephone_params || {})
 
           res = cloudflare_turnstile_validation
 
@@ -62,10 +67,26 @@ module Sign
             return
           end
 
-          if uniqueness_only && existing_telephone &&
+          if existing_telephone &&
               existing_telephone.user_telephone_status_id != UserTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
+            if existing_telephone.locked?
+              render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
+              return
+            end
+
             cleanup_pending_telephone_signup!
             dispatch_existing_telephone_verification!(existing_telephone)
+            return
+          end
+
+          if existing_telephone&.locked?
+            render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
+            return
+          end
+
+          if existing_telephone&.user_telephone_status_id == UserTelephoneStatus::UNVERIFIED_WITH_SIGN_UP &&
+              existing_telephone.reregistration_window_active?
+            render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
             return
           end
 
@@ -73,6 +94,18 @@ module Sign
             UserTelephone.transaction do
               # Cleanup pending signup from same session
               cleanup_pending_telephone_signup!
+
+              locked_existing = UserTelephone.lock.find_by(id: existing_telephone.id) if existing_telephone
+              if locked_existing&.user_telephone_status_id == UserTelephoneStatus::UNVERIFIED_WITH_SIGN_UP &&
+                  locked_existing.reregistration_window_active?
+                render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
+                raise ActiveRecord::Rollback
+              end
+
+              if locked_existing&.locked?
+                render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
+                raise ActiveRecord::Rollback
+              end
 
               # Remove existing unverified telephones with same number
               remove_existing_unverified_telephones!
@@ -85,6 +118,7 @@ module Sign
               # Generate OTP
               num = generate_otp_attributes(@user_telephone)
               expires_at = @user_telephone.otp_expires_at
+              @user_telephone.otp_last_sent_at = Time.current if @user_telephone.respond_to?(:otp_last_sent_at=)
 
               @user_telephone.save!
 
@@ -227,7 +261,7 @@ module Sign
         def valid_registration_session?(registration_session)
           session_public_id = session_public_id_from_registration(registration_session)
           registration_session.present? &&
-            session_public_id.to_s == params.expect("id").to_s
+            session_public_id.to_s == params.expect(:id).to_s
         end
 
         def session_public_id_from_registration(registration_session = session[:user_telephone_registration])
@@ -246,11 +280,7 @@ module Sign
 
           increment_otp_attempts!(@user_telephone)
 
-          # Lockout: destroy telephone and pending user if locked
           if @user_telephone.locked?
-            user = @user_telephone.user
-            @user_telephone.destroy!
-            user.destroy! if user&.status_id == UserStatus::UNVERIFIED_WITH_SIGN_UP
             session[:user_telephone_registration] = nil
             return :locked
           end
@@ -309,6 +339,7 @@ module Sign
             if user.status_id == UserStatus::UNVERIFIED_WITH_SIGN_UP
               user.update!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
             end
+            user.create_user_account! unless user.user_account
 
             # Audit record
             audit = UserChronicle.new
@@ -320,17 +351,17 @@ module Sign
             audit.save!
           end
 
-          log_in(user, record_login_audit: true)
+          log_in(
+            user,
+            record_login_audit: true,
+            audit_context: { auth_method: "telephone" },
+          )
           session[:user_telephone_registration] = nil
           create_welcome_bulletin!(current_resource)
-          if issue_bulletin!
-            redirect_to(
-              sign_app_in_bulletin_path(rd: params[:rd], ri: params[:ri]),
-              notice: t("sign.app.registration.telephone.update.success"),
-            )
-          else
-            safe_redirect_to_rd_or_default!(params[:rd], default_path: sign_app_configuration_path(ri: params[:ri]))
-          end
+          redirect_to_sign_in_sequence!(
+            rt: redirect_parameter_value,
+            notice: t("sign.app.registration.telephone.update.success"),
+          )
         end
 
         def otp_resend_rate_limited?
@@ -394,6 +425,7 @@ module Sign
         def dispatch_existing_telephone_verification!(existing_telephone)
           @user_telephone = existing_telephone
           otp_code = generate_otp_for(@user_telephone)
+          @user_telephone.update!(otp_last_sent_at: Time.current) if @user_telephone.respond_to?(:otp_last_sent_at=)
 
           session[:user_telephone_registration] = {
             public_id: @user_telephone.public_id,
@@ -421,7 +453,7 @@ module Sign
           return false if errors_to_check.empty?
 
           # Fields that can have uniqueness errors
-          uniqueness_fields = %i(number raw_number number_bidx number_digest)
+          uniqueness_fields = %i(number raw_number number_digest)
 
           # Check if all errors are :taken errors on the uniqueness fields
           errors_to_check.each do |field, errors|

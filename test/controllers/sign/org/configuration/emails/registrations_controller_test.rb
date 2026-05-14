@@ -9,9 +9,11 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    cookies["csrf_token"] = csrf_token_value
     @staff = staffs(:one)
-    @token = StaffToken.create!(staff: @staff, status: StaffToken::STATUS_ACTIVE)
+    @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -27,6 +29,7 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
       "Host" => @host,
       "X-TEST-CURRENT-STAFF" => @staff.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "X-CSRF-Token" => csrf_token_value,
     }
   end
 
@@ -34,13 +37,32 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     get new_sign_org_configuration_emails_registration_url(ri: "jp"), headers: request_headers
 
     assert_response :success
+    assert_select "input[type=checkbox][name='staff_email[notifiable]']", count: 1
+    assert_select "input[type=checkbox][name='staff_email[promotional]']", count: 0
   end
 
-  test "create sends OTP email" do
+  test "registration edit renders stealth turnstile" do
+    perform_enqueued_jobs do
+      post sign_org_configuration_emails_registration_url(ri: "jp"),
+           params: {
+             staff_email: { raw_address: "org-config-edit@example.com" },
+             "cf-turnstile-response": "test",
+           },
+           headers: request_headers
+    end
+
+    get edit_sign_org_configuration_emails_registration_url(ri: "jp"), headers: request_headers
+
+    assert_response :success
+    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
+    assert_includes response.body, "turnstile.execute"
+  end
+
+  test "create sends OTP email and stores notification preference" do
     assert_enqueued_emails 1 do
       post sign_org_configuration_emails_registration_url(ri: "jp"),
            params: {
-             staff_email: { raw_address: "org-config-registration@example.com" },
+             staff_email: { raw_address: "org-config-registration@example.com", notifiable: "0" },
              "cf-turnstile-response": "test",
            },
            headers: request_headers
@@ -48,6 +70,7 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_response :redirect
     assert_redirected_to edit_sign_org_configuration_emails_registration_url(ri: "jp")
+    assert_not @staff.staff_emails.order(:created_at).last.notifiable
   end
 
   test "update verifies OTP and confirms email" do
@@ -60,7 +83,7 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
            headers: request_headers
     end
 
-    staff_email = StaffEmail.find_by(address: "org-config-verify@example.com")
+    staff_email = @staff.staff_emails.order(:created_at).last
 
     assert_not_nil staff_email
     otp_data = staff_email.get_otp
@@ -71,7 +94,29 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
           headers: request_headers
 
     assert_redirected_to sign_org_configuration_emails_url(ri: "jp")
-    assert_equal StaffEmailStatus::VERIFIED, staff_email.reload.staff_email_status_id
+    assert_equal OperatorEmailStatus::VERIFIED, staff_email.reload.staff_email_status_id
+  end
+
+  test "update rejects when turnstile fails" do
+    perform_enqueued_jobs do
+      post sign_org_configuration_emails_registration_url(ri: "jp"),
+           params: {
+             staff_email: { raw_address: "org-config-turnstile-failure@example.com" },
+             "cf-turnstile-response": "test",
+           },
+           headers: request_headers
+    end
+
+    staff_email = @staff.staff_emails.order(:created_at).last
+    CloudflareTurnstile.test_validation_response = { "success" => false }
+
+    patch sign_org_configuration_emails_registration_url(ri: "jp"),
+          params: { staff_email: { pass_code: "123456" } },
+          headers: request_headers
+
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("turnstile_error")
+    assert_equal OperatorEmailStatus::UNVERIFIED, staff_email.reload.staff_email_status_id
   end
 
   test "update with blank pass_code renders edit with error" do

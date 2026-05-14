@@ -20,4 +20,20 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
     assert_not User.exists?(user_to_purge.id)
     assert User.exists?(user_to_keep.id)
   end
+
+  test "purges visitor occurrences where purge_at is in the past" do
+    VisitorOccurrenceStatus.ensure_defaults!
+    occurrence_to_purge = VisitorOccurrence.create!(body: "purge-#{SecureRandom.hex(8)}")
+    occurrence_to_keep = VisitorOccurrence.create!(body: "keep-#{SecureRandom.hex(8)}")
+
+    occurrence_to_purge.update_columns(lapses_at: 1.hour.ago, purge_at: 1.hour.ago)
+    occurrence_to_keep.update_columns(lapses_at: Retainable::SENTINEL, purge_at: Retainable::SENTINEL)
+
+    assert_difference -> { VisitorOccurrence.count }, -1 do
+      RetentionPurgeJob.perform_now
+    end
+
+    assert_not VisitorOccurrence.exists?(occurrence_to_purge.id)
+    assert VisitorOccurrence.exists?(occurrence_to_keep.id)
+  end
 end

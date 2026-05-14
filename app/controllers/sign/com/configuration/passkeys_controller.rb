@@ -10,18 +10,21 @@ module Sign
 
         auth_required!
 
-        before_action :authenticate_customer!
+        before_action :authenticate_visitor!
+        before_action only: %i(new create options verification) do
+          require_step_up_unless_bootstrap!(scope: verification_scope)
+        end
         before_action :set_passkey, only: %i(show edit update destroy)
 
         def index
-          @passkeys = current_customer.customer_passkeys.order(created_at: :desc)
+          @passkeys = current_visitor.visitor_passkeys.order(created_at: :desc)
         end
 
         def show
         end
 
         def new
-          @passkey = current_customer.customer_passkeys.new
+          @passkey = current_visitor.visitor_passkeys.new
         end
 
         def edit
@@ -42,9 +45,9 @@ module Sign
         end
 
         def options
-          existing_credentials = current_customer.customer_passkeys.map { |passkey| { id: passkey.webauthn_id } }
+          existing_credentials = current_visitor.visitor_passkeys.map { |passkey| { id: passkey.webauthn_id } }
           challenge_id, creation_options = create_registration_challenge(
-            resource: current_customer,
+            resource: current_visitor,
             exclude_credentials: existing_credentials,
           )
 
@@ -76,7 +79,7 @@ module Sign
 
             credential.verify(challenge)
 
-            passkey = current_customer.customer_passkeys.new(
+            passkey = current_visitor.visitor_passkeys.new(
               webauthn_id: credential.id,
               public_key: credential.public_key,
               sign_count: credential.sign_count,
@@ -88,7 +91,7 @@ module Sign
             render json: {
               status: "ok",
               passkey_id: passkey.id,
-              redirect_url: sign_com_configuration_passkeys_path,
+              redirect_url: bootstrap_return_path(sign_com_configuration_passkeys_path),
             }, status: :created
           end
         rescue Sign::Webauthn::ChallengeNotFoundError,
@@ -148,11 +151,11 @@ module Sign
         private
 
         def set_passkey
-          @passkey = current_customer.customer_passkeys.find(params.expect(:id))
+          @passkey = current_visitor.visitor_passkeys.find(params.expect(:id))
         end
 
         def credential_params
-          params.expect(:credential)&.permit(
+          params.fetch(:credential, {}).permit(
             :id,
             :rawId,
             :type,
@@ -164,8 +167,8 @@ module Sign
         end
 
         def update_params
-          key = params.key?(:customer_passkey) ? :customer_passkey : :passkey
-          params[key => [:description]]
+          key = params.key?(:visitor_passkey) ? :visitor_passkey : :passkey
+          params.expect(key => [:description]) || {}
         end
 
         def passkey_description
@@ -173,7 +176,7 @@ module Sign
         end
 
         def verification_required_action?
-          %w(new create options verification edit update destroy).include?(action_name)
+          step_up_bootstrap_active?
         end
 
         def verification_scope

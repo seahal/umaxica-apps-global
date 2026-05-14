@@ -72,7 +72,7 @@ opt-out remains in the long term.
 | Authorization (`ActionPolicy`) | yes                     | optional                  | no                 |
 | Verification gates             | yes                     | no                        | no                 |
 | Preference / region / theme    | yes                     | yes                       | no                 |
-| `Current` / `Jumper` lifecycle | yes                     | yes                       | no                 |
+| `Current` / `Actor` lifecycle  | yes                     | yes                       | no                 |
 | `RateLimit` default            | yes                     | yes                       | yes                |
 | `protect_from_forgery`         | yes                     | yes                       | yes (defense only) |
 | `allow_browser`                | yes                     | yes                       | yes                |
@@ -147,8 +147,8 @@ explicitly out of scope here.
 ## Related
 
 - `adr/public-controller-base.md` — Phase 1 of this doctrine (machine endpoints).
-- `adr/jumper-current-boundary.md` — `Jumper` request context interacted with by the `Open` and
-  `Application` tiers in the `jump` boundary.
+- `adr/actor-current-facade.md` — current request-context facade. This supersedes the old `Jumper`
+  request-context direction.
 - `adr/four-engine-restoration-and-base-contract.md` — boundary base class contract that this
   doctrine refines.
 - Phase 2 plan: deferred, will be created after `public_strict!` inventory.

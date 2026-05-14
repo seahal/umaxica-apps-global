@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module ApplicationHelper
-  # Authentication helpers are provided by Authentication::User and Authentication::Staff concerns
+  # Authentication helpers are provided by Authentication::User and Authentication::Operator concerns
   # No need to define them here - they're already available via helper_method
 
   EDGE_HOST_ENV_KEYS = {
@@ -95,11 +95,11 @@ module ApplicationHelper
   def banner_model_for(tld)
     case tld.to_sym
     when :app
-      AppBanner
+      UserBanner
     when :org
-      OrgBanner
+      OperatorBanner
     when :com
-      ComBanner
+      VisitorAccountBanner
     end
   end
 

@@ -7,31 +7,33 @@ module Sign
       class BaseController < Sign::App::ApplicationController
         auth_required!
 
+        include ::CloudflareTurnstile
         include Sign::AppVerificationBase
+
+        skip_before_action :enforce_verification_if_required, raise: false
 
         private
 
-        def reauth_actor_id
-          current_user.id
-        end
-
         def valid_reauth_session?(rs)
           rs.present? &&
-            rs["expires_at"].to_i > Time.current.to_i &&
-            rs["user_id"] == current_user.id &&
-            rs["scope"].present? &&
-            rs["return_to"].present?
+            rs.lapses_at > Time.current &&
+            rs.user_token_id == actor_token.id &&
+            rs.status == "PENDING" &&
+            rs.scope.present? &&
+            rs.return_to.present?
         end
 
         def handle_invalid_reauth_session!
           clear_reauth_state!
+          destroy_current_reauth_session!
+
           if restore_reauth_session_from_params! && valid_reauth_session?(current_reauth_session)
             return true
           end
 
           safe_redirect_to(
-            sign_app_verification_path(verification_recovery_redirect_params),
-            fallback: sign_app_verification_path(ri: params[:ri]),
+            sign_app_configuration_path(ri: params[:ri]),
+            fallback: sign_app_root_path(ri: params[:ri]),
             alert: I18n.t("auth.step_up.session_expired"),
           )
           false
@@ -42,8 +44,7 @@ module Sign
         end
 
         def clear_reauth_state!
-          session.delete(self.class::REAUTH_SESSION_KEY)
-          session.delete(self.class::EMAIL_OTP_SESSION_KEY)
+          Rails.cache.delete(email_otp_cache_key) if current_reauth_session.present?
         end
 
         def verification_model

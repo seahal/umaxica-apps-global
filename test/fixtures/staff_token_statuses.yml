@@ -10,4 +10,8 @@ NOTHING:
 ACTIVE:
   id: 1
 EXPIRED:
-  id: 2
+  id: 102
+RESTRICTED:
+  id: 103
+REVOKED:
+  id: 104

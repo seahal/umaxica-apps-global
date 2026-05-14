@@ -2,8 +2,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/root_theme_cookie_helper"
 
 class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :staffs, :staff_statuses
+
   include RootThemeCookieHelper
 
   test "GET / renders root page" do
@@ -51,5 +54,13 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
       label: "sign org root",
       ri: "jp",
     )
+  end
+
+  test "GET / redirects to dashboard when logged in" do
+    staff = staffs(:one)
+
+    get sign_org_root_url(ri: "jp"), headers: as_staff_headers(staff, host: "id.org.localhost")
+
+    assert_redirected_to sign_org_dashboard_url(ri: "jp")
   end
 end

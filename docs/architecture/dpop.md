@@ -35,6 +35,21 @@ Server-side DPoP support lives in `app/services/dpop/`:
 | `app/services/dpop/jti_replay_guard.rb`         | Redis-backed JTI deduplication (refresh and re-auth only) |
 | `lib/jit/security/jwt/thumbprint_calculator.rb` | RFC 7638 JWK Thumbprint and `ath` computation             |
 
+Token issuance controllers (`Sign::App::TokensController`, `Sign::Org::TokensController`,
+`Sign::Com::TokensController`) forward the `DPoP` proof header, request URI, and request method to
+`Oidc::TokenExchangeService`. When validation succeeds, the issued access token and persisted token
+row are both bound with `dpop_jkt`.
+
+Primary login issuance also accepts an optional `DPoP` proof header. When present and valid,
+`Authentication::Base#log_in` stores the proof key thumbprint on the token row and embeds the same
+value in the issued JWT `cnf.jkt` claim.
+
+Resource enforcement runs through `Auth::CurrentResourceResolver` for Authorization-header access. A
+token with `cnf.jkt` must be presented as `Authorization: DPoP <token>` with a matching proof
+header. Presenting a DPoP-bound token as Bearer, omitting the proof, or sending a proof whose `ath`
+does not match the access token fails authentication and returns a fresh `DPoP-Nonce` header where
+the authentication pipeline can set one.
+
 Token tables (`user_tokens`, `staff_tokens`, `customer_tokens`) store:
 
 - `dpop_jkt` (string) — Base64url-encoded SHA-256 thumbprint of the client's public key
@@ -66,12 +81,12 @@ flows:
 Both are used in this application. DBSC protects Hotwire/Turbo browser sessions. DPoP protects
 Next.js and API client token usage.
 
-## Client Token Strategy
+## VisitorAccount Token Strategy
 
 Each client type uses a different combination of token transport and proof-of-possession mechanism,
 based on its threat model:
 
-| Client        | Access Token                        | Refresh Token                | Proof-of-Possession |
+| VisitorAccount        | Access Token                        | Refresh Token                | Proof-of-Possession |
 | ------------- | ----------------------------------- | ---------------------------- | ------------------- |
 | Rails HTML    | HttpOnly cookie                     | HttpOnly cookie              | DBSC                |
 | Next.js       | DPoP JWT Bearer (Authorization hdr) | HttpOnly cookie              | DPoP                |

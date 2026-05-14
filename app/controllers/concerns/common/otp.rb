@@ -156,6 +156,8 @@ module Common
     #   # ... perform verification ...
     #   ensure_min_elapsed(start_time)
     def ensure_min_elapsed(start_time, target_seconds = TIMING_PROTECTION_SECONDS)
+      return if Rails.env.test? && ENV["ENABLE_TIMING_PROTECTION_IN_TEST"] != "1"
+
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
       remaining = target_seconds - elapsed
       sleep(remaining) if remaining.positive?

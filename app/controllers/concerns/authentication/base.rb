@@ -13,7 +13,7 @@ module Authentication
     # TOC (approximate)
     # 1) JWT & Token primitives ....................................... L40-L210
     # 2) Request guards (public API, I/O boundary) .................... L215-L275
-    # 3) Redirect/bulletin session flows (I/O boundary) ............... L277-L462
+    # 3) Redirect/checkpoint session flows (I/O boundary) ............. L277-L462
     # 4) Session auth lifecycle (public API, I/O boundary) ............ L464-L775
     # 5) Abstract contract & policy DSL ............................... L778-L907
     # 6) Private request/cookie/token I/O ............................. L909-L1505
@@ -54,11 +54,8 @@ module Authentication
     DBSC_COOKIE_TTL = 10.minutes
     RESTRICTED_SESSION_TTL = 15.minutes
     LOGIN_COOLDOWN = 30.seconds
-    SESSION_LIMIT_HARD_REJECT_MESSAGE = I18n.t(
-      "errors.messages.session_limit_exceeded",
-      default: "Session limit exceeded",
-    )
-    LOGIN_COOLDOWN_MESSAGE = I18n.t("errors.messages.login_cooldown", default: "Please wait before logging in again")
+    SESSION_LIMIT_HARD_REJECT_MESSAGE = I18n.t("errors.messages.session_limit_exceeded")
+    LOGIN_COOLDOWN_MESSAGE = I18n.t("errors.messages.login_cooldown")
 
     class LoginCooldownError < StandardError; end
 
@@ -85,10 +82,10 @@ module Authentication
       token_refreshed: "TOKEN_REFRESHED",
     }.freeze
 
-    VALID_ACTOR_TYPES = %w(user staff).freeze
+    VALID_ACTOR_TYPES = %w(user operator visitor).freeze
 
     module JwtConfiguration
-      VALID_RESOURCE_TYPES = %w(user staff customer).freeze
+      VALID_RESOURCE_TYPES = %w(user operator visitor).freeze
 
       def self.leeway_seconds
         Integer(ENV.fetch("AUTH_JWT_LEEWAY_SECONDS", "30"), 10)
@@ -182,6 +179,16 @@ module Authentication
           Auth::TokenService.extract_session_id(payload)
         end
 
+        def extract_session_id_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil)
+          Auth::TokenService.extract_session_id_allow_expired(
+            token,
+            host: host,
+            resource_type: resource_type,
+            issuer: issuer,
+            audiences: audiences,
+          )
+        end
+
         def extract_jti(payload)
           Auth::TokenService.extract_jti(payload)
         end
@@ -248,132 +255,138 @@ module Authentication
     def reject_logged_in_session
       return unless logged_in?
 
+      if request.respond_to?(:get?) && request.get? && !request.format.json?
+        return handle_guest_only_html({})
+      end
+
       render plain: I18n.t("errors.messages.not_authorized"), status: :unauthorized
     end
 
     # ======================================================================
-    # 3) Redirect/bulletin session flows (Session/params I/O boundary)
+    # 3) Redirect/checkpoint session flows (Session/params I/O boundary)
     # - Reads/writes params, flash, session
     # ======================================================================
 
-    # Default session key for storing redirect parameter
-    DEFAULT_RD_SESSION_KEY = Auth::IoKeys::Session::DEFAULT_RD
+    # Default session key for storing return-to parameter.
+    DEFAULT_RT_SESSION_KEY = Auth::IoKeys::Session::DEFAULT_RT
+    CHECKPOINT_SESSION_KEY = Auth::IoKeys::Session::CHECKPOINT
     BULLETIN_SESSION_KEY = Auth::IoKeys::Session::BULLETIN
     BULLETIN_TIMEOUT = 2.hours
 
     # Preserves the redirect parameter in session and returns it for immediate use
     #
-    # @param session_key [Symbol] The session key to store rd parameter in
-    # @return [String, nil] The rd parameter value if present
-    def preserve_redirect_parameter(session_key = DEFAULT_RD_SESSION_KEY)
-      return if params[Auth::IoKeys::Params::RD].blank?
+    # @param session_key [Symbol] The session key to store rt parameter in
+    # @return [String, nil] The rt parameter value if present
+    def preserve_redirect_parameter(session_key = DEFAULT_RT_SESSION_KEY)
+      value = redirect_parameter_value
+      return if value.blank?
 
-      session[session_key] = params[Auth::IoKeys::Params::RD]
-      params[Auth::IoKeys::Params::RD]
+      session[session_key] = value
+      value
     end
 
     # Retrieves and clears the redirect parameter from session
-    # Falls back to params[:rd] if session is empty
+    # Falls back to params[:rt] if session is empty
     #
     # @param session_key [Symbol] The session key to retrieve from
-    # @return [String, nil] The rd parameter value
-    def retrieve_redirect_parameter(session_key = DEFAULT_RD_SESSION_KEY)
-      rd_param = params[Auth::IoKeys::Params::RD].presence || session[session_key]
+    # @return [String, nil] The rt parameter value
+    def retrieve_redirect_parameter(session_key = DEFAULT_RT_SESSION_KEY)
+      rt_param = redirect_parameter_value.presence || session[session_key]
       session[session_key] = nil
-      rd_param
+      rt_param
     end
 
     # Retrieves redirect parameter without clearing session
     #
     # @param session_key [Symbol] The session key to retrieve from
-    # @return [String, nil] The rd parameter value
-    def peek_redirect_parameter(session_key = DEFAULT_RD_SESSION_KEY)
-      params[Auth::IoKeys::Params::RD].presence || session[session_key]
+    # @return [String, nil] The rt parameter value
+    def peek_redirect_parameter(session_key = DEFAULT_RT_SESSION_KEY)
+      redirect_parameter_value.presence || session[session_key]
     end
 
-    # Builds redirect params hash with optional rd parameter
-    # Automatically includes rd from params or session if present
+    # Builds redirect params hash with optional rt parameter.
+    # Automatically includes rt from params or session if present.
     #
     # @param message_key [Symbol] Either :notice or :alert
     # @param message_value [String] The message text or translation key result
-    # @param session_key [Symbol] The session key to check for rd parameter
+    # @param session_key [Symbol] The session key to check for rt parameter
     # @return [Hash] Redirect params hash
-    def build_redirect_params(message_key, message_value, session_key = DEFAULT_RD_SESSION_KEY)
+    def build_redirect_params(message_key, message_value, session_key = DEFAULT_RT_SESSION_KEY)
       redirect_params = { message_key => message_value }
-      rd_value = peek_redirect_parameter(session_key)
-      redirect_params[Auth::IoKeys::Params::RD] = rd_value if rd_value.present?
+      rt_value = peek_redirect_parameter(session_key)
+      redirect_params[Auth::IoKeys::Params::RT] = rt_value if rt_value.present?
       redirect_params
     end
 
     # Builds redirect params hash with notice message
     #
     # @param message_value [String] The notice message
-    # @param session_key [Symbol] The session key to check for rd parameter
+    # @param session_key [Symbol] The session key to check for rt parameter
     # @return [Hash] Redirect params with notice
-    def build_notice_params(message_value, session_key = DEFAULT_RD_SESSION_KEY)
+    def build_notice_params(message_value, session_key = DEFAULT_RT_SESSION_KEY)
       build_redirect_params(:notice, message_value, session_key)
     end
 
     # Builds redirect params hash with alert message
     #
     # @param message_value [String] The alert message
-    # @param session_key [Symbol] The session key to check for rd parameter
+    # @param session_key [Symbol] The session key to check for rt parameter
     # @return [Hash] Redirect params with alert
-    def build_alert_params(message_value, session_key = DEFAULT_RD_SESSION_KEY)
+    def build_alert_params(message_value, session_key = DEFAULT_RT_SESSION_KEY)
       build_redirect_params(:alert, message_value, session_key)
     end
 
-    # Performs redirect with rd parameter handling
-    # Either redirects to encoded rd URL or falls back to default path
+    # Performs redirect with rt parameter handling.
+    # Either redirects to encoded rt URL or falls back to default path.
     #
-    # @param default_path [String] Default path if no rd parameter
+    # @param default_path [String] Default path if no rt parameter
     # @param message_key [Symbol] Either :notice or :alert
     # @param message_value [String] Flash message value
-    # @param session_key [Symbol] The session key for rd parameter
-    def redirect_with_rd_handling(default_path, message_key, message_value,
-                                  session_key = DEFAULT_RD_SESSION_KEY)
-      rd_param = retrieve_redirect_parameter(session_key)
+    # @param session_key [Symbol] The session key for rt parameter
+    def redirect_with_rt_handling(default_path, message_key, message_value,
+                                  session_key = DEFAULT_RT_SESSION_KEY)
+      rt_param = retrieve_redirect_parameter(session_key)
 
-      if rd_param.present?
+      if rt_param.present?
         flash[message_key] = message_value
-        jump_to_generated_url(rd_param, fallback: default_path)
+        jump_to_generated_url(rt_param, fallback: default_path)
       else
         redirect_to(default_path, message_key => message_value)
       end
     end
 
-    # Performs redirect with notice message and rd handling
+    # Performs redirect with notice message and rt handling
     #
-    # @param default_path [String] Default path if no rd parameter
+    # @param default_path [String] Default path if no rt parameter
     # @param message_value [String] Notice message value
-    # @param session_key [Symbol] The session key for rd parameter
-    def redirect_with_notice(default_path, message_value, session_key = DEFAULT_RD_SESSION_KEY)
-      redirect_with_rd_handling(default_path, :notice, message_value, session_key)
+    # @param session_key [Symbol] The session key for rt parameter
+    def redirect_with_notice(default_path, message_value, session_key = DEFAULT_RT_SESSION_KEY)
+      redirect_with_rt_handling(default_path, :notice, message_value, session_key)
     end
 
-    # Performs redirect with alert message and rd handling
+    # Performs redirect with alert message and rt handling
     #
-    # @param default_path [String] Default path if no rd parameter
+    # @param default_path [String] Default path if no rt parameter
     # @param message_value [String] Alert message value
-    # @param session_key [Symbol] The session key for rd parameter
-    def redirect_with_alert(default_path, message_value, session_key = DEFAULT_RD_SESSION_KEY)
-      redirect_with_rd_handling(default_path, :alert, message_value, session_key)
+    # @param session_key [Symbol] The session key for rt parameter
+    def redirect_with_alert(default_path, message_value, session_key = DEFAULT_RT_SESSION_KEY)
+      redirect_with_rt_handling(default_path, :alert, message_value, session_key)
     end
 
-    # Adds rd parameter to existing redirect params if present
+    # Adds rt parameter to existing redirect params if present
     # Modifies the hash in place
     #
     # @param redirect_params [Hash] The redirect params hash to modify
-    # @param session_key [Symbol] The session key to check for rd parameter
+    # @param session_key [Symbol] The session key to check for rt parameter
     # @return [Hash] The modified redirect_params hash
-    def add_rd_to_params!(redirect_params, session_key = DEFAULT_RD_SESSION_KEY)
-      rd_value = peek_redirect_parameter(session_key)
-      redirect_params[Auth::IoKeys::Params::RD] = rd_value if rd_value.present?
+    def add_rt_to_params!(redirect_params, session_key = DEFAULT_RT_SESSION_KEY)
+      rt_value = peek_redirect_parameter(session_key)
+      redirect_params[Auth::IoKeys::Params::RT] = rt_value if rt_value.present?
       redirect_params
     end
 
     # ======================================================================
-    # 3-1) Bulletin flow (Session/header I/O boundary + test hook)
+    # 3-1) Checkpoint notice flow (Session/header I/O boundary + test hook)
     # ======================================================================
 
     def issue_bulletin!(kind: "mock", state: "new", payload: {})
@@ -386,6 +399,50 @@ module Authentication
         "state" => state.to_s,
         "bulletin_id" => bulletin.id,
       }.merge(payload.stringify_keys)
+      true
+    end
+
+    def issue_checkpoint!(kind: "mock", state: "new", payload: {})
+      return issue_bulletin! if kind.to_s == "mock" && state.to_s == "new" && payload.blank?
+
+      issue_bulletin!(kind: kind, state: state, payload: payload)
+    end
+
+    def sign_in_sequence_redirect_path(rt: nil, default_path: after_dashboard_path)
+      if issue_checkpoint!
+        sign_in_checkpoint_path(rt: rt)
+      else
+        after_checkpoint_sequence_path(rt: rt, default_path: default_path)
+      end
+    end
+
+    def redirect_to_sign_in_sequence!(rt: nil, default_path: after_dashboard_path, **redirect_options)
+      redirect_to(sign_in_sequence_redirect_path(rt: rt, default_path: default_path), **redirect_options)
+    end
+
+    def after_checkpoint_sequence_path(rt: nil, default_path: after_dashboard_path)
+      return sign_in_dashboard_path(rt: rt) if dashboard_sequence_step_required?
+
+      safe_path_from_encoded_rt(rt, fallback: default_path)
+    end
+
+    def redirect_after_checkpoint_sequence!(rt: nil, default_path: after_dashboard_path, **redirect_options)
+      redirect_to(after_checkpoint_sequence_path(rt: rt, default_path: default_path), **redirect_options)
+    end
+
+    def continue_checkpoint_sequence_without_content!
+      return if bulletin_state.present?
+
+      redirect_after_checkpoint_sequence!(rt: redirect_parameter_value)
+    end
+
+    def continue_dashboard_sequence_without_content!
+      return if dashboard_sequence_step_required?
+
+      redirect_to(safe_path_from_encoded_rt(redirect_parameter_value, fallback: after_dashboard_path))
+    end
+
+    def dashboard_sequence_step_required?
       true
     end
 
@@ -446,12 +503,77 @@ module Authentication
       bulletin_association_for_resource&.find_by(id: data[:bulletin_id])
     end
 
-    def safe_redirect_to_rd_or_default!(rd_param, default_path:)
-      if rd_param.present?
-        jump_to_generated_url(rd_param, fallback: default_path)
+    def safe_redirect_to_rt_or_default!(rt_param, default_path:)
+      if rt_param.present?
+        jump_to_generated_url(rt_param, fallback: default_path)
       else
         redirect_to(default_path)
       end
+    end
+
+    def sign_in_checkpoint_path(rt: nil)
+      attrs = { ri: params[:ri] }
+      safe_rt = safe_encoded_rt(rt)
+      attrs[Auth::IoKeys::Params::RT] = safe_rt if safe_rt.present?
+
+      if respond_to?(:sign_app_in_checkpoint_path, true)
+        sign_app_in_checkpoint_path(**attrs)
+      elsif respond_to?(:sign_org_in_checkpoint_path, true)
+        sign_org_in_checkpoint_path(**attrs)
+      elsif respond_to?(:sign_com_in_checkpoint_path, true)
+        sign_com_in_checkpoint_path(**attrs)
+      else
+        "/sign/in/checkpoint"
+      end
+    end
+
+    def sign_in_dashboard_path(rt: nil)
+      attrs = { ri: params[:ri] }
+      safe_rt = safe_encoded_rt(rt)
+      attrs[Auth::IoKeys::Params::RT] = safe_rt if safe_rt.present?
+
+      if respond_to?(:sign_app_dashboard_path, true)
+        sign_app_dashboard_path(**attrs)
+      elsif respond_to?(:sign_org_dashboard_path, true)
+        sign_org_dashboard_path(**attrs)
+      elsif respond_to?(:sign_com_dashboard_path, true)
+        sign_com_dashboard_path(**attrs)
+      else
+        "/dashboard"
+      end
+    end
+
+    def after_dashboard_path
+      if respond_to?(:sign_app_configuration_path, true)
+        sign_app_configuration_path(ri: params[:ri])
+      elsif respond_to?(:sign_org_configuration_path, true)
+        sign_org_configuration_path(ri: params[:ri])
+      elsif respond_to?(:sign_com_configuration_path, true)
+        sign_com_configuration_path(ri: params[:ri])
+      else
+        default_after_login_path
+      end
+    rescue StandardError
+      default_after_login_path
+    end
+
+    def safe_path_from_encoded_rt(rt_param, fallback:)
+      return fallback if rt_param.blank?
+
+      decoded_url = Base64.urlsafe_decode64(rt_param)
+      safe_return_path(decoded_url) || safe_return_path(rt_param) || fallback
+    rescue ArgumentError, URI::InvalidURIError
+      safe_return_path(rt_param) || fallback
+    end
+
+    def safe_encoded_rt(rt_param)
+      return if rt_param.blank?
+
+      safe_path_from_encoded_rt(rt_param, fallback: nil).present? ? rt_param : nil
+    end
+
+    def redirect_parameter_value
+      params[Auth::IoKeys::Params::RT].presence
     end
 
     # ======================================================================
@@ -560,7 +682,7 @@ module Authentication
     end
 
     def current_session_public_id
-      @current_session_public_id
+      @current_session_public_id ||= current_session_public_id_from_access_token
     end
 
     def current_resource
@@ -570,7 +692,8 @@ module Authentication
     end
 
     # rubocop:disable Metrics/MethodLength, Metrics/AbcSize, Metrics/CyclomaticComplexity
-    def log_in(resource, record_login_audit: true, token_kind_id: "BROWSER_WEB", require_totp_check: true)
+    def log_in(resource, record_login_audit: true, token_kind_id: "BROWSER_WEB", require_totp_check: true,
+               audit_context: {})
       return { status: :login_forbidden } unless resource.login_allowed?
 
       check_login_cooldown!(resource)
@@ -611,9 +734,24 @@ module Authentication
 
       kind_id = resolve_token_kind_id(token_kind_id)
 
+      dpop_proof = request.headers["DPoP"]
+      dpop_jkt = nil
+      if dpop_proof.present?
+        proof_result = Dpop::ProofValidator.new(
+          proof_jwt: dpop_proof,
+          request_method: request.request_method,
+          request_uri: request.original_url,
+        ).call
+
+        return { status: :dpop_proof_invalid, error: proof_result.error } unless proof_result.valid?
+
+        dpop_jkt = proof_result.jkt
+
+      end
+
       # Create token with appropriate status
-      token_status = is_restricted ? token_class::STATUS_RESTRICTED : token_class::STATUS_ACTIVE
-      token_record = create_login_token_record(resource, kind_id, status: token_status)
+      token_status_id = is_restricted ? token_class::STATUS_RESTRICTED : token_class::STATUS_ACTIVE
+      token_record = create_login_token_record(resource, kind_id, token_status_id: token_status_id, dpop_jkt: dpop_jkt)
 
       # Generate SHA3-based refresh token
       # Must use writing role explicitly because GET-based OAuth callbacks
@@ -649,6 +787,7 @@ module Authentication
         host: request.host,
         session_public_id: token_record.public_id,
         resource_type: resource_type,
+        dpop_jkt: dpop_jkt,
         expires_at: access_expires_at,
         preferences: build_auth_preference_snapshot(resource),
         acr: "aal1",
@@ -666,7 +805,7 @@ module Authentication
       )
       issue_dbsc_registration_header_for(token_record)
 
-      # Populate Current.actor immediately so same-request code sees the authenticated resource
+      # Populate Actor.actor immediately so same-request code sees the authenticated resource
       populate_current_attributes!(resource, nil)
       @_current_resource_resolved = true
 
@@ -680,7 +819,7 @@ module Authentication
         meta: { auth_method: token_kind_id, restricted: is_restricted },
       )
 
-      record_audit(AUDIT_EVENTS[:logged_in], resource: resource) if record_login_audit
+      record_audit(AUDIT_EVENTS[:logged_in], resource: resource, context: audit_context) if record_login_audit
 
       result = {
         status: :success,
@@ -725,7 +864,7 @@ module Authentication
 
       # Load resource from token record
       # No special test handling - same code path for all environments
-      resource = token_record.public_send(resource_type)
+      resource = token_record.public_send(token_resource_prefix)
 
       return handle_inactive_resource(resource, refresh_public_id, token_record) unless resource&.active?
 
@@ -842,7 +981,7 @@ module Authentication
       case actor_type
       when "user"
         Auth::IoKeys::Headers::TEST_CURRENT_USER
-      when "staff"
+      when "operator"
         Auth::IoKeys::Headers::TEST_CURRENT_STAFF
       when "viewer"
         Auth::IoKeys::Headers::TEST_CURRENT_VIEWER
@@ -862,8 +1001,8 @@ module Authentication
       raise NotImplementedError, "am_i_user? must be implemented"
     end
 
-    def am_i_staff?
-      raise NotImplementedError, "am_i_staff? must be implemented"
+    def am_i_operator?
+      raise NotImplementedError, "am_i_operator? must be implemented"
     end
 
     def am_i_owner?
@@ -971,7 +1110,7 @@ module Authentication
 
       case resource
       when User then resource.user_bulletins
-      when Staff then resource.staff_bulletins
+      when Operator then resource.staff_bulletins
       end
     end
 
@@ -982,7 +1121,7 @@ module Authentication
           title: I18n.t("sign.app.in.bulletins.welcome.title"),
           body: I18n.t("sign.app.in.bulletins.welcome.body"),
         )
-      when Staff
+      when Operator
         resource.staff_bulletins.create!(
           title: I18n.t("sign.org.in.bulletins.welcome.title"),
           body: I18n.t("sign.org.in.bulletins.welcome.body"),
@@ -1054,7 +1193,7 @@ module Authentication
         httponly: true,
         same_site: :lax,
         path: "/",
-        domain: true,
+        domain: false,
       )
     end
 
@@ -1064,8 +1203,8 @@ module Authentication
         request: request,
         same_site: :lax,
         path: "/",
-        domain: true,
-      ).except(:expires, :httponly, :secure, :same_site)
+        domain: false,
+      ).except(:expires, :httponly)
     end
 
     def device_cookie_key
@@ -1136,13 +1275,13 @@ module Authentication
     def extract_access_token(cookie_key)
       return nil unless respond_to?(:request, true) && request
 
-      Auth::AuthorizationHeader.bearer_token(request) || cookies[cookie_key]
+      Auth::AuthorizationHeader.access_token(request) || cookies[cookie_key]
     end
 
     # ----------------------------------------------------------------------
     # 6-3) Audit/occurrence writing (side-effect boundary)
     # ----------------------------------------------------------------------
-    def record_audit(event_id, resource:, actor: resource)
+    def record_audit(event_id, resource:, actor: resource, context: {})
       return unless resource && event_id
 
       Rails.event.debug(
@@ -1159,6 +1298,7 @@ module Authentication
         resource: resource,
         actor: actor,
         ip_address: request_ip_address,
+        context: context,
       )
     end
 
@@ -1196,7 +1336,8 @@ module Authentication
 
     def occurrence_model_class
       return UserOccurrence if resource_type == "user"
-      return StaffOccurrence if resource_type == "staff"
+      return OperatorOccurrence if resource_type == "operator"
+      return VisitorOccurrence if resource_type == "visitor"
 
       nil
     end
@@ -1269,11 +1410,13 @@ module Authentication
         expiry_attrs[:revoked_at] =
           now if expiry_column == :expired_at && token_record.class.column_names.include?("revoked_at")
         if family_id.present?
-          token_record.class.where(:refresh_token_family_id => family_id, expiry_column => nil)
-            .find_each do |record|
-              record.update!(expiry_attrs)
-            end
-        elsif token_record.public_send(expiry_column).nil?
+          scope = token_record.class.where(refresh_token_family_id: family_id)
+          if token_record.class.column_names.include?("lapses_at")
+            lapses_at = token_record.class.arel_table[:lapses_at]
+            scope = scope.where(lapses_at.eq(nil).or(lapses_at.gt(now)))
+          end
+          scope.find_each { |record| record.update!(expiry_attrs) }
+        elsif !token_expired_or_revoked?(token_record, expiry_column)
           token_record.update!(expiry_attrs.except(:updated_at))
         end
       end
@@ -1282,6 +1425,7 @@ module Authentication
 
     # rubocop:disable Metrics/MethodLength
     def build_refreshed_session(resource, token_record, new_refresh_plain, previous_token_record: nil)
+      @current_session_public_id = token_record.public_id
       access_expires_at = access_token_expires_at_for(token_record)
       refresh_cookie_expires_at = refresh_cookie_expires_at_for(token_record)
 
@@ -1331,6 +1475,7 @@ module Authentication
       Sign::Risk::Enforcer.call(resource)
 
       issue_dbsc_registration_header_for(token_record)
+      populate_current_attributes!(resource, nil)
 
       {
         access_token: new_access_token,
@@ -1432,17 +1577,17 @@ module Authentication
     end
 
     def handle_restricted_refresh_rejected(token_record, refresh_public_id)
-      expired = token_record.refresh_expires_at.present? && token_record.refresh_expires_at <= Time.current
+      restricted_expires_at = token_record.lapses_at if token_record.respond_to?(:lapses_at)
+      expired = restricted_expires_at.present? && restricted_expires_at <= Time.current
 
-      expiry_column = token_expiry_column(token_record.class)
-      if expired && token_record.public_send(expiry_column).nil?
+      if expired && !token_record.revoked?
         TokenRecord.connected_to(role: :writing) do
           token_record.revoke!
         end
         Rails.event.notify(
           "session.restricted.expired",
           user_token_id: token_record.public_id,
-          "#{resource_type}_id": token_record.public_send("#{resource_type}_id"),
+          "#{resource_type}_id": token_record.public_send("#{token_resource_prefix}_id"),
         )
       end
 
@@ -1609,6 +1754,9 @@ module Authentication
       request_host = request&.host
       return nil if request_host.blank?
 
+      authorization_scheme = Auth::AuthorizationHeader.scheme(request)
+      dpop_proof = request.headers["DPoP"]
+
       result = Auth::CurrentResourceResolver.new(
         access_token: access_token,
         request_host: request_host,
@@ -1616,7 +1764,15 @@ module Authentication
         resource_class: resource_class,
         token_class: token_class,
         test_env: Rails.env.test?,
+        authorization_scheme: authorization_scheme,
+        dpop_proof: dpop_proof,
+        request_method: request.request_method,
+        request_uri: request.original_url,
       ).call
+
+      if result.resource.blank? && (authorization_scheme.to_s.casecmp?("DPoP") || dpop_proof.present?)
+        response.headers["DPoP-Nonce"] = Dpop::NonceService.generate if defined?(Dpop::NonceService)
+      end
 
       emit_actor_mismatch_event(result.payload) if result.failure_reason == :actor_mismatch
       @current_session_public_id = result.session_public_id if result.session_public_id.present?
@@ -1626,20 +1782,32 @@ module Authentication
       result.resource
     end
 
-    # Populate Current.* attributes from JWT payload after successful authentication
+    def current_session_public_id_from_access_token
+      access_token = extract_access_token(ACCESS_COOKIE_KEY)
+      return nil if access_token.blank?
+      return nil if request&.host.blank?
+
+      Authentication::Base::Token.extract_session_id_allow_expired(
+        access_token,
+        host: request.host,
+        resource_type: resource_type,
+      )
+    end
+
+    # Populate Actor.* attributes from JWT payload after successful authentication
     def populate_current_attributes!(resource, payload)
       return if resource.blank?
 
-      Current.actor = resource
-      Current.actor_type =
+      Actor.actor = resource
+      Actor.actor_type =
         case resource_type
-        when "staff" then :staff
-        when "customer" then :customer
+        when "operator" then :operator
+        when "visitor" then :visitor
         else :user
         end
-      Current.session = @current_session_public_id
-      Current.token = payload if payload.present?
-      Current.domain = Core::Surface.current(request) if respond_to?(:request, true) && request.present?
+      Actor.session = @current_session_public_id
+      Actor.token = payload if payload.present?
+      Actor.domain = Core::Surface.current(request) if respond_to?(:request, true) && request.present?
     end
 
     # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
@@ -1670,10 +1838,10 @@ module Authentication
     # Used by Risk::Emitter to route events to the correct occurrence table.
     def risk_actor_payload(id)
       case resource_type
-      when "staff"
+      when "operator"
         { staff_id: id }
-      when "customer"
-        { customer_id: id }
+      when "visitor"
+        { visitor_id: id }
       else
         { user_id: id }
       end
@@ -1719,8 +1887,8 @@ module Authentication
     def handle_session_expiry(redirect_path, message_key)
       redirect_params = { notice: t(message_key) }
       # Preserve redirect parameter if present
-      default_rd_key = Auth::IoKeys::Session::DEFAULT_RD
-      redirect_params[Auth::IoKeys::Params::RD] = session[default_rd_key] if session[default_rd_key].present?
+      default_rt_key = DEFAULT_RT_SESSION_KEY
+      redirect_params[Auth::IoKeys::Params::RT] = session[default_rt_key] if session[default_rt_key].present?
       redirect_to(redirect_path, redirect_params)
     end
 
@@ -1820,20 +1988,21 @@ module Authentication
       end
     end
 
-    def create_login_token_record(resource, token_kind_id, status: nil)
+    def create_login_token_record(resource, token_kind_id, token_status_id: nil, dpop_jkt: nil)
       TokenRecord.connected_to(role: :writing) do
         token_attributes = { resource_foreign_key => resource.id }
+        token_attributes[:dpop_jkt] = dpop_jkt if dpop_jkt.present?
         # Determine kind column based on resource type (user_token_kind_id or staff_token_kind_id)
-        kind_column = "#{resource_type}_token_kind_id"
+        kind_column = "#{token_resource_prefix}_token_kind_id"
         if token_class.column_names.include?(kind_column)
           ensure_token_kind_exists!(token_kind_id)
           token_attributes[kind_column] = token_kind_id
         end
 
-        # Set status if provided (for restricted sessions)
-        token_attributes[:status] = status if status.present?
+        token_attributes.merge!(default_status_token_attributes(token_status_id))
         token_attributes.merge!(default_dbsc_token_attributes)
         token_attributes.merge!(scheduled_login_token_attributes)
+        ensure_login_token_reference_data!(token_attributes)
 
         token_class.create!(token_attributes)
       end
@@ -1846,16 +2015,29 @@ module Authentication
           user_token_binding_method_id: UserTokenBindingMethod::LEGACY,
           user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
         }
-      when "staff"
+      when "operator"
         {
-          staff_token_binding_method_id: StaffTokenBindingMethod::LEGACY,
-          staff_token_dbsc_status_id: StaffTokenDbscStatus::NOTHING,
+          staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+          staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
         }
-      when "customer"
+      when "visitor"
         {
-          customer_token_binding_method_id: CustomerTokenBindingMethod::LEGACY,
-          customer_token_dbsc_status_id: CustomerTokenDbscStatus::NOTHING,
+          visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+          visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
         }
+      else
+        {}
+      end
+    end
+
+    def default_status_token_attributes(token_status_id = nil)
+      case resource_type
+      when "user"
+        { user_token_status_id: token_status_id.presence || UserTokenStatus::ACTIVE }
+      when "operator"
+        { staff_token_status_id: token_status_id.presence || OperatorTokenStatus::ACTIVE }
+      when "visitor"
+        { visitor_token_status_id: token_status_id.presence || VisitorTokenStatus::ACTIVE }
       else
         {}
       end
@@ -1864,7 +2046,7 @@ module Authentication
     def resolve_token_kind_id(raw_kind_id)
       return raw_kind_id unless raw_kind_id.is_a?(String)
 
-      kind_column = "#{resource_type}_token_kind_id"
+      kind_column = "#{token_resource_prefix}_token_kind_id"
       return raw_kind_id unless token_class.columns_hash[kind_column]&.type == :integer
 
       kind_model = token_kind_model
@@ -1885,15 +2067,15 @@ module Authentication
 
       resolved =
         case [resource_type, raw_kind_id]
-        when ["staff", "BROWSER_WEB"] then StaffTokenKind::BROWSER_WEB
-        when ["staff", "CLIENT_IOS"] then StaffTokenKind::CLIENT_IOS
-        when ["staff", "CLIENT_ANDROID"] then StaffTokenKind::CLIENT_ANDROID
+        when ["operator", "BROWSER_WEB"] then OperatorTokenKind::BROWSER_WEB
+        when ["operator", "CLIENT_IOS"] then OperatorTokenKind::CLIENT_IOS
+        when ["operator", "CLIENT_ANDROID"] then OperatorTokenKind::CLIENT_ANDROID
         when ["user", "BROWSER_WEB"] then UserTokenKind::BROWSER_WEB
         when ["user", "CLIENT_IOS"] then UserTokenKind::CLIENT_IOS
         when ["user", "CLIENT_ANDROID"] then UserTokenKind::CLIENT_ANDROID
-        when ["customer", "BROWSER_WEB"] then CustomerTokenKind::BROWSER_WEB
-        when ["customer", "CLIENT_IOS"] then CustomerTokenKind::CLIENT_IOS
-        when ["customer", "CLIENT_ANDROID"] then CustomerTokenKind::CLIENT_ANDROID
+        when ["visitor", "BROWSER_WEB"] then VisitorTokenKind::BROWSER_WEB
+        when ["visitor", "CLIENT_IOS"] then VisitorTokenKind::CLIENT_IOS
+        when ["visitor", "CLIENT_ANDROID"] then VisitorTokenKind::CLIENT_ANDROID
         end
 
       return resolved if resolved
@@ -1905,7 +2087,9 @@ module Authentication
       return if token_kind_id.blank?
 
       kind_model = token_kind_model
-      kind_model.find(token_kind_id)
+      token_reference_connection_model(kind_model).connected_to(role: :writing) do
+        kind_model.find_or_create_by!(id: token_kind_id)
+      end
     rescue ActiveRecord::RecordNotFound
       Rails.event.error(
         "auth.token.kind_missing",
@@ -1917,14 +2101,64 @@ module Authentication
             "Missing #{kind_model.name} id=#{token_kind_id} for #{resource_type} login"
     end
 
+    def ensure_login_token_reference_data!(token_attributes)
+      login_token_reference_models.each do |column_name, model|
+        id = token_attributes[column_name]
+        next if id.blank?
+
+        token_reference_connection_model(model).connected_to(role: :writing) do
+          model.find_or_create_by!(id: id)
+        end
+      end
+    end
+
+    def token_reference_connection_model(model)
+      return MarkRecord if model <= MarkRecord
+      return SymbolRecord if model <= SymbolRecord
+
+      TokenRecord
+    end
+
+    def login_token_reference_models
+      case resource_type
+      when "user"
+        {
+          user_token_binding_method_id: UserTokenBindingMethod,
+          user_token_dbsc_status_id: UserTokenDbscStatus,
+          user_token_kind_id: UserTokenKind,
+          user_token_status_id: UserTokenStatus,
+        }
+      when "operator"
+        {
+          staff_token_binding_method_id: OperatorTokenBindingMethod,
+          staff_token_dbsc_status_id: OperatorTokenDbscStatus,
+          staff_token_kind_id: OperatorTokenKind,
+          staff_token_status_id: OperatorTokenStatus,
+        }
+      when "visitor"
+        {
+          visitor_token_binding_method_id: VisitorTokenBindingMethod,
+          visitor_token_dbsc_status_id: VisitorTokenDbscStatus,
+          visitor_token_kind_id: VisitorTokenKind,
+          visitor_token_status_id: VisitorTokenStatus,
+        }
+      else
+        {}
+      end
+    end
+
     def token_kind_model
       case resource_type
       when "user" then UserTokenKind
-      when "staff" then StaffTokenKind
-      when "customer" then CustomerTokenKind
+      when "operator" then OperatorTokenKind
+      when "visitor" then VisitorTokenKind
       else
         raise ActiveRecord::RecordNotFound, "Missing token kind model for resource_type=#{resource_type}"
       end
+    end
+
+    def token_resource_prefix
+      (resource_type == "operator") ? "staff" : resource_type
     end
 
     # ----------------------------------------------------------------------
@@ -2077,11 +2311,12 @@ module Authentication
     end
 
     def complete_sign_in_or_start_mfa!(resource, rt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",
-                                       record_login_audit: true)
+                                       record_login_audit: true, audit_context: {})
       auth_method = auth_method.to_s
+      login_audit_context = { auth_method: auth_method }.merge(audit_context)
       return log_in(
         resource, record_login_audit: record_login_audit, token_kind_id: token_kind_id,
-                  require_totp_check: false,
+                  require_totp_check: false, audit_context: login_audit_context,
       ) if mfa_bypassed_for_auth_method?(auth_method) || !mfa_required_for?(resource)
 
       return_to = resolve_mfa_return_to(rt)
@@ -2103,8 +2338,8 @@ module Authentication
       fk =
         if resource.is_a?(::User)
           :user_id
-        elsif resource.is_a?(::Customer)
-          :customer_id
+        elsif resource.is_a?(::Visitor)
+          :visitor_id
         else
           :staff_id
         end
@@ -2141,10 +2376,10 @@ module Authentication
     def max_sessions_for_resource(resource)
       if resource.is_a?(::User)
         ::UserToken::MAX_SESSIONS_PER_USER
-      elsif resource.is_a?(::Staff)
-        ::StaffToken::MAX_SESSIONS_PER_STAFF
-      elsif resource.is_a?(::Customer)
-        ::CustomerToken::MAX_SESSIONS_PER_CUSTOMER
+      elsif resource.is_a?(::Operator)
+        ::OperatorToken::MAX_SESSIONS_PER_STAFF
+      elsif resource.is_a?(::Visitor)
+        ::VisitorToken::MAX_SESSIONS_PER_VISITOR
       else
         2 # Default fallback
       end
@@ -2155,10 +2390,10 @@ module Authentication
       TokenRecord.connected_to(role: :writing) do
         if resource.is_a?(::User)
           ::UserToken.active_status.where(user_id: resource.id).count
-        elsif resource.is_a?(::Staff)
-          ::StaffToken.active_status.where(staff_id: resource.id).count
-        elsif resource.is_a?(::Customer)
-          ::CustomerToken.active_status.where(customer_id: resource.id).count
+        elsif resource.is_a?(::Operator)
+          ::OperatorToken.active_status.where(staff_id: resource.id).count
+        elsif resource.is_a?(::Visitor)
+          ::VisitorToken.active_status.where(visitor_id: resource.id).count
         else
           0
         end
@@ -2175,10 +2410,10 @@ module Authentication
     def find_restricted_sessions_scope(resource)
       if resource.is_a?(::User)
         ::UserToken.restricted_status.where(user_id: resource.id)
-      elsif resource.is_a?(::Staff)
-        ::StaffToken.restricted_status.where(staff_id: resource.id)
-      elsif resource.is_a?(::Customer)
-        ::CustomerToken.restricted_status.where(customer_id: resource.id)
+      elsif resource.is_a?(::Operator)
+        ::OperatorToken.restricted_status.where(staff_id: resource.id)
+      elsif resource.is_a?(::Visitor)
+        ::VisitorToken.restricted_status.where(visitor_id: resource.id)
       end
     end
 
@@ -2188,9 +2423,9 @@ module Authentication
     end
 
     def scheduled_login_token_attributes(now: Time.current)
-      return {} unless %w(staff customer).include?(resource_type)
+      return {} unless %w(operator visitor).include?(resource_type)
 
-      ttl_class = (resource_type == "customer") ? CustomerToken : StaffToken
+      ttl_class = (resource_type == "visitor") ? VisitorToken : OperatorToken
       lapses_at = now + ttl_class::LOGIN_SESSION_TTL
       {
         lapses_at: lapses_at,
@@ -2202,10 +2437,10 @@ module Authentication
     def store_pending_login_resource(resource)
       if resource.is_a?(::User)
         session[:pending_login_user_id] = resource.id
-      elsif resource.is_a?(::Staff)
+      elsif resource.is_a?(::Operator)
         session[:pending_login_staff_id] = resource.id
-      elsif resource.is_a?(::Customer)
-        session[:pending_login_customer_id] = resource.id
+      elsif resource.is_a?(::Visitor)
+        session[:pending_login_visitor_id] = resource.id
       end
     end
 
@@ -2217,8 +2452,7 @@ module Authentication
       return @current_session if defined?(@current_session)
       return nil unless current_session_public_id
 
-      expiry_column = token_expiry_column(token_class)
-      find_logic = -> { token_class.find_by(:public_id => current_session_public_id, expiry_column => nil) }
+      find_logic = -> { token_class.find_by(public_id: current_session_public_id) }
 
       @current_session =
         if Rails.env.test?
@@ -2239,7 +2473,7 @@ module Authentication
     #   lx (language), ri (region), tz (timezone), ct (color theme)
     def build_auth_preference_snapshot(resource)
       pref = resolved_current_preference(resource) if respond_to?(:resolved_current_preference, true)
-      pref ||= Current.preference
+      pref ||= Actor.preference
       return unless pref && !pref.null?
 
       {
@@ -2274,7 +2508,7 @@ module Authentication
         value: new_access_token,
         expires: access_expires_at,
       )
-      Current.preference = resolved_current_preference(resource) if respond_to?(:resolved_current_preference, true)
+      Actor.preference = resolved_current_preference(resource) if respond_to?(:resolved_current_preference, true)
     end
 
     def dbsc_payload_for(token_record)
@@ -2326,7 +2560,7 @@ module Authentication
       case resource_type
       when "user"
         sign_app_edge_v0_token_dbsc_path
-      when "staff"
+      when "operator"
         sign_org_edge_v0_token_dbsc_path
       end
     end
@@ -2353,6 +2587,14 @@ module Authentication
       return :revoked_at if klass.column_names.include?("revoked_at")
 
       raise ArgumentError, "#{klass.name} does not have expired_at/revoked_at column"
+    end
+
+    def token_expired_or_revoked?(token_record, expiry_column)
+      value = token_record.public_send(expiry_column)
+      return true if value.nil?
+      return false if value.respond_to?(:infinite?) && value.infinite?
+
+      value <= Time.current
     end
 
     def access_token_expires_at_for(token_record, now: Time.current)
@@ -2384,10 +2626,14 @@ module Authentication
     end
 
     def mfa_required_for?(resource)
-      return false unless resource.is_a?(::User) || resource.is_a?(::Staff) || resource.is_a?(::Customer)
-      return false unless resource.respond_to?(:multi_factor_enabled?)
+      return false unless resource.is_a?(::User) || resource.is_a?(::Operator) || resource.is_a?(::Visitor)
+      return false unless resource.respond_to?(:multi_factor_required?) || resource.respond_to?(:multi_factor_enabled?)
 
-      resource.multi_factor_enabled?
+      if resource.respond_to?(:multi_factor_required?)
+        resource.multi_factor_required?
+      else
+        resource.multi_factor_enabled?
+      end
     end
 
     def mfa_bypassed_for_auth_method?(auth_method)
@@ -2400,7 +2646,7 @@ module Authentication
       decoded = decode_base64_urlsafe(raw_value)
       candidate = decoded.presence || raw_value
 
-      safe_internal_path(candidate)
+      safe_return_path(candidate)
     end
 
     def decode_base64_urlsafe(value)
@@ -2446,6 +2692,10 @@ module Authentication
     end
 
     def handle_guest_only_with_status_checks(options)
+      return handle_guest_only_html(options) if request.get? &&
+        options[:request_format] != :json &&
+        !request.format.json?
+
       if options[:status] == :unauthorized
         return render plain: (options[:message] || I18n.t("errors.messages.not_authorized")), status: :unauthorized
       end

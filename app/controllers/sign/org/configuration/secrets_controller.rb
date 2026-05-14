@@ -7,21 +7,21 @@ module Sign
       class SecretsController < ApplicationController
         auth_required!
 
-        include ::Verification::Staff
+        include ::Verification::Operator
 
-        before_action :authenticate_staff!
+        before_action :authenticate_operator!
         before_action :set_secret, only: %i(show edit update destroy)
 
         def index
-          @secrets = current_staff.staff_secrets.order(created_at: :desc)
+          @secrets = current_operator.staff_secrets.order(created_at: :desc)
         end
 
         def show
         end
 
         def new
-          @secret = current_staff.staff_secrets.new
-          @raw_secret = StaffSecret.generate_raw_secret
+          @secret = current_operator.staff_secrets.new
+          @raw_secret = OperatorSecret.generate_raw_secret
           session[:staff_secret_raw] = @raw_secret
           @secret.name = @raw_secret.first(4)
         end
@@ -31,9 +31,9 @@ module Sign
 
         def create
           raw_secret = session.delete(:staff_secret_raw)
-          StaffSecrets::Create.call(
-            actor: current_staff,
-            staff: current_staff,
+          OperatorSecrets::Create.call(
+            actor: current_operator,
+            staff: current_operator,
             params: secret_params,
             raw_secret: raw_secret,
           )
@@ -42,14 +42,14 @@ module Sign
           redirect_to(sign_org_configuration_secrets_path)
         rescue ActiveRecord::RecordInvalid => e
           @secret = e.record
-          @raw_secret = raw_secret.presence || StaffSecret.generate_raw_secret
+          @raw_secret = raw_secret.presence || OperatorSecret.generate_raw_secret
           session[:staff_secret_raw] = @raw_secret
           render :new, status: :unprocessable_content
         end
 
         def update
-          StaffSecrets::Update.call(
-            actor: current_staff,
+          OperatorSecrets::Update.call(
+            actor: current_operator,
             secret: @secret,
             params: secret_params,
           )
@@ -57,12 +57,12 @@ module Sign
           flash[:notice] = t(".updated")
           redirect_to(sign_org_configuration_secrets_path)
         rescue ActiveRecord::RecordInvalid => e
-          @secret = e.record.is_a?(StaffSecret) ? e.record : @secret
+          @secret = e.record.is_a?(OperatorSecret) ? e.record : @secret
           render :edit, status: :unprocessable_content
         end
 
         def destroy
-          StaffSecrets::Destroy.call(actor: current_staff, secret: @secret)
+          OperatorSecrets::Destroy.call(actor: current_operator, secret: @secret)
           flash[:notice] = t(".destroyed")
           redirect_to(sign_org_configuration_secrets_path, status: :see_other)
         end
@@ -70,7 +70,7 @@ module Sign
         private
 
         def set_secret
-          @secret = current_staff.staff_secrets.find_by!(public_id: params.expect(:id))
+          @secret = current_operator.staff_secrets.find_by!(public_id: params.expect(:id))
         end
 
         def secret_params

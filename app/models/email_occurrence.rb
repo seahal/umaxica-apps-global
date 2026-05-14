@@ -41,9 +41,12 @@ class EmailOccurrence < OccurrenceRecord
   has_many :area_occurrences, through: :area_email_occurrences
   has_many :domain_email_occurrences, dependent: :destroy, inverse_of: :email_occurrence
   has_many :domain_occurrences, through: :domain_email_occurrences
+  has_many :email_visitor_occurrences, dependent: :destroy, inverse_of: :email_occurrence
+  has_many :visitor_occurrences, through: :email_visitor_occurrences
   has_many :email_ip_occurrences, dependent: :destroy, inverse_of: :email_occurrence
   has_many :ip_occurrences, through: :email_ip_occurrences
-  has_many :email_staff_occurrences, dependent: :destroy, inverse_of: :email_occurrence
+  has_many :email_staff_occurrences, class_name: "EmailOperatorOccurrence", dependent: :destroy,
+                                     inverse_of: :email_occurrence
   has_many :staff_occurrences, through: :email_staff_occurrences
   has_many :email_telephone_occurrences, dependent: :destroy, inverse_of: :email_occurrence
   has_many :telephone_occurrences, through: :email_telephone_occurrences

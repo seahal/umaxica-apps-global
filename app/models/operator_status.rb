@@ -14,7 +14,8 @@ class OperatorStatus < OperatorRecord
   # Fixed IDs - do not modify these values
   ACTIVE = 1
   NOTHING = 2
-  has_many :operators,
+  has_many :operator_accounts,
+           class_name: "OperatorAccount",
            foreign_key: :status_id,
            inverse_of: :operator_status,
            dependent: :restrict_with_error

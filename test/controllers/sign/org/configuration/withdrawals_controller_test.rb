@@ -9,7 +9,7 @@ class Sign::Org::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
-    @token = StaffToken.create!(staff: @staff)
+    @token = OperatorToken.create!(staff: @staff)
     satisfy_staff_verification(@token)
   end
 

@@ -1,0 +1,38 @@
+# typed: false
+# frozen_string_literal: true
+
+# == Schema Information
+#
+# Table name: visitor_preference_language_options
+# Database name: setting
+#
+#  id :bigint           not null, primary key
+#
+class VisitorPreferenceLanguageOption < SettingRecord
+  include ReferenceRecord
+
+  NOTHING = 0
+  JA = 1
+  EN = 2
+
+  has_many :visitor_preference_languages,
+           class_name: "VisitorPreferenceLanguage",
+           foreign_key: :option_id,
+           inverse_of: :option,
+           dependent: :restrict_with_error
+
+  def name
+    case id
+    when JA then "ja"
+    when EN then "en"
+    end
+  end
+
+  DEFAULTS = [NOTHING, JA, EN].freeze
+
+  def self.ensure_defaults!
+    insert_missing_fixed_ids!(DEFAULTS)
+  end
+
+  self.primary_key = :id
+end

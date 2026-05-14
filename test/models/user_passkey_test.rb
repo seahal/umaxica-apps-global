@@ -63,6 +63,31 @@ class UserPasskeyTest < ActiveSupport::TestCase
     assert_equal UserPasskeyStatus::ACTIVE, passkey.status_id
   end
 
+  test "database default status_id matches active status" do
+    default = UserPasskey.columns.find { |column| column.name == "status_id" }.default
+
+    assert_equal UserPasskeyStatus::ACTIVE, default.to_i
+  end
+
+  test "repairs missing active status before create" do
+    UserPasskeyStatus.where(id: UserPasskeyStatus::ACTIVE).delete_all
+
+    passkey = UserPasskey.new(
+      user: @user,
+      webauthn_id: "repair-test",
+      public_key: "repair-key",
+      description: "Repair Test",
+    )
+
+    assert_difference -> { UserPasskeyStatus.where(id: UserPasskeyStatus::ACTIVE).count }, 1 do
+      assert_difference("UserPasskey.count", 1) do
+        passkey.save!
+      end
+    end
+
+    assert_equal UserPasskeyStatus::ACTIVE, passkey.status_id
+  end
+
   test "status association uses status_id" do
     status = UserPasskeyStatus.find(UserPasskeyStatus::ACTIVE)
     @passkey.status = status
@@ -140,14 +165,16 @@ class UserPasskeyTest < ActiveSupport::TestCase
   end
 
   test "enforces maximum passkeys per user" do
-    UserPasskey::MAX_PASSKEYS_PER_USER.times do |i|
-      UserPasskey.create!(
-        user: @user,
-        webauthn_id: SecureRandom.uuid,
-        external_id: SecureRandom.uuid,
-        public_key: "test-key-#{i}",
-        description: "Key #{i}",
-      )
+    Prosopite.pause do
+      UserPasskey::MAX_PASSKEYS_PER_USER.times do |i|
+        UserPasskey.create!(
+          user: @user,
+          webauthn_id: SecureRandom.uuid,
+          external_id: SecureRandom.uuid,
+          public_key: "test-key-#{i}",
+          description: "Key #{i}",
+        )
+      end
     end
 
     extra_passkey = UserPasskey.new(
@@ -183,7 +210,7 @@ class UserPasskeyTest < ActiveSupport::TestCase
     assert_raise(ActiveRecord::RecordNotFound) { @passkey.reload }
   end
 
-  test "is invalid on create when user has no verified recovery identity" do
+  test "is valid on create when user has no verified recovery identity" do
     user_without_identity = User.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: UserStatus::NOTHING)
     passkey = UserPasskey.new(
       user: user_without_identity,
@@ -194,7 +221,6 @@ class UserPasskeyTest < ActiveSupport::TestCase
       sign_count: 0,
     )
 
-    assert_not passkey.valid?
-    assert_includes passkey.errors[:base], User::RECOVERY_IDENTITY_REQUIRED_MESSAGE
+    assert_predicate passkey, :valid?
   end
 end

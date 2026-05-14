@@ -11,7 +11,7 @@ This plan operates under `adr/preference-soft-bubble-doctrine.md` (2026-05-06):
 - Preference databases stay **separate** (`principal` / `operator` / `setting`).
 - `guest` is **not** a preference database long-term — `customer_preferences` exits per
   `plans/backlog/customer-preferences-move-to-setting-db.md`.
-- `Current::Preference` is the **single runtime read interface**.
+- `Actor::Preference` is the **single runtime read interface**.
 - Session-side families (`AppPreference` / `ComPreference` / `OrgPreference`) are **not retired**;
   they were introduced deliberately so the front-end side does not own preference state.
 
@@ -67,7 +67,7 @@ Concrete model count today (under `app/models/`):
 
 - Session-side App / Com / Org families: ~16 classes each → ~48 classes
 - Actor-side User / Staff / Customer families: ~7 classes each → ~21 classes
-- Bridges: `UserAppPreference`, `StaffOrgPreference`
+- Bridges: `UserAppPreference`, `OperatorOrgPreference`
 - Total: ~70 preference-related classes
 
 ### Cross-bubble code paths
@@ -80,7 +80,7 @@ Concrete model count today (under `app/models/`):
 - After both bubble-closure moves complete, `Preference::Adoption#resolve_cross_db_option_id`
   becomes dead code (no double-write path crosses bubbles anymore).
 - `app/controllers/concerns/current_support.rb` — already reads via the unified
-  `Current::Preference` interface; this part is the doctrine-aligned target shape.
+  `Actor::Preference` interface; this part is the doctrine-aligned target shape.
 
 ## Migration Strategy
 
@@ -179,14 +179,14 @@ tracked as a follow-up.
       a dependency).
 - [ ] Cookie consent, JWT `prf` claim integrity, and preference edit flows have regression coverage
       that survives the cleanup.
-- [ ] No production read path bypasses `Current::Preference` for preference values.
+- [ ] No production read path bypasses `Actor::Preference` for preference values.
 
 ## References
 
 - `adr/preference-soft-bubble-doctrine.md` — doctrine this plan obeys
 - `plans/backlog/customer-preferences-move-to-setting-db.md` — com TLD bubble closure
 - `plans/backlog/staff-preference-move-to-operator-db.md` — org TLD bubble closure
-- `plans/backlog/gh578-preference-consolidation.md` — `Current::Preference` runtime consolidation
+- `plans/backlog/gh578-preference-consolidation.md` — `Actor::Preference` runtime consolidation
   status
 - `plans/backlog/current-support-integration-test-coverage.md` — `CurrentSupport` request-lifecycle
   test coverage
@@ -194,7 +194,7 @@ tracked as a follow-up.
   traceability)
 - `app/services/preference/class_registry.rb` — current registry
 - `app/controllers/concerns/preference/adoption.rb` — current Adoption logic
-- `app/controllers/concerns/current_support.rb` — current `Current::Preference` resolver
+- `app/controllers/concerns/current_support.rb` — current `Actor::Preference` resolver
 
 ## 2026-05-07 現状差分と改善として残すこと
 
@@ -204,15 +204,15 @@ tracked as a follow-up.
 
 - `customer_preferences` 系は `setting` DB 側へ移動済み。
 - `staff_preference_*` は `operator` 側に存在する。
-- `Current::Preference` は実装済みで、runtime read interface として使われている。
+- `Actor::Preference` は実装済みで、runtime read interface として使われている。
 
 したがって、この文書は DB 移行計画ではなく、preference 周辺の重複削減計画として再スコープする。
 
 残す改善:
 
-- `UserAppPreference` / `StaffOrgPreference` bridge の現在の呼び出し元と必要性を棚卸しする。
+- `UserAppPreference` / `OperatorOrgPreference` bridge の現在の呼び出し元と必要性を棚卸しする。
 - `Preference::ClassRegistry` の 6 prefix
   x 多数 key の重複を、削除可能なものと抽象化すべきものに分ける。
 - `AppPreference` / `ComPreference` / `OrgPreference` 自体は現時点では保持対象として扱う。
-- 削除判断は `Current::Preference` の回帰テスト、cookie consent、JWT `prf`
+- 削除判断は `Actor::Preference` の回帰テスト、cookie consent、JWT `prf`
   claim のテストを先に固定してから行う。

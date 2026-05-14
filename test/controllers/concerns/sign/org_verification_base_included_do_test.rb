@@ -16,12 +16,12 @@ class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_includes Harness.included_modules, Common::Otp
   end
 
-  test "included do includes Authentication::Staff module" do
-    assert_includes Harness.included_modules, Authentication::Staff
+  test "included do includes Authentication::Operator module" do
+    assert_includes Harness.included_modules, Authentication::Operator
   end
 
-  test "included do includes Verification::Staff module" do
-    assert_includes Harness.included_modules, Verification::Staff
+  test "included do includes Verification::Operator module" do
+    assert_includes Harness.included_modules, Verification::Operator
   end
 
   test "included do includes Sign::Webauthn module" do

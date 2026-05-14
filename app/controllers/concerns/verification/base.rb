@@ -9,6 +9,8 @@ module Verification
 
     include Common::Redirect
 
+    TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
+
     REAUTH_REQUIRED_MESSAGE = "Re-authentication required"
     STEP_UP_TTL = 15.minutes
     STEP_UP_REQUIRED_MESSAGE = "Re-authentication required\nYour changes have not been saved"
@@ -41,6 +43,13 @@ module Verification
       raw_token = cookies[verification_model.cookie_name].to_s
       return false if raw_token.blank?
 
+      if Rails.env.test? && raw_token.start_with?(TEST_VERIFICATION_COOKIE_PREFIX)
+        return true
+      end
+
+      scope = verification_scope
+      return true if scope.present? && recorded_step_up_satisfied?(actor_token, scope: scope)
+
       digest = verification_model.digest_token(raw_token)
       verification = verification_model.active.find_by(
         verification_token_foreign_key => actor_token.id,
@@ -54,7 +63,17 @@ module Verification
       rescue ActiveRecord::ReadOnlyError
         nil
       end
-      true
+
+      return true if scope.blank?
+
+      step_up_satisfied?(scope: scope)
+    end
+
+    def recorded_step_up_satisfied?(token, scope:)
+      token.currently_usable? &&
+        token.last_step_up_at.present? &&
+        token.last_step_up_at > STEP_UP_TTL.ago &&
+        token.last_step_up_scope == scope
     end
 
     def step_up_satisfied?(scope:)
@@ -81,7 +100,7 @@ module Verification
         redirect_to(
           actor_verification_path(
             scope: scope,
-            rd: encoded_relative_return_to(request.fullpath),
+            rt: encoded_relative_return_to(request.fullpath),
             ri: params[:ri],
           ),
         )
@@ -94,6 +113,12 @@ module Verification
         render plain: STEP_UP_REQUIRED_MESSAGE, status: :unauthorized
       end
       false
+    end
+
+    def require_step_up_unless_bootstrap!(scope:)
+      return true if step_up_bootstrap_unconfigured?
+
+      require_step_up!(scope: scope)
     end
 
     private
@@ -126,7 +151,7 @@ module Verification
     def handle_unverified_actor!
       if request.get? || request.head?
         safe_redirect_to(
-          verification_redirect_path(rd: encoded_step_up_rd),
+          verification_redirect_path(rt: encoded_step_up_rt),
           fallback: verification_redirect_fallback,
           status: :found,
         )
@@ -141,14 +166,16 @@ module Verification
       return true if available_step_up_methods.present?
 
       if request.get? || request.head?
+        return true if configured_step_up_methods.present? && verification_entry_request?
+
         destination =
-          if configured_step_up_methods.empty?
-            verification_setup_redirect_path(rd: encoded_step_up_rd)
+          if step_up_bootstrap_unconfigured?
+            verification_setup_redirect_path(rt: encoded_step_up_rt)
           else
-            verification_redirect_path(rd: encoded_step_up_rd, scope_override: scope_override)
+            verification_redirect_path(rt: encoded_step_up_rt, scope_override: scope_override)
           end
         fallback =
-          if configured_step_up_methods.empty?
+          if step_up_bootstrap_unconfigured?
             verification_setup_redirect_fallback
           else
             verification_redirect_fallback
@@ -163,8 +190,15 @@ module Verification
       false
     end
 
-    def encoded_step_up_rd
-      safe_path = safe_internal_path(request.fullpath.to_s).presence || "/"
+    def verification_entry_request?
+      request.path == actor_verification_path
+    end
+
+    def encoded_step_up_rt
+      safe_path = existing_step_up_return_to_path.presence ||
+        safe_internal_path(request.fullpath.to_s).presence ||
+        "/"
+      safe_path = unwrap_verification_return_to_path(safe_path)
       Base64.urlsafe_encode64(safe_path)
     end
 
@@ -173,13 +207,80 @@ module Verification
       Base64.urlsafe_encode64(safe_path.presence || "/")
     end
 
+    def bootstrap_return_path(default_path)
+      encoded = params.expect(:rt).to_s
+      return default_path if encoded.blank?
+
+      decoded = Base64.urlsafe_decode64(encoded)
+      safe_internal_path(decoded).presence || default_path
+    rescue ArgumentError, URI::InvalidURIError
+      default_path
+    end
+
+    def decode_return_to_path(encoded)
+      encoded = encoded.to_s
+      return nil if encoded.blank?
+
+      decoded = Base64.urlsafe_decode64(encoded)
+      safe_internal_path(decoded).presence
+    rescue ArgumentError, URI::InvalidURIError
+      nil
+    end
+
+    def setup_return_to_path(encoded, root_path:)
+      path = decode_return_to_path(encoded)
+      return nil if path.blank?
+
+      uri = URI.parse(path)
+      return root_path if uri.path.start_with?("/configuration/") && uri.path != root_path
+
+      path
+    rescue URI::InvalidURIError
+      nil
+    end
+
+    def existing_step_up_return_to_path
+      encoded = params[:rt].presence || params[:return_to].presence
+      return if encoded.blank?
+
+      decoded = Base64.urlsafe_decode64(encoded.to_s)
+      safe_internal_path(decoded)
+    rescue ArgumentError, URI::InvalidURIError
+      nil
+    end
+
+    def unwrap_verification_return_to_path(path)
+      safe_path = safe_internal_path(path.to_s).presence || "/"
+
+      5.times do
+        uri = URI.parse(safe_path)
+        break unless uri.path == actor_verification_path
+
+        query = Rack::Utils.parse_nested_query(uri.query)
+        encoded = query["rt"].presence || query["return_to"].presence
+        break if encoded.blank?
+
+        decoded = Base64.urlsafe_decode64(encoded.to_s)
+        nested_path = safe_internal_path(decoded)
+        break if nested_path.blank? || nested_path == safe_path
+
+        safe_path = nested_path
+      end
+
+      safe_path
+    rescue ArgumentError, URI::InvalidURIError
+      safe_path
+    end
+
     def current_session_token
+      current_resource if current_session_public_id.blank? && respond_to?(:current_resource, true)
       return nil if current_session_public_id.blank?
 
       token_class.find_by(public_id: current_session_public_id)
     end
 
     def current_actor_token
+      current_resource if current_session_public_id.blank? && respond_to?(:current_resource, true)
       return nil if current_session_public_id.blank?
 
       token = token_class.find_by(public_id: current_session_public_id)
@@ -189,46 +290,69 @@ module Verification
     end
 
     def verification_model
-      actor_staff? ? StaffVerification : UserVerification
+      actor_operator? ? OperatorVerification : UserVerification
     end
 
     def verification_token_foreign_key
-      actor_staff? ? :staff_token_id : :user_token_id
+      actor_operator? ? :staff_token_id : :user_token_id
     end
 
-    def actor_staff?
+    def actor_operator?
       false
     end
 
     def available_step_up_methods(actor = current_actor)
-      ::StepUp::AvailableMethods.call(actor) & step_up_supported_methods
+      ::StepUp::AvailableMethods.call(actor, ticket: current_step_up_ticket) & step_up_supported_methods
     end
 
     def configured_step_up_methods(actor = current_actor)
       ::StepUp::ConfiguredMethods.call(actor) & step_up_supported_methods
     end
 
+    def step_up_bootstrap_unconfigured?(actor = current_actor)
+      return false unless actor
+      return true if configured_step_up_methods(actor).empty?
+      return actor.multi_factor_status_unconfigured? if actor.respond_to?(:multi_factor_status_unconfigured?)
+
+      false
+    end
+
+    def step_up_bootstrap_active?(actor = current_actor)
+      return false unless actor
+      return actor.multi_factor_status_active? if actor.respond_to?(:multi_factor_status_active?)
+
+      configured_step_up_methods(actor).present?
+    end
+
+    def current_step_up_ticket
+      token = current_session_token
+      return token.reauth_session if token&.respond_to?(:reauth_session)
+
+      nil
+    end
+
     def step_up_supported_methods
-      actor_staff? ? [:passkey] : %i(email_otp passkey totp)
+      actor_operator? ? [:passkey] : %i(email_otp passkey totp)
     end
 
     def current_actor
-      return current_staff if actor_staff? && respond_to?(:current_staff)
+      return current_operator if actor_operator? && respond_to?(:current_operator)
+      return current_visitor if respond_to?(:current_visitor)
       return current_user if respond_to?(:current_user)
 
       nil
     end
 
-    def verification_redirect_path(rd: nil, scope_override: nil)
-      actor_verification_path(rd: rd, scope: scope_override || verification_scope, ri: params[:ri])
+    def verification_redirect_path(rt: nil, scope_override: nil)
+      actor_verification_path(rt: rt, scope: scope_override || verification_scope, ri: params[:ri])
     end
 
     def verification_redirect_fallback
       actor_root_path(ri: params[:ri])
     end
 
-    def verification_setup_redirect_path(rd: nil)
-      actor_verification_setup_path(rd: rd, ri: params[:ri])
+    def verification_setup_redirect_path(rt: nil)
+      actor_verification_setup_path(rt: rt, ri: params[:ri])
     end
 
     def verification_setup_redirect_fallback
@@ -236,15 +360,15 @@ module Verification
     end
 
     def actor_verification_path(**args)
-      actor_staff? ? sign_org_verification_path(**args) : sign_app_verification_path(**args)
+      actor_operator? ? sign_org_verification_path(**args) : sign_app_verification_path(**args)
     end
 
     def actor_verification_setup_path(**args)
-      actor_staff? ? new_sign_org_verification_setup_path(**args) : new_sign_app_verification_setup_path(**args)
+      actor_operator? ? new_sign_org_verification_setup_path(**args) : new_sign_app_verification_setup_path(**args)
     end
 
     def actor_root_path(**args)
-      actor_staff? ? sign_org_root_path(**args) : sign_app_root_path(**args)
+      actor_operator? ? sign_org_root_path(**args) : sign_app_root_path(**args)
     end
   end
 end

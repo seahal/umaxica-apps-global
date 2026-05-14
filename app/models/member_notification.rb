@@ -29,4 +29,5 @@ class MemberNotification < NotificationRecord
 
   belongs_to :user_notification, optional: false, inverse_of: :member_notifications
 end
+
 # rubocop:enable Layout/LineLength

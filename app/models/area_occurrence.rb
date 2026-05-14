@@ -40,9 +40,12 @@ class AreaOccurrence < OccurrenceRecord
   has_many :domain_occurrences, through: :area_domain_occurrences
   has_many :area_email_occurrences, dependent: :destroy, inverse_of: :area_occurrence
   has_many :email_occurrences, through: :area_email_occurrences
+  has_many :area_visitor_occurrences, dependent: :destroy, inverse_of: :area_occurrence
+  has_many :visitor_occurrences, through: :area_visitor_occurrences
   has_many :area_ip_occurrences, dependent: :destroy, inverse_of: :area_occurrence
   has_many :ip_occurrences, through: :area_ip_occurrences
-  has_many :area_staff_occurrences, dependent: :destroy, inverse_of: :area_occurrence
+  has_many :area_staff_occurrences, class_name: "AreaOperatorOccurrence", dependent: :destroy,
+                                    inverse_of: :area_occurrence
   has_many :staff_occurrences, through: :area_staff_occurrences
   has_many :area_telephone_occurrences, dependent: :destroy, inverse_of: :area_occurrence
   has_many :telephone_occurrences, through: :area_telephone_occurrences

@@ -9,7 +9,7 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
 
   test "operator schema tables use bigint primary keys" do
     assert_bigint_pk(OperatorStatus)
-    assert_bigint_pk(StaffStatus)
+    assert_bigint_pk(OperatorIdentityStatus)
     assert_bigint_pk(OrganizationStatus)
   end
 
@@ -37,17 +37,17 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
   end
 
   test "guest schema tables use bigint primary keys" do
-    assert_bigint_pk(AppContactStatus)
-    assert_bigint_pk(ComContactCategory)
+    assert_bigint_pk(VisitorStatus)
+    assert_bigint_pk(VisitorSecretKind)
   end
 
   test "chronicle schema tables use bigint primary keys" do
-    assert_bigint_pk(StaffChronicleEvent)
+    assert_bigint_pk(OperatorChronicleEvent)
     assert_bigint_pk(UserChronicleLevel)
   end
 
   test "models with code column use citext" do
-    models = [StaffTokenKind, StaffTokenStatus, UserTokenKind, UserTokenStatus]
+    models = [OperatorTokenKind, OperatorTokenStatus, UserTokenKind, UserTokenStatus]
     models.select! { |model| model.column_names.include?("code") }
 
     if models.empty?

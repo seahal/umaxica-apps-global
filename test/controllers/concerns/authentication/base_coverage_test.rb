@@ -6,10 +6,10 @@ require "test_helper"
 class AuthenticationBaseTestController < ApplicationController
   include Authentication::Base
 
-  public :load_session_record, :redirect_with_rd_handling, :peek_redirect_parameter,
+  public :load_session_record, :redirect_with_rt_handling, :peek_redirect_parameter,
          :epoch_seconds, :issue_bulletin!, :handle_auth_required_json, :handle_guest_only_json,
          :load_authentication_session, :store_authentication_session, :clear_authentication_session,
-         :validate_session_expiry, :safe_redirect_to_rd_or_default!, :refresh_failure_status,
+         :validate_session_expiry, :safe_redirect_to_rt_or_default!, :refresh_failure_status,
          :refresh_failure_code, :cookie_options, :cookie_deletion_options, :device_cookie_key,
          :device_cookie_options, :set_device_id_cookie!, :clear_device_id_cookie!,
          :clear_auth_cookies!, :read_device_id_cookie, :occurrence_model_class,
@@ -27,7 +27,7 @@ class AuthenticationBaseTestController < ApplicationController
          :refresh_dbsc_source, :refresh_binding_source, :token_kind_model,
          :set_pending_mfa!, :pending_mfa, :pending_mfa_valid?, :clear_pending_mfa!,
          :session_limit_gate_return_to, :session_limit_gate_flow, :build_auth_preference_snapshot,
-         :reissue_access_token!
+         :reissue_access_token!, :log_in
 
   def index; render plain: "ok"; end
 end
@@ -76,11 +76,11 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.instance_variable_set(:@session_hash, @session_hash)
   end
 
-  test "redirect_with_rd_handling hits branches" do
-    @controller.stub(:session, { "rd" => "/foo" }) do
+  test "redirect_with_rt_handling hits branches" do
+    @controller.stub(:session, { "rt" => "/foo" }) do
       @controller.stub(:redirect_to, true) do
-        @controller.redirect_with_rd_handling("/", :notice, "msg", "rd")
-        @controller.redirect_with_rd_handling("/", :alert, "msg", "rd")
+        @controller.redirect_with_rt_handling("/", :notice, "msg", "rt")
+        @controller.redirect_with_rt_handling("/", :alert, "msg", "rt")
       end
     end
 
@@ -88,8 +88,8 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "peek_redirect_parameter" do
-    @controller.stub(:session, { "rd" => "/foo" }) do
-      assert_equal "/foo", @controller.peek_redirect_parameter("rd")
+    @controller.stub(:session, { "rt" => "/foo" }) do
+      assert_equal "/foo", @controller.peek_redirect_parameter("rt")
     end
   end
 
@@ -193,13 +193,13 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
   test "redirect refresh failure helpers cover branches" do
     redirects = []
-    @controller.define_singleton_method(:jump_to_generated_url) { |rd, fallback:| redirects << [:jump, rd, fallback] }
+    @controller.define_singleton_method(:jump_to_generated_url) { |rt, fallback:| redirects << [:jump, rt, fallback] }
     @controller.define_singleton_method(:redirect_to) { |path, **| redirects << [:redirect, path] }
 
-    @controller.safe_redirect_to_rd_or_default!("encoded-rd", default_path: "/default")
-    @controller.safe_redirect_to_rd_or_default!(nil, default_path: "/default")
+    @controller.safe_redirect_to_rt_or_default!("encoded-rt", default_path: "/default")
+    @controller.safe_redirect_to_rt_or_default!(nil, default_path: "/default")
 
-    assert_equal [[:jump, "encoded-rd", "/default"], [:redirect, "/default"]], redirects
+    assert_equal [[:jump, "encoded-rt", "/default"], [:redirect, "/default"]], redirects
     assert_equal :unauthorized, @controller.refresh_failure_status
     assert_equal "invalid_refresh_token", @controller.refresh_failure_code
 
@@ -229,7 +229,63 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_nil @controller.instance_variable_get(:@current_resource)
     assert_not @controller.cookie_deletion_options.key?(:expires)
+    assert_not @controller.cookie_options.key?(:domain)
+    assert_not @controller.cookie_deletion_options.key?(:domain)
     assert_equal :lax, @controller.cookie_options[:same_site]
+  end
+
+  test "cookie deletion options preserve secure attributes for host-prefixed production cookies" do
+    env = ActiveSupport::EnvironmentInquirer.new("production")
+
+    Rails.stub(:env, env) do
+      options = @controller.cookie_deletion_options
+
+      assert_equal "/", options[:path]
+      assert_equal :lax, options[:same_site]
+      assert options[:secure]
+      assert options[:partitioned]
+      assert_not options.key?(:domain)
+      assert_not options.key?(:httponly)
+      assert_not options.key?(:expires)
+    end
+  end
+
+  test "cookie deletion options work for non host-prefixed test cookies" do
+    env = ActiveSupport::EnvironmentInquirer.new("test")
+
+    Rails.stub(:env, env) do
+      options = @controller.cookie_deletion_options
+
+      assert_equal "auth_access", Auth::CookieName.access
+      assert_equal "auth_refresh", Auth::CookieName.refresh
+      assert_equal "auth_dbsc", Auth::CookieName.dbsc
+      assert_equal "/", options[:path]
+      assert_equal :lax, options[:same_site]
+      assert_not options[:secure]
+      assert_not options.key?(:partitioned)
+      assert_not options.key?(:domain)
+      assert_not options.key?(:httponly)
+      assert_not options.key?(:expires)
+    end
+  end
+
+  test "cookie deletion options work for non host-prefixed development cookies" do
+    env = ActiveSupport::EnvironmentInquirer.new("development")
+
+    Rails.stub(:env, env) do
+      options = @controller.cookie_deletion_options
+
+      assert_equal "auth_access", Auth::CookieName.access
+      assert_equal "auth_refresh", Auth::CookieName.refresh
+      assert_equal "auth_dbsc", Auth::CookieName.dbsc
+      assert_equal "/", options[:path]
+      assert_equal :lax, options[:same_site]
+      assert_not options[:secure]
+      assert_not options.key?(:partitioned)
+      assert_not options.key?(:domain)
+      assert_not options.key?(:httponly)
+      assert_not options.key?(:expires)
+    end
   end
 
   test "occurrence model and amr helpers" do
@@ -237,13 +293,13 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_equal UserOccurrence, @controller.occurrence_model_class
 
-    @controller.define_singleton_method(:resource_type) { "staff" }
+    @controller.define_singleton_method(:resource_type) { "operator" }
 
-    assert_equal StaffOccurrence, @controller.occurrence_model_class
+    assert_equal OperatorOccurrence, @controller.occurrence_model_class
 
-    @controller.define_singleton_method(:resource_type) { "customer" }
+    @controller.define_singleton_method(:resource_type) { "visitor" }
 
-    assert_nil @controller.occurrence_model_class
+    assert_equal VisitorOccurrence, @controller.occurrence_model_class
 
     assert_equal ["email_otp"], @controller.normalize_amr("email")
     assert_equal ["passkey"], @controller.normalize_amr("passkey")
@@ -278,6 +334,8 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_not @controller.mfa_bypassed_for_auth_method?("email")
 
     assert_equal "/safe/path", @controller.resolve_mfa_return_to(Base64.urlsafe_encode64("/safe/path"))
+    assert_equal "/safe/path?ri=jp",
+                 @controller.resolve_mfa_return_to(Base64.urlsafe_encode64("http://test.host/safe/path?ri=jp"))
     assert_nil @controller.resolve_mfa_return_to(Base64.urlsafe_encode64("https://evil.example"))
     assert_nil @controller.resolve_mfa_return_to("")
 
@@ -288,6 +346,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "policy response helpers render and redirect expected shapes" do
+    @request.set_header("REQUEST_METHOD", "GET")
     rendered = []
     redirected = []
     @controller.define_singleton_method(:render) { |*args, **kwargs| rendered << [args, kwargs] }
@@ -308,28 +367,28 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal [:forbidden, :unauthorized], rendered.first(2).map { |r| r.last[:status] }
     assert_match %r{\A/in\?rt=}, redirected.first.first.first
     assert_equal ["/"], redirected.last.first
-    assert_equal :unauthorized, rendered[2].last[:status]
-    assert_equal :bad_request, rendered[3].last[:status]
+    assert_equal 2, rendered.size
+    assert_equal 4, redirected.size
   end
 
   test "resource session helpers handle supported and fallback resources" do
     staff = staffs(:one)
-    CustomerStatus.find_or_create_by!(id: CustomerStatus::ACTIVE)
-    CustomerVisibility.find_or_create_by!(id: CustomerVisibility::CUSTOMER)
-    customer = Customer.create!(status_id: CustomerStatus::ACTIVE, visibility_id: CustomerVisibility::CUSTOMER)
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
     assert_equal UserToken::MAX_SESSIONS_PER_USER, @controller.max_sessions_for_resource(@user)
-    assert_equal StaffToken::MAX_SESSIONS_PER_STAFF, @controller.max_sessions_for_resource(staff)
-    assert_equal CustomerToken::MAX_SESSIONS_PER_CUSTOMER, @controller.max_sessions_for_resource(customer)
+    assert_equal OperatorToken::MAX_SESSIONS_PER_STAFF, @controller.max_sessions_for_resource(staff)
+    assert_equal VisitorToken::MAX_SESSIONS_PER_VISITOR, @controller.max_sessions_for_resource(visitor)
     assert_equal 2, @controller.max_sessions_for_resource(Object.new)
 
     @controller.store_pending_login_resource(@user)
     @controller.store_pending_login_resource(staff)
-    @controller.store_pending_login_resource(customer)
+    @controller.store_pending_login_resource(visitor)
 
     assert_equal @user.id, @controller.session[:pending_login_user_id]
     assert_equal staff.id, @controller.session[:pending_login_staff_id]
-    assert_equal customer.id, @controller.session[:pending_login_customer_id]
+    assert_equal visitor.id, @controller.session[:pending_login_visitor_id]
     assert_nil @controller.current_session_restricted?
   end
 
@@ -429,7 +488,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_nil @controller.resolve_access_policy_for("show")
 
-    @controller.define_singleton_method(:resource_type) { "staff" }
+    @controller.define_singleton_method(:resource_type) { "operator" }
     token_class = Class.new
     token_class.define_singleton_method(:columns_hash) { { "staff_token_kind_id" => Struct.new(:type).new(:string) } }
     @controller.define_singleton_method(:token_class) { token_class }
@@ -527,11 +586,11 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     token_class = Class.new
     token_class.define_singleton_method(:columns_hash) { { "staff_token_kind_id" => Struct.new(:type).new(:integer) } }
     @controller.define_singleton_method(:token_class) { token_class }
-    @controller.define_singleton_method(:resource_type) { "staff" }
+    @controller.define_singleton_method(:resource_type) { "operator" }
     @controller.define_singleton_method(:token_kind_model) do
       Class.new do
         define_singleton_method(:name) do
-          "InlineStaffTokenKind"
+          "InlineOperatorTokenKind"
         end
 
         define_singleton_method(:column_names) do
@@ -540,18 +599,55 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_equal StaffTokenKind::BROWSER_WEB, @controller.resolve_token_kind_id("BROWSER_WEB")
-    assert_equal StaffTokenKind::CLIENT_IOS, @controller.resolve_token_kind_id("CLIENT_IOS")
-    assert_equal StaffTokenKind::CLIENT_ANDROID, @controller.resolve_token_kind_id("CLIENT_ANDROID")
+    assert_equal OperatorTokenKind::BROWSER_WEB, @controller.resolve_token_kind_id("BROWSER_WEB")
+    assert_equal OperatorTokenKind::CLIENT_IOS, @controller.resolve_token_kind_id("CLIENT_IOS")
+    assert_equal OperatorTokenKind::CLIENT_ANDROID, @controller.resolve_token_kind_id("CLIENT_ANDROID")
     assert_raises(ActiveRecord::RecordNotFound) { @controller.resolve_token_kind_id("MISSING") }
 
     @controller.define_singleton_method(:resource_type) { "none" }
-    assert_raises(ActiveRecord::RecordNotFound) { Authentication::Base::TokenCreation.instance_method(:token_kind_model).bind_call(@controller) }
+    assert_raises(ActiveRecord::RecordNotFound) { Authentication::Base.instance_method(:token_kind_model).bind_call(@controller) }
+  end
+
+  test "ensure_token_kind_exists creates missing fixed id" do
+    UserToken.where(user_token_kind_id: UserTokenKind::BROWSER_WEB).delete_all
+    UserTokenKind.where(id: UserTokenKind::BROWSER_WEB).delete_all
+
+    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:token_kind_model) { UserTokenKind }
+
+    assert_difference -> { UserTokenKind.where(id: UserTokenKind::BROWSER_WEB).count }, 1 do
+      @controller.send(:ensure_token_kind_exists!, UserTokenKind::BROWSER_WEB)
+    end
+  end
+
+  test "ensure_login_token_reference_data creates missing user token references" do
+    UserToken.delete_all
+    UserTokenKind.where(id: UserTokenKind::BROWSER_WEB).delete_all
+    UserTokenBindingMethod.where(id: UserTokenBindingMethod::LEGACY).delete_all
+    UserTokenDbscStatus.where(id: UserTokenDbscStatus::NOTHING).delete_all
+    UserTokenStatus.where(id: UserTokenStatus::NOTHING).delete_all
+
+    @controller.define_singleton_method(:resource_type) { "user" }
+
+    @controller.send(
+      :ensure_login_token_reference_data!,
+      {
+        user_token_kind_id: UserTokenKind::BROWSER_WEB,
+        user_token_binding_method_id: UserTokenBindingMethod::LEGACY,
+        user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
+        user_token_status_id: UserTokenStatus::NOTHING,
+      },
+    )
+
+    assert UserTokenKind.exists?(id: UserTokenKind::BROWSER_WEB)
+    assert UserTokenBindingMethod.exists?(id: UserTokenBindingMethod::LEGACY)
+    assert UserTokenDbscStatus.exists?(id: UserTokenDbscStatus::NOTHING)
+    assert UserTokenStatus.exists?(id: UserTokenStatus::NOTHING)
   end
 
   test "preference snapshot and reissue access token cover early returns and success" do
     pref = Struct.new(:language, :region, :timezone, :theme, :null?).new("ja", "jp", "Asia/Tokyo", "sy", false)
-    Current.preference = pref
+    Actor.preference = pref
 
     assert_equal(
       { "lx" => "ja", "ri" => "jp", "tz" => "Asia/Tokyo", "ct" => "sy" },
@@ -570,6 +666,78 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_nil @controller.reissue_access_token!
   ensure
-    Current.preference = nil
+    Actor.preference = nil
+  end
+
+  test "log_in binds access token to valid DPoP proof" do
+    private_key, jwk = generate_dpop_jwk
+    @request.host = "id.app.localhost"
+    @request.headers["DPoP"] = build_dpop_proof(
+      private_key,
+      jwk,
+      method: "GET",
+      uri: "http://id.app.localhost/",
+    )
+    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:resource_foreign_key) { :user_id }
+    @controller.define_singleton_method(:resource_class) { User }
+    @controller.define_singleton_method(:token_class) { UserToken }
+    @controller.define_singleton_method(:token_kind_model) { UserTokenKind }
+    @controller.define_singleton_method(:session_limit_state_for) { |_| :within_limit }
+    @controller.define_singleton_method(:record_audit) { |*| nil }
+
+    result = @controller.log_in(@user, record_login_audit: false, require_totp_check: false)
+
+    assert_equal :success, result[:status]
+
+    payload = Authentication::Base::Token.decode(
+      result[:access_token],
+      host: "id.app.localhost",
+      resource_type: "user",
+    )
+    expected_jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+
+    assert_equal expected_jkt, payload.dig("cnf", "jkt")
+    assert_equal expected_jkt, UserToken.find_by!(public_id: payload["sid"]).dpop_jkt
+  end
+
+  test "log_in sets visitor token status reference ids" do
+    visitor = create_verified_visitor_with_email(email_address: "visitor-login@example.com")
+
+    @controller.define_singleton_method(:resource_type) { "visitor" }
+    @controller.define_singleton_method(:resource_foreign_key) { :visitor_id }
+    @controller.define_singleton_method(:resource_class) { Visitor }
+    @controller.define_singleton_method(:token_class) { VisitorToken }
+    @controller.define_singleton_method(:token_kind_model) { VisitorTokenKind }
+    @controller.define_singleton_method(:session_limit_state_for) { |_| :within_limit }
+    @controller.define_singleton_method(:record_audit) { |*| nil }
+
+    assert_difference("VisitorToken.count", 1) do
+      result = @controller.log_in(visitor, record_login_audit: false, require_totp_check: false)
+
+      assert_equal :success, result[:status]
+    end
+
+    token = VisitorToken.order(created_at: :desc).first
+
+    assert_equal VisitorTokenStatus::ACTIVE, token.visitor_token_status_id
+  end
+
+  private
+
+  def generate_dpop_jwk
+    ec = OpenSSL::PKey::EC.generate("prime256v1")
+    jwk = JWT::JWK.new(ec).export
+    [ec, jwk]
+  end
+
+  def build_dpop_proof(private_key, jwk, method:, uri:)
+    payload = {
+      "htm" => method,
+      "htu" => uri,
+      "iat" => Time.current.to_i,
+      "jti" => SecureRandom.uuid,
+    }
+    JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end
 end

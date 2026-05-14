@@ -5,7 +5,7 @@ require "test_helper"
 
 class StaffWithdrawalTest < ActiveSupport::TestCase
   test "staff can be marked withdrawn and permanently destroyed" do
-    staff = Staff.create!
+    staff = Operator.create!
 
     staff.update!(withdrawn_at: 31.days.ago)
 
@@ -14,6 +14,6 @@ class StaffWithdrawalTest < ActiveSupport::TestCase
     staff_id = staff.id
     staff.destroy
 
-    assert_nil Staff.find_by(id: staff_id), "Staff should be removed after destroy"
+    assert_nil Operator.find_by(id: staff_id), "Staff should be removed after destroy"
   end
 end

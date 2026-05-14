@@ -7,28 +7,28 @@ module Sign
       class TelephonesController < ApplicationController
         auth_required!
 
-        include Sign::StaffTelephoneRegistrable
-        include ::Verification::Staff
+        include Sign::OperatorTelephoneRegistrable
+        include ::Verification::Operator
 
-        before_action :authenticate_staff!
+        before_action :authenticate_operator!
 
         def index
-          @staff_telephones = current_staff.staff_telephones.order(created_at: :asc)
+          @staff_telephones = current_operator.staff_telephones.order(created_at: :asc)
         end
 
         def new
-          @staff_telephone = StaffTelephone.new
+          @staff_telephone = OperatorTelephone.new
         end
 
         def edit
-          @staff_telephone = current_staff.staff_telephones.find(params.expect(:id))
+          @staff_telephone = current_operator.staff_telephones.find(params.expect(:id))
         end
 
         def create
           tel_params = params.expect(staff_telephone: [:raw_number, :number])
           number = tel_params[:raw_number] || tel_params[:number]
 
-          unless initiate_staff_telephone_verification(current_staff, number)
+          unless initiate_staff_telephone_verification(current_operator, number)
             render :new, status: :unprocessable_content
             return
           end
@@ -37,7 +37,7 @@ module Sign
         end
 
         def destroy
-          @staff_telephone = current_staff.staff_telephones.find(params.expect(:id))
+          @staff_telephone = current_operator.staff_telephones.find(params.expect(:id))
 
           unless removable_telephone?(@staff_telephone)
             redirect_to(
@@ -58,8 +58,8 @@ module Sign
         private
 
         def removable_telephone?(staff_telephone)
-          verified_staff_telephones_for(current_staff).where.not(id: staff_telephone.id).exists? ||
-            current_staff.staff_emails.exists?(staff_identity_email_status_id: [StaffEmailStatus::ACTIVE, StaffEmailStatus::VERIFIED])
+          verified_staff_telephones_for(current_operator).where.not(id: staff_telephone.id).exists? ||
+            current_operator.staff_emails.exists?(staff_identity_email_status_id: [OperatorEmailStatus::ACTIVE, OperatorEmailStatus::VERIFIED])
         end
 
         def verification_required_action?

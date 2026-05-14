@@ -1,59 +1,81 @@
+<%
+  tld = :org
+  title_site = "#{ENV.fetch('BRAND_NAME', 'Umaxica')} (#{tld})"
+%>
 <!DOCTYPE html>
 <html lang="<%= get_language %>" data-theme="<%= theme_cookie_value %>" class="<%= theme_html_class %>">
 <head>
-  <%= display_meta_tags site: "#{ENV.fetch('BRAND_NAME', 'Umaxica')} (org)", title: page_title %>
+  <%= display_meta_tags site: title_site, title: page_title %>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="turbo-refresh-method" content="morph">
   <meta name="turbo-refresh-scroll" content="preserve">
   <%= csrf_meta_tags %>
-  <%= csp_meta_tag %>
   <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "sign/main", "data-turbo-track": "reload" %>
-  <%= stylesheet_link_tag "sign/org/main", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-  <%= javascript_importmap_tags %>  <%= inertia_ssr_head %>
+  <%= javascript_importmap_tags %>
+  <%= inertia_ssr_head %>
+  <%= render "layouts/shared/cloudflare_turnstile_api" %>
   <%= yield :head %>
 </head>
 
-<body>
+<body class="font-mono bg-white text-black min-h-screen flex flex-col p-2">
+  <div class="border-2 border-black flex-grow flex flex-col">
+    <header class="border-b-2 border-black p-2">
+      <nav class="flex flex-wrap gap-2 items-center justify-between mb-2 text-sm">
+        <div class="flex gap-2">
+          <%= render "layouts/shared/flash_messages" %>
+          <%= render "layouts/shared/current_banner", tld: tld, domain: :sign, region: :global %>
+        </div>
+        <div class="flex gap-2">
+          <% content_for :nav_links do %>
+            <% if logged_in? %>
+              <%= link_to t("sign.org.layout.nav.logout"), edit_sign_org_out_path %>
+            <% else %>
+              <%= link_to t("sign.org.layout.nav.sign_up"), new_sign_org_up_url %>
+              <%= link_to t("sign.org.layout.nav.log_in"), new_sign_org_in_url %>
+            <% end %>
+          <% end %>
+          <%= yield :nav_links %>
+        </div>
+      </nav>
+      <div class="flex items-center gap-2">
+        <span class="bg-black text-white px-1 font-bold text-xs">SIGN</span>
+        <h1 class="text-lg font-bold">
+          <% content_for :root_link do %>
+            <%= link_to ENV.fetch("BRAND_NAME", "Umaxica"), sign_org_root_path %>
+          <% end %>
+          <%= yield :root_link %>
+          <span class="opacity-50 text-sm">(<%= tld %>)</span>
+        </h1>
+      </div>
+    </header>
 
-<header>
-  <nav>
-    <%= render "layouts/shared/flash_messages" %>
-    <%= render "layouts/shared/current_banner", tld: :org, domain: :sign, region: :global %>
-    <% if logged_in? %>
-      <%= link_to t("sign.org.layout.nav.logout"), edit_sign_org_configuration_out_url %>
-    <% else %>
-      <%= link_to t("sign.org.layout.nav.sign_up"), new_sign_org_up_url %>
-      <%= link_to t("sign.org.layout.nav.log_in"), new_sign_org_in_url %>
-    <% end %>
-  </nav>
-  <div>
-    <span>Sign</span>
-    <h1>
-      <%= link_to ENV.fetch("BRAND_NAME", "Umaxica"), sign_org_root_path %>
-      <span>(org)</span>
-    </h1>
+    <main class="p-2 flex-grow">
+      <%= yield %>
+    </main>
+
+    <footer class="border-t-2 border-black p-2 text-xs">
+      <nav class="mb-2">
+        <% content_for :footer_links do %>
+          <ul class="flex gap-4">
+            <li><%= link_to t("sign.org.preferences.footer.home"), sign_org_root_url %></li>
+            <li><%= link_to t("sign.org.preferences.footer.preference"), sign_org_preference_url %></li>
+            <li><%= link_to t("sign.org.preferences.footer.configuration"), sign_org_configuration_url %></li>
+          </ul>
+        <% end %>
+        <%= yield :footer_links %>
+      </nav>
+      <div class="flex flex-wrap justify-between items-end gap-2 border-t border-black pt-2">
+        <div class="flex gap-4">
+          <%= render "layouts/shared/footer_cookie_controls", scope: tld %>
+          <%= render "layouts/shared/footer_theme_controls", scope: tld %>
+        </div>
+        <div>
+          <%= render "layouts/shared/copyright" %>
+        </div>
+      </div>
+    </footer>
   </div>
-</header>
-
-<main>
-  <%= yield %>
-</main>
-
-<footer>
-  <nav>
-    <ul>
-      <li><%= link_to t("sign.org.preferences.footer.home"), sign_org_root_url %></li>
-      <li><%= link_to t("sign.org.preferences.footer.preference"), sign_org_preference_url %></li>
-      <li><%= link_to t("sign.org.preferences.footer.configuration"), sign_org_configuration_url %></li>
-    </ul>
-  </nav>
-  <%= render "layouts/shared/footer_cookie_controls", scope: :org %>
-  <%= render "layouts/shared/footer_theme_controls", scope: :org %>
-  <div>
-    <%= render "layouts/shared/copyright" %>
-  </div>
-</footer>
 </body>
 </html>

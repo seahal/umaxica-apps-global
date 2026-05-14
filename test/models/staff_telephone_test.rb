@@ -9,7 +9,6 @@
 #  id                                 :bigint           not null, primary key
 #  locked_at                          :datetime
 #  number                             :string           not null
-#  number_bidx                        :string
 #  number_digest                      :string
 #  otp_attempts_count                 :integer          default(0), not null
 #  otp_counter                        :text             not null
@@ -23,20 +22,19 @@
 # Indexes
 #
 #  index_staff_telephones_on_lower_number                        (lower((number)::text)) UNIQUE
-#  index_staff_telephones_on_number_bidx                         (number_bidx) UNIQUE WHERE (number_bidx IS NOT NULL)
 #  index_staff_telephones_on_number_digest                       (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
 #  index_staff_telephones_on_staff_id                            (staff_id)
 #  index_staff_telephones_on_staff_identity_telephone_status_id  (staff_identity_telephone_status_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_id => staffs.id)
+#  fk_rails_...  (staff_id => operators.id)
 #  fk_rails_...  (staff_identity_telephone_status_id => staff_telephone_statuses.id)
 #
 
 require "test_helper"
 
-class StaffTelephoneTest < ActiveSupport::TestCase
+class OperatorTelephoneTest < ActiveSupport::TestCase
   fixtures :staffs, :staff_statuses, :staff_telephone_statuses
 
   setup do
@@ -51,69 +49,69 @@ class StaffTelephoneTest < ActiveSupport::TestCase
 
   # Basic model structure tests
   test "should inherit from PrincipalRecord" do
-    assert_operator StaffTelephone, :<, OperatorRecord
+    assert_operator OperatorTelephone, :<, OperatorRecord
   end
 
   test "should include Telephone concern" do
-    assert_includes StaffTelephone.included_modules, Telephone
+    assert_includes OperatorTelephone.included_modules, Telephone
   end
 
   # Telephone concern validation tests
   test "should be valid with valid phone number and policy confirmations" do
-    staff_telephone = StaffTelephone.new(@valid_attributes)
+    staff_telephone = OperatorTelephone.new(@valid_attributes)
 
     assert_predicate staff_telephone, :valid?
   end
 
   test "should require valid phone number format" do
-    staff_telephone = StaffTelephone.new(@valid_attributes.merge(number: "invalid!@#"))
+    staff_telephone = OperatorTelephone.new(@valid_attributes.merge(number: "invalid!@#"))
 
     assert_not staff_telephone.valid?
     assert_predicate staff_telephone.errors[:number], :any?
   end
 
   test "should accept phone number with country code" do
-    staff_telephone = StaffTelephone.new(@valid_attributes.merge(number: "+81-90-1234-5678"))
+    staff_telephone = OperatorTelephone.new(@valid_attributes.merge(number: "+81-90-1234-5678"))
 
     assert_predicate staff_telephone, :valid?
   end
 
   test "should accept phone number with parentheses" do
-    staff_telephone = StaffTelephone.new(@valid_attributes.merge(number: "+1 (555) 123-4567"))
+    staff_telephone = OperatorTelephone.new(@valid_attributes.merge(number: "+1 (555) 123-4567"))
 
     assert_predicate staff_telephone, :valid?
   end
 
   test "should reject phone number that is too short" do
-    staff_telephone = StaffTelephone.new(@valid_attributes.merge(number: "12"))
+    staff_telephone = OperatorTelephone.new(@valid_attributes.merge(number: "12"))
 
     assert_not staff_telephone.valid?
     assert_predicate staff_telephone.errors[:number], :any?
   end
 
   test "should reject phone number that is too long" do
-    staff_telephone = StaffTelephone.new(@valid_attributes.merge(number: "+1234567890123456789012"))
+    staff_telephone = OperatorTelephone.new(@valid_attributes.merge(number: "+1234567890123456789012"))
 
     assert_not staff_telephone.valid?
     assert_predicate staff_telephone.errors[:number], :any?
   end
 
   test "should require policy confirmation" do
-    staff_telephone = StaffTelephone.new(@valid_attributes.merge(confirm_policy: false))
+    staff_telephone = OperatorTelephone.new(@valid_attributes.merge(confirm_policy: false))
 
     assert_not staff_telephone.valid?
     assert_predicate staff_telephone.errors[:confirm_policy], :any?
   end
 
   test "should require MFA confirmation" do
-    staff_telephone = StaffTelephone.new(@valid_attributes.merge(confirm_using_mfa: false))
+    staff_telephone = OperatorTelephone.new(@valid_attributes.merge(confirm_using_mfa: false))
 
     assert_not staff_telephone.valid?
     assert_predicate staff_telephone.errors[:confirm_using_mfa], :any?
   end
 
   test "sets number digests from normalized input" do
-    staff_telephone = StaffTelephone.create!(
+    staff_telephone = OperatorTelephone.create!(
       raw_number: "+1 (555) 123-4567",
       confirm_policy: true,
       confirm_using_mfa: true,
@@ -122,24 +120,24 @@ class StaffTelephoneTest < ActiveSupport::TestCase
 
     expected = IdentifierBlindIndex.bidx_for_telephone("+15551234567")
 
-    assert_equal expected, staff_telephone.number_bidx
     assert_equal expected, staff_telephone.number_digest
   end
 
   test "finds by normalized number digest" do
-    staff_telephone = StaffTelephone.create!(
+    staff_telephone = OperatorTelephone.create!(
       raw_number: "+1 (555) 765-4321",
       confirm_policy: true,
       confirm_using_mfa: true,
       staff: @staff,
     )
 
-    assert_equal staff_telephone, StaffTelephone.find_by(number: "+15557654321")
-    assert_nil StaffTelephone.find_by(number: "12")
+    assert_equal staff_telephone,
+                 OperatorTelephone.find_by(number_digest: IdentifierBlindIndex.bidx_for_telephone("+15557654321"))
+    assert_nil OperatorTelephone.find_by(number_digest: IdentifierBlindIndex.bidx_for_telephone("12"))
   end
 
   test "should generate UUID v7 before creation" do
-    staff_telephone = StaffTelephone.new(@valid_attributes)
+    staff_telephone = OperatorTelephone.new(@valid_attributes)
 
     assert_nil staff_telephone.id
     staff_telephone.save!
@@ -150,10 +148,10 @@ class StaffTelephoneTest < ActiveSupport::TestCase
   end
 
   test "enforces maximum telephones per staff" do
-    staff = Staff.create!(staff_status: StaffStatus.find(StaffStatus::NOTHING))
+    staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
     Prosopite.pause do
-      StaffTelephone::MAX_TELEPHONES_PER_STAFF.times do |i|
-        StaffTelephone.create!(
+      OperatorTelephone::MAX_TELEPHONES_PER_STAFF.times do |i|
+        OperatorTelephone.create!(
           number: "+1234567890#{i}",
           confirm_policy: true,
           confirm_using_mfa: true,
@@ -162,7 +160,7 @@ class StaffTelephoneTest < ActiveSupport::TestCase
       end
     end
 
-    extra_telephone = StaffTelephone.new(
+    extra_telephone = OperatorTelephone.new(
       number: "+19876543210",
       confirm_policy: true,
       confirm_using_mfa: true,
@@ -170,6 +168,25 @@ class StaffTelephoneTest < ActiveSupport::TestCase
     )
 
     assert_not extra_telephone.valid?
-    assert_includes extra_telephone.errors[:base], "exceeds maximum telephones per staff (#{StaffTelephone::MAX_TELEPHONES_PER_STAFF})"
+    assert_includes extra_telephone.errors[:base], "exceeds maximum telephones per staff (#{OperatorTelephone::MAX_TELEPHONES_PER_STAFF})"
+  end
+
+  test "allows nil staff id while limit validation is evaluated" do
+    staff_telephone = OperatorTelephone.new(@valid_attributes)
+    staff_telephone.staff_id = nil
+
+    staff_telephone.send(:enforce_staff_telephone_limit)
+
+    assert_empty staff_telephone.errors[:base]
+  end
+
+  test "rejects duplicated number digest" do
+    existing = OperatorTelephone.create!(@valid_attributes.merge(raw_number: "+819012300001"))
+    duplicate = OperatorTelephone.new(@valid_attributes.merge(raw_number: "+819012300001"))
+    duplicate.number_digest = existing.number_digest
+
+    duplicate.send(:ensure_unique_number_digest)
+
+    assert_includes duplicate.errors.details[:number].pluck(:error), :taken
   end
 end

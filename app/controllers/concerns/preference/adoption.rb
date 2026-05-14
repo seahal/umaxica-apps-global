@@ -5,13 +5,13 @@ module Preference
   module Adoption
     extend ActiveSupport::Concern
 
-    CHILD_RECORD_TYPES = %i(language timezone region colortheme).freeze
+    CHILD_RECORD_TYPES = Preference::ClassRegistry::CHILD_RECORD_TYPES
     COOKIE_CONSENT_FIELDS = %i(consented functional performant targetable).freeze
 
     private
 
     # Called after login to sync preferences between AppPreference/OrgPreference
-    # and UserPreference/StaffPreference. Uses updated_at to determine which is newer.
+    # and UserPreference/OperatorPreference. Uses updated_at to determine which is newer.
     # Non-fatal: never blocks login on failure.
     def adopt_preference_for!(resource)
       return unless adoptable_preference_class?
@@ -25,7 +25,7 @@ module Preference
       Rails.event.record("preference.adoption.error", error: e.class.name, message: e.message)
     end
 
-    # Called during preference rotation to keep UserPreference/StaffPreference in sync.
+    # Called during preference rotation to keep UserPreference/OperatorPreference in sync.
     # Non-fatal: never blocks rotation on failure.
     def adopt_rotated_preference!(resource, new_preference)
       return unless adoptable_preference_class?
@@ -45,7 +45,7 @@ module Preference
       name == "AppPreference" || name == "OrgPreference"
     end
 
-    # Find or create the 1:1 UserPreference/StaffPreference for this resource.
+    # Find or create the 1:1 UserPreference/OperatorPreference for this resource.
     def find_or_create_resource_preference!(resource)
       pref = find_resource_preference(resource)
       return pref if pref.present?
@@ -67,7 +67,8 @@ module Preference
       return nil unless pref_class
 
       pref = nil
-      PrincipalRecord.connected_to(role: :writing) do
+      connection_class = pref_class.ancestors.find { |ancestor| ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class? }
+      connection_class.connected_to(role: :writing) do
         pref = pref_class.create!(fk => resource.id)
         create_resource_preference_options!(pref)
       end
@@ -76,24 +77,12 @@ module Preference
 
     def create_resource_preference_options!(resource_pref)
       prefix = resource_pref_prefix
-      option_classes = preference_option_classes(prefix)
-
-      %w(Timezone Language Region Colortheme).each do |type|
+      CHILD_RECORD_TYPES.each do |type|
+        Preference::ClassRegistry.option_class(prefix, type).ensure_defaults!
         Preference::ClassRegistry.record_class(prefix, type).create!(
-          preference_id: resource_pref.id,
-          option_id: default_option_id_for(type, option_classes),
+          preference: resource_pref,
+          option_id: Preference::ClassRegistry.default_option_id(prefix, type),
         )
-      end
-    end
-
-    def default_option_id_for(type, option_classes)
-      key = type.downcase.to_sym
-      klass = option_classes[key]
-      case type
-      when "Timezone" then klass::ASIA_TOKYO
-      when "Language" then klass::JA
-      when "Region" then klass::JP
-      when "Colortheme" then klass::SYSTEM
       end
     end
 
@@ -103,11 +92,11 @@ module Preference
       res_updated = resource_pref.updated_at
 
       if res_updated.present? && (app_updated.blank? || res_updated > app_updated)
-        # UserPreference/StaffPreference is newer; copy to AppPreference/OrgPreference.
+        # UserPreference/OperatorPreference is newer; copy to AppPreference/OrgPreference.
         copy_preference_values!(resource_pref, @preferences, preference_prefix)
         issue_access_token_from(@preferences)
       else
-        # AppPreference/OrgPreference is newer; copy to UserPreference/StaffPreference.
+        # AppPreference/OrgPreference is newer; copy to UserPreference/OperatorPreference.
         copy_preference_values!(@preferences, resource_pref, resource_pref_prefix)
         issue_access_token_from(@preferences)
       end
@@ -122,8 +111,14 @@ module Preference
         source_child = source.public_send("#{source_assoc}_#{type}")
         next unless source_child&.option_id
 
-        target_child = target.public_send("#{target_assoc}_#{type}")
-        next unless target_child
+        target_child = target.public_send("#{target_assoc}_#{type}") ||
+          begin
+            Preference::ClassRegistry.option_class(target_prefix, type).ensure_defaults!
+            target.public_send(
+              "create_#{target_assoc}_#{type}!",
+              option_id: Preference::ClassRegistry.default_option_id(target_prefix, type),
+            )
+          end
 
         if target_child.option_id != source_child.option_id
           target_option_class = Preference::ClassRegistry.option_class(target_prefix, type)
@@ -160,7 +155,7 @@ module Preference
 
     def copy_cookie_consent!(source, target, _source_assoc, _target_assoc)
       if source.respond_to?(:consented)
-        # Source is UserPreference/StaffPreference (direct columns)
+        # Source is UserPreference/OperatorPreference (direct columns)
         source_consent = COOKIE_CONSENT_FIELDS.index_with { |f| source.public_send(f) }
       else
         source_assoc_name = source.class.name.underscore
@@ -171,7 +166,7 @@ module Preference
       end
 
       if target.respond_to?(:consented)
-        # Target is UserPreference/StaffPreference (direct columns)
+        # Target is UserPreference/OperatorPreference (direct columns)
         connection_class = target.class.ancestors.find { |a| a.is_a?(Class) && a < ActiveRecord::Base && a.abstract_class? }
         if connection_class
           connection_class.connected_to(role: :writing) { target.update!(source_consent) }
@@ -208,26 +203,30 @@ module Preference
     def preference_snapshot_for(preference)
       return if preference.blank?
 
-      if preference.respond_to?(:language) &&
-          preference.respond_to?(:region) &&
-          preference.respond_to?(:timezone) &&
-          preference.respond_to?(:theme)
-        return {
-          language: preference.language,
-          region: preference.region,
-          timezone: preference.timezone,
-          theme: preference.theme,
-        }.compact
+      if local_preference_snapshot_source?(preference)
+        return CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
+          next unless preference.respond_to?(type)
+
+          snapshot[type] = preference.public_send(type)
+        end.compact
       end
 
       association_prefix = preference.class.name.underscore
 
-      {
-        language: preference.public_send("#{association_prefix}_language")&.option&.name&.downcase,
-        region: preference.public_send("#{association_prefix}_region")&.option&.name&.downcase,
-        timezone: preference.public_send("#{association_prefix}_timezone")&.option&.name,
-        theme: preference_theme_short_code(preference.public_send("#{association_prefix}_colortheme")&.option&.name),
-      }.compact
+      CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
+        child = preference.public_send("#{association_prefix}_#{type}")
+        value = child&.option&.name
+        value = value&.downcase if %i(language region currency).include?(type)
+        value = preference_theme_short_code(value) if type == :theme
+        snapshot[type] = value if value.present?
+      end
+    end
+
+    def local_preference_snapshot_source?(preference)
+      preference.respond_to?(:language) &&
+        preference.respond_to?(:region) &&
+        preference.respond_to?(:timezone) &&
+        preference.respond_to?(:theme)
     end
 
     def preference_theme_short_code(value)
@@ -255,7 +254,7 @@ module Preference
       when "AppPreference"
         [UserPreference, :user_id]
       when "OrgPreference"
-        [StaffPreference, :staff_id]
+        [OperatorPreference, :staff_id]
       else
         [nil, nil]
       end
@@ -264,7 +263,7 @@ module Preference
     def resource_pref_prefix
       case preference_class.name
       when "AppPreference" then "User"
-      when "OrgPreference" then "Staff"
+      when "OrgPreference" then "Operator"
       end
     end
   end

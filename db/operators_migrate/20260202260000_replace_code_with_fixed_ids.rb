@@ -73,7 +73,6 @@ class ReplaceCodeWithFixedIds < ActiveRecord::Migration[8.0]
       staff_secret_kinds: {
         1 => "NEYO",
         2 => "LOGIN",
-        3 => "TOTP",
       },
     }
 

@@ -20,7 +20,6 @@
 #  refresh_token_digest         :binary
 #  refresh_token_generation     :integer          default(0), not null
 #  rotated_at                   :datetime
-#  status                       :string(20)       default("active"), not null
 #  created_at                   :datetime         not null
 #  updated_at                   :datetime         not null
 #  dbsc_session_id              :string
@@ -32,7 +31,7 @@
 #  user_token_binding_method_id :bigint           default(0), not null
 #  user_token_dbsc_status_id    :bigint           default(0), not null
 #  user_token_kind_id           :bigint           default(11), not null
-#  user_token_status_id         :bigint           default(0), not null
+#  user_token_status_id         :bigint           default(1), not null
 #
 # Indexes
 #
@@ -44,7 +43,6 @@
 #  index_user_tokens_on_refresh_token_digest          (refresh_token_digest) UNIQUE
 #  index_user_tokens_on_refresh_token_family_id       (refresh_token_family_id)
 #  index_user_tokens_on_session_id                    (session_id)
-#  index_user_tokens_on_status                        (status)
 #  index_user_tokens_on_user_id_and_last_step_up_at   (user_id,last_step_up_at)
 #  index_user_tokens_on_user_token_binding_method_id  (user_token_binding_method_id)
 #  index_user_tokens_on_user_token_dbsc_status_id     (user_token_dbsc_status_id)
@@ -354,6 +352,54 @@ class UserTokenTest < ActiveSupport::TestCase
     assert_equal token.refresh_token_generation + 1, new_token.refresh_token_generation
     assert_nil new_token.rotated_at
     assert_predicate token.reload.rotated_at, :present?
+  end
+
+  test "rotate_refresh! rejects blank and unknown digests" do
+    assert_equal :invalid,
+                 UserToken.rotate_refresh!(presented_refresh_digest: nil, device_id: "device-user")[:status]
+    assert_equal :invalid,
+                 UserToken.rotate_refresh!(
+                   presented_refresh_digest: UserToken.digest_refresh_token("unknown"),
+                   device_id: "device-user",
+                 )[:status]
+  end
+
+  test "rotate_refresh! allows missing presented device id" do
+    token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB, device_id: "device-user")
+    raw = token.rotate_refresh_token!
+    digest = UserToken.digest_refresh_token(UserToken.parse_refresh_token(raw).last)
+
+    result = UserToken.rotate_refresh!(presented_refresh_digest: digest, device_id: nil, now: Time.current)
+
+    assert_equal :rotated, result[:status]
+  end
+
+  test "rotate_refresh_token! accepts explicit lapses_at and replaces infinite lapses_at" do
+    token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB, lapses_at: 1.day.from_now)
+    explicit_lapses_at = 2.days.from_now
+
+    token.rotate_refresh_token!(lapses_at: explicit_lapses_at)
+
+    assert_equal explicit_lapses_at.to_i, token.lapses_at.to_i
+
+    token.update_columns(lapses_at: Float::INFINITY)
+    token.rotate_refresh_token!
+
+    assert_in_delta 30.days.from_now.to_f, token.lapses_at.to_f, 2
+  end
+
+  test "refresh token assignment and authentication handle blank values" do
+    token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
+
+    token.refresh_token = ""
+
+    assert_nil token.refresh_token_digest
+    assert_not token.authenticate_refresh_token("anything")
+
+    token.refresh_token = "verifier-value"
+
+    assert_not token.refresh_token_digest_matches?(nil)
+    assert_not token.refresh_token_digest_matches?("")
   end
 
   test "rotate_refresh! classifies second attempt as replay" do

@@ -27,7 +27,7 @@
             <tr>
               <td><%= email.address %></td>
               <td>
-                <% if [CustomerEmailStatus::VERIFIED, CustomerEmailStatus::VERIFIED_WITH_SIGN_UP].include?(email.customer_email_status_id) %>
+                <% if [VisitorEmailStatus::VERIFIED, VisitorEmailStatus::VERIFIED_WITH_SIGN_UP].include?(email.visitor_email_status_id) %>
                   <span><%= t("views.sign.com.configuration.emails.index.verified") %></span>
                 <% else %>
                   <span><%= t("views.sign.com.configuration.emails.index.unverified") %></span>

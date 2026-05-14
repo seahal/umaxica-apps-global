@@ -19,7 +19,7 @@
       <tr>
         <td><%= telephone.number %></td>
         <td>
-          <% if [StaffTelephoneStatus::ACTIVE, StaffTelephoneStatus::VERIFIED].include?(telephone.staff_telephone_status_id) %>
+          <% if [OperatorTelephoneStatus::ACTIVE, OperatorTelephoneStatus::VERIFIED].include?(telephone.staff_telephone_status_id) %>
             <span><%= t("views.sign.org.configuration.telephones.index.verified") %></span>
           <% else %>
             <span><%= t("views.sign.org.configuration.telephones.index.unverified") %></span>

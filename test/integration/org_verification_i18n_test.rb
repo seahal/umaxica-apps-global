@@ -8,14 +8,17 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
     OperatorRecord.connected_to(role: :writing) do
-      StaffStatus.insert_missing_fixed_ids!([StaffStatus::ACTIVE, StaffStatus::NOTHING, StaffStatus::RESERVED])
+      OperatorIdentityStatus.insert_missing_fixed_ids!(
+        [OperatorIdentityStatus::ACTIVE,
+         OperatorIdentityStatus::NOTHING, OperatorIdentityStatus::RESERVED,],
+      )
     end
 
-    @staff = Staff.create!(status_id: StaffStatus::NOTHING, public_id: Staff.generate_public_id)
-    @token = StaffToken.create!(
+    @staff = Operator.create!(status_id: OperatorIdentityStatus::NOTHING, public_id: Operator.generate_public_id)
+    @token = OperatorToken.create!(
       staff: @staff,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       public_id: "ov_i18n_#{SecureRandom.hex(4)}",
       lapses_at: 1.day.from_now,
     )
@@ -24,19 +27,19 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     ).freeze
 
-    StaffPasskey.create!(
+    OperatorPasskey.create!(
       staff: @staff,
       name: "verify i18n passkey",
       webauthn_id: "org-verify-i18n-#{SecureRandom.hex(4)}",
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
-      status_id: StaffPasskeyStatus::ACTIVE,
+      status_id: OperatorPasskeyStatus::ACTIVE,
     )
   end
 
   test "verification view displays translated strings in Japanese" do
-    StaffReauthSession.delete_all
+    OperatorReauthSession.delete_all
 
     get sign_org_verification_url(ri: "jp"), headers: @headers
 
@@ -46,7 +49,7 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
   end
 
   test "verification view displays translated strings in English" do
-    StaffReauthSession.delete_all
+    OperatorReauthSession.delete_all
 
     get sign_org_verification_url(ri: "us", lx: "en"), headers: @headers
 

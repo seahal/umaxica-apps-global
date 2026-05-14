@@ -181,6 +181,21 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       assert_predicate links_with_all_params, :any?,
                        "Some preference links should have all optional params preserved"
     end
+
+    test "#{domain[:name]} invalid optional params are removed from request URL" do
+      host!(domain[:host])
+
+      url_method = domain[:preference_url_method] || domain[:root_url_method]
+      get public_send(url_method, ri: "jp", lx: "kr", ct: "purple", tz: "Mars/Base")
+
+      assert_response :redirect
+      location = response.headers["Location"]
+
+      assert_match(/ri=jp/, location)
+      assert_no_match(/lx=/, location)
+      assert_no_match(/ct=/, location)
+      assert_no_match(/tz=/, location)
+    end
   end
 
   # =============================================================================

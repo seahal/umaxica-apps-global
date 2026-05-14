@@ -38,15 +38,20 @@ module Sign::App::In
     end
 
     teardown do
-      Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+      if defined?(@original_trusted_origins) && @original_trusted_origins
+        Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+      end
       Jit::Security::TurnstileVerifier.test_mode = false
       Jit::Security::TurnstileVerifier.test_response = nil
     end
-
     test "should get new" do
       get new_sign_app_in_passkey_path(ri: "jp")
 
       assert_response :success
+      assert_select "[data-passkey-authentication-options-url-value=?]", options_sign_app_in_passkeys_path(ri: "jp")
+      assert_select "[data-passkey-authentication-verification-url-value=?]",
+                    verification_sign_app_in_passkeys_path(ri: "jp")
+      assert_select "a[href=?]", new_sign_app_in_path(ri: "jp")
     end
 
     # Case F-1: Identifier does not exist
@@ -174,7 +179,7 @@ module Sign::App::In
         }
 
         # Should log in
-        post verification_sign_app_in_passkeys_path(ri: "jp", rd: "/configuration/emails"), params: params
+        post verification_sign_app_in_passkeys_path(ri: "jp", rt: "/configuration/emails"), params: params
 
         assert_response :ok
         json = response.parsed_body
@@ -183,7 +188,7 @@ module Sign::App::In
         assert_not_nil json["access_token"]
         assert_equal "Bearer", json["token_type"]
         assert_equal Authentication::Base::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
-        assert_equal sign_app_configuration_path(ri: "jp"), json["redirect_url"]
+        assert_equal sign_app_dashboard_path(ri: "jp", rt: "/configuration/emails"), json["redirect_url"]
 
         # Challenge verification updates sign count
         assert_equal 1, @passkey.reload.sign_count
@@ -231,7 +236,7 @@ module Sign::App::In
         assert_equal sign_app_in_session_path(ri: "jp"), json["redirect_url"]
 
         # A restricted token should have been created
-        restricted = UserToken.where(user_id: @user.id, status: UserToken::STATUS_RESTRICTED)
+        restricted = UserToken.where(user_id: @user.id, user_token_status_id: UserTokenStatus::RESTRICTED)
 
         assert_equal 1, restricted.count
 
@@ -408,7 +413,7 @@ module Sign::App::In
       2.times do
         create_rotated_active_user_session(@user, rotations: 3)
       end
-      restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
+      restricted = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
       restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
       post options_sign_app_in_passkeys_path(ri: "jp"),
@@ -442,7 +447,7 @@ module Sign::App::In
     end
 
     def create_rotated_active_user_session(user, rotations:)
-      token = UserToken.create!(user: user, status: UserToken::STATUS_ACTIVE)
+      token = UserToken.create!(user: user, user_token_status_id: UserTokenStatus::ACTIVE)
       refresh = token.rotate_refresh_token!
 
       rotations.times do

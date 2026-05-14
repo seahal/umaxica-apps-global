@@ -236,7 +236,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
 
     get "/test_auth_reject"
 
-    assert_response :unauthorized
+    assert_response :redirect
+    assert_redirected_to "/"
   end
 
   test "ensure not logged in" do

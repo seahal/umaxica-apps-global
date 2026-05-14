@@ -5,6 +5,10 @@ module Telephone
   extend ActiveSupport::Concern
   include TelephoneNormalization
 
+  MAX_OTP_ATTEMPTS = 5
+  OTP_ATTEMPT_WINDOW = 15.minutes
+  OTP_LOCKOUT_DURATION = 15.minutes
+
   attr_accessor :confirm_policy, :confirm_using_mfa, :pass_code
   attr_writer :raw_number
 
@@ -13,7 +17,7 @@ module Telephone
     before_validation :set_number_digests
     scope :with_number, ->(value) do
       digest = IdentifierBlindIndex.bidx_for_telephone(value)
-      digest.present? ? where(number_bidx: digest) : none
+      digest.present? ? where(number_digest: digest) : none
     end
 
     after_initialize do
@@ -38,20 +42,28 @@ module Telephone
 
   class_methods do
     def find_by_number(value)
-      with_number(value).first
+      digest = IdentifierBlindIndex.bidx_for_telephone(value)
+      return nil if digest.blank?
+
+      find_by(number_digest: digest)
     end
   end
 
   # OTP-related methods for telephone authentication
   # Stores OTP secret on this telephone record
   def store_otp(otp_private_key, otp_counter, expires_at)
-    update!(
+    attrs = {
       otp_private_key: otp_private_key,
       otp_counter: otp_counter,
       otp_expires_at: Time.zone.at(expires_at),
-      otp_attempts_count: 0,
-      locked_at: "-infinity",
-    )
+    }
+
+    unless locked?
+      attrs[:otp_attempts_count] = 0
+      attrs[:locked_at] = "-infinity"
+    end
+
+    update!(attrs)
   end
 
   # Retrieves OTP secret from this telephone record
@@ -88,25 +100,47 @@ module Telephone
     !otp_expired? && !locked?
   end
 
+  def reregistration_window_active?
+    timestamp = respond_to?(:otp_last_sent_at) ? otp_last_sent_at : created_at
+    return false if timestamp.blank?
+    return false if timestamp == -Float::INFINITY
+
+    timestamp > Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW.ago
+  end
+
   def locked?
-    # PostgreSQL -infinity is used as a sentinel for "not locked"
-    is_locked_by_time = locked_at.present? && locked_at != -Float::INFINITY
-    is_locked_by_attempts = otp_attempts_count >= 3
-    is_locked_by_time || is_locked_by_attempts
+    lockout_active? || attempts_locked_without_expiry?
+  end
+
+  def lockout_active?
+    lockout_expires_at.present? && lockout_expires_at > Time.current
+  end
+
+  def lockout_expires_at
+    return nil if locked_at.blank? || locked_at == -Float::INFINITY || locked_at == Float::INFINITY
+
+    locked_at
   end
 
   def increment_attempts!
-    # rubocop:disable Rails/SkipsModelValidations
-    increment!(:otp_attempts_count)
-    # Conditionally set locked_at when threshold is reached and not already locked
-    # Threshold is 3 (see locked? method)
-    self.class
-      .where(id: id)
-      .where(otp_attempts_count: 3..)
-      .where("locked_at IS NULL OR locked_at = '-infinity'::timestamp")
-      .update_all(locked_at: Time.current)
-    # rubocop:enable Rails/SkipsModelValidations
-    reload
+    operation =
+      lambda do
+        with_lock do
+          next if lockout_active?
+
+          unless attempt_window_active?
+            self.otp_last_sent_at = Time.current if respond_to?(:otp_last_sent_at=)
+            self.otp_attempts_count = 0
+          end
+
+          self.otp_attempts_count = otp_attempts_count.to_i + 1
+          self.locked_at = OTP_LOCKOUT_DURATION.from_now if otp_attempts_count >= MAX_OTP_ATTEMPTS
+          save!(validate: false)
+        end
+        reload
+      end
+
+    defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
   end
 
   def raw_number
@@ -114,6 +148,17 @@ module Telephone
   end
 
   private
+
+  def attempt_window_active?
+    timestamp = respond_to?(:otp_last_sent_at) ? otp_last_sent_at : created_at
+    return false if timestamp.blank? || timestamp == -Float::INFINITY
+
+    timestamp > OTP_ATTEMPT_WINDOW.ago
+  end
+
+  def attempts_locked_without_expiry?
+    lockout_expires_at.blank? && attempt_window_active? && otp_attempts_count.to_i >= MAX_OTP_ATTEMPTS
+  end
 
   def normalize_number_from_raw
     value = raw_number
@@ -125,7 +170,7 @@ module Telephone
 
   def set_number_digests
     digest = IdentifierBlindIndex.bidx_for_telephone(raw_number)
-    self.number_bidx = digest
+    self.number_bidx = digest if respond_to?(:number_bidx=)
     self.number_digest = digest if respond_to?(:number_digest=)
   end
 

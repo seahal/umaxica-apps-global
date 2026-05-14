@@ -11,10 +11,10 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
-    @token = StaffToken.create!(
+    @token = OperatorToken.create!(
       staff: @staff,
-      staff_token_status_id: StaffTokenStatus::NOTHING,
-      staff_token_kind_id: StaffTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       lapses_at: 1.day.from_now,
       public_id: "stepup_org_#{SecureRandom.hex(4)}",
     )
@@ -42,7 +42,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification/setup/new", uri.path
-    assert_predicate query["rd"], :present?
+    assert_predicate query["rt"], :present?
   end
 
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
@@ -57,18 +57,18 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification", uri.path
-    assert_predicate query["rd"], :present?
+    assert_predicate query["rt"], :present?
   end
 
   test "GET protected endpoint redirects to verification when usable methods exist" do
-    StaffPasskey.create!(
+    OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "stepup_staff_passkey_#{SecureRandom.hex(4)}",
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
       name: "stepup passkey",
-      status_id: StaffPasskeyStatus::ACTIVE,
+      status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
     get sign_org_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -80,14 +80,14 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   end
 
   test "POST protected endpoint returns 401 plain when step-up is missing and usable methods exist" do
-    StaffPasskey.create!(
+    OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "stepup_staff_passkey_post_#{SecureRandom.hex(4)}",
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
       name: "stepup passkey",
-      status_id: StaffPasskeyStatus::ACTIVE,
+      status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
     post options_sign_org_configuration_passkeys_url(ri: "jp"), headers: @headers
@@ -98,14 +98,14 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
   test "successful verification enables protected POST and records audit" do
     return_to = Base64.urlsafe_encode64(sign_org_configuration_passkeys_path(ri: "jp"))
-    StaffPasskey.create!(
+    OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test",
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
       name: "stepup passkey",
-      status_id: StaffPasskeyStatus::ACTIVE,
+      status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
@@ -126,14 +126,14 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to sign_org_configuration_passkeys_url(ri: "jp")
-    assert response_has_cookie?(StaffVerification.cookie_name)
+    assert response_has_cookie?(OperatorVerification.cookie_name)
 
-    assert StaffVerification.active.exists?(staff_token_id: @token.id)
-    assert StaffChronicle.exists?(
-      actor_type: "Staff",
+    assert OperatorVerification.active.exists?(staff_token_id: @token.id)
+    assert OperatorChronicle.exists?(
+      actor_type: "Operator",
       actor_id: @staff.id,
-      event_id: StaffChronicleEvent::STEP_UP_VERIFIED,
-      subject_type: "Staff",
+      event_id: OperatorChronicleEvent::STEP_UP_VERIFIED,
+      subject_type: "Operator",
       subject_id: @staff.id,
     )
 

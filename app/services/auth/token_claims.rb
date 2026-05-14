@@ -79,16 +79,16 @@ module Auth
     private_class_method :timestamp_value
 
     # Returns default scopes based on resource type
-    # @param resource_type [String] 'user' or 'staff'
-    # @param resource [User/Staff] the authenticated resource
+    # @param resource_type [String] 'user', 'operator', or 'visitor'
+    # @param resource [User/Operator/Visitor] the authenticated resource
     # @return [Array<String>] list of scopes
     def resolve_scopes(resource_type, resource)
       base_scopes = ["authenticated", "domain:#{resource_type}"]
 
       case resource_type.to_s
-      when "user", "customer"
+      when "user", "visitor"
         base_scopes + ["read:self", "write:self"]
-      when "staff"
+      when "operator"
         base_scopes + ["read:org", "write:org"]
       else
         base_scopes

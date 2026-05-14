@@ -6,14 +6,15 @@ require "test_helper"
 class CurrentBannerPartialTest < ActionView::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :app_banners, :org_banners, :com_banners, :users, :user_statuses, :staffs, :staff_statuses
+  fixtures :user_banners, :staff_banners, :client_banners, :users, :user_statuses, :staffs, :staff_statuses,
+           :clients, :client_statuses
 
   test "renders the current banner for a surface" do
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
       render partial: "layouts/shared/current_banner", locals: { tld: :app, region: :jp, domain: :news }
 
-      assert_includes rendered, "App newer banner"
-      assert_includes rendered, "App newer banner body"
+      assert_includes rendered, "User newer banner"
+      assert_includes rendered, "User newer banner body"
     end
   end
 
@@ -21,8 +22,8 @@ class CurrentBannerPartialTest < ActionView::TestCase
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
       render partial: "layouts/shared/current_banner", locals: { tld: :org, region: :ww, domain: :sign }
 
-      assert_includes rendered, "Org current banner"
-      assert_includes rendered, "Org current banner body"
+      assert_includes rendered, "Staff current banner"
+      assert_includes rendered, "Staff current banner body"
     end
   end
 
@@ -30,8 +31,8 @@ class CurrentBannerPartialTest < ActionView::TestCase
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
       render partial: "layouts/shared/current_banner", locals: { tld: :org, region: :global, domain: :sign }
 
-      assert_includes rendered, "Org current banner"
-      assert_includes rendered, "Org current banner body"
+      assert_includes rendered, "Staff current banner"
+      assert_includes rendered, "Staff current banner body"
     end
   end
 
@@ -39,8 +40,8 @@ class CurrentBannerPartialTest < ActionView::TestCase
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
       render partial: "layouts/shared/current_banner", locals: { tld: :com, region: :jp, domain: :help }
 
-      assert_includes rendered, "Com current banner"
-      assert_includes rendered, "Com current banner body"
+      assert_includes rendered, "VisitorAccount current banner"
+      assert_includes rendered, "VisitorAccount current banner body"
     end
   end
 
@@ -91,7 +92,7 @@ class CurrentBannerPartialTest < ActionView::TestCase
   end
 
   test "renders nothing when the current banner is missing" do
-    ComBanner.stub(:current, ComBanner.none) do
+    VisitorAccountBanner.stub(:current, VisitorAccountBanner.none) do
       render partial: "layouts/shared/current_banner", locals: { tld: :com, region: :jp, domain: :news }
 
       assert_empty rendered.strip

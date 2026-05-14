@@ -8,13 +8,13 @@ module Sign
     class ConfigurationsControllerTest < ActionDispatch::IntegrationTest
       setup do
         @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-        @customer = create_verified_customer_with_email(email_address: "config-#{SecureRandom.hex(4)}@example.com")
-        CustomerTelephone.create!(
-          customer: @customer,
+        @visitor = create_verified_visitor_with_email(email_address: "config-#{SecureRandom.hex(4)}@example.com")
+        VisitorTelephone.create!(
+          visitor: @visitor,
           raw_number: "+81901111#{SecureRandom.random_number(10_000).to_s.rjust(4, "0")}",
-          customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+          visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
         )
-        @headers = as_customer_headers(@customer, host: @host)
+        @headers = as_visitor_headers(@visitor, host: @host)
       end
 
       test "should get show when logged in" do

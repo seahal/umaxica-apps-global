@@ -1,3 +1,5 @@
+<%= link_to t('sign.app.configuration.show.back'), sign_app_configuration_totps_path(ri: params[:ri]) %>
+
 <% content_for :page_title, t('sign.app.configuration.totp.new.page_title') %>
 <div>
   <div>
@@ -62,6 +64,8 @@
               </div>
               <p><%= t("views.sign.app.configuration.totps.new.first_token_help") %></p>
             </div>
+
+            <%= render "shared/cloudflare_turnstile_stealth" %>
           </div>
         </div>
 

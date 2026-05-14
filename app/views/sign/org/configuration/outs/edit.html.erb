@@ -1,4 +1,10 @@
 <div>
   <h1><%= title t("sign.shared.sign_out.title") %></h1>
-  <%= button_to t("sign.shared.sign_out.button"), sign_org_configuration_out_path, method: :delete %>
+  <p><%= t("views.sign.app.configuration.outs.edit.confirm_description") %></p>
+  <%= button_to t("sign.shared.sign_out.button"),
+                sign_org_out_path(ri: params[:ri]),
+                method: :post,
+                params: { confirm: "1" },
+                form: { data: { turbo: false } } %>
+  <p><%= link_to t("sign.app.configuration.show.back"), sign_org_configuration_path(ri: params[:ri]) %></p>
 </div>

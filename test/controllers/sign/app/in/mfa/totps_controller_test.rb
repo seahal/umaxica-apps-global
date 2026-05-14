@@ -37,8 +37,27 @@ module Sign::App::In
       CloudflareTurnstile.test_validation_response = nil
     end
 
+    def with_prosopite_paused
+      Prosopite.pause { yield }
+    end
+
+    test "new renders form with stealth when pending_mfa exists" do
+      with_prosopite_paused do
+        establish_pending_mfa_via_secret!
+      end
+
+      with_prosopite_paused do
+        get new_sign_app_in_challenge_totp_path(ri: "jp")
+      end
+
+      assert_response :success
+      assert_select "input[name='cf-turnstile-response']"
+    end
+
     test "new redirects to sign in when pending_mfa is missing" do
-      get new_sign_app_in_challenge_totp_path(ri: "jp")
+      with_prosopite_paused do
+        get new_sign_app_in_challenge_totp_path(ri: "jp")
+      end
 
       assert_response :see_other
       assert_redirected_to new_sign_app_in_path(ri: "jp")
@@ -46,7 +65,9 @@ module Sign::App::In
     end
 
     test "create with valid TOTP code redirects to configuration" do
-      establish_pending_mfa_via_secret!
+      with_prosopite_paused do
+        establish_pending_mfa_via_secret!
+      end
 
       # Verify pending_mfa was set
       assert_predicate session[:pending_mfa], :present?, "pending_mfa should be set after secret login"
@@ -65,9 +86,11 @@ module Sign::App::In
 
       totp_code = ROTP::TOTP.new(@totp.private_key).now
 
-      post sign_app_in_challenge_totp_path(ri: "jp"), params: {
-        totp_challenge_form: { token: totp_code },
-      }
+      with_prosopite_paused do
+        post sign_app_in_challenge_totp_path(ri: "jp"), params: {
+          totp_challenge_form: { token: totp_code },
+        }
+      end
 
       # Debug: check if the response body contains TOTP verification error
       if response.status == 422
@@ -80,26 +103,52 @@ module Sign::App::In
       end
 
       assert_response :found
-      assert_redirected_to sign_app_configuration_path(ri: "jp")
+      assert_redirected_to sign_app_dashboard_path(ri: "jp")
       assert_nil session[:pending_mfa]
       assert_not_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY]
     end
 
     test "create with invalid TOTP code renders form with error" do
-      establish_pending_mfa_via_secret!
+      with_prosopite_paused do
+        establish_pending_mfa_via_secret!
+      end
 
-      post sign_app_in_challenge_totp_path(ri: "jp"), params: {
-        totp_challenge_form: { token: "000000" },
-      }
+      with_prosopite_paused do
+        post sign_app_in_challenge_totp_path(ri: "jp"), params: {
+          totp_challenge_form: { token: "000000" },
+        }
+      end
 
       assert_response :unprocessable_content
       assert_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY]
     end
 
+    test "create with valid TOTP code and stealth failure renders form with error" do
+      with_prosopite_paused do
+        establish_pending_mfa_via_secret!
+      end
+
+      CloudflareTurnstile.test_validation_response = { "success" => false }
+
+      totp_code = ROTP::TOTP.new(@totp.private_key).now
+
+      with_prosopite_paused do
+        post sign_app_in_challenge_totp_path(ri: "jp"), params: {
+          totp_challenge_form: { token: totp_code },
+        }
+      end
+
+      assert_response :unprocessable_content
+      assert_includes response.body, I18n.t("session_limit.turnstile_failed")
+      assert_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY]
+    end
+
     test "create without pending_mfa redirects to sign in" do
-      post sign_app_in_challenge_totp_path(ri: "jp"), params: {
-        totp_challenge_form: { token: "123456" },
-      }
+      with_prosopite_paused do
+        post sign_app_in_challenge_totp_path(ri: "jp"), params: {
+          totp_challenge_form: { token: "123456" },
+        }
+      end
 
       assert_response :see_other
       assert_redirected_to new_sign_app_in_path(ri: "jp")
@@ -108,15 +157,17 @@ module Sign::App::In
     private
 
     def establish_pending_mfa_via_secret!
-      post(
-        sign_app_in_secret_path(ri: "jp"), params: {
-          secret_login_form: {
-            identifier: @email,
-            secret_value: @raw_secret,
+      with_prosopite_paused do
+        post(
+          sign_app_in_secret_path(ri: "jp"), params: {
+            secret_login_form: {
+              identifier: @email,
+              secret_value: @raw_secret,
+            },
+            "cf-turnstile-response": "test_token",
           },
-          "cf-turnstile-response": "test_token",
-        },
-      )
+        )
+      end
 
       assert_response :redirect
     end

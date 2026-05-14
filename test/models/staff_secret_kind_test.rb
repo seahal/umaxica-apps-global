@@ -11,9 +11,9 @@
 
 require "test_helper"
 
-class StaffSecretKindTest < ActiveSupport::TestCase
+class OperatorSecretKindTest < ActiveSupport::TestCase
   test "valid kind" do
-    kind = StaffSecretKind.new(id: 99)
+    kind = OperatorSecretKind.new(id: 99)
 
     assert_predicate kind, :valid?
     assert kind.save
@@ -21,16 +21,15 @@ class StaffSecretKindTest < ActiveSupport::TestCase
   end
 
   test "validates uniqueness of id" do
-    StaffSecretKind.create!(id: 77)
-    duplicate = StaffSecretKind.new(id: 77)
+    OperatorSecretKind.create!(id: 77)
+    duplicate = OperatorSecretKind.new(id: 77)
 
     assert_predicate duplicate, :invalid?
     assert_predicate duplicate.errors[:id], :any?
   end
 
   test "constants are defined" do
-    assert_equal 2, StaffSecretKind::LOGIN
-    assert_equal 3, StaffSecretKind::TOTP
-    assert_equal [2, 3], StaffSecretKind::ALL
+    assert_equal 2, OperatorSecretKind::LOGIN
+    assert_equal [2], OperatorSecretKind::ALL
   end
 end

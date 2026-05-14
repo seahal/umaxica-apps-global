@@ -21,6 +21,7 @@ module Sign
       if verify_passkey!
         consume_reauth_session!
       else
+        record_failed_step_up_attempt!(:passkey)
         prepare_passkey_challenge!
         render :new, status: :unprocessable_content
       end

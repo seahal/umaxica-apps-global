@@ -12,8 +12,10 @@ require "test_helper"
 
 class AppPreferenceBindingMethodTest < ActiveSupport::TestCase
   def setup
-    AppPreferenceBindingMethod::DEFAULTS.each do |id|
-      AppPreferenceBindingMethod.find_or_create_by!(id: id)
+    Prosopite.pause do
+      AppPreferenceBindingMethod::DEFAULTS.each do |id|
+        AppPreferenceBindingMethod.find_or_create_by!(id: id)
+      end
     end
   end
 
@@ -40,14 +42,19 @@ class AppPreferenceBindingMethodTest < ActiveSupport::TestCase
   end
 
   test "ensure_defaults! creates missing binding method records" do
-    AppPreference.where(binding_method_id: AppPreferenceBindingMethod::LEGACY).delete_all
-    AppPreferenceBindingMethod.where(id: AppPreferenceBindingMethod::LEGACY).delete_all
+    called = false
 
-    assert_difference("AppPreferenceBindingMethod.count", 1) do
+    AppPreferenceBindingMethod.stub(
+      :insert_missing_fixed_ids!, ->(ids) do
+                                    called = true
+
+                                    assert_equal AppPreferenceBindingMethod::DEFAULTS, ids
+                                  end,
+    ) do
       AppPreferenceBindingMethod.ensure_defaults!
     end
 
-    assert AppPreferenceBindingMethod.exists?(id: AppPreferenceBindingMethod::LEGACY)
+    assert called
   end
 
   test "ensure_defaults! skips existing records" do

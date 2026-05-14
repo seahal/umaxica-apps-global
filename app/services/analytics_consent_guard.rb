@@ -23,9 +23,9 @@ class AnalyticsConsentGuard
   #   `performant` consent is missing.
   #
   # @param event_name [String, Symbol] the event name
-  # @param preference [Current::Preference] the resolved preference (defaults to Current.preference)
+  # @param preference [Actor::Preference] the resolved preference (defaults to Actor.preference)
   # @return [Boolean]
-  def self.permit?(event_name, preference: Current.preference)
+  def self.permit?(event_name, preference: Actor.preference)
     return true if PreConsentAllowlist.allowed?(event_name)
 
     preference&.cookie&.performant? || false

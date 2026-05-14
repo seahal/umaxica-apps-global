@@ -54,6 +54,10 @@ class UserChronicleEventTest < ActiveSupport::TestCase
       UserChronicleEvent::TELEPHONE_REMOVED,
       UserChronicleEvent::SOCIAL_UNLINKED,
       UserChronicleEvent::STEP_UP_VERIFIED,
+      UserChronicleEvent::SESSION_REVOKED,
+      UserChronicleEvent::SOCIAL_LINKED,
+      UserChronicleEvent::EMAIL_REGISTERED,
+      UserChronicleEvent::TELEPHONE_REGISTERED,
     ], UserChronicleEvent::DEFAULTS.sort
   end
 
@@ -63,7 +67,7 @@ class UserChronicleEventTest < ActiveSupport::TestCase
 
   test "DEFAULTS array contains all event IDs" do
     assert_kind_of Array, UserChronicleEvent::DEFAULTS
-    assert_equal 28, UserChronicleEvent::DEFAULTS.size
+    assert_equal 32, UserChronicleEvent::DEFAULTS.size
     assert_includes UserChronicleEvent::DEFAULTS, UserChronicleEvent::LOGGED_IN
     assert_includes UserChronicleEvent::DEFAULTS, UserChronicleEvent::LOGIN_SUCCESS
     assert_includes UserChronicleEvent::DEFAULTS, UserChronicleEvent::TOKEN_REFRESHED
@@ -71,7 +75,7 @@ class UserChronicleEventTest < ActiveSupport::TestCase
 
   test "ensure_defaults! creates records" do
     UserChronicleEvent.delete_all
-    assert_difference("UserChronicleEvent.count", 28) do
+    assert_difference("UserChronicleEvent.count", 32) do
       UserChronicleEvent.ensure_defaults!
     end
     assert UserChronicleEvent.exists?(id: UserChronicleEvent::LOGGED_IN)

@@ -1,6 +1,10 @@
 <% content_for :page_title, t('apex.com.preferences.cookie_settings') %>
 
 <section data-controller="cookie-toggle">
+  <div>
+    <%= link_to t("actions.back"), sign_com_preference_url %>
+  </div>
+
   <h1>
     <%= t('apex.com.preference.cookie.edit.h1') %>
   </h1>
@@ -26,7 +30,6 @@
     <div>
       <%= f.submit t('apex.com.preferences.update_settings'),
                    data: { turbo_submits_with: t("apex.com.preferences.submitting") } %>
-      <%= link_to t('apex.com.preferences.back_to_settings'), sign_com_preference_url %>
     </div>
   <% end %>
 </section>

@@ -29,7 +29,7 @@
           <% @totps.each do |credential| %>
             <tr>
               <td>
-                <%= credential.title.presence || t('messages.untitled') %>
+                <%= credential.title.presence %>
               </td>
               <td>
                 <%= (credential.last_otp_at.is_a?(Time) || credential.last_otp_at.is_a?(ActiveSupport::TimeWithZone)) && credential.last_otp_at > Time.zone.at(0) ? l(credential.last_otp_at, format: :short) : '-' %>

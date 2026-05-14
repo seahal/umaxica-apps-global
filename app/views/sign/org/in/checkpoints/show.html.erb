@@ -1,0 +1,15 @@
+<% content_for :page_title, @bulletin&.title || t("sign.org.in.bulletins.show.title") %>
+
+<h1><%= @bulletin&.title || t("sign.org.in.bulletins.show.title") %></h1>
+<p><%= @bulletin&.body || t("sign.org.in.bulletins.show.body") %></p>
+<% return_to = params[:rt].presence %>
+
+<%= form_with url: sign_org_in_checkpoint_path(ri: params[:ri]), method: :patch do %>
+  <%= hidden_field_tag :rt, return_to %>
+  <%= submit_tag t("sign.org.in.bulletins.show.actions.update") %>
+<% end %>
+
+<%= form_with url: sign_org_in_checkpoint_path(ri: params[:ri]), method: :delete do %>
+  <%= hidden_field_tag :rt, return_to %>
+  <%= submit_tag t("sign.org.in.bulletins.show.actions.continue") %>
+<% end %>

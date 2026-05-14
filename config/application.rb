@@ -3,6 +3,8 @@
 
 require_relative "boot"
 
+ENV["PARALLEL_WORKERS"] ||= "1" if ENV["RAILS_ENV"] == "test" || ARGV.include?("test")
+
 require "rails/all"
 
 Bundler.require(*Rails.groups)
@@ -50,10 +52,8 @@ module Jit
       encryption_keys = Jit::Security::ActiveRecordEncryptionKeyProvider.fetch
       config.active_record.encryption.primary_key = encryption_keys.fetch(:current)
       config.active_record.encryption.previous = encryption_keys[:previous].map { |previous_key| { key: previous_key } }
-      deterministic_key = Rails.app.creds.require(:ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY)
-      config.active_record.encryption.deterministic_key = deterministic_key
-      key_derivation_salt = Rails.app.creds.require(:ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT)
-      config.active_record.encryption.key_derivation_salt = key_derivation_salt
+      config.active_record.encryption.deterministic_key = encryption_keys.fetch(:deterministic)
+      config.active_record.encryption.key_derivation_salt = encryption_keys.fetch(:key_derivation_salt)
     end
 
     # USE UTC

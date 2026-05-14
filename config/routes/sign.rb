@@ -6,6 +6,7 @@ scope module: :sign, as: :sign do
   constraints host: ENV["SIGN_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
+      resource :dashboard, only: :show
       # Health
       resource :health, only: :show, controller: "health"
       # Robots
@@ -13,7 +14,7 @@ scope module: :sign, as: :sign do
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
-      post "/csp-violation-report", to: "/csp_violations#create"
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
         namespace :v0 do
@@ -52,16 +53,25 @@ scope module: :sign, as: :sign do
           # for lx and tz settings.
           resource :timezone, only: [:edit, :update]
           resource :language, only: [:edit, :update]
+          resource :currency, only: [:edit, :update]
+          resource :date_format, only: [:edit, :update]
+          resource :time_format, only: [:edit, :update]
+        end
+        namespace :accessibility do
+          resource :motion, only: [:edit, :update]
+        end
+        namespace :display do
+          resource :density, only: [:edit, :update]
+          resource :items_per_page, only: [:edit, :update]
         end
         # for dark/light mode
         resource :theme, only: [:edit, :update]
-        # endpoint of reset preferences.
-        resource :reset, only: [:edit, :destroy]
         # for ePrivacy settings.
         resource :cookie, only: [:edit, :update]
-        resource :email, only: %i(new create edit update) do
-          post :unsubscribe, on: :member
-        end
+        resources :email, only: %i(edit destroy)
+        post "email/:id", to: "emails#create"
+        # endpoint of reset preferences.
+        resource :reset, only: [:edit, :destroy]
       end
 
       # Sign-up: account registration via email or telephone
@@ -70,7 +80,7 @@ scope module: :sign, as: :sign do
         # FIXME: how nasty code are there.
         namespace :up do
           get "emails", to: redirect { |_params, request|
-            query = request.query_parameters.slice("ri", "rd").to_query
+            query = request.query_parameters.slice("ri", "rt").to_query
             "/sign/up/emails/new#{query.present? ? "?#{query}" : ""}"
           }
           resources :emails, only: %i(new create edit update)
@@ -96,21 +106,24 @@ scope module: :sign, as: :sign do
           end
           resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          resource :bulletin, only: %i(show update destroy)
+          resource :checkpoint, only: %i(show update destroy)
           resource :challenge, only: %i(show)
           namespace :challenge do
             resource :totp, only: %i(new create)
             resource :passkey, only: %i(new create)
           end
         end
+        resource :out, only: %i(edit create destroy), controller: "configuration/outs"
       end
 
-      # Social auth: start sets intent/state then redirects to /auth/:provider
+      # Social auth: continue sets intent/state then redirects to /auth/:provider.
+      # start remains as a compatibility alias for older callers.
       namespace :social do
         resources :authentications,
                   path: "auth",
                   param: :provider,
                   only: [:destroy] do
+          post :continue, on: :member
           post :start, on: :member
         end
       end
@@ -130,7 +143,9 @@ scope module: :sign, as: :sign do
         resource :setup, only: %i(new)
         resource :passkey, only: %i(new create)
         resource :totp, only: %i(new create)
-        resources :emails, only: %i(new create edit update)
+        resources :emails, only: %i(new create edit update) do
+          post :resend, on: :member
+        end
       end
 
       # OIDC
@@ -150,15 +165,17 @@ scope module: :sign, as: :sign do
         end
         resource :challenge, only: %i(show update)
         namespace :emails do
-          resource :registration, only: %i(new create edit update)
+          resource :registration, only: %i(new create edit update) do
+            post :resend
+          end
         end
-        resources :emails, only: %i(index edit destroy)
+        resources :emails, only: %i(index edit update destroy)
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
         resources :telephones, only: %i(index new edit create destroy)
-        resource :apple, only: [:show, :destroy]
-        resource :google, only: :show
+        resource :apple, only: :show
+        resource :google, only: %i(show create)
         resources :secrets, only: %i(index show new edit create destroy) do
           post :regenerate, on: :member
         end
@@ -169,7 +186,6 @@ scope module: :sign, as: :sign do
           end
         end
         resources :activities, only: :index
-        resource :out, only: %i(edit destroy)
         resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
@@ -179,6 +195,7 @@ scope module: :sign, as: :sign do
   constraints host: ENV["SIGN_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
+      resource :dashboard, only: :show
 
       # Health
       resource :health, only: :show, controller: "health"
@@ -187,7 +204,7 @@ scope module: :sign, as: :sign do
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
-      post "/csp-violation-report", to: "/csp_violations#create"
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
@@ -205,6 +222,18 @@ scope module: :sign, as: :sign do
         end
       end
 
+      # Edge API: token lifecycle management (check, DBSC binding, refresh)
+      namespace :edge do
+        namespace :v0 do
+          resource :health, only: :show, controller: "health"
+          namespace :token do
+            resource :check, only: :show
+            resource :dbsc, only: :create
+            resource :refresh, only: :create
+          end
+        end
+      end
+
       # preferences
       resource :preference, only: [:show]
       namespace :preference do
@@ -214,15 +243,24 @@ scope module: :sign, as: :sign do
           # for lx and tz settings.
           resource :timezone, only: [:edit, :update]
           resource :language, only: [:edit, :update]
+          resource :currency, only: [:edit, :update]
+          resource :date_format, only: [:edit, :update]
+          resource :time_format, only: [:edit, :update]
+        end
+        namespace :accessibility do
+          resource :motion, only: [:edit, :update]
+        end
+        namespace :display do
+          resource :density, only: [:edit, :update]
+          resource :items_per_page, only: [:edit, :update]
         end
         # for dark/light mode
         resource :theme, only: [:edit, :update]
+        resources :email, only: %i(edit destroy)
+        post "email/:id", to: "emails#create"
         resource :cookie, only: [:edit, :update]
         # endpoint of reset preferences.
         resource :reset, only: [:edit, :destroy]
-        resource :email, only: %i(new create edit update) do
-          post :unsubscribe, on: :member
-        end
       end
 
       # Sign-up: account registration via email or telephone
@@ -230,7 +268,7 @@ scope module: :sign, as: :sign do
         resource :up, only: :new
         namespace :up do
           get "emails", to: redirect { |_params, request|
-            query = request.query_parameters.slice("ri", "rd").to_query
+            query = request.query_parameters.slice("ri", "rt").to_query
             "/sign/up/emails/new#{query.present? ? "?#{query}" : ""}"
           }
           resources :emails, only: %i(new create edit update)
@@ -249,13 +287,13 @@ scope module: :sign, as: :sign do
           end
           resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          resource :bulletin, only: %i(show update destroy)
+          resource :checkpoint, only: %i(show update destroy)
           resource :challenge, only: %i(show)
           namespace :challenge do
-            resource :totp, only: %i(new create)
             resource :passkey, only: %i(new create)
           end
         end
+        resource :out, only: %i(edit create destroy), controller: "configuration/outs"
       end
 
       # Step-up verification
@@ -263,8 +301,9 @@ scope module: :sign, as: :sign do
       namespace :verification do
         resource :setup, only: %i(new)
         resource :passkey, only: %i(new create)
-        resource :totp, only: %i(new create)
-        resources :emails, only: %i(new create edit update)
+        resources :emails, only: %i(new create edit update) do
+          post :resend, on: :member
+        end
       end
 
       resource :authorize, only: %i(show)
@@ -274,7 +313,6 @@ scope module: :sign, as: :sign do
       # Account settings and linked identity management
       resource :configuration, only: %i(show edit)
       namespace :configuration do
-        resources :totps, only: %i(index new create edit update destroy)
         resources :passkeys do
           collection do
             post :options
@@ -282,7 +320,7 @@ scope module: :sign, as: :sign do
           end
         end
         resource :challenge, only: %i(show update)
-        resources :emails, only: %i(index edit destroy)
+        resources :emails, only: %i(index edit update destroy)
         namespace :emails do
           resource :registration, only: %i(new create edit update)
         end
@@ -300,7 +338,6 @@ scope module: :sign, as: :sign do
           end
         end
         resources :activities, only: :index
-        resource :out, only: %i(edit destroy)
         resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
@@ -310,6 +347,7 @@ scope module: :sign, as: :sign do
   constraints host: ENV["SIGN_STAFF_URL"] do
     scope module: :org, as: :org do
       root to: "roots#index"
+      resource :dashboard, only: :show
 
       # Health
       resource :health, only: :show, controller: "health"
@@ -318,7 +356,7 @@ scope module: :sign, as: :sign do
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
-      post "/csp-violation-report", to: "/csp_violations#create"
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Public web API: cookie consent, theme
       namespace :web do
@@ -348,17 +386,25 @@ scope module: :sign, as: :sign do
           # for lx and tz settings.
           resource :timezone, only: [:edit, :update]
           resource :language, only: [:edit, :update]
+          resource :currency, only: [:edit, :update]
+          resource :date_format, only: [:edit, :update]
+          resource :time_format, only: [:edit, :update]
+        end
+        namespace :accessibility do
+          resource :motion, only: [:edit, :update]
+        end
+        namespace :display do
+          resource :density, only: [:edit, :update]
+          resource :items_per_page, only: [:edit, :update]
         end
         # for dark/light mode
         resource :theme, only: [:edit, :update]
+        resources :email, only: %i(edit destroy)
+        post "email/:id", to: "emails#create"
         # endpoint of reset preferences.
         resource :reset, only: [:edit, :destroy]
         # for ePrivacy settings.
         resource :cookie, only: [:edit, :update]
-        # email reset
-        resource :email, only: %i(new create edit update) do
-          post :unsubscribe, on: :member
-        end
       end
 
       # Sign-up: email registration and staff invitation flows
@@ -373,12 +419,13 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # Social auth: Google sign-in for staff (login only, no sign-up)
+      # Social auth: Google continue for staff. Unknown staff are not created.
       namespace :social do
         resources :authentications,
                   path: "auth",
                   param: :provider,
-                  only: [] do
+                  only: [:destroy] do
+          post :continue, on: :member
           post :start, on: :member
         end
       end
@@ -404,12 +451,13 @@ scope module: :sign, as: :sign do
           end
           resource :secret, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          resource :bulletin, only: %i(show update destroy)
+          resource :checkpoint, only: %i(show update destroy)
           resource :challenge, only: %i(show)
           namespace :challenge do
             resource :passkey, only: %i(new create)
           end
         end
+        resource :out, only: %i(edit create destroy), controller: "configuration/outs"
       end
 
       # Step-up verification
@@ -444,14 +492,13 @@ scope module: :sign, as: :sign do
         namespace :emails do
           resource :registration, only: %i(new create edit update)
         end
-        resources :emails, only: %i(index edit destroy)
+        resources :emails, only: %i(index edit update destroy)
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
         resources :telephones, only: %i(index new edit create destroy)
-        resource :google, only: :show
+        resource :google, only: %i(show create)
         resources :activities, only: :index
-        resource :out, only: %i(edit destroy)
         resource :withdrawal, only: %i(show)
       end
     end
@@ -466,7 +513,7 @@ scope module: :sign, as: :sign do
     end
 
     # CSP violation reporting
-    post "/csp-violation-report", to: "/csp_violations#create"
+    resource :csp_violation_report, only: :create, path: "csp-violation-report"
   end
 
   constraints host: ENV["SIGN_DEVELOPER_URL"] do
@@ -478,6 +525,6 @@ scope module: :sign, as: :sign do
     end
 
     # CSP violation reporting
-    post "/csp-violation-report", to: "/csp_violations#create"
+    resource :csp_violation_report, only: :create, path: "csp-violation-report"
   end
 end

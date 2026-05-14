@@ -19,7 +19,10 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
     controller.define_singleton_method(:new_sign_org_in_path) { "/org/in/new" }
     controller.define_singleton_method(:sign_org_in_session_path) { "/org/in/session" }
-    controller.define_singleton_method(:sign_org_in_bulletin_path) { |ri: nil| "/org/in/bulletin?ri=#{ri}" }
+    controller.define_singleton_method(:sign_org_in_checkpoint_path) { |ri: nil| "/org/in/checkpoint?ri=#{ri}" }
+    controller.define_singleton_method(:sign_org_dashboard_path) { |ri: nil, rt: nil|
+      "/org/dashboard?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    }
     controller.define_singleton_method(:sign_org_root_path) { |ri: nil| "/org?ri=#{ri}" }
     controller.define_singleton_method(:sign_org_configuration_path) { "/org/configuration" }
     controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
@@ -68,12 +71,12 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@issue_bulletin_for_test, true)
     controller.send(:handle_login_result, true, "Google org")
 
-    assert_match "/org/in/bulletin", redirects.last.first.first
+    assert_match "/sign/in/checkpoint", redirects.last.first.first
 
     controller.instance_variable_set(:@issue_bulletin_for_test, false)
     controller.send(:handle_login_result, true, "Google org")
 
-    assert_match "/org?ri=jp", redirects.last.first.first
+    assert_match "/dashboard", redirects.last.first.first
 
     controller.send(:handle_unexpected_error, StandardError.new("boom"), OpenStruct.new(provider: "google_org"))
 
@@ -131,5 +134,87 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.send(:handle_unverified_request)
 
     assert_equal "bad_state", controller.instance_variable_get(:@rejection_for_test)[:reason]
+  end
+
+  test "login_and_redirect records org social audit context" do
+    controller = Sign::Org::Auth::OmniauthCallbacksController.new
+    staff = OpenStruct.new(id: 22, login_allowed?: true)
+    auth = OpenStruct.new(provider: "google_org")
+
+    controller.define_singleton_method(:log_in) do |resource, **kwargs|
+      @login_resource_for_test = resource
+      @login_kwargs_for_test = kwargs
+      { status: :success }
+    end
+    controller.define_singleton_method(:handle_login_result) do |result, provider_name|
+      @login_result_for_test = result
+      @provider_name_for_test = provider_name
+    end
+
+    controller.send(:login_and_redirect, staff, auth)
+
+    assert_equal staff, controller.instance_variable_get(:@login_resource_for_test)
+    assert controller.instance_variable_get(:@login_kwargs_for_test)[:record_login_audit]
+    assert_equal(
+      { auth_method: "social", provider: "google" },
+      controller.instance_variable_get(:@login_kwargs_for_test)[:audit_context],
+    )
+    assert_equal({ status: :success }, controller.instance_variable_get(:@login_result_for_test))
+    assert_equal "Google", controller.instance_variable_get(:@provider_name_for_test)
+  end
+
+  test "find_active_staff_by_google_email returns active staff for linked staff email" do
+    controller = Sign::Org::Auth::OmniauthCallbacksController.new
+    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    staff_email = staff.staff_emails.create!(
+      raw_address: "google-staff@example.test",
+      confirm_policy: true,
+      staff_email_status_id: OperatorEmailStatus::VERIFIED,
+      undeletable: true,
+    )
+
+    assert_equal staff, controller.send(:find_active_staff_by_google_email, "google-staff@example.test")
+    assert_predicate staff_email.reload, :undeletable?
+  end
+
+  test "find_active_staff_by_google_email links current staff email for link intent" do
+    controller = Sign::Org::Auth::OmniauthCallbacksController.new
+    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    staff_email = staff.staff_emails.create!(
+      raw_address: "google-link-staff@example.test",
+      confirm_policy: true,
+      staff_email_status_id: OperatorEmailStatus::VERIFIED,
+    )
+    controller.define_singleton_method(:social_auth_user) { staff }
+
+    assert_equal staff,
+                 controller.send(:find_active_staff_by_google_email, "google-link-staff@example.test", intent: "link")
+    assert_predicate staff_email.reload, :undeletable?
+  end
+
+  test "find_active_staff_by_google_email rejects unlinked staff email for login intent" do
+    controller = Sign::Org::Auth::OmniauthCallbacksController.new
+    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    staff.staff_emails.create!(
+      raw_address: "google-unlinked-staff@example.test",
+      confirm_policy: true,
+      staff_email_status_id: OperatorEmailStatus::VERIFIED,
+      undeletable: false,
+    )
+
+    assert_nil controller.send(:find_active_staff_by_google_email, "google-unlinked-staff@example.test")
+  end
+
+  test "find_active_staff_by_google_email rejects missing and inactive staff email" do
+    controller = Sign::Org::Auth::OmniauthCallbacksController.new
+    staff = Operator.create!(status_id: OperatorIdentityStatus::NOTHING, visibility_id: OperatorVisibility::STAFF)
+    staff.staff_emails.create!(
+      raw_address: "inactive-google-staff@example.test",
+      confirm_policy: true,
+      staff_email_status_id: OperatorEmailStatus::VERIFIED,
+    )
+
+    assert_nil controller.send(:find_active_staff_by_google_email, "missing-google-staff@example.test")
+    assert_nil controller.send(:find_active_staff_by_google_email, "inactive-google-staff@example.test")
   end
 end

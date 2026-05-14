@@ -7,10 +7,20 @@ module Sign
       class SetupsController < Sign::Com::ApplicationController
         auth_required!
 
-        before_action :authenticate_customer!
+        before_action :authenticate_visitor!
 
         def new
-          @rd = params.expect(:rd).to_s.presence
+          @rt = params.expect(:rt).to_s.presence
+          @return_to = setup_return_to_path(@rt, root_path: sign_com_configuration_path(ri: params[:ri]))
+          @missing_methods = %i(email_otp passkey) - configured_step_up_methods
+
+          return unless @missing_methods.empty?
+
+          safe_redirect_to(
+            verification_redirect_path(rt: @rt),
+            fallback: sign_com_root_path(ri: params[:ri]),
+            status: :found,
+          )
         end
       end
     end

@@ -47,7 +47,7 @@ module UserSecrets
     private
 
     def audit_class
-      @audit_class ||= @actor.is_a?(Staff) ? StaffChronicle : UserChronicle
+      @audit_class ||= @actor.is_a?(Operator) ? OperatorChronicle : UserChronicle
     end
 
     def status_id_for(enabled_param)

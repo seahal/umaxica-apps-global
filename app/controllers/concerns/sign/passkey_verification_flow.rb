@@ -13,7 +13,7 @@ module Sign
       challenge_data = peek_challenge(challenge_id)
       return render_error("errors.webauthn.challenge_invalid", :bad_request) unless challenge_data
 
-      actor_id = challenge_data[passkey_challenge_actor_id_key]
+      actor_id = normalize_passkey_actor_id(challenge_data[passkey_challenge_actor_id_key])
 
       with_challenge(challenge_id, purpose: :authentication) do |challenge|
         verify_and_login(challenge, actor_id)
@@ -51,6 +51,12 @@ module Sign
 
     def passkey_challenge_actor_id_key
       raise NotImplementedError, "#{self.class} must define #passkey_challenge_actor_id_key"
+    end
+
+    def normalize_passkey_actor_id(actor_id)
+      return actor_id if actor_id.is_a?(Integer) || actor_id.nil?
+
+      Integer(actor_id, exception: false) || actor_id
     end
   end
 end

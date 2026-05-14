@@ -128,8 +128,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - **FR-12**: TOTP provisioning (`Sign::App::Setting::TotpsController`) must generate QR codes
   (`rqrcode`) with session-stored secrets, verify first token, and persist to
   `TimeBasedOneTimePassword` (encrypted key).
-- **FR-13**: OAuth integrations (Google/Apple) use OmniAuth and must be wired for CSRF-safe flows
-  (move to GET in backlog but tracked here as compliance requirement).
+- **FR-13**: OAuth integrations use OmniAuth and must be wired for CSRF-safe flows. Google is
+  available on `app` and `org`; Apple is available only on `app`; `com` rejects both providers.
 - **FR-14**: Withdrawal controllers must collect user intent and mark accounts for deletion once the
   `Authn` layer supports revocation.
 

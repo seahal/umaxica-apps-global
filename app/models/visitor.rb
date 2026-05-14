@@ -1,0 +1,153 @@
+# typed: false
+# frozen_string_literal: true
+
+# == Schema Information
+#
+# Table name: visitors
+# Database name: guest
+#
+#  id                     :bigint           not null, primary key
+#  deactivated_at         :datetime
+#  lapses_at              :datetime         default(Infinity), not null
+#  lock_version           :integer          default(0), not null
+#  multi_factor_enabled   :boolean          default(FALSE), not null
+#  purge_at               :datetime         default(Infinity), not null
+#  withdrawal_started_at  :datetime
+#  withdrawn_at           :datetime         default(Infinity)
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  multi_factor_id        :bigint           default(0), not null
+#  multi_factor_status_id :bigint           default(5), not null
+#  public_id              :string           default(""), not null
+#  status_id              :bigint           default(2), not null
+#  visibility_id          :bigint           default(1), not null
+#
+# Indexes
+#
+#  index_visitors_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_visitors_on_multi_factor_id         (multi_factor_id)
+#  index_visitors_on_multi_factor_status_id  (multi_factor_status_id)
+#  index_visitors_on_public_id               (public_id) UNIQUE
+#  index_visitors_on_purge_at                (purge_at)
+#  index_visitors_on_status_id               (status_id)
+#  index_visitors_on_visibility_id           (visibility_id)
+#  index_visitors_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_visitors_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (multi_factor_id => visitor_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => visitor_multi_factor_statuses.id)
+#  fk_rails_...  (status_id => visitor_statuses.id)
+#  fk_rails_...  (visibility_id => visitor_visibilities.id)
+#
+
+class Visitor < GuestRecord
+  include Retainable
+  include ::PublicId
+  include ::Identity
+  include MultiFactorConfigurable
+  include MultiFactorStatusTrackable
+
+  LOGIN_BLOCKED_STATUS_IDS = [VisitorStatus::RESERVED].freeze
+  VERIFIED_RECOVERY_EMAIL_STATUS_IDS = [
+    VisitorEmailStatus::VERIFIED,
+    VisitorEmailStatus::VERIFIED_WITH_SIGN_UP,
+  ].freeze
+  VERIFIED_RECOVERY_TELEPHONE_STATUS_IDS = [
+    VisitorTelephoneStatus::VERIFIED,
+    VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP,
+  ].freeze
+  RECOVERY_IDENTITY_REQUIRED_MESSAGE = I18n.t("models.visitor.recovery_identity_required")
+
+  attribute :status_id, default: VisitorStatus::NOTHING
+  multi_factor_reference VisitorMultiFactor
+  multi_factor_status_reference VisitorMultiFactorStatus
+
+  belongs_to :visitor_status,
+             class_name: "VisitorStatus",
+             foreign_key: :status_id,
+             inverse_of: :visitors
+  belongs_to :multi_factor,
+             class_name: "VisitorMultiFactor",
+             inverse_of: :visitors
+  belongs_to :multi_factor_status,
+             class_name: "VisitorMultiFactorStatus",
+             inverse_of: :visitors
+  belongs_to :visibility,
+             class_name: "VisitorVisibility",
+             inverse_of: :visitors
+  has_one :visitor_preference,
+          dependent: :destroy,
+          inverse_of: :visitor
+  has_many :visitor_emails,
+           dependent: :destroy,
+           inverse_of: :visitor
+  has_many :visitor_telephones,
+           dependent: :destroy,
+           inverse_of: :visitor
+  has_many :visitor_secrets,
+           dependent: :destroy,
+           inverse_of: :visitor
+  has_many :visitor_passkeys,
+           dependent: :destroy,
+           inverse_of: :visitor
+  has_many :visitor_tokens,
+           dependent: :delete_all,
+           inverse_of: :visitor
+  has_one :client_account,
+          class_name: "VisitorClientAccount",
+          dependent: :destroy,
+          inverse_of: :visitor
+
+  def staff?
+    false
+  end
+
+  def user?
+    false
+  end
+
+  def visitor?
+    true
+  end
+
+  def has_verified_recovery_identity?
+    has_verified_pii?
+  end
+
+  def has_verified_pii?
+    verified_email? || verified_telephone?
+  end
+
+  def verified_email?
+    if visitor_emails.loaded?
+      visitor_emails.any? { |e| VERIFIED_RECOVERY_EMAIL_STATUS_IDS.include?(e.visitor_email_status_id) }
+    else
+      visitor_emails.exists?(visitor_email_status_id: VERIFIED_RECOVERY_EMAIL_STATUS_IDS)
+    end
+  end
+
+  def verified_telephone?
+    if visitor_telephones.loaded?
+      visitor_telephones.any? { |t| VERIFIED_RECOVERY_TELEPHONE_STATUS_IDS.include?(t.visitor_telephone_status_id) }
+    else
+      visitor_telephones.exists?(visitor_telephone_status_id: VERIFIED_RECOVERY_TELEPHONE_STATUS_IDS)
+    end
+  end
+
+  def passkey_login_available?
+    return false unless visitor_passkeys.active.exists?
+
+    verified_telephone?
+  end
+
+  private
+
+  def configured_multi_factor_methods
+    methods = []
+    methods << :email_otp if visitor_emails.exists?(visitor_email_status_id: VERIFIED_RECOVERY_EMAIL_STATUS_IDS)
+    methods << :passkey if visitor_passkeys.active.exists?
+    methods
+  end
+end

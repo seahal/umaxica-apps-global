@@ -126,6 +126,7 @@ en:
           title: Verification
           description:
             Please enter the code or use passkey authentication for identity verification.
+          email_description: Please enter the code for identity verification.
           authenticate_with_passkey: Authenticate with Passkey
           code_label: Verification Code
           code_placeholder: 6 digits
@@ -140,6 +141,7 @@ en:
         back_to_settings: Back to Preferences
         regions:
           title: Region & Language Settings
+          back_link: Back
           region_section: Region Settings
           select_region: Select Region
           language_section: Language Settings
@@ -337,8 +339,8 @@ en:
             telephone: Telephone
             passkey: Passkey
             recovery: Recovery code
-            google: Sign in with Google
-            apple: Sign in with Apple
+            google: Continue with Google
+            apple: Continue with Apple
             registration: Need an account?
         passkey:
           new:
@@ -356,7 +358,7 @@ en:
       social:
         sessions:
           create:
-            success: Account created and signed in with %{provider}.
+            success: Registered with %{provider}.
       recovery:
         new:
           page_title: Use a recovery code
@@ -803,12 +805,12 @@ en:
               system: Keeps theme in sync with enterprise-managed preferences.
             submit: Save theme preference
     org:
-      customers:
-        created: Customer %{name} created successfully
-        updated: Customer updated successfully
-        deleted: Customer %{name} deleted successfully
+      visitors:
+        created: Visitor %{name} created successfully
+        updated: Visitor updated successfully
+        deleted: Visitor %{name} deleted successfully
         name_email_required: Name and email are required
-        invalid_data: Invalid customer data
+        invalid_data: Invalid visitor data
       preferences:
         title: Operator Preferences
         cookie_settings: Cookie Settings
@@ -1060,6 +1062,7 @@ en:
           invalid: Invalid timezone selected
         regions:
           title: Region & Language Settings
+          back_link: Back
           region_section: Region Settings
           select_region: Select Region
           language_section: Language Settings
@@ -1085,6 +1088,17 @@ en:
         themes:
           updated: Theme updated to %{theme}
           invalid: Invalid theme selected
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
         footer:
           home: Home
           cookie: Cookies
@@ -1144,6 +1158,19 @@ en:
           invalid: Invalid theme selected
         timezones:
           invalid: Invalid timezone selected
+        regions:
+          back_link: Back
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
       preference:
         cookie:
           edit:
@@ -1153,6 +1180,31 @@ en:
             accept_performance_cookies: Allow performance cookies
             accept_targeting_cookies: Allow targeting cookies
             accept_consent_cookies: Allow consent cookies
+        currency:
+          edit:
+            heading: Currency
+            description: Choose the currency used for regional display.
+            option_label: Currency
+          options:
+            usd: US Dollar (USD)
+            jpy: Japanese Yen (JPY)
+        date_format:
+          edit:
+            heading: Date Format
+            description: Choose how dates are displayed.
+            option_label: Date format
+          options:
+            iso: ISO (YYYY-MM-DD)
+            uk: UK (DD/MM/YYYY)
+            us: US (MM/DD/YYYY)
+        time_format:
+          edit:
+            heading: Time Format
+            description: Choose how times are displayed.
+            option_label: Time format
+          options:
+            hour_24: 24-hour
+            hour_12: 12-hour
     org:
       preferences:
         update_success: Preferences updated successfully
@@ -1172,6 +1224,19 @@ en:
           invalid: Invalid theme selected
         timezones:
           invalid: Invalid timezone selected
+        regions:
+          back_link: Back
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
       preference:
         cookie:
           edit:

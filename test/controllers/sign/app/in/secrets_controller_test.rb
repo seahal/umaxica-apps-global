@@ -56,7 +56,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     2.times do
       create_rotated_active_user_session(@user, rotations: 3)
     end
-    restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
+    restricted = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
     restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
     post sign_app_in_secret_url(ri: "jp"),
@@ -82,7 +82,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_response :found
     assert_redirected_to sign_app_in_session_path(ri: "jp")
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
-    assert_equal 1, UserToken.where(user_id: @user.id, status: UserToken::STATUS_RESTRICTED).count
+    assert_equal 1, UserToken.where(user_id: @user.id, user_token_status_id: UserTokenStatus::RESTRICTED).count
   end
 
   test "turnstile failure returns unified authentication error" do
@@ -110,7 +110,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
     assert_not_equal old_session_id, session.id
   end
 
@@ -122,7 +122,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
   end
 
   test "secret sign-in redirects to MFA challenge for weak method when MFA is enabled" do
@@ -235,7 +235,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
     assert_equal 0, one_time_secret.reload.uses_remaining
     assert_equal UserSecretStatus::USED, one_time_secret.user_secret_status_id
 
@@ -305,7 +305,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
     assert_not_nil session.id
   end
 
@@ -325,7 +325,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_rotated_active_user_session(user, rotations:)
-    token = UserToken.create!(user: user, status: UserToken::STATUS_ACTIVE)
+    token = UserToken.create!(user: user, user_token_status_id: UserTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
 
     rotations.times do
@@ -383,7 +383,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     # Create 2 active sessions to hit the limit
     2.times do
-      token = UserToken.create!(user: @user, status: UserToken::STATUS_ACTIVE)
+      token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
       token.rotate_refresh_token!
     end
 
@@ -398,7 +398,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
     # A restricted token should have been created
-    restricted = UserToken.where(user_id: @user.id, status: UserToken::STATUS_RESTRICTED)
+    restricted = UserToken.where(user_id: @user.id, user_token_status_id: UserTokenStatus::RESTRICTED)
 
     assert_equal 1, restricted.count
 
@@ -409,7 +409,10 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   test "direct controller branches for mfa and standard secret flows" do
     controller = Sign::App::In::SecretsController.new
     session_hash = {}
-    params_hash = ActionController::Parameters.new(ri: "jp")
+    params_hash = ActionController::Parameters.new(
+      "ri" => "jp",
+      "cf-turnstile-response" => "test_token",
+    )
     failures = []
     redirects = []
     target_user = @user
@@ -423,12 +426,17 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
       failures << kwargs.merge(reason: :hard_reject)
     }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
-    controller.define_singleton_method(:safe_redirect_to_rd_or_default!) { |rd, default_path:|
-      redirects << [rd || default_path, {}]
+    controller.define_singleton_method(:safe_redirect_to_rt_or_default!) { |rt, default_path:|
+      redirects << [rt || default_path, {}]
     }
     controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, rt: nil|
+      "/dashboard?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_bulletin_path) { |rd: nil, ri: nil| "/bulletin?rd=#{rd}&ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_in_checkpoint_path) { |rt: nil, ri: nil|
+      "/sign/in/checkpoint?rt=#{rt}&ri=#{ri}"
+    }
     controller.define_singleton_method(:t) { |key| key }
 
     controller.new
@@ -444,12 +452,12 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_instance_of Sign::App::In::SecretsController::MfaSecretForm, controller.instance_variable_get(:@secret_form)
     assert_equal ["hint"], controller.instance_variable_get(:@secret_hints)
 
-    params_hash[:mfa_secret_form] = { secret_value: "" }
+    params_hash[:mfa_secret_form] = ActionController::Parameters.new(secret_value: "")
     controller.handle_mfa_login
 
     assert_equal :form_invalid, failures.last[:reason]
 
-    params_hash[:mfa_secret_form] = { secret_value: "secret" }
+    params_hash[:mfa_secret_form] = ActionController::Parameters.new(secret_value: "secret")
     controller.define_singleton_method(:cloudflare_turnstile_validation) { { "success" => false } }
     controller.handle_mfa_login
 
@@ -472,12 +480,15 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     session_hash.delete(Sign::App::In::SecretsController::MFA_USER_SESSION_KEY)
     params_hash.delete(:mfa_secret_form)
-    params_hash[:secret_login_form] = { identifier: "", secret_value: "" }
+    params_hash[:secret_login_form] = ActionController::Parameters.new(identifier: "", secret_value: "")
     controller.handle_standard_login
 
     assert_equal :form_invalid, failures.last[:reason]
 
-    params_hash[:secret_login_form] = { identifier: @raw_email, secret_value: "secret" }
+    params_hash[:secret_login_form] = ActionController::Parameters.new(
+      identifier: @raw_email,
+      secret_value: "secret",
+    )
     controller.define_singleton_method(:cloudflare_turnstile_validation) { { "success" => false } }
     controller.handle_standard_login
 
@@ -505,7 +516,11 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   test "direct controller success handlers cover mfa and standard redirects" do
     controller = Sign::App::In::SecretsController.new
     session_hash = {}
-    params_hash = ActionController::Parameters.new(ri: "jp", rd: "encoded-rd")
+    params_hash = ActionController::Parameters.new(
+      "ri" => "jp",
+      "rt" => "encoded-rt",
+      "cf-turnstile-response" => "test_token",
+    )
     redirects = []
     failures = []
 
@@ -514,8 +529,8 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { params_hash }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
-    controller.define_singleton_method(:safe_redirect_to_rd_or_default!) { |rd, default_path:|
-      redirects << [rd || default_path, {}]
+    controller.define_singleton_method(:safe_redirect_to_rt_or_default!) { |rt, default_path:|
+      redirects << [rt || default_path, {}]
     }
     controller.define_singleton_method(:render_failed_login) { |**kwargs| failures << kwargs }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs|
@@ -523,7 +538,9 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     }
     controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_bulletin_path) { |rd: nil, ri: nil| "/bulletin?rd=#{rd}&ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_in_checkpoint_path) { |rt: nil, ri: nil|
+      "/sign/in/checkpoint?rt=#{rt}&ri=#{ri}"
+    }
     controller.define_singleton_method(:t) { |key| key }
     controller.define_singleton_method(:clear_mfa_session!) { session_hash[Sign::App::In::SecretsController::MFA_USER_SESSION_KEY] = nil }
 
@@ -545,12 +562,13 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.handle_successful_mfa(@user, secret)
 
-    assert_match %r{\A/bulletin}, redirects.last.first
+    assert_match %r{\A/sign/in/checkpoint}, redirects.last.first
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.handle_successful_mfa(@user, secret)
 
-    assert_equal ["/after", {}], redirects.last
+    assert_equal ["/dashboard?ri=jp&rt=%2Fafter", { notice: "sign.app.authentication.secret.create.success" }],
+                 redirects.last
 
     controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :unexpected } }
     controller.handle_successful_mfa(@user, secret)
@@ -580,11 +598,11 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.process_standard_login(@user)
 
-    assert_match %r{\A/bulletin}, redirects.last.first
+    assert_match %r{\A/sign/in/checkpoint}, redirects.last.first
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.process_standard_login(@user)
 
-    assert_equal ["encoded-rd", {}], redirects.last
+    assert_equal ["/dashboard?ri=jp", { notice: "sign.app.authentication.secret.create.success" }], redirects.last
   end
 end

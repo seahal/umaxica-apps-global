@@ -19,7 +19,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh with valid refresh token sets both access and refresh cookies" do
-    token_record = StaffToken.create!(staff: @staff, device_id: @device_id)
+    token_record = OperatorToken.create!(staff: @staff, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
 
     csrf_token = "test_csrf_token"
@@ -62,7 +62,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     expires_at = Time.utc(2035, 5, 6, 7, 8, 9)
 
     travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
-      token_record = StaffToken.create!(staff: @staff, device_id: @device_id)
+      token_record = OperatorToken.create!(staff: @staff, device_id: @device_id)
       refresh_plain = token_record.rotate_refresh_token!
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -92,7 +92,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "GET check with valid access token from refresh returns 200" do
-    token_record = StaffToken.create!(staff: @staff, device_id: @device_id)
+    token_record = OperatorToken.create!(staff: @staff, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
 
     csrf_token = "test_csrf_token"
@@ -120,11 +120,11 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :ok
     json = response.parsed_body
 
-    assert json["authenticated"], "Staff should be authenticated"
+    assert json["authenticated"], "Operator should be authenticated"
   end
 
   test "POST refresh with old refresh token after rotation returns 401" do
-    token_record = StaffToken.create!(staff: @staff, device_id: @device_id)
+    token_record = OperatorToken.create!(staff: @staff, device_id: @device_id)
     old_refresh_plain = token_record.rotate_refresh_token!
     token_record.rotate_refresh_token!
 
@@ -148,7 +148,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh denies when device_id missing and writes occurrence" do
-    token_record = StaffToken.create!(staff: @staff, device_id: SecureRandom.uuid)
+    token_record = OperatorToken.create!(staff: @staff, device_id: SecureRandom.uuid)
     refresh_plain = token_record.rotate_refresh_token!
 
     csrf_token = "test_csrf_token"
@@ -165,7 +165,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
          as: :json
 
     assert_response :unauthorized
-    occurrence = StaffOccurrence.order(:id).last
+    occurrence = OperatorOccurrence.order(:id).last
 
     assert_equal "refresh_device_missing", occurrence.event_type
     assert_equal 1, occurrence.status_id
@@ -175,7 +175,10 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh with restricted token returns localized error message" do
-    token_record = StaffToken.create!(staff: @staff, status: StaffToken::STATUS_RESTRICTED, device_id: @device_id)
+    token_record = OperatorToken.create!(
+      staff: @staff, staff_token_status_id: OperatorTokenStatus::RESTRICTED,
+      device_id: @device_id,
+    )
     refresh_plain = token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
 
     csrf_token = "test_csrf_token"

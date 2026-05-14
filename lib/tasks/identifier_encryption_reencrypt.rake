@@ -13,8 +13,8 @@ namespace :db do
           "user_telephones=#{result.user_telephones_reencrypted}",
           "staff_emails=#{result.staff_emails_reencrypted}",
           "staff_telephones=#{result.staff_telephones_reencrypted}",
-          "customer_emails=#{result.customer_emails_reencrypted}",
-          "customer_telephones=#{result.customer_telephones_reencrypted}",
+          "visitor_emails=#{result.visitor_emails_reencrypted}",
+          "visitor_telephones=#{result.visitor_telephones_reencrypted}",
         ].join(" "),
       )
     end

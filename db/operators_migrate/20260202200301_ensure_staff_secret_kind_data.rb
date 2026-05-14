@@ -7,7 +7,7 @@ class EnsureStaffSecretKindData < ActiveRecord::Migration[8.2]
     safety_assured do
       if table_exists?(:staff_secret_kinds)
         # Ensure default secret kinds exist
-        %w(LOGIN TOTP default).each do |code|
+        %w(LOGIN default).each do |code|
           execute(<<~SQL.squish)
             INSERT INTO staff_secret_kinds (code)
             VALUES ('#{code}')

@@ -6,15 +6,19 @@ require "test_helper"
 class ReferenceDefaultsTest < ActiveSupport::TestCase
   DEFAULT_MODELS = [
     AreaOccurrenceStatus,
+    VisitorOccurrenceStatus,
     DomainOccurrenceStatus,
     EmailOccurrenceStatus,
     IpOccurrenceStatus,
     JwtOccurrenceStatus,
-    StaffPreferenceRegionOption,
+    OperatorPreferenceRegionOption,
     TelephoneOccurrenceStatus,
     UserOccurrenceStatus,
+    UserEmailStatus,
+    UserMultiFactor,
     UserPreferenceLanguageOption,
     UserPreferenceRegionOption,
+    UserStatus,
     ZipOccurrenceStatus,
   ].freeze
 

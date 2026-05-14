@@ -35,7 +35,7 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
 - API & BFF endpoints (health, inquiry validation, preference APIs)
 - Security controls (JWT issuance, rate limiting, Turnstile, redirect whitelist, encryption)
 - Observability (OpenTelemetry traces and health endpoints)
-- Build/test automation (pnpm-managed JS tooling for linting/formatting and `bin/rails test`)
+- Build/test automation (`vp`-managed JS checks/tests, `bin/rails test`, and `bin/ci`)
 
 ### 2.2 Out of Scope
 
@@ -65,21 +65,21 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
 - **Unit tests (Ruby)**: `bin/rails test` covers models (e.g., `ServiceSiteContact`,
   `UserIdentityEmail`, `TimeBasedOneTimePassword`), controllers, concerns, services, consumers.
   Fixtures stored under `test/fixtures`; multi-database fixtures split by context.
-- **Unit tests (JS/TS)**: `pnpm test` targets helpers (`views/passkey_helpers.js`, React utility
-  modules) and ensures bundles remain deterministic.
-- **Integration/system tests**: Rails system tests or Playwright scripts simulate flows (preference
-  edits, registration, help contact).
-- **API/contract tests**: Rswag or request specs verify `/api/v1/inquiry/*`, `/bff/*` payloads and
-  headers.
+- **Unit tests (JS/TS)**: `vp test` is the JavaScript test baseline. `pnpm test` remains a package
+  alias for `vp test run`.
+- **Integration/system tests**: Rails integration and system tests remain the automated baseline.
+  Browser-level Playwright scenarios are deferred until a concrete release flow requires them.
+- **API/contract tests**: Rails controller/integration tests cover API behavior, with
+  `committee-rails` available for OpenAPI response validation where schemas exist. Rswag is not an
+  adopted dependency.
 - **Security tests**: RSpec/Minitest cases for rate limiting, JWT signature validation, redirect
   sanitization, Turnstile failure handling, PII encryption.
-- **Performance tests**: k6 or wrk for `/sign` and `/help` flows; Lighthouse (or WebPageTest) for
-  marketing pages. Target 300 ms p95 for health endpoints.
+- **Performance tests**: Dedicated k6/wrk scenarios are deferred. Add them only when a concrete load
+  target and environment are defined.
 - **Observability verification**: OTEL traces appear in Tempo; Loki logs capture Turnstile failures;
   Grafana dashboards show request rate and application error signals.
-- **Automation**: CI pipeline runs all tests plus linting (`pnpm run lint`, `pnpm run format`,
-  `pnpm run check`, `bundle exec rubocop`, `bundle exec erb_lint`, `bundle exec brakeman`,
-  `bundle exec bundler-audit`).
+- **Automation**: CI runs the configured Rails and JS gates: `bin/ci` for the Rails stack and GitHub
+  Actions `vp check` plus `vp test --coverage` for JavaScript.
 
 ---
 
@@ -168,7 +168,6 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 - **TC-API-402** Telephone validation: POST JSON to `/api/app/v1/inquiry/valid_telephone_numbers`;
   expects `valid` key and proper status codes.
 - **TC-API-403** Health JSON: `/api/*/v1/health` returns `{ status: "OK" }`.
-- **TC-BFF-404** Preference email edit: hitting `/bff/app/preference/emails` retains locale/timezone
   query params normalized by the preference concerns.
 
 ### 7.6 Docs/News/Help health
@@ -193,25 +192,37 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 - **TC-OBS-701** OTEL span creation: hitting `/sign` while `OTEL_EXPORTER_OTLP_ENDPOINT` is set
   emits span visible in Tempo.
 
+### 7.9 Current Automation Matrix
+
+| Layer              | Local command                                | CI status                                                   | Decision                                                                |
+| ------------------ | -------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Ruby unit/ctrl/int | `bin/rails test`                             | Covered by `bin/ci`                                         | Adopted baseline.                                                       |
+| Rails system       | `bin/rails test:system`                      | Covered by `bin/ci`                                         | Adopted Rails-level browser/system baseline.                            |
+| JavaScript checks  | `vp check`                                   | Covered by `.github/workflows/integration.yml`              | Adopted baseline.                                                       |
+| JavaScript tests   | `vp test` or `pnpm test`                     | `vp test --coverage` in `.github/workflows/integration.yml` | Adopted baseline; keep expanding behavior-specific coverage.            |
+| API contracts      | Rails tests with selective `committee-rails` | Covered when Rails tests exercise schema validation         | Adopted selectively; no Rswag dependency.                               |
+| Browser E2E        | Not adopted                                  | Not gated                                                   | Deferred until a named cross-browser release flow needs it.             |
+| Performance/load   | Not adopted                                  | Not gated                                                   | Deferred until load targets and an execution environment are specified. |
+
 ---
 
 ## 8. Non-Functional Tests
 
-| Category      | Test                                                                                                                          |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Performance   | k6 script runs 1k req/min against `/sign` and `/help` endpoints; verify p95 < 500 ms, error rate < 0.5 %.                     |
-| Load          | Simulate 100 concurrent OTP submissions; ensure Valkey/Redis sizing suffices and no session collisions.                       |
-| Reliability   | Restart Compose services mid-request; ensure graceful error pages and health endpoints report BOOTING vs OK.                  |
-| Security      | Brakeman, Bundler Audit, RuboCop security cops; manual pen-test for JWT tampering, Turnstile bypass attempts, redirect abuse. |
-| Localization  | Preferences propagate `lx`, `ri`, `tz`, `ct` through redirects; fallback defaults apply when cookies absent.                  |
-| Observability | Verify health dashboards chart request rates, OTP failures, and Turnstile errors.                                             |
+| Category      | Test                                                                                                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Performance   | Deferred until a concrete load target and environment are specified; then add a focused k6/wrk scenario.                       |
+| Load          | Deferred until OTP/session capacity targets are specified; then simulate the target concurrency against staging-like services. |
+| Reliability   | Restart Compose services mid-request; ensure graceful error pages and health endpoints report BOOTING vs OK.                   |
+| Security      | Brakeman, Bundler Audit, RuboCop security cops; manual pen-test for JWT tampering, Turnstile bypass attempts, redirect abuse.  |
+| Localization  | Preferences propagate `lx`, `ri`, `tz`, `ct` through redirects; fallback defaults apply when cookies absent.                   |
+| Observability | Verify health dashboards chart request rates, OTP failures, and Turnstile errors.                                              |
 
 ---
 
 ## 9. Tooling, Data, and Automation
 
-- **Tools**: Minitest, Rswag, pnpm-run JS tests/tooling, Playwright or Capybara, k6, curl scripts,
-  Postman, Brakeman, Bundler Audit.
+- **Tools**: Minitest, Rails system tests, `committee-rails`, `vp check`, `vp test`, Brakeman,
+  Bundler Audit, database_consistency, curl scripts for manual smoke checks.
 - **Fixtures**: Stored per DB context; use `ActiveRecord::FixtureSet.create_fixtures` per database
   connection. Sensitive examples anonymized.
 - **Data cleanup**: Multi-DB tests must wrap in transactions (Rails 8 multi-db test helpers) or rely

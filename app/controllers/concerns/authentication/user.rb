@@ -72,9 +72,21 @@ module Authentication
     def sign_in_url_with_return(return_to)
       new_sign_app_in_url(
         rt: return_to,
-        host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+        host: sign_app_redirect_host,
         protocol: request.protocol,
       )
+    end
+
+    def sign_app_redirect_host
+      configured_hosts =
+        %w(SIGN_SERVICE_URL ID_SERVICE_URL).filter_map do |key|
+          Common::Redirect.normalize_host(ENV[key])
+        end
+
+      request_host = Common::Redirect.normalize_host(request.host_with_port)
+      return request_host if configured_hosts.include?(request_host)
+
+      configured_hosts.first || "id.app.localhost"
     end
   end
 end

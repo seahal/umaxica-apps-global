@@ -1,0 +1,113 @@
+# GH-578: Consolidate Preference System Around Current::Preference and JWT Snapshots
+
+GitHub: #578
+
+## Summary
+
+Consolidate the preference system around `Current::Preference`, JWT preference snapshots, and the
+agreed long-term database layout.
+
+## Scope
+
+- Add a `prf` claim to auth tokens for preference snapshot data.
+- Introduce `Current::Preference` (already implemented — verify completeness).
+- Reissue access tokens when preference-changing actions require it.
+- Move `app` preference data to `principal` database.
+- Move `org` preference data to `operator` database.
+- Keep `com` in `preference` database unless later changed.
+- Consolidate old preference models and associations.
+- Remove obsolete compatibility shims after the migration is complete.
+- Centralize preference reads/writes behind the agreed API and request lifecycle model.
+
+## UI Follow-up
+
+- AJAX dark mode toggle.
+- AJAX cookie consent updates.
+
+## Acceptance Criteria
+
+- `Current::Preference` is the runtime source of truth for the intended flows.
+- Preference JWT round-trip works correctly.
+- Preference writes can trigger token reissue where needed.
+- Planned DB moves for app/org preference data are implemented or broken into explicit sub-steps.
+- Obsolete preference models/shims are removed once no longer needed.
+- Dark mode and cookie consent updates work without full page reloads.
+
+## Source
+
+- `docs/todo/security_and_preference_plan.md`
+
+## Implementation Status (2026-04-07)
+
+**Status: PARTIALLY DONE**
+
+Done:
+
+- `Current::Preference` implemented as immutable value object.
+- JWT `prf` claim integrated in `auth/token_claims.rb`.
+- `Current::Preference.from_jwt()` reconstructs preference from JWT payload.
+
+Remaining:
+
+- Legacy preference models (AppPreference, ComPreference, OrgPreference + 48 related models) still
+  exist.
+- DB moves (app → principal, org → operator) not yet completed.
+- Obsolete compatibility shims not yet removed.
+
+## Improvement Points (2026-04-07 Review)
+
+- Map current preference models, cookies, and JWT payload writers to the target architecture before
+  changing storage. The codebase is already partially consolidated, so the remaining gaps need a
+  current-state inventory.
+- Split UI polish, token reissue rules, and database moves into separate subtracks. They have
+  different validation paths and should not block each other.
+
+## 2026-05-07 現状差分と改善として残すこと
+
+この issue の大部分は既に進んでいる。
+
+確認済み:
+
+- `Current::Preference` は実装済み。
+- `Auth::TokenService` と token claims 周辺のテストが存在する。
+- preference DB 配置は、少なくとも app / org / com /
+  customer の主要移動が現行 schema に反映されている。
+
+この文書は「preference 全体を統合する大計画」としてではなく、残り改善の親メモとして残す。
+
+残す改善:
+
+- preference 変更時に access token / preference snapshot を再発行すべき条件を明文化する。
+- dark mode / cookie consent の AJAX 化は UI 改善として独立させる。
+- obsolete shim / bridge / duplicate model の削除は
+  `plans/backlog/legacy-preference-models-retirement-plan.md` 側で扱う。
+- 新しい DB 移動をこの文書へ追加しない。DB 配置の変更は個別 plan に分ける。
+
+## Closed Scope (2026-05-10)
+
+**Status: CLOSED**
+
+`gh578` の runtime consolidation 範囲は現行実装で満たしているものとして閉じる。
+
+確認済み:
+
+- `Current::Preference` は request runtime read interface として実装済み。
+- Auth access token の `prf` claim は `Auth::TokenClaims` で発行される。
+- `CurrentSupport` は actor-side preference record を優先し、なければ JWT `prf`
+  claim、それもなければ safe default を使う。
+- `Preference::Core` の preference 変更系 action は shared preference を reload し、access
+  token を再発行する。
+- `/web/v0/theme` と `/web/v0/cookie` の JSON endpoint は dark mode / cookie
+  consent の no-full-page-reload 更新経路として存在する。
+- 現行 DB 配置は `app` -> `principal`, `org` -> `operator`, `com` -> `setting` で、
+  `customer_preferences` も `setting` 側にある。
+- `docs/architecture/preference.md` を現行 layout、JWT `prf`、token reissue rule、AJAX
+  endpoint の実態に合わせて更新した。
+
+残りはこの plan では扱わない:
+
+- Re-login reconciliation の product decision は
+  `plans/backlog/gh629-preference-reconciliation-strategy.md` で扱う。
+- obsolete shim / bridge / duplicate model の削除は
+  `plans/backlog/legacy-preference-models-retirement-plan.md` で扱う。
+- 新しい DB 移動は個別 migration plan で扱う。

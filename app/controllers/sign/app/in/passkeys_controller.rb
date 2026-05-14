@@ -95,9 +95,9 @@ module Sign
         end
 
         def perform_passkey_sign_in(passkey)
-          rd = retrieve_redirect_parameter_for_bulletin
+          rt = retrieve_redirect_parameter_for_checkpoint
           complete_sign_in_or_start_mfa!(
-            passkey.user, rt: rd, ri: params[:ri], auth_method: "passkey",
+            passkey.user, rt: rt, ri: params[:ri], auth_method: "passkey",
           )
         end
 
@@ -126,9 +126,9 @@ module Sign
           }, status: :ok
         end
 
-        def passkey_bulletin_redirect_url
-          sign_app_in_bulletin_path(
-            rd: retrieve_redirect_parameter_for_bulletin,
+        def passkey_checkpoint_redirect_url
+          sign_app_in_checkpoint_path(
+            rt: retrieve_redirect_parameter_for_checkpoint,
             ri: params[:ri],
           )
         end

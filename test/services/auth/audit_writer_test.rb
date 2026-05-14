@@ -60,6 +60,27 @@ module Auth
       assert UserChronicle.exists?(event_id: UserChronicleEvent::LOGGED_IN, subject_id: @user.id)
     end
 
+    test "write recreates missing user chronicle event and level references" do
+      ChronicleRecord.connected_to(role: :writing) do
+        UserChronicle.where(event_id: UserChronicleEvent::LOGGED_IN).delete_all
+        UserChronicleEvent.where(id: UserChronicleEvent::LOGGED_IN).delete_all
+        UserChronicleLevel.where(id: UserChronicleLevel::NOTHING).delete_all
+      end
+
+      result = Auth::AuditWriter.write(
+        UserChronicle,
+        "LOGGED_IN",
+        resource: @user,
+        actor: @user,
+        ip_address: "127.0.0.1",
+      )
+
+      assert result
+      assert UserChronicleEvent.exists?(id: UserChronicleEvent::LOGGED_IN)
+      assert UserChronicleLevel.exists?(id: UserChronicleLevel::NOTHING)
+      assert UserChronicle.exists?(event_id: UserChronicleEvent::LOGGED_IN, subject_id: @user.id)
+    end
+
     test "write returns false on failure" do
       # Create invalid event_id that is guaranteed not to exist
       invalid_event_id = "NONEXISTENT_#{SecureRandom.hex(16).upcase}"

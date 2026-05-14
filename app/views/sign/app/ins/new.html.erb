@@ -1,19 +1,26 @@
 <% content_for :page_title, t("sign.app.authentication.new.page_title") %>
+<% return_to = params[:rt].presence %>
 <h1><%= t("sign.app.authentication.new.page_title") %></h1>
 <p><%= t("sign.app.authentication.new.description") %></p>
 
 <ul>
-  <li><%= link_to t("sign.app.authentication.new.links.email"), new_sign_app_in_email_path %></li>
-  <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_sign_app_in_passkey_path %>
+  <li><%= link_to t("sign.app.authentication.new.links.email"), new_sign_app_in_email_path(rt: return_to) %></li>
+  <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_sign_app_in_passkey_path(rt: return_to) %>
   </li>
-  <li><%= link_to t("sign.app.authentication.new.links.secret"), new_sign_app_in_secret_path %>
+  <li><%= link_to t("sign.app.authentication.new.links.secret"), new_sign_app_in_secret_path(rt: return_to) %>
   </li>
 </ul>
 
-<%= button_to start_sign_app_social_authentication_path(provider: "google_app", intent: "login", ri: params[:ri]),
+<%= button_to continue_sign_app_social_authentication_path(provider: "google_app", ri: params[:ri]),
               method: :post,
               data: { turbo: false } do %>
   <%= t("sign.app.authentication.new.links.google") %>
+<% end %>
+
+<%= button_to continue_sign_app_social_authentication_path(provider: "apple", ri: params[:ri]),
+              method: :post,
+              data: { turbo: false } do %>
+  <%= t("sign.app.authentication.new.links.apple") %>
 <% end %>
 
 <%= link_to new_sign_app_up_path(ri: params[:ri], rt: params[:rt]) do %>

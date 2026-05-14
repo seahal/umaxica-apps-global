@@ -10,6 +10,9 @@ module Sign
         include ::Verification::User
 
         before_action :authenticate_user!
+        before_action only: %i(new create) do
+          require_step_up!(scope: verification_scope)
+        end
         before_action :set_secret, only: %i(show edit destroy regenerate)
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
 
@@ -38,6 +41,7 @@ module Sign
             params: secret_params,
             raw_secret: raw_secret,
           )
+          record_secret_registration_step_up!
 
           flash[:notice] = t(".created")
           redirect_to(sign_app_configuration_secrets_path)
@@ -81,8 +85,15 @@ module Sign
           render plain: User::RECOVERY_IDENTITY_REQUIRED_MESSAGE, status: :forbidden
         end
 
+        def record_secret_registration_step_up!
+          current_session_token&.update!(
+            last_step_up_at: Time.current,
+            last_step_up_scope: verification_scope,
+          )
+        end
+
         def verification_required_action?
-          %w(destroy regenerate).include?(action_name)
+          true
         end
 
         def verification_scope

@@ -101,8 +101,8 @@ ja:
             passkey: パスキー
             recovery: リカバリーコード
             secret: シークレット
-            google: Googleでサインイン
-            apple: Appleでサインイン
+            google: Googleで続行
+            apple: Appleで続行
             registration: アカウント登録はこちら
           back_to_root: うえへ
         secret:
@@ -240,10 +240,27 @@ ja:
           events:
             logged_in: ログイン成功
             login_success: ログイン成功
+            logged_out: ログアウト
+            logout: ログアウト
+            signed_up_with_apple: Appleで登録
+            signed_up_with_email: メールアドレスで登録
+            signed_up_with_google: Googleで登録
+            signed_up_with_telephone: 電話番号で登録
+            social_linked: ソーシャルアカウント連携
+            social_unlinked: ソーシャルアカウント連携解除
+            session_revoked: セッション無効化
+            email_registered: メールアドレス登録
+            email_removed: メールアドレス抹消
+            telephone_registered: 電話番号登録
+            telephone_removed: 電話番号抹消
+            totp_enabled: 認証アプリ登録
+            passkey_registered: パスキー登録
+            user_secret_created: シークレット作成
+            recovery_codes_generated: 復旧コード生成
             unknown: 不明なイベント (%{event_id})
         email:
           edit:
-            title: メールアドレスの削除
+            title: メールアドレスの検証
           index:
             title: メールアドレス
             description: メールアドレスを管理します
@@ -363,6 +380,7 @@ ja:
         edit:
           title: 検証
           description: 本人確認のため、コードの入力またはパスキー認証を行ってください。
+          email_description: 本人確認のため、コードの入力を行ってください。
           authenticate_with_passkey: パスキーで認証
           code_label: 確認コード
           code_placeholder: 6桁
@@ -521,6 +539,7 @@ ja:
             you_have_already_logged_in: あなたはログインしています
             forbidden_action: 最初からやり直してください
             your_session_was_expired: 有効期間が切れたので、最初からやり直してください
+            submit: Email で登録
         telephone:
           new:
             page_title: 電話番号でサインイン
@@ -539,7 +558,7 @@ ja:
       social:
         sessions:
           create:
-            success: "%{provider} でアカウントを作成してサインインしました。"
+            success: "%{provider}で登録しました"
       configuration:
         show:
           page_title: 設定
@@ -1411,6 +1430,9 @@ ja:
         locale_settings: 言語の設定
         language_settings: 言語設定
         timezone_settings: タイムゾーン設定
+        motion_settings: モーション設定
+        density_settings: 表示密度設定
+        items_per_page_settings: 1ページあたりの表示件数
         theme_settings: テーマ設定
         email_settings: メール設定
         reset_settings: 設定のリセット
@@ -1432,6 +1454,7 @@ ja:
           invalid: 無効なテーマが選択されました
         regions: &4
           title: 地域・言語の設定
+          back_link: もどる
           region_section: 地域設定
           select_region: 地域を選択
           language_section: 言語設定
@@ -1495,6 +1518,41 @@ ja:
               dark: 夜間の監視業務や長時間利用で目の負担を軽減します。
               system: OSのテーマ変更にあわせて自動で切り替わります。
             submit: テーマ設定を保存
+        motion:
+          edit:
+            heading: モーション設定
+            description: 画面内のアニメーションや動きの量を選択します。
+            option_label: モーション
+          options:
+            standard: 標準モーション
+            reduced: 控えめなモーション
+        density:
+          edit:
+            heading: 表示密度設定
+            description: 画面内の情報をどの程度コンパクトに表示するかを選択します。
+            option_label: 表示密度
+          options:
+            standard: 標準
+            compact: コンパクト
+        items_per_page:
+          edit:
+            heading: 1ページあたりの表示件数
+            description: ページ分割された一覧で一度に表示する件数を選択します。
+            "option_label": "表示件数"
+          options:
+            "10": 10件
+            "20": 20件
+            "50": 50件
+            "100": 100件
+        date_format:
+          edit:
+            heading: 日付形式
+            description: アプリケーションで表示する日付形式を選択します。
+            option_label: 日付形式
+          options:
+            iso: ISO形式 (YYYY-MM-DD)
+            uk: 英国式 (DD/MM/YYYY)
+            us: 米国式 (MM/DD/YYYY)
         resets: &8
           title: 設定のリセット
           description: このブラウザに保存された設定データを削除します。
@@ -1524,6 +1582,17 @@ ja:
         themes:
           updated: "%{theme} にテーマを更新しました"
         regions: *4
+        region:
+          timezone:
+            link: タイムゾーン設定
+          language:
+            link: 言語設定
+          currency:
+            link: 通貨設定
+          date_format:
+            link: 日付形式
+          time_format:
+            link: 時刻形式
       preference:
         cookie: *5
         locale: *6
@@ -1563,6 +1632,17 @@ ja:
           updated: 管理テーマを%{theme}に更新しました
           invalid: 無効な管理テーマが選択されました
         regions: *4
+        region:
+          timezone:
+            link: タイムゾーン設定
+          language:
+            link: 言語設定
+          currency:
+            link: 通貨設定
+          date_format:
+            link: 日付形式
+          time_format:
+            link: 時刻形式
       preference:
         cookie: *5
         locale:
@@ -1583,6 +1663,31 @@ ja:
               JST: 日本標準時 (JST)
             submit: 設定を更新
             cancel: キャンセル
+        currency:
+          edit:
+            heading: 通貨設定
+            description: 表示に使う通貨を選択します。
+            option_label: 通貨
+          options:
+            usd: 米ドル (USD)
+            jpy: 日本円 (JPY)
+        date_format:
+          edit:
+            heading: 日付形式
+            description: 表示する日付形式を選択します。
+            option_label: 日付形式
+          options:
+            iso: ISO形式 (YYYY-MM-DD)
+            uk: 英国式 (DD/MM/YYYY)
+            us: 米国式 (MM/DD/YYYY)
+        time_format:
+          edit:
+            heading: 時刻形式
+            description: 表示する時刻形式を選択します。
+            option_label: 時刻形式
+          options:
+            hour_24: 24時間表記
+            hour_12: 12時間表記
         theme:
           edit:
             title: テーマ設定（ライト／ダークの切り替え）

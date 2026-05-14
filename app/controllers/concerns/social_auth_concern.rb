@@ -23,6 +23,9 @@ module SocialAuthConcern
   SOCIAL_STARTED_AT_SESSION_KEY = :social_auth_started_at
   SOCIAL_FLOW_ID_SESSION_KEY = :social_auth_flow_id
   SOCIAL_PROVIDER_SESSION_KEY = :social_auth_provider
+  SOCIAL_RT_SESSION_KEY = :social_auth_rt
+  SOCIAL_ENTRY_SESSION_KEY = :social_auth_entry
+  SOCIAL_RI_SESSION_KEY = :social_auth_ri
   STATE_TTL = 5.minutes
   REAUTH_TTL = 10.minutes
 
@@ -40,7 +43,7 @@ module SocialAuthConcern
   #
   # @param intent [String] One of: "login", "link", "reauth"
   # @return [void]
-  def prepare_social_auth_intent!(intent, provider: nil)
+  def prepare_social_auth_intent!(intent, provider: nil, rt: nil, entry: nil, ri: nil)
     intent = intent.to_s
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent") unless VALID_INTENTS.include?(intent)
 
@@ -52,6 +55,13 @@ module SocialAuthConcern
     session[SOCIAL_STARTED_AT_SESSION_KEY] = Time.current.to_i
     session[SOCIAL_FLOW_ID_SESSION_KEY] = SecureRandom.hex(16)
     session[SOCIAL_PROVIDER_SESSION_KEY] = provider
+    session[SOCIAL_ENTRY_SESSION_KEY] = entry if entry.present?
+    session[SOCIAL_RI_SESSION_KEY] = ri if ri.present?
+    if rt.present?
+      session[SOCIAL_RT_SESSION_KEY] = rt
+    else
+      session.delete(SOCIAL_RT_SESSION_KEY)
+    end
     session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = SecureRandom.hex(24)
     session[SocialCallbackGuard::SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
     session[SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
@@ -97,12 +107,27 @@ module SocialAuthConcern
     session[SOCIAL_INTENT_SESSION_KEY] || "login"
   end
 
+  def current_social_auth_rt
+    session[SOCIAL_RT_SESSION_KEY].presence
+  end
+
+  def current_social_auth_entry
+    session[SOCIAL_ENTRY_SESSION_KEY].presence
+  end
+
+  def current_social_auth_ri
+    session[SOCIAL_RI_SESSION_KEY].presence
+  end
+
   def clear_social_auth_intent!
     session.delete(SOCIAL_INTENT_SESSION_KEY)
     session.delete(SOCIAL_USER_ID_SESSION_KEY)
     session.delete(SOCIAL_STARTED_AT_SESSION_KEY)
     session.delete(SOCIAL_FLOW_ID_SESSION_KEY)
     session.delete(SOCIAL_PROVIDER_SESSION_KEY)
+    session.delete(SOCIAL_RT_SESSION_KEY)
+    session.delete(SOCIAL_ENTRY_SESSION_KEY)
+    session.delete(SOCIAL_RI_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_STARTED_AT_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
@@ -130,12 +155,14 @@ module SocialAuthConcern
   def process_social_auth_callback
     auth_hash = omniauth_auth_hash
     intent = current_social_auth_intent
+    rt = current_social_auth_rt
 
     result = SocialAuthService.handle_callback(
       auth_hash: auth_hash,
       current_user: social_auth_user,
       intent: intent,
     )
+    result[:rt] = rt if rt.present?
 
     clear_social_auth_intent!
     result

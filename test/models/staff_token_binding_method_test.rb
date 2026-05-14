@@ -10,35 +10,37 @@
 #
 require "test_helper"
 
-class StaffTokenBindingMethodTest < ActiveSupport::TestCase
+class OperatorTokenBindingMethodTest < ActiveSupport::TestCase
   test "constants are defined correctly" do
-    assert_equal 0, StaffTokenBindingMethod::NOTHING
-    assert_equal 1, StaffTokenBindingMethod::DBSC
-    assert_equal 2, StaffTokenBindingMethod::LEGACY
-    assert_equal [0, 1, 2], StaffTokenBindingMethod::DEFAULTS
+    assert_equal 0, OperatorTokenBindingMethod::NOTHING
+    assert_equal 1, OperatorTokenBindingMethod::DBSC
+    assert_equal 2, OperatorTokenBindingMethod::LEGACY
+    assert_equal [0, 1, 2], OperatorTokenBindingMethod::DEFAULTS
   end
 
   test "ensure_defaults! creates missing records" do
-    StaffTokenBindingMethod.where(id: StaffTokenBindingMethod::DEFAULTS).destroy_all
+    Prosopite.pause do
+      OperatorTokenBindingMethod.where(id: OperatorTokenBindingMethod::DEFAULTS).destroy_all
+    end
 
-    StaffTokenBindingMethod.ensure_defaults!
+    OperatorTokenBindingMethod.ensure_defaults!
 
-    assert StaffTokenBindingMethod.exists?(id: StaffTokenBindingMethod::NOTHING)
-    assert StaffTokenBindingMethod.exists?(id: StaffTokenBindingMethod::DBSC)
-    assert StaffTokenBindingMethod.exists?(id: StaffTokenBindingMethod::LEGACY)
+    assert OperatorTokenBindingMethod.exists?(id: OperatorTokenBindingMethod::NOTHING)
+    assert OperatorTokenBindingMethod.exists?(id: OperatorTokenBindingMethod::DBSC)
+    assert OperatorTokenBindingMethod.exists?(id: OperatorTokenBindingMethod::LEGACY)
   end
 
   test "ensure_defaults! does nothing when all defaults exist" do
-    StaffTokenBindingMethod.ensure_defaults!
-    initial_count = StaffTokenBindingMethod.count
+    OperatorTokenBindingMethod.ensure_defaults!
+    initial_count = OperatorTokenBindingMethod.count
 
-    StaffTokenBindingMethod.ensure_defaults!
+    OperatorTokenBindingMethod.ensure_defaults!
 
-    assert_equal initial_count, StaffTokenBindingMethod.count
+    assert_equal initial_count, OperatorTokenBindingMethod.count
   end
 
   test "has_many staff_tokens association" do
-    method = StaffTokenBindingMethod.new(id: 1)
+    method = OperatorTokenBindingMethod.new(id: 1)
 
     assert_respond_to method, :staff_tokens
   end

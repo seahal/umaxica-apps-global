@@ -14,13 +14,15 @@ def ensure_reference_rows(model_class, ids)
 end
 
 # Reference tables with ReferenceRecord concern
-ensure_reference_rows(UserVisibility, [UserVisibility::STAFF])
-ensure_reference_rows(UserStatus, [UserStatus::ACTIVE])
-ensure_reference_rows(UserEmailStatus, [UserEmailStatus::VERIFIED])
+ensure_reference_rows(UserVisibility, UserVisibility::DEFAULTS)
+ensure_reference_rows(UserStatus, UserStatus::DEFAULTS)
+ensure_reference_rows(UserMultiFactor, UserMultiFactor::DEFAULTS)
+ensure_reference_rows(UserEmailStatus, UserEmailStatus::DEFAULTS)
+ensure_reference_rows(UserOneTimePasswordStatus, UserOneTimePasswordStatus::DEFAULTS)
 ensure_reference_rows(UserSecretStatus, [UserSecretStatus::ACTIVE, UserSecretStatus::USED])
 ensure_reference_rows(UserSecretKind, [UserSecretKind::PERMANENT])
 
-ensure_reference_rows(StaffVisibility, [StaffVisibility::STAFF])
+ensure_reference_rows(OperatorVisibility, [OperatorVisibility::STAFF])
 ensure_reference_rows(StaffStatus, [StaffStatus::ACTIVE])
 ensure_reference_rows(StaffEmailStatus, [StaffEmailStatus::VERIFIED])
 ensure_reference_rows(
@@ -33,11 +35,13 @@ ensure_reference_rows(StaffSecretKind, [StaffSecretKind::PERMANENT])
 # Ensure reference rows using ensure_defaults! method
 UserVisibility.ensure_defaults!
 UserStatus.ensure_defaults!
+UserMultiFactor.ensure_defaults!
 UserEmailStatus.ensure_defaults!
+UserOneTimePasswordStatus.ensure_defaults!
 UserSecretStatus.ensure_defaults!
 UserSecretKind.ensure_defaults!
 
-StaffVisibility.ensure_defaults!
+OperatorVisibility.ensure_defaults!
 StaffStatus.ensure_defaults!
 StaffEmailStatus.ensure_defaults!
 StaffSecretStatus.ensure_defaults!

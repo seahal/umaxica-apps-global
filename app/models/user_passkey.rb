@@ -34,11 +34,13 @@
 
 class UserPasskey < PrincipalRecord
   include ::PublicId
+  include MultiFactorStatusCredential
 
   MAX_PASSKEYS_PER_USER = 4
   attribute :status_id, default: UserPasskeyStatus::ACTIVE
 
   belongs_to :user, inverse_of: :user_passkeys
+  multi_factor_status_owner :user
   belongs_to :status, class_name: "UserPasskeyStatus", optional: true
 
   scope :active, -> { where(status_id: UserPasskeyStatus::ACTIVE) }
@@ -50,9 +52,9 @@ class UserPasskey < PrincipalRecord
   validates :status_id, numericality: { only_integer: true }
   validates :sign_count, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validate :enforce_user_passkey_limit, on: :create
-  validate :require_verified_recovery_identity, on: :create
 
   before_validation :set_defaults, on: :create
+  before_validation :ensure_status_defaults, on: :create
 
   def to_param
     public_id
@@ -69,15 +71,13 @@ class UserPasskey < PrincipalRecord
     errors.add(:base, :too_many, message: "exceeds maximum passkeys per user (#{MAX_PASSKEYS_PER_USER})")
   end
 
-  def require_verified_recovery_identity
-    return if user&.has_verified_recovery_identity?
-
-    errors.add(:base, User::RECOVERY_IDENTITY_REQUIRED_MESSAGE)
-  end
-
   def set_defaults
     self.external_id ||= SecureRandom.uuid
     self.sign_count ||= 0
     self.description = I18n.t("sign.default_passkey_description") if description.blank?
+  end
+
+  def ensure_status_defaults
+    UserPasskeyStatus.ensure_defaults!
   end
 end

@@ -15,65 +15,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
 
-  create_table "app_contact_audit_events", force: :cascade do |t|
-  end
-
-  create_table "app_contact_audit_levels", force: :cascade do |t|
-  end
-
-  create_table "app_contact_chronicle_events", force: :cascade do |t|
-  end
-
-  create_table "app_contact_chronicle_levels", force: :cascade do |t|
-  end
-
-  create_table "app_contact_chronicles", force: :cascade do |t|
-    t.bigint "actor_id"
-    t.string "actor_type"
-    t.datetime "created_at", null: false
-    t.bigint "event_id", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.bigint "level_id", null: false
-    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }
-    t.datetime "purge_at"
-    t.bigint "subject_id", null: false
-    t.string "subject_type", null: false
-    t.datetime "updated_at", null: false
-    t.index ["actor_type", "actor_id"], name: "index_app_contact_chronicles_on_actor_type_and_actor_id"
-    t.index ["event_id"], name: "index_app_contact_chronicles_on_event_id"
-    t.index ["level_id"], name: "index_app_contact_chronicles_on_level_id"
-    t.index ["subject_id"], name: "index_app_contact_chronicles_on_subject_id"
-    t.index ["subject_type", "subject_id"], name: "index_app_contact_chronicles_on_subject_type_and_subject_id"
-  end
-
-  create_table "app_contact_histories", force: :cascade do |t|
-    t.bigint "actor_id", default: 0, null: false
-    t.text "actor_type", default: "", null: false
-    t.jsonb "context", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.text "current_value", default: "", null: false
-    t.bigint "event_id", default: 0, null: false
-    t.datetime "expires_at", default: -> { "(CURRENT_TIMESTAMP + 'P7Y'::interval)" }, null: false
-    t.inet "ip_address", default: "0.0.0.0", null: false
-    t.bigint "level_id", default: 0, null: false
-    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.bigint "parent_id", default: 0, null: false
-    t.integer "position", default: 0, null: false
-    t.text "previous_value", default: "", null: false
-    t.bigint "subject_id", null: false
-    t.text "subject_type", null: false
-    t.datetime "updated_at", null: false
-    t.index ["actor_id", "occurred_at"], name: "index_app_contact_histories_on_actor_id_and_occurred_at"
-    t.index ["event_id"], name: "index_app_contact_histories_on_event_id"
-    t.index ["expires_at"], name: "index_app_contact_histories_on_expires_at"
-    t.index ["level_id"], name: "index_app_contact_histories_on_level_id"
-    t.index ["occurred_at"], name: "index_app_contact_histories_on_occurred_at"
-    t.index ["parent_id"], name: "index_app_contact_histories_on_parent_id"
-    t.index ["subject_type", "subject_id", "occurred_at"], name: "idx_on_subject_type_subject_id_occurred_at_21d52ab3f6"
-    t.check_constraint "event_id >= 0", name: "app_contact_histories_event_id_non_negative_check"
-    t.check_constraint "level_id >= 0", name: "app_contact_histories_level_id_non_negative_check"
-  end
-
   create_table "app_document_audit_events", force: :cascade do |t|
   end
 
@@ -219,65 +160,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["subject_type", "subject_id"], name: "index_app_timeline_behaviors_on_subject_type_and_subject_id"
   end
 
-  create_table "com_contact_audit_events", force: :cascade do |t|
-  end
-
-  create_table "com_contact_audit_levels", force: :cascade do |t|
-  end
-
-  create_table "com_contact_audits", force: :cascade do |t|
-    t.bigint "actor_id", default: 0, null: false
-    t.text "actor_type", default: "", null: false
-    t.jsonb "context", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.text "current_value", default: "", null: false
-    t.bigint "event_id", default: 0, null: false
-    t.datetime "expires_at", default: -> { "(CURRENT_TIMESTAMP + 'P7Y'::interval)" }, null: false
-    t.inet "ip_address", default: "0.0.0.0", null: false
-    t.bigint "level_id", default: 0, null: false
-    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.bigint "parent_id", default: 0, null: false
-    t.integer "position", default: 0, null: false
-    t.text "previous_value", default: "", null: false
-    t.bigint "subject_id", null: false
-    t.text "subject_type", null: false
-    t.datetime "updated_at", null: false
-    t.index ["actor_id", "occurred_at"], name: "index_com_contact_audits_on_actor_id_and_occurred_at"
-    t.index ["event_id"], name: "index_com_contact_audits_on_event_id"
-    t.index ["expires_at"], name: "index_com_contact_audits_on_expires_at"
-    t.index ["level_id"], name: "index_com_contact_audits_on_level_id"
-    t.index ["occurred_at"], name: "index_com_contact_audits_on_occurred_at"
-    t.index ["parent_id"], name: "index_com_contact_audits_on_parent_id"
-    t.index ["subject_type", "subject_id", "occurred_at"], name: "idx_on_subject_type_subject_id_occurred_at_1ec6aec32c"
-    t.check_constraint "event_id >= 0", name: "com_contact_audits_event_id_non_negative_check"
-    t.check_constraint "level_id >= 0", name: "com_contact_audits_level_id_non_negative_check"
-  end
-
-  create_table "com_contact_chronicle_events", force: :cascade do |t|
-  end
-
-  create_table "com_contact_chronicle_levels", force: :cascade do |t|
-  end
-
-  create_table "com_contact_chronicles", force: :cascade do |t|
-    t.bigint "actor_id"
-    t.string "actor_type"
-    t.datetime "created_at", null: false
-    t.bigint "event_id", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.bigint "level_id", null: false
-    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }
-    t.datetime "purge_at"
-    t.bigint "subject_id", null: false
-    t.string "subject_type", null: false
-    t.datetime "updated_at", null: false
-    t.index ["actor_type", "actor_id"], name: "index_com_contact_chronicles_on_actor_type_and_actor_id"
-    t.index ["event_id"], name: "index_com_contact_chronicles_on_event_id"
-    t.index ["level_id"], name: "index_com_contact_chronicles_on_level_id"
-    t.index ["subject_id"], name: "index_com_contact_chronicles_on_subject_id"
-    t.index ["subject_type", "subject_id"], name: "index_com_contact_chronicles_on_subject_type_and_subject_id"
-  end
-
   create_table "com_document_audit_events", force: :cascade do |t|
   end
 
@@ -421,65 +303,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["level_id"], name: "index_com_timeline_behaviors_on_level_id"
     t.index ["subject_id"], name: "index_com_timeline_behaviors_on_subject_id"
     t.index ["subject_type", "subject_id"], name: "index_com_timeline_behaviors_on_subject_type_and_subject_id"
-  end
-
-  create_table "org_contact_audit_events", force: :cascade do |t|
-  end
-
-  create_table "org_contact_audit_levels", force: :cascade do |t|
-  end
-
-  create_table "org_contact_chronicle_events", force: :cascade do |t|
-  end
-
-  create_table "org_contact_chronicle_levels", force: :cascade do |t|
-  end
-
-  create_table "org_contact_chronicles", force: :cascade do |t|
-    t.bigint "actor_id"
-    t.string "actor_type"
-    t.datetime "created_at", null: false
-    t.bigint "event_id", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.bigint "level_id", null: false
-    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }
-    t.datetime "purge_at"
-    t.bigint "subject_id", null: false
-    t.string "subject_type", null: false
-    t.datetime "updated_at", null: false
-    t.index ["actor_type", "actor_id"], name: "index_org_contact_chronicles_on_actor_type_and_actor_id"
-    t.index ["event_id"], name: "index_org_contact_chronicles_on_event_id"
-    t.index ["level_id"], name: "index_org_contact_chronicles_on_level_id"
-    t.index ["subject_id"], name: "index_org_contact_chronicles_on_subject_id"
-    t.index ["subject_type", "subject_id"], name: "index_org_contact_chronicles_on_subject_type_and_subject_id"
-  end
-
-  create_table "org_contact_histories", force: :cascade do |t|
-    t.bigint "actor_id", default: 0, null: false
-    t.text "actor_type", default: "", null: false
-    t.jsonb "context", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.text "current_value", default: "", null: false
-    t.bigint "event_id", default: 0, null: false
-    t.datetime "expires_at", default: -> { "(CURRENT_TIMESTAMP + 'P7Y'::interval)" }, null: false
-    t.inet "ip_address", default: "0.0.0.0", null: false
-    t.bigint "level_id", default: 0, null: false
-    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.bigint "parent_id", default: 0, null: false
-    t.integer "position", default: 0, null: false
-    t.text "previous_value", default: "", null: false
-    t.bigint "subject_id", null: false
-    t.text "subject_type", null: false
-    t.datetime "updated_at", null: false
-    t.index ["actor_id", "occurred_at"], name: "index_org_contact_histories_on_actor_id_and_occurred_at"
-    t.index ["event_id"], name: "index_org_contact_histories_on_event_id"
-    t.index ["expires_at"], name: "index_org_contact_histories_on_expires_at"
-    t.index ["level_id"], name: "index_org_contact_histories_on_level_id"
-    t.index ["occurred_at"], name: "index_org_contact_histories_on_occurred_at"
-    t.index ["parent_id"], name: "index_org_contact_histories_on_parent_id"
-    t.index ["subject_type", "subject_id", "occurred_at"], name: "idx_on_subject_type_subject_id_occurred_at_3eb778d373"
-    t.check_constraint "event_id >= 0", name: "org_contact_histories_event_id_non_negative_check"
-    t.check_constraint "level_id >= 0", name: "org_contact_histories_level_id_non_negative_check"
   end
 
   create_table "org_document_audit_events", force: :cascade do |t|
@@ -748,10 +571,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.check_constraint "level_id >= 0", name: "user_activities_level_id_non_negative_check"
   end
 
-  add_foreign_key "app_contact_chronicles", "app_contact_chronicle_events", column: "event_id"
-  add_foreign_key "app_contact_chronicles", "app_contact_chronicle_levels", column: "level_id"
-  add_foreign_key "app_contact_histories", "app_contact_audit_events", column: "event_id", validate: false
-  add_foreign_key "app_contact_histories", "app_contact_audit_levels", column: "level_id", validate: false
   add_foreign_key "app_document_audits", "app_document_audit_events", column: "event_id", validate: false
   add_foreign_key "app_document_audits", "app_document_audit_levels", column: "level_id", validate: false
   add_foreign_key "app_document_behaviors", "app_document_behavior_events", column: "event_id"
@@ -762,10 +581,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
   add_foreign_key "app_timeline_audits", "app_timeline_audit_levels", column: "level_id", validate: false
   add_foreign_key "app_timeline_behaviors", "app_timeline_behavior_events", column: "event_id"
   add_foreign_key "app_timeline_behaviors", "app_timeline_behavior_levels", column: "level_id"
-  add_foreign_key "com_contact_audits", "com_contact_audit_events", column: "event_id", validate: false
-  add_foreign_key "com_contact_audits", "com_contact_audit_levels", column: "level_id", validate: false
-  add_foreign_key "com_contact_chronicles", "com_contact_chronicle_events", column: "event_id"
-  add_foreign_key "com_contact_chronicles", "com_contact_chronicle_levels", column: "level_id"
   add_foreign_key "com_document_audits", "com_document_audit_events", column: "event_id", validate: false
   add_foreign_key "com_document_audits", "com_document_audit_levels", column: "level_id", validate: false
   add_foreign_key "com_document_behaviors", "com_document_behavior_events", column: "event_id"
@@ -776,10 +591,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
   add_foreign_key "com_timeline_audits", "com_timeline_audit_levels", column: "level_id", validate: false
   add_foreign_key "com_timeline_behaviors", "com_timeline_behavior_events", column: "event_id"
   add_foreign_key "com_timeline_behaviors", "com_timeline_behavior_levels", column: "level_id"
-  add_foreign_key "org_contact_chronicles", "org_contact_chronicle_events", column: "event_id"
-  add_foreign_key "org_contact_chronicles", "org_contact_chronicle_levels", column: "level_id"
-  add_foreign_key "org_contact_histories", "org_contact_audit_events", column: "event_id", validate: false
-  add_foreign_key "org_contact_histories", "org_contact_audit_levels", column: "level_id", validate: false
   add_foreign_key "org_document_audits", "org_document_audit_events", column: "event_id", validate: false
   add_foreign_key "org_document_audits", "org_document_audit_levels", column: "level_id", validate: false
   add_foreign_key "org_document_behaviors", "org_document_behavior_events", column: "event_id"

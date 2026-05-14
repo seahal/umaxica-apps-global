@@ -7,9 +7,9 @@ module Sign
       class WithdrawalsController < ApplicationController
         auth_required!
 
-        include ::Verification::Staff
+        include ::Verification::Operator
 
-        before_action :authenticate_staff!
+        before_action :authenticate_operator!
 
         def show
         end

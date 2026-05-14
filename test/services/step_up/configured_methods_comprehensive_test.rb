@@ -29,7 +29,7 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
   test "configured_email? returns true for user with user_emails" do
     user = users(:one)
     result = StepUp::ConfiguredMethods.configured_email?(user)
-    expected = user.user_emails.exists?
+    expected = user.user_emails.exists?(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES)
 
     assert_equal expected, result
   end
@@ -37,7 +37,7 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
   test "configured_passkey? returns true for user with user_passkeys" do
     user = users(:one)
     result = StepUp::ConfiguredMethods.configured_passkey?(user)
-    expected = user.user_passkeys.exists?
+    expected = user.user_passkeys.active.exists?
 
     assert_equal expected, result
   end
@@ -45,14 +45,16 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
   test "configured_totp? returns false for user without user_one_time_passwords" do
     user = users(:one)
     result = StepUp::ConfiguredMethods.configured_totp?(user)
-    expected = user.user_one_time_passwords.exists?
+    expected = user.user_one_time_passwords.exists?(
+      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+    )
 
     assert_equal expected, result
   end
 
   test "call includes email_otp when user has emails" do
     user = users(:one)
-    if user.user_emails.exists?
+    if user.user_emails.exists?(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES)
       assert_includes StepUp::ConfiguredMethods.call(user), :email_otp
     else
       assert_not_includes StepUp::ConfiguredMethods.call(user), :email_otp
@@ -62,33 +64,33 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
   test "call includes passkey when user has passkeys" do
     user = users(:one)
     result = StepUp::ConfiguredMethods.call(user)
-    if user.user_passkeys.exists?
+    if user.user_passkeys.active.exists?
       assert_includes result, :passkey
     else
       assert_not_includes result, :passkey
     end
   end
 
-  test "configured_email? with customer_emails" do
-    customer = Customer.new(status_id: CustomerStatus::ACTIVE)
+  test "configured_email? with visitor_emails" do
+    visitor = Visitor.new(status_id: VisitorStatus::ACTIVE)
 
-    assert_not StepUp::ConfiguredMethods.configured_email?(customer)
+    assert_not StepUp::ConfiguredMethods.configured_email?(visitor)
   end
 
-  test "configured_passkey? with customer_passkeys" do
-    customer = Customer.new(status_id: CustomerStatus::ACTIVE)
+  test "configured_passkey? with visitor_passkeys" do
+    visitor = Visitor.new(status_id: VisitorStatus::ACTIVE)
 
-    assert_not StepUp::ConfiguredMethods.configured_passkey?(customer)
+    assert_not StepUp::ConfiguredMethods.configured_passkey?(visitor)
   end
 
   test "configured_passkey? with staff_passkeys" do
-    staff = Staff.new(status_id: StaffStatus::NOTHING)
+    staff = Operator.new(status_id: OperatorIdentityStatus::NOTHING)
 
     assert_not StepUp::ConfiguredMethods.configured_passkey?(staff)
   end
 
   test "configured_email? with staff_emails" do
-    staff = Staff.new(status_id: StaffStatus::NOTHING)
+    staff = Operator.new(status_id: OperatorIdentityStatus::NOTHING)
 
     assert_not StepUp::ConfiguredMethods.configured_email?(staff)
   end

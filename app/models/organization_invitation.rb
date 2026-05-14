@@ -28,7 +28,7 @@
 
 class OrganizationInvitation < TokenRecord
   belongs_to :invited_by,
-             class_name: "Staff",
+             class_name: "Operator",
              primary_key: :id,
              optional: true
 
@@ -73,10 +73,15 @@ class OrganizationInvitation < TokenRecord
     end
 
     def generate_unique_code
-      loop do
-        code = SecureRandom.alphanumeric(32).downcase
-        break code unless exists?(code: code)
-      end
+      operation =
+        lambda do
+          loop do
+            code = SecureRandom.alphanumeric(32).downcase
+            break code unless exists?(code: code)
+          end
+        end
+
+      defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
     end
   end
 

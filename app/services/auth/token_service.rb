@@ -6,7 +6,7 @@ require "jwt"
 module Auth
   class TokenService
     JWT_ALGORITHM = "ES384"
-    VALID_ACTOR_TYPES = %w(user staff customer).freeze
+    VALID_ACTOR_TYPES = %w(user operator visitor).freeze
 
     class << self
       def encode(resource, host:, resource_type: nil, dpop_jkt: nil, expires_at: nil,
@@ -15,8 +15,8 @@ module Auth
         resource_type ||=
           case resource
           when User then "user"
-          when Staff then "staff"
-          when Customer then "customer"
+          when Operator then "operator"
+          when Visitor then "visitor"
           end
 
         return nil unless valid_encode_params?(resource, host)
@@ -49,6 +49,28 @@ module Auth
       end
 
       def decode(token, host:, resource_type: nil, issuer: nil, audiences: nil)
+        decode_with_expiration(
+          token, host: host, resource_type: resource_type, issuer: issuer,
+                 audiences: audiences, verify_exp: true,
+        )
+      end
+
+      def decode_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil)
+        decode_with_expiration(
+          token, host: host, resource_type: resource_type, issuer: issuer,
+                 audiences: audiences, verify_exp: false,
+        )
+      end
+
+      def extract_session_id_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil)
+        payload = decode_allow_expired(
+          token, host: host, resource_type: resource_type,
+                 issuer: issuer, audiences: audiences,
+        )
+        Auth::TokenClaims.session_id(payload) if payload.present?
+      end
+
+      def decode_with_expiration(token, host:, resource_type: nil, issuer: nil, audiences: nil, verify_exp:)
         return nil if token.blank? || host.blank?
 
         header = Jit::Security::Jwt::Keyring.parse_header(token)
@@ -70,7 +92,10 @@ module Auth
           return nil
         end
 
-        payload, = JWT.decode(token, public_key, true, decode_options(resource_type, issuer, audiences))
+        payload, = JWT.decode(
+          token, public_key, true,
+          decode_options(resource_type, issuer, audiences, verify_exp: verify_exp),
+        )
         unless valid_payload_type?(payload, resource_type)
           # puts "DEBUG: valid_payload_type? failed for typ #{payload["typ"].inspect}"
           Jit::Security::Jwt::AnomalyReporter.report_auth(
@@ -85,6 +110,8 @@ module Auth
 
         payload
       rescue JWT::ExpiredSignature
+        return nil unless verify_exp
+
         # STDOUT.puts "DEBUG: token expired"
         Jit::Security::Jwt::AnomalyReporter.report_auth(
           resource_type: resource_type,
@@ -167,17 +194,17 @@ module Auth
       def valid_encode_params?(resource, host)
         return false if resource.nil? || host.blank?
 
-        # Ensure resource is User, Staff or Customer
-        resource.is_a?(User) || resource.is_a?(Staff) || resource.is_a?(Customer)
+        # Ensure resource is User, Operator or Visitor
+        resource.is_a?(User) || resource.is_a?(Operator) || resource.is_a?(Visitor)
       end
 
-      def decode_options(resource_type, issuer, audiences)
+      def decode_options(resource_type, issuer, audiences, verify_exp:)
         {
           algorithms: [JWT_ALGORITHM],
           required_claims: %w(iss aud typ exp sub sid act jti acr),
           leeway: Authentication::Base::JwtConfiguration.leeway_seconds,
           verify_iat: true,
-          verify_exp: true,
+          verify_exp: verify_exp,
           verify_iss: true,
           iss: issuer || Authentication::Base::JwtConfiguration.issuer(resource_type),
           verify_aud: true,

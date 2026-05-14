@@ -53,11 +53,11 @@ module Auth
 
     private
 
-    def cookie_options(expires: nil)
+    def cookie_options(expires: nil, httponly: true)
       Core::CookieOptions.for(
         surface: Core::Surface.current(request),
         request: request,
-        httponly: true,
+        httponly: httponly,
         same_site: :lax,
         path: "/",
         expires: expires,
@@ -75,8 +75,6 @@ module Auth
       ).except(:expires, :httponly, :secure, :same_site)
     end
 
-    def device_cookie_options(expires_at:)
-      cookie_options(expires: expires_at, httponly: true)
-    end
+    def device_cookie_options(expires_at:) = cookie_options(expires: expires_at, httponly: true)
   end
 end

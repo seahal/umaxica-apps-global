@@ -170,7 +170,7 @@ module Auth
 
       assert_equal "X-TEST-CURRENT-USER", harness.send(:test_header_key)
 
-      harness.actor_type = "staff"
+      harness.actor_type = "operator"
 
       assert_equal "X-TEST-CURRENT-STAFF", harness.send(:test_header_key)
 
@@ -211,7 +211,7 @@ module Auth
     end
 
     test "VALID_ACTOR_TYPES constant is defined" do
-      assert_equal %w(user staff), Authentication::Base::VALID_ACTOR_TYPES
+      assert_equal %w(user operator visitor), Authentication::Base::VALID_ACTOR_TYPES
     end
 
     test "Token.extract_act returns nil for nil payload" do
@@ -298,27 +298,27 @@ module Auth
 
     test "redirect parameter helpers preserve peek retrieve and build params" do
       harness = HeaderKeyHarness.new
-      harness.params = { rd: "/target" }
+      harness.params = { rt: "/target" }
 
       assert_equal "/target", harness.preserve_redirect_parameter
-      assert_equal "/target", harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY]
+      assert_equal "/target", harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
       assert_equal "/target", harness.peek_redirect_parameter
-      assert_equal({ notice: "ok", rd: "/target" }, harness.build_notice_params("ok"))
-      assert_equal({ alert: "ng", rd: "/target" }, harness.build_alert_params("ng"))
+      assert_equal({ notice: "ok", rt: "/target" }, harness.build_notice_params("ok"))
+      assert_equal({ alert: "ng", rt: "/target" }, harness.build_alert_params("ng"))
       assert_equal "/target", harness.retrieve_redirect_parameter
-      assert_nil harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY]
+      assert_nil harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
     end
 
-    test "redirect_with_rd_handling uses rd jump when present and fallback redirect otherwise" do
+    test "redirect_with_rt_handling uses rt jump when present and fallback redirect otherwise" do
       harness = HeaderKeyHarness.new
-      harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY] = "/encoded"
+      harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = "/encoded"
 
-      harness.redirect_with_rd_handling("/default", :notice, "done")
+      harness.redirect_with_rt_handling("/default", :notice, "done")
 
       assert_equal "done", harness.flash[:notice]
       assert_equal ["/encoded", "/default"], harness.jumped
 
-      harness.redirect_with_rd_handling("/default", :alert, "warn")
+      harness.redirect_with_rt_handling("/default", :alert, "warn")
 
       assert_equal ["/default", { alert: "warn" }], harness.redirected
     end
@@ -329,7 +329,7 @@ module Auth
       HeaderKeyHarness.reset_encrypted_cookies!
 
       Core::CookieOptions.stub(:for, {}) do
-        harness.send(:set_device_id_cookie!, "dev-123", lapses_at: expires_at)
+        harness.send(:set_device_id_cookie!, "dev-123", expires_at: expires_at)
 
         # Cookie is now stored as plaintext (not encrypted) with options
         cookie_value = harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY]
@@ -359,20 +359,20 @@ module Auth
 
     test "JwtConfiguration.issuer respects resource_type" do
       assert_equal "umaxica-auth:user", Authentication::Base::JwtConfiguration.issuer("user")
-      assert_equal "umaxica-auth:staff", Authentication::Base::JwtConfiguration.issuer("staff")
+      assert_equal "umaxica-auth:operator", Authentication::Base::JwtConfiguration.issuer("operator")
       assert_equal "umaxica-auth", Authentication::Base::JwtConfiguration.issuer("invalid")
     end
 
     test "JwtConfiguration.audiences respects resource_type specific env" do
       with_env("AUTH_JWT_USER_AUDIENCES" => "u1,u2", "AUTH_JWT_AUDIENCES" => "default") do
         assert_equal %w(u1 u2), Authentication::Base::JwtConfiguration.audiences("user")
-        assert_equal %w(default), Authentication::Base::JwtConfiguration.audiences("staff")
+        assert_equal %w(default), Authentication::Base::JwtConfiguration.audiences("operator")
       end
     end
 
     test "JwtConfiguration.token_type returns correct format" do
       assert_equal "auth-access-token;user", Authentication::Base::JwtConfiguration.token_type("user")
-      assert_equal "auth-access-token;staff", Authentication::Base::JwtConfiguration.token_type("staff")
+      assert_equal "auth-access-token;operator", Authentication::Base::JwtConfiguration.token_type("operator")
       assert_raises(ArgumentError) { Authentication::Base::JwtConfiguration.token_type("invalid") }
     end
 

@@ -5,29 +5,20 @@ module Sign
   module App
     module Preference
       class EmailsController < ApplicationController
-        public_strict!
-        include ::Preference::EmailActions
+        include Sign::PromotionalEmailUnsubscribeActions
 
         private
 
-        def audience_name
-          "app"
+        def promotional_email_model
+          UserEmail
         end
 
-        def preference_mailer_class
-          Email::App::PreferenceMailer
+        def promotional_email_scope
+          :client
         end
 
-        def find_email_record_by_address(email)
-          find_email_with_timing_protection(email)
-        end
-
-        def preference_email_new_path
-          new_sign_app_preference_email_path
-        end
-
-        def preference_email_edit_url(token)
-          edit_sign_app_preference_email_url(token: token)
+        def redirect_after_unsubscribe_path(token:)
+          edit_sign_app_preference_email_path(@email, token: token)
         end
       end
     end

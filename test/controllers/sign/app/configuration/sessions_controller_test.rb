@@ -5,6 +5,7 @@ require "test_helper"
 
 class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::IntegrationTest
   fixtures :users, :user_statuses, :user_token_statuses, :user_token_kinds,
+           :user_chronicle_events, :user_chronicle_levels,
            :app_preference_chronicle_levels, :app_preference_chronicle_events
 
   setup do
@@ -73,6 +74,58 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_response :success
   end
 
+  test "index marks refreshed session as current after transparent refresh" do
+    UserToken.where(user_id: @user.id).delete_all
+    token = UserToken.create!(
+      user_id: @user.id,
+      lapses_at: 1.day.from_now,
+      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+    )
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = Authentication::Base::Token.encode(
+      @user,
+      host: @host,
+      session_public_id: token.public_id,
+      resource_type: "user",
+      expires_at: 1.minute.ago,
+    )
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = token.device_id
+
+    get sign_app_configuration_sessions_url(ri: "jp"),
+        headers: host_headers(@host)
+
+    assert_response :success
+
+    refreshed_token = UserToken.where(user_id: @user.id, rotated_at: nil).sole
+
+    assert_not_equal token.public_id, refreshed_token.public_id
+    assert_select "span", text: "current"
+    assert_select "form[action^='#{sign_app_configuration_session_path(refreshed_token.public_id)}']", 0
+    assert_select "form[action^='#{others_sign_app_configuration_sessions_path}']", 0
+  end
+
+  test "index rejects access token for revoked session" do
+    UserToken.where(user_id: @user.id).delete_all
+    token = UserToken.create!(
+      user_id: @user.id,
+      lapses_at: 1.day.from_now,
+      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+    )
+    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = jwt_access_token_for(
+      @user,
+      host: @host,
+      session_public_id: token.public_id,
+      resource_type: "user",
+    )
+    token.revoke!
+
+    get sign_app_configuration_sessions_url(ri: "jp"),
+        headers: host_headers(@host)
+
+    assert_response :redirect
+  end
+
   test "index requires authentication" do
     get sign_app_configuration_sessions_url(ri: "jp"), headers: @unauthenticated_headers
 
@@ -100,6 +153,29 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_predicate user_token, :lapsed?
   end
 
+  test "destroy records session revoke activity" do
+    user_token = UserToken.create!(
+      user_id: @user.id,
+      public_id: "aud_#{SecureRandom.hex(4)}",
+      lapses_at: 1.day.from_now,
+      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+    )
+
+    assert_difference -> { session_revoke_activity_count }, 1 do
+      delete sign_app_configuration_session_url(user_token.public_id, ri: "jp"), headers: @headers
+    end
+
+    assert_response :see_other
+    activity = latest_session_revoke_activity
+
+    assert_equal @user.id, activity.actor_id
+    assert_equal "User", activity.actor_type
+    assert_equal @user.id.to_s, activity.subject_id
+    assert_equal "User", activity.subject_type
+    assert_equal "session.revoke", activity.context["action"]
+    assert_equal 1, activity.context["revoked_session_count"]
+  end
+
   test "destroy current session returns error redirect instead of revoking" do
     current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
     delete sign_app_configuration_session_url(current_session_id, ri: "jp"), headers: @headers
@@ -107,7 +183,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_response :redirect
     assert_match(/configuration\/sessions/, response.location)
 
-    # Current session must remain alive
+    # Actor session must remain alive
     current_token = UserToken.find_by!(public_id: current_session_id)
 
     assert_predicate current_token, :currently_usable?
@@ -194,7 +270,9 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
     UserToken.where(user_id: @user.id).where.not(public_id: current_session_id).delete_all
 
-    delete others_sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
+    assert_no_difference -> { session_revoke_activity_count } do
+      delete others_sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
+    end
 
     assert_response :see_other
     current_session = UserToken.find_by!(public_id: current_session_id)
@@ -285,10 +363,38 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_not response_has_cookie?(::Authentication::Base::REFRESH_COOKIE_KEY)
   end
 
+  test "revoke_all records session revoke activity" do
+    current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
+    token = UserToken.find_by!(public_id: current_session_id)
+    token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+    UserToken.create!(
+      user_id: @user.id,
+      public_id: "rall_audit_#{SecureRandom.hex(4)}",
+      lapses_at: 1.day.from_now,
+      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+    )
+
+    assert_difference -> { session_revoke_activity_count }, 1 do
+      delete revoke_all_sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
+    end
+
+    assert_response :see_other
+    activity = latest_session_revoke_activity
+
+    assert_equal "session.revoke_all", activity.context["action"]
+    assert_equal 2, activity.context["revoked_session_count"]
+  end
+
   test "revoke_all requires step_up" do
     current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
     token = UserToken.find_by!(public_id: current_session_id)
     token.update!(created_at: 20.minutes.ago)
+    UserOneTimePassword.create!(
+      user: @user,
+      private_key: ROTP::Base32.random_base32,
+      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      last_otp_at: Time.zone.at(0),
+    )
 
     delete revoke_all_sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
 
@@ -324,5 +430,23 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_predicate event[:payload][:actor_id], :present?
   ensure
     Rails.event.unsubscribe(subscriber) if defined?(subscriber) && subscriber
+  end
+
+  private
+
+  def session_revoke_activity_count
+    UserChronicle.where(
+      subject_type: "User",
+      subject_id: @user.id,
+      event_id: UserChronicleEvent::SESSION_REVOKED,
+    ).count
+  end
+
+  def latest_session_revoke_activity
+    UserChronicle.where(
+      subject_type: "User",
+      subject_id: @user.id,
+      event_id: UserChronicleEvent::SESSION_REVOKED,
+    ).order(created_at: :desc).first
   end
 end

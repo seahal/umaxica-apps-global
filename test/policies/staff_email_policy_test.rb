@@ -3,11 +3,11 @@
 
 require "test_helper"
 
-class StaffEmailPolicyTest < ActiveSupport::TestCase
+class OperatorEmailPolicyTest < ActiveSupport::TestCase
   def setup
     @user = nil
     @record = nil
-    @policy = StaffEmailPolicy.new(@record, user: @user)
+    @policy = OperatorEmailPolicy.new(@record, user: @user)
   end
 
   def test_index
@@ -37,10 +37,4 @@ class StaffEmailPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
-  # COMMENTED OUT BY FIX SCRIPT
-  #
-  #   def test_scope
-  #     scope = StaffEmailPolicy::Scope.new(nil, user: @user)
-  #     assert_raises(NoMethodError) { scope.resolve }
-  #   end
 end

@@ -143,15 +143,15 @@ class Authentication::UserTest < ActiveSupport::TestCase
     assert_nil @obj.cookies[::Authentication::Base::DEVICE_COOKIE_KEY]
   end
 
-  test "log_in derives shared cookie domain from localhost host" do
+  test "log_in keeps auth cookies host-only for __Host prefix compatibility" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
     @obj.request.host = "id.app.localhost"
 
     @obj.send(:log_in, @user)
 
-    assert_equal ".app.localhost", @obj.cookies.options_for(::Authentication::User::ACCESS_COOKIE_KEY)[:domain]
-    assert_equal ".app.localhost", @obj.cookies.options_for(::Authentication::User::REFRESH_COOKIE_KEY)[:domain]
-    assert_equal ".app.localhost", @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY)[:domain]
+    assert_not @obj.cookies.options_for(::Authentication::User::ACCESS_COOKIE_KEY).key?(:domain)
+    assert_not @obj.cookies.options_for(::Authentication::User::REFRESH_COOKIE_KEY).key?(:domain)
+    assert_not @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY).key?(:domain)
   end
 
   test "log_in returns tokens hash" do
@@ -267,24 +267,24 @@ class Authentication::UserTest < ActiveSupport::TestCase
 
   test "log_in hard rejects when active and restricted sessions already exist" do
     2.times do
-      token = UserToken.create!(user: @user, status: UserToken::STATUS_ACTIVE)
+      token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
       token.rotate_refresh_token!
     end
-    restricted = UserToken.create!(user: @user, status: UserToken::STATUS_RESTRICTED)
+    restricted = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
     restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
-    before_ids = UserToken.where(user_id: @user.id).order(:id).pluck(:id, :status, :lapses_at)
+    before_ids = UserToken.where(user_id: @user.id).order(:id).pluck(:id, :user_token_status_id, :lapses_at)
 
     result = @obj.send(:log_in, @user, require_totp_check: false)
 
     assert_equal :session_limit_hard_reject, result[:status]
     assert_equal :conflict, result[:http_status]
     assert_equal Authentication::Base::SESSION_LIMIT_HARD_REJECT_MESSAGE, result[:message]
-    assert_equal before_ids, UserToken.where(user_id: @user.id).order(:id).pluck(:id, :status, :lapses_at)
+    assert_equal before_ids, UserToken.where(user_id: @user.id).order(:id).pluck(:id, :user_token_status_id, :lapses_at)
   end
 
   test "log_in issues restricted session with 15 minute ttl when active sessions reach limit" do
     2.times do
-      token = UserToken.create!(user: @user, status: UserToken::STATUS_ACTIVE)
+      token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
       token.rotate_refresh_token!
     end
 
@@ -294,7 +294,7 @@ class Authentication::UserTest < ActiveSupport::TestCase
       assert_equal :success, result[:status]
       assert result[:restricted]
 
-      restricted = UserToken.where(user_id: @user.id, status: UserToken::STATUS_RESTRICTED).order(:created_at).last
+      restricted = UserToken.where(user_id: @user.id, user_token_status_id: UserTokenStatus::RESTRICTED).order(:created_at).last
 
       assert_not_nil restricted
       assert_in_delta 15.minutes.from_now.to_i, restricted.lapses_at.to_i, 1

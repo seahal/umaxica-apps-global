@@ -22,20 +22,20 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_id => staffs.id)
+#  fk_rails_...  (staff_id => operators.id)
 #
 require "test_helper"
 
-class StaffBulletinTest < ActiveSupport::TestCase
+class OperatorBulletinTest < ActiveSupport::TestCase
   fixtures :staffs, :staff_statuses
 
   setup do
     @staff = staffs(:one)
-    @staff.update!(status_id: StaffStatus::ACTIVE)
+    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
   end
 
   test "belongs_to staff association" do
-    bulletin = StaffBulletin.create!(
+    bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Test Bulletin",
       body: "Test body content",
@@ -45,7 +45,7 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "title is required" do
-    bulletin = StaffBulletin.new(
+    bulletin = OperatorBulletin.new(
       staff: @staff,
       body: "Test body",
     )
@@ -55,7 +55,7 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "public_id is auto-generated" do
-    bulletin = StaffBulletin.create!(
+    bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Test Bulletin",
       body: "Test body",
@@ -66,14 +66,14 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "public_id is unique" do
-    bulletin1 = StaffBulletin.create!(
+    bulletin1 = OperatorBulletin.create!(
       staff: @staff,
       title: "First Bulletin",
       body: "First body",
     )
 
     # Try to create with same public_id
-    bulletin2 = StaffBulletin.new(
+    bulletin2 = OperatorBulletin.new(
       staff: @staff,
       title: "Second Bulletin",
       body: "Second body",
@@ -85,48 +85,48 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "unread scope returns only unread bulletins" do
-    unread_bulletin = StaffBulletin.create!(
+    unread_bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Unread",
       body: "Unread body",
     )
 
-    read_bulletin = StaffBulletin.create!(
+    read_bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Read",
       body: "Read body",
       read_at: Time.current,
     )
 
-    unread_ids = StaffBulletin.unread.pluck(:id)
+    unread_ids = OperatorBulletin.unread.pluck(:id)
 
     assert_includes unread_ids, unread_bulletin.id
     assert_not_includes unread_ids, read_bulletin.id
   end
 
   test "oldest_first scope orders by created_at ascending" do
-    old_bulletin = StaffBulletin.create!(
+    old_bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Old",
       body: "Old body",
       created_at: 2.days.ago,
     )
 
-    new_bulletin = StaffBulletin.create!(
+    new_bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "New",
       body: "New body",
       created_at: 1.day.ago,
     )
 
-    bulletins = StaffBulletin.oldest_first.to_a
+    bulletins = OperatorBulletin.oldest_first.to_a
 
     assert_equal old_bulletin, bulletins.first
     assert_equal new_bulletin, bulletins.last
   end
 
   test "read? returns false for unread bulletins" do
-    bulletin = StaffBulletin.create!(
+    bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Unread",
       body: "Unread body",
@@ -136,7 +136,7 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "read? returns true for read bulletins" do
-    bulletin = StaffBulletin.create!(
+    bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Read",
       body: "Read body",
@@ -147,7 +147,7 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "mark_as_read! sets read_at timestamp" do
-    bulletin = StaffBulletin.create!(
+    bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Test",
       body: "Test body",
@@ -163,7 +163,7 @@ class StaffBulletinTest < ActiveSupport::TestCase
 
   test "mark_as_read! does nothing if already read" do
     original_time = 1.hour.ago
-    bulletin = StaffBulletin.create!(
+    bulletin = OperatorBulletin.create!(
       staff: @staff,
       title: "Test",
       body: "Test body",
@@ -176,7 +176,7 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "body is optional" do
-    bulletin = StaffBulletin.new(
+    bulletin = OperatorBulletin.new(
       staff: @staff,
       title: "No Body",
     )
@@ -185,7 +185,7 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "staff_id is required" do
-    bulletin = StaffBulletin.new(
+    bulletin = OperatorBulletin.new(
       title: "Test",
       body: "Test body",
     )
@@ -195,17 +195,17 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "includes PublicId concern" do
-    assert_includes StaffBulletin.ancestors, PublicId
+    assert_includes OperatorBulletin.ancestors, PublicId
   end
 
   test "staff_bulletins association on staff" do
-    bulletin1 = StaffBulletin.create!(
+    bulletin1 = OperatorBulletin.create!(
       staff: @staff,
       title: "First",
       body: "First body",
     )
 
-    bulletin2 = StaffBulletin.create!(
+    bulletin2 = OperatorBulletin.create!(
       staff: @staff,
       title: "Second",
       body: "Second body",
@@ -216,19 +216,19 @@ class StaffBulletinTest < ActiveSupport::TestCase
   end
 
   test "dependent behavior on staff destroy" do
-    staff = Staff.create!(status_id: StaffStatus::ACTIVE)
-    bulletin = StaffBulletin.create!(
+    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    bulletin = OperatorBulletin.create!(
       staff: staff,
       title: "Test",
       body: "Test body",
     )
 
-    assert_difference("StaffBulletin.count", -1) do
+    assert_difference("OperatorBulletin.count", -1) do
       assert_nothing_raised do
         staff.destroy
       end
     end
 
-    assert_not StaffBulletin.exists?(bulletin.id)
+    assert_not OperatorBulletin.exists?(bulletin.id)
   end
 end

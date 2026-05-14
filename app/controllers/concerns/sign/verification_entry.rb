@@ -6,7 +6,7 @@ module Sign
     extend ActiveSupport::Concern
 
     def show
-      return_to_param = params[:return_to].presence || params[:rd].presence
+      return_to_param = params[:return_to].presence || params[:rt].presence
 
       if params[:scope].present? && return_to_param.present?
         start_reauth_session!(scope: params[:scope], return_to_param: return_to_param)
@@ -20,7 +20,7 @@ module Sign
 
       @available_methods = available_step_up_methods
     rescue ActionController::BadRequest
-      session.delete(reauth_session_key)
+      clear_reauth_state! if respond_to?(:clear_reauth_state!, true)
       redirect_to(
         verification_invalid_request_redirect_path(ri: params[:ri]),
         alert: I18n.t("auth.step_up.invalid_request"),
@@ -28,10 +28,6 @@ module Sign
     end
 
     private
-
-    def reauth_session_key
-      self.class::REAUTH_SESSION_KEY
-    end
 
     def verification_success_notice_key
       raise NotImplementedError, "#{self.class} must define #verification_success_notice_key"

@@ -78,10 +78,11 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
   end
 
   class MockRequest
-    attr_accessor :host, :remote_ip, :user_agent, :request_id, :fullpath
+    attr_accessor :host, :host_with_port, :remote_ip, :user_agent, :request_id, :fullpath
 
     def initialize
       @host = "example.com"
+      @host_with_port = "example.com"
       @remote_ip = "127.0.0.1"
       @user_agent = "TestAgent"
       @request_id = "test-123"
@@ -111,62 +112,62 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
     @harness = RedirectHarness.new
   end
 
-  test "DEFAULT_RD_SESSION_KEY is defined" do
-    assert_includes Authentication::Base::DEFAULT_RD_SESSION_KEY.to_s, "rd"
+  test "DEFAULT_RT_SESSION_KEY is defined" do
+    assert_includes Authentication::Base::DEFAULT_RT_SESSION_KEY.to_s, "rt"
   end
 
   test "BULLETIN_SESSION_KEY is defined" do
-    assert_equal :in_bulletin, Authentication::Base::BULLETIN_SESSION_KEY
+    assert_equal :sign_in_checkpoint, Authentication::Base::BULLETIN_SESSION_KEY
   end
 
   test "BULLETIN_TIMEOUT is 2 hours" do
     assert_equal 2.hours, Authentication::Base::BULLETIN_TIMEOUT
   end
 
-  test "preserve_redirect_parameter stores rd in session" do
-    @harness.params_data[Auth::IoKeys::Params::RD] = "/dashboard"
+  test "preserve_redirect_parameter stores rt in session" do
+    @harness.params_data[Auth::IoKeys::Params::RT] = "/dashboard"
     result = @harness.preserve_redirect_parameter
 
     assert_equal "/dashboard", result
-    assert_equal "/dashboard", @harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY]
+    assert_equal "/dashboard", @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
   end
 
-  test "preserve_redirect_parameter returns nil when no rd param" do
+  test "preserve_redirect_parameter returns nil when no rt param" do
     result = @harness.preserve_redirect_parameter
 
     assert_nil result
-    assert_nil @harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY]
+    assert_nil @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
   end
 
   test "retrieve_redirect_parameter returns and clears session value" do
-    @harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY] = "/dashboard"
+    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = "/dashboard"
     result = @harness.retrieve_redirect_parameter
 
     assert_equal "/dashboard", result
-    assert_nil @harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY]
+    assert_nil @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
   end
 
   test "retrieve_redirect_parameter falls back to params" do
-    @harness.params_data[Auth::IoKeys::Params::RD] = "/from-params"
+    @harness.params_data[Auth::IoKeys::Params::RT] = "/from-params"
     result = @harness.retrieve_redirect_parameter
 
     assert_equal "/from-params", result
   end
 
   test "peek_redirect_parameter returns without clearing" do
-    @harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY] = "/dashboard"
+    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = "/dashboard"
     result = @harness.peek_redirect_parameter
 
     assert_equal "/dashboard", result
-    assert_equal "/dashboard", @harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY]
+    assert_equal "/dashboard", @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
   end
 
-  test "build_redirect_params includes rd when present" do
-    @harness.session[Authentication::Base::DEFAULT_RD_SESSION_KEY] = "/dashboard"
+  test "build_redirect_params includes rt when present" do
+    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = "/dashboard"
     result = @harness.build_redirect_params(:notice, "Success")
 
     assert_equal "Success", result[:notice]
-    assert_equal "/dashboard", result[Auth::IoKeys::Params::RD]
+    assert_equal "/dashboard", result[Auth::IoKeys::Params::RT]
   end
 
   test "build_notice_params creates notice hash" do
@@ -179,6 +180,18 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
     result = @harness.build_alert_params("Warning")
 
     assert_equal "Warning", result[:alert]
+  end
+
+  test "safe return path accepts same-host absolute url as internal path" do
+    result = @harness.send(:safe_return_path, "https://example.com/configuration/sessions?ri=jp")
+
+    assert_equal "/configuration/sessions?ri=jp", result
+  end
+
+  test "safe return path rejects external absolute url" do
+    result = @harness.send(:safe_return_path, "https://evil.example/configuration/sessions?ri=jp")
+
+    assert_nil result
   end
 
   test "issue_bulletin! sets bulletin in session when unread bulletin exists" do

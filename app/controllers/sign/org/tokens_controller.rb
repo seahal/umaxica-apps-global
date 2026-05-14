@@ -23,6 +23,9 @@ module Sign
           client_id: params[:client_id],
           client_secret: params[:client_secret],
           code_verifier: params[:code_verifier],
+          dpop_proof: request.headers["DPoP"],
+          token_endpoint_uri: request.original_url,
+          request_method: request.request_method,
         )
 
         if result.success?

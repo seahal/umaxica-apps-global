@@ -10,6 +10,7 @@ module Sign
 
     included do
       skip_before_action :enforce_email_flow!
+      before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update resend)
     end
 
     def new
@@ -26,13 +27,15 @@ module Sign
     end
 
     def create
-      email_params = params.expect(user_email: [:raw_address, :address])
+      preference_keys = email_registration_preference_keys
+      email_params = params.fetch(:user_email, {}).permit(:raw_address, :address, *preference_keys)
       confirm_policy = params.dig(:user_email, :confirm_policy)
       email_address = email_params[:raw_address] || email_params[:address]
 
       unless initiate_email_verification!(
         email_address,
         confirm_policy: confirm_policy || "1",
+        email_preferences: email_params.slice(*preference_keys),
       )
         render :new, status: :unprocessable_content
         return
@@ -40,7 +43,10 @@ module Sign
 
       session[registration_email_session_key] = @user_email.public_id
 
-      redirect_params = build_notice_params(t("sign.app.registration.email.create.verification_code_sent"))
+      redirect_params = build_notice_params(
+        t("sign.app.registration.email.create.verification_code_sent"),
+        email_registration_rt_session_key,
+      )
       flash[:notice] = redirect_params.delete(:notice)
       sanitize_redirect_params!(redirect_params)
       redirect_to(after_email_registration_started_path(redirect_params))
@@ -52,6 +58,13 @@ module Sign
       unless valid_registration_email_session?
         reset_email_registration_flow!
         redirect_to(new_registration_path_with_notice)
+        return
+      end
+
+      unless cloudflare_turnstile_stealth_validation["success"]
+        @user_email.errors.add(:base, t("turnstile_error"))
+        flash.now[:alert] = t("turnstile_error")
+        render :edit, status: :unprocessable_content
         return
       end
 
@@ -87,12 +100,40 @@ module Sign
       )
     end
 
+    def resend
+      @user_email = current_registration_email
+
+      unless resendable_registration_email?
+        reset_email_registration_flow!
+        redirect_to(new_registration_path_with_notice)
+        return
+      end
+
+      if @user_email.otp_cooldown_active?
+        redirect_to(
+          email_registration_edit_path_with_flash(:alert, t("otp.resend.too_soon")),
+        )
+        return
+      end
+
+      otp_code = generate_otp_for(@user_email)
+      send_verification_email(otp_code)
+
+      redirect_to(
+        email_registration_edit_path_with_flash(:notice, t("otp.resend.sent")),
+      )
+    end
+
     private
 
-    def build_user_email(email_address, confirm_policy)
+    def build_user_email(email_address, confirm_policy, email_preferences = {})
       super
       target_user = email_registration_target_user
       @user_email.user = target_user if target_user
+    end
+
+    def email_registration_preference_keys
+      %i(promotional notifiable)
     end
 
     def create_pending_user!
@@ -112,7 +153,7 @@ module Sign
       user_email =
         target_user
           .user_emails
-          .where(user_email_status_id: UserEmailStatus::UNVERIFIED_WITH_SIGN_UP)
+          .where(user_email_status_id: pending_email_status_ids)
           .order(created_at: :desc)
           .first
 
@@ -126,7 +167,13 @@ module Sign
     def valid_registration_email_session?
       @user_email.present? &&
         !@user_email.otp_expired? &&
-        @user_email.user_email_status_id == UserEmailStatus::UNVERIFIED_WITH_SIGN_UP
+        pending_email_status?(@user_email)
+    end
+
+    def resendable_registration_email?
+      @user_email.present? &&
+        !@user_email.locked? &&
+        pending_email_status?(@user_email)
     end
 
     def registration_email_session_key
@@ -139,16 +186,44 @@ module Sign
     end
 
     def new_registration_path_with_notice
-      redirect_params = build_notice_params(t("sign.app.registration.email.edit.session_expired"))
+      redirect_params = build_notice_params(
+        t("sign.app.registration.email.edit.session_expired"),
+        email_registration_rt_session_key,
+      )
       flash[:notice] = redirect_params.delete(:notice)
       new_email_registration_path(redirect_params)
     end
 
-    def sanitize_redirect_params!(redirect_params)
-      return if redirect_params[:rd].blank?
+    def email_registration_return_path(default_path)
+      encoded = retrieve_redirect_parameter(email_registration_rt_session_key)
+      return default_path if encoded.blank?
 
-      redirect_params[:rd] = sanitize_encoded_redirect(redirect_params[:rd])
-      redirect_params.delete(:rd) if redirect_params[:rd].blank?
+      decoded = Base64.urlsafe_decode64(encoded)
+      safe_internal_path(decoded).presence || default_path
+    rescue ArgumentError, URI::InvalidURIError
+      default_path
+    end
+
+    def preserve_email_registration_redirect_parameter
+      preserve_redirect_parameter(email_registration_rt_session_key)
+    end
+
+    def email_registration_rt_session_key
+      :email_registration_rt
+    end
+
+    def sanitize_redirect_params!(redirect_params)
+      return if redirect_params[:rt].blank?
+
+      redirect_params[:rt] = sanitize_encoded_redirect(redirect_params[:rt])
+      redirect_params.delete(:rt) if redirect_params[:rt].blank?
+    end
+
+    def email_registration_edit_path_with_flash(message_key, message)
+      redirect_params = build_redirect_params(message_key, message, email_registration_rt_session_key)
+      flash[message_key] = redirect_params.delete(message_key)
+      sanitize_redirect_params!(redirect_params)
+      after_email_registration_started_path(redirect_params)
     end
 
     def sanitize_encoded_redirect(encoded_url)

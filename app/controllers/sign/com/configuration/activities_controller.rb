@@ -24,13 +24,13 @@ module Sign
           otp
         ).freeze
 
-        before_action :authenticate_customer!
+        before_action :authenticate_visitor!
 
         helper_method :activity_event_label, :activity_ip_address, :activity_context_text, :activity_occurred_at,
                       :activity_user_agent_summary, :activity_login_method
 
         def index
-          @activities = current_customer_activities.limit(100)
+          @activities = current_visitor_activities.limit(100)
         rescue StandardError
           @activities = UserChronicle.none
         end
@@ -42,9 +42,9 @@ module Sign
 
         private
 
-        def current_customer_activities
+        def current_visitor_activities
           UserChronicle
-            .where(subject_type: "User", subject_id: current_customer.id, event_id: LOGIN_EVENT_IDS)
+            .where(subject_type: "User", subject_id: current_visitor.id, event_id: LOGIN_EVENT_IDS)
             .order(Arel.sql("COALESCE(occurred_at, created_at) DESC"))
         end
 

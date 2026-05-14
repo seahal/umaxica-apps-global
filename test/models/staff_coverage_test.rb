@@ -5,29 +5,29 @@ require "test_helper"
 
 class StaffCoverageTest < ActiveSupport::TestCase
   setup do
-    StaffStatus.find_or_create_by!(id: 1)
-    StaffStatus.find_or_create_by!(id: 2)
-    StaffVisibility.find_or_create_by!(id: 1)
-    StaffVisibility.find_or_create_by!(id: 2)
-    @staff = Staff.create!(status_id: 2, visibility_id: 2)
+    OperatorIdentityStatus.find_or_create_by!(id: 1)
+    OperatorIdentityStatus.find_or_create_by!(id: 2)
+    OperatorVisibility.find_or_create_by!(id: 1)
+    OperatorVisibility.find_or_create_by!(id: 2)
+    @staff = Operator.create!(status_id: 2, visibility_id: 2)
   end
 
-  test "staff? and user? predicates" do
-    assert_predicate @staff, :staff?
+  test "operator? and user? predicates" do
+    assert_predicate @staff, :operator?
     assert_not @staff.user?
   end
 
   test "public_id generation and normalization" do
-    raw = Staff.generate_public_id
+    raw = Operator.generate_public_id
 
     assert_equal 16, raw.length
 
-    assert_equal "ABC123", Staff.normalize_public_id(" abc-123_ ")
-    assert_nil Staff.normalize_public_id(nil)
+    assert_equal "ABC123", Operator.normalize_public_id(" abc-123_ ")
+    assert_nil Operator.normalize_public_id(nil)
   end
 
   test "assign_public_id! on create" do
-    s = Staff.new(status_id: 2, visibility_id: 2)
+    s = Operator.new(status_id: 2, visibility_id: 2)
 
     assert_nil s.public_id
     s.valid?
@@ -37,7 +37,7 @@ class StaffCoverageTest < ActiveSupport::TestCase
   end
 
   test "explicit blank public_id input" do
-    s = Staff.new(status_id: 2, visibility_id: 2)
+    s = Operator.new(status_id: 2, visibility_id: 2)
     s.public_id = "  "
 
     assert_not s.valid?
@@ -48,8 +48,8 @@ class StaffCoverageTest < ActiveSupport::TestCase
     # This is hard to test without heavy mocking, but we can try
     # We can stub Staff.exists? to return true once
     calls = 0
-    Staff.stub(:exists?, ->(_) { (calls += 1) == 1 }) do
-      s = Staff.create!(status_id: 2, visibility_id: 2)
+    Operator.stub(:exists?, ->(_) { (calls += 1) == 1 }) do
+      s = Operator.create!(status_id: 2, visibility_id: 2)
 
       assert_not_nil s.public_id
     end

@@ -4,6 +4,10 @@
 require "test_helper"
 
 class ProsopiteSmokeTest < ActionDispatch::IntegrationTest
+  test "prosopite scans each test globally" do
+    assert_predicate Prosopite, :scan?
+  end
+
   test "prosopite raises for n+1 queries in integration tests" do
     created_user_ids =
       Prosopite.pause do

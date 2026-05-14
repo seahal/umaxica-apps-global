@@ -7,7 +7,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   fixtures :staffs, :staff_statuses
 
   setup do
-    @telephone = StaffTelephone.new(
+    @telephone = OperatorTelephone.new(
       number: "+1234567890",
       staff: staffs(:none_staff),
     )
@@ -26,6 +26,20 @@ class TelephoneConcernTest < ActiveSupport::TestCase
     locked = @telephone.locked_at
 
     assert locked.nil? || locked.to_s == "-infinity" || (locked.is_a?(Float) && locked == -Float::INFINITY)
+  end
+
+  test "store_otp does not clear active lockout" do
+    lockout_expires_at = 10.minutes.from_now
+    @telephone.update!(
+      locked_at: lockout_expires_at,
+      otp_attempts_count: Telephone::MAX_OTP_ATTEMPTS,
+    )
+
+    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+
+    assert_equal Telephone::MAX_OTP_ATTEMPTS, @telephone.reload.otp_attempts_count
+    assert_equal lockout_expires_at.to_i, @telephone.locked_at.to_i
+    assert_predicate @telephone, :locked?
   end
 
   test "get_otp returns otp details if valid" do
@@ -54,7 +68,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
 
   test "get_otp returns nil if locked" do
     @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
-    @telephone.update!(locked_at: Time.current)
+    @telephone.update!(locked_at: 1.minute.from_now)
 
     assert_nil @telephone.get_otp
   end
@@ -96,7 +110,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
 
     assert_predicate @telephone, :otp_active?
 
-    @telephone.update!(locked_at: Time.current)
+    @telephone.update!(locked_at: 1.minute.from_now)
 
     assert_not @telephone.otp_active?
 
@@ -105,14 +119,14 @@ class TelephoneConcernTest < ActiveSupport::TestCase
     assert_not @telephone.otp_active?
   end
 
-  test "locked? returns true if locked_at present or attempts exceeded" do
+  test "locked? returns true if lockout active or attempts exceeded in window" do
     assert_not @telephone.locked?
 
-    @telephone.update!(locked_at: Time.current)
+    @telephone.update!(locked_at: 1.minute.from_now)
 
     assert_predicate @telephone, :locked?
 
-    @telephone.update!(locked_at: "-infinity", otp_attempts_count: 3)
+    @telephone.update!(locked_at: "-infinity", otp_attempts_count: Telephone::MAX_OTP_ATTEMPTS)
 
     assert_predicate @telephone, :locked?
   end
@@ -120,19 +134,16 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   test "increment_attempts! increments counter and locks if threshold reached" do
     @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
 
-    @telephone.increment_attempts!
+    (Telephone::MAX_OTP_ATTEMPTS - 1).times do |index|
+      @telephone.increment_attempts!
 
-    assert_equal 1, @telephone.otp_attempts_count
-    assert_not @telephone.locked?
-
-    @telephone.increment_attempts!
-
-    assert_equal 2, @telephone.otp_attempts_count
-    assert_not @telephone.locked?
+      assert_equal index + 1, @telephone.otp_attempts_count
+      assert_not @telephone.locked?
+    end
 
     @telephone.increment_attempts!
 
-    assert_equal 3, @telephone.otp_attempts_count
+    assert_equal Telephone::MAX_OTP_ATTEMPTS, @telephone.otp_attempts_count
     assert_predicate @telephone, :locked?
     assert_not_nil @telephone.locked_at
   end
@@ -145,21 +156,19 @@ class TelephoneConcernTest < ActiveSupport::TestCase
 
     assert locked.nil? || locked.to_s == "-infinity" || (locked.is_a?(Float) && locked == -Float::INFINITY)
 
-    # Increment to threshold
-    3.times { @telephone.increment_attempts! }
+    Telephone::MAX_OTP_ATTEMPTS.times { @telephone.increment_attempts! }
     @telephone.reload
 
-    # locked_at should now be a real timestamp
     assert_predicate @telephone.locked_at, :present?
     assert_not_equal @telephone.locked_at, -Float::INFINITY
-    assert_operator @telephone.locked_at, :<=, Time.current
+    assert_operator @telephone.locked_at, :>, Time.current
+    assert_operator @telephone.locked_at, :<=, Telephone::OTP_LOCKOUT_DURATION.from_now
   end
 
   test "increment_attempts! keeps locked_at stable when incrementing beyond threshold" do
     @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
 
-    # Increment to threshold
-    3.times { @telephone.increment_attempts! }
+    Telephone::MAX_OTP_ATTEMPTS.times { @telephone.increment_attempts! }
     @telephone.reload
 
     first_locked_at = @telephone.locked_at
@@ -176,8 +185,8 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   end
 
   test "increment_attempts! does not change locked_at if already set" do
-    initial_lock_time = 1.hour.ago
-    @telephone.update!(locked_at: initial_lock_time, otp_attempts_count: 3)
+    initial_lock_time = 1.hour.from_now
+    @telephone.update!(locked_at: initial_lock_time, otp_attempts_count: Telephone::MAX_OTP_ATTEMPTS)
 
     # Increment again
     @telephone.increment_attempts!
@@ -187,11 +196,39 @@ class TelephoneConcernTest < ActiveSupport::TestCase
     assert_equal initial_lock_time.to_i, @telephone.locked_at.to_i
   end
 
+  test "locked? returns false after lockout expires" do
+    @telephone.update!(locked_at: 1.second.ago, otp_attempts_count: Telephone::MAX_OTP_ATTEMPTS)
+
+    assert_not @telephone.locked?
+  end
+
+  test "attempts outside observation window reset before lockout" do
+    @telephone.update!(
+      otp_attempts_count: Telephone::MAX_OTP_ATTEMPTS - 1,
+      created_at: (Telephone::OTP_ATTEMPT_WINDOW + 1.second).ago,
+    )
+
+    @telephone.increment_attempts!
+
+    assert_equal 1, @telephone.reload.otp_attempts_count
+    assert_not @telephone.locked?
+  end
+
   test "validate_number_format adds specific error for country code" do
-    zero_country = StaffTelephone.new(number: "+0123456789", staff: staffs(:none_staff))
+    zero_country = OperatorTelephone.new(number: "+0123456789", staff: staffs(:none_staff))
 
     assert_not zero_country.valid?
     assert_includes zero_country.errors.details[:number].pluck(:error),
                     :country_code_cannot_start_with_zero
+  end
+
+  test "reregistration_window_active? uses independent ten second window" do
+    @telephone.update!(created_at: 9.seconds.ago)
+
+    assert_predicate @telephone, :reregistration_window_active?
+
+    @telephone.update!(created_at: 11.seconds.ago)
+
+    assert_not @telephone.reregistration_window_active?
   end
 end

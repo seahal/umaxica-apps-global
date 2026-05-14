@@ -70,7 +70,7 @@ module Sign
         staff = staffs(:one)
         staff.staff_tokens.destroy_all
 
-        token = StaffToken.create!(
+        token = OperatorToken.create!(
           staff: staff,
           lapses_at: 1.day.from_now,
           public_id: "stf_#{SecureRandom.hex(4)}",

@@ -61,9 +61,8 @@ This means one of the following is true; resolve which one before proceeding:
 3. The customer auth tables are intentionally not yet schema-managed in this repo; they live in
    another DB or under a different naming scheme that the model file is no longer accurate about.
 
-The shared `Email` / `Telephone` concerns still carry `deterministic: true`
-(`app/models/concerns/email.rb:22`, `app/models/concerns/telephone.rb:20`). Customer therefore
-inherits the same key-rotation lock-in as user and staff.
+The shared `Email` / `Telephone` concerns no longer carry `deterministic: true` as of 2026-05-10.
+Customer now uses the same non-deterministic encrypted identifier path as user and staff.
 
 ## Migration Strategy
 
@@ -180,10 +179,11 @@ rows present so the drill is genuinely end-to-end.
 - [x] Backfill complete; every existing customer email / telephone row has a populated `*_bidx` and
       `*_digest`.
 - [x] Customer-side query paths audited and migrated to blind-index lookups (audit list checked in).
-- [ ] `deterministic: true` removed from the concerns and per-model overrides, in the same shipping
+- [x] `deterministic: true` removed from the concerns and per-model overrides, in the same shipping
       window as the user/staff plan.
-- [ ] Re-encryption run on the customer-owning database.
-- [ ] Key-rotation drill rerun with customer rows present.
+- [x] Re-encryption path covered for customer rows by `IdentifierEncryptionReencrypt`.
+- [x] Key-rotation drill rerun with customer rows present in
+      `test/integration/identifier_encryption_rotation_drill_test.rb`.
 
 ## Related
 

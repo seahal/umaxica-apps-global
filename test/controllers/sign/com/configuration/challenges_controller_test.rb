@@ -7,57 +7,59 @@ class Sign::Com::Configuration::ChallengesControllerTest < ActionDispatch::Integ
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    CustomerStatus.find_or_create_by!(id: CustomerStatus::ACTIVE)
-    CustomerVisibility.find_or_create_by!(id: CustomerVisibility::CUSTOMER)
-    CustomerEmailStatus.find_or_create_by!(id: CustomerEmailStatus::VERIFIED)
-    CustomerTelephoneStatus.find_or_create_by!(id: CustomerTelephoneStatus::VERIFIED)
-    CustomerTokenKind.find_or_create_by!(id: CustomerTokenKind::BROWSER_WEB)
-    CustomerTokenBindingMethod.find_or_create_by!(id: CustomerTokenBindingMethod::NOTHING)
-    CustomerTokenStatus.find_or_create_by!(id: CustomerTokenStatus::NOTHING)
-    CustomerTokenDbscStatus.find_or_create_by!(id: CustomerTokenDbscStatus::NOTHING)
-    CustomerPasskeyStatus.find_or_create_by!(id: CustomerPasskeyStatus::ACTIVE)
-    CustomerSecretKind.find_or_create_by!(id: CustomerSecretKind::LOGIN)
-    CustomerSecretStatus.find_or_create_by!(id: CustomerSecretStatus::ACTIVE)
-    @customer = Customer.create!(
-      status_id: CustomerStatus::ACTIVE,
-      visibility_id: CustomerVisibility::CUSTOMER,
+    Prosopite.pause do
+      VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
+      VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+      VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
+      VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
+      VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
+      VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
+      VisitorTokenStatus.ensure_defaults!
+      VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
+      VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
+      VisitorSecretKind.find_or_create_by!(id: VisitorSecretKind::LOGIN)
+      VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::ACTIVE)
+    end
+    @visitor = Visitor.create!(
+      status_id: VisitorStatus::ACTIVE,
+      visibility_id: VisitorVisibility::VISITOR,
     )
-    CustomerEmail.create!(
-      customer: @customer,
+    VisitorEmail.create!(
+      visitor: @visitor,
       address: "com-mfa-#{SecureRandom.hex(4)}@example.com",
-      customer_email_status_id: CustomerEmailStatus::VERIFIED,
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
       confirm_policy: "1",
     )
-    @customer.customer_telephones.create!(
+    @visitor.visitor_telephones.create!(
       number: "+819000000004",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @token = CustomerToken.create!(
-      customer: @customer,
-      customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
-      customer_token_binding_method_id: CustomerTokenBindingMethod::NOTHING,
-      customer_token_status_id: CustomerTokenStatus::NOTHING,
-      customer_token_dbsc_status_id: CustomerTokenDbscStatus::NOTHING,
+    @token = VisitorToken.create!(
+      visitor: @visitor,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
-    satisfy_customer_verification(@token)
-    @passkey = @customer.customer_passkeys.create!(
+    satisfy_visitor_verification(@token)
+    @passkey = @visitor.visitor_passkeys.create!(
       webauthn_id: "challenge-passkey",
       public_key: "public-key",
       description: "Passkey",
-      status_id: CustomerPasskeyStatus::ACTIVE,
+      status_id: VisitorPasskeyStatus::ACTIVE,
     )
-    @secret = @customer.customer_secrets.create!(
+    @secret = @visitor.visitor_secrets.create!(
       name: "Recovery",
       password: "a" * 32,
-      customer_secret_kind_id: CustomerSecretKind::LOGIN,
-      customer_secret_status_id: CustomerSecretStatus::ACTIVE,
+      visitor_secret_kind_id: VisitorSecretKind::LOGIN,
+      visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
     )
   end
 
   def request_headers
     {
       "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => @customer.id,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
   end
@@ -71,10 +73,11 @@ class Sign::Com::Configuration::ChallengesControllerTest < ActionDispatch::Integ
 
   test "update enables mfa" do
     patch sign_com_configuration_challenge_url(ri: "jp"),
-          params: { user: { multi_factor_enabled: "1" } },
+          params: { user: { multi_factor_id: VisitorMultiFactor::FULL.to_s } },
           headers: request_headers
 
     assert_redirected_to sign_com_configuration_challenge_url(ri: "jp")
-    assert_predicate @customer.reload, :multi_factor_enabled?
+    assert_equal VisitorMultiFactor::FULL, @visitor.reload.multi_factor_id
+    assert_predicate @visitor.reload, :multi_factor_enabled?
   end
 end

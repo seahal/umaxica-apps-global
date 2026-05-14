@@ -48,20 +48,20 @@ module Auth
     end
 
     module Params
-      RD = :rd
       RI = :ri
       RT = :rt
 
-      public_constant :RD
       public_constant :RI
       public_constant :RT
     end
 
     module Session
-      DEFAULT_RD = :user_email_authentication_rd
-      BULLETIN = :in_bulletin
+      DEFAULT_RT = :user_email_authentication_rt
+      CHECKPOINT = :sign_in_checkpoint
+      BULLETIN = CHECKPOINT
 
-      public_constant :DEFAULT_RD
+      public_constant :DEFAULT_RT
+      public_constant :CHECKPOINT
       public_constant :BULLETIN
     end
 

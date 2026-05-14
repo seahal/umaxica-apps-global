@@ -5,19 +5,19 @@ require "test_helper"
 
 class AnalyticsConsentGuardTest < ActiveSupport::TestCase
   def preference_without_performant
-    cookie = Current::Preference::Cookie.new(
+    cookie = Actor::Preference::Cookie.new(
       consented: true, functional: true, performant: false,
       targetable: false, consent_version: "1", consented_at: Time.current,
     )
-    Current::Preference.new(cookie: cookie)
+    Actor::Preference.new(cookie: cookie)
   end
 
   def preference_with_performant
-    cookie = Current::Preference::Cookie.new(
+    cookie = Actor::Preference::Cookie.new(
       consented: true, functional: true, performant: true,
       targetable: false, consent_version: "1", consented_at: Time.current,
     )
-    Current::Preference.new(cookie: cookie)
+    Actor::Preference.new(cookie: cookie)
   end
 
   test "allowed event passes without consent" do
@@ -57,16 +57,16 @@ class AnalyticsConsentGuardTest < ActiveSupport::TestCase
   end
 
   test "null preference blocks disallowed events" do
-    assert_not AnalyticsConsentGuard.permit?("product.page_view", preference: Current::Preference::NULL)
+    assert_not AnalyticsConsentGuard.permit?("product.page_view", preference: Actor::Preference::NULL)
   end
 
   test "null preference allows pre-consent events" do
-    assert AnalyticsConsentGuard.permit?("auth.login.success", preference: Current::Preference::NULL)
-    assert AnalyticsConsentGuard.permit?("authentication.audit.failed", preference: Current::Preference::NULL)
+    assert AnalyticsConsentGuard.permit?("auth.login.success", preference: Actor::Preference::NULL)
+    assert AnalyticsConsentGuard.permit?("authentication.audit.failed", preference: Actor::Preference::NULL)
   end
 
   test "pipeline integration drops disallowed events when consent is missing" do
-    Current.preference = Current::Preference::NULL
+    Actor.preference = Actor::Preference::NULL
     emitted = []
     subscriber = Class.new do
       define_method(:emit) do |event|
@@ -85,6 +85,30 @@ class AnalyticsConsentGuardTest < ActiveSupport::TestCase
     assert_equal 1, emitted.size, "Allowed event should be emitted"
   ensure
     Rails.event.unsubscribe(subscriber) if defined?(subscriber)
-    Current.reset
+    Actor.reset
+  end
+
+  test "event reporter patch drops blocked events and forwards allowed events" do
+    reporter_class =
+      Class.new do
+        define_method(:notify) do |name, **payload|
+          [:base, name, payload]
+        end
+      end
+    reporter_class.prepend(AnalyticsConsentGuard::EventReporterPatch)
+
+    blocked_preference = preference_without_performant
+    allowed_preference = preference_with_performant
+
+    Actor.stub(:preference, blocked_preference) do
+      Rails.logger.stub(:debug, nil) do
+        assert_nil reporter_class.new.notify("product.page_view", path: "/")
+      end
+    end
+
+    Actor.stub(:preference, allowed_preference) do
+      assert_equal [:base, "product.page_view", { path: "/" }],
+                   reporter_class.new.notify("product.page_view", path: "/")
+    end
   end
 end

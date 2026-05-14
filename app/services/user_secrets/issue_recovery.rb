@@ -51,7 +51,7 @@ module UserSecrets
     private
 
     def audit_class
-      @audit_class ||= @actor.is_a?(Staff) ? StaffChronicle : UserChronicle
+      @audit_class ||= @actor.is_a?(Operator) ? OperatorChronicle : UserChronicle
     end
 
     def revoke_existing_recovery_secrets!

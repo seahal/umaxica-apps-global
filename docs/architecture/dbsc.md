@@ -41,9 +41,9 @@ DBSC and DPoP (RFC 9449) serve similar purposes (proof-of-possession) but target
 Both are used in this application. DBSC protects Hotwire/Turbo browser sessions. DPoP protects
 Next.js and API client token usage.
 
-## Client Token Strategy
+## VisitorAccount Token Strategy
 
-See `docs/architecture/dpop.md` § Client Token Strategy for the full matrix of token transport and
+See `docs/architecture/dpop.md` § VisitorAccount Token Strategy for the full matrix of token transport and
 binding mechanisms across all client types (Rails HTML, Next.js, iOS / Android).
 
 ## Related

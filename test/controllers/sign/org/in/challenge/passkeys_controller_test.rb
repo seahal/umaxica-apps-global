@@ -19,31 +19,31 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host}", "http://id.app.localhost"] }
 
     @staff = staffs(:one)
-    @staff.update!(status_id: StaffStatus::ACTIVE, multi_factor_enabled: true)
+    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE, multi_factor_enabled: true)
 
-    @passkey = StaffPasskey.create!(
+    @passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: Base64.urlsafe_encode64("mfa_passkey_org_st12", padding: false),
       external_id: SecureRandom.uuid,
       public_key: "mfa-passkey-public",
       sign_count: 5,
       name: "MFA Passkey",
-      status_id: StaffPasskeyStatus::ACTIVE,
+      status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    _secret, @raw_secret = StaffSecret.issue!(
+    _secret, @raw_secret = OperatorSecret.issue!(
       name: "MFA Secret",
       staff_id: @staff.id,
-      staff_secret_kind_id: StaffSecretKind::PERMANENT,
+      staff_secret_kind_id: OperatorSecretKind::PERMANENT,
       uses: 10,
       status: :active,
     )
 
     unless @staff.staff_emails.exists?
-      StaffEmail.create!(
+      OperatorEmail.create!(
         staff: @staff,
         address: "mfa_org_test_#{@staff.id}@example.com",
-        staff_email_status_id: StaffEmailStatus::VERIFIED,
+        staff_email_status_id: OperatorEmailStatus::VERIFIED,
       )
     end
   end
@@ -63,7 +63,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
   test "new redirects when no passkeys available" do
     establish_pending_mfa!
-    @staff.staff_passkeys.update_all(status_id: StaffPasskeyStatus::REVOKED)
+    @staff.staff_passkeys.update_all(status_id: OperatorPasskeyStatus::REVOKED)
 
     get new_sign_org_in_challenge_passkey_path(ri: "jp")
 
@@ -82,13 +82,20 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   test "new handles origin validation error" do
+    original_org_origin = ENV["WEBAUTHN_ORG_ORIGIN"]
+    original_origin = ENV["WEBAUTHN_ORIGIN"]
+    ENV.delete("WEBAUTHN_ORG_ORIGIN")
+    ENV.delete("WEBAUTHN_ORIGIN")
     Webauthn.define_singleton_method(:trusted_origins) { [] }
 
     establish_pending_mfa!
-    get new_sign_org_in_challenge_passkey_path(ri: "jp")
+    get(new_sign_org_in_challenge_passkey_path(ri: "jp"))
 
     assert_redirected_to sign_org_in_challenge_path(ri: "jp")
     assert_predicate flash[:alert], :present?
+  ensure
+    ENV["WEBAUTHN_ORG_ORIGIN"] = original_org_origin if original_org_origin
+    ENV["WEBAUTHN_ORIGIN"] = original_origin if original_origin
   end
 
   test "create requires cloudflare turnstile validation" do
@@ -351,7 +358,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_in_challenge_passkey_path(ri: "jp", rd: "/bulleting/path"),
+      post sign_org_in_challenge_passkey_path(ri: "jp", rt: "/bulleting/path"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
              mfa_passkey_form: {
@@ -395,7 +402,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   def create_rotated_active_staff_session(staff, rotations:)
-    token = StaffToken.create!(staff: staff, status: StaffToken::STATUS_ACTIVE)
+    token = OperatorToken.create!(staff: staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
 
     rotations.times do

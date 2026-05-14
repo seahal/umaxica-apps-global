@@ -7,7 +7,10 @@ class StylesheetTagsTest < ActiveSupport::TestCase
   test "sign layouts include sign main stylesheet" do
     paths = [
       "app/views/layouts/sign/app/application.html.erb",
+      "app/views/layouts/sign/com/application.html.erb",
+      "app/views/layouts/sign/dev/application.html.erb",
       "app/views/layouts/sign/org/application.html.erb",
+      "app/views/layouts/sign/net/application.html.erb",
     ]
 
     paths.each do |path|

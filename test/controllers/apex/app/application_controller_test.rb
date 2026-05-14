@@ -5,8 +5,8 @@ require "test_helper"
 
 module Apex
   module App
-    class ApplicationControllerTest < ActionDispatch::IntegrationTest
-      test "includes expected concerns" do
+    class ApplicationControllerTest < Minitest::Test
+      def test_includes_expected_concerns
         controller = ApplicationController.new
 
         assert_includes controller.class, RateLimit
@@ -21,7 +21,7 @@ module Apex
         assert_includes controller.class, ::Finisher
       end
 
-      test "has preference-related prepend_before_action callbacks" do
+      def test_has_preference_related_prepend_before_action_callbacks
         callbacks = ApplicationController._process_action_callbacks
         before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
 
@@ -31,7 +31,7 @@ module Apex
         assert_includes before_filters, :set_color_theme
       end
 
-      test "has correct callback order" do
+      def test_has_correct_callback_order
         callbacks = ApplicationController._process_action_callbacks
         before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
 
@@ -55,21 +55,21 @@ module Apex
         end
       end
 
-      test "has finish_request append_after_action" do
+      def test_has_finish_request_append_after_action
         callbacks = ApplicationController._process_action_callbacks
         after_filters = callbacks.select { |c| c.kind == :after }.map(&:filter)
 
         assert_includes after_filters, :purge_current
       end
 
-      test "has oidc_client_id method" do
+      def test_has_oidc_client_id_method
         controller = ApplicationController.new
 
         assert_respond_to controller, :oidc_client_id
         assert_equal "apex_app", controller.send(:oidc_client_id)
       end
 
-      test "has oidc_sign_host method" do
+      def test_has_oidc_sign_host_method
         controller = ApplicationController.new
 
         assert_respond_to controller, :oidc_sign_host

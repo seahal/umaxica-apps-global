@@ -20,8 +20,8 @@
 
 require "test_helper"
 
-class StaffNotificationTest < ActiveSupport::TestCase
+class OperatorNotificationTest < ActiveSupport::TestCase
   test "class is defined" do
-    assert_equal "StaffNotification", StaffNotification.name
+    assert_equal "OperatorNotification", OperatorNotification.name
   end
 end

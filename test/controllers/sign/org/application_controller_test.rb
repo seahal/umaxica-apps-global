@@ -14,8 +14,8 @@ module Sign::Org
       )
       @controller.response = ActionDispatch::TestResponse.new
       @staff =
-        Staff.find_or_create_by!(id: 1) do |s|
-          s.status_id = StaffStatus::NOTHING
+        Operator.find_or_create_by!(id: 1) do |s|
+          s.status_id = OperatorIdentityStatus::NOTHING
         end
     end
 
@@ -28,12 +28,12 @@ module Sign::Org
       assert_not @controller.send(:am_i_user?)
     end
 
-    test "authenticate_staff! allows access when staff is logged in" do
+    test "authenticate_operator! allows access when operator is logged in" do
       # Mock header to simulate logged in staff
       @controller.request.headers["X-TEST-CURRENT-STAFF"] = @staff.id
       # Should not raise or redirect
       assert_nothing_raised do
-        @controller.send(:authenticate_staff!)
+        @controller.send(:authenticate_operator!)
       end
     end
   end

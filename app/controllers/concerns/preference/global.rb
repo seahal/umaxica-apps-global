@@ -50,7 +50,7 @@ module Preference::Global
         next if raw_value.blank?
 
         normalized_value = raw_value.to_s.downcase
-        next if key == :ri && !valid_ri_value?(normalized_value)
+        next unless valid_requested_context_value?(key, normalized_value)
 
         memo[key] = normalized_value
       end
@@ -65,7 +65,7 @@ module Preference::Global
   end
 
   def effective_context
-    @effective_context ||= default_context.merge(cookie_context).merge(requested_context)
+    default_context.merge(cookie_context).merge(requested_context)
   end
 
   def required_ri
@@ -144,6 +144,31 @@ module Preference::Global
     value.present? && allowed_region_values.include?(value)
   end
 
+  def valid_requested_context_value?(key, value)
+    case key
+    when :ri
+      valid_ri_value?(value)
+    when :lx
+      normalized_locale(value).present?
+    when :ct
+      normalize_colortheme(value).present?
+    when :tz
+      valid_timezone_value?(value)
+    else
+      true
+    end
+  end
+
+  def valid_timezone_value?(value)
+    return false if value.blank?
+
+    allowed_requested_timezone_values.include?(value.to_s.downcase)
+  end
+
+  def allowed_requested_timezone_values
+    %w(utc etc/utc jst asia/tokyo).freeze
+  end
+
   def allowed_region_values
     return ALLOWED_REGION_VALUES if @preferences.blank?
 
@@ -177,7 +202,7 @@ module Preference::Global
   end
 
   def get_region
-    "jp"
+    required_ri.presence || "jp"
   end
 
   def get_timezone
@@ -185,11 +210,31 @@ module Preference::Global
   end
 
   def set_region
-    return if params[:ri].present?
-    return unless request.get? || request.head?
+    normalized_ri = normalized_param_ri
+    redirect_params = sanitized_context_query_parameters
+    query_changed = redirect_params != request.query_parameters
 
-    redirect_params = request.query_parameters.merge(ri: get_region)
+    if valid_ri_value?(normalized_ri)
+      return unless query_changed && (request.get? || request.head?)
 
+      return redirect_to_context_query(redirect_params)
+    end
+
+    return unless request.get? || request.head? || params[:ri].present?
+
+    redirect_params = redirect_params.merge("ri" => get_region)
+    redirect_to_context_query(redirect_params)
+  end
+
+  def sanitized_context_query_parameters
+    request.query_parameters.dup.tap do |query|
+      query.delete("lx") if query.key?("lx") && !valid_requested_context_value?(:lx, query["lx"])
+      query.delete("ct") if query.key?("ct") && !valid_requested_context_value?(:ct, query["ct"])
+      query.delete("tz") if query.key?("tz") && !valid_requested_context_value?(:tz, query["tz"])
+    end
+  end
+
+  def redirect_to_context_query(redirect_params)
     redirect_url = url_for(
       protocol: request.protocol,
       host: request.host,
@@ -200,7 +245,7 @@ module Preference::Global
       only_path: false,
     )
 
-    redirect_to(redirect_url)
+    redirect_to(redirect_url, status: redirect_status_for_ri?)
   end
 
   def set_locale

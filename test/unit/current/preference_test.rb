@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-class Current::PreferenceTest < ActiveSupport::TestCase
+class Actor::PreferenceTest < ActiveSupport::TestCase
   test "NULL returns safe defaults" do
-    pref = Current::Preference::NULL
+    pref = Actor::Preference::NULL
 
     assert_predicate pref, :null?
     assert_equal "ja", pref.language
@@ -19,7 +19,7 @@ class Current::PreferenceTest < ActiveSupport::TestCase
   end
 
   test "NULL cookie returns false for all consent flags" do
-    cookie = Current::Preference::NULL.cookie
+    cookie = Actor::Preference::NULL.cookie
 
     assert_not cookie.consented?
     assert_not cookie.functional?
@@ -30,7 +30,7 @@ class Current::PreferenceTest < ActiveSupport::TestCase
   end
 
   test "custom preference overrides defaults" do
-    pref = Current::Preference.new(
+    pref = Actor::Preference.new(
       language: "en",
       region: "us",
       timezone: "America/New_York",
@@ -47,7 +47,7 @@ class Current::PreferenceTest < ActiveSupport::TestCase
   end
 
   test "preference with cookie consent" do
-    cookie = Current::Preference::Cookie.new(
+    cookie = Actor::Preference::Cookie.new(
       consented: true,
       functional: true,
       performant: false,
@@ -55,7 +55,7 @@ class Current::PreferenceTest < ActiveSupport::TestCase
       consent_version: "v1",
       consented_at: Time.zone.parse("2026-01-01"),
     )
-    pref = Current::Preference.new(cookie: cookie)
+    pref = Actor::Preference.new(cookie: cookie)
 
     assert_predicate pref.cookie, :consented?
     assert_predicate pref.cookie, :functional?
@@ -64,26 +64,26 @@ class Current::PreferenceTest < ActiveSupport::TestCase
   end
 
   test "preference is frozen" do
-    pref = Current::Preference.new
+    pref = Actor::Preference.new
 
     assert_predicate pref, :frozen?
   end
 
   test "time_zone returns ActiveSupport::TimeZone" do
-    pref = Current::Preference.new(timezone: "America/New_York")
+    pref = Actor::Preference.new(timezone: "America/New_York")
 
     assert_instance_of ActiveSupport::TimeZone, pref.time_zone
     assert_equal "America/New_York", pref.time_zone.name
   end
 
   test "time_zone falls back to Asia/Tokyo for unknown zone" do
-    pref = Current::Preference.new(timezone: "Invalid/Zone")
+    pref = Actor::Preference.new(timezone: "Invalid/Zone")
 
     assert_equal "Asia/Tokyo", pref.time_zone.name
   end
 
   test "to_h returns preference summary" do
-    pref = Current::Preference.new(language: "en", theme: "li")
+    pref = Actor::Preference.new(language: "en", theme: "li")
 
     h = pref.to_h
 
@@ -92,37 +92,37 @@ class Current::PreferenceTest < ActiveSupport::TestCase
     assert_not h[:consented]
   end
 
-  test "Current.preference returns NULL by default" do
-    Current.reset
+  test "Actor.preference returns NULL by default" do
+    Actor.reset
 
-    assert_equal Current::Preference::NULL, Current.preference
-    assert_predicate Current.preference, :null?
+    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_predicate Actor.preference, :null?
   end
 
-  test "Current.preference can be assigned" do
-    Current.reset
-    custom = Current::Preference.new(language: "en")
-    Current.preference = custom
+  test "Actor.preference can be assigned" do
+    Actor.reset
+    custom = Actor::Preference.new(language: "en")
+    Actor.preference = custom
 
-    assert_equal "en", Current.preference.language
-    assert_not Current.preference.null?
+    assert_equal "en", Actor.preference.language
+    assert_not Actor.preference.null?
   ensure
-    Current.reset
+    Actor.reset
   end
 
   test "from_jwt returns NULL for nil input" do
-    assert_equal Current::Preference::NULL, Current::Preference.from_jwt(nil)
+    assert_equal Actor::Preference::NULL, Actor::Preference.from_jwt(nil)
   end
 
   test "from_jwt returns NULL for non-hash input" do
-    assert_equal Current::Preference::NULL, Current::Preference.from_jwt("string")
-    assert_equal Current::Preference::NULL, Current::Preference.from_jwt(123)
-    assert_equal Current::Preference::NULL, Current::Preference.from_jwt([])
+    assert_equal Actor::Preference::NULL, Actor::Preference.from_jwt("string")
+    assert_equal Actor::Preference::NULL, Actor::Preference.from_jwt(123)
+    assert_equal Actor::Preference::NULL, Actor::Preference.from_jwt([])
   end
 
   test "from_jwt constructs correct Preference from valid prf hash" do
     prf = { "lx" => "en", "ri" => "us", "tz" => "America/New_York", "ct" => "dr" }
-    pref = Current::Preference.from_jwt(prf)
+    pref = Actor::Preference.from_jwt(prf)
 
     assert_not pref.null?
     assert_equal "en", pref.language
@@ -133,7 +133,7 @@ class Current::PreferenceTest < ActiveSupport::TestCase
 
   test "from_jwt falls back to DEFAULTS for missing keys" do
     prf = { "lx" => "en" } # Only language provided
-    pref = Current::Preference.from_jwt(prf)
+    pref = Actor::Preference.from_jwt(prf)
 
     assert_equal "en", pref.language
     assert_equal "jp", pref.region # DEFAULTS[:region]
@@ -142,7 +142,7 @@ class Current::PreferenceTest < ActiveSupport::TestCase
   end
 
   test "from_jwt handles empty hash" do
-    pref = Current::Preference.from_jwt({})
+    pref = Actor::Preference.from_jwt({})
 
     assert_equal "ja", pref.language
     assert_equal "jp", pref.region
@@ -151,7 +151,7 @@ class Current::PreferenceTest < ActiveSupport::TestCase
   end
 
   test "from_jwt with cookie parameter" do
-    cookie = Current::Preference::Cookie.new(
+    cookie = Actor::Preference::Cookie.new(
       consented: true,
       functional: true,
       performant: false,
@@ -160,14 +160,14 @@ class Current::PreferenceTest < ActiveSupport::TestCase
       consented_at: Time.zone.parse("2026-01-01"),
     )
     prf = { "lx" => "en" }
-    pref = Current::Preference.from_jwt(prf, cookie: cookie)
+    pref = Actor::Preference.from_jwt(prf, cookie: cookie)
 
     assert_predicate pref.cookie, :consented?
     assert_predicate pref.cookie, :functional?
   end
 
   test "with_cookie keeps preference values and updates cookie state" do
-    pref = Current::Preference.new(language: "en", region: "us", timezone: "America/New_York", theme: "dr")
+    pref = Actor::Preference.new(language: "en", region: "us", timezone: "America/New_York", theme: "dr")
 
     updated = pref.with_cookie(
       consented: true,

@@ -8,6 +8,7 @@ module Sign
     class EngineTest < ActiveSupport::TestCase
       setup do
         UserOccurrenceStatus.find_or_create_by!(id: UserOccurrenceStatus::ACTIVE)
+        VisitorOccurrenceStatus.ensure_defaults!
         @user = User.create!(status_id: UserStatus::NOTHING, public_id: "risk_#{SecureRandom.hex(6)}")
       end
 
@@ -57,6 +58,14 @@ module Sign
         Emitter.send(:persist, Event.new("session_issued", payload: { user_id: @user.id }))
 
         assert_equal 0, Engine.score(user_id: @user.id)
+      end
+
+      test "visitor auth_failed 5 times returns 60" do
+        5.times do
+          Emitter.send(:persist, Event.new("auth_failed", payload: { visitor_id: 123 }))
+        end
+
+        assert_equal 60, Engine.score(visitor_id: 123)
       end
     end
   end

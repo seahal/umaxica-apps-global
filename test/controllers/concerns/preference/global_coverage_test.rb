@@ -14,14 +14,16 @@ class Preference::GlobalCoverageTest < ActiveSupport::TestCase
       @params_hash = {}
       @session_hash = {}
       @cookies_hash = {}.with_indifferent_access
+      @query_parameters = {}
       @request_obj = Object.new
+      request_owner = self
       def @request_obj.host = "localhost"
 
       def @request_obj.base_url = "http://localhost"
 
       def @request_obj.path = "/test"
 
-      def @request_obj.query_parameters = {}
+      @request_obj.define_singleton_method(:query_parameters) { request_owner.query_parameters }
 
       def @request_obj.get? = true
 
@@ -33,6 +35,12 @@ class Preference::GlobalCoverageTest < ActiveSupport::TestCase
     end
 
     def params = ActionController::Parameters.new(@params_hash)
+
+    def query_parameters = @query_parameters
+
+    def query_parameters=(value)
+      @query_parameters = value
+    end
 
     def session = @session_hash
 
@@ -103,6 +111,23 @@ class Preference::GlobalCoverageTest < ActiveSupport::TestCase
     assert_not context.key?(:other)
   end
 
+  test "requested_context drops invalid lx" do
+    @harness.params_hash = { ri: "jp", lx: "kr" }
+    context = @harness.requested_context
+
+    assert_equal "jp", context[:ri]
+    assert_not context.key?(:lx)
+  end
+
+  test "requested_context drops invalid ct and tz" do
+    @harness.params_hash = { ri: "jp", ct: "purple", tz: "Mars/Base" }
+    context = @harness.requested_context
+
+    assert_equal "jp", context[:ri]
+    assert_not context.key?(:ct)
+    assert_not context.key?(:tz)
+  end
+
   test "cookie_context merges payload and record" do
     @harness.instance_variable_set(:@preferences, AppPreference.new)
     context = @harness.cookie_context
@@ -135,12 +160,81 @@ class Preference::GlobalCoverageTest < ActiveSupport::TestCase
 
   test "set_region redirects if ri is missing" do
     @harness.params_hash = {}
-    # We need to mock url_for
-    @harness.define_singleton_method(:url_for) do |*|
-      "http://localhost/test?ri=jp"
+    @harness.define_singleton_method(:url_for) do |options|
+      "http://localhost/test?ri=#{options.fetch(:ri)}"
     end
     @harness.send(:set_region)
 
+    assert_equal "http://localhost/test?ri=us", @harness.redirected_to
+  end
+
+  test "set_region redirects if ri is invalid" do
+    @harness.params_hash = { ri: "kr", lx: "en" }
+    @harness.query_parameters = { "ri" => "kr", "lx" => "en" }
+    @harness.define_singleton_method(:url_for) do |options|
+      query = options.slice(:ri, :lx).to_query
+      "http://localhost/test?#{query}"
+    end
+
+    @harness.send(:set_region)
+
+    assert_equal "http://localhost/test?lx=en&ri=us", @harness.redirected_to
+    assert_equal({ status: :found }, @harness.redirected.last)
+  end
+
+  test "set_region removes invalid lx when ri is valid" do
+    @harness.params_hash = { ri: "jp", lx: "kr" }
+    @harness.query_parameters = { "ri" => "jp", "lx" => "kr" }
+    @harness.define_singleton_method(:url_for) do |options|
+      query = options.slice(:ri, :lx).compact.to_query
+      "http://localhost/test?#{query}"
+    end
+
+    @harness.send(:set_region)
+
     assert_equal "http://localhost/test?ri=jp", @harness.redirected_to
+    assert_equal({ status: :found }, @harness.redirected.last)
+  end
+
+  test "set_region removes invalid ct and tz when ri is valid" do
+    @harness.params_hash = { ri: "jp", ct: "purple", tz: "Mars/Base" }
+    @harness.query_parameters = { "ri" => "jp", "ct" => "purple", "tz" => "Mars/Base" }
+    @harness.define_singleton_method(:url_for) do |options|
+      query = options.slice(:ri, :ct, :tz).compact.to_query
+      "http://localhost/test?#{query}"
+    end
+
+    @harness.send(:set_region)
+
+    assert_equal "http://localhost/test?ri=jp", @harness.redirected_to
+    assert_equal({ status: :found }, @harness.redirected.last)
+  end
+
+  test "set_region preserves valid ct and tz while removing invalid lx" do
+    @harness.params_hash = { ri: "jp", lx: "kr", ct: "dr", tz: "utc" }
+    @harness.query_parameters = { "ri" => "jp", "lx" => "kr", "ct" => "dr", "tz" => "utc" }
+    @harness.define_singleton_method(:url_for) do |options|
+      query = options.slice(:ri, :lx, :ct, :tz).compact.to_query
+      "http://localhost/test?#{query}"
+    end
+
+    @harness.send(:set_region)
+
+    assert_equal "http://localhost/test?ct=dr&ri=jp&tz=utc", @harness.redirected_to
+    assert_equal({ status: :found }, @harness.redirected.last)
+  end
+
+  test "set_region removes blank optional context params while adding missing ri" do
+    @harness.params_hash = { lx: "", ct: "", tz: "" }
+    @harness.query_parameters = { "lx" => "", "ct" => "", "tz" => "" }
+    @harness.define_singleton_method(:url_for) do |options|
+      query = options.slice(:ri, :lx, :ct, :tz).compact.to_query
+      "http://localhost/test?#{query}"
+    end
+
+    @harness.send(:set_region)
+
+    assert_equal "http://localhost/test?ri=us", @harness.redirected_to
+    assert_equal({ status: :found }, @harness.redirected.last)
   end
 end

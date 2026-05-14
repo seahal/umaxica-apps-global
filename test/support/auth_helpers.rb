@@ -3,12 +3,13 @@
 
 require_relative "../../app/controllers/concerns/authentication/base"
 require_relative "../../app/controllers/concerns/authentication/user"
-require_relative "../../app/controllers/concerns/authentication/staff"
+require_relative "../../app/controllers/concerns/authentication/operator"
 
 module AuthHelpers
   TEST_USER_HEADER = "X-TEST-CURRENT-USER"
   TEST_STAFF_HEADER = "X-TEST-CURRENT-STAFF"
   TEST_RESOURCE_HEADER = "X-TEST-CURRENT-RESOURCE"
+  TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
   MODERN_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
                       "AppleWebKit/537.36 (KHTML, like Gecko) " \
                       "Chrome/120.0.0.0 Safari/537.36"
@@ -56,17 +57,17 @@ module AuthHelpers
     host_headers(host).merge(headers).merge(TEST_STAFF_HEADER => staff.id.to_s)
   end
 
-  def as_customer_headers(customer, host: nil, headers: {})
-    CustomerTokenBindingMethod.ensure_defaults!
-    CustomerTokenKind.find_or_create_by!(id: CustomerTokenKind::BROWSER_WEB)
-    base = host_headers(host).merge(headers).merge(TEST_RESOURCE_HEADER => customer.id.to_s)
+  def as_visitor_headers(visitor, host: nil, headers: {})
+    VisitorTokenBindingMethod.ensure_defaults!
+    VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
+    base = host_headers(host).merge(headers).merge(TEST_RESOURCE_HEADER => visitor.id.to_s)
 
-    if customer.respond_to?(:persisted?) && customer.persisted? && customer.class.name == "Customer"
-      token = CustomerToken.where(customer_id: customer.id).where(
+    if visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
+      token = VisitorToken.where(visitor_id: visitor.id).where(
         "lapses_at > ?",
         Time.current,
       ).order(created_at: :desc).first
-      token ||= CustomerToken.create!(customer_id: customer.id, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
+      token ||= VisitorToken.create!(visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = token.public_id
     end
 
@@ -83,8 +84,8 @@ module AuthHelpers
     resource_type ||=
       case resource
       when User then "user"
-      when Staff then "staff"
-      when Customer then "customer"
+      when Operator then "operator"
+      when Visitor then "visitor"
       end
 
     ::Authentication::Base::Token.encode(
@@ -106,21 +107,18 @@ module AuthHelpers
   end
 
   def satisfy_user_verification(user_token)
-    verification, raw_token = UserVerification.issue_for_token!(token: user_token)
-    cookies[UserVerification.cookie_name] = raw_token
-    verification
+    cookies[UserVerification.cookie_name] = "#{TEST_VERIFICATION_COOKIE_PREFIX}#{user_token.public_id}"
+    true
   end
 
   def satisfy_staff_verification(staff_token)
-    verification, raw_token = StaffVerification.issue_for_token!(token: staff_token)
-    cookies[StaffVerification.cookie_name] = raw_token
-    verification
+    cookies[OperatorVerification.cookie_name] = "#{TEST_VERIFICATION_COOKIE_PREFIX}#{staff_token.public_id}"
+    true
   end
 
-  def satisfy_customer_verification(customer_token)
-    verification, raw_token = CustomerVerification.issue_for_token!(token: customer_token)
-    cookies[CustomerVerification.cookie_name] = raw_token
-    verification
+  def satisfy_visitor_verification(visitor_token)
+    cookies[VisitorVerification.cookie_name] = "#{TEST_VERIFICATION_COOKIE_PREFIX}#{visitor_token.public_id}"
+    true
   end
 
   alias_method :set_user_access_cookie, :set_access_cookie

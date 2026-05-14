@@ -17,7 +17,6 @@
 #  refresh_token_digest          :binary
 #  refresh_token_generation      :integer          default(0), not null
 #  rotated_at                    :datetime
-#  status                        :string(20)       default("active"), not null
 #  created_at                    :datetime         not null
 #  updated_at                    :datetime         not null
 #  dbsc_session_id               :string
@@ -29,7 +28,7 @@
 #  staff_token_binding_method_id :bigint           default(0), not null
 #  staff_token_dbsc_status_id    :bigint           default(0), not null
 #  staff_token_kind_id           :bigint           default(1), not null
-#  staff_token_status_id         :bigint           default(0), not null
+#  staff_token_status_id         :bigint           default(1), not null
 #
 # Indexes
 #
@@ -46,7 +45,6 @@
 #  index_staff_tokens_on_staff_token_dbsc_status_id     (staff_token_dbsc_status_id)
 #  index_staff_tokens_on_staff_token_kind_id            (staff_token_kind_id)
 #  index_staff_tokens_on_staff_token_status_id          (staff_token_status_id)
-#  index_staff_tokens_on_status                         (status)
 #
 # Foreign Keys
 #
@@ -56,9 +54,9 @@
 #  fk_staff_tokens_on_staff_token_status_id          (staff_token_status_id => staff_token_statuses.id)
 #
 one:
-  staff: one
-  staff_token_binding_method_id: <%= StaffTokenBindingMethod::NOTHING %>
-  staff_token_dbsc_status_id: <%= StaffTokenDbscStatus::NOTHING %>
+  staff_id: <%= ActiveRecord::FixtureSet.identify(:one) %>
+  staff_token_binding_method_id: <%= OperatorTokenBindingMethod::NOTHING %>
+  staff_token_dbsc_status_id: <%= OperatorTokenDbscStatus::NOTHING %>
   staff_token_status_id: 1
   staff_token_kind_id: 1
   public_id: one_staff_token_00001
@@ -67,9 +65,9 @@ one:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 two:
-  staff: two
-  staff_token_binding_method_id: <%= StaffTokenBindingMethod::NOTHING %>
-  staff_token_dbsc_status_id: <%= StaffTokenDbscStatus::NOTHING %>
+  staff_id: <%= ActiveRecord::FixtureSet.identify(:two) %>
+  staff_token_binding_method_id: <%= OperatorTokenBindingMethod::NOTHING %>
+  staff_token_dbsc_status_id: <%= OperatorTokenDbscStatus::NOTHING %>
   staff_token_status_id: 1
   staff_token_kind_id: 1
   public_id: two_staff_token_00001

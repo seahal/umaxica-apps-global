@@ -16,14 +16,15 @@ module Auth
 
     # Writes audit record and raises exception on failure
     # Use this when audit failure should stop the operation
-    def self.write!(audit_class, event_id, resource:, actor: nil, ip_address: nil)
+    def self.write!(audit_class, event_id, resource:, actor: nil, ip_address: nil, context: {})
       actor ||= resource
 
       ChronicleRecord.connected_to(role: :writing) do
         normalized_event_id = normalize_event_id(audit_class, event_id)
+        ensure_chronicle_references!(audit_class, normalized_event_id)
         audit = build_audit(
           audit_class, normalized_event_id, resource: resource, actor: actor,
-                                            ip_address: ip_address,
+                                            ip_address: ip_address, context: context,
         )
 
         unless audit.save
@@ -40,8 +41,8 @@ module Auth
     # Returns true on success, false on failure
     # Notifies observers on failure (via Rails.event.notify)
     # Use this in authentication flows to prevent audit failures from blocking auth
-    def self.write(audit_class, event_id, resource:, actor: nil, ip_address: nil)
-      write!(audit_class, event_id, resource: resource, actor: actor, ip_address: ip_address)
+    def self.write(audit_class, event_id, resource:, actor: nil, ip_address: nil, context: {})
+      write!(audit_class, event_id, resource: resource, actor: actor, ip_address: ip_address, context: context)
       true
     rescue StandardError => e
       # Observe the failure without blocking authentication
@@ -61,13 +62,14 @@ module Auth
     end
 
     # Builds audit record without saving
-    def self.build_audit(audit_class, event_id, resource:, actor:, ip_address:)
+    def self.build_audit(audit_class, event_id, resource:, actor:, ip_address:, context: {})
       audit = audit_class.new(
         actor: actor,
         event_id: event_id,
         ip_address: ip_address,
         occurred_at: Time.current,
       )
+      audit.context = context if context.present? && audit.respond_to?(:context=)
 
       if actor
         audit.actor_id = actor.id
@@ -76,7 +78,7 @@ module Auth
 
       # Set resource using the appropriate setter method
       # For UserChronicle: user= or subject_id=/subject_type=
-      # For StaffChronicle: staff= or subject_id=/subject_type=
+      # For OperatorChronicle: staff= or subject_id=/subject_type=
       resource_type = infer_resource_type(audit_class, resource)
       if audit.respond_to?("#{resource_type}=")
         audit.public_send("#{resource_type}=", resource)
@@ -90,7 +92,7 @@ module Auth
     end
 
     # Infers resource type from audit class name
-    # UserChronicle -> "user", StaffChronicle -> "staff"
+    # UserChronicle -> "user", OperatorChronicle -> "staff"
     def self.infer_resource_type(audit_class, resource)
       # Try to extract from audit class name (UserChronicle -> user)
       class_name = audit_class.name.demodulize
@@ -120,12 +122,12 @@ module Auth
           "LOGIN_FAILED" => UserChronicleEvent::LOGIN_FAILED,
           "TOKEN_REFRESHED" => UserChronicleEvent::TOKEN_REFRESHED,
         }
-      when "StaffChronicle"
+      when "OperatorChronicle"
         {
-          "LOGGED_IN" => StaffChronicleEvent::LOGGED_IN,
-          "LOGGED_OUT" => StaffChronicleEvent::LOGGED_OUT,
-          "LOGIN_FAILED" => StaffChronicleEvent::LOGIN_FAILED,
-          "TOKEN_REFRESHED" => StaffChronicleEvent::TOKEN_REFRESHED,
+          "LOGGED_IN" => OperatorChronicleEvent::LOGGED_IN,
+          "LOGGED_OUT" => OperatorChronicleEvent::LOGGED_OUT,
+          "LOGIN_FAILED" => OperatorChronicleEvent::LOGIN_FAILED,
+          "TOKEN_REFRESHED" => OperatorChronicleEvent::TOKEN_REFRESHED,
         }
       when "AppPreferenceChronicle"
         {
@@ -166,6 +168,23 @@ module Auth
     end
 
     private_class_method :event_id_map_for
+
+    def self.ensure_chronicle_references!(audit_class, event_id)
+      case audit_class.name
+      when "UserChronicle"
+        return unless UserChronicleEvent::DEFAULTS.include?(event_id)
+
+        UserChronicleEvent.find_or_create_by!(id: event_id)
+        UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+      when "OperatorChronicle"
+        return unless OperatorChronicleEvent::DEFAULTS.include?(event_id)
+
+        OperatorChronicleEvent.find_or_create_by!(id: event_id)
+        OperatorChronicleLevel.find_or_create_by!(id: OperatorChronicleLevel::NOTHING)
+      end
+    end
+
+    private_class_method :ensure_chronicle_references!
     private_class_method :normalize_event_id
   end
 end

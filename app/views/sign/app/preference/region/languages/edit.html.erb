@@ -1,6 +1,11 @@
 <% content_for :page_title, t("apex.app.preferences.language_settings") %>
 
 <section>
+  <div>
+    <%= link_to t("apex.app.preferences.regions.back_link"),
+                edit_sign_app_preference_region_path(lx: params[:lx], ri: params[:ri]) %>
+  </div>
+
   <h1>
       <%= t("apex.app.preference.language.edit.heading") %>
   </h1>
@@ -14,17 +19,8 @@
       <div>
         <%= f.select :option_id,
                      options_for_select(
-                       AppPreferenceLanguageOption.order(:id).map do |option|
-                         [
-                           case option.name
-                           when "ja" then t("languages.japanese")
-                           when "en" then t("languages.english")
-                           else option.name
-                           end,
-                           option.id,
-                         ]
-                       end,
-                       @preference_language.option_id,
+                       preference_language_options(AppPreferenceLanguageOption),
+                       preference_language_selected(@preference_language.option_id, AppPreferenceLanguageOption),
                      ),
                      { include_blank: false },
                      {} %>
@@ -35,7 +31,6 @@
       <%= f.submit t("apex.app.preferences.update_settings"),
                    data: { turbo_submits_with: t("apex.app.preferences.submitting") } %>
       <%= link_to t("apex.app.preferences.region_settings"), edit_sign_app_preference_region_path %>
-      <%= link_to t("apex.app.preferences.back_to_settings"), sign_app_preference_url %>
     </div>
   <% end %>
 </section>

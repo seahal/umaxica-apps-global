@@ -134,9 +134,9 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
     assert_equal "S256", code.code_challenge_method
   end
 
-  # --- Staff OIDC tests ---
+  # --- Operator OIDC tests ---
 
-  test "issues authorization code for staff with org client" do
+  test "issues authorization code for operator with org client" do
     staff = staffs(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
@@ -162,12 +162,12 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
     assert_equal "staff_state", query["state"]
   end
 
-  test "staff authorization code is stored with staff_id" do
+  test "operator authorization code is stored with staff_id backing column" do
     staff = staffs(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
 
-    assert_difference "StaffAuthorizationCode.count", 1 do
+    assert_difference "OperatorAuthorizationCode.count", 1 do
       Oidc::AuthorizeService.call(
         params: {
           response_type: "code",
@@ -180,10 +180,59 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
       )
     end
 
-    code = StaffAuthorizationCode.last
+    code = OperatorAuthorizationCode.last
 
     assert_equal staff.id, code.staff_id
     assert_equal "core_org", code.client_id
+  end
+
+  test "issues authorization code for visitor with com client" do
+    visitor = create_visitor!
+    com_client = Oidc::ClientRegistry.find("core_com")
+    com_redirect_uri = com_client.redirect_uris.first
+
+    result = Oidc::AuthorizeService.call(
+      params: {
+        response_type: "code",
+        client_id: "core_com",
+        redirect_uri: com_redirect_uri,
+        code_challenge: @code_challenge,
+        code_challenge_method: "S256",
+        state: "visitor_state",
+      },
+      resource: visitor,
+    )
+
+    assert_predicate result, :success?
+    uri = URI.parse(result.redirect_url)
+    query = URI.decode_www_form(uri.query).to_h
+
+    assert_predicate query["code"], :present?
+    assert_equal "visitor_state", query["state"]
+  end
+
+  test "visitor authorization code is stored with visitor_id" do
+    visitor = create_visitor!
+    com_client = Oidc::ClientRegistry.find("core_com")
+    com_redirect_uri = com_client.redirect_uris.first
+
+    assert_difference "VisitorAuthorizationCode.count", 1 do
+      Oidc::AuthorizeService.call(
+        params: {
+          response_type: "code",
+          client_id: "core_com",
+          redirect_uri: com_redirect_uri,
+          code_challenge: @code_challenge,
+          code_challenge_method: "S256",
+        },
+        resource: visitor,
+      )
+    end
+
+    code = VisitorAuthorizationCode.last
+
+    assert_equal visitor.id, code.visitor_id
+    assert_equal "core_com", code.client_id
   end
 
   private
@@ -197,5 +246,12 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
       code_challenge_method: "S256",
       state: "test_state",
     }
+  end
+
+  def create_visitor!
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    VisitorMultiFactor.find_or_create_by!(id: VisitorMultiFactor::NOTHING)
+    Visitor.create!
   end
 end

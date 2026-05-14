@@ -8,7 +8,7 @@ class UnauthenticatedTest < ActiveSupport::TestCase
     assert_same Unauthenticated, Unauthenticated.instance
     assert_nil Unauthenticated.id
     assert_not Unauthenticated.user?
-    assert_not Unauthenticated.customer?
+    assert_not Unauthenticated.visitor?
     assert_not Unauthenticated.staff?
     assert_predicate Unauthenticated, :unauthenticated?
     assert_not Unauthenticated.authenticated?

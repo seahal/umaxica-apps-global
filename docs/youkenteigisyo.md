@@ -48,9 +48,17 @@ Passkey
 
 Secret
 
-Google ソーシャルログイン
+Google ソーシャルログイン（app / org のみ）
 
-Apple ソーシャルログイン
+Apple ソーシャルログイン（app のみ）
+
+Social Login の利用範囲
+
+app: Google / Apple を許可
+
+org: Google を許可、Apple を拒否
+
+com: Google / Apple の両方を拒否
 
 認証手段の基本方針
 
@@ -77,6 +85,10 @@ Google / Apple サインイン
 Turnstile は使用しない
 
 MFA 要求状態であっても、追加チャレンジへは遷移しない
+
+Apple サインインは app のみで利用可能とし、org / com では拒否する
+
+Google サインインは app / org で利用可能とし、com では拒否する
 
 5. セッション管理要件同時セッション数
 
@@ -109,6 +121,10 @@ Access Token は即時失効できないため、以後のアクセスは状態�
 7. 認証手段の削除・解除ルールSocial Login（Google / Apple）
 
 解除後もログイン可能な手段が 1つ以上存在する場合のみ解除可能
+
+解除時は Social Login の連携レコードを即時に物理削除する
+
+解除履歴はアクティビティに記録する
 
 Passkey
 

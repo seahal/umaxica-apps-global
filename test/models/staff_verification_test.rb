@@ -26,29 +26,29 @@
 #
 require "test_helper"
 
-class StaffVerificationTest < ActiveSupport::TestCase
+class OperatorVerificationTest < ActiveSupport::TestCase
   fixtures :staffs, :staff_tokens
 
   test "issue_for_token! revokes previous active verification for same token" do
     token = staff_tokens(:one)
-    first, = StaffVerification.issue_for_token!(token: token)
-    second, raw = StaffVerification.issue_for_token!(token: token)
+    first, = OperatorVerification.issue_for_token!(token: token)
+    second, raw = OperatorVerification.issue_for_token!(token: token)
 
     assert_predicate first.reload.lapses_at, :present?
     assert_predicate second, :active?
-    assert_equal StaffVerification.digest_token(raw), second.token_digest
+    assert_equal OperatorVerification.digest_token(raw), second.token_digest
   end
 
   test "active scope only returns non-revoked and non-expired verifications" do
     token = staff_tokens(:one)
-    active, = StaffVerification.issue_for_token!(token: token)
-    expired = StaffVerification.create!(
+    active, = OperatorVerification.issue_for_token!(token: token)
+    expired = OperatorVerification.create!(
       staff_token: token,
       token_digest: SecureRandom.hex(48),
       lapses_at: 1.minute.ago,
     )
 
-    ids = StaffVerification.active.pluck(:id)
+    ids = OperatorVerification.active.pluck(:id)
 
     assert_includes ids, active.id
     assert_not_includes ids, expired.id

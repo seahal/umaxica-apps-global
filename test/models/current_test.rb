@@ -3,75 +3,75 @@
 
 require "test_helper"
 
-class CurrentTest < ActiveSupport::TestCase
+class ActorContextTest < ActiveSupport::TestCase
   setup do
-    Current.reset
+    Actor.reset
   end
 
   teardown do
-    Current.reset
+    Actor.reset
   end
 
   test "defaults for unauthenticated state" do
-    assert_equal Unauthenticated, Current.actor
-    assert_equal :unauthenticated, Current.actor_type
-    assert_equal Current::Preference::NULL, Current.preference
-    assert_predicate Current, :unauthenticated?
-    assert_not Current.authenticated?
-    assert_nil Current.user
-    assert_nil Current.staff
-    assert_nil Current.customer
+    assert_equal Unauthenticated.instance, Actor.actor
+    assert_equal :unauthenticated, Actor.actor_type
+    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_predicate Actor, :unauthenticated?
+    assert_not Actor.authenticated?
+    assert_nil Actor.user
+    assert_nil Actor.operator
+    assert_nil Actor.visitor
   end
 
   test "setting user actor" do
     user = User.new(id: 123)
-    Current.actor = user
-    Current.actor_type = :user
+    Actor.actor = user
+    Actor.actor_type = :user
 
-    assert_equal user, Current.actor
-    assert_equal :user, Current.actor_type
-    assert_predicate Current, :user?
-    assert_predicate Current, :authenticated?
-    assert_equal user, Current.user
-    assert_not Current.unauthenticated?
+    assert_equal user, Actor.actor
+    assert_equal :user, Actor.actor_type
+    assert_predicate Actor, :user?
+    assert_predicate Actor, :authenticated?
+    assert_equal user, Actor.user
+    assert_not Actor.unauthenticated?
   end
 
   test "setting staff actor" do
-    staff = Staff.new(id: 456)
-    Current.actor = staff
-    Current.actor_type = :staff
+    staff = Operator.new(id: 456)
+    Actor.actor = staff
+    Actor.actor_type = :operator
 
-    assert_equal staff, Current.actor
-    assert_equal :staff, Current.actor_type
-    assert_predicate Current, :staff?
-    assert_predicate Current, :authenticated?
-    assert_equal staff, Current.staff
+    assert_equal staff, Actor.actor
+    assert_equal :operator, Actor.actor_type
+    assert_predicate Actor, :operator?
+    assert_predicate Actor, :authenticated?
+    assert_equal staff, Actor.operator
   end
 
-  test "setting customer actor" do
-    customer = Customer.new(id: 789)
-    Current.actor = customer
-    Current.actor_type = :customer
+  test "setting visitor actor" do
+    visitor = Visitor.new(id: 789)
+    Actor.actor = visitor
+    Actor.actor_type = :visitor
 
-    assert_equal customer, Current.actor
-    assert_equal :customer, Current.actor_type
-    assert_predicate Current, :customer?
-    assert_predicate Current, :authenticated?
-    assert_equal customer, Current.customer
+    assert_equal visitor, Actor.actor
+    assert_equal :visitor, Actor.actor_type
+    assert_predicate Actor, :visitor?
+    assert_predicate Actor, :authenticated?
+    assert_equal visitor, Actor.visitor
   end
 
   test "resets preference to NULL" do
-    Current.preference = Current::Preference.new(language: "en")
+    Actor.preference = Actor::Preference.new(language: "en")
 
-    assert_equal "en", Current.preference.language
+    assert_equal "en", Actor.preference.language
 
-    Current.reset
+    Actor.reset
 
-    assert_equal Current::Preference::NULL, Current.preference
+    assert_equal Actor::Preference::NULL, Actor.preference
   end
 
   test "preference null object behavior" do
-    pref = Current::Preference::NULL
+    pref = Actor::Preference::NULL
 
     assert_predicate pref, :null?
     assert_equal :ja, pref.locale
@@ -82,7 +82,7 @@ class CurrentTest < ActiveSupport::TestCase
 
   test "preference from jwt" do
     claim = { "lx" => "en", "ri" => "us", "tz" => "UTC", "ct" => "dr" }
-    pref = Current::Preference.from_jwt(claim)
+    pref = Actor::Preference.from_jwt(claim)
 
     assert_equal "en", pref.language
     assert_equal :en, pref.locale
@@ -92,10 +92,17 @@ class CurrentTest < ActiveSupport::TestCase
     assert_not pref.null?
   end
 
+  test "preference exposes public_id" do
+    pref = Actor::Preference.new(public_id: "pref-public")
+
+    assert_equal "pref-public", pref.public_id
+    assert_equal "pref-public", pref.with_cookie(nil).public_id
+  end
+
   test "preference handles custom locale and cookie object values" do
     cookie_source = Struct.new(:consented, :functional, :performant, :targetable, :consent_version, :consented_at)
       .new(true, true, true, false, "2.0", Time.current)
-    pref = Current::Preference.new(language: "fr").with_cookie(cookie_source)
+    pref = Actor::Preference.new(language: "fr").with_cookie(cookie_source)
 
     assert_equal :fr, pref.locale
     assert_predicate pref.cookie, :consented?
@@ -105,19 +112,19 @@ class CurrentTest < ActiveSupport::TestCase
   end
 
   test "preference blank cookie object becomes null cookie" do
-    pref = Current::Preference.new.with_cookie(nil)
+    pref = Actor::Preference.new.with_cookie(nil)
 
-    assert_equal Current::Preference::NULL_COOKIE, pref.cookie
+    assert_equal Actor::Preference::NULL_COOKIE, pref.cookie
   end
 
   test "preference theme predicates" do
-    assert_predicate Current::Preference.new(theme: "dr"), :dark_mode?
-    assert_predicate Current::Preference.new(theme: "li"), :light_mode?
-    assert_predicate Current::Preference.new(theme: "sy"), :system_theme?
+    assert_predicate Actor::Preference.new(theme: "dr"), :dark_mode?
+    assert_predicate Actor::Preference.new(theme: "li"), :light_mode?
+    assert_predicate Actor::Preference.new(theme: "sy"), :system_theme?
   end
 
   test "preference to_h" do
-    pref = Current::Preference.new(language: "en", theme: "dr")
+    pref = Actor::Preference.new(language: "en", theme: "dr")
     hash = pref.to_h
 
     assert_equal "en", hash[:language]
@@ -126,7 +133,7 @@ class CurrentTest < ActiveSupport::TestCase
   end
 
   test "cookie consent define" do
-    cookie = Current::Preference::Cookie.new(
+    cookie = Actor::Preference::Cookie.new(
       consented: true, functional: true, performant: false, targetable: false,
       consent_version: "1.0", consented_at: Time.current,
     )

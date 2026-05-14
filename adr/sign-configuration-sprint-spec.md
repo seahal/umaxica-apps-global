@@ -46,6 +46,7 @@ This document fixes the remaining ambiguous points and is the source of truth fo
   authentication/recovery method.
 - "Last method" removal is rejected with a user-facing error.
 - Audit log entry is required for each unlink/disable action.
+- Social-login unlink physically deletes the Google/Apple identity row after writing the audit log.
 
 ### Implementation
 

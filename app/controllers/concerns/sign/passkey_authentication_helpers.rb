@@ -8,7 +8,7 @@ module Sign
     private
 
     def credential_params
-      params.expect(:credential)&.permit(
+      params.fetch(:credential, {}).permit(
         :id,
         :rawId,
         :type,
@@ -18,9 +18,11 @@ module Sign
       )
     end
 
-    def retrieve_redirect_parameter_for_bulletin
-      params[:rd].presence
+    def retrieve_redirect_parameter_for_checkpoint
+      params[:rt].presence
     end
+
+    alias_method :retrieve_redirect_parameter_for_bulletin, :retrieve_redirect_parameter_for_checkpoint
 
     def generate_challenge_options(passkeys, actor)
       allow_credentials = passkeys.map { |pk| { id: pk.webauthn_id } }

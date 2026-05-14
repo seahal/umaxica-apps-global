@@ -29,6 +29,9 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
       @request_obj.request_id = "req-1"
       @request_obj.fullpath = "/test"
       @request_obj.request_method = "GET"
+      def @request_obj.get?
+        request_method == "GET"
+      end
       @response_obj = Struct.new(:headers).new({})
     end
 
@@ -196,15 +199,51 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
 
   test "reject_logged_in_session renders unauthorized if logged in" do
     @harness.current_resource = User.new
+    @harness.request.request_method = "POST"
     @harness.reject_logged_in_session
 
     assert_equal :unauthorized, @harness.rendered[:status]
   end
 
-  test "safe_redirect_to_rd_or_default! jumps to rd" do
-    @harness.safe_redirect_to_rd_or_default!("/target", default_path: "/default")
+  test "safe_redirect_to_rt_or_default! jumps to rt" do
+    @harness.safe_redirect_to_rt_or_default!("/target", default_path: "/default")
 
     assert_equal ["/target", { fallback: "/default" }], @harness.redirected
+  end
+
+  test "current_session_public_id returns extracted session id and memoizes it" do
+    calls = 0
+    @harness.define_singleton_method(:extract_access_token) do |_cookie_key|
+      calls += 1
+      "access-token"
+    end
+    @harness.request.host = "localhost"
+
+    Authentication::Base::Token.stub(
+      :extract_session_id_allow_expired,
+      ->(token, host:, resource_type:, issuer: nil, audiences: nil) {
+        assert_equal "access-token", token
+        assert_equal "localhost", host
+        assert_equal "user", resource_type
+        assert_nil issuer
+        assert_nil audiences
+        "session-public-id"
+      },
+    ) do
+      assert_equal "session-public-id", @harness.current_session_public_id
+      assert_equal "session-public-id", @harness.current_session_public_id
+    end
+
+    assert_equal 1, calls
+  end
+
+  test "current_session_public_id returns nil when access token is missing" do
+    @harness.define_singleton_method(:extract_access_token) do |_cookie_key|
+      nil
+    end
+
+    assert_nil @harness.send(:current_session_public_id_from_access_token)
+    assert_nil @harness.current_session_public_id
   end
 
   test "authenticate! redirects for html" do

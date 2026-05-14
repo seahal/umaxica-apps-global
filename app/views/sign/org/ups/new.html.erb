@@ -16,7 +16,11 @@
         <%= t("sign.org.ups.new.recruit_prompt") %>
       </p>
       <%= link_to t("sign.org.ups.new.recruit_link_text"),
-                  apex_com_root_url(ri: params[:ri], lx: params[:lx]) %>
+                  apex_com_root_url(
+                    host: ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost"),
+                    ri: params[:ri],
+                    lx: params[:lx],
+                  ) %>
     </div>
 
     <div>

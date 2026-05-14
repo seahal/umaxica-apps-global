@@ -9,19 +9,19 @@ class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
-    @customer = create_verified_customer_with_email(
+    @visitor = create_verified_visitor_with_email(
       email_address: "com_challenge_#{SecureRandom.hex(4)}@example.com",
     )
-    @customer.update!(multi_factor_enabled: true)
-    @customer.customer_telephones.create!(
+    @visitor.update!(multi_factor_enabled: true)
+    @visitor.visitor_telephones.create!(
       number: "+819011111111",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    _secret, @raw_secret = CustomerSecret.issue!(
+    _secret, @raw_secret = VisitorSecret.issue!(
       name: "Hub secret",
-      customer_id: @customer.id,
-      customer_secret_kind_id: CustomerSecretKind::PERMANENT,
+      visitor_id: @visitor.id,
+      visitor_secret_kind_id: VisitorSecretKind::PERMANENT,
       uses: 10,
       status: :active,
     )
@@ -39,7 +39,7 @@ class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_sign_com_in_path(ri: "jp")
   end
 
-  test "show renders for pending_mfa customer" do
+  test "show renders for pending_mfa visitor" do
     get new_sign_com_in_secret_path(ri: "jp")
 
     assert_response :success
@@ -47,7 +47,7 @@ class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
     post sign_com_in_secret_path(ri: "jp"),
          params: {
            secret_login_form: {
-             identifier: @customer.customer_emails.first.address,
+             identifier: @visitor.visitor_emails.first.address,
              secret_value: @raw_secret,
            },
            "cf-turnstile-response": "test_token",
@@ -60,7 +60,7 @@ class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "show indicates no mfa methods available when customer has no active passkey" do
+  test "show indicates no mfa methods available when visitor has no active passkey" do
     get new_sign_com_in_secret_path(ri: "jp")
 
     assert_response :success
@@ -68,7 +68,7 @@ class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
     post sign_com_in_secret_path(ri: "jp"),
          params: {
            secret_login_form: {
-             identifier: @customer.customer_emails.first.address,
+             identifier: @visitor.visitor_emails.first.address,
              secret_value: @raw_secret,
            },
            "cf-turnstile-response": "test_token",
@@ -77,7 +77,6 @@ class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    # Customer doesn't support TOTP and has no passkey, so no methods should be available
     assert_includes response.body, I18n.t("sign.app.in.mfa.no_methods_available")
   end
 end

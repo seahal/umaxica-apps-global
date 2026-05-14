@@ -6,15 +6,21 @@ require "base64"
 
 class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::IntegrationTest
   setup do
+    @previous_cache_store = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
-    @customer = create_verified_customer_with_email(email_address: "com-verified-#{SecureRandom.hex(4)}@example.com")
-    @customer.customer_telephones.create!(
+    @visitor = create_verified_visitor_with_email(email_address: "com-verified-#{SecureRandom.hex(4)}@example.com")
+    @visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @headers = as_customer_headers(@customer, host: @host)
-    @token = CustomerToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    @headers = as_visitor_headers(@visitor, host: @host)
+    @token = VisitorToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+  end
+
+  teardown do
+    Rails.cache = @previous_cache_store
   end
 
   test "new sends otp and redirects to edit" do
@@ -31,7 +37,30 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
         assert_response :redirect
         assert_match %r{/verification/emails/.+/edit}, response.location
+
+        follow_redirect!(headers: @headers)
+
+        assert_response :success
       end
+    end
+  end
+
+  test "new sends otp for email verified during signup" do
+    @visitor.visitor_emails.update_all(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
+    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+
+    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+      get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+          headers: @headers
+
+      assert_response :success
+
+      assert_enqueued_emails 1 do
+        get new_sign_com_verification_email_url(ri: "jp"), headers: @headers
+      end
+
+      assert_response :redirect
+      assert_match %r{/verification/emails/.+/edit}, response.location
     end
   end
 
@@ -48,18 +77,103 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
         get new_sign_com_verification_email_url(ri: "jp"), headers: @headers
 
         assert_response :redirect
-        nonce = response.location[%r{/verification/emails/([^/]+)/edit}, 1]
+        nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
+        cache_email_nonce!(nonce)
 
-        with_verify_email_otp_stub(true) do
-          patch sign_com_verification_email_url(nonce, ri: "jp"),
-                params: { verification: { code: "123456" } },
-                headers: @headers
+        with_email_nonce_stub(true) do
+          with_verify_email_otp_stub(true) do
+            patch sign_com_verification_email_url(nonce, ri: "jp"),
+                  params: { verification: { code: "123456" } },
+                  headers: @headers
 
-          assert_response :redirect
-          assert_redirected_to sign_com_configuration_emails_url(ri: "jp")
+            assert_response :redirect
+            assert_redirected_to sign_com_configuration_emails_url(ri: "jp")
+            assert_nil @token.reload.reauth_session
+          end
         end
       end
     end
+  end
+
+  test "invalid otp keeps back link from reauth session when request params are missing" do
+    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+
+    get sign_com_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
+        headers: @headers
+
+    assert_response :success
+
+    nonce = SecureRandom.urlsafe_base64(16)
+    cache_email_nonce!(nonce)
+
+    patch sign_com_verification_email_url(nonce, ri: "jp"),
+          params: { verification: { code: "000000" } },
+          headers: @headers
+
+    assert_response :unprocessable_content
+    assert_select(
+      "a[href=?]",
+      sign_com_verification_path(ri: "jp", scope: "configuration_email", return_to: return_to),
+      text: I18n.t("sign.app.verification.edit.back"),
+    )
+    assert_select(
+      "input[name='verification[return_to]'][value=?]",
+      return_to,
+    )
+  end
+
+  test "resend sends a new otp and returns to edit page" do
+    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+
+    get sign_com_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
+        headers: @headers
+
+    assert_response :success
+
+    nonce = SecureRandom.urlsafe_base64(16)
+    cache_email_nonce!(nonce)
+
+    assert_enqueued_emails 1 do
+      post resend_sign_com_verification_email_url(
+        nonce,
+        ri: "jp",
+        scope: "configuration_email",
+        return_to: return_to,
+      ), headers: @headers
+    end
+
+    assert_response :redirect
+    assert_redirected_to edit_sign_com_verification_email_url(
+      nonce,
+      ri: "jp",
+      scope: "configuration_email",
+      return_to: return_to,
+    )
+    assert_equal I18n.t("otp.resend.sent"), flash[:notice]
+    assert Rails.cache.exist?(email_otp_cache_key)
+  end
+
+  test "resend is rate limited" do
+    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+
+    get sign_com_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
+        headers: @headers
+
+    assert_response :success
+
+    nonce = SecureRandom.urlsafe_base64(16)
+    cache_email_nonce!(nonce)
+
+    assert_enqueued_emails 1 do
+      post resend_sign_com_verification_email_url(nonce, ri: "jp"), headers: @headers
+    end
+
+    assert_enqueued_emails 0 do
+      post resend_sign_com_verification_email_url(nonce, ri: "jp"), headers: @headers
+    end
+
+    assert_response :redirect
+    assert_equal I18n.t("otp.resend.too_soon"), flash[:alert]
   end
 
   test "new renders translated error when no verified email is available" do
@@ -70,8 +184,8 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
 
-    @customer.customer_emails.find_each do |email|
-      assert email.update(customer_email_status_id: CustomerEmailStatus::UNVERIFIED)
+    @visitor.visitor_emails.find_each do |email|
+      assert email.update(visitor_email_status_id: VisitorEmailStatus::UNVERIFIED)
     end
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
@@ -84,25 +198,29 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
   test "direct base controller verification branches" do
     controller = Sign::Com::Verification::BaseController.new
-    session_hash = {}
     redirects = []
 
-    controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
-    controller.define_singleton_method(:current_customer) { @customer_for_test }
-    controller.instance_variable_set(:@customer_for_test, @customer)
+    controller.define_singleton_method(:current_visitor) { @visitor_for_test }
+    controller.instance_variable_set(:@visitor_for_test, @visitor)
+    controller.define_singleton_method(:actor_token) { @token_for_test }
+    controller.define_singleton_method(:current_session_token) { @token_for_test }
+    controller.instance_variable_set(:@token_for_test, @token)
     controller.define_singleton_method(:safe_internal_path) { |path| path.to_s.start_with?("/") ? path : nil }
     controller.define_singleton_method(:safe_redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:sign_com_verification_path) { |params = {}| "/verification?#{params.to_query}" }
     controller.define_singleton_method(:verification_recovery_redirect_params) { { ri: params[:ri] } }
     controller.define_singleton_method(:restore_reauth_session_from_params!) { @restore_for_test }
-    controller.define_singleton_method(:current_reauth_session) { session[self.class::REAUTH_SESSION_KEY] }
+    controller.define_singleton_method(:current_reauth_session) {
+      VisitorReauthSession.find_by(visitor_token: @token_for_test)
+    }
     controller.define_singleton_method(:generate_hotp_code) { ["secret", 1, "123456"] }
 
     return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
     controller.send(:start_reauth_session!, scope: "configuration_email", return_to_param: return_to)
+    reauth_session = @token.reload.reauth_session
 
-    assert controller.send(:valid_reauth_session?, session_hash[Sign::Com::Verification::BaseController::REAUTH_SESSION_KEY])
+    assert controller.send(:valid_reauth_session?, reauth_session)
 
     assert_raises(ActionController::BadRequest) do
       controller.send(:start_reauth_session!, scope: "unknown", return_to_param: return_to)
@@ -111,29 +229,36 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
       controller.send(:start_reauth_session!, scope: "configuration_email", return_to_param: "%%%")
     end
 
-    session_hash[Sign::Com::Verification::BaseController::EMAIL_OTP_SESSION_KEY] = { "secret" => "old" }
+    Rails.cache.write("reauth_session:#{reauth_session.id}:email_otp", { "secret" => "old" })
     controller.instance_variable_set(:@restore_for_test, false)
 
     assert_not controller.send(:handle_invalid_reauth_session!)
-    assert_nil session_hash[Sign::Com::Verification::BaseController::REAUTH_SESSION_KEY]
-    assert_nil session_hash[Sign::Com::Verification::BaseController::EMAIL_OTP_SESSION_KEY]
+    assert_nil Rails.cache.read("reauth_session:#{reauth_session.id}:email_otp")
     assert_match "/verification?", redirects.last.first.first
 
     controller.instance_variable_set(:@restore_for_test, true)
     controller.define_singleton_method(:restore_reauth_session_from_params!) do
-      session[self.class::REAUTH_SESSION_KEY] = {
-        "customer_id" => current_customer.id,
-        "scope" => "configuration_email",
-        "return_to" => "/configuration/emails",
-        "expires_at" => 5.minutes.from_now.to_i,
-      }
+      VisitorReauthSession.upsert(
+        {
+          :visitor_token_id => actor_token.id,
+          "scope" => "configuration_email",
+          "return_to" => "/configuration/emails",
+          "method" => nil,
+          "status" => "PENDING",
+          "attempt_count" => 0,
+          "verified_at" => nil,
+          "lapses_at" => 5.minutes.from_now,
+          "purge_at" => 5.minutes.from_now,
+        }, unique_by: "index_visitor_reauth_sessions_on_visitor_token_id",
+      )
+      true
     end
 
     assert controller.send(:handle_invalid_reauth_session!)
 
-    assert_equal @customer.id, controller.send(:reauth_actor_id)
+    assert_equal :visitor_token_id, controller.send(:reauth_session_token_foreign_key)
     assert_equal "/verification?ri=jp", controller.send(:verification_unavailable_redirect_path)
-    assert_equal CustomerVerification, controller.send(:verification_model)
+    assert_equal VisitorVerification, controller.send(:verification_model)
     assert_equal UserChronicleEvent::STEP_UP_VERIFIED, controller.send(:verification_success_event_id)
     assert_equal "sign.app.verification.success.complete", controller.send(:verification_success_notice_key)
     assert_equal "/verification?ri=jp", controller.send(:verification_success_fallback_path)
@@ -141,15 +266,14 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_equal UserChronicleLevel, controller.send(:verification_audit_level_class)
     assert_equal UserChronicleLevel::NOTHING, controller.send(:verification_default_activity_level_id)
     assert_equal UserChronicle, controller.send(:verification_activity_model)
-    assert_equal @customer, controller.send(:current_verification_actor)
-    assert_equal "Customer", controller.send(:verification_actor_type)
-    assert_equal :customer_token_id, controller.send(:verification_token_foreign_key)
-    assert_equal CustomerPasskey, controller.send(:verification_passkey_model)
+    assert_equal @visitor, controller.send(:current_verification_actor)
+    assert_equal "Visitor", controller.send(:verification_actor_type)
+    assert_equal :visitor_token_id, controller.send(:verification_token_foreign_key)
+    assert_equal VisitorPasskey, controller.send(:verification_passkey_model)
     assert_equal "sign.app.verification.errors.no_passkey", controller.send(:verification_no_passkey_i18n_key)
-    assert_equal [], controller.send(:active_totp_credentials)
     assert_equal %i(email_otp passkey), controller.send(:step_up_supported_methods)
 
-    passkey = CustomerPasskey.new(customer: @customer)
+    passkey = VisitorPasskey.new(visitor: @visitor)
 
     assert controller.send(:passkey_actor_matches?, passkey)
 
@@ -158,9 +282,8 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
     assert_equal(
       { "secret" => "secret",
-        "counter" => 1,
-        "expires_at" => session_hash[Sign::Com::Verification::BaseController::REAUTH_SESSION_KEY]["expires_at"], },
-      session_hash[Sign::Com::Verification::BaseController::EMAIL_OTP_SESSION_KEY],
+        "counter" => 1, },
+      Rails.cache.read("reauth_session:#{controller.send(:current_reauth_session).id}:email_otp"),
     )
   end
 
@@ -253,5 +376,23 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     yield
   ensure
     Sign::Com::Verification::EmailsController.define_method(:verify_email_otp!, original_method)
+  end
+
+  def with_email_nonce_stub(result)
+    original_method = Sign::Com::Verification::EmailsController.instance_method(:require_email_nonce!)
+    Sign::Com::Verification::EmailsController.define_method(:require_email_nonce!) { result }
+    yield
+  ensure
+    Sign::Com::Verification::EmailsController.define_method(:require_email_nonce!, original_method)
+  end
+
+  def cache_email_nonce!(nonce)
+    rs = @token.reload.reauth_session
+    Rails.cache.write("reauth_session:#{rs.id}:email_nonce", nonce, expires_in: 15.minutes)
+  end
+
+  def email_otp_cache_key
+    rs = @token.reload.reauth_session
+    "reauth_session:#{rs.id}:email_otp"
   end
 end

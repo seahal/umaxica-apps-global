@@ -22,17 +22,17 @@ module Sign
     class OriginValidationError < StandardError; end
 
     # Returns the Relying Party ID for WebAuthn.
-    # This is the host portion of the current request (no scheme, no port).
-    # Examples: "id.app.localhost", "id.org.localhost"
+    # Prefer surface-specific environment configuration so deployments behind
+    # proxies can use the public browser hostname instead of the internal host.
     def webauthn_rp_id
-      request.host
+      configured_webauthn_value("RP_ID") || request.host
     end
 
     # Returns the expected origin for WebAuthn verification.
-    # This is request.base_url (scheme + host + port).
-    # Examples: "http://id.app.localhost:3000", "https://sign.app.example.com"
+    # Prefer surface-specific environment configuration so verification matches
+    # the browser's public origin even when Rails sees an internal scheme/host.
     def webauthn_origin
-      request.base_url
+      configured_webauthn_value("ORIGIN") || request.base_url
     end
 
     # Returns a per-request WebAuthn::RelyingParty instance.
@@ -56,6 +56,7 @@ module Sign
     end
 
     def trusted_webauthn_origin?(origin)
+      return true if configured_webauthn_value("ORIGIN") == origin
       return true if ::Webauthn.trusted_origins.include?(origin)
 
       uri = URI.parse(origin)
@@ -69,9 +70,44 @@ module Sign
       false
     end
 
+    def configured_webauthn_value(suffix)
+      env_keys = []
+      surface_key = webauthn_surface_env_key
+      env_keys << "WEBAUTHN_#{surface_key}_#{suffix}" if surface_key.present?
+      env_keys << "WEBAUTHN_#{suffix}"
+
+      env_keys.each do |key|
+        value = ENV[key].to_s.strip
+        next if value.blank?
+
+        return normalize_webauthn_config_value(value, suffix)
+      end
+
+      nil
+    end
+
+    def webauthn_surface_env_key
+      case self.class.name
+      when /\ASign::App::/
+        "APP"
+      when /\ASign::Com::/
+        "COM"
+      when /\ASign::Org::/
+        "ORG"
+      end
+    end
+
+    def normalize_webauthn_config_value(value, suffix)
+      return URI.parse(value).host if suffix == "RP_ID" && value.match?(%r{\Ahttps?://}i)
+
+      value
+    rescue URI::InvalidURIError
+      value
+    end
+
     # Creates a WebAuthn registration challenge for the given user/staff.
     #
-    # @param resource [User, Staff] The user or staff to create credential for
+    # @param resource [User, Operator] The user or staff to create credential for
     # @param exclude_credentials [Array<Hash>] Existing credentials to exclude
     # @return [Array<String, WebAuthn::PublicKeyCredential::CreationOptions>]
     #   Returns [challenge_id, options]

@@ -25,6 +25,17 @@ module Sign
                       I18n.t("sign.app.authentication.new.links.secret")
       end
 
+      test "authentication links carry rt" do
+        rt = Base64.urlsafe_encode64("https://id.umaxica.app/configuration/sessions?ri=jp", padding: false)
+
+        get new_sign_app_in_url(ri: "jp", rt: rt), headers: { "Host" => @host }
+
+        assert_response :success
+        assert_select "a[href=?]", new_sign_app_in_email_path(rt: rt, ri: "jp")
+        assert_select "a[href=?]", new_sign_app_in_passkey_path(rt: rt, ri: "jp")
+        assert_select "a[href=?]", new_sign_app_in_secret_path(rt: rt, ri: "jp")
+      end
+
       test "sign up link includes rt when rt is present" do
         get new_sign_app_in_url(ri: "jp", rt: "abc"), headers: { "Host" => @host }
 
@@ -57,11 +68,24 @@ module Sign
         assert_select "a", text: /Need an account/
       end
 
-      test "does not show apple social login button" do
+      test "shows social login buttons" do
         get new_sign_app_in_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "form[action=?]", "/auth/apple", count: 0
+        assert_select "form[action=?]",
+                      continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp"),
+                      count: 1
+        assert_select "form[action=?]",
+                      continue_sign_app_social_authentication_path(provider: "apple", ri: "jp"),
+                      count: 1
+      end
+
+      test "redirects to dashboard when logged in" do
+        user = users(:one)
+
+        get new_sign_app_in_url(ri: "jp"), headers: as_user_headers(user, host: @host)
+
+        assert_redirected_to sign_app_dashboard_url(ri: "jp")
       end
     end
   end

@@ -40,9 +40,11 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "form[action=?]",
-                  start_sign_app_social_authentication_path(provider: "google_app", intent: "login", ri: "jp"), count: 1
+                  continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp", entry: "sign_up"),
+                  count: 1
     assert_select "form[action=?]",
-                  start_sign_app_social_authentication_path(provider: "apple", intent: "login", ri: "jp"), count: 1
+                  continue_sign_app_social_authentication_path(provider: "apple", ri: "jp", entry: "sign_up"),
+                  count: 1
   end
 
   test "renders registration layout structure" do
@@ -59,8 +61,7 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
       assert_select "header", minimum: 1
       assert_select "main", count: 1
       assert_select "footer", count: 1 do
-        assert_select "small", text: /^©/
-        assert_select "small", text: /#{escaped_brand}$/
+        assert_select ".opacity-50", text: /^©.*#{escaped_brand}$/
       end
     end
   end
@@ -92,12 +93,11 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "メールで登録する"
   end
 
-  test "should fail when logged in" do
+  test "should redirect to dashboard when logged in" do
     user = users(:one)
-    get new_sign_app_up_url(format: :html, ri: "jp"), headers: { "X-TEST-CURRENT-USER" => user.id }
+    get new_sign_app_up_url(format: :html, ri: "jp"), headers: as_user_headers(user, host: host)
 
-    assert_response :unauthorized
-    assert_equal "この操作を行う権限がありません。", response.body
+    assert_redirected_to sign_app_dashboard_url(ri: "jp")
   end
 
   private

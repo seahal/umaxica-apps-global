@@ -10,6 +10,8 @@
 # frozen_string_literal: true
 
 class OrgPreferenceLanguageOption < OperatorRecord
+  include ReferenceRecord
+
   # Fixed IDs - do not modify these values
   JA = 1
   EN = 2

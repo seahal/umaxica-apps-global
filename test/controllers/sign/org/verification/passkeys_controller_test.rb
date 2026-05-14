@@ -41,6 +41,7 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
           assert_not_nil @token.last_step_up_at
           assert_equal "configuration_passkey", @token.last_step_up_scope
+          assert_nil @token.reauth_session
           assert_nil session[:reauth]
         end
       end

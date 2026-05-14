@@ -96,7 +96,7 @@ module Auth
     end
 
     test "returns actor_mismatch failure when actor claim differs" do
-      payload = { "sub" => 123, "sid" => "sess_1", "act" => "staff" }
+      payload = { "sub" => 123, "sid" => "sess_1", "act" => "operator" }
 
       Authentication::Base::Token.stub(:decode, payload) do
         Authentication::Base::Token.stub(:validate_actor_claim!, false) do

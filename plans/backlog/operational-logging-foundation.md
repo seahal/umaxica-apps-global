@@ -1,5 +1,9 @@
 # Operational Logging Foundation
 
+## Status
+
+Pending
+
 ## Summary
 
 This note records the first design direction for operational logging.
@@ -149,7 +153,7 @@ They should not be collapsed into one undifferentiated stream.
 
 ## Related
 
-- `plans/backlog/gh659-pre-consent-event-allowlist.md`
+- `plans/archive/gh659-pre-consent-event-allowlist.md`
 
 ## 2026-05-07 現状差分と改善として残すこと
 

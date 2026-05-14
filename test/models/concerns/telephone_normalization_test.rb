@@ -165,4 +165,32 @@ class TelephoneNormalizationTest < ActiveSupport::TestCase
     assert_equal "+442012345678", TelephoneNormalization.normalize_to_e164("+44 20 1234 5678") # UK
     assert_equal "+861012345678", TelephoneNormalization.normalize_to_e164("+86 10 1234 5678") # China
   end
+
+  test "normalize_telephone_field installs callbacks and validations" do
+    klass =
+      Class.new do
+        include ActiveModel::Model
+        include ActiveModel::Validations::Callbacks
+        include TelephoneNormalization
+
+        attr_accessor :number
+
+        normalize_telephone_field :number
+      end
+    self.class.const_set(:TelephoneNormalizationDummy, klass)
+
+    record = klass.new(number: "090-1234-5678")
+
+    assert_predicate record, :valid?
+    assert_equal "+819012345678", record.number
+
+    blank = klass.new(number: "")
+
+    assert_not blank.valid?
+    assert_includes blank.errors.details[:number].pluck(:error), :blank
+  ensure
+    self.class.send(:remove_const, :TelephoneNormalizationDummy) if self.class.const_defined?(
+      :TelephoneNormalizationDummy, false,
+    )
+  end
 end

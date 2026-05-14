@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -59,6 +59,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["public_id"], name: "index_area_occurrences_on_public_id", unique: true
     t.index ["purge_at"], name: "index_area_occurrences_on_purge_at"
     t.index ["status_id"], name: "index_area_occurrences_on_status_id"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_area_occurrences_retention_order"
   end
 
   create_table "area_staff_occurrences", force: :cascade do |t|
@@ -86,6 +87,15 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.bigint "user_occurrence_id", null: false
     t.index ["area_occurrence_id", "user_occurrence_id"], name: "idx_area_user_occ_on_ids", unique: true
     t.index ["user_occurrence_id"], name: "index_area_user_occurrences_on_user_occurrence_id"
+  end
+
+  create_table "area_visitor_occurrences", force: :cascade do |t|
+    t.bigint "area_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "visitor_occurrence_id", null: false
+    t.index ["area_occurrence_id", "visitor_occurrence_id"], name: "idx_area_visitor_occ_on_ids", unique: true
+    t.index ["visitor_occurrence_id"], name: "index_area_visitor_occurrences_on_visitor_occurrence_id"
   end
 
   create_table "area_zip_occurrences", force: :cascade do |t|
@@ -131,6 +141,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["public_id"], name: "index_domain_occurrences_on_public_id", unique: true
     t.index ["purge_at"], name: "index_domain_occurrences_on_purge_at"
     t.index ["status_id"], name: "index_domain_occurrences_on_status_id"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_domain_occurrences_retention_order"
   end
 
   create_table "domain_staff_occurrences", force: :cascade do |t|
@@ -196,6 +207,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["purge_at"], name: "index_email_occurrences_on_purge_at"
     t.index ["status_id"], name: "index_email_occurrences_on_status_id"
     t.check_constraint "char_length(memo::text) <= 1000", name: "chk_email_occurrences_memo_length"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_email_occurrences_retention_order"
   end
 
   create_table "email_staff_occurrences", force: :cascade do |t|
@@ -225,6 +237,15 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["user_occurrence_id"], name: "index_email_user_occurrences_on_user_occurrence_id"
   end
 
+  create_table "email_visitor_occurrences", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "email_occurrence_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "visitor_occurrence_id", null: false
+    t.index ["email_occurrence_id", "visitor_occurrence_id"], name: "idx_email_visitor_occ_on_ids", unique: true
+    t.index ["visitor_occurrence_id"], name: "index_email_visitor_occurrences_on_visitor_occurrence_id"
+  end
+
   create_table "email_zip_occurrences", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "email_occurrence_id", null: false
@@ -252,6 +273,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["purge_at"], name: "index_ip_occurrences_on_purge_at"
     t.index ["status_id"], name: "index_ip_occurrences_on_status_id"
     t.check_constraint "char_length(memo::text) <= 1000", name: "chk_ip_occurrences_memo_length"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_ip_occurrences_retention_order"
   end
 
   create_table "ip_staff_occurrences", force: :cascade do |t|
@@ -279,6 +301,15 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.bigint "user_occurrence_id", null: false
     t.index ["ip_occurrence_id", "user_occurrence_id"], name: "idx_ip_user_occ_on_ids", unique: true
     t.index ["user_occurrence_id"], name: "index_ip_user_occurrences_on_user_occurrence_id"
+  end
+
+  create_table "ip_visitor_occurrences", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "ip_occurrence_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "visitor_occurrence_id", null: false
+    t.index ["ip_occurrence_id", "visitor_occurrence_id"], name: "idx_ip_visitor_occ_on_ids", unique: true
+    t.index ["visitor_occurrence_id"], name: "index_ip_visitor_occurrences_on_visitor_occurrence_id"
   end
 
   create_table "ip_zip_occurrences", force: :cascade do |t|
@@ -329,6 +360,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["purge_at"], name: "index_jwt_occurrences_on_purge_at"
     t.index ["status_id"], name: "index_jwt_occurrences_on_status_id"
     t.check_constraint "char_length(memo::text) <= 1000", name: "chk_jwt_occurrences_memo_length"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_jwt_occurrences_retention_order"
   end
 
   create_table "staff_occurrence_statuses", force: :cascade do |t|
@@ -351,6 +383,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["public_id"], name: "index_staff_occurrences_on_public_id", unique: true
     t.index ["purge_at"], name: "index_staff_occurrences_on_purge_at"
     t.index ["status_id", "created_at"], name: "index_staff_occurrences_on_status_id_and_created_at"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_staff_occurrences_retention_order"
   end
 
   create_table "staff_telephone_occurrences", force: :cascade do |t|
@@ -398,6 +431,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["purge_at"], name: "index_telephone_occurrences_on_purge_at"
     t.index ["status_id"], name: "index_telephone_occurrences_on_status_id"
     t.check_constraint "char_length(memo::text) <= 1000", name: "chk_telephone_occurrences_memo_length"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_telephone_occurrences_retention_order"
   end
 
   create_table "telephone_user_occurrences", force: :cascade do |t|
@@ -438,6 +472,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["public_id"], name: "index_user_occurrences_on_public_id", unique: true
     t.index ["purge_at"], name: "index_user_occurrences_on_purge_at"
     t.index ["status_id", "created_at"], name: "index_user_occurrences_on_status_id_and_created_at"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_user_occurrences_retention_order"
   end
 
   create_table "user_zip_occurrences", force: :cascade do |t|
@@ -447,6 +482,29 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.bigint "zip_occurrence_id", null: false
     t.index ["user_occurrence_id", "zip_occurrence_id"], name: "idx_user_zip_occ_on_ids", unique: true
     t.index ["zip_occurrence_id"], name: "index_user_zip_occurrences_on_zip_occurrence_id"
+  end
+
+  create_table "visitor_occurrence_statuses", force: :cascade do |t|
+    t.string "name", default: "", null: false
+  end
+
+  create_table "visitor_occurrences", force: :cascade do |t|
+    t.string "body", default: "", null: false
+    t.jsonb "context", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.string "event_type", default: "", null: false
+    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
+    t.string "memo", default: "", null: false
+    t.string "public_id", limit: 21, default: "", null: false
+    t.datetime "purge_at", default: ::Float::INFINITY, null: false
+    t.bigint "status_id", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["body"], name: "index_visitor_occurrences_on_body", unique: true
+    t.index ["event_type", "created_at"], name: "index_visitor_occurrences_on_event_type_and_created_at"
+    t.index ["public_id"], name: "index_visitor_occurrences_on_public_id", unique: true
+    t.index ["purge_at"], name: "index_visitor_occurrences_on_purge_at"
+    t.index ["status_id", "created_at"], name: "index_visitor_occurrences_on_status_id_and_created_at"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_customer_occurrences_retention_order"
   end
 
   create_table "zip_occurrence_statuses", force: :cascade do |t|
@@ -465,6 +523,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
     t.index ["public_id"], name: "index_zip_occurrences_on_public_id", unique: true
     t.index ["purge_at"], name: "index_zip_occurrences_on_purge_at"
     t.index ["status_id"], name: "index_zip_occurrences_on_status_id"
+    t.check_constraint "lapses_at <= purge_at", name: "chk_zip_occurrences_retention_order"
   end
 
   add_foreign_key "area_domain_occurrences", "area_occurrences", validate: false
@@ -480,6 +539,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
   add_foreign_key "area_telephone_occurrences", "telephone_occurrences", validate: false
   add_foreign_key "area_user_occurrences", "area_occurrences", validate: false
   add_foreign_key "area_user_occurrences", "user_occurrences", validate: false
+  add_foreign_key "area_visitor_occurrences", "area_occurrences", validate: false
+  add_foreign_key "area_visitor_occurrences", "visitor_occurrences", validate: false
   add_foreign_key "area_zip_occurrences", "area_occurrences", validate: false
   add_foreign_key "area_zip_occurrences", "zip_occurrences", validate: false
   add_foreign_key "domain_email_occurrences", "domain_occurrences", validate: false
@@ -504,6 +565,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
   add_foreign_key "email_telephone_occurrences", "telephone_occurrences", validate: false
   add_foreign_key "email_user_occurrences", "email_occurrences", validate: false
   add_foreign_key "email_user_occurrences", "user_occurrences", validate: false
+  add_foreign_key "email_visitor_occurrences", "email_occurrences", validate: false
+  add_foreign_key "email_visitor_occurrences", "visitor_occurrences", validate: false
   add_foreign_key "email_zip_occurrences", "email_occurrences", validate: false
   add_foreign_key "email_zip_occurrences", "zip_occurrences", validate: false
   add_foreign_key "ip_occurrences", "ip_occurrence_statuses", column: "status_id", name: "fk_ip_occurrences_on_status_id"
@@ -513,6 +576,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
   add_foreign_key "ip_telephone_occurrences", "telephone_occurrences", validate: false
   add_foreign_key "ip_user_occurrences", "ip_occurrences", validate: false
   add_foreign_key "ip_user_occurrences", "user_occurrences", validate: false
+  add_foreign_key "ip_visitor_occurrences", "ip_occurrences", validate: false
+  add_foreign_key "ip_visitor_occurrences", "visitor_occurrences", validate: false
   add_foreign_key "ip_zip_occurrences", "ip_occurrences", validate: false
   add_foreign_key "ip_zip_occurrences", "zip_occurrences", validate: false
   add_foreign_key "jwt_anomaly_events", "jwt_occurrences", name: "fk_jwt_anomaly_events_on_jwt_occurrence_id"
@@ -532,5 +597,6 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_08_151000) do
   add_foreign_key "user_occurrences", "user_occurrence_statuses", column: "status_id", name: "fk_user_occurrences_on_status_id"
   add_foreign_key "user_zip_occurrences", "user_occurrences", validate: false
   add_foreign_key "user_zip_occurrences", "zip_occurrences", validate: false
+  add_foreign_key "visitor_occurrences", "visitor_occurrence_statuses", column: "status_id", validate: false
   add_foreign_key "zip_occurrences", "zip_occurrence_statuses", column: "status_id", name: "fk_zip_occurrences_on_status_id"
 end

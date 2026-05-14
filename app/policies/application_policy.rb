@@ -2,13 +2,10 @@
 # frozen_string_literal: true
 
 # Base policy class for authorization using Action Policy
-# Provides common authorization patterns for both User and Staff actors
 class ApplicationPolicy < ActionPolicy::Base
-  # By default, Action Policy uses 'user' for the actor.
-  # We allow it to be nil for unauthenticated paths.
+  # Authorization is added controller-by-controller; unauthenticated paths may pass nil.
   authorize :user, optional: true
 
-  # We alias it to 'actor' to match our internal naming.
   alias_rule :edit?, to: :update?
   alias_rule :new?, to: :create?
 
@@ -37,12 +34,11 @@ class ApplicationPolicy < ActionPolicy::Base
     false
   end
 
-  protected
-
-  # Use 'user' as the actor (provided by ActionPolicy)
-  def actor
-    user
+  relation_scope do |relation|
+    relation.none
   end
+
+  protected
 
   # Get the organization from the record if it has one
   # @return [Object, nil]
@@ -55,22 +51,22 @@ class ApplicationPolicy < ActionPolicy::Base
       end
   end
 
-  # Extract JWT scopes from Current.token (set by authentication)
+  # Extract JWT scopes from the current user token.
   # @return [Array<String>]
   def jwt_scopes
-    return [] if Current.token.blank?
+    return [] if current_token.blank?
 
-    Auth::TokenClaims.scopes(Current.token)
+    Auth::TokenClaims.scopes(current_token)
   end
 
-  # Check if the actor has a specific scope
+  # Check if the user has a specific scope
   # @param scope [String] the scope to check (e.g., "read:self", "write:org")
   # @return [Boolean]
   def has_scope?(scope)
     jwt_scopes.include?(scope.to_s)
   end
 
-  # Check if the actor has permission for the current domain
+  # Check if the user has permission for the current domain
   # @param allowed_domains [Array<String>] list of allowed domain prefixes (e.g., ["app", "org"])
   # @return [Boolean]
   def domain_permitted?(*allowed_domains)
@@ -82,21 +78,21 @@ class ApplicationPolicy < ActionPolicy::Base
     allowed_domains.map(&:to_s).include?(domain.to_s)
   end
 
-  # Extract domain from audience claim in Current.token
+  # Extract domain from audience claim in the current user token.
   def extract_domain_from_audience
-    return nil if Current.token.blank?
+    return nil if current_token.blank?
 
-    audiences = Array(Current.token["aud"])
+    audiences = Array(current_token["aud"])
     return nil if audiences.empty?
 
     audiences.first.to_s.split(".").first
   end
 
-  # Get JWT subject (actor ID) from Current.token
+  # Get JWT subject (user ID) from the current user token.
   def jwt_subject
-    return nil if Current.token.blank?
+    return nil if current_token.blank?
 
-    Auth::TokenClaims.subject(Current.token)
+    Auth::TokenClaims.subject(current_token)
   end
 
   # Check if current token is for specific domain
@@ -112,56 +108,73 @@ class ApplicationPolicy < ActionPolicy::Base
     extract_domain_from_audience == "com"
   end
 
-  # Check if actor owns the record
+  # Check if user owns the record
   # @return [Boolean]
   def owner?
-    return false unless actor
-    return jwt_subject.to_s == actor.id.to_s if record.blank?
+    return false unless user
+    return jwt_subject.to_s == user.id.to_s if record.blank?
+    return true if same_user_record?
 
-    if actor.is_a?(User) && record.respond_to?(:user_id)
-      record.user_id == actor.id
-    elsif actor.is_a?(Staff) && record.respond_to?(:staff_id)
-      record.staff_id == actor.id
+    if user.is_a?(User) && record.respond_to?(:user_id)
+      record.user_id == user.id
+    elsif user.is_a?(Operator) && record.respond_to?(:staff_id)
+      record.staff_id == user.id
     else
       false
     end
   end
 
+  def same_user_record?
+    return false unless record.respond_to?(:id)
+
+    same_user_record_type? && record.id == user.id
+  end
+
+  def same_user_record_type?
+    (user.is_a?(User) && record.is_a?(User)) ||
+      (user.is_a?(Operator) && record.is_a?(Operator)) ||
+      (defined?(Visitor) && user.is_a?(Visitor) && record.is_a?(Visitor))
+  end
+
   # Role-based checks
   def operator?
-    actor&.has_role?("operator", organization: organization)
+    user&.has_role?("operator", organization: organization)
   end
 
   def manager?
-    actor&.has_role?("manager", organization: organization)
+    user&.has_role?("manager", organization: organization)
   end
 
   def editor?
-    actor&.has_role?("editor", organization: organization)
+    user&.has_role?("editor", organization: organization)
   end
 
   def contributor?
-    actor&.has_role?("contributor", organization: organization)
+    user&.has_role?("contributor", organization: organization)
   end
 
   def viewer?
-    actor&.has_role?("viewer", organization: organization)
+    user&.has_role?("viewer", organization: organization)
   end
 
   # Combined role checks
   def operator_or_manager?
-    actor&.operator_or_manager?(organization: organization)
+    user&.operator_or_manager?(organization: organization)
   end
 
   def can_edit?
-    actor&.can_edit?(organization: organization)
+    user&.can_edit?(organization: organization)
   end
 
   def can_view?
-    actor&.can_view?(organization: organization)
+    user&.can_view?(organization: organization)
   end
 
   def can_contribute?
-    actor&.can_contribute?(organization: organization)
+    user&.can_contribute?(organization: organization)
+  end
+
+  def current_token
+    Actor.token
   end
 end

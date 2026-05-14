@@ -9,15 +9,27 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
+    @user = User.create!(status_id: UserStatus::NOTHING)
+    @email = UserEmail.create!(
+      address: "step-up-enforcer-#{SecureRandom.hex(4)}@example.com",
+      user: @user,
+      user_email_status_id: UserEmailStatus::VERIFIED,
+    )
     @headers = as_user_headers(@user, host: @host)
     @token = UserToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
+  end
+
+  teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   test "GET protected endpoint redirects to setup when configured methods are zero" do
     StepUp::ConfiguredMethods.stub(:call, []) do
       StepUp::AvailableMethods.stub(:call, []) do
-        get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+        get edit_sign_app_configuration_email_url(@email.public_id, ri: "jp"), headers: @headers
       end
     end
 
@@ -26,13 +38,13 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification/setup/new", uri.path
-    assert_predicate query["rd"], :present?
+    assert_predicate query["rt"], :present?
   end
 
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
     StepUp::ConfiguredMethods.stub(:call, [:email_otp]) do
       StepUp::AvailableMethods.stub(:call, []) do
-        get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+        get edit_sign_app_configuration_email_url(@email.public_id, ri: "jp"), headers: @headers
       end
     end
 
@@ -41,7 +53,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification", uri.path
-    assert_predicate query["rd"], :present?
+    assert_predicate query["rt"], :present?
   end
 
   test "GET protected endpoint redirects to verification when usable methods exist" do
@@ -52,7 +64,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       last_otp_at: Time.zone.at(0),
     )
 
-    get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    get edit_sign_app_configuration_email_url(@email.public_id, ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)

@@ -9,7 +9,6 @@
 #  id                                :bigint           not null, primary key
 #  locked_at                         :datetime         default(-Infinity), not null
 #  number                            :string           default(""), not null
-#  number_bidx                       :string
 #  number_digest                     :string
 #  otp_attempts_count                :integer          default(0), not null
 #  otp_counter                       :text             default(""), not null
@@ -24,7 +23,6 @@
 # Indexes
 #
 #  index_user_telephones_on_lower_number                       (lower((number)::text)) UNIQUE
-#  index_user_telephones_on_number_bidx                        (number_bidx) UNIQUE WHERE (number_bidx IS NOT NULL)
 #  index_user_telephones_on_number_digest                      (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
 #  index_user_telephones_on_public_id                          (public_id) UNIQUE
 #  index_user_telephones_on_user_id                            (user_id)
@@ -155,8 +153,9 @@ class UserTelephoneTest < ActiveSupport::TestCase
       user: @user,
     )
 
-    assert_equal user_telephone, UserTelephone.find_by(number: "+15557654321")
-    assert_nil UserTelephone.find_by(number: "")
+    assert_equal user_telephone,
+                 UserTelephone.find_by(number_digest: IdentifierBlindIndex.bidx_for_telephone("+15557654321"))
+    assert_nil UserTelephone.find_by(number_digest: IdentifierBlindIndex.bidx_for_telephone(""))
   end
 
   test "number is invalid when blank" do

@@ -6,35 +6,41 @@
 # Table name: users
 # Database name: principal
 #
-#  id                    :bigint           not null, primary key
-#  deactivated_at        :datetime
-#  lapses_at             :datetime         default(Infinity), not null
-#  last_reauth_at        :datetime
-#  lock_version          :integer          default(0), not null
-#  multi_factor_enabled  :boolean          default(FALSE), not null
-#  purge_at              :datetime         default(Infinity), not null
-#  purged_at             :datetime
-#  withdrawal_started_at :datetime
-#  withdrawn_at          :datetime         default(Infinity)
-#  created_at            :datetime         not null
-#  updated_at            :datetime         not null
-#  public_id             :string(255)      default(""), not null
-#  status_id             :bigint           default(11), not null
-#  visibility_id         :bigint           default(2), not null
+#  id                     :bigint           not null, primary key
+#  deactivated_at         :datetime
+#  lapses_at              :datetime         default(Infinity), not null
+#  last_reauth_at         :datetime
+#  lock_version           :integer          default(0), not null
+#  multi_factor_enabled   :boolean          default(FALSE), not null
+#  purge_at               :datetime         default(Infinity), not null
+#  purged_at              :datetime
+#  withdrawal_started_at  :datetime
+#  withdrawn_at           :datetime         default(Infinity)
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  multi_factor_id        :bigint           default(0), not null
+#  multi_factor_status_id :bigint           default(5), not null
+#  public_id              :string(255)      default(""), not null
+#  status_id              :bigint           default(11), not null
+#  visibility_id          :bigint           default(2), not null
 #
 # Indexes
 #
-#  index_users_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_users_on_public_id              (public_id) UNIQUE
-#  index_users_on_purge_at               (purge_at)
-#  index_users_on_purged_at              (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_users_on_status_id              (status_id)
-#  index_users_on_visibility_id          (visibility_id)
-#  index_users_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_users_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_users_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_users_on_multi_factor_id         (multi_factor_id)
+#  index_users_on_multi_factor_status_id  (multi_factor_status_id)
+#  index_users_on_public_id               (public_id) UNIQUE
+#  index_users_on_purge_at                (purge_at)
+#  index_users_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
+#  index_users_on_status_id               (status_id)
+#  index_users_on_visibility_id           (visibility_id)
+#  index_users_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_users_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
+#  fk_rails_...  (multi_factor_id => user_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => user_multi_factor_statuses.id)
 #  fk_rails_...  (status_id => user_statuses.id)
 #  fk_rails_...  (visibility_id => user_visibilities.id)
 #
@@ -43,6 +49,8 @@ class User < PrincipalRecord
   include Retainable
   include ::PublicId
   include ::Identity
+  include MultiFactorConfigurable
+  include MultiFactorStatusTrackable
 
   LOGIN_BLOCKED_STATUS_IDS = [UserStatus::RESERVED].freeze
   # what is this?
@@ -61,9 +69,17 @@ class User < PrincipalRecord
   self.ignored_columns += ["webauthn_id"]
 
   attribute :status_id, default: UserStatus::NOTHING
+  multi_factor_reference UserMultiFactor
+  multi_factor_status_reference UserMultiFactorStatus
 
   belongs_to :user_status,
              foreign_key: :status_id,
+             inverse_of: :users
+  belongs_to :multi_factor,
+             class_name: "UserMultiFactor",
+             inverse_of: :users
+  belongs_to :multi_factor_status,
+             class_name: "UserMultiFactorStatus",
              inverse_of: :users
   belongs_to :visibility,
              class_name: "UserVisibility",
@@ -105,10 +121,16 @@ class User < PrincipalRecord
   has_many :user_memberships,
            dependent: :destroy,
            inverse_of: :user
-  has_many :staff_chronicles,
-           as: :actor,
-           dependent: :destroy
+  has_many :staff_chronicles, class_name: "OperatorChronicle", as: :actor,
+                              dependent: :destroy
   has_many :user_notifications,
+           dependent: :destroy,
+           inverse_of: :user
+  has_many :clients,
+           class_name: "VisitorAccount",
+           dependent: :nullify,
+           inverse_of: :user
+  has_many :user_banners,
            dependent: :destroy,
            inverse_of: :user
   has_many :user_members,
@@ -146,6 +168,7 @@ class User < PrincipalRecord
            inverse_of: :user
   has_many :user_bulletins, dependent: :destroy, inverse_of: :user
   has_many :user_app_preferences, dependent: :delete_all
+  has_one :user_account, dependent: :destroy, inverse_of: :user
   has_one :user_preference, dependent: :destroy, inverse_of: :user
   has_many :avatar_assignments, dependent: :destroy
   has_many :assigned_avatars, through: :avatar_assignments, source: :avatar
@@ -247,5 +270,17 @@ class User < PrincipalRecord
 
   def withdrawal_in_progress?
     withdrawal_started? || deactivated?
+  end
+
+  private
+
+  def configured_multi_factor_methods
+    methods = []
+    methods << :email_otp if user_emails.exists?(user_email_status_id: VERIFIED_RECOVERY_EMAIL_STATUS_IDS)
+    methods << :passkey if user_passkeys.active.exists?
+    methods << :totp if user_one_time_passwords.exists?(
+      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+    )
+    methods
   end
 end

@@ -19,7 +19,7 @@
       <tr>
         <td><%= email.address %></td>
         <td>
-          <% if [StaffEmailStatus::ACTIVE, StaffEmailStatus::VERIFIED].include?(email.staff_email_status_id) %>
+          <% if [OperatorEmailStatus::ACTIVE, OperatorEmailStatus::VERIFIED].include?(email.staff_email_status_id) %>
             <span><%= t("views.sign.org.configuration.emails.index.verified") %></span>
           <% else %>
             <span><%= t("views.sign.org.configuration.emails.index.unverified") %></span>

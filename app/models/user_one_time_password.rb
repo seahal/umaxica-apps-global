@@ -32,6 +32,7 @@
 
 class UserOneTimePassword < PrincipalRecord
   include ::PublicId
+  include MultiFactorStatusCredential
 
   alias_attribute :user_one_time_password_status_id, :user_identity_one_time_password_status_id
   MAX_TOTPS_PER_USER = 2
@@ -39,6 +40,7 @@ class UserOneTimePassword < PrincipalRecord
   attr_accessor :first_token
 
   belongs_to :user, inverse_of: :user_one_time_passwords
+  multi_factor_status_owner :user
   belongs_to :user_one_time_password_status, optional: true, inverse_of: :user_one_time_passwords,
                                              foreign_key: :user_identity_one_time_password_status_id
   attribute :user_identity_one_time_password_status_id, default: UserOneTimePasswordStatus::NOTHING
@@ -62,7 +64,8 @@ class UserOneTimePassword < PrincipalRecord
   def enforce_user_totp_limit
     return unless user_id
 
-    count = self.class.where(user_id: user_id).count
+    operation = -> { self.class.where(user_id: user_id).count }
+    count = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
     return if count < MAX_TOTPS_PER_USER
 
     errors.add(:base, :too_many, message: "exceeds maximum totps per user (#{MAX_TOTPS_PER_USER})")

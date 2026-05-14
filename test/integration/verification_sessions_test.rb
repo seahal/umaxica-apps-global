@@ -12,7 +12,7 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
 
-    @user = users(:one)
+    @user = User.create!(status_id: UserStatus::NOTHING)
 
     @token = UserToken.create!(
       user: @user,
@@ -46,7 +46,7 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
     get new_sign_app_verification_totp_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
-    assert_redirected_to sign_app_verification_url(ri: "jp")
+    assert_redirected_to sign_app_configuration_url(ri: "jp")
   end
 
   test "POST within 30 minutes skips verification" do
@@ -63,6 +63,6 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_redirected_to sign_app_verification_url(ri: "jp")
+    assert_redirected_to sign_app_configuration_url(ri: "jp")
   end
 end

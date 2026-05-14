@@ -8,7 +8,7 @@ module Sign
         include Sign::EmailRegistrable
         include ::CloudflareTurnstile
 
-        guest_only! message: I18n.t("sign.app.registration.email.already_logged_in")
+        guest_only! status: :unauthorized
 
         def new
           @user_email = UserEmail.new
@@ -38,13 +38,24 @@ module Sign
         end
 
         def create
-          email_params = params.expect(user_email: %i(raw_address address confirm_policy))
-          email_address = email_params[:raw_address] || email_params[:address]
-
           unless cloudflare_turnstile_validation["success"]
-            @user_email = UserEmail.new(address: email_address)
+            @user_email = UserEmail.new
             @user_email.errors.add(
-              :base, t("sign.app.registration.email.create.turnstile_failed"),
+              :base, t("sign.app.registration.email.create.turnstile_validation_failed"),
+            )
+            render :new, status: :unprocessable_content
+            return
+          end
+
+          email_params = params.permit(
+            user_email: %i(raw_address address confirm_policy promotional notifiable),
+          )[:user_email]
+          email_address = email_params&.[](:raw_address).presence || email_params&.[](:address).presence
+
+          if email_address.blank?
+            @user_email = UserEmail.new
+            @user_email.errors.add(
+              :base, t("sign.app.registration.email.create.address_required"),
             )
             render :new, status: :unprocessable_content
             return
@@ -54,6 +65,7 @@ module Sign
             email_address,
             confirm_policy: email_params[:confirm_policy],
             allow_existing: true,
+            email_preferences: email_params.slice(:promotional, :notifiable),
           )
 
           if result == :cooldown
@@ -64,6 +76,7 @@ module Sign
 
           unless result
             log_signup_email_errors
+            strip_user_owner_errors!
             render :new, status: :unprocessable_content
             return
           end
@@ -128,21 +141,17 @@ module Sign
         def complete_update_and_redirect
           progress_email_flow!(:update)
           create_welcome_bulletin!(current_resource)
-          if issue_bulletin!
-            redirect_to(
-              sign_app_in_bulletin_path(rd: params[:rd], ri: params[:ri]),
-              notice: t("sign.app.registration.email.update.success"),
-            )
-          else
-            safe_redirect_to_rd_or_default!(params[:rd], default_path: sign_app_configuration_path(ri: params[:ri]))
-          end
+          redirect_to_sign_in_sequence!(
+            rt: redirect_parameter_value,
+            notice: t("sign.app.registration.email.update.success"),
+          )
         end
 
         def sanitize_redirect_params!(redirect_params)
-          return if redirect_params[:rd].blank?
+          return if redirect_params[:rt].blank?
 
-          redirect_params[:rd] = sanitize_encoded_redirect(redirect_params[:rd])
-          redirect_params.delete(:rd) if redirect_params[:rd].blank?
+          redirect_params[:rt] = sanitize_encoded_redirect(redirect_params[:rt])
+          redirect_params.delete(:rt) if redirect_params[:rt].blank?
         end
 
         def sanitize_encoded_redirect(encoded_url)
@@ -221,11 +230,16 @@ module Sign
           # Note: This is called within complete_email_verification!'s transaction
           @user = user_email.user
           @user.update!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
+          @user.create_user_account! unless @user.user_account
 
           create_signup_audit!
 
           user_email.save!
-          log_in(@user, record_login_audit: false)
+          log_in(
+            @user,
+            record_login_audit: true,
+            audit_context: { auth_method: "email" },
+          )
         end
 
         def create_signup_audit!
@@ -264,6 +278,13 @@ module Sign
             "sign.signup.email.validation_failed",
             errors: @user_email.errors.full_messages,
           )
+        end
+
+        def strip_user_owner_errors!
+          return if @user_email.blank?
+
+          @user_email.errors.delete(:user)
+          @user_email.errors.delete(:user_id)
         end
       end
     end

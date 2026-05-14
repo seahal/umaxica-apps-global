@@ -10,13 +10,13 @@ class AuthMethodGuard
     UserTelephoneStatus::VERIFIED,
     UserTelephoneStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
-  CUSTOMER_VERIFIED_EMAIL_STATUSES = [
-    CustomerEmailStatus::VERIFIED,
-    CustomerEmailStatus::VERIFIED_WITH_SIGN_UP,
+  VISITOR_VERIFIED_EMAIL_STATUSES = [
+    VisitorEmailStatus::VERIFIED,
+    VisitorEmailStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
-  CUSTOMER_VERIFIED_TELEPHONE_STATUSES = [
-    CustomerTelephoneStatus::VERIFIED,
-    CustomerTelephoneStatus::VERIFIED_WITH_SIGN_UP,
+  VISITOR_VERIFIED_TELEPHONE_STATUSES = [
+    VisitorTelephoneStatus::VERIFIED,
+    VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
 
   def self.remaining_count(actor, excluding: nil)
@@ -80,9 +80,9 @@ class AuthMethodGuard
       return scope.count
     end
 
-    if actor.respond_to?(:customer_emails)
-      scope = actor.customer_emails.where(customer_email_status_id: CUSTOMER_VERIFIED_EMAIL_STATUSES)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(CustomerEmail)
+    if actor.respond_to?(:visitor_emails)
+      scope = actor.visitor_emails.where(visitor_email_status_id: VISITOR_VERIFIED_EMAIL_STATUSES)
+      scope = scope.where.not(id: excluding.id) if excluding.is_a?(VisitorEmail)
       return scope.count
     end
 
@@ -96,9 +96,9 @@ class AuthMethodGuard
       return scope.count
     end
 
-    if actor.respond_to?(:customer_telephones)
-      scope = actor.customer_telephones.where(customer_telephone_status_id: CUSTOMER_VERIFIED_TELEPHONE_STATUSES)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(CustomerTelephone)
+    if actor.respond_to?(:visitor_telephones)
+      scope = actor.visitor_telephones.where(visitor_telephone_status_id: VISITOR_VERIFIED_TELEPHONE_STATUSES)
+      scope = scope.where.not(id: excluding.id) if excluding.is_a?(VisitorTelephone)
       return scope.count
     end
 
@@ -112,9 +112,9 @@ class AuthMethodGuard
       return scope.count
     end
 
-    if actor.respond_to?(:customer_passkeys)
-      scope = actor.customer_passkeys.where(status_id: CustomerPasskeyStatus::ACTIVE)
-      scope = scope.where.not(id: excluding.id) if excluding.is_a?(CustomerPasskey)
+    if actor.respond_to?(:visitor_passkeys)
+      scope = actor.visitor_passkeys.where(status_id: VisitorPasskeyStatus::ACTIVE)
+      scope = scope.where.not(id: excluding.id) if excluding.is_a?(VisitorPasskey)
       return scope.count
     end
 

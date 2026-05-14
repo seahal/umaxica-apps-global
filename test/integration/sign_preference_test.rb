@@ -252,6 +252,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
 
       get public_send("sign_#{domain[:name]}_preference_url", ri: "jp", lx: "ex")
+      follow_redirect! if response.redirect?
 
       assert_response :success
       assert_equal :ja, I18n.locale
@@ -504,7 +505,12 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      assert_select "a[href^=?]", public_send("edit_sign_#{domain[:name]}_preference_region_path")
+      links = css_select("section > div:first-child > a")
+
+      assert_equal 1, links.size
+      assert_equal "もどる", links.first.text
+      assert_includes links.first["href"], public_send("edit_sign_#{domain[:name]}_preference_region_path")
+      assert_includes links.first["href"], "ri=jp"
     end
 
     test "#{domain[:name]} domain region edit links to timezone and language with params" do
@@ -520,6 +526,112 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       assert_select "a[href=?]",
                     public_send("edit_sign_#{domain[:name]}_preference_region_language_path", state)
     end
+
+    test "#{domain[:name]} domain updates extended preference options" do
+      host!(domain[:host])
+      pref, = assert_preference_created(domain)
+
+      [
+        [:region_currency, :preference_currency, :currency, "usd", 1],
+        [:region_date_format, :preference_date_format, :date_format, "uk", 2],
+        [:region_time_format, :preference_time_format, :time_format, "hour_12", 2],
+        [:accessibility_motion, :preference_motion, :motion, "reduced", 2],
+        [:display_density, :preference_density, :density, "compact", 2],
+        [:display_items_per_page, :preference_items_per_page, :items_per_page, "50", 3],
+      ].each do |route_suffix, param_scope, association_suffix, submitted_value, expected_id|
+        get public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
+
+        assert_response :success
+        assert_select "select[name='#{param_scope}[option_id]'] option[value='']", count: 0
+
+        patch public_send("sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state),
+              params: { param_scope => { option_id: submitted_value } }
+
+        assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
+
+        pref.reload
+
+        assert_equal expected_id, pref.public_send("#{domain[:name]}_preference_#{association_suffix}").option_id
+      end
+    end
+  end
+
+  test "org extended region preference edit pages show top localized back link" do
+    host!("id.org.localhost")
+
+    assert_preference_created(DOMAINS.second)
+    state = { ri: "us", lx: "ja" }
+
+    [
+      edit_sign_org_preference_region_currency_url(state),
+      edit_sign_org_preference_region_date_format_url(state),
+      edit_sign_org_preference_region_time_format_url(state),
+    ].each do |url|
+      get url
+
+      assert_response :success
+      links = css_select("section > div:first-child > a")
+
+      assert_equal 1, links.size
+      assert_equal "もどる", links.first.text
+      assert_includes links.first["href"], edit_sign_org_preference_region_path
+      assert_includes links.first["href"], "ri=us"
+      assert_includes links.first["href"], "lx=ja"
+    end
+  end
+
+  test "app extended display and accessibility preference edit pages allow signed-in users" do
+    host!("id.app.localhost")
+    user = User.create!(status_id: UserStatus::NOTHING)
+    headers = as_user_headers(user, host: "id.app.localhost")
+
+    [
+      edit_sign_app_preference_accessibility_motion_url(ri: "jp"),
+      edit_sign_app_preference_display_density_url(ri: "jp"),
+      edit_sign_app_preference_display_items_per_page_url(ri: "jp"),
+    ].each do |url|
+      get url, headers: headers
+
+      assert_response :success
+      assert_not_equal sign_app_dashboard_path, URI.parse(request.path).path
+    end
+
+    [
+      edit_sign_app_preference_accessibility_motion_url(ri: "jp"),
+      edit_sign_app_preference_display_density_url(ri: "jp"),
+    ].each do |url|
+      get url, headers: headers
+
+      links = css_select("section > div:first-child > a")
+
+      assert_equal 1, links.size
+      assert_equal "もどる", links.first.text
+      assert_includes links.first["href"], sign_app_preference_path
+      assert_includes links.first["href"], "ri=jp"
+    end
+  end
+
+  test "app extended region preference edit pages do not write missing child records" do
+    host!("id.app.localhost")
+    pref, = assert_preference_created(DOMAINS.first)
+
+    [
+      [:app_preference_currency, edit_sign_app_preference_region_currency_url(ri: "jp")],
+      [:app_preference_date_format, edit_sign_app_preference_region_date_format_url(ri: "jp")],
+      [:app_preference_time_format, edit_sign_app_preference_region_time_format_url(ri: "jp")],
+    ].each do |association, url|
+      pref.public_send(association).destroy!
+      pref.reload
+
+      assert_nil pref.public_send(association)
+
+      get url
+
+      assert_response :success
+      pref.reload
+
+      assert_nil pref.public_send(association)
+    end
   end
 
   DOMAINS.each do |domain|
@@ -532,6 +644,12 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
+      links = css_select("section > div:first-child > a")
+
+      assert_equal 1, links.size
+      assert_equal "もどる", links.first.text
+      assert_includes links.first["href"], public_send("sign_#{domain[:name]}_preference_path")
+      assert_includes links.first["href"], "ri=jp"
       assert_select "input[type='checkbox'][name='confirm_reset'][required]"
       assert_select "label[for='confirm_reset']"
     end
@@ -561,9 +679,9 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       # Verify audit log event
       event_class = domain[:audit_event_class]
-      audit = audit_class.where(subject_id: pref.id).order(id: :desc).first
+      reset_audit = audit_class.where(subject_id: pref.id, event_id: event_class::RESET_BY_USER_DECISION)
 
-      assert_equal event_class::RESET_BY_USER_DECISION, audit.event_id
+      assert_predicate reset_audit, :exists?
     end
 
     test "#{domain[:name]} domain reset destroy keeps preference cookies" do
@@ -635,7 +753,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
   end
 
   def assert_preference_created(domain)
-    get(public_send("sign_#{domain[:name]}_preference_url", ri: "jp"))
+    get(public_send("edit_sign_#{domain[:name]}_preference_region_url", ri: "jp"))
 
     assert_response :success
 

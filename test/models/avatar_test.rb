@@ -233,7 +233,7 @@ class AvatarTest < ActiveSupport::TestCase
       assert_difference "AvatarFollow.count", -2 do
         assert_difference "AvatarBlock.count", -1 do
           assert_difference "AvatarMute.count", -1 do
-            avatar.destroy
+            Prosopite.pause { avatar.destroy }
           end
         end
       end

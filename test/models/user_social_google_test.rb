@@ -130,6 +130,51 @@ class UserSocialGoogleTest < ActiveSupport::TestCase
     assert identity.changes.key?("token")
   end
 
+  test "find_or_create_from_auth_hash preserves existing refresh token when omitted" do
+    user = users(:one)
+    UserSocialGoogle.create!(
+      user: user,
+      uid: "refresh-google-uid",
+      token: "old-token",
+      refresh_token: "stored-refresh",
+      expires_at: 123,
+      user_social_google_status: UserSocialGoogleStatus.find(UserSocialGoogleStatus::ACTIVE),
+    )
+
+    auth = MockAuth.new(
+      uid: "refresh-google-uid",
+      provider: "google_app",
+      info: OpenStruct.new(email: "updated-google@example.com"),
+      credentials: OpenStruct.new(token: "updated-token", refresh_token: nil, expires_at: 456),
+    )
+
+    identity = UserSocialGoogle.find_or_create_from_auth_hash(auth)
+
+    assert_equal "stored-refresh", identity.refresh_token
+  end
+
+  test "find_or_create_from_auth_hash updates refresh token when present" do
+    user = users(:one)
+    UserSocialGoogle.create!(
+      user: user,
+      uid: "present-refresh-google-uid",
+      token: "old-token",
+      refresh_token: "stored-refresh",
+      expires_at: 123,
+      user_social_google_status: UserSocialGoogleStatus.find(UserSocialGoogleStatus::ACTIVE),
+    )
+
+    auth = MockAuth.new(
+      uid: "present-refresh-google-uid",
+      provider: "google_app",
+      credentials: OpenStruct.new(token: "updated-token", refresh_token: "updated-refresh", expires_at: 456),
+    )
+
+    identity = UserSocialGoogle.find_or_create_from_auth_hash(auth)
+
+    assert_equal "updated-refresh", identity.refresh_token
+  end
+
   test "extract_uid falls back to extra raw_info sub" do
     auth = MockAuth.new(
       uid: "",
@@ -140,6 +185,27 @@ class UserSocialGoogleTest < ActiveSupport::TestCase
     )
 
     assert_equal "fallback-sub", UserSocialGoogle.extract_uid(auth)
+  end
+
+  test "extract_uid uses uid when present" do
+    auth = MockAuth.new(
+      uid: "google-present-uid",
+      provider: "google_app",
+      info: OpenStruct.new(email: "google@example.com"),
+      credentials: OpenStruct.new(token: "google-token", expires_at: 123),
+    )
+
+    assert_equal "google-present-uid", UserSocialGoogle.extract_uid(auth)
+  end
+
+  test "extract_uid returns empty string when uid and extra are missing" do
+    auth = MockAuth.new(
+      uid: nil,
+      provider: "google_app",
+      credentials: OpenStruct.new(token: "google-token", expires_at: 123),
+    )
+
+    assert_equal "", UserSocialGoogle.extract_uid(auth)
   end
 
   test "update_from_auth_hash updates attributes and timestamp" do
@@ -165,6 +231,27 @@ class UserSocialGoogleTest < ActiveSupport::TestCase
     assert_equal "new-refresh", identity.refresh_token
     assert_equal 456, identity.expires_at
     assert_predicate identity.last_authenticated_at, :present?
+  end
+
+  test "update_from_auth_hash preserves existing refresh token when omitted" do
+    identity = UserSocialGoogle.create!(
+      user: users(:one),
+      uid: "omit-refresh-google-uid",
+      token: "old-token",
+      refresh_token: "stored-refresh",
+      expires_at: 123,
+    )
+
+    auth = MockAuth.new(
+      uid: "omit-refresh-google-uid",
+      provider: "google_app",
+      info: OpenStruct.new(email: "new-google@example.com"),
+      credentials: OpenStruct.new(token: "new-token", refresh_token: nil, expires_at: 456),
+    )
+
+    identity.update_from_auth_hash!(auth)
+
+    assert_equal "stored-refresh", identity.refresh_token
   end
 
   test "active scope and active? check status column" do

@@ -4,16 +4,16 @@
 module Sign
   module Org
     module Auth
-      # Controller for handling Google OAuth callbacks for staff sign-in.
+      # Controller for handling Google OAuth callbacks for operators sign-in.
       #
       # Routes:
       #   GET /auth/:provider/callback -> #omniauth
       #   GET /auth/failure            -> #failure
       #
-      # Staff sign-in only (no sign-up):
+      # Operator continue signs in existing staff only:
       # - Extracts email from Google auth hash
-      # - Looks up Staff via StaffEmail by that email
-      # - Signs in the staff if found and active
+      # - Looks up Operator via OperatorEmail by that email
+      # - Signs in the operator if found and active
       class OmniauthCallbacksController < Sign::Org::ApplicationController
         include SocialAuthConcern
         include SocialCallbackGuard
@@ -22,6 +22,7 @@ module Sign
         public_strict! only: %i(omniauth failure)
 
         skip_before_action :apply_localization_preferences, only: %i(omniauth failure)
+        skip_before_action :set_region, only: %i(omniauth failure)
 
         # GET/POST /auth/:provider/callback
         def omniauth
@@ -89,7 +90,7 @@ module Sign
 
         def find_staff_from_auth(auth)
           email = extract_email_from_auth(auth)
-          staff = find_active_staff_by_google_email(email)
+          staff = find_active_staff_by_google_email(email, intent: current_social_auth_intent)
           Rails.event.debug("sign.social.org.omniauth.staff_found", staff_id: staff&.id) if staff
           staff
         end
@@ -120,9 +121,20 @@ module Sign
         end
 
         def login_and_redirect(staff, auth)
-          login_result = log_in(staff, record_login_audit: true)
+          login_result = log_in(
+            staff,
+            record_login_audit: true,
+            audit_context: social_login_audit_context(auth),
+          )
           provider_name = SocialIdentifiable.normalize_provider(auth.provider).humanize
           handle_login_result(login_result, provider_name)
+        end
+
+        def social_login_audit_context(auth)
+          {
+            auth_method: "social",
+            provider: SocialIdentifiable.normalize_provider(auth.provider),
+          }
         end
 
         def extract_email_from_auth(auth)
@@ -130,19 +142,21 @@ module Sign
           email&.strip&.downcase
         end
 
-        def find_active_staff_by_google_email(email)
+        def find_active_staff_by_google_email(email, intent: "login")
           return nil if email.blank?
 
           staff_email = nil
           OperatorRecord.connected_to(role: :writing) do
-            staff_email = StaffEmail.find_by(address: email)
-            if staff_email && !staff_email.undeletable?
+            staff_email = OperatorEmail.find_by(address: email)
+            if intent.to_s == "link" && staff_email && staff_email.staff_id == social_auth_user&.id && !staff_email.undeletable?
               staff_email.update!(undeletable: true)
             end
           end
 
+          return nil if intent.to_s != "link" && !staff_email&.undeletable?
+
           staff = staff_email&.staff
-          staff if staff&.status_id == StaffStatus::ACTIVE
+          staff if staff&.status_id == OperatorIdentityStatus::ACTIVE
         end
 
         # rubocop:disable Metrics/MethodLength
@@ -171,17 +185,9 @@ module Sign
               notice: I18n.t("session_limit.restricted_notice"),
             )
           else
-            if issue_bulletin!
-              redirect_to(
-                sign_org_in_bulletin_path(ri: params[:ri]),
-                notice: I18n.t("sign.org.social.sessions.create.success", provider: provider_name),
-              )
-            else
-              redirect_to(
-                sign_org_root_path(ri: params[:ri]),
-                notice: I18n.t("sign.org.social.sessions.create.success", provider: provider_name),
-              )
-            end
+            redirect_to_sign_in_sequence!(
+              notice: I18n.t("sign.org.social.sessions.create.success", provider: provider_name),
+            )
           end
         end
 

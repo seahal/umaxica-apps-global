@@ -37,22 +37,19 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
 
-    delete sign_app_configuration_apple_url(ri: "jp"), headers: @headers
+    delete sign_app_social_authentication_url(provider: "apple", ri: "jp"), headers: @headers
 
-    assert_redirected_to sign_app_configuration_apple_url(ri: "jp")
+    assert_redirected_to sign_app_configuration_url(ri: "jp")
     follow_redirect!(headers: @headers)
 
-    assert_equal I18n.t("sign.app.social.sessions.destroy.success", provider: "Apple"), flash[:notice]
-
-    revoked = UserSocialApple.find_by(uid: "apple_uid_link")
-
-    assert revoked
-    assert_equal UserSocialAppleStatus::REVOKED, revoked.status_id
+    assert_equal I18n.t("sign.app.social.sessions.unlink.success", provider: "Apple"), flash[:notice]
+    assert_nil UserSocialApple.find_by(uid: "apple_uid_link")
   end
 
   test "should prevent unlinking last identity" do
     # Create user with ONLY Apple identity (remove password secret)
     @user.user_secrets.destroy_all
+    @user.user_emails.destroy_all
 
     UserSocialApple.create!(
       user: @user, uid: "apple_uid_solo", provider: "apple",
@@ -60,7 +57,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Apple
-    delete sign_app_configuration_apple_url(ri: "jp"), headers: @headers
+    delete sign_app_social_authentication_url(provider: "apple", ri: "jp"), headers: @headers
 
     # Current implementation redirects on failure
     assert_response :redirect

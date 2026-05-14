@@ -5,7 +5,7 @@ module Finisher
   extend ActiveSupport::Concern
 
   def purge_current
-    Current.reset
+    Actor.reset
   end
 
   private

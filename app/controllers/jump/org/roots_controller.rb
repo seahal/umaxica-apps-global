@@ -3,18 +3,16 @@
 
 module Jump
   module Org
-    class RootsController < Jump::PublicController
+    class RootsController < Jump::Org::ApplicationController
       include Jump::ToRedirector
 
       JUMP_LINK_MODEL = OrgJumpLink
 
       def index
-        if params[:to].present?
-          params[:public_id] = params[:to]
-          return show
-        end
+        return if params[:to].blank?
 
-        render_not_found
+        params[:public_id] = params[:to]
+        show
       end
     end
   end

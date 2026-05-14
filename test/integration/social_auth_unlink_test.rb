@@ -164,11 +164,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     # Should have success message
     assert_predicate flash[:notice], :present?, "Should have success message"
 
-    # Google identity should be soft-deleted (status changed to REVOKED)
-    google_identity.reload
-
-    assert_equal UserSocialGoogleStatus::REVOKED, google_identity.status_id,
-                 "Google identity should be REVOKED"
+    assert_not UserSocialGoogle.exists?(google_identity.id), "Google identity should be deleted"
 
     # Apple identity should still exist and be ACTIVE
     assert_equal 1, UserSocialApple.where(user: @user).count
@@ -176,8 +172,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     audit = UserChronicle.order(created_at: :desc).find_by(event_id: UserChronicleEvent::SOCIAL_UNLINKED)
 
     assert_not_nil audit, "Should create audit record for social unlink"
-    assert_equal google_identity.id.to_s, audit.subject_id
-    assert_equal "UserSocialGoogle", audit.subject_type
+    assert_equal @user.id.to_s, audit.subject_id
+    assert_equal "User", audit.subject_type
+    assert_equal "google", audit.context["provider"]
+    assert_equal "UserSocialGoogle", audit.context["social_identity_type"]
   end
 
   test "unlink Apple succeeds when user has Google linked" do
@@ -207,11 +205,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
     assert_predicate flash[:notice], :present?
 
-    # Apple identity should be soft-deleted (status changed to REVOKED)
-    apple_identity.reload
-
-    assert_equal UserSocialAppleStatus::REVOKED, apple_identity.status_id,
-                 "Apple identity should be REVOKED"
+    assert_not UserSocialApple.exists?(apple_identity.id), "Apple identity should be deleted"
   end
 
   test "unlink Google fails when passkey exists without verified telephone" do
@@ -285,9 +279,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
     assert_predicate flash[:notice], :present?
 
-    google_identity.reload
-
-    assert_equal UserSocialGoogleStatus::REVOKED, google_identity.status_id
+    assert_not UserSocialGoogle.exists?(google_identity.id)
   end
 
   # ============================================================================
@@ -313,8 +305,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:notice], :present?, "Should succeed as no-op"
   end
 
-  test "unlink already revoked identity is idempotent" do
-    UserSocialGoogle.create!(
+  test "unlink removes inactive legacy identity" do
+    identity = UserSocialGoogle.create!(
       user: @user,
       uid: "revoked_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
@@ -330,6 +322,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_predicate flash[:notice], :present?
+    assert_not UserSocialGoogle.exists?(identity.id)
   end
 
   test "unlink requires authentication" do
@@ -344,12 +337,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     assert flash[:alert].present? || request.path.include?("sign"), "Should redirect to login"
   end
 
-  # ============================================================================
-  # REVOKED identities should not count as authentication methods
-  # ============================================================================
-  test "unlink succeeds when user has only REVOKED social identity and an active email" do
-    # User has REVOKED Google identity (doesn't count) and active email (counts)
-    UserSocialGoogle.create!(
+  test "unlink succeeds when user has only inactive legacy social identity and an active email" do
+    inactive_google = UserSocialGoogle.create!(
       user: @user,
       uid: "revoked_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
@@ -382,12 +371,9 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     follow_redirect!
 
-    # Should succeed (REVOKED Google doesn't count, but email does)
     assert_predicate flash[:notice], :present?, "Should succeed with email as backup auth method"
-
-    apple_identity.reload
-
-    assert_equal UserSocialAppleStatus::REVOKED, apple_identity.status_id
+    assert UserSocialGoogle.exists?(inactive_google.id)
+    assert_not UserSocialApple.exists?(apple_identity.id)
   end
 
   test "unlink fails when only active identity is social and others are REVOKED" do

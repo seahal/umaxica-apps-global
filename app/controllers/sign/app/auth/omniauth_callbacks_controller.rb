@@ -27,6 +27,7 @@ module Sign
 
         # Skip preference before_actions that may interfere with OmniAuth callback
         skip_before_action :apply_localization_preferences, only: %i(omniauth failure)
+        skip_before_action :set_region, only: %i(omniauth failure)
 
         # GET/POST /auth/:provider/callback
         # Handles successful OmniAuth authentication
@@ -61,6 +62,7 @@ module Sign
             result = process_social_auth_callback
             user = result[:user]
             existing_account = result[:existing_account]
+            rt = result[:rt]
 
             Rails.event.debug(
               "sign.social.omniauth.callback_processed",
@@ -75,6 +77,7 @@ module Sign
             handle_successful_auth(
               user, intent, provider_name, result[:identity],
               existing_account: existing_account,
+              rt: rt,
             )
           end
         rescue SocialAuth::BaseError => e
@@ -100,7 +103,16 @@ module Sign
             strategy: strategy,
           )
 
-          clear_social_auth_intent!
+          failure_redirect_path = social_auth_failure_redirect_path
+
+          if duplicate_google_callback_failure_after_success?(message, strategy)
+            Rails.event.info(
+              "sign.social.omniauth.duplicate_callback_failure_ignored",
+              message: message,
+              strategy: strategy,
+            )
+            return redirect_to(social_auth_success_redirect_path)
+          end
 
           Rails.event.record(
             "sign.social.omniauth_failure",
@@ -117,7 +129,8 @@ module Sign
               I18n.t("sign.app.social.sessions.create.failure")
             end
 
-          redirect_to(new_sign_app_in_path, alert: alert_message)
+          clear_social_auth_intent!
+          redirect_to(failure_redirect_path, alert: alert_message)
         end
 
         private
@@ -139,7 +152,7 @@ module Sign
           end
         end
 
-        def handle_successful_auth(user, intent, provider_name, _identity, existing_account: nil)
+        def handle_successful_auth(user, intent, provider_name, _identity, existing_account: nil, rt: nil)
           Rails.event.debug(
             "sign.social.omniauth.handle_successful_auth",
             intent: intent,
@@ -152,7 +165,7 @@ module Sign
           when "reauth"
             handle_reauth_intent(user, provider_name)
           else
-            handle_login_intent(user, provider_name, existing_account)
+            handle_login_intent(user, provider_name, existing_account, rt: rt)
           end
         end
 
@@ -199,14 +212,14 @@ module Sign
           )
         end
 
-        def handle_login_intent(user, provider_name, existing_account)
+        def handle_login_intent(user, provider_name, existing_account, rt: nil)
           Rails.event.debug("sign.social.omniauth.login_intent", message: "Signing in user")
           return redirect_to(
             new_sign_app_in_path,
             alert: I18n.t("sign.app.social.sessions.create.failure"),
           ) unless user&.login_allowed?
 
-          login_result = sign_in(user)
+          login_result = sign_in(user, rt: rt)
 
           if login_result.is_a?(Hash) && login_result[:status] != :success
             Rails.event.warn(
@@ -225,49 +238,32 @@ module Sign
           end
 
           Rails.event.debug("sign.social.omniauth.login_successful", message: "Redirecting after login")
-          redirect_after_login(provider_name, existing_account)
+          redirect_after_login(provider_name, existing_account, rt: rt)
         end
 
-        def redirect_after_login(provider_name, existing_account)
+        def redirect_after_login(provider_name, existing_account, rt: nil)
           if existing_account
-            redirect_for_existing_account(provider_name)
+            redirect_for_existing_account(provider_name, rt: rt)
           else
-            redirect_for_new_account(provider_name)
+            redirect_for_new_account(provider_name, rt: rt)
           end
         end
 
-        def redirect_for_existing_account(provider_name)
-          if issue_bulletin!
-            redirect_to(
-              sign_app_in_bulletin_path(ri: params[:ri]),
-              notice: I18n.t(
-                "sign.app.social.sessions.create.already_registered",
-                provider: provider_name,
-              ),
-            )
-          else
-            redirect_to(
-              sign_app_configuration_path(ri: params[:ri]),
-              notice: I18n.t(
-                "sign.app.social.sessions.create.already_registered",
-                provider: provider_name,
-              ),
-            )
-          end
+        def redirect_for_existing_account(provider_name, rt: nil)
+          redirect_to_sign_in_sequence!(
+            rt: rt,
+            notice: I18n.t(
+              "sign.app.social.sessions.create.already_registered",
+              provider: provider_name,
+            ),
+          )
         end
 
-        def redirect_for_new_account(provider_name)
-          if issue_bulletin!
-            redirect_to(
-              sign_app_in_bulletin_path(ri: params[:ri]),
-              notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
-            )
-          else
-            redirect_to(
-              sign_app_configuration_path(ri: params[:ri]),
-              notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
-            )
-          end
+        def redirect_for_new_account(provider_name, rt: nil)
+          redirect_to_sign_in_sequence!(
+            rt: rt,
+            notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
+          )
         end
 
         def handle_unexpected_error(error, auth)
@@ -279,16 +275,15 @@ module Sign
             exception: error,
           )
 
+          failure_redirect_path = social_auth_failure_redirect_path
           clear_social_auth_intent!
-          redirect_to(
-            new_sign_app_in_path,
-            alert: I18n.t("sign.app.social.sessions.create.failure"),
-          )
+          redirect_to(failure_redirect_path, alert: I18n.t("sign.app.social.sessions.create.failure"))
         end
 
-        def sign_in(user)
+        def sign_in(user, rt: nil)
           result = complete_sign_in_or_start_mfa!(
-            user, rt: nil, ri: params[:ri], auth_method: "social",
+            user, rt: rt, ri: params[:ri], auth_method: "social",
+                  audit_context: social_login_audit_context,
           )
           Rails.event.debug("sign.social.omniauth.sign_in_result", result: result.inspect)
           result
@@ -298,9 +293,18 @@ module Sign
           # Reauth flow - last_reauth_at is already updated by SocialAuthService
           result = complete_sign_in_or_start_mfa!(
             user, rt: nil, ri: params[:ri], auth_method: "social",
+                  audit_context: social_login_audit_context,
           )
           Rails.event.debug("sign.social.omniauth.sign_in_reauth_result", result: result.inspect)
           result
+        end
+
+        def social_login_audit_context
+          auth = request.env["omniauth.auth"] || mock_auth_from_test_mode
+          provider = SocialIdentifiable.normalize_provider(auth&.provider)
+          context = { auth_method: "social" }
+          context[:provider] = provider if provider.present?
+          context
         end
 
         # Handle login failures (session limit, MFA required, etc.)
@@ -350,11 +354,23 @@ module Sign
         end
 
         def social_auth_failure_redirect_path
-          new_sign_app_in_path
+          ri = params[:ri].presence || current_social_auth_ri
+
+          if current_social_auth_entry == "sign_up"
+            return new_sign_app_up_path(ri: ri)
+          end
+
+          new_sign_app_in_path(ri: ri)
         end
 
         def social_auth_success_redirect_path
           sign_app_configuration_path
+        end
+
+        def duplicate_google_callback_failure_after_success?(message, strategy)
+          message.to_s == "invalid_credentials" &&
+            strategy.to_s == "google_app" &&
+            logged_in?
         end
 
         def validate_social_auth_state!

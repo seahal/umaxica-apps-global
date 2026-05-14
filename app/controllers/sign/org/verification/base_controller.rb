@@ -8,6 +8,8 @@ module Sign
         auth_required!
 
         include Sign::OrgVerificationBase
+
+        skip_before_action :enforce_verification_if_required, raise: false
       end
     end
   end

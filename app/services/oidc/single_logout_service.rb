@@ -6,22 +6,24 @@ module Oidc
     class << self
       def call(user:)
         MarkRecord.connected_to(role: :writing) do
-          now = Time.current
-          UserToken.where(user_id: user.id)
-            .where(status: "active")
-            .find_each do |token|
-            token.update!(lapses_at: [token.lapses_at, now].compact.min, status: "revoked", updated_at: now)
+          UserToken.active_status.where(user_id: user.id).find_each do |token|
+            token.revoke!
           end
         end
       end
 
       def call_for_staff(staff:)
         TokenRecord.connected_to(role: :writing) do
-          now = Time.current
-          StaffToken.where(staff_id: staff.id)
-            .where(status: "active")
-            .find_each do |token|
-            token.update!(lapses_at: [token.lapses_at, now].compact.min, status: "revoked", updated_at: now)
+          OperatorToken.active_status.where(staff_id: staff.id).find_each do |token|
+            token.revoke!
+          end
+        end
+      end
+
+      def call_for_visitor(visitor:)
+        SymbolRecord.connected_to(role: :writing) do
+          VisitorToken.active_status.where(visitor_id: visitor.id).find_each do |token|
+            token.revoke!
           end
         end
       end

@@ -16,7 +16,7 @@
         <div>
           <div>
             <div>
-              <%= form.label :raw_number, CustomerTelephone.human_attribute_name(:number) %>
+              <%= form.label :raw_number, VisitorTelephone.human_attribute_name(:number) %>
               <div>
                 <%= form.telephone_field :raw_number, placeholder: "+819012345678" %>
               </div>
@@ -25,7 +25,7 @@
           </div>
         </div>
         <div>
-          <%= render "shared/cloudflare_turnstile" %>
+          <%= render "shared/cloudflare_turnstile_stealth" %>
         </div>
         <div>
           <%= link_to t("actions.cancel"), sign_com_configuration_telephones_path(ri: params[:ri]) %>

@@ -15,7 +15,7 @@ en:
   tasks:
     preference_migration:
       migrating_user_app_preference: Migrating UserAppPreference to UserPreference...
-      migrating_staff_org_preference: Migrating StaffOrgPreference to StaffPreference...
+      migrating_staff_org_preference: Migrating OperatorOrgPreference to OperatorPreference...
       warn_user: "  WARN: Failed to migrate user_id=%{user_id}: %{message}"
       warn_staff: "  WARN: Failed to migrate staff_id=%{staff_id}: %{message}"
       done_user: "  Done: %{migrated} migrated, %{skipped} skipped"
@@ -73,6 +73,14 @@ en:
           new:
             page_title: Sign up with email
             error_summary: Please check your input.
+          create:
+            verification_code_sent: Verification code has been sent to your email address.
+            turnstile_validation_failed: Security verification failed. Please try again.
+            address_required: Please enter an email address.
+        telephone:
+          success: Telephone number verified.
+          update:
+            success: Telephone number verified.
       authentication:
         new:
           page_title: Choose how to sign in
@@ -101,8 +109,8 @@ en:
             email: Email
             passkey: Passkey
             secret: Secret
-            google: Sign in with Google
-            apple: Sign in with Apple
+            google: Continue with Google
+            apple: Continue with Apple
             registration: Need an account?
             telephone: Telephone
             recovery: Recovery code
@@ -129,6 +137,8 @@ en:
             page_title: Sign in with email
             you_have_already_logged_in: You are already signed in.
             registration: Need an account?
+          edit:
+            submit: Register with Email
           create:
             you_have_already_logged_in: You are already signed in.
             email_not_found: We couldn't find an account matching that email address.
@@ -147,6 +157,10 @@ en:
       in:
         mfa:
           turnstile_failed: Verification failed. Please try again.
+          passkey:
+            success: Passkey authentication succeeded.
+          totp:
+            success: Authenticator verification succeeded.
         session:
           sessions_revoked: Sessions revoked.
           cannot_revoke_current: The current session cannot be revoked.
@@ -256,6 +270,23 @@ en:
           events:
             logged_in: Login success
             login_success: Login success
+            logged_out: Logged out
+            logout: Logged out
+            signed_up_with_apple: Signed up with Apple
+            signed_up_with_email: Signed up with email
+            signed_up_with_google: Signed up with Google
+            signed_up_with_telephone: Signed up with telephone
+            social_linked: Social account linked
+            social_unlinked: Social account unlinked
+            session_revoked: Session revoked
+            email_registered: Email address registered
+            email_removed: Email address removed
+            telephone_registered: Telephone number registered
+            telephone_removed: Telephone number removed
+            totp_enabled: Authenticator app registered
+            passkey_registered: Passkey registered
+            user_secret_created: Secret created
+            recovery_codes_generated: Recovery codes generated
             unknown: Unknown event (%{event_id})
         mfa:
           show:
@@ -276,13 +307,23 @@ en:
             failure: Failed to update MFA settings.
         email:
           edit:
-            title: Delete Email Address
+            title: Email Address Settings
+            always_on: Important account notifications
+            always_on_description: Security and account-critical messages are always sent.
+            promotional_label: Promotional emails
+            promotional_description: Receive campaigns, offers, and event announcements.
+            notifiable_label: Notification emails
+            notifiable_description: Receive product updates and operational notifications.
+            save: Save email settings
           index:
             title: Email Addresses
             description: Manage your email addresses
             new_link: Add Email Address
             delete: Delete
             delete_confirm: Are you sure you want to delete this email address?
+          update:
+            success: Email settings updated.
+            failure: Email settings could not be updated.
           destroy:
             success: Email address deleted.
             last_method: You must keep at least one login or recovery method.
@@ -382,6 +423,7 @@ en:
         edit:
           title: Verification
           description: Please enter the code or use passkey authentication for identity verification.
+          email_description: Please enter the code for identity verification.
           authenticate_with_passkey: Authenticate with Passkey
           code_label: Verification Code
           code_placeholder: 6 digits
@@ -435,6 +477,7 @@ en:
           create:
             verification_code_sent: Verification code has been sent to your email address.
             turnstile_validation_failed: Security verification failed. Please try again.
+            address_required: Please enter an email address.
             otp_resend_too_soon: Please wait before requesting another code.
           edit:
             return_page: Back
@@ -485,13 +528,13 @@ en:
       social:
         sessions:
           create:
-            success: Account created and signed in with %{provider}.
+            success: Registered with %{provider}.
             failure: Authentication failed. Please try again.
     social:
       sessions:
         invalid_provider: Invalid provider specified
         create:
-          success: Successfully signed in with %{provider}
+          success: Registered with %{provider}
           already_registered: Welcome back! Signed in with %{provider}
           failure: Failed to sign in. Please try again.
         link:
@@ -528,6 +571,7 @@ en:
             description: Use your passkey to verify your identity.
             authenticate: Authenticate with passkey
             back: Back
+            success: Passkey authentication succeeded.
             success: Passkey authentication succeeded.
         session:
           no_sessions_selected: Please select sessions to revoke.
@@ -647,7 +691,7 @@ en:
             delete_confirm: Delete this email address?
             empty: No email addresses registered.
           edit:
-            title: Email settings
+            title: Verify email address
           new:
             page_title: Add email address
           destroy:
@@ -691,6 +735,22 @@ en:
           events:
             logged_in: Logged in
             login_success: Login success
+            logged_out: Logged out
+            logout: Logged out
+            signed_up_with_apple: Signed up with Apple
+            signed_up_with_email: Signed up with email
+            signed_up_with_google: Signed up with Google
+            signed_up_with_telephone: Signed up with telephone
+            social_linked: Social account linked
+            social_unlinked: Social account unlinked
+            email_registered: Email address registered
+            email_removed: Email address removed
+            telephone_registered: Telephone number registered
+            telephone_removed: Telephone number removed
+            totp_enabled: Authenticator app registered
+            passkey_registered: Passkey registered
+            user_secret_created: Secret created
+            recovery_codes_generated: Recovery codes generated
             unknown: Unknown event (%{event_id})
         sessions:
           revoke:
@@ -731,6 +791,7 @@ en:
           create:
             verification_code_sent: Verification code sent by email.
             turnstile_validation_failed: Verification failed. Please try again later.
+            address_required: Please enter an email address.
           edit:
             session_expired: Session expired.
             not_found: Email address not found.
@@ -842,7 +903,7 @@ en:
         refresh_expires_at: Refresh expires at
         lapses_at: Lapses at
         purge_at: Purge at
-      customer_token:
+      visitor_token:
         refresh_expires_at: Refresh expires at
         lapses_at: Lapses at
         purge_at: Purge at
@@ -861,6 +922,10 @@ en:
         identity_audit_event_format_invalid: must be composed of uppercase letters and underscores only
       models:
         staff:
+          attributes:
+            public_id:
+              invalid_format: must be 16 uppercase characters from SecureRandom::BASE32_ALPHABET
+        operator:
           attributes:
             public_id:
               invalid_format: must be 16 uppercase characters from SecureRandom::BASE32_ALPHABET
@@ -909,6 +974,8 @@ en:
       credential_not_found: Passkey not found
       sign_count_mismatch: Passkey security verification failed
       verification_failed: Passkey verification failed
+      login_cooldown: Please wait before logging in again
+      session_limit_exceeded: Session limit exceeded
       accepted: must be accepted
       blank: can't be blank
       confirmation: doesn't match %{attribute}
@@ -1181,6 +1248,31 @@ en:
           confirm: This action deletes saved preference data for this browser. Continue?
           destroyed: Preferences have been reset
           back: Back to preferences
+        currency:
+          edit:
+            heading: Currency
+            description: Choose the currency used for regional display.
+            option_label: Currency
+          options:
+            usd: US Dollar (USD)
+            jpy: Japanese Yen (JPY)
+        date_format:
+          edit:
+            heading: Date Format
+            description: Choose how dates are displayed.
+            option_label: Date format
+          options:
+            iso: ISO (YYYY-MM-DD)
+            uk: UK (DD/MM/YYYY)
+            us: US (MM/DD/YYYY)
+        time_format:
+          edit:
+            heading: Time Format
+            description: Choose how times are displayed.
+            option_label: Time format
+          options:
+            hour_24: 24-hour
+            hour_12: 12-hour
       configurations:
         title: Configuration
         description: Review and adjust your organization settings.
@@ -1207,6 +1299,17 @@ en:
           invalid: Invalid theme selected
         timezones:
           invalid: Invalid timezone selected
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
     app:
       configurations:
         title: Configuration
@@ -1224,6 +1327,37 @@ en:
             accept_performance_cookies: Allow performance cookies
             accept_targeting_cookies: Allow targeting cookies
             accept_consent_cookies: Allow consent cookies
+        language:
+          edit:
+            heading: Language Settings
+            description: Change the display language for the application.
+            language_label: Language
+        motion:
+          edit:
+            heading: Motion Settings
+            description: Choose how much animation and movement the interface uses.
+            option_label: Motion
+          options:
+            standard: Standard motion
+            reduced: Reduced motion
+        density:
+          edit:
+            heading: Density Settings
+            description: Choose how compact the interface should be.
+            option_label: Density
+          options:
+            standard: Standard density
+            compact: Compact density
+        items_per_page:
+          edit:
+            heading: Items Per Page
+            description: Choose how many items are shown in each paginated list.
+            option_label: Items per page
+          options:
+            "10": 10 items
+            "20": 20 items
+            "50": 50 items
+            "100": 100 items
         resets:
           title: Reset Preferences
           description: Remove saved preference data for this browser.
@@ -1233,8 +1367,13 @@ en:
           back: Back to preferences
       preferences:
         title: Preferences
+        description: Manage language, theme, and other preferences in one place.
         cookie_settings: Cookie Settings
         region_settings: Region & Language Settings
+        language_settings: Language Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        items_per_page_settings: Items Per Page
         theme_settings: Theme Settings
         reset_settings: Reset Settings
         email_settings: Email Settings
@@ -1410,6 +1549,17 @@ en:
           newsroom: NewsRoom
           document: Document
           help_center: Help Center
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
     contact:
       errors:
         id_required: Contact ID is required
@@ -1469,6 +1619,17 @@ en:
             secret: Recovery Code
             google: Google
             apple: Apple
+        setting:
+          index:
+            totp: TOTP
+            passkey: Passkey
+            secret: Recovery Code
+            google: Google
+            apple: Apple
+            email: Email
+            telephone: Telephone
+            session: Session
+            activity: Activity
         registration:
           email: registration with email address???
           telephone: registration with telephone.
@@ -1487,8 +1648,67 @@ en:
         languages:
           unsupported: Unsupported language selected
         language_settings: Language Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        items_per_page_settings: Items Per Page
         update_success: Preferences updated successfully
+        update_settings: Update Settings
         submitting: Submitting...
+        region_settings: Region & Language Settings
+        back_to_settings: Back to Preferences
+        regions:
+          title: Region & Language Settings
+          region_section: Region Settings
+          select_region: Select Region
+          select_region_prompt: Choose your region...
+          select_region_selector:
+            USA: United States
+            JAPAN: Japan
+            US: United States
+            JP: Japan
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
+      preference:
+        language:
+          edit:
+            heading: Language Settings
+            description: Change the display language for the application.
+            language_label: Language
+        motion:
+          edit:
+            heading: Motion Settings
+            description: Choose how much animation and movement the interface uses.
+            option_label: Motion
+          options:
+            standard: Standard motion
+            reduced: Reduced motion
+        density:
+          edit:
+            heading: Density Settings
+            description: Choose how compact the interface should be.
+            option_label: Density
+          options:
+            standard: Standard density
+            compact: Compact density
+        items_per_page:
+          edit:
+            heading: Items Per Page
+            description: Choose how many items are shown in each paginated list.
+            option_label: Items per page
+          options:
+            "10": 10 items
+            "20": 20 items
+            "50": 50 items
+            "100": 100 items
     com:
       preferences:
         footer:
@@ -1506,7 +1726,7 @@ en:
         submitting: Submitting...
   languages:
     english: English
-    japanese: 日本語
+    japanese: Japanese
   themes:
     light: Light Theme
     dark: Dark Theme
@@ -1661,7 +1881,7 @@ en:
             language_label: Language
             language_prompt: Choose your language...
             language_options:
-              ja: 日本語
+              ja: Japanese
               en: English
             timezone_section: Timezone Settings
             timezone_label: Timezone
@@ -1686,12 +1906,12 @@ en:
               system: Keeps theme in sync with enterprise-managed preferences.
             submit: Save theme preference
     org:
-      customers:
-        created: Customer %{name} created successfully
-        updated: Customer updated successfully
-        deleted: Customer %{name} deleted successfully
+      visitors:
+        created: Visitor %{name} created successfully
+        updated: Visitor updated successfully
+        deleted: Visitor %{name} deleted successfully
         name_email_required: Name and email are required
-        invalid_data: Invalid customer data
+        invalid_data: Invalid visitor data
       preferences:
         title: Operator Preferences
         cookie_settings: Cookie Settings
@@ -1722,6 +1942,17 @@ en:
         timezones:
           updated: Operator timezone updated to %{timezone}
           invalid: Invalid timezone selected for operator interface
+        region:
+          timezone:
+            link: Timezone Settings
+          language:
+            link: Language Settings
+          currency:
+            link: Currency
+          date_format:
+            link: Date Format
+          time_format:
+            link: Time Format
         privacies:
           updated: Privacy settings updated successfully
           invalid: Invalid privacy settings
@@ -2159,7 +2390,7 @@ en:
           show:
             no_methods: Please register an email, passkey, or TOTP.
   models:
-    customer:
+    visitor:
       recovery_identity_required: To register a passkey or secret, please register and verify at least one email address or phone number first.
     user:
       recovery_identity_required: To register a passkey or secret, please register and verify at least one email address or phone number first.

@@ -96,11 +96,9 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
   private
 
   def require_authentication_or_gate
-    # If logged in with a restricted session, allow access (this is the intended user)
-    if logged_in? && current_session_restricted?
-      return
-    end
+    return if current_session_restricted? || restricted_session_expired?
 
+    # If logged in with a restricted session, allow access (this is the intended user)
     # If has a valid gate + pending user, allow access.
     # This covers both:
     #   - Not-yet-logged-in users with a gate (e.g., gate issued before JWT set)
@@ -200,8 +198,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
 
     TokenRecord.connected_to(role: :writing) do
       UserToken.transaction do
-        refs.each do |ref|
-          token = UserToken.find_from_signed_ref(ref)
+        UserToken.find_from_signed_refs(refs).each do |token|
           next unless token && token.user_id == user.id
           next if token.public_id == current_session_public_id # Skip current session
 

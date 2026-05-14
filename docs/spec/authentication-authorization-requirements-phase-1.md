@@ -39,8 +39,16 @@ The following points are especially important:
 - Telephone (SMS OTP)
 - Passkey
 - Secret
-- Google social login
-- Apple social login
+- Google social login (`app` and `org` only)
+- Apple social login (`app` only)
+
+Social login provider availability is surface-specific:
+
+| Surface | Google   | Apple    |
+| ------- | -------- | -------- |
+| `app`   | Allowed  | Allowed  |
+| `org`   | Allowed  | Rejected |
+| `com`   | Rejected | Rejected |
 
 ### Basic policy for authentication methods
 
@@ -48,6 +56,22 @@ The following points are especially important:
 - Changes must be handled as "delete + add new"
 - Passkey is the exception; only the display name may be changed
 - Social login (Google / Apple) is limited to linking and unlinking
+
+### Duplicate sign-up policy
+
+Email and telephone sign-up must distinguish incomplete OTP verification from completed
+registration.
+
+- A record in `UNVERIFIED_WITH_SIGN_UP` is the only sign-up record eligible for re-registration
+  overwrite.
+- If that unverified record is still inside the re-registration overwrite window, the new sign-up
+  attempt is rejected with the OTP resend/cooldown response and must not send a new OTP.
+- If that unverified record is outside the overwrite window, the pending record and its pending
+  account may be replaced and a fresh OTP may be issued.
+- A completed or otherwise already-registered identifier, including `VERIFIED` and
+  `VERIFIED_WITH_SIGN_UP`, must not enter the sign-up verification flow and must not receive a new
+  sign-up OTP. The sign-up create request should fail with validation errors rather than
+  overwriting, reusing, or redirecting through the pending sign-up flow.
 
 ## 4. Sign-in Requirements
 
@@ -63,6 +87,8 @@ Passkey sign-in requires all three of the following:
 
 - Turnstile is not used
 - Even when MFA is required, the flow does not transition to an additional challenge
+- Apple sign-in is available only on `app`; `org` and `com` must reject it.
+- Google sign-in is available on `app` and `org`; `com` must reject it.
 
 ## 5. Session Management Requirements
 
@@ -94,6 +120,8 @@ Passkey sign-in requires all three of the following:
 ### Social Login (Google / Apple)
 
 - Unlinking is allowed only if at least one other login method remains available
+- Unlinking physically deletes the linked social identity immediately
+- Each unlink writes a `SOCIAL_UNLINKED` activity entry
 
 ### Passkey
 

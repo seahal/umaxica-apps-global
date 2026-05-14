@@ -16,6 +16,8 @@ class UserPasskeyStatus < PrincipalRecord
   REVOKED = 3
   DELETED = 4
   NOTHING = 5
+  DEFAULTS = [ACTIVE, DISABLED, REVOKED, DELETED, NOTHING].freeze
+
   has_many :user_passkeys,
            foreign_key: :status_id,
            inverse_of: :status,

@@ -4,6 +4,8 @@
 require "test_helper"
 
 class Sign::Org::UpsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :staffs, :staff_statuses
+
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
   end
@@ -41,5 +43,25 @@ class Sign::Org::UpsControllerTest < ActionDispatch::IntegrationTest
     href = link["href"]
 
     assert_match(/ri=jp/, href)
+  end
+
+  test "direct app-style email sign up route is not available" do
+    get "/sign/up/emails/new?ri=jp", headers: { "Host" => @host }
+
+    assert_response :not_found
+  end
+
+  test "direct app-style telephone sign up route is not available" do
+    get "/sign/up/telephones/new?ri=jp", headers: { "Host" => @host }
+
+    assert_response :not_found
+  end
+
+  test "redirects to dashboard when logged in" do
+    staff = staffs(:one)
+
+    get new_sign_org_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
+
+    assert_redirected_to sign_org_dashboard_url(ri: "jp")
   end
 end

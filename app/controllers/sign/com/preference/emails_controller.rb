@@ -5,33 +5,20 @@ module Sign
   module Com
     module Preference
       class EmailsController < ApplicationController
-        public_strict!
-        include ::Preference::EmailActions
+        include Sign::PromotionalEmailUnsubscribeActions
 
         private
 
-        def audience_name
-          "com"
+        def promotional_email_model
+          VisitorEmail
         end
 
-        def preference_mailer_class
-          Email::Com::PreferenceMailer
+        def promotional_email_scope
+          :visitor
         end
 
-        def find_email_record_by_address(email)
-          find_email_with_timing_protection(email)
-        end
-
-        def identity_email_model
-          CustomerEmail
-        end
-
-        def preference_email_new_path
-          new_sign_com_preference_email_path(ri: params[:ri])
-        end
-
-        def preference_email_edit_url(token)
-          edit_sign_com_preference_email_url(token: token, ri: params[:ri])
+        def redirect_after_unsubscribe_path(token:)
+          edit_sign_com_preference_email_path(@email, token: token)
         end
       end
     end

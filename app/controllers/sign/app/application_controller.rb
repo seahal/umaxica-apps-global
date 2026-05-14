@@ -7,7 +7,8 @@ module Sign
       include ::RateLimit
       include ::Session
       include ::Preference::Global
-      include ::Preference::Adoption # FIXME: what is this?
+      # Adopt anonymous preference cookies into the signed-in user account after authentication.
+      include ::Preference::Adoption
       include ::Authentication::User
       include ::Authorization::User
       include ::Verification::User
@@ -53,7 +54,7 @@ module Sign
       # Redirect logged-in users from guest_only! pages to the configuration page.
       # Overrides Authentication::Base#after_login_path. ri is added automatically via default_url_options.
       def after_login_path
-        sign_app_configuration_path
+        sign_app_dashboard_path
       rescue StandardError
         "/"
       end

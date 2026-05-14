@@ -75,6 +75,33 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
     end
   end
 
+  test "new keeps scope and rt in form hidden fields" do
+    return_to = Base64.urlsafe_encode64(new_sign_app_configuration_passkey_path(ri: "jp"))
+
+    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+      WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
+        get sign_app_verification_url(scope: "configuration_passkey", return_to: return_to, ri: "jp"),
+            headers: @headers
+
+        assert_response :success
+        assert_select(
+          "a[href=?]",
+          new_sign_app_verification_passkey_path(ri: "jp", scope: "configuration_passkey", rt: return_to),
+        )
+
+        get new_sign_app_verification_passkey_url(
+          ri: "jp",
+          scope: "configuration_passkey",
+          rt: return_to,
+        ), headers: @headers
+
+        assert_response :success
+        assert_select "input[name='verification[scope]'][value='configuration_passkey']"
+        assert_select "input[name='verification[return_to]'][value='#{return_to}']"
+      end
+    end
+  end
+
   private
 
   def passkey_credential_stub(id)

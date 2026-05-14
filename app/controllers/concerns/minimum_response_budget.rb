@@ -12,13 +12,13 @@ module MinimumResponseBudget
   private
 
   def start_minimum_response_budget
-    return unless minimum_response_budget_enabled?
+    return unless minimum_response_budget_enforced?
 
     request.env["jit.min_response.started_at"] = Process.clock_gettime(Process::CLOCK_MONOTONIC)
   end
 
   def enforce_minimum_response_budget
-    return unless minimum_response_budget_enabled?
+    return unless minimum_response_budget_enforced?
 
     started_at = request.env["jit.min_response.started_at"]
     return if started_at.nil?
@@ -32,6 +32,14 @@ module MinimumResponseBudget
 
   def minimum_response_budget_enabled?
     false
+  end
+
+  def minimum_response_budget_enforced?
+    minimum_response_budget_enabled? && timing_protection_sleep_enabled?
+  end
+
+  def timing_protection_sleep_enabled?
+    !Rails.env.test? || ENV["ENABLE_TIMING_PROTECTION_IN_TEST"] == "1"
   end
 
   def minimum_response_budget_ms

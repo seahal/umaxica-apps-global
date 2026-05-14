@@ -75,16 +75,21 @@ module SingleUseToken
     end
 
     def migrate_preference_children!(from:, to:)
-      prefix = from.class.model_name.singular
-      %w(cookie region timezone language theme).each do |suffix|
-        association_name = "#{prefix}_#{suffix}"
-        next unless from.respond_to?(association_name)
+      operation =
+        lambda do
+          prefix = from.class.model_name.singular
+          %w(cookie region timezone language theme).each do |suffix|
+            association_name = "#{prefix}_#{suffix}"
+            next unless from.respond_to?(association_name)
 
-        child = from.public_send(association_name)
-        next unless child&.respond_to?(:preference_id)
+            child = from.public_send(association_name)
+            next unless child&.respond_to?(:preference_id)
 
-        child.update!(preference_id: to.id)
-      end
+            child.update!(preference_id: to.id)
+          end
+        end
+
+      defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
     end
   end
 

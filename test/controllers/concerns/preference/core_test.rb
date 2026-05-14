@@ -38,6 +38,8 @@ class PreferenceCoreHarness < ApplicationController
   def issue_access_token_from(*) = nil
 
   def sync_to_resource_preference! = nil
+
+  def preference_snapshot_for(*) = {}
 end
 
 class Preference::CoreTest < ActiveSupport::TestCase
@@ -48,8 +50,11 @@ class Preference::CoreTest < ActiveSupport::TestCase
   FakePreference =
     Struct.new(
       :language, :region, :timezone, :theme,
+      :currency, :date_format, :time_format, :motion, :density, :items_per_page,
       :app_preference_language, :app_preference_region, :app_preference_timezone,
-      :app_preference_theme, :app_preference_cookie,
+      :app_preference_theme, :app_preference_currency, :app_preference_date_format,
+      :app_preference_time_format, :app_preference_motion, :app_preference_density,
+      :app_preference_items_per_page, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -70,7 +75,9 @@ class Preference::CoreTest < ActiveSupport::TestCase
   FakeAssociatedPreference =
     Struct.new(
       :app_preference_language, :app_preference_region, :app_preference_timezone,
-      :app_preference_theme, :app_preference_cookie,
+      :app_preference_theme, :app_preference_currency, :app_preference_date_format,
+      :app_preference_time_format, :app_preference_motion, :app_preference_density,
+      :app_preference_items_per_page, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -105,7 +112,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
     @controller.instance_variable_set(:@preferences, nil)
     defaults = @controller.send(:preference_response_payload)
 
-    assert_equal Current::Preference::DEFAULTS[:language], defaults[:lx]
+    assert_equal Actor::Preference::DEFAULTS[:language], defaults[:lx]
     assert_not defaults[:consented]
   end
 
@@ -115,11 +122,28 @@ class Preference::CoreTest < ActiveSupport::TestCase
       app_preference_region: FakeAssociation.new(nil, FakeOption.new("US")),
       app_preference_timezone: FakeAssociation.new(nil, FakeOption.new("Etc/UTC")),
       app_preference_theme: FakeAssociation.new(nil, FakeOption.new("dark")),
+      app_preference_currency: FakeAssociation.new(nil, FakeOption.new("JPY")),
+      app_preference_date_format: FakeAssociation.new(nil, FakeOption.new("iso")),
+      app_preference_time_format: FakeAssociation.new(nil, FakeOption.new("hour_24")),
+      app_preference_motion: FakeAssociation.new(nil, FakeOption.new("standard")),
+      app_preference_density: FakeAssociation.new(nil, FakeOption.new("compact")),
+      app_preference_items_per_page: FakeAssociation.new(nil, FakeOption.new("50")),
       app_preference_cookie: FakeCookie.new(false, true, false, true),
     )
 
     assert_equal(
-      { language: "en", region: "us", timezone: "Etc/UTC", theme: "dr" },
+      {
+        language: "en",
+        region: "us",
+        timezone: "Etc/UTC",
+        theme: "dr",
+        currency: "jpy",
+        date_format: "iso",
+        time_format: "hour_24",
+        motion: "standard",
+        density: "compact",
+        items_per_page: "50",
+      },
       @controller.send(:resolved_preference_snapshot, preference),
     )
     assert_equal(
@@ -130,6 +154,27 @@ class Preference::CoreTest < ActiveSupport::TestCase
       { consented: false, functional: false, performant: false, targetable: false },
       @controller.send(:resolved_preference_cookie, nil),
     )
+  end
+
+  test "sync_to_resource_preference keeps shared preference public_id" do
+    Prosopite.pause do
+      [1, 2, 3].each { |id| VisitorStatus.find_or_create_by!(id: id) }
+      [0, 1, 2, 3].each { |id| VisitorVisibility.find_or_create_by!(id: id) }
+    end
+    preference = ComPreference.create!(
+      status_id: ComPreferenceStatus::NOTHING,
+      binding_method_id: ComPreferenceBindingMethod::NOTHING,
+      dbsc_status_id: ComPreferenceDbscStatus::NOTHING,
+      lapses_at: 20.years.from_now,
+      purge_at: 20.years.from_now,
+    )
+    resource_pref = VisitorPreference.create!(visitor: Visitor.create!)
+    @controller.instance_variable_set(:@preferences, preference)
+    original_public_id = preference.public_id
+
+    @controller.send(:sync_direct_resource_preference!, resource_pref)
+
+    assert_equal original_public_id, preference.reload.public_id
   end
 
   test "cookie params and update params cover nested and flat forms" do

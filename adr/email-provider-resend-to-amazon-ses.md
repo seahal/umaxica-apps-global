@@ -11,7 +11,7 @@ SMTP relay back to Amazon SES.
 Transactional email in this codebase is used for:
 
 - Email OTP delivery for sign-in and signup verification
-  (`engines/signature/app/controllers/concerns/sign/email_registrable.rb`)
+  (`app/controllers/concerns/sign/email_registrable.rb`)
 - `UserMailer` notifications (`app/mailers/user_mailer.rb`)
 
 The send volume and per-message latency requirements have not changed; the driver for the migration
@@ -73,7 +73,7 @@ Key choices:
 - DNS records for SPF, DKIM, and DMARC are in place on every sending domain.
 - IAM policy for the SMTP credentials is restricted to `ses:SendRawEmail`.
 - Production `default_url_options` is set to a real host (not the `localhost` value used in
-  development).
+  development). Production must not override this with a `localhost` mailer host.
 - Bounce and complaint handling is wired to an SNS topic and processed asynchronously.
 
 ## Related

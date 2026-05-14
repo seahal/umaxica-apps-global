@@ -2,6 +2,12 @@
 
 <section class="animate-fade-in-up">
   <div>
+    <%= link_to sign_com_root_path(ct: "dr", lx: "en", ri: "us", tz: "jst") do %>
+      <span><%= t("apex.com.preferences.up_link") %></span>
+    <% end %>
+  </div>
+
+  <div>
     <div>
       <div>
         <div>
@@ -16,13 +22,6 @@
     </div>
 
     <div>
-      <!-- Email -->
-      <%= link_to @preference_email_path do %>
-        <div>
-          <span><%= t("apex.com.preferences.email_settings") %></span>
-        </div>
-      <% end %>
-
       <!-- Region -->
       <%= link_to edit_sign_com_preference_region_path do %>
         <div>
@@ -41,6 +40,24 @@
       <%= link_to edit_sign_com_preference_region_language_path do %>
         <div>
           <span><%= t("apex.com.preferences.language_settings") %></span>
+        </div>
+      <% end %>
+
+      <%= link_to edit_sign_com_preference_accessibility_motion_path do %>
+        <div>
+          <span><%= t("apex.com.preferences.motion_settings", default: "Motion") %></span>
+        </div>
+      <% end %>
+
+      <%= link_to edit_sign_com_preference_display_density_path do %>
+        <div>
+          <span><%= t("apex.com.preferences.density_settings", default: "Density") %></span>
+        </div>
+      <% end %>
+
+      <%= link_to edit_sign_com_preference_display_items_per_page_path do %>
+        <div>
+          <span><%= t("apex.com.preferences.items_per_page_settings", default: "Items per page") %></span>
         </div>
       <% end %>
 
@@ -65,11 +82,5 @@
         </div>
       <% end %>
     </div>
-  </div>
-
-  <div>
-    <%= link_to sign_com_root_path(ct: "dr", lx: "en", ri: "us", tz: "jst") do %>
-      <span><%= t("apex.com.preferences.up_link") %></span>
-    <% end %>
   </div>
 </section>

@@ -5,7 +5,7 @@
 ## Context
 
 Two race conditions were identified in the `Email` concern (`app/models/concerns/email.rb`) and the
-`EmailRegistrable` concern (`engines/signature/app/controllers/concerns/sign/email_registrable.rb`).
+`EmailRegistrable` concern (`app/controllers/concerns/sign/email_registrable.rb`).
 
 ### Race condition 1: Non-atomic OTP attempt increment
 
@@ -108,5 +108,4 @@ in-transaction check is the authoritative gate.
 ## Affected Files
 
 - `app/models/concerns/email.rb` — `increment_attempts!`
-- `engines/signature/app/controllers/concerns/sign/email_registrable.rb` —
-  `initiate_email_verification!`
+- `app/controllers/concerns/sign/email_registrable.rb` — `initiate_email_verification!`

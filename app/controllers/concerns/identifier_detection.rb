@@ -37,19 +37,19 @@ module IdentifierDetection
       normalized = validate_and_normalize_email(identifier.strip)
       return nil if normalized.blank?
 
-      bidx = IdentifierBlindIndex.bidx_for_email(normalized)
-      return nil if bidx.blank?
+      digest = IdentifierBlindIndex.bidx_for_email(normalized)
+      return nil if digest.blank?
 
-      resource = identity_from_email_record(identity_email_model.find_by(address_bidx: bidx))
+      resource = identity_from_email_record(identity_email_model.find_by(address_digest: digest))
       resource if resource&.login_allowed?
     when :telephone
       normalized = TelephoneNormalization.normalize_to_e164(identifier.strip)
       return nil if normalized.blank?
 
-      bidx = IdentifierBlindIndex.bidx_for_telephone(normalized)
-      return nil if bidx.blank?
+      digest = IdentifierBlindIndex.bidx_for_telephone(normalized)
+      return nil if digest.blank?
 
-      resource = identity_from_telephone_record(identity_telephone_model.find_by(number_bidx: bidx))
+      resource = identity_from_telephone_record(identity_telephone_model.find_by(number_digest: digest))
       resource if resource&.login_allowed?
     end
   end

@@ -1,4 +1,5 @@
 <% title t("sign.app.authentication.email.new.page_title") %>
+<% return_to = params[:rt].presence %>
 
 <div>
   <div>
@@ -15,7 +16,7 @@
       <%= form_with model: @user_email,
                     url: sign_app_in_email_path,
                     data: { turbo: false } do |form| %>
-        <%= hidden_field_tag :rd, params[:rd] if params[:rd].present? %>
+        <%= hidden_field_tag :rt, return_to if return_to.present? %>
 
         <% if @user_email.errors.any? %>
           <div class="animate-shake">
@@ -40,7 +41,7 @@
         </div>
 
         <div>
-          <%= render "shared/cloudflare_turnstile" %>
+          <%= render "shared/cloudflare_turnstile_visible" %>
         </div>
 
         <div>
@@ -49,7 +50,7 @@
       <% end %>
 
       <div>
-        <%= link_to new_sign_app_in_path(rd: params[:rd]) do %>
+        <%= link_to new_sign_app_in_path(rt: return_to) do %>
           <span><%= t("sign.app.authentication.new.back") %></span>
         <% end %>
       </div>

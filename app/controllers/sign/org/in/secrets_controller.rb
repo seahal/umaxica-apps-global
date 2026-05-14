@@ -24,9 +24,9 @@ module Sign
           private
 
           def identifier_matches_staff_public_id_format
-            normalized_identifier = Staff.normalize_public_id(identifier)
+            normalized_identifier = Operator.normalize_public_id(identifier)
             return if normalized_identifier.blank?
-            return if Staff::PUBLIC_ID_FORMAT.match?(normalized_identifier)
+            return if Operator::PUBLIC_ID_FORMAT.match?(normalized_identifier)
 
             errors.add(:identifier, :invalid)
           end
@@ -74,10 +74,10 @@ module Sign
         private
 
         def find_staff_by_public_id(identifier)
-          normalized_identifier = Staff.normalize_public_id(identifier)
+          normalized_identifier = Operator.normalize_public_id(identifier)
           return if normalized_identifier.blank?
 
-          staff = Staff.find_by(public_id: normalized_identifier)
+          staff = Operator.find_by(public_id: normalized_identifier)
           staff if staff&.login_allowed?
         end
 
@@ -99,8 +99,9 @@ module Sign
         end
 
         def process_standard_login(staff)
+          rt = redirect_parameter_value
           result = complete_sign_in_or_start_mfa!(
-            staff, rt: params[:rd], ri: params[:ri], auth_method: "secret",
+            staff, rt: rt, ri: params[:ri], auth_method: "secret",
           )
 
           if result[:status] == :mfa_required
@@ -113,14 +114,10 @@ module Sign
               notice: I18n.t("session_limit.restricted_notice"),
             )
           elsif result[:status] == :success
-            if issue_bulletin!
-              redirect_to(
-                sign_org_in_bulletin_path(rd: params[:rd], ri: params[:ri]),
-                notice: t("sign.org.authentication.secret.create.success"),
-              )
-            else
-              safe_redirect_to_rd_or_default!(params[:rd], default_path: sign_org_root_path(ri: params[:ri]))
-            end
+            redirect_to_sign_in_sequence!(
+              rt: rt,
+              notice: t("sign.org.authentication.secret.create.success"),
+            )
           else
             render_failed_login(result[:status])
           end

@@ -5,7 +5,6 @@
 #
 #  id                        :bigint           not null, primary key
 #  address                   :string           default(""), not null
-#  address_bidx              :string
 #  address_digest            :string
 #  locked_at                 :datetime         default(Infinity), not null
 #  notifiable                :boolean          default(TRUE), not null
@@ -26,7 +25,6 @@
 #
 # Indexes
 #
-#  index_user_emails_on_address_bidx            (address_bidx) UNIQUE WHERE (address_bidx IS NOT NULL)
 #  index_user_emails_on_address_digest          (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
 #  index_user_emails_on_otp_last_sent_at        (otp_last_sent_at)
 #  index_user_emails_on_public_id               (public_id) UNIQUE

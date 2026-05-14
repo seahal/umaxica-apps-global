@@ -7,45 +7,47 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    CustomerStatus.find_or_create_by!(id: CustomerStatus::ACTIVE)
-    CustomerVisibility.find_or_create_by!(id: CustomerVisibility::CUSTOMER)
-    CustomerEmailStatus.find_or_create_by!(id: CustomerEmailStatus::VERIFIED)
-    CustomerTelephoneStatus.find_or_create_by!(id: CustomerTelephoneStatus::VERIFIED)
-    CustomerTokenKind.find_or_create_by!(id: CustomerTokenKind::BROWSER_WEB)
-    CustomerTokenBindingMethod.find_or_create_by!(id: CustomerTokenBindingMethod::NOTHING)
-    CustomerTokenStatus.find_or_create_by!(id: CustomerTokenStatus::NOTHING)
-    CustomerTokenDbscStatus.find_or_create_by!(id: CustomerTokenDbscStatus::NOTHING)
-    CustomerSecretKind.find_or_create_by!(id: CustomerSecretKind::LOGIN)
-    CustomerSecretStatus.find_or_create_by!(id: CustomerSecretStatus::ACTIVE)
-    @customer = Customer.create!(
-      status_id: CustomerStatus::ACTIVE,
-      visibility_id: CustomerVisibility::CUSTOMER,
+    Prosopite.pause do
+      VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
+      VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+      VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
+      VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
+      VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
+      VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
+      VisitorTokenStatus.ensure_defaults!
+      VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
+      VisitorSecretKind.find_or_create_by!(id: VisitorSecretKind::LOGIN)
+      VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::ACTIVE)
+    end
+    @visitor = Visitor.create!(
+      status_id: VisitorStatus::ACTIVE,
+      visibility_id: VisitorVisibility::VISITOR,
     )
-    CustomerEmail.create!(
-      customer: @customer,
+    VisitorEmail.create!(
+      visitor: @visitor,
       address: "com-secret-#{SecureRandom.hex(4)}@example.com",
-      customer_email_status_id: CustomerEmailStatus::VERIFIED,
+      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
       confirm_policy: "1",
     )
-    @customer.customer_telephones.create!(
+    @visitor.visitor_telephones.create!(
       number: "+819000000001",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @token = CustomerToken.create!(
-      customer: @customer,
-      customer_token_kind_id: CustomerTokenKind::BROWSER_WEB,
-      customer_token_binding_method_id: CustomerTokenBindingMethod::NOTHING,
-      customer_token_status_id: CustomerTokenStatus::NOTHING,
-      customer_token_dbsc_status_id: CustomerTokenDbscStatus::NOTHING,
+    @token = VisitorToken.create!(
+      visitor: @visitor,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
-    satisfy_customer_verification(@token)
+    satisfy_visitor_verification(@token)
 
-    @secret = CustomerSecret.create!(
-      customer: @customer,
+    @secret = VisitorSecret.create!(
+      visitor: @visitor,
       name: "Login Secret",
       password: "a" * 32,
-      customer_secret_kind_id: CustomerSecretKind::LOGIN,
-      customer_secret_status_id: CustomerSecretStatus::ACTIVE,
+      visitor_secret_kind_id: VisitorSecretKind::LOGIN,
+      visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
       last_used_at: Time.current,
     )
   end
@@ -53,7 +55,7 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   def request_headers
     {
       "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => @customer.id,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
   end
@@ -81,12 +83,12 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     controller = Sign::Com::Configuration::SecretsController.new
     controller.request = ActionDispatch::TestRequest.create
     controller.instance_variable_set(:@_response, ActionDispatch::Response.new)
-    controller.define_singleton_method(:current_customer) { Customer.new }
+    controller.define_singleton_method(:current_visitor) { Visitor.new }
 
     controller.send(:ensure_verified_recovery_identity_for_registration!)
 
     assert_equal 403, controller.response.status
-    assert_includes controller.response.body, Customer::RECOVERY_IDENTITY_REQUIRED_MESSAGE
+    assert_includes controller.response.body, Visitor::RECOVERY_IDENTITY_REQUIRED_MESSAGE
   end
 
   test "create persists secret and redirects" do
@@ -94,9 +96,9 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     assert_response :success
 
-    assert_difference("CustomerSecret.count", 1) do
+    assert_difference("VisitorSecret.count", 1) do
       post sign_com_configuration_secrets_url(ri: "jp"),
-           params: { customer_secret: { name: "New Secret", enabled: true } },
+           params: { visitor_secret: { name: "New Secret", enabled: true } },
            headers: request_headers
     end
 
@@ -114,26 +116,26 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "destroy removes secret and regenerate is not implemented" do
-    customer = create_verified_customer_with_email(email_address: "com-secret-allow-#{SecureRandom.hex(4)}@example.com")
-    customer.customer_telephones.create!(
+    visitor = create_verified_visitor_with_email(email_address: "com-secret-allow-#{SecureRandom.hex(4)}@example.com")
+    visitor.visitor_telephones.create!(
       number: "+819000000002",
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    token = CustomerToken.create!(customer: customer, customer_token_kind_id: CustomerTokenKind::BROWSER_WEB)
-    satisfy_customer_verification(token)
-    secret = CustomerSecret.create!(
-      customer: customer,
+    token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    satisfy_visitor_verification(token)
+    secret = VisitorSecret.create!(
+      visitor: visitor,
       name: "Destroy Secret",
       password: "a" * 32,
-      customer_secret_kind_id: CustomerSecretKind::LOGIN,
-      customer_secret_status_id: CustomerSecretStatus::ACTIVE,
+      visitor_secret_kind_id: VisitorSecretKind::LOGIN,
+      visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
     )
 
     UserSecrets::Destroy.stub(:call, true) do
       delete sign_com_configuration_secret_url(secret.public_id, ri: "jp"),
              headers: {
                "Host" => @host,
-               "X-TEST-CURRENT-RESOURCE" => customer.id,
+               "X-TEST-CURRENT-RESOURCE" => visitor.id,
                "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
              }
     end
@@ -143,7 +145,7 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     I18n.backend.store_translations(:ja, messages: { not_implemented: "Not implemented" })
     post regenerate_sign_com_configuration_secret_url(secret.public_id, ri: "jp"), headers: {
       "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => customer.id,
+      "X-TEST-CURRENT-RESOURCE" => visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 

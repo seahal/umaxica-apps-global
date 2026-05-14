@@ -42,7 +42,8 @@ class DomainOccurrence < OccurrenceRecord
   has_many :email_occurrences, through: :domain_email_occurrences
   has_many :domain_ip_occurrences, dependent: :destroy, inverse_of: :domain_occurrence
   has_many :ip_occurrences, through: :domain_ip_occurrences
-  has_many :domain_staff_occurrences, dependent: :destroy, inverse_of: :domain_occurrence
+  has_many :domain_staff_occurrences, class_name: "DomainOperatorOccurrence", dependent: :destroy,
+                                      inverse_of: :domain_occurrence
   has_many :staff_occurrences, through: :domain_staff_occurrences
   has_many :domain_telephone_occurrences, dependent: :destroy, inverse_of: :domain_occurrence
   has_many :telephone_occurrences, through: :domain_telephone_occurrences

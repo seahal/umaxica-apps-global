@@ -9,21 +9,21 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
-    Jit::Security::TurnstileVerifier.test_mode = true
-    Jit::Security::TurnstileVerifier.test_response = { "success" => true }
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
 
-    @customer = create_verified_customer_with_email(email_address: "com_passkey_test@example.com")
-    @customer.customer_telephones.create!(
+    @visitor = create_verified_visitor_with_email(email_address: "com_passkey_test@example.com")
+    @visitor.visitor_telephones.create!(
       number: "+8190" + format("%08d", SecureRandom.random_number(100_000_000)),
-      customer_telephone_status_id: CustomerTelephoneStatus::VERIFIED,
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    @passkey = CustomerPasskey.create!(
-      customer: @customer,
+    @passkey = VisitorPasskey.create!(
+      visitor: @visitor,
       webauthn_id: Base64.urlsafe_encode64("com_login_id_bytes_d6d168ddb214ad82", padding: false),
       external_id: SecureRandom.uuid,
       public_key: "login_key",
       description: "Login Key",
-      status_id: CustomerPasskeyStatus::ACTIVE,
+      status_id: VisitorPasskeyStatus::ACTIVE,
     )
 
     host_value = @host
@@ -46,7 +46,7 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   test "options returns challenge for known identifier" do
     if true # Replaced STUB stub with real execution as per G1
       post options_sign_com_in_passkeys_path(ri: "jp"),
-           params: { identifier: @customer.customer_emails.first.address },
+           params: { identifier: @visitor.visitor_emails.first.address },
            headers: @origin_headers
     end
 
@@ -55,7 +55,7 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
     assert_not_nil json["challenge_id"]
     assert_equal "authentication", session[:passkey_challenges][json["challenge_id"]]["purpose"]
-    assert_equal @customer.id, session[:passkey_challenges][json["challenge_id"]]["customer_id"]
+    assert_equal @visitor.id, session[:passkey_challenges][json["challenge_id"]]["visitor_id"]
   end
 
   test "options returns error when identifier is unknown" do
@@ -69,10 +69,10 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, I18n.t("errors.webauthn.no_passkeys_available")
   end
 
-  test "verification logs customer in on success" do
+  test "verification logs visitor in on success" do
     if true # Replaced STUB stub with real execution as per G1
       post options_sign_com_in_passkeys_path(ri: "jp"),
-           params: { identifier: @customer.customer_emails.first.address },
+           params: { identifier: @visitor.visitor_emails.first.address },
            headers: @origin_headers
     end
     challenge_id = response.parsed_body["challenge_id"]
@@ -102,6 +102,6 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_equal "ok", response.parsed_body["status"]
-    assert_equal sign_com_configuration_path(ri: "jp"), response.parsed_body["redirect_url"]
+    assert_equal sign_com_dashboard_path(ri: "jp"), response.parsed_body["redirect_url"]
   end
 end

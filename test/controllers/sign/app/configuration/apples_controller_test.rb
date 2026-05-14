@@ -6,7 +6,7 @@ require "base64"
 
 module Sign::App::Configuration
   class ApplesControllerTest < ActionDispatch::IntegrationTest
-    fixtures :users, :user_statuses
+    fixtures :users, :user_statuses, :user_social_apple_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -34,6 +34,23 @@ module Sign::App::Configuration
       rt = Base64.strict_encode64(sign_app_configuration_apple_url(ri: "jp"))
 
       assert_redirected_to new_sign_app_in_url(rt: rt, host: "id.app.localhost")
+    end
+
+    test "show treats revoked apple identity as unlinked" do
+      UserSocialApple.create!(
+        user: @user,
+        uid: "revoked-apple-config",
+        provider: "apple",
+        token: "token",
+        expires_at: 1.hour.from_now.to_i,
+        user_social_apple_status: user_social_apple_statuses(:revoked),
+      )
+
+      get sign_app_configuration_apple_url(ri: "jp"), headers: @headers
+
+      assert_response :success
+      assert_select "form[action=?]", sign_app_social_authentication_path(provider: "apple"), count: 0
+      assert_select "form[action*=?]", "/social/auth/apple/start", count: 1
     end
   end
 end

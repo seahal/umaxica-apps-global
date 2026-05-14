@@ -18,7 +18,9 @@ module Sign
 
       result = nil
       ActiveRecord::Base.connected_to(role: :writing) do
-        token = find_token(public_id)
+        operation = -> { find_token(public_id) }
+        token = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
+
         raise InvalidRefreshToken, "token_not_found" unless token
         raise InvalidRefreshToken, "invalid_digest" unless token.refresh_token_digest_matches?(verifier)
 
@@ -54,12 +56,13 @@ module Sign
 
     def find_token(public_id)
       UserToken.find_by(public_id: public_id) ||
-        StaffToken.find_by(public_id: public_id)
+        OperatorToken.find_by(public_id: public_id) ||
+        VisitorToken.find_by(public_id: public_id)
     end
 
     # When reuse is observed (a valid token that no longer matches the
     # stored digest), we treat the event as a compromise and revoke all
-    # tokens belonging to the same actor (user or staff). This is logged
+    # tokens belonging to the same actor. This is logged
     # without the raw refresh verifier to avoid exposing secrets.
     def handle_refresh_token_reuse(token)
       actor_scope = actor_tokens_scope(token)
@@ -95,6 +98,7 @@ module Sign
     def actor_identifier_column(token)
       return :user_id if token.respond_to?(:user_id) && token.user_id.present?
       return :staff_id if token.respond_to?(:staff_id) && token.staff_id.present?
+      return :visitor_id if token.respond_to?(:visitor_id) && token.visitor_id.present?
 
       nil
     end

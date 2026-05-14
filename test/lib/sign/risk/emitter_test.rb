@@ -10,6 +10,7 @@ module Sign
 
       setup do
         UserOccurrenceStatus.find_or_create_by!(id: UserOccurrenceStatus::ACTIVE)
+        VisitorOccurrenceStatus.ensure_defaults!
         @user = users(:one)
       end
 
@@ -47,13 +48,13 @@ module Sign
         ENV["RISK_ENFORCEMENT_DISABLED"] = nil
         ENV["RISK_ENFORCEMENT_ENABLED"] = "true"
         staff = staffs(:one)
-        StaffOccurrenceStatus.find_or_create_by!(id: StaffOccurrenceStatus::ACTIVE)
+        OperatorOccurrenceStatus.find_or_create_by!(id: OperatorOccurrenceStatus::ACTIVE)
 
-        assert_difference "StaffOccurrence.count", 1 do
+        assert_difference "OperatorOccurrence.count", 1 do
           Emitter.emit("auth_failed", staff_id: staff.id, ip: "5.6.7.8", reason: "locked")
         end
 
-        occurrence = StaffOccurrence.order(:id).last
+        occurrence = OperatorOccurrence.order(:id).last
 
         assert_equal "risk.auth_failed", occurrence.event_type
         assert_includes occurrence.context, "staff_id"
@@ -62,7 +63,40 @@ module Sign
         ENV["RISK_ENFORCEMENT_ENABLED"] = original_enabled
       end
 
-      test "emit does nothing without user_id or staff_id" do
+      test "emit creates visitor occurrence with hmac context when enabled" do
+        original_disabled = ENV["RISK_ENFORCEMENT_DISABLED"]
+        original_enabled = ENV["RISK_ENFORCEMENT_ENABLED"]
+        ENV["RISK_ENFORCEMENT_DISABLED"] = nil
+        ENV["RISK_ENFORCEMENT_ENABLED"] = "true"
+
+        option = ->(key, **) { (key == :OCCURRENCE_HMAC_SECRET) ? "secret" : nil }
+
+        Rails.app.creds.stub(:option, option) do
+          assert_difference "VisitorOccurrence.count", 1 do
+            Emitter.emit(
+              "auth_failed",
+              visitor_id: 123,
+              email: "Visitor@Example.com",
+              ip: "203.0.113.10",
+              reason: "bad_secret",
+            )
+          end
+        end
+
+        occurrence = VisitorOccurrence.order(:id).last
+
+        assert_equal "risk.auth_failed", occurrence.event_type
+        assert_equal 123, occurrence.context.fetch("visitor_id")
+        assert_match(/\A\h{64}\z/, occurrence.context.fetch("ip_hmac"))
+        assert_match(/\A\h{64}\z/, occurrence.context.fetch("email_hmac"))
+        assert_not_includes occurrence.context, "ip"
+        assert_not_includes occurrence.context, "email"
+      ensure
+        ENV["RISK_ENFORCEMENT_DISABLED"] = original_disabled
+        ENV["RISK_ENFORCEMENT_ENABLED"] = original_enabled
+      end
+
+      test "emit does nothing without actor id" do
         original_disabled = ENV["RISK_ENFORCEMENT_DISABLED"]
         original_enabled = ENV["RISK_ENFORCEMENT_ENABLED"]
         ENV["RISK_ENFORCEMENT_DISABLED"] = nil

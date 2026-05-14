@@ -36,6 +36,11 @@ Rails.application.config.permissions_policy do |f|
       ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
       ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+      ENV["WEBAUTHN_APP_ORIGIN"],
+      ENV["WEBAUTHN_COM_ORIGIN"],
+      ENV["WEBAUTHN_ORG_ORIGIN"],
+      ENV["WEBAUTHN_ORIGIN"],
+      ENV["TRUSTED_ORIGINS"].to_s.split(","),
     )
 
   f.publickey_credentials_get(:self, *id_origins)

@@ -32,6 +32,23 @@ module Sign::CommonHelper
     "sy"
   end
 
+  def preference_language_options(option_class)
+    option_class.order(:id).filter_map do |option|
+      label =
+        case option.name
+        when "ja" then t("languages.japanese")
+        when "en" then t("languages.english")
+        end
+      [label, option.id] if label.present?
+    end
+  end
+
+  def preference_language_selected(option_id, option_class)
+    return option_id if option_id.present?
+
+    I18n.locale.to_s.start_with?("en") ? option_class::EN : option_class::JA
+  end
+
   def localized_session_timestamp(time)
     return nil if time.nil?
 

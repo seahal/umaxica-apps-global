@@ -11,7 +11,7 @@ class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::Integ
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = staffs(:one)
-    @token = StaffToken.create!(staff: @staff, status: StaffToken::STATUS_ACTIVE)
+    @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
   end
 
@@ -31,27 +31,27 @@ class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::Integ
 
   test "create registers telephone" do
     assert_enqueued_jobs 1, only: SmsDeliveryJob do
-      assert_difference("StaffTelephone.count", 1) do
+      assert_difference("OperatorTelephone.count", 1) do
         post sign_org_configuration_telephones_url(ri: "jp"),
              params: { staff_telephone: { raw_number: "+10000000008" } },
              headers: request_headers
       end
     end
 
-    created = StaffTelephone.order(created_at: :desc).first
+    created = OperatorTelephone.order(created_at: :desc).first
 
     assert_redirected_to edit_sign_org_configuration_telephone_url(created.id, ri: "jp")
   end
 
   test "create reuses existing telephone and sends sms when same number is submitted again" do
-    existing = StaffTelephone.create!(
+    existing = OperatorTelephone.create!(
       number: "+10000000012",
       staff: @staff,
-      staff_telephone_status_id: StaffTelephoneStatus::VERIFIED,
+      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
     )
 
     assert_enqueued_jobs 1, only: SmsDeliveryJob do
-      assert_no_difference("StaffTelephone.count") do
+      assert_no_difference("OperatorTelephone.count") do
         post sign_org_configuration_telephones_url(ri: "jp"),
              params: { staff_telephone: { raw_number: "+10000000012" } },
              headers: request_headers
@@ -62,18 +62,18 @@ class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::Integ
   end
 
   test "destroy removes telephone when not last method" do
-    tel1 = StaffTelephone.create!(
+    tel1 = OperatorTelephone.create!(
       number: "+10000000000",
       staff: @staff,
-      staff_telephone_status_id: StaffTelephoneStatus::VERIFIED,
+      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
     )
-    StaffTelephone.create!(
+    OperatorTelephone.create!(
       number: "+10000000001",
       staff: @staff,
-      staff_telephone_status_id: StaffTelephoneStatus::VERIFIED,
+      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
     )
 
-    assert_difference("StaffTelephone.count", -1) do
+    assert_difference("OperatorTelephone.count", -1) do
       delete sign_org_configuration_telephone_url(tel1, ri: "jp"), headers: request_headers
     end
 
@@ -81,13 +81,13 @@ class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::Integ
   end
 
   test "destroy blocks removal when last method" do
-    telephone = StaffTelephone.create!(
+    telephone = OperatorTelephone.create!(
       number: "+10000000002",
       staff: @staff,
-      staff_telephone_status_id: StaffTelephoneStatus::VERIFIED,
+      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
     )
 
-    assert_no_difference("StaffTelephone.count") do
+    assert_no_difference("OperatorTelephone.count") do
       delete sign_org_configuration_telephone_url(telephone, ri: "jp"), headers: request_headers
     end
 

@@ -53,7 +53,7 @@ require "test_helper"
 
 class AppPreferenceTest < ActiveSupport::TestCase
   setup do
-    AppPreferenceStatus.find_or_create_by!(id: AppPreferenceStatus::NOTHING)
+    AppPreferenceStatus.ensure_defaults!
   end
 
   test "generates public_id on create" do

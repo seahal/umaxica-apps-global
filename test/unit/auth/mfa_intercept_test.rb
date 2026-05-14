@@ -22,6 +22,20 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
     assert controller.send(:mfa_required_for?, user)
   end
 
+  test "mfa_required_for? returns true for user with full multi_factor_id" do
+    user = User.create!(multi_factor_id: UserMultiFactor::FULL)
+    controller = build_test_controller
+
+    assert controller.send(:mfa_required_for?, user)
+  end
+
+  test "mfa_required_for? returns false for user with nothing multi_factor_id" do
+    user = User.create!(multi_factor_id: UserMultiFactor::NOTHING)
+    controller = build_test_controller
+
+    assert_not controller.send(:mfa_required_for?, user)
+  end
+
   test "mfa_required_for? returns false for non-User resources" do
     controller = build_test_controller
 
@@ -68,6 +82,56 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
     result = controller.send(:resolve_mfa_return_to, "https://evil.com/hack")
 
     assert_nil result
+  end
+
+  test "complete_sign_in_or_start_mfa adds auth method to login audit context" do
+    user = User.create!(multi_factor_enabled: false)
+    controller = build_test_controller
+    captured = nil
+
+    controller.define_singleton_method(:log_in) do |resource, **kwargs|
+      captured = [resource, kwargs]
+      { status: :success }
+    end
+
+    result = controller.send(
+      :complete_sign_in_or_start_mfa!,
+      user,
+      rt: nil,
+      ri: "jp",
+      auth_method: "secret",
+    )
+
+    assert_equal({ status: :success }, result)
+    assert_equal user, captured.first
+    assert_not captured.last[:require_totp_check]
+    assert_equal({ auth_method: "secret" }, captured.last[:audit_context])
+  end
+
+  test "complete_sign_in_or_start_mfa preserves explicit audit context" do
+    user = User.create!(multi_factor_enabled: false)
+    controller = build_test_controller
+    captured = nil
+
+    controller.define_singleton_method(:log_in) do |resource, **kwargs|
+      captured = [resource, kwargs]
+      { status: :success }
+    end
+
+    controller.send(
+      :complete_sign_in_or_start_mfa!,
+      user,
+      rt: nil,
+      ri: "jp",
+      auth_method: "social",
+      audit_context: { auth_method: "oauth", provider: "google" },
+    )
+
+    assert_equal user, captured.first
+    assert_equal(
+      { auth_method: "oauth", provider: "google" },
+      captured.last[:audit_context],
+    )
   end
 
   private
@@ -125,8 +189,10 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
           false
         end
 
-        define_method(:respond_to?) do |name, *|
-          (name == :sign_app_in_mfa_path) ? true : super
+        define_method(:respond_to?) do |name, include_private = false|
+          return true if name == :sign_app_in_mfa_path
+
+          super(name, include_private)
         end
 
         define_method(:sign_app_in_mfa_path) do |ri: nil|

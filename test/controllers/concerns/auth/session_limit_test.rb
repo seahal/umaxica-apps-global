@@ -66,10 +66,10 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   end
 
   test "max_sessions_for_resource returns correct value for Staff" do
-    staff = ::Staff.first
+    staff = ::Operator.first
     result = @harness.send(:max_sessions_for_resource, staff)
 
-    assert_equal StaffToken::MAX_SESSIONS_PER_STAFF, result
+    assert_equal OperatorToken::MAX_SESSIONS_PER_STAFF, result
   end
 
   test "max_sessions_for_resource returns default for unknown type" do
@@ -88,7 +88,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   test "session_limit_state_for returns :issue_restricted when at max" do
     UserToken.where(user_id: @user.id).delete_all
     UserToken::MAX_SESSIONS_PER_USER.times do
-      UserToken.create!(user: @user, status: "active")
+      UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
     end
 
     result = @harness.send(:session_limit_state_for, @user)
@@ -99,9 +99,9 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   test "session_limit_state_for returns :hard_reject when restricted exists" do
     UserToken.where(user_id: @user.id).delete_all
     UserToken::MAX_SESSIONS_PER_USER.times do
-      UserToken.create!(user: @user, status: "active")
+      UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
     end
-    UserToken.create!(user: @user, status: "restricted")
+    UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
 
     result = @harness.send(:session_limit_state_for, @user)
 
@@ -110,7 +110,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
 
   test "count_active_sessions counts only active non-restricted sessions" do
     UserToken.where(user_id: @user.id).delete_all
-    2.times { UserToken.create!(user: @user, status: "active") }
+    2.times { UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE) }
 
     result = @harness.send(:count_active_sessions, @user)
 
@@ -120,7 +120,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   test "count_active_sessions ignores rotated refresh-token ancestors" do
     UserToken.where(user_id: @user.id).delete_all
 
-    token = UserToken.create!(user: @user, status: UserToken::STATUS_ACTIVE)
+    token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
     Sign::RefreshTokenService.call(refresh_token: refresh)
 
@@ -130,10 +130,10 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   end
 
   test "count_active_sessions ignores rotated refresh-token ancestors for staff" do
-    staff = ::Staff.first
-    StaffToken.where(staff_id: staff.id).delete_all
+    staff = ::Operator.first
+    OperatorToken.where(staff_id: staff.id).delete_all
 
-    token = StaffToken.create!(staff: staff, status: StaffToken::STATUS_ACTIVE)
+    token = OperatorToken.create!(staff: staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
     Sign::RefreshTokenService.call(refresh_token: refresh)
 
@@ -144,7 +144,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
 
   test "restricted_session_exists? returns true when restricted session exists" do
     UserToken.where(user_id: @user.id).delete_all
-    UserToken.create!(user: @user, status: "restricted")
+    UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
 
     assert @harness.send(:restricted_session_exists?, @user)
   end
@@ -153,7 +153,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
     UserToken.where(user_id: @user.id).delete_all
     UserToken.create!(
       user: @user,
-      status: UserToken::STATUS_RESTRICTED,
+      user_token_status_id: UserTokenStatus::RESTRICTED,
       lapses_at: 1.minute.ago,
     )
 
@@ -187,7 +187,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   end
 
   test "store_pending_login_resource stores staff id in session" do
-    staff = ::Staff.first
+    staff = ::Operator.first
     @harness.send(:store_pending_login_resource, staff)
 
     assert_equal staff.id, @harness.session[:pending_login_staff_id]

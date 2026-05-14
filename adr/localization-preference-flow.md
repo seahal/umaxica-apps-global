@@ -24,6 +24,16 @@ The request and cookie contract keeps:
 The preference UI, redirect behavior, and persisted state use the same contract across all three
 surfaces.
 
+Region resolution follows request-context precedence:
+
+1. An explicit valid `ri` request parameter wins for the current request.
+2. When `ri` is missing, the persisted preference context supplies the redirect value.
+3. When neither request nor persisted preference has a region, the default region is `jp`.
+
+The system must not rewrite an explicit `?ri=us` to the persisted value merely because the saved
+preference is `jp`. Persisted preference is a fallback for missing request context, not an override
+for explicit request context.
+
 ## Evidence
 
 - `test/integration/sign_preference_test.rb` runs the same preference assertions for `app`, `org`,

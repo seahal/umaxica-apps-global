@@ -9,7 +9,6 @@
 #  id                                :bigint           not null, primary key
 #  locked_at                         :datetime         default(-Infinity), not null
 #  number                            :string           default(""), not null
-#  number_bidx                       :string
 #  number_digest                     :string
 #  otp_attempts_count                :integer          default(0), not null
 #  otp_counter                       :text             default(""), not null
@@ -24,7 +23,6 @@
 # Indexes
 #
 #  index_user_telephones_on_lower_number                       (lower((number)::text)) UNIQUE
-#  index_user_telephones_on_number_bidx                        (number_bidx) UNIQUE WHERE (number_bidx IS NOT NULL)
 #  index_user_telephones_on_number_digest                      (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
 #  index_user_telephones_on_public_id                          (public_id) UNIQUE
 #  index_user_telephones_on_user_id                            (user_id)
@@ -56,13 +54,6 @@ class UserTelephone < PrincipalRecord
   belongs_to :user, inverse_of: :user_telephones
 
   # Note: :number validation is now handled by Telephone concern (E.164 normalization)
-  validates :number, uniqueness: { case_sensitive: false }
-  validates :number_bidx,
-            uniqueness: { conditions: -> { where.not(number_bidx: nil) } },
-            allow_nil: true
-  validates :number_digest,
-            uniqueness: { conditions: -> { where.not(number_digest: nil) } },
-            allow_nil: true
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }

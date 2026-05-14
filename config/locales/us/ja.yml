@@ -21,14 +21,70 @@ ja:
       preference:
         resets:
           destroyed: 設定をリセットしました
+      preferences:
+        regions:
+          back_link: もどる
+        region:
+          timezone:
+            link: タイムゾーン設定
+          language:
+            link: 言語設定
+          currency:
+            link: 通貨設定
+          date_format:
+            link: 日付形式
+          time_format:
+            link: 時刻形式
     com:
       preference:
         resets:
           destroyed: 設定をリセットしました
+      preferences:
+        regions:
+          back_link: もどる
     org:
       preference:
         resets:
           destroyed: 設定をリセットしました
+        currency:
+          edit:
+            heading: 通貨設定
+            description: 表示に使う通貨を選択します。
+            option_label: 通貨
+          options:
+            usd: 米ドル (USD)
+            jpy: 日本円 (JPY)
+        date_format:
+          edit:
+            heading: 日付形式
+            description: 表示する日付形式を選択します。
+            option_label: 日付形式
+          options:
+            iso: ISO形式 (YYYY-MM-DD)
+            uk: 英国式 (DD/MM/YYYY)
+            us: 米国式 (MM/DD/YYYY)
+        time_format:
+          edit:
+            heading: 時刻形式
+            description: 表示する時刻形式を選択します。
+            option_label: 時刻形式
+          options:
+            hour_24: 24時間表記
+            hour_12: 12時間表記
+      preferences:
+        regions:
+          back_link: もどる
+        region:
+          timezone:
+            link: タイムゾーン設定
+          language:
+            link: 言語設定
+          currency:
+            link: 通貨設定
+          date_format:
+            link: 日付形式
+          time_format:
+            link: 時刻形式
   errors:
     unauthorized: 不正なアクセスです
     not_implemented: 機能はまだ実装されていません
@@ -64,8 +120,8 @@ ja:
             telephone: 電話番号
             passkey: パスキー
             recovery: リカバリーコード
-            google: Googleでサインイン
-            apple: Appleでサインイン
+            google: Googleで続行
+            apple: Appleで続行
             registration: アカウント登録はこちら
         edit:
           title: ログアウトしますか？
@@ -746,6 +802,7 @@ core:
           invalid: 無効なテーマが選択されました
         regions:
           title: 企業地域・言語設定
+          back_link: もどる
           region_section: 地域設定
           language_section: 言語設定
           timezone_section: タイムゾーン設定
@@ -821,7 +878,7 @@ core:
           updated: タイムゾーンを%{timezone}に更新しました
           invalid: 無効なタイムゾーンが選択されました
     org:
-      customers:
+      visitors:
         created: 顧客%{name}が正常に作成されました
         updated: 顧客が正常に更新されました
         deleted: 顧客%{name}が正常に削除されました
@@ -1173,6 +1230,7 @@ core:
         back_to_settings: 設定一覧に戻る
         regions:
           title: 地域・言語の設定
+          back_link: もどる
           region_section: 地域設定
           select_region: 地域を選択
           language_section: 言語設定
@@ -1334,6 +1392,7 @@ core:
         submitting: 送信中...
         regions:
           title: 地域・言語の設定
+          back_link: もどる
           region_section: 地域設定
           select_region: 地域を選択
           language_section: 言語設定
@@ -1356,6 +1415,17 @@ core:
             JST: 日本標準時 (JST)
           update_settings: 設定を更新
           cancel: キャンセル
+        region:
+          timezone:
+            link: タイムゾーン設定
+          language:
+            link: 言語設定
+          currency:
+            link: 通貨設定
+          date_format:
+            link: 日付形式
+          time_format:
+            link: 時刻形式
   support:
     array:
       last_word_connector: "、"
@@ -1411,6 +1481,19 @@ core:
         email_settings_description: スタッフ用のワンタイムトークンリンクを送信します。
         token_guidance: 届いたリンクで有効期限内に設定を変更してください。
         back_to_settings: 設定に戻る
+        regions:
+          back_link: もどる
+        region:
+          timezone:
+            link: タイムゾーン設定
+          language:
+            link: 言語設定
+          currency:
+            link: 通貨設定
+          date_format:
+            link: 日付形式
+          time_format:
+            link: 時刻形式
       preference:
         emails:
           new:
@@ -1487,6 +1570,7 @@ core:
         edit:
           title: 検証
           description: 本人確認のため、コードの入力またはパスキー認証を行ってください。
+          email_description: 本人確認のため、コードの入力を行ってください。
           authenticate_with_passkey: パスキーで認証
           code_label: 確認コード
           code_placeholder: 6桁

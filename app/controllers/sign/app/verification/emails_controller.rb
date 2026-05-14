@@ -2,23 +2,13 @@
 # frozen_string_literal: true
 
 class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseController
+  skip_before_action :enforce_step_up_prereqs!, only: %i(edit update), raise: false
+  before_action :set_verification_navigation_context, only: %i(edit update resend)
+
   def new
     return unless require_reauth_session!
     return if redirect_if_recent_verification_for_get!
     return unless require_method_available!(:email_otp)
-
-    if email_otp_session_active?
-      nonce = ensure_email_nonce!
-      redirect_to(
-        edit_sign_app_verification_email_path(
-          nonce,
-          ri: params[:ri],
-          scope: current_reauth_scope,
-          return_to: current_reauth_return_to_param,
-        ),
-      )
-      return
-    end
 
     unless send_email_otp!
       render :new, status: :unprocessable_content
@@ -39,27 +29,17 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
   def edit
     return unless require_reauth_session!
     return if redirect_if_recent_verification_for_get!
+    return unless require_email_nonce!
 
-    nil unless require_email_nonce!
+    return if email_otp_session_active?
+
+    render :new, status: :unprocessable_content unless send_email_otp!
   end
 
   def create
     return unless require_reauth_session!
     return if redirect_if_recent_verification_for_post!
     return unless require_method_available!(:email_otp)
-
-    if email_otp_session_active?
-      nonce = ensure_email_nonce!
-      redirect_to(
-        edit_sign_app_verification_email_path(
-          nonce,
-          ri: params[:ri],
-          scope: current_reauth_scope,
-          return_to: current_reauth_return_to_param,
-        ),
-      )
-      return
-    end
 
     unless send_email_otp!
       render :new, status: :unprocessable_content
@@ -85,7 +65,35 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
     if verify_email_otp!
       consume_reauth_session!
     else
+      record_failed_step_up_attempt!(:email_otp)
       render :edit, status: :unprocessable_content
+    end
+  end
+
+  def resend
+    return unless require_reauth_session!
+    return if redirect_if_recent_verification_for_post!
+    return unless require_email_nonce!
+
+    if email_otp_resend_rate_limited?
+      redirect_to(
+        verification_email_edit_path,
+        alert: t("otp.resend.too_soon"),
+      )
+      return
+    end
+
+    if send_email_otp!
+      stamp_email_otp_resend!
+      redirect_to(
+        verification_email_edit_path,
+        notice: t("otp.resend.sent"),
+      )
+    else
+      redirect_to(
+        verification_email_edit_path,
+        alert: t("otp.resend.failed"),
+      )
     end
   end
 
@@ -93,7 +101,13 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
 
   def require_email_nonce!
     rs = current_reauth_session
-    if rs.present? && rs["email_nonce"].present? && params[:id] == rs["email_nonce"]
+    expected_nonce =
+      if rs.is_a?(Hash)
+        rs["email_nonce"]
+      else
+        Rails.cache.read(email_nonce_cache_key)
+      end
+    if rs.present? && expected_nonce.present? && params[:id] == expected_nonce
       return true
     end
 
@@ -103,5 +117,19 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
       alert: I18n.t("auth.step_up.invalid_request"),
     )
     false
+  end
+
+  def set_verification_navigation_context
+    @verification_scope = incoming_scope.presence || current_reauth_scope
+    @verification_return_to = incoming_return_to.presence || current_reauth_return_to_param
+  end
+
+  def verification_email_edit_path
+    edit_sign_app_verification_email_path(
+      params[:id],
+      ri: params[:ri],
+      scope: @verification_scope,
+      return_to: @verification_return_to,
+    )
   end
 end

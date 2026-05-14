@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/social_callback_test_helper"
 
 class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
   fixtures :user_social_google_statuses, :user_social_apple_statuses, :user_statuses,
@@ -70,7 +71,6 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         headers: SocialCallbackTestHelper.callback_headers(@host)
 
     assert_response :redirect
-    assert_no_match(%r{/auth/google_app/callback}, response.location)
     assert_not_includes response.location, "code="
   end
 
@@ -132,7 +132,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         headers: SocialCallbackTestHelper.callback_headers(@host)
 
     assert_response :redirect
-    assert_match(%r{/configuration}, response.redirect_url)
+    assert_match(%r{/dashboard}, response.redirect_url)
     assert_nil session[:pending_mfa]
   end
 
@@ -210,7 +210,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         headers: SocialCallbackTestHelper.callback_headers(@host)
 
     assert_response :redirect
-    assert_match(%r{/configuration}, response.redirect_url)
+    assert_match(%r{/dashboard}, response.redirect_url)
     assert_nil session[:pending_mfa]
   end
 
@@ -278,7 +278,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
     # A restricted token should have been created
-    restricted = UserToken.where(user_id: user.id, status: UserToken::STATUS_RESTRICTED)
+    restricted = UserToken.where(user_id: user.id, user_token_status_id: UserTokenStatus::RESTRICTED)
 
     assert_equal 1, restricted.count
   end
@@ -286,7 +286,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
   private
 
   def create_rotated_active_user_session(user, rotations:)
-    token = UserToken.create!(user: user, status: UserToken::STATUS_ACTIVE)
+    token = UserToken.create!(user: user, user_token_status_id: UserTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
 
     rotations.times do

@@ -50,22 +50,22 @@ module Secret
           "DELETED" => UserSecretStatus::DELETED,
           "NOTHING" => UserSecretStatus::NOTHING,
         }.fetch(status_key)
-      when "StaffSecretStatus"
+      when "OperatorSecretStatus"
         {
-          "ACTIVE" => StaffSecretStatus::ACTIVE,
-          "DELETED" => StaffSecretStatus::DELETED,
-          "EXPIRED" => StaffSecretStatus::EXPIRED,
-          "REVOKED" => StaffSecretStatus::REVOKED,
-          "USED" => StaffSecretStatus::USED,
+          "ACTIVE" => OperatorSecretStatus::ACTIVE,
+          "DELETED" => OperatorSecretStatus::DELETED,
+          "EXPIRED" => OperatorSecretStatus::EXPIRED,
+          "REVOKED" => OperatorSecretStatus::REVOKED,
+          "USED" => OperatorSecretStatus::USED,
         }.fetch(status_key)
-      when "CustomerSecretStatus"
+      when "VisitorSecretStatus"
         {
-          "ACTIVE" => CustomerSecretStatus::ACTIVE,
-          "EXPIRED" => CustomerSecretStatus::EXPIRED,
-          "REVOKED" => CustomerSecretStatus::REVOKED,
-          "USED" => CustomerSecretStatus::USED,
-          "DELETED" => CustomerSecretStatus::DELETED,
-          "NOTHING" => CustomerSecretStatus::NOTHING,
+          "ACTIVE" => VisitorSecretStatus::ACTIVE,
+          "EXPIRED" => VisitorSecretStatus::EXPIRED,
+          "REVOKED" => VisitorSecretStatus::REVOKED,
+          "USED" => VisitorSecretStatus::USED,
+          "DELETED" => VisitorSecretStatus::DELETED,
+          "NOTHING" => VisitorSecretStatus::NOTHING,
         }.fetch(status_key)
       else
         raise KeyError, "Unknown identity secret status class: #{identity_secret_status_class.name}"

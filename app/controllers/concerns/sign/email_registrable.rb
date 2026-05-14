@@ -78,11 +78,16 @@ module Sign
     end
 
     # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
-    def initiate_email_verification!(email_address, confirm_policy: "1", allow_existing: false)
+    def initiate_email_verification!(
+      email_address,
+      confirm_policy: "1",
+      allow_existing: false,
+      email_preferences: {}
+    )
       return false unless ensure_turnstile!(email_address, confirm_policy)
 
-      build_user_email(email_address, confirm_policy)
-      @user_email.user_email_status_id = UserEmailStatus::UNVERIFIED_WITH_SIGN_UP
+      build_user_email(email_address, confirm_policy, email_preferences)
+      @user_email.user_email_status_id = pending_email_status_id
 
       @user_email.validate
       existing_email =
@@ -91,21 +96,15 @@ module Sign
         end
       uniqueness_only = email_uniqueness_only_error?(@user_email)
 
-      if allow_existing && existing_email &&
-          existing_email.user_email_status_id != UserEmailStatus::UNVERIFIED_WITH_SIGN_UP &&
-          (uniqueness_only || @user_email.errors.empty?)
-        return dispatch_existing_email_verification!(existing_email)
-      end
-
       has_errors = @user_email.errors.details.except(:user, :user_id).any?
 
       if has_errors
         return false unless allow_existing && uniqueness_only &&
-          existing_email&.user_email_status_id == UserEmailStatus::UNVERIFIED_WITH_SIGN_UP
+          pending_email_status?(existing_email)
       end
 
-      if existing_email&.user_email_status_id == UserEmailStatus::UNVERIFIED_WITH_SIGN_UP &&
-          existing_email.otp_cooldown_active?
+      if pending_email_status?(existing_email) &&
+          existing_email.reregistration_window_active?
         return :cooldown
       end
 
@@ -113,9 +112,9 @@ module Sign
       begin
         UserEmail.transaction do
           # 2. Definitive check inside transaction with row lock
-          if existing_email&.user_email_status_id == UserEmailStatus::UNVERIFIED_WITH_SIGN_UP
+          if pending_email_status?(existing_email)
             locked = UserEmail.lock.find_by(id: existing_email.id)
-            if locked&.otp_cooldown_active?
+            if locked&.reregistration_window_active?
               cooldown_active = true
               raise ActiveRecord::Rollback
             end
@@ -172,7 +171,7 @@ module Sign
       begin
         @user_email.transaction do
           clear_otp(@user_email)
-          @user_email.user_email_status_id = UserEmailStatus::VERIFIED_WITH_SIGN_UP
+          @user_email.user_email_status_id = verified_email_status_id
 
           yield(@user_email) if block_given?
         end
@@ -194,8 +193,10 @@ module Sign
       false
     end
 
-    def build_user_email(email_address, confirm_policy)
-      @user_email = UserEmail.new(raw_address: email_address, confirm_policy: confirm_policy)
+    def build_user_email(email_address, confirm_policy, email_preferences = {})
+      @user_email = UserEmail.new(
+        { raw_address: email_address, confirm_policy: confirm_policy }.merge(email_preferences),
+      )
     end
 
     def cleanup_pending_signup!
@@ -210,9 +211,7 @@ module Sign
 
       existing_emails = UserEmail.where(
         address_digest: @user_email.address_digest,
-        user_email_status_id: [
-          UserEmailStatus::UNVERIFIED_WITH_SIGN_UP,
-        ],
+        user_email_status_id: pending_email_status_ids,
       ).to_a
 
       pending_user_ids = existing_emails.filter_map(&:user_id)
@@ -223,18 +222,27 @@ module Sign
       end
     end
 
+    def pending_email_status_id
+      UserEmailStatus::UNVERIFIED_WITH_SIGN_UP
+    end
+
+    def verified_email_status_id
+      UserEmailStatus::VERIFIED_WITH_SIGN_UP
+    end
+
+    def pending_email_status_ids
+      [pending_email_status_id]
+    end
+
+    def pending_email_status?(user_email)
+      user_email.present? && pending_email_status_ids.include?(user_email.user_email_status_id)
+    end
+
     def create_pending_user!
       @pending_user = User.create!(status_id: UserStatus::UNVERIFIED_WITH_SIGN_UP)
       @user_email.user = @pending_user
       session[:pending_sign_up_user_id] = @pending_user.id
       session[:pending_sign_up_email] = @user_email.address.to_s.downcase
-    end
-
-    def dispatch_existing_email_verification!(existing_email)
-      @user_email = existing_email
-      session[EXISTING_EMAIL_SESSION_KEY] = @user_email.id
-      session[EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] = true
-      true
     end
 
     def send_verification_email(otp_number)
@@ -254,7 +262,7 @@ module Sign
       return false if errors_to_check.empty?
 
       # Fields that can have uniqueness errors
-      uniqueness_fields = %i(address raw_address address_bidx address_digest)
+      uniqueness_fields = %i(address raw_address address_digest)
 
       # Check if all errors are :taken errors on the uniqueness fields
       errors_to_check.each do |field, errors|

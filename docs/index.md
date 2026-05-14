@@ -16,4 +16,11 @@ Rules:
 
 Current content-model references:
 
+- `docs/architecture/actor-naming.md`
 - `docs/architecture/regional-content.md`
+- `docs/architecture/preference.md`
+- `docs/security/session-limit.md`
+- `docs/security/step-up-mfa-status.md`
+- `docs/security/sign-in-sequence.md`
+- `docs/security/refresh-token-rotation.md`
+- `docs/security/social-login-provider-scope.md`

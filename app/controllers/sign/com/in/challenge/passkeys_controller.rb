@@ -87,8 +87,8 @@ module Sign
             )
           end
 
-          def active_passkeys_for(customer)
-            customer.customer_passkeys.where(status_id: CustomerPasskeyStatus::ACTIVE)
+          def active_passkeys_for(visitor)
+            visitor.visitor_passkeys.where(status_id: VisitorPasskeyStatus::ACTIVE)
           end
 
           def passkey_params
@@ -101,13 +101,13 @@ module Sign
               credential_payload,
               relying_party: webauthn_relying_party,
             )
-            passkey = CustomerPasskey.find_by(webauthn_id: credential.id)
+            passkey = VisitorPasskey.find_by(webauthn_id: credential.id)
 
-            customer = pending_mfa_user
-            unless passkey && customer && passkey.customer_id == customer.id
+            visitor = pending_mfa_user
+            unless passkey && visitor && passkey.visitor_id == visitor.id
               Sign::Risk::Emitter.emit(
                 "auth_failed",
-                customer_id: customer&.id,
+                visitor_id: visitor&.id,
                 ip: request.remote_ip,
                 reason: "mfa_passkey_mismatch",
               )
@@ -122,7 +122,7 @@ module Sign
             credential.verify(challenge, public_key: passkey.public_key, sign_count: passkey.sign_count)
             passkey.update!(sign_count: credential.sign_count, last_used_at: Time.current)
 
-            complete_mfa_login!(customer)
+            complete_mfa_login!(visitor)
           rescue JSON::ParserError
             redirect_to(
               sign_com_in_challenge_path(ri: params[:ri]),
@@ -131,25 +131,18 @@ module Sign
             )
           end
 
-          def complete_mfa_login!(customer)
-            result = finalize_mfa_login!(customer)
+          def complete_mfa_login!(visitor)
+            result = finalize_mfa_login!(visitor)
             case result[:status]
             when :session_limit_hard_reject
               render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
             when :restricted
               redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
             when :success
-              if issue_bulletin!
-                redirect_to(
-                  sign_com_in_bulletin_path(rd: result[:redirect_path], ri: params[:ri]),
-                  notice: I18n.t("sign.app.in.mfa.passkey.success"),
-                )
-              else
-                safe_redirect_to_rd_or_default!(
-                  result[:redirect_path],
-                  default_path: sign_com_configuration_path(ri: params[:ri]),
-                )
-              end
+              redirect_to_sign_in_sequence!(
+                rt: result[:redirect_path],
+                notice: I18n.t("sign.app.in.mfa.passkey.success"),
+              )
             else
               redirect_to(
                 new_sign_com_in_path(ri: params[:ri]),

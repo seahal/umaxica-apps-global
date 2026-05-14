@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
-  class TestController < ApplicationController
+  class ::Sign::App::WebauthnConfigTestController < ApplicationController
     include Sign::Webauthn
 
     def index
@@ -13,13 +13,27 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
   end
 
   setup do
-    @controller = TestController.new
+    @original_env = {
+      "WEBAUTHN_APP_RP_ID" => ENV["WEBAUTHN_APP_RP_ID"],
+      "WEBAUTHN_APP_ORIGIN" => ENV["WEBAUTHN_APP_ORIGIN"],
+      "WEBAUTHN_RP_ID" => ENV["WEBAUTHN_RP_ID"],
+      "WEBAUTHN_ORIGIN" => ENV["WEBAUTHN_ORIGIN"],
+    }
+    @original_env.each_key { |key| ENV.delete(key) }
+
+    @controller = ::Sign::App::WebauthnConfigTestController.new
     @controller.request = ActionDispatch::TestRequest.create
     @controller.response = ActionDispatch::TestResponse.new
 
     # Mock session for unit testing the concern methods directly
     session_hash = {}
     @controller.define_singleton_method(:session) { session_hash }
+  end
+
+  teardown do
+    @original_env.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
   end
 
   # Case B-1: webauthn_rp_id should return request.host
@@ -29,12 +43,43 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
     assert_equal "id.app.localhost", @controller.webauthn_rp_id
   end
 
+  test "webauthn_rp_id uses app environment override" do
+    ENV["WEBAUTHN_APP_RP_ID"] = "id.umaxica.app"
+    @controller.request.host = "internal.example.test"
+
+    assert_equal "id.umaxica.app", @controller.webauthn_rp_id
+  end
+
+  test "webauthn_rp_id extracts host when app environment override is an origin" do
+    ENV["WEBAUTHN_APP_RP_ID"] = "https://id.umaxica.app"
+    @controller.request.host = "internal.example.test"
+
+    assert_equal "id.umaxica.app", @controller.webauthn_rp_id
+  end
+
   # Case B-2: webauthn_origin should return request.base_url
   test "webauthn_origin returns request base_url" do
     @controller.request.host = "id.app.localhost"
     @controller.request.set_header("rack.url_scheme", "http")
 
     assert_equal "http://id.app.localhost", @controller.webauthn_origin
+  end
+
+  test "webauthn_origin uses app environment override" do
+    ENV["WEBAUTHN_APP_ORIGIN"] = "https://id.umaxica.app"
+    @controller.request.host = "internal.example.test"
+    @controller.request.set_header("rack.url_scheme", "http")
+
+    assert_equal "https://id.umaxica.app", @controller.webauthn_origin
+  end
+
+  test "configured app origin is trusted even when TRUSTED_ORIGINS was loaded without it" do
+    ENV["WEBAUTHN_APP_ORIGIN"] = "https://id.umaxica.app"
+    @controller.request.host = "internal.example.test"
+    @controller.request.set_header("rack.url_scheme", "http")
+
+    assert @controller.trusted_webauthn_origin?("https://id.umaxica.app")
+    assert_equal "https://id.umaxica.app", @controller.validate_webauthn_origin!
   end
 
   # Case B-3: validate_webauthn_origin! rejects origins that are not trusted

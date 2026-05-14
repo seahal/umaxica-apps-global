@@ -4,14 +4,14 @@
 module Sign
   module Org
     module Configuration
-      # PasskeysController handles Passkey registration and management for staff.
+      # PasskeysController handles Passkey registration and management for operators.
       #
       # Registration Flow:
-      # 1. Staff visits /configuration/passkeys/new
+      # 1. Operator visits /configuration/passkeys/new
       # 2. POST /configuration/passkeys/options to get WebAuthn challenge
       # 3. Browser performs navigator.credentials.create()
       # 4. POST /configuration/passkeys/verification with credential + challenge_id
-      # 5. Server verifies and creates StaffPasskey record
+      # 5. Server verifies and creates OperatorPasskey record
       #
       # CRUD operations:
       # - GET /configuration/passkeys (index)
@@ -20,17 +20,20 @@ module Sign
       # - PATCH /configuration/passkeys/:id (update - description only)
       # - DELETE /configuration/passkeys/:id (destroy)
       class PasskeysController < ApplicationController
-        include ::Verification::Staff
+        include ::Verification::Operator
         include Sign::Webauthn
 
-        before_action :authenticate_staff!
+        before_action :authenticate_operator!
+        before_action only: %i(new create options verification) do
+          require_step_up_unless_bootstrap!(scope: verification_scope)
+        end
         before_action :set_passkey, only: %i(show edit update destroy)
 
         auth_required!
 
         # GET /configuration/passkeys
         def index
-          @passkeys = current_staff.staff_passkeys.order(created_at: :desc)
+          @passkeys = current_operator.staff_passkeys.order(created_at: :desc)
         end
 
         # GET /configuration/passkeys/:id
@@ -39,7 +42,7 @@ module Sign
 
         # GET /configuration/passkeys/new
         def new
-          @passkey = current_staff.staff_passkeys.new
+          @passkey = current_operator.staff_passkeys.new
         end
 
         # GET /configuration/passkeys/:id/edit
@@ -73,12 +76,12 @@ module Sign
         def options
           # Build exclude list from existing passkeys
           existing_credentials =
-            current_staff.staff_passkeys.map do |passkey|
+            current_operator.staff_passkeys.map do |passkey|
               { id: passkey.webauthn_id }
             end
 
           challenge_id, creation_options = create_registration_challenge(
-            resource: current_staff,
+            resource: current_operator,
             exclude_credentials: existing_credentials,
           )
 
@@ -129,7 +132,7 @@ module Sign
             credential.verify(challenge)
 
             # Create the passkey record
-            passkey = current_staff.staff_passkeys.new(
+            passkey = current_operator.staff_passkeys.new(
               webauthn_id: credential.id,
               public_key: credential.public_key,
               sign_count: credential.sign_count,
@@ -141,7 +144,7 @@ module Sign
             render json: {
               status: "ok",
               passkey_id: passkey.id,
-              redirect_url: sign_org_configuration_passkeys_path,
+              redirect_url: bootstrap_return_path(sign_org_configuration_passkeys_path),
             }, status: :created
           end
         rescue Sign::Webauthn::ChallengeNotFoundError,
@@ -203,24 +206,26 @@ module Sign
         private
 
         def set_passkey
-          @passkey = current_staff.staff_passkeys.find(params.expect(:id))
+          @passkey = current_operator.staff_passkeys.find(params.expect(:id))
         end
 
         def credential_params
-          params.expect(:credential)&.permit(
-            :id,
-            :rawId,
-            :type,
-            :authenticatorAttachment,
-            { transports: [] },
-            { response: %i(clientDataJSON attestationObject) },
-            { clientExtensionResults: {} },
+          params.expect(
+            credential: [
+              :id,
+              :rawId,
+              :type,
+              :authenticatorAttachment,
+              { transports: [] },
+              { response: %i(clientDataJSON attestationObject) },
+              { clientExtensionResults: {} },
+            ],
           )
         end
 
         def update_params
           key = params.key?(:staff_passkey) ? :staff_passkey : :passkey
-          params[key => [:description]]
+          params.expect(key => [:description]) || {}
         end
 
         def passkey_description
@@ -228,7 +233,7 @@ module Sign
         end
 
         def verification_required_action?
-          %w(new create options verification edit update destroy).include?(action_name)
+          step_up_bootstrap_active?
         end
 
         def verification_scope

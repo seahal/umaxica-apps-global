@@ -44,11 +44,22 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
   test "prepare social auth intent stores login context and rejects invalid intent" do
     harness = Harness.new
 
-    state = harness.send(:prepare_social_auth_intent!, "login", provider: "google")
+    state = harness.send(
+      :prepare_social_auth_intent!,
+      "login",
+      provider: "google",
+      rt: "encoded-rt",
+      entry: "sign_up",
+      ri: "jp",
+    )
 
     assert_predicate state, :present?
     assert_equal "login", harness.session_hash[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY]
     assert_equal "google", harness.session_hash[SocialAuthConcern::SOCIAL_PROVIDER_SESSION_KEY]
+    assert_equal "encoded-rt", harness.session_hash[SocialAuthConcern::SOCIAL_RT_SESSION_KEY]
+    assert_equal "encoded-rt", harness.send(:current_social_auth_rt)
+    assert_equal "sign_up", harness.send(:current_social_auth_entry)
+    assert_equal "jp", harness.send(:current_social_auth_ri)
     assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
 
     assert_raises(SocialAuth::UnauthorizedError) do
@@ -107,6 +118,22 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness.send(:clear_social_auth_intent!)
 
     assert_equal "login", harness.send(:current_social_auth_intent)
+    assert_nil harness.send(:current_social_auth_rt)
+    assert_nil harness.send(:current_social_auth_entry)
+    assert_nil harness.send(:current_social_auth_ri)
     assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_FLOW_ID_SESSION_KEY]
+  end
+
+  test "process social auth callback returns rt before clearing session" do
+    harness = Harness.new
+    harness.send(:prepare_social_auth_intent!, "login", provider: "google", rt: "encoded-rt")
+
+    SocialAuthService.stub(:handle_callback, ->(**) { { user: users(:one), existing_account: true } }) do
+      result = harness.send(:process_social_auth_callback)
+
+      assert_equal "encoded-rt", result[:rt]
+    end
+
+    assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_RT_SESSION_KEY]
   end
 end

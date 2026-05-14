@@ -1,0 +1,20 @@
+<% content_for :page_title, "Email Preferences" %>
+
+<section>
+  <h1>Email Preferences</h1>
+
+  <% if email.promotional? %>
+    <p>
+      Stop promotional email for this address.
+    </p>
+
+    <%= form_with url: unsubscribe_path, method: :delete do |f| %>
+      <%= hidden_field_tag :token, token %>
+      <%= f.submit "Unsubscribe" %>
+    <% end %>
+  <% else %>
+    <p>
+      Promotional email is already turned off for this address.
+    </p>
+  <% end %>
+</section>

@@ -7,15 +7,15 @@ class Dbsc::RecordAdapterTest < ActiveSupport::TestCase
   test "binding_method_attribute delegates to model metadata" do
     assert_equal :binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(AppPreference.new)
     assert_equal :user_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(UserToken.new)
-    assert_equal :staff_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(StaffToken.new)
-    assert_equal :customer_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(CustomerToken.new)
+    assert_equal :staff_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(OperatorToken.new)
+    assert_equal :visitor_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(VisitorToken.new)
   end
 
   test "dbsc_status_attribute delegates to model metadata" do
     assert_equal :dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(AppPreference.new)
     assert_equal :user_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(UserToken.new)
-    assert_equal :staff_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(StaffToken.new)
-    assert_equal :customer_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(CustomerToken.new)
+    assert_equal :staff_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(OperatorToken.new)
+    assert_equal :visitor_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(VisitorToken.new)
   end
 
   test "binding_method_class returns AppPreferenceBindingMethod" do
@@ -50,12 +50,12 @@ class Dbsc::RecordAdapterTest < ActiveSupport::TestCase
     assert_equal UserTokenBindingMethod, result
   end
 
-  test "binding_method_class returns StaffTokenBindingMethod" do
-    record = StaffToken.new
+  test "binding_method_class returns OperatorTokenBindingMethod" do
+    record = OperatorToken.new
 
     result = Dbsc::RecordAdapter.binding_method_class(record)
 
-    assert_equal StaffTokenBindingMethod, result
+    assert_equal OperatorTokenBindingMethod, result
   end
 
   test "dbsc_status_class returns AppPreferenceDbscStatus" do

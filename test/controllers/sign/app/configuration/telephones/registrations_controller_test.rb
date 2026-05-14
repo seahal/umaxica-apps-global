@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::App::Configuration::Telephones::RegistrationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_telephone_statuses
+  fixtures :users, :user_statuses, :user_telephone_statuses, :user_chronicle_events, :user_chronicle_levels
   include ActiveJob::TestHelper
 
   setup do
@@ -15,10 +15,14 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user_id: @user.id,
     )
     satisfy_user_verification(@token)
+
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
   teardown do
-    # Cleanup if needed
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   def request_headers
@@ -89,6 +93,21 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
         headers: request_headers
 
     assert_response :success
+    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
+    assert_includes response.body, "turnstile.execute"
+  end
+
+  test "create rejects when turnstile fails" do
+    CloudflareTurnstile.test_validation_response = { "success" => false }
+
+    assert_no_difference("UserTelephone.count") do
+      post sign_app_configuration_telephones_registration_url(ri: "jp"),
+           params: { user_telephone: { raw_number: "+10000000009" } },
+           headers: request_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("turnstile_error")
   end
 
   test "edit redirects if no valid session" do
@@ -114,6 +133,8 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
           headers: request_headers
 
       assert_response :success
+      assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
+      assert_includes response.body, "turnstile.execute"
     end
   end
 
@@ -143,6 +164,27 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
     end
   end
 
+  test "update rejects when turnstile fails" do
+    tel = UserTelephone.create!(
+      user: @user,
+      raw_number: "+19999999998",
+      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      otp_private_key: "secret",
+      otp_expires_at: 10.minutes.from_now,
+    )
+    CloudflareTurnstile.test_validation_response = { "success" => false }
+
+    set_registration_session(tel.id) do
+      patch sign_app_configuration_telephones_registration_url(ri: "jp"),
+            params: { user_telephone: { pass_code: "123456" } },
+            headers: request_headers
+
+      assert_response :unprocessable_content
+      assert_includes response.body, I18n.t("turnstile_error")
+      assert_equal UserTelephoneStatus::UNVERIFIED, tel.reload.user_telephone_status_id
+    end
+  end
+
   test "update successfully verifies telephone" do
     tel = UserTelephone.create!(
       user: @user,
@@ -153,14 +195,65 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
     )
     set_registration_session(tel.id) do
       with_complete_telephone_verification(:success, tel) do
-        patch sign_app_configuration_telephones_registration_url(ri: "jp"),
-              params: { user_telephone: { pass_code: "123456" } },
-              headers: request_headers
+        assert_difference(
+          -> {
+            UserChronicle.where(
+              actor_type: "User",
+              actor_id: @user.id,
+              subject_type: "User",
+              subject_id: @user.id,
+              event_id: UserChronicleEvent::TELEPHONE_REGISTERED,
+            ).count
+          },
+          1,
+        ) do
+          patch sign_app_configuration_telephones_registration_url(ri: "jp"),
+                params: { user_telephone: { pass_code: "123456" } },
+                headers: request_headers
+        end
 
         assert_redirected_to sign_app_configuration_telephones_url(ri: "jp")
         assert_equal I18n.t("sign.app.registration.telephone.update.success"), flash[:notice]
+        assert_not_nil @token.reload.last_step_up_at
+        assert_equal "configuration_telephone", @token.last_step_up_scope
       end
     end
+  end
+
+  test "telephone registration satisfies telephone configuration step-up" do
+    bootstrap_user = users(:two)
+    bootstrap_token = UserToken.create!(user: bootstrap_user)
+    satisfy_user_verification(bootstrap_token)
+
+    bootstrap_headers = request_headers.merge(
+      "X-TEST-CURRENT-USER" => bootstrap_user.id,
+      "X-TEST-SESSION-PUBLIC-ID" => bootstrap_token.public_id,
+    )
+
+    tel = UserTelephone.create!(
+      user: bootstrap_user,
+      raw_number: "+18888888888",
+      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      otp_private_key: "secret",
+      otp_expires_at: 10.minutes.from_now,
+    )
+
+    set_registration_session(tel.id) do
+      with_complete_telephone_verification(:success, tel) do
+        patch sign_app_configuration_telephones_registration_url(ri: "jp"),
+              params: { user_telephone: { pass_code: "123456" } },
+              headers: bootstrap_headers
+      end
+    end
+
+    assert_redirected_to sign_app_configuration_telephones_url(ri: "jp")
+    assert_equal "configuration_telephone", bootstrap_token.reload.last_step_up_scope
+
+    bootstrap_token.update!(created_at: 1.hour.ago)
+
+    get sign_app_configuration_telephones_url(ri: "jp"), headers: bootstrap_headers
+
+    assert_response :success
   end
 
   test "update handles session_expired from verification" do

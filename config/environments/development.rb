@@ -9,6 +9,10 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
+  # Live DOM reloaders mutate forms in-place and break third-party challenge
+  # widgets such as Cloudflare Turnstile. Keep them opt-in for public dev hosts.
+  config.hotwire.spark.enabled = ENV["HOTWIRE_SPARK_ENABLED"] == "true"
+
   # Do not eager load code on boot.
   config.eager_load = false
 

@@ -35,14 +35,14 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
 
   # Revoke selected sessions and optionally promote restricted to active
   def update
-    @current_staff = resolve_current_staff
-    return redirect_to_login unless @current_staff
+    @current_operator = resolve_current_operator
+    return redirect_to_login unless @current_operator
 
     ref = params[:ref]
 
     if ref.present?
       # Revoke a specific session by signed reference
-      revoke_session_by_ref(@current_staff, ref)
+      revoke_session_by_ref(@current_operator, ref)
     else
       # Revoke selected sessions by signed references
       refs = Array(params[:revoke_refs]).compact_blank
@@ -52,11 +52,11 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
         return render :show, status: :unprocessable_content
       end
 
-      revoke_sessions_by_refs(@current_staff, refs)
+      revoke_sessions_by_refs(@current_operator, refs)
     end
 
     # Check if we can promote restricted session to active
-    if current_session_restricted? && can_promote_session?(@current_staff)
+    if current_session_restricted? && can_promote_session?(@current_operator)
       promote_current_session!
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
@@ -71,14 +71,14 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
 
   # Cancel the restricted session (logout) or revoke a specific session
   def destroy
-    @current_staff = resolve_current_staff
-    return redirect_to_login unless @current_staff
+    @current_operator = resolve_current_operator
+    return redirect_to_login unless @current_operator
 
     ref = params[:ref]
 
     if ref.present?
       # Revoke a specific session by signed reference
-      revoke_session_by_ref(@current_staff, ref)
+      revoke_session_by_ref(@current_operator, ref)
       load_session_data
       render :show
     else
@@ -96,11 +96,9 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   private
 
   def require_authentication_or_gate
-    # If logged in with a restricted session, allow access (this is the intended staff)
-    if logged_in? && current_session_restricted?
-      return
-    end
+    return if current_session_restricted? || restricted_session_expired?
 
+    # If logged in with a restricted session, allow access (this is the intended staff)
     # If logged in with an active (non-restricted) session, deny access.
     # This page is only for staff in the restricted session state (3rd login).
     if logged_in?
@@ -135,21 +133,21 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
     end
   end
 
-  def resolve_current_staff
+  def resolve_current_operator
     # Prefer current_resource (logged in staff)
     return current_resource if current_resource
 
     # Fall back to pending staff from gate
     staff_id = session[:pending_login_staff_id]
-    Staff.find_by(id: staff_id) if staff_id
+    Operator.find_by(id: staff_id) if staff_id
   end
 
   def load_session_data
-    @current_staff = resolve_current_staff
-    return unless @current_staff
+    @current_operator = resolve_current_operator
+    return unless @current_operator
 
-    @active_sessions = @current_staff.staff_tokens.active_status.order(created_at: :desc)
-    @restricted_sessions = @current_staff.staff_tokens.restricted_status.order(created_at: :desc)
+    @active_sessions = @current_operator.staff_tokens.active_status.order(created_at: :desc)
+    @restricted_sessions = @current_operator.staff_tokens.restricted_status.order(created_at: :desc)
     @current_session_public_id = current_session_public_id
   end
 
@@ -157,9 +155,9 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
     # Can promote if active session count is below limit
     active_count =
       TokenRecord.connected_to(role: :writing) do
-        StaffToken.active_status.where(staff_id: staff.id).count
+        OperatorToken.active_status.where(staff_id: staff.id).count
       end
-    active_count < StaffToken::MAX_SESSIONS_PER_STAFF
+    active_count < OperatorToken::MAX_SESSIONS_PER_STAFF
   end
 
   def promote_current_session!
@@ -172,7 +170,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   end
 
   def revoke_session_by_ref(staff, ref)
-    token = StaffToken.find_from_signed_ref(ref)
+    token = OperatorToken.find_from_signed_ref(ref)
     unless token && token.staff_id == staff.id
       flash[:alert] = I18n.t("session_limit.invalid_session")
       return
@@ -195,9 +193,8 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
     revoked_count = 0
 
     TokenRecord.connected_to(role: :writing) do
-      StaffToken.transaction do
-        refs.each do |ref|
-          token = StaffToken.find_from_signed_ref(ref)
+      OperatorToken.transaction do
+        OperatorToken.find_from_signed_refs(refs).each do |token|
           next unless token && token.staff_id == staff.id
           next if token.public_id == current_session_public_id # Skip current session
 

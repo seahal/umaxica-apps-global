@@ -39,11 +39,13 @@ class IpOccurrence < OccurrenceRecord
   belongs_to :ip_occurrence_status, foreign_key: :status_id, optional: true, inverse_of: :ip_occurrences
   has_many :area_ip_occurrences, dependent: :destroy, inverse_of: :ip_occurrence
   has_many :area_occurrences, through: :area_ip_occurrences
+  has_many :ip_visitor_occurrences, dependent: :destroy, inverse_of: :ip_occurrence
+  has_many :visitor_occurrences, through: :ip_visitor_occurrences
   has_many :domain_ip_occurrences, dependent: :destroy, inverse_of: :ip_occurrence
   has_many :domain_occurrences, through: :domain_ip_occurrences
   has_many :email_ip_occurrences, dependent: :destroy, inverse_of: :ip_occurrence
   has_many :email_occurrences, through: :email_ip_occurrences
-  has_many :ip_staff_occurrences, dependent: :destroy, inverse_of: :ip_occurrence
+  has_many :ip_staff_occurrences, class_name: "IpOperatorOccurrence", dependent: :destroy, inverse_of: :ip_occurrence
   has_many :staff_occurrences, through: :ip_staff_occurrences
   has_many :ip_telephone_occurrences, dependent: :destroy, inverse_of: :ip_occurrence
   has_many :telephone_occurrences, through: :ip_telephone_occurrences

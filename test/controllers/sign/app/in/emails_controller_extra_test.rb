@@ -13,8 +13,8 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
-    ensure_customer_reference_records!
-    # User status might be different from Customer status
+    ensure_visitor_reference_records!
+    # User status might be different from Visitor status
     UserStatus.find_or_create_by!(id: 1)
   end
 

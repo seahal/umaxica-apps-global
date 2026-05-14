@@ -12,9 +12,9 @@ module Apex
         assert_includes controller.class, RateLimit
         assert_includes controller.class, ::Preference::Global
         assert_includes controller.class, ::Preference::Adoption
-        assert_includes controller.class, ::Authentication::Staff
-        assert_includes controller.class, ::Authorization::Staff
-        assert_includes controller.class, ::Verification::Staff
+        assert_includes controller.class, ::Authentication::Operator
+        assert_includes controller.class, ::Authorization::Operator
+        assert_includes controller.class, ::Verification::Operator
         assert_includes controller.class, ActionPolicy::Controller
         assert_includes controller.class, ::Oidc::SsoInitiator
         assert_includes controller.class, ::CurrentSupport

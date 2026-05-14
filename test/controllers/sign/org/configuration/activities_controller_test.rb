@@ -14,7 +14,7 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     @headers = as_staff_headers(@staff, host: @host)
 
     ChronicleRecord.connected_to(role: :writing) do
-      StaffChronicle.delete_all
+      OperatorChronicle.delete_all
     end
   end
 
@@ -27,11 +27,11 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "shows only current staff activity logs" do
     create_staff_audit(
-      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 2.minutes.ago,
+      staff: @staff, event_id: OperatorChronicleEvent::LOGGED_IN, occurred_at: 2.minutes.ago,
       context: { tag: "my-login-event" },
     )
     create_staff_audit(
-      staff: @other_staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 1.minute.ago,
+      staff: @other_staff, event_id: OperatorChronicleEvent::LOGGED_IN, occurred_at: 1.minute.ago,
       context: { tag: "other-staff-event" },
     )
 
@@ -44,15 +44,15 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "orders activity by occurred_at desc" do
     create_staff_audit(
-      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 3.hours.ago,
+      staff: @staff, event_id: OperatorChronicleEvent::LOGGED_IN, occurred_at: 3.hours.ago,
       context: { tag: "oldest-entry" },
     )
     create_staff_audit(
-      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 2.hours.ago,
+      staff: @staff, event_id: OperatorChronicleEvent::LOGGED_IN, occurred_at: 2.hours.ago,
       context: { tag: "middle-entry" },
     )
     create_staff_audit(
-      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 1.hour.ago,
+      staff: @staff, event_id: OperatorChronicleEvent::LOGGED_IN, occurred_at: 1.hour.ago,
       context: { tag: "newest-entry" },
     )
 
@@ -73,7 +73,7 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     120.times do |i|
       create_staff_audit(
         staff: @staff,
-        event_id: StaffChronicleEvent::LOGGED_IN,
+        event_id: OperatorChronicleEvent::LOGGED_IN,
         occurred_at: base_time + i.minutes,
         context: { tag: "limit-entry-#{i}" },
       )
@@ -90,11 +90,11 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
 
   test "filters to login success events" do
     create_staff_audit(
-      staff: @staff, event_id: StaffChronicleEvent::LOGGED_IN, occurred_at: 2.minutes.ago,
+      staff: @staff, event_id: OperatorChronicleEvent::LOGGED_IN, occurred_at: 2.minutes.ago,
       context: { tag: "login-success-event" },
     )
     create_staff_audit(
-      staff: @staff, event_id: StaffChronicleEvent::LOGGED_OUT, occurred_at: 1.minute.ago,
+      staff: @staff, event_id: OperatorChronicleEvent::LOGGED_OUT, occurred_at: 1.minute.ago,
       context: { tag: "non-login-event" },
     )
 
@@ -105,10 +105,25 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     assert_not_includes response.body, "non-login-event"
   end
 
+  test "shows social unlink events" do
+    create_staff_audit(
+      staff: @staff,
+      event_id: OperatorChronicleEvent::SOCIAL_UNLINKED,
+      occurred_at: 1.minute.ago,
+      context: { tag: "org-social-unlinked-event", auth_method: "social", provider: "google" },
+    )
+
+    get sign_org_configuration_activities_url(ri: "jp"), headers: @headers
+
+    assert_response :success
+    assert_includes response.body, "org-social-unlinked-event"
+    assert_includes response.body, I18n.t("sign.org.configuration.activity.events.social_unlinked")
+  end
+
   test "renders user agent summary and login method" do
     create_staff_audit(
       staff: @staff,
-      event_id: StaffChronicleEvent::LOGGED_IN,
+      event_id: OperatorChronicleEvent::LOGGED_IN,
       occurred_at: Time.current,
       context: {
         tag: "ua-method-entry",
@@ -127,13 +142,13 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   private
 
   def create_staff_audit(staff:, event_id:, occurred_at:, context:, ip_address: "203.0.113.25")
-    StaffChronicle.create!(
-      actor_type: "Staff",
+    OperatorChronicle.create!(
+      actor_type: "Operator",
       actor_id: staff.id,
       event_id: event_id,
-      level_id: StaffChronicleLevel::NOTHING,
+      level_id: OperatorChronicleLevel::NOTHING,
       subject_id: staff.id,
-      subject_type: "Staff",
+      subject_type: "Operator",
       occurred_at: occurred_at,
       lapses_at: 1.year.from_now,
       ip_address: ip_address,

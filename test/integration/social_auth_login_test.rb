@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/social_callback_test_helper"
 
 # Integration tests for social auth login intent
 #
@@ -122,6 +123,53 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_not_nil identity.user
     assert_equal UserStatus::UNVERIFIED_WITH_SIGN_UP, identity.user.status_id
     assert_not_nil identity.last_authenticated_at
+    assert_equal "Googleで登録しました", flash[:notice]
+  end
+
+  test "duplicate Google callback failure after successful login does not return to sign in" do
+    new_uid = "duplicate_callback_google_#{SecureRandom.hex(4)}"
+    setup_google_mock_auth(uid: new_uid)
+
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
+         headers: browser_headers.merge("Host" => @host)
+
+    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        headers: browser_headers.merge(@callback_headers)
+
+    assert_response :redirect
+    assert UserSocialGoogle.exists?(uid: new_uid)
+
+    get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "google_app"),
+        headers: browser_headers.merge("Host" => @host)
+
+    assert_response :redirect
+    assert_equal sign_app_configuration_url(ri: "jp"), response.location
+  end
+
+  test "provider failure returns to sign up when social auth started from sign up" do
+    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp", entry: "sign_up"),
+         headers: browser_headers.merge("Host" => @host)
+
+    assert_response :redirect
+
+    get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "google_app"),
+        headers: browser_headers.merge("Host" => @host)
+
+    assert_response :redirect
+    assert_equal new_sign_app_up_url(ri: "jp"), response.location
+  end
+
+  test "provider failure returns to sign in when social auth started from sign in" do
+    post start_sign_app_social_authentication_url(provider: "apple", intent: "login", ri: "jp"),
+         headers: browser_headers.merge("Host" => @host)
+
+    assert_response :redirect
+
+    get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "apple"),
+        headers: browser_headers.merge("Host" => @host)
+
+    assert_response :redirect
+    assert_equal new_sign_app_in_url(ri: "jp"), response.location
   end
 
   test "Apple login with new uid creates new user and identity" do

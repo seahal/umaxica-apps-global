@@ -3,91 +3,99 @@
 
 require "test_helper"
 
-class CurrentAttributesTest < ActiveSupport::TestCase
-  setup { Current.reset }
-  teardown { Current.reset }
+class ActorAttributesTest < ActiveSupport::TestCase
+  setup { Actor.reset }
+  teardown { Actor.reset }
 
   test "reset clears all attributes" do
-    Current.actor = "some_user"
-    Current.actor_type = :user
-    Current.session = "session_123"
-    Current.token = { "sub" => 1 }
-    Current.domain = :app
-    Current.preference = Current::Preference.new(language: "en")
+    Actor.actor = "some_user"
+    Actor.actor_type = :user
+    Actor.session = "session_123"
+    Actor.token = { "sub" => 1 }
+    Actor.surface = :app
+    Actor.domain = :app
+    Actor.preference = Actor::Preference.new(language: "en")
 
-    Current.reset
+    Actor.reset
 
-    assert_same Unauthenticated.instance, Current.actor
-    assert_equal :unauthenticated, Current.actor_type
-    assert_nil Current.session
-    assert_nil Current.token
-    assert_nil Current.domain
-    assert_predicate Current.preference, :null?
+    assert_same Unauthenticated.instance, Actor.actor
+    assert_equal :unauthenticated, Actor.actor_type
+    assert_nil Actor.session
+    assert_nil Actor.token
+    assert_nil Actor.surface
+    assert_nil Actor.domain
+    assert_predicate Actor.preference, :null?
   end
 
-  test "user? and staff? reflect actor_type" do
-    Current.actor_type = :staff
+  test "user? and operator? reflect actor_type" do
+    Actor.actor_type = :operator
 
-    assert_predicate Current, :staff?
-    assert_not Current.user?
-    assert_nil Current.user
+    assert_predicate Actor, :operator?
+    assert_not Actor.user?
+    assert_nil Actor.user
 
-    Current.actor_type = :user
+    Actor.actor_type = :user
 
-    assert_predicate Current, :user?
-    assert_not Current.staff?
-    assert_nil Current.staff
+    assert_predicate Actor, :user?
+    assert_not Actor.operator?
+    assert_nil Actor.operator
   end
 
   test "user and staff return actor for matching actor_type" do
     user = Object.new
     staff = Object.new
 
-    Current.actor = user
-    Current.actor_type = :user
+    Actor.actor = user
+    Actor.actor_type = :user
 
-    assert_equal user, Current.user
-    assert_nil Current.staff
+    assert_equal user, Actor.user
+    assert_nil Actor.operator
 
-    Current.actor = staff
-    Current.actor_type = :staff
+    Actor.actor = staff
+    Actor.actor_type = :operator
 
-    assert_equal staff, Current.staff
-    assert_nil Current.user
+    assert_equal staff, Actor.operator
+    assert_nil Actor.user
   end
 
   test "preference defaults to NULL" do
-    assert_equal Current::Preference::NULL, Current.preference
-    assert_predicate Current.preference, :null?
-    assert_equal "ja", Current.preference.language # Safe default
+    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_predicate Actor.preference, :null?
+    assert_equal "ja", Actor.preference.language # Safe default
   end
 
   test "domain can be set" do
-    Current.domain = :app
+    Actor.domain = :app
 
-    assert_equal :app, Current.domain
+    assert_equal :app, Actor.domain
 
-    Current.domain = :org
+    Actor.domain = :org
 
-    assert_equal :org, Current.domain
+    assert_equal :org, Actor.domain
+  end
+
+  test "surface can be set" do
+    Actor.surface = :app
+
+    assert_equal :app, Actor.surface
   end
 
   test "actor can be set" do
-    Current.actor = "test_actor"
+    Actor.actor = "test_actor"
 
-    assert_equal "test_actor", Current.actor
+    assert_equal "test_actor", Actor.actor
   end
 
   test "session can be set" do
-    Current.session = "session_public_id"
+    Actor.session = "session_public_id"
 
-    assert_equal "session_public_id", Current.session
+    assert_equal "session_public_id", Actor.session
   end
 
   test "token can be set" do
     payload = { "sub" => 42, "act" => "user" }
-    Current.token = payload
+    Actor.token = payload
 
-    assert_equal payload, Current.token
+    assert_equal payload, Actor.token
   end
 end

@@ -47,4 +47,5 @@ class AvatarMembership < AvatarRecord
   validates :valid_from, presence: true
   validates :id, numericality: { only_integer: true }, allow_nil: true
 end
+
 # rubocop:enable Layout/LineLength

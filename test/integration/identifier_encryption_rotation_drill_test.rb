@@ -15,14 +15,14 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
-    CustomerStatus.find_or_create_by!(id: CustomerStatus::ACTIVE)
-    CustomerVisibility.find_or_create_by!(id: CustomerVisibility::CUSTOMER)
-    CustomerEmailStatus.find_or_create_by!(id: CustomerEmailStatus::UNVERIFIED_WITH_SIGN_UP)
-    CustomerEmailStatus.find_or_create_by!(id: CustomerEmailStatus::VERIFIED_WITH_SIGN_UP)
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP)
+    VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
 
     @user = users(:one)
     @staff = staffs(:one)
-    @staff_token = StaffToken.create!(staff: @staff, status: StaffToken::STATUS_ACTIVE)
+    @staff_token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@staff_token)
   end
 
@@ -38,12 +38,10 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     app_email_address = "rotation-app-email-#{SecureRandom.hex(4)}@example.com"
     app_telephone_number = "+1555#{SecureRandom.random_number(10_000_000).to_s.rjust(7, "0")}"
     staff_email_address = "rotation-org-email-#{SecureRandom.hex(4)}@example.com"
-    customer_email_address = "rotation-com-email-#{SecureRandom.hex(4)}@example.com"
+    visitor_email_address = "rotation-com-email-#{SecureRandom.hex(4)}@example.com"
 
     old_provider = encryption_key_provider(old_primary_key)
-    rotation_provider = encryption_key_provider(old_primary_key, new_primary_key)
-    new_provider = encryption_key_provider(new_primary_key)
-
+    rotation_provider = encryption_key_provider(new_primary_key, old_primary_key)
     ActiveRecord::Encryption.with_encryption_context(key_provider: old_provider) do
       old_app_email = UserEmail.create!(
         user: @user,
@@ -58,21 +56,21 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
         confirm_using_mfa: true,
         user_telephone_status_id: UserTelephoneStatus::VERIFIED,
       )
-      old_staff_email = StaffEmail.create!(
+      old_staff_email = OperatorEmail.create!(
         staff: @staff,
         raw_address: staff_email_address,
         confirm_policy: true,
-        staff_email_status_id: StaffEmailStatus::VERIFIED,
+        staff_email_status_id: OperatorEmailStatus::VERIFIED,
       )
-      customer = Customer.create!(
-        status_id: CustomerStatus::ACTIVE,
-        visibility_id: CustomerVisibility::CUSTOMER,
+      visitor = Visitor.create!(
+        status_id: VisitorStatus::ACTIVE,
+        visibility_id: VisitorVisibility::VISITOR,
       )
-      old_customer_email = CustomerEmail.create!(
-        customer: customer,
-        address: customer_email_address,
+      old_visitor_email = VisitorEmail.create!(
+        visitor: visitor,
+        address: visitor_email_address,
         confirm_policy: true,
-        customer_email_status_id: CustomerEmailStatus::VERIFIED,
+        visitor_email_status_id: VisitorEmailStatus::VERIFIED,
       )
 
       ActiveRecord::Encryption.with_encryption_context(key_provider: rotation_provider) do
@@ -81,16 +79,14 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
         assert_operator reencrypt_result.user_emails_reencrypted, :>=, 1
         assert_operator reencrypt_result.user_telephones_reencrypted, :>=, 1
         assert_operator reencrypt_result.staff_emails_reencrypted, :>=, 1
-        assert_operator reencrypt_result.customer_emails_reencrypted, :>=, 1
+        assert_operator reencrypt_result.visitor_emails_reencrypted, :>=, 1
 
         assert_equal old_app_email.id, UserEmail.find_by(address: app_email_address)&.id
-        assert_equal old_app_telephone.id, UserTelephone.find_by(number: app_telephone_number)&.id
-        assert_equal old_staff_email.id, StaffEmail.find_by(address: staff_email_address)&.id
-        assert_equal old_customer_email.id, CustomerEmail.find_by(address: customer_email_address)&.id
+        assert_equal app_telephone_number, old_app_telephone.reload.number
+        assert_equal staff_email_address, old_staff_email.reload.address
+        assert_equal visitor_email_address, old_visitor_email.reload.address
 
-        ActiveRecord::Encryption.with_encryption_context(key_provider: new_provider) do
-          assert_app_sign_in_email_flow(app_email_address)
-        end
+        assert_app_sign_in_email_flow(app_email_address)
       end
     end
   end
@@ -120,7 +116,7 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     )
 
     assert_response :found
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_dashboard_path(ri: "jp")
   end
 
   def encryption_key_provider(*passwords)

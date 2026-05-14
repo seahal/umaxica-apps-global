@@ -5,29 +5,20 @@ module Sign
   module Org
     module Preference
       class EmailsController < ApplicationController
-        public_strict!
-        include ::Preference::EmailActions
+        include Sign::PromotionalEmailUnsubscribeActions
 
         private
 
-        def audience_name
-          "org"
+        def promotional_email_model
+          OperatorEmail
         end
 
-        def preference_mailer_class
-          Email::Org::PreferenceMailer
+        def promotional_email_scope
+          :operator
         end
 
-        def find_email_record_by_address(email)
-          StaffEmail.find_by(address: email)
-        end
-
-        def preference_email_new_path
-          new_sign_org_preference_email_path(ri: params[:ri])
-        end
-
-        def preference_email_edit_url(token)
-          edit_sign_org_preference_email_url(token: token, ri: params[:ri])
+        def redirect_after_unsubscribe_path(token:)
+          edit_sign_org_preference_email_path(@email, token: token)
         end
       end
     end

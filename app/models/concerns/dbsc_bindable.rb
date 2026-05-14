@@ -9,7 +9,7 @@ module DbscBindable
       return :binding_method_id if attribute_names.include?("binding_method_id")
       return :user_token_binding_method_id if attribute_names.include?("user_token_binding_method_id")
       return :staff_token_binding_method_id if attribute_names.include?("staff_token_binding_method_id")
-      return :customer_token_binding_method_id if attribute_names.include?("customer_token_binding_method_id")
+      return :visitor_token_binding_method_id if attribute_names.include?("visitor_token_binding_method_id")
 
       raise NoMethodError, "No DBSC binding method attribute for #{name}"
     end
@@ -18,7 +18,7 @@ module DbscBindable
       return :dbsc_status_id if attribute_names.include?("dbsc_status_id")
       return :user_token_dbsc_status_id if attribute_names.include?("user_token_dbsc_status_id")
       return :staff_token_dbsc_status_id if attribute_names.include?("staff_token_dbsc_status_id")
-      return :customer_token_dbsc_status_id if attribute_names.include?("customer_token_dbsc_status_id")
+      return :visitor_token_dbsc_status_id if attribute_names.include?("visitor_token_dbsc_status_id")
 
       raise NoMethodError, "No DBSC status attribute for #{name}"
     end
@@ -37,8 +37,8 @@ module DbscBindable
         "ComPreference" => ComPreferenceBindingMethod,
         "OrgPreference" => OrgPreferenceBindingMethod,
         "UserToken" => UserTokenBindingMethod,
-        "StaffToken" => StaffTokenBindingMethod,
-        "CustomerToken" => CustomerTokenBindingMethod,
+        "OperatorToken" => OperatorTokenBindingMethod,
+        "VisitorToken" => VisitorTokenBindingMethod,
       }
     end
 
@@ -48,8 +48,8 @@ module DbscBindable
         "ComPreference" => ComPreferenceDbscStatus,
         "OrgPreference" => OrgPreferenceDbscStatus,
         "UserToken" => UserTokenDbscStatus,
-        "StaffToken" => StaffTokenDbscStatus,
-        "CustomerToken" => CustomerTokenDbscStatus,
+        "OperatorToken" => OperatorTokenDbscStatus,
+        "VisitorToken" => VisitorTokenDbscStatus,
       }
     end
   end
@@ -71,19 +71,19 @@ module DbscBindable
   end
 
   def dbsc_status_pending?
-    dbsc_status_value == 1
+    dbsc_status_value == self.class.dbsc_status_class::PENDING
   end
 
   def dbsc_status_active?
-    dbsc_status_value == 2
+    dbsc_status_value == self.class.dbsc_status_class::ACTIVE
   end
 
   def dbsc_status_failed?
-    dbsc_status_value == 3
+    dbsc_status_value == self.class.dbsc_status_class::FAILED
   end
 
   def dbsc_status_revoke?
-    dbsc_status_value == 4
+    dbsc_status_value == self.class.dbsc_status_class::REVOKE
   end
 
   def dbsc_enabled?

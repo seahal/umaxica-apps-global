@@ -30,11 +30,19 @@ class AppPreferenceStatusTest < ActiveSupport::TestCase
   end
 
   test "ensure_defaults! creates missing default records" do
-    AppPreferenceStatus.where(id: AppPreferenceStatus::NOTHING).destroy_all
+    called = false
 
-    assert_difference("AppPreferenceStatus.count") do
+    AppPreferenceStatus.stub(
+      :insert_missing_fixed_ids!, ->(ids) do
+                                    called = true
+
+                                    assert_equal AppPreferenceStatus::DEFAULTS, ids
+                                  end,
+    ) do
       AppPreferenceStatus.ensure_defaults!
     end
+
+    assert called
   end
 
   test "ensure_defaults! skips when all defaults exist" do

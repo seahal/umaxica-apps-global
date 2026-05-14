@@ -27,7 +27,7 @@
             </div>
             <div>
               <h4>Google</h4>
-              <% if current_user.user_social_google %>
+              <% if current_user.active_social_provider?("google") %>
                 <p><%= t("views.sign.app.configuration.googles.show.linked") %></p>
               <% else %>
                 <p><%= t("views.sign.app.configuration.googles.show.unlinked") %></p>
@@ -35,7 +35,7 @@
             </div>
           </div>
           <div>
-            <% if current_user.user_social_google %>
+            <% if current_user.active_social_provider?("google") %>
               <% unlink_allowed = current_user.login_methods_remaining?(excluding_provider: "google_app") %>
               <%= button_to t('actions.disconnect'),
                             sign_app_social_authentication_path(provider: "google_app"),

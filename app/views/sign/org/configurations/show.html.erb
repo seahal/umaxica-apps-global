@@ -31,7 +31,7 @@
 <section>
   <h2><%= t("sign.app.configuration.show.others") %></h2>
   <ul>
-    <li><%= link_to t("sign.app.configuration.show.logout"), edit_sign_org_configuration_out_path(ri: "jp") %></li>
+    <li><%= link_to t("sign.app.configuration.show.logout"), edit_sign_org_out_path(ri: params[:ri]) %></li>
     <li><%= link_to t("sign.org.configuration.show.withdrawal"), sign_org_configuration_withdrawal_path %></li>
   </ul>
 </section>

@@ -49,10 +49,25 @@ module Oidc
     end
 
     def issue_authorization_code!
-      if @client.resource_type == "staff"
+      if operator_client?
         TokenRecord.connected_to(role: :writing) do
-          StaffAuthorizationCode.issue!(
+          OperatorAuthorizationCode.issue!(
             staff: resource,
+            client_id: params[:client_id],
+            redirect_uri: params[:redirect_uri],
+            code_challenge: params[:code_challenge],
+            code_challenge_method: params[:code_challenge_method],
+            scope: params[:scope],
+            state: params[:state],
+            nonce: params[:nonce],
+            auth_method: auth_method,
+            acr: acr,
+          )
+        end
+      elsif visitor_client?
+        SymbolRecord.connected_to(role: :writing) do
+          VisitorAuthorizationCode.issue!(
+            visitor: resource,
             client_id: params[:client_id],
             redirect_uri: params[:redirect_uri],
             code_challenge: params[:code_challenge],
@@ -80,6 +95,14 @@ module Oidc
           )
         end
       end
+    end
+
+    def operator_client?
+      %w(operator staff).include?(@client.resource_type)
+    end
+
+    def visitor_client?
+      %w(visitor customer).include?(@client.resource_type)
     end
 
     def build_success_redirect(code_record)

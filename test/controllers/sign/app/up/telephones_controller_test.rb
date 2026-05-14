@@ -10,9 +10,11 @@ module Sign::App::Up
              :user_statuses, :user_telephone_statuses,
              :user_chronicle_events, :user_chronicle_levels
     include ActiveJob::TestHelper
+    include ActiveSupport::Testing::TimeHelpers
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      cookies["csrf_token"] = csrf_token_value
       # Mock Cloudflare Turnstile validation
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -27,6 +29,35 @@ module Sign::App::Up
       get new_sign_app_up_telephone_url(ri: "jp")
 
       assert_response :success
+    end
+
+    test "new redirects to dashboard when user is already logged in" do
+      user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
+
+      get new_sign_app_up_telephone_url(ri: "jp"),
+          headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+
+      assert_redirected_to sign_app_dashboard_url(ri: "jp")
+    end
+
+    test "create rejects when user is already logged in" do
+      user = User.create!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
+
+      assert_no_difference("UserTelephone.count") do
+        post sign_app_up_telephones_url(ri: "jp"),
+             params: {
+               user_telephone: {
+                 raw_number: "+1234567890",
+                 confirm_policy: "1",
+                 confirm_using_mfa: "1",
+               },
+               "cf-turnstile-response": "test",
+             },
+             headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+      end
+
+      assert_response :unauthorized
+      assert_equal I18n.t("errors.messages.not_authorized"), response.body
     end
 
     test "edit route uses id path parameter" do
@@ -147,6 +178,41 @@ module Sign::App::Up
       assert_response :unprocessable_content
     end
 
+    test "create renders unprocessable when user_telephone param missing" do
+      assert_enqueued_jobs 0, only: SmsDeliveryJob do
+        assert_no_difference("User.count") do
+          assert_no_difference("UserTelephone.count") do
+            post sign_app_up_telephones_url(ri: "jp"), params: {
+              "cf-turnstile-response": "test",
+            }
+          end
+        end
+      end
+
+      assert_response :unprocessable_content
+    end
+
+    test "create with turnstile failure returns unprocessable content" do
+      CloudflareTurnstile.test_validation_response = { "success" => false }
+
+      assert_enqueued_jobs 0, only: SmsDeliveryJob do
+        assert_no_difference("User.count") do
+          assert_no_difference("UserTelephone.count") do
+            post sign_app_up_telephones_url(ri: "jp"), params: {
+              user_telephone: {
+                raw_number: "+1234567897",
+                confirm_policy: "1",
+                confirm_using_mfa: "1",
+              },
+              "cf-turnstile-response": "test",
+            }
+          end
+        end
+      end
+
+      assert_response :unprocessable_content
+    end
+
     test "should update telephone with valid otp" do
       # 1. Create telephone via request to set up session
       post sign_app_up_telephones_url(ri: "jp"), params: {
@@ -218,7 +284,7 @@ module Sign::App::Up
         }
       end
 
-      assert_redirected_to sign_app_configuration_url(ri: "jp")
+      assert_redirected_to sign_app_dashboard_url(ri: "jp")
       assert_predicate cookies[Authentication::Base::ACCESS_COOKIE_KEY], :present?
     end
 
@@ -265,6 +331,14 @@ module Sign::App::Up
 
       assert_not_nil signup_audit
       assert_equal "User", signup_audit.actor_type
+
+      login_audit = UserChronicle.where(
+        event_id: UserChronicleEvent::LOGGED_IN,
+        actor_id: user.id,
+      ).last
+
+      assert_not_nil login_audit
+      assert_equal "telephone", login_audit.context["auth_method"]
     end
 
     test "should reject blank pass code" do
@@ -297,19 +371,20 @@ module Sign::App::Up
       telephone = registration_telephone
       user = telephone.user
 
-      # Submit wrong OTP 3 times (max attempts)
-      3.times do
-        patch sign_app_up_telephone_url(telephone, ri: "jp"), params: {
-          user_telephone: { pass_code: "000000" },
-        }
+      Prosopite.pause do
+        Telephone::MAX_OTP_ATTEMPTS.times do
+          patch sign_app_up_telephone_url(telephone, ri: "jp"), params: {
+            user_telephone: { pass_code: "000000" },
+          }
+        end
       end
 
       assert_redirected_to new_sign_app_up_telephone_url(ri: "jp")
       assert_equal I18n.t("sign.app.registration.telephone.update.attempts_exceeded"), flash[:alert]
 
-      # Telephone and pending user should be destroyed
-      assert_not UserTelephone.exists?(telephone.id)
-      assert_not User.exists?(user.id)
+      assert UserTelephone.exists?(telephone.id)
+      assert User.exists?(user.id)
+      assert_predicate telephone.reload, :locked?
       assert_nil session[:user_telephone_registration]
     end
 
@@ -326,19 +401,51 @@ module Sign::App::Up
       first_telephone = registration_telephone
       first_user = first_telephone.user
 
-      # Create second registration with the same number
+      travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
+        # Create second registration with the same number
+        post sign_app_up_telephones_url(ri: "jp"), params: {
+          user_telephone: {
+            raw_number: "+1234567894",
+            confirm_policy: "1",
+            confirm_using_mfa: "1",
+          },
+          "cf-turnstile-response": "test",
+        }
+      end
+
+      # First telephone and its pending user should be cleaned up
+      assert_not UserTelephone.exists?(first_telephone.id)
+      assert_not User.exists?(first_user.id)
+    end
+
+    test "create rejects duplicate unverified telephone inside overwrite window" do
       post sign_app_up_telephones_url(ri: "jp"), params: {
         user_telephone: {
-          raw_number: "+1234567894",
+          raw_number: "+1234567895",
           confirm_policy: "1",
           confirm_using_mfa: "1",
         },
         "cf-turnstile-response": "test",
       }
+      first_telephone = registration_telephone
+      first_user = first_telephone.user
 
-      # First telephone and its pending user should be cleaned up
-      assert_not UserTelephone.exists?(first_telephone.id)
-      assert_not User.exists?(first_user.id)
+      assert_no_difference("UserTelephone.count") do
+        assert_no_difference("User.count") do
+          post sign_app_up_telephones_url(ri: "jp"), params: {
+            user_telephone: {
+              raw_number: "+1234567895",
+              confirm_policy: "1",
+              confirm_using_mfa: "1",
+            },
+            "cf-turnstile-response": "test",
+          }
+        end
+      end
+
+      assert_response :too_many_requests
+      assert UserTelephone.exists?(first_telephone.id)
+      assert User.exists?(first_user.id)
     end
 
     test "resend sends code for active registration session" do
@@ -429,6 +536,16 @@ module Sign::App::Up
       registration_session = session[:user_telephone_registration] || {}
       public_id = registration_session[:public_id] || registration_session["public_id"]
       UserTelephone.find_by!(public_id: public_id)
+    end
+
+    def post(path, **options)
+      options[:headers] = browser_headers.merge(options[:headers] || {})
+      super
+    end
+
+    def patch(path, **options)
+      options[:headers] = browser_headers.merge(options[:headers] || {})
+      super
     end
   end
 end

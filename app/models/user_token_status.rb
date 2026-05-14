@@ -14,6 +14,10 @@ class UserTokenStatus < MarkRecord
 
   NOTHING = 0
   ACTIVE = 1
-  EXPIRED = 2
+  EXPIRED = 102
+  RESTRICTED = 103
+  REVOKED = 104
+  DEFAULTS = [NOTHING, ACTIVE, EXPIRED, RESTRICTED, REVOKED].freeze
+
   has_many :user_tokens, dependent: :restrict_with_error
 end

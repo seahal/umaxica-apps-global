@@ -41,5 +41,5 @@ one:
   subject_type: AppPreference
   occurred_at: <%= Time.current %>
   purge_at: <%= 20.years.from_now %>
-  event_id: 8
+  event_id: 1
   level_id: 1

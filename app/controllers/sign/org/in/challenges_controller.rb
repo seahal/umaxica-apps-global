@@ -10,7 +10,7 @@ module Sign
 
         def show
           @mfa_staff = pending_mfa_user
-          @can_use_passkey = @mfa_staff&.staff_passkeys&.exists?(status_id: StaffPasskeyStatus::ACTIVE)
+          @can_use_passkey = @mfa_staff&.staff_passkeys&.exists?(status_id: OperatorPasskeyStatus::ACTIVE)
         end
 
         private

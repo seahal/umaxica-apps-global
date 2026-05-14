@@ -33,9 +33,9 @@
 
 require "test_helper"
 
-class StaffOccurrenceTest < ActiveSupport::TestCase
+class OperatorOccurrenceTest < ActiveSupport::TestCase
   test "lifecycle timestamps default" do
-    record = build_occurrence(StaffOccurrence, body: "staff-occur-1", public_id: "Y" * 21)
+    record = build_occurrence(OperatorOccurrence, body: "staff-occur-1", public_id: "Y" * 21)
 
     assert_occurrence_lifecycle_defaults(record)
   end

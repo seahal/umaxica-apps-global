@@ -23,3 +23,5 @@ token_refreshed:
   id: 6
 step_up_verified:
   id: 11
+social_unlinked:
+  id: 12
