@@ -6,7 +6,9 @@ require "jwt"
 module Preference
   module WebCookieEndpoint
     extend ActiveSupport::Concern
+    include Preference::Base
     include Preference::ConsentedBuffer
+    include Preference::ResourceSync
 
     private
 
@@ -59,7 +61,7 @@ module Preference
 
     # SSOT decode point.
     def decode_and_verify_preference_jwt(jwt)
-      payload = Preference::Token.decode(jwt, host: request.host)
+      payload = decode_matching_access_token(jwt)
       return payload if payload.is_a?(Hash)
 
       Rails.logger.info(I18n.t("errors.preference.cookie.invalid_access_token"))
@@ -78,7 +80,7 @@ module Preference
     def decoded_preference_payload
       @decoded_preference_payload ||=
         begin
-          jwt = cookies[Preference::CookieName.access]
+          jwt = matching_access_token_value
           decode_and_verify_preference_jwt(jwt)
         end
     end
@@ -108,7 +110,7 @@ module Preference
     end
 
     def refresh_token_value
-      params[Preference::IoKeys::Params::REFRESH_TOKEN].presence || cookies[Preference::CookieName.refresh]
+      params[Preference::IoKeys::Params::REFRESH_TOKEN].presence || cookies[refresh_token_cookie_name]
     end
 
     def requested_consented_value
@@ -133,13 +135,20 @@ module Preference
           preference = preference_class.lock.find_by(public_id: public_id)
           raise ActiveRecord::RecordNotFound, "preference_not_found" if preference.blank?
 
+          @preferences = preference
           cookie = load_or_create_preference_cookie!(preference)
           attrs = { consented: consented }
           attrs[:consented_at] = consented ? (cookie.consented_at || Time.current) : nil
+
+          resource_pref = preference_write_resource_preference!
+          authorize_resource_preference_write!(resource_pref)
+          write_resource_preference_cookie!(resource_pref, attrs) if resource_pref
+
           cookie.update!(attrs)
 
           preference.reload
           issue_access_token_from(preference)
+          raise RuntimeError, "failed_to_issue_preference_access_token" if @preference_payload.blank?
 
           @decoded_preference_payload = nil
         end

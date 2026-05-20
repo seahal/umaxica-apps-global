@@ -12,6 +12,12 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "jp", pref.region
     assert_equal "Asia/Tokyo", pref.timezone
     assert_equal "sy", pref.theme
+    assert_equal "jpy", pref.currency
+    assert_equal "iso", pref.date_format
+    assert_equal "hour_24", pref.time_format
+    assert_equal "standard", pref.motion
+    assert_equal "standard", pref.density
+    assert_equal "20", pref.items_per_page
     assert_equal :ja, pref.locale
     assert_predicate pref, :system_theme?
     assert_not pref.dark_mode?
@@ -35,12 +41,24 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
       region: "us",
       timezone: "America/New_York",
       theme: "dr",
+      currency: "usd",
+      date_format: "mdy",
+      time_format: "hour_12",
+      motion: "reduced",
+      density: "compact",
+      items_per_page: "50",
     )
 
     assert_not pref.null?
     assert_equal "en", pref.language
     assert_equal "us", pref.region
     assert_equal "America/New_York", pref.timezone
+    assert_equal "usd", pref.currency
+    assert_equal "mdy", pref.date_format
+    assert_equal "hour_12", pref.time_format
+    assert_equal "reduced", pref.motion
+    assert_equal "compact", pref.density
+    assert_equal "50", pref.items_per_page
     assert_equal :en, pref.locale
     assert_predicate pref, :dark_mode?
     assert_not pref.system_theme?
@@ -69,6 +87,12 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_predicate pref, :frozen?
   end
 
+  test "preference does not expose a public id" do
+    pref = Actor::Preference.new
+
+    assert_not_respond_to pref, :public_id
+  end
+
   test "time_zone returns ActiveSupport::TimeZone" do
     pref = Actor::Preference.new(timezone: "America/New_York")
 
@@ -89,6 +113,12 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
 
     assert_equal "en", h[:language]
     assert_equal "li", h[:theme]
+    assert_equal "jpy", h[:currency]
+    assert_equal "iso", h[:date_format]
+    assert_equal "hour_24", h[:time_format]
+    assert_equal "standard", h[:motion]
+    assert_equal "standard", h[:density]
+    assert_equal "20", h[:items_per_page]
     assert_not h[:consented]
   end
 
@@ -121,7 +151,19 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
   end
 
   test "from_jwt constructs correct Preference from valid prf hash" do
-    prf = { "lx" => "en", "ri" => "us", "tz" => "America/New_York", "ct" => "dr" }
+    prf = {
+      "ver" => Actor::Preference::SCHEMA_VERSION,
+      "lx" => "en",
+      "ri" => "us",
+      "tz" => "America/New_York",
+      "ct" => "dr",
+      "cu" => "usd",
+      "df" => "mdy",
+      "tf" => "hour_12",
+      "mo" => "reduced",
+      "dn" => "compact",
+      "ipp" => "50",
+    }
     pref = Actor::Preference.from_jwt(prf)
 
     assert_not pref.null?
@@ -129,6 +171,39 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "us", pref.region
     assert_equal "America/New_York", pref.timezone
     assert_equal "dr", pref.theme
+    assert_equal "usd", pref.currency
+    assert_equal "mdy", pref.date_format
+    assert_equal "hour_12", pref.time_format
+    assert_equal "reduced", pref.motion
+    assert_equal "compact", pref.density
+    assert_equal "50", pref.items_per_page
+  end
+
+  test "from_jwt accepts preference snapshot without version" do
+    pref = Actor::Preference.from_jwt({ "lx" => "en", "ri" => "us" })
+
+    assert_not pref.null?
+    assert_equal "en", pref.language
+    assert_equal "us", pref.region
+  end
+
+  test "from_jwt accepts long extended preference keys" do
+    prf = {
+      "currency" => "eur",
+      "date_format" => "dmy",
+      "time_format" => "hour_24",
+      "motion" => "none",
+      "density" => "comfortable",
+      "items_per_page" => "100",
+    }
+    pref = Actor::Preference.from_jwt(prf)
+
+    assert_equal "eur", pref.currency
+    assert_equal "dmy", pref.date_format
+    assert_equal "hour_24", pref.time_format
+    assert_equal "none", pref.motion
+    assert_equal "comfortable", pref.density
+    assert_equal "100", pref.items_per_page
   end
 
   test "from_jwt falls back to DEFAULTS for missing keys" do
@@ -139,6 +214,8 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "jp", pref.region # DEFAULTS[:region]
     assert_equal "Asia/Tokyo", pref.timezone # DEFAULTS[:timezone]
     assert_equal "sy", pref.theme # DEFAULTS[:theme]
+    assert_equal "jpy", pref.currency
+    assert_equal "standard", pref.motion
   end
 
   test "from_jwt handles empty hash" do
@@ -148,6 +225,8 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "jp", pref.region
     assert_equal "Asia/Tokyo", pref.timezone
     assert_equal "sy", pref.theme
+    assert_equal "jpy", pref.currency
+    assert_equal "20", pref.items_per_page
   end
 
   test "from_jwt with cookie parameter" do
@@ -167,7 +246,14 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
   end
 
   test "with_cookie keeps preference values and updates cookie state" do
-    pref = Actor::Preference.new(language: "en", region: "us", timezone: "America/New_York", theme: "dr")
+    pref = Actor::Preference.new(
+      language: "en",
+      region: "us",
+      timezone: "America/New_York",
+      theme: "dr",
+      currency: "usd",
+      motion: "reduced",
+    )
 
     updated = pref.with_cookie(
       consented: true,
@@ -181,6 +267,8 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "us", updated.region
     assert_equal "America/New_York", updated.timezone
     assert_equal "dr", updated.theme
+    assert_equal "usd", updated.currency
+    assert_equal "reduced", updated.motion
     assert_predicate updated.cookie, :consented?
     assert_predicate updated.cookie, :functional?
     assert_not updated.cookie.performant?

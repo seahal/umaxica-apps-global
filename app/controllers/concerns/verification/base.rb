@@ -9,11 +9,8 @@ module Verification
 
     include Common::Redirect
 
-    TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
-
-    REAUTH_REQUIRED_MESSAGE = "Re-authentication required"
     STEP_UP_TTL = 15.minutes
-    STEP_UP_REQUIRED_MESSAGE = "Re-authentication required\nYour changes have not been saved"
+    STEP_UP_REQUIRED_MESSAGE = "Step-up authentication required\nYour changes have not been saved"
 
     def verification_requirement
       @required_verification
@@ -40,15 +37,17 @@ module Verification
       actor_token = current_actor_token
       return false unless actor_token
 
-      raw_token = cookies[verification_model.cookie_name].to_s
-      return false if raw_token.blank?
-
-      if Rails.env.test? && raw_token.start_with?(TEST_VERIFICATION_COOKIE_PREFIX)
-        return true
+      scope = verification_scope
+      if scope.present?
+        return recorded_step_up_satisfied?(actor_token, scope: scope)
       end
 
-      scope = verification_scope
-      return true if scope.present? && recorded_step_up_satisfied?(actor_token, scope: scope)
+      verification_record_satisfied?(actor_token)
+    end
+
+    def verification_record_satisfied?(actor_token)
+      raw_token = cookies[verification_model.cookie_name].to_s
+      return false if raw_token.blank?
 
       digest = verification_model.digest_token(raw_token)
       verification = verification_model.active.find_by(
@@ -64,9 +63,7 @@ module Verification
         nil
       end
 
-      return true if scope.blank?
-
-      step_up_satisfied?(scope: scope)
+      true
     end
 
     def recorded_step_up_satisfied?(token, scope:)
@@ -80,8 +77,6 @@ module Verification
       token = current_session_token
       return false unless token
       return false unless token.currently_usable?
-
-      return true if token.created_at >= STEP_UP_TTL.ago
 
       token.last_step_up_at.present? &&
         token.last_step_up_at > STEP_UP_TTL.ago &&
@@ -156,9 +151,9 @@ module Verification
           status: :found,
         )
       elsif request.format.json?
-        render json: { error: REAUTH_REQUIRED_MESSAGE }, status: :unauthorized
+        render json: { error: STEP_UP_REQUIRED_MESSAGE }, status: :unauthorized
       else
-        render plain: REAUTH_REQUIRED_MESSAGE, status: :unauthorized
+        render plain: STEP_UP_REQUIRED_MESSAGE, status: :unauthorized
       end
     end
 
@@ -185,7 +180,25 @@ module Verification
       elsif request.format.json?
         render json: { error: I18n.t("auth.step_up.register_methods_required") }, status: :unprocessable_content
       else
-        render plain: I18n.t("auth.step_up.register_methods_required"), status: :unprocessable_content
+        destination =
+          if step_up_bootstrap_unconfigured?
+            verification_setup_redirect_path(rt: encoded_step_up_rt)
+          else
+            verification_redirect_path(rt: encoded_step_up_rt, scope_override: scope_override)
+          end
+        fallback =
+          if step_up_bootstrap_unconfigured?
+            verification_setup_redirect_fallback
+          else
+            verification_redirect_fallback
+          end
+
+        safe_redirect_to(
+          destination,
+          fallback: fallback,
+          status: :see_other,
+          alert: I18n.t("auth.step_up.register_methods_required"),
+        )
       end
       false
     end
@@ -208,7 +221,7 @@ module Verification
     end
 
     def bootstrap_return_path(default_path)
-      encoded = params.expect(:rt).to_s
+      encoded = request.parameters["rt"].to_s
       return default_path if encoded.blank?
 
       decoded = Base64.urlsafe_decode64(encoded)
@@ -273,24 +286,24 @@ module Verification
     end
 
     def current_session_token
-      current_resource if current_session_public_id.blank? && respond_to?(:current_resource, true)
-      return nil if current_session_public_id.blank?
+      return @current_session_token if defined?(@current_session_token)
+      return @current_session_token = nil if current_session_public_id.blank?
 
-      token_class.find_by(public_id: current_session_public_id)
+      @current_session_token = token_class.find_by(public_id: current_session_public_id)
     end
 
     def current_actor_token
-      current_resource if current_session_public_id.blank? && respond_to?(:current_resource, true)
-      return nil if current_session_public_id.blank?
+      return @current_actor_token if defined?(@current_actor_token)
+      return @current_actor_token = nil if current_session_public_id.blank?
 
       token = token_class.find_by(public_id: current_session_public_id)
-      return token if token&.currently_usable?
+      return @current_actor_token = token if token&.currently_usable?
 
-      nil
+      @current_actor_token = nil
     end
 
     def verification_model
-      actor_operator? ? OperatorVerification : UserVerification
+      actor_operator? ? OperatorVerification : ClientVerification
     end
 
     def verification_token_foreign_key
@@ -302,23 +315,33 @@ module Verification
     end
 
     def available_step_up_methods(actor = current_actor)
-      ::StepUp::AvailableMethods.call(actor, ticket: current_step_up_ticket) & step_up_supported_methods
+      return @available_step_up_methods if actor.nil? && defined?(@available_step_up_methods)
+
+      result = ::StepUp::AvailableMethods.call(actor, ticket: current_step_up_ticket) & step_up_supported_methods
+      @available_step_up_methods = result if actor.nil?
+      result
     end
 
     def configured_step_up_methods(actor = current_actor)
-      ::StepUp::ConfiguredMethods.call(actor) & step_up_supported_methods
+      return @configured_step_up_methods if actor.nil? && defined?(@configured_step_up_methods)
+
+      result = ::StepUp::ConfiguredMethods.call(actor) & step_up_supported_methods
+      @configured_step_up_methods = result if actor.nil?
+      result
     end
 
     def step_up_bootstrap_unconfigured?(actor = current_actor)
       return false unless actor
-      return true if configured_step_up_methods(actor).empty?
+
+      refresh_actor_multi_factor_status(actor)
       return actor.multi_factor_status_unconfigured? if actor.respond_to?(:multi_factor_status_unconfigured?)
 
-      false
+      configured_step_up_methods(actor).empty?
     end
 
     def step_up_bootstrap_active?(actor = current_actor)
       return false unless actor
+
       return actor.multi_factor_status_active? if actor.respond_to?(:multi_factor_status_active?)
 
       configured_step_up_methods(actor).present?
@@ -326,7 +349,7 @@ module Verification
 
     def current_step_up_ticket
       token = current_session_token
-      return token.reauth_session if token&.respond_to?(:reauth_session)
+      return token.step_up_session if token&.respond_to?(:step_up_session)
 
       nil
     end
@@ -338,9 +361,16 @@ module Verification
     def current_actor
       return current_operator if actor_operator? && respond_to?(:current_operator)
       return current_visitor if respond_to?(:current_visitor)
-      return current_user if respond_to?(:current_user)
+      return current_client if respond_to?(:current_client)
 
       nil
+    end
+
+    def refresh_actor_multi_factor_status(actor)
+      return unless actor.respond_to?(:refresh_multi_factor_status!)
+      return if actor.destroyed?
+
+      actor.refresh_multi_factor_status!
     end
 
     def verification_redirect_path(rt: nil, scope_override: nil)

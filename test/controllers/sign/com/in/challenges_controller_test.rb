@@ -21,7 +21,7 @@ class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
     _secret, @raw_secret = VisitorSecret.issue!(
       name: "Hub secret",
       visitor_id: @visitor.id,
-      visitor_secret_kind_id: VisitorSecretKind::PERMANENT,
+      visitor_secret_kind_id: VisitorSecretKind::LOGIN,
       uses: 10,
       status: :active,
     )

@@ -3,6 +3,9 @@
 This document describes the current step-up gate used by the `app`, `com`, and `org` sign
 configuration surfaces.
 
+Step-up is the product's current `AAL2` boundary. The broader AAL terminology is defined in
+`docs/security/authentication-assurance-levels.md`.
+
 ## Purpose
 
 Step-up protects sensitive signed-in pages, such as personal information, credential management,
@@ -12,46 +15,56 @@ registration when no step-up method exists.
 
 ## Columns
 
-`multi_factor_id` is the actor policy level. It describes the requested MFA strength and must not
-be used as the credential-availability cache.
+`multi_factor_id` is the actor policy level. It describes the requested MFA strength and must not be
+used as the credential-availability cache.
 
 `multi_factor_status_id` is the credential-availability cache:
 
-| value | name           | meaning                                                                 |
-| ----- | -------------- | ----------------------------------------------------------------------- |
+| value | name           | meaning                                                                       |
+| ----- | -------------- | ----------------------------------------------------------------------------- |
 | `0`   | `NOTHING`      | Placeholder only. Runtime checks raise because this is an implementation bug. |
-| `1`   | `ACTIVE`       | At least one surface-counting step-up method exists.                    |
-| `5`   | `UNCONFIGURED` | No surface-counting step-up method exists. New actors default here.     |
+| `1`   | `ACTIVE`       | At least one surface-counting step-up method exists.                          |
+| `5`   | `UNCONFIGURED` | No surface-counting step-up method exists. New actors default here.           |
 
 ## Surface Criteria
 
 The status is recalculated from surface-specific step-up methods:
 
-| surface | `ACTIVE` when any of these exist |
-| ------- | -------------------------------- |
+| surface | `ACTIVE` when any of these exist                              |
+| ------- | ------------------------------------------------------------- |
 | `app`   | verified user email, active user passkey, or active user TOTP |
-| `com`   | verified visitor email or active visitor passkey |
-| `org`   | active operator passkey |
+| `com`   | verified visitor email or active visitor passkey              |
+| `org`   | active operator passkey                                       |
 
-Telephone numbers, social identities, and recovery secrets do not count as step-up methods.
+When multiple app step-up methods are available, prefer passkey, then TOTP, then email OTP.
+
+Telephone numbers, social identities, and passcodes do not count as step-up methods. Telephone is
+also not an AAL1 method by itself; it may be an entry point into an AAL1 sign-in flow, but the
+verifier used after that entry point is the AAL method.
+
+Email addresses and telephone numbers are contact identifiers. Contact identifiers are PII used for
+notification, reachability, or recovery, and ordinary credential-management flows must preserve at
+least one usable contact identifier. This contact-identifier minimum is separate from AAL2
+availability: deleting a telephone can violate the contact-identifier minimum even though telephone
+is not a step-up method.
 
 ## Page Classes
 
 Pages fall into three classes:
 
-| class | behavior |
-| ----- | -------- |
-| No step-up | The page does not read `multi_factor_status_id`. |
-| Sensitive | The page requires step-up. If status is `UNCONFIGURED`, it redirects to setup first. |
+| class                         | behavior                                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| No step-up                    | The page does not read `multi_factor_status_id`.                                                                          |
+| Sensitive                     | The page requires step-up. If status is `UNCONFIGURED`, it redirects to setup first.                                      |
 | Bootstrap-exempt registration | The page allows access without step-up only while status is `UNCONFIGURED`; once status is `ACTIVE`, it requires step-up. |
 
 Bootstrap-exempt registration actions are:
 
-| surface | bootstrap-exempt actions |
-| ------- | ------------------------ |
-| `app` | email registration, passkey registration, TOTP registration |
-| `com` | email registration, passkey registration |
-| `org` | passkey registration |
+| surface | bootstrap-exempt actions                                    |
+| ------- | ----------------------------------------------------------- |
+| `app`   | email registration, passkey registration, TOTP registration |
+| `com`   | email registration, passkey registration                    |
+| `org`   | passkey registration                                        |
 
 For `org`, email registration is credential management, not bootstrap. The first step-up method is
 operator passkey.
@@ -64,3 +77,13 @@ email has status `ACTIVE`, so `/configuration/totps` requires step-up even if th
 
 Successful credential registration updates the status through model callbacks. The standard
 credential registration audit events continue to record the actual registration.
+
+## MFA Reset Recovery
+
+MFA reset is not a step-up method and must not bypass step-up. When an actor loses all usable MFA
+material, the reset path follows the account-recovery design in
+`docs/security/mfa-reset-account-recovery.md`.
+
+After an approved reset revokes the actor's surface-counting credentials, `multi_factor_status_id`
+is recalculated. If no step-up method remains, the actor returns to `UNCONFIGURED` and must use the
+existing bootstrap-exempt registration flow before sensitive actions can pass normal step-up again.

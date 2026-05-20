@@ -4,31 +4,29 @@
 module Sign
   module Com
     module Verification
-      class BaseController < Sign::Com::ApplicationController
-        auth_required!
-
-        include Sign::AppVerificationBase
+      class BaseController < Sign::Com::PrivateController
+        include Sign::ComVerificationBase
 
         skip_before_action :enforce_verification_if_required, raise: false
 
         private
 
-        def reauth_session_model = VisitorReauthSession
+        def step_up_session_model = VisitorStepUpSession
 
-        def reauth_session_token_foreign_key = :visitor_token_id
+        def step_up_session_token_foreign_key = :visitor_token_id
 
-        def valid_reauth_session?(rs)
+        def valid_step_up_session?(rs)
           rs.present? &&
-            rs.lapses_at > Time.current &&
+            rs.discarded_at > Time.current &&
             rs.visitor_token_id == actor_token.id &&
             rs.status == "PENDING" &&
             rs.scope.present? &&
             rs.return_to.present?
         end
 
-        def handle_invalid_reauth_session!
-          clear_reauth_state!
-          if restore_reauth_session_from_params! && valid_reauth_session?(current_reauth_session)
+        def handle_invalid_step_up_session!
+          clear_step_up_state!
+          if restore_step_up_session_from_params! && valid_step_up_session?(current_step_up_session)
             return true
           end
 
@@ -44,8 +42,8 @@ module Sign
           sign_com_verification_path(ri: params[:ri])
         end
 
-        def clear_reauth_state!
-          Rails.cache.delete(email_otp_cache_key) if current_reauth_session.present?
+        def clear_step_up_state!
+          Rails.cache.delete(email_otp_cache_key) if current_step_up_session.present?
         end
 
         def verification_model
@@ -53,7 +51,7 @@ module Sign
         end
 
         def verification_success_event_id
-          UserChronicleEvent::STEP_UP_VERIFIED
+          ClientChronicleEvent::STEP_UP_VERIFIED
         end
 
         def verification_success_notice_key
@@ -64,13 +62,13 @@ module Sign
           sign_com_verification_path(ri: params[:ri])
         end
 
-        def verification_audit_event_class = UserChronicleEvent
+        def verification_audit_event_class = ClientChronicleEvent
 
-        def verification_audit_level_class = UserChronicleLevel
+        def verification_audit_level_class = ClientChronicleLevel
 
-        def verification_default_activity_level_id = UserChronicleLevel::NOTHING
+        def verification_default_activity_level_id = ClientChronicleLevel::NOTHING
 
-        def verification_activity_model = UserChronicle
+        def verification_activity_model = ClientChronicle
 
         def current_verification_actor = current_visitor
 
@@ -115,11 +113,11 @@ module Sign
             email_otp_cache_key, {
               "secret" => secret,
               "counter" => counter,
-            }, expires_in: [current_reauth_session.lapses_at - Time.current, 0].max,
+            }, expires_in: [current_step_up_session.discarded_at - Time.current, 0].max,
           )
 
-          Email::App::RegistrationMailer.with(
-            hotp_token: pass_code,
+          Email::Com::OtpMailer.with(
+            encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(pass_code),
             email_address: visitor_email.address,
             public_id: current_visitor.public_id,
             verification_token: nil,

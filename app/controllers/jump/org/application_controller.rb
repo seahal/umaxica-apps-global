@@ -3,7 +3,7 @@
 
 module Jump
   module Org
-    class ApplicationController < Jump::PublicController
+    class ApplicationController < BareController
       public_strict!
     end
   end

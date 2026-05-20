@@ -27,7 +27,7 @@ Normal revoke state also blocks later refresh attempts.
 
 ## Evidence
 
-- `Auth::TokenClaims.normalize_acr` defaults blank values to `aal1`.
+- `Authorization::TokenClaims.normalize_acr` defaults blank values to `aal1`.
 - `Sign::RefreshTokenService` handles replay as a first-class branch and revokes actor token
   families.
 - `test/controllers/sign/org/edge/v0/token/refreshes_controller_test.rb` verifies:

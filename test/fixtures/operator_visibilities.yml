@@ -1,0 +1,23 @@
+# == Schema Information
+#
+# Table name: staff_visibilities
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorVisibility
+
+# Table name: staff_visibilities
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+nobody:
+  id: 0
+user:
+  id: 1
+staff:
+  id: 2
+both:
+  id: 3

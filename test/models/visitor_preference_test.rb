@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_preferences
-# Database name: setting
+# Database name: com_principal
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -33,6 +33,10 @@
 #  index_visitor_preferences_on_public_id   (public_id) UNIQUE
 #  index_visitor_preferences_on_visitor_id  (visitor_id) UNIQUE
 #
+# Foreign Keys
+#
+#  fk_rails_...  (visitor_id => visitors.id)
+#
 require "test_helper"
 
 class VisitorPreferenceTest < ActiveSupport::TestCase
@@ -46,6 +50,12 @@ class VisitorPreferenceTest < ActiveSupport::TestCase
       VisitorPreferenceTimezoneOption.ensure_defaults!
       VisitorPreferenceRegionOption.ensure_defaults!
       VisitorPreferenceThemeOption.ensure_defaults!
+      VisitorPreferenceCurrencyOption.ensure_defaults!
+      VisitorPreferenceDateFormatOption.ensure_defaults!
+      VisitorPreferenceTimeFormatOption.ensure_defaults!
+      VisitorPreferenceMotionOption.ensure_defaults!
+      VisitorPreferenceDensityOption.ensure_defaults!
+      VisitorPreferenceItemsPerPageOption.ensure_defaults!
     end
   end
 
@@ -98,11 +108,23 @@ class VisitorPreferenceTest < ActiveSupport::TestCase
     timezone = VisitorPreferenceTimezone.create!(preference: preference)
     region = VisitorPreferenceRegion.create!(preference: preference)
     theme = VisitorPreferenceTheme.create!(preference: preference)
+    currency = VisitorPreferenceCurrency.create!(preference: preference)
+    date_format = VisitorPreferenceDateFormat.create!(preference: preference)
+    time_format = VisitorPreferenceTimeFormat.create!(preference: preference)
+    motion = VisitorPreferenceMotion.create!(preference: preference)
+    density = VisitorPreferenceDensity.create!(preference: preference)
+    items_per_page = VisitorPreferenceItemsPerPage.create!(preference: preference)
 
     assert_equal VisitorPreferenceLanguageOption::JA, language.option_id
     assert_equal VisitorPreferenceTimezoneOption::ASIA_TOKYO, timezone.option_id
     assert_equal VisitorPreferenceRegionOption::JP, region.option_id
     assert_equal VisitorPreferenceThemeOption::SYSTEM, theme.option_id
+    assert_equal VisitorPreferenceCurrencyOption::JPY, currency.option_id
+    assert_equal VisitorPreferenceDateFormatOption::ISO, date_format.option_id
+    assert_equal VisitorPreferenceTimeFormatOption::HOUR_24, time_format.option_id
+    assert_equal VisitorPreferenceMotionOption::STANDARD, motion.option_id
+    assert_equal VisitorPreferenceDensityOption::STANDARD, density.option_id
+    assert_equal VisitorPreferenceItemsPerPageOption::PER_20, items_per_page.option_id
   end
 
   test "set_defaults fills nil booleans on new records" do

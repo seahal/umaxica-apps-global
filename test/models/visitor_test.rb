@@ -4,14 +4,16 @@
 # == Schema Information
 #
 # Table name: visitors
-# Database name: guest
+# Database name: com_principal
 #
 #  id                     :bigint           not null, primary key
+#  birthdate              :text
 #  deactivated_at         :datetime
-#  lapses_at              :datetime         default(Infinity), not null
+#  discarded_at           :datetime         default(Infinity), not null
 #  lock_version           :integer          default(0), not null
 #  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purge_at               :datetime         default(Infinity), not null
+#  purged_at              :datetime         default(Infinity), not null
+#  terminated_at          :datetime
 #  withdrawal_started_at  :datetime
 #  withdrawn_at           :datetime         default(Infinity)
 #  created_at             :datetime         not null
@@ -25,11 +27,13 @@
 # Indexes
 #
 #  index_visitors_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_visitors_on_discarded_at            (discarded_at)
 #  index_visitors_on_multi_factor_id         (multi_factor_id)
 #  index_visitors_on_multi_factor_status_id  (multi_factor_status_id)
 #  index_visitors_on_public_id               (public_id) UNIQUE
-#  index_visitors_on_purge_at                (purge_at)
+#  index_visitors_on_purged_at               (purged_at)
 #  index_visitors_on_status_id               (status_id)
+#  index_visitors_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
 #  index_visitors_on_visibility_id           (visibility_id)
 #  index_visitors_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
 #  index_visitors_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)

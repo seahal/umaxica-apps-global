@@ -5,24 +5,24 @@ require "test_helper"
 require "base64"
 
 class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users
+  fixtures :clients
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
-    UserEmail.create!(
+    @user = clients(:one)
+    ClientEmail.create!(
       user: @user,
       address: "app-passkey-stepup-#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
     @headers = as_user_headers(@user, host: @host)
-    @token = UserToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
-    @user.user_passkeys.create!(
+    @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    @user.client_passkeys.create!(
       description: "Test passkey",
       webauthn_id: "test",
       public_key: "public_key",
       sign_count: 0,
-      status_id: UserPasskeyStatus::ACTIVE,
+      status_id: ClientPasskeyStatus::ACTIVE,
     )
   end
 

@@ -19,48 +19,50 @@ Abandoned (2026-04-22). Direction changed by `adr/rails-way-engine-architecture-
 
 ## Context
 
-(Historical) Root アプリケーションから 4 つの独立した Rails アプリケーション (`Identity`, `Zenith`,
-`Foundation`, `Distributor`) への移行作業中でした。この方向性は 2026-04-22 に放棄されました。
+(Historical) Root application to four separate Rails applications (`Identity`, `Zenith`,
+`Foundation`, `Distributor`). This direction was abandoned on 2026-04-22.
 
-## 完了した作業
+## work completed
 
-- **ラッパーアプリ (`apps/`)**:
-  - `identity`, `zenith`, `foundation`, `distributor` のスケルトン作成。
-  - 各アプリの `config/boot.rb` でルートの `lib/` を `LOAD_PATH` に追加。
-  - 各アプリの `config/application.rb` で `lib/` およびルートの `app/errors`, `app/controllers`
-    をオートロード対象に設定（移行期間用）。
-  - 各アプリの `routes.rb` ですべてのエンジンをマウント（互換性確保のため）。
-- **エンジンのフラット化**:
-  - `engines/*/app/controllers/` 等の `jit/<engine_name>/` による冗長なネストを削除。
-  - `engine.rb` にて `Zeitwerk` マッピングを修正し、`Jit::<Engine>` 名前空間を維持。
-  - ビューパスの優先順位を `prepend_view_path` で調整。
-- **コード移動**:
+- **Wrapper app (`apps/`)**:
+  - Skeleton creation of `identity`, `zenith`, `foundation`, `distributor`.
+  - Add root `lib/` to `LOAD_PATH` in `config/boot.rb` of each app.
+  - `lib/` in each app's `config/application.rb` and `app/errors`, `app/controllers` in the root Set
+    as autoload target (for transition period).
+  - Mount all engines with `routes.rb` in each app (for compatibility).
+- **Engine flattening**:
+  - Removed redundant nesting of `jit/<engine_name>/` such as `engines/*/app/controllers/`.
+  - Fixed `Zeitwerk` mapping in `engine.rb` to maintain `Jit::<Engine>` namespace.
+  - Adjust view path priority with `prepend_view_path`.
+- **Code move**:
   - `app/models`, `app/services`, `app/helpers`, `app/controllers/concerns`, `app/jobs`,
-    `app/mailers`, `app/policies`, `app/subscribers`, `app/validators`, `app/assets`,
-    `app/javascript`, `app/config` 内のファイルを各エンジンまたは `lib/` へ移動。
-  - `test/` 内の対応するテストファイルおよびフィクスチャを各エンジンまたは `lib/` へ移動。
-  - 共有ベースクラス (`ApplicationRecord`, `Current`, `ApplicationController` 等) を `lib/` へ移動。
-- **構成修正**:
-  - `database.yml` の `migrations_paths` をルートの `db/` を指すように修正。
-  - マイグレーションファイル内の `Rails.root.join("lib/...")` を `File.expand_path` に一括置換。
-  - `Jit::Deployment` および `DEPLOY_MODE` 関連のコードとテストを削除。
+    `app/mailers`, `app/policies`, `app/subscribers`, `app/validators`, `app/assets`, Move files in
+    `app/javascript`, `app/config` to each engine or `lib/`.
+  - Move the corresponding test files and fixtures in `test/` to each engine or `lib/`.
+  - Move shared base classes (`ApplicationRecord`, `Current`, `ApplicationController`, etc.) to
+    `lib/`.
+- **Configuration fix**:
+  - Corrected `migrations_paths` of `database.yml` to point to root `db/`.
+  - Batch replacement of `Rails.root.join("lib/...")` in the migration file with `File.expand_path`.
+  - Removed `Jit::Deployment` and `DEPLOY_MODE` related code and tests.
 
-## 現在の問題と未完了タスク
+## Current issues and unfinished tasks
 
-- **Identity テストの失敗**:
-  - `UrlGenerationError`: 統合テストにおいて、一部のルートヘルパーがフラット化後のコントローラーを正しく参照できていない。
-  - `ActiveRecord::RecordInvalid`: `settings_preferences`
-    等のフィクスチャが、最新のデータベース制約（ポリモーフィック owner の廃止）に適合していない。
-- **残りのラッパーアプリの整備**:
-  - `zenith`, `foundation`, `distributor` については、まだ `db:prepare`
-    や個別テストの動作確認が行われていない。
-- **クリーンアップ**:
-  - ルートに残っている `bin/`, `Rakefile`, `Procfile.dev` 等の整理。
+- **Identity test failure**:
+  - `UrlGenerationError`: Some root helpers are not correctly referencing flattened controllers in
+    integration tests.
+  - `ActiveRecord::RecordInvalid`: `settings_preferences` fixtures do not comply with the latest
+    database constraints (deprecation of polymorphic owners).
+- **Maintaining remaining wrapper apps**:
+  - For `zenith`, `foundation`, `distributor`, `db:prepare` The operation of individual tests has
+    not been confirmed.
+- **Cleanup**:
+  - Organize `bin/`, `Rakefile`, `Procfile.dev`, etc. that remain on the route.
 
-## 再開時の手順
+## Steps to take when restarting
 
-1. `apps/identity` で残っている `UrlGenerationError` を解決する（`engines/identity/config/routes.rb`
-   の名前空間指定と実際のコントローラーパスの整合性を確認）。
-2. `engines/identity/test/fixtures/` 内のフィクスチャを最新のスキーマに合わせて修正する。
-3. 他の 3 つのアプリについても順次 `db:prepare` を実行し、テストが通ることを確認する。
-4. すべてのアプリでテストが安定したら、ルートの不要なディレクトリを完全に削除する。
+1. Resolve remaining `UrlGenerationError` in `apps/identity` (`engines/identity/config/routes.rb`
+   (Check the consistency of the namespace specification and the actual controller path).
+2. Modify the fixtures in `engines/identity/test/fixtures/` to match the latest schema.
+3. Run `db:prepare` on the other three apps one after another and confirm that the test passes.
+4. Once testing is stable for all apps, completely delete unnecessary directories in root.

@@ -5,7 +5,7 @@
 # == Schema Information
 #
 # Table name: organization_invitations
-# Database name: token
+# Database name: org_ticket
 #
 #  id              :bigint           not null, primary key
 #  code            :string(32)       not null
@@ -26,16 +26,14 @@
 #  index_organization_invitations_on_organization_id  (organization_id)
 #
 
-class OrganizationInvitation < TokenRecord
+class OrganizationInvitation < OrgTicketRecord
   belongs_to :invited_by,
              class_name: "Operator",
-             primary_key: :id,
-             optional: true
+             primary_key: :id
 
   validates :code, presence: true, uniqueness: true
   validates :email, presence: true
   validates :organization_id, presence: true
-  validates :invited_by_id, presence: true
   validates :expires_at, presence: true
 
   before_validation :generate_code, on: :create

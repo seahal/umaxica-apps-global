@@ -5,16 +5,16 @@ require "test_helper"
 
 class IdentityCoverageTest < ActiveSupport::TestCase
   setup do
-    UserStatus.find_or_create_by!(id: 1)
-    UserVisibility.find_or_create_by!(id: 1)
-    @user = User.create!(status_id: 1, visibility_id: 1)
+    ClientStatus.find_or_create_by!(id: 1)
+    ClientVisibility.find_or_create_by!(id: 1)
+    @user = Client.create!(status_id: 1, visibility_id: 1)
   end
 
   test "login_allowed?" do
     assert_predicate @user, :login_allowed?
 
     # Blocked status
-    @user.update!(status_id: UserStatus::RESERVED)
+    @user.update!(status_id: ClientStatus::RESERVED)
 
     assert_not @user.login_allowed?
   end

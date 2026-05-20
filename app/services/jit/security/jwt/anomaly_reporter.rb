@@ -48,7 +48,7 @@ module Jit
 
         def auth_context(resource_type)
           case resource_type.to_s
-          when "user" then "AUTH_USER"
+          when "client" then "AUTH_CLIENT"
           when "operator", "staff" then "AUTH_OPERATOR"
           when "visitor", "customer" then "AUTH_VISITOR"
           end
@@ -88,7 +88,11 @@ module Jit
             }.merge(extra),
           )
         rescue StandardError => e
-          Rails.logger.error("Jwt anomaly reporting failed: #{e.class}: #{e.message}")
+          Rails.event.error(
+            "jwt.anomaly.reporting_failed",
+            error_class: e.class.name,
+            message: e.message,
+          )
         end
 
         private_class_method :auth_context, :preference_context, :report

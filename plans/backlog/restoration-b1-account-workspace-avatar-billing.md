@@ -21,22 +21,22 @@ workspaces.
 Model tests for each entity; system test that creates an account, joins a workspace, sets an avatar,
 and views billing.
 
-## 2026-05-07 現状差分と改善として残すこと
+## 2026-05-07 What to leave as current differences and improvements
 
-この restoration item は一部実装済み。
+This restoration item has been partially implemented.
 
-確認済み:
+Confirmed:
 
-- `Account` / `Workspace` / `Avatar` 系のモデル、migration、テストは現行ツリーに存在する。
-- `AccountPolicy` と policy test も存在する。
-- Billing の実体は今回の確認範囲では未確認。
+- `Account` / `Workspace` / `Avatar` models, migrations, and tests exist in the current tree.
+- `AccountPolicy` and policy test also exist.
+- The actual billing has not been confirmed at this time.
 
-この文書は「Account / Workspace / Avatar / Billing を全部 land する」計画ではなく、Billing
-gap と既存 model 関係の検証改善として残す。
+This document is not a plan to "land all Account / Workspace / Avatar / Billing", but This will be
+left as a validation and improvement of the gap and existing model relationship.
 
-残す改善:
+Improvements to leave:
 
-- Billing をこのアプリで持つのか、外部サービス / 将来 ADR に委ねるのか決める。
-- Account / Workspace / Avatar のモデル関係と policy coverage を ADR と照合する。
-- Billing を実装する場合は、既存の Account / Workspace / Avatar migration とは別 migration
-  / 別 plan にする。
+- Decide whether to have billing with this app or leave it to an external service/ADR in the future.
+- Check the model relationship and policy coverage of Account / Workspace / Avatar with ADR.
+- When implementing Billing migration, separate from existing Account / Workspace / Avatar
+  migration. / Make a separate plan.

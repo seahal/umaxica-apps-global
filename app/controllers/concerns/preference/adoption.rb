@@ -11,7 +11,7 @@ module Preference
     private
 
     # Called after login to sync preferences between AppPreference/OrgPreference
-    # and UserPreference/OperatorPreference. Uses updated_at to determine which is newer.
+    # and ClientPreference/OperatorPreference. Uses updated_at to determine which is newer.
     # Non-fatal: never blocks login on failure.
     def adopt_preference_for!(resource)
       return unless adoptable_preference_class?
@@ -25,7 +25,7 @@ module Preference
       Rails.event.record("preference.adoption.error", error: e.class.name, message: e.message)
     end
 
-    # Called during preference rotation to keep UserPreference/OperatorPreference in sync.
+    # Called during preference rotation to keep ClientPreference/OperatorPreference in sync.
     # Non-fatal: never blocks rotation on failure.
     def adopt_rotated_preference!(resource, new_preference)
       return unless adoptable_preference_class?
@@ -45,7 +45,7 @@ module Preference
       name == "AppPreference" || name == "OrgPreference"
     end
 
-    # Find or create the 1:1 UserPreference/OperatorPreference for this resource.
+    # Find or create the 1:1 ClientPreference/OperatorPreference for this resource.
     def find_or_create_resource_preference!(resource)
       pref = find_resource_preference(resource)
       return pref if pref.present?
@@ -92,11 +92,11 @@ module Preference
       res_updated = resource_pref.updated_at
 
       if res_updated.present? && (app_updated.blank? || res_updated > app_updated)
-        # UserPreference/OperatorPreference is newer; copy to AppPreference/OrgPreference.
+        # ClientPreference/OperatorPreference is newer; copy to AppPreference/OrgPreference.
         copy_preference_values!(resource_pref, @preferences, preference_prefix)
         issue_access_token_from(@preferences)
       else
-        # AppPreference/OrgPreference is newer; copy to UserPreference/OperatorPreference.
+        # AppPreference/OrgPreference is newer; copy to ClientPreference/OperatorPreference.
         copy_preference_values!(@preferences, resource_pref, resource_pref_prefix)
         issue_access_token_from(@preferences)
       end
@@ -104,12 +104,16 @@ module Preference
 
     # Copy child record option_ids and cookie consent from source to target.
     def copy_preference_values!(source, target, target_prefix)
-      source_assoc = source.class.name.underscore
-      target_assoc = target.class.name.underscore
+      source_assoc = preference_child_association_prefix(source)
+      target_assoc = preference_child_association_prefix(target)
 
       CHILD_RECORD_TYPES.each do |type|
+        next unless source.respond_to?("#{source_assoc}_#{type}")
+
         source_child = source.public_send("#{source_assoc}_#{type}")
         next unless source_child&.option_id
+        next unless target.respond_to?("#{target_assoc}_#{type}") ||
+          target.respond_to?("create_#{target_assoc}_#{type}!")
 
         target_child = target.public_send("#{target_assoc}_#{type}") ||
           begin
@@ -155,7 +159,7 @@ module Preference
 
     def copy_cookie_consent!(source, target, _source_assoc, _target_assoc)
       if source.respond_to?(:consented)
-        # Source is UserPreference/OperatorPreference (direct columns)
+        # Source is ClientPreference/OperatorPreference (direct columns)
         source_consent = COOKIE_CONSENT_FIELDS.index_with { |f| source.public_send(f) }
       else
         source_assoc_name = source.class.name.underscore
@@ -166,7 +170,7 @@ module Preference
       end
 
       if target.respond_to?(:consented)
-        # Target is UserPreference/OperatorPreference (direct columns)
+        # Target is ClientPreference/OperatorPreference (direct columns)
         connection_class = target.class.ancestors.find { |a| a.is_a?(Class) && a < ActiveRecord::Base && a.abstract_class? }
         if connection_class
           connection_class.connected_to(role: :writing) { target.update!(source_consent) }
@@ -252,7 +256,7 @@ module Preference
     def resource_preference_mapping
       case preference_class.name
       when "AppPreference"
-        [UserPreference, :user_id]
+        [ClientPreference, :user_id]
       when "OrgPreference"
         [OperatorPreference, :staff_id]
       else
@@ -262,8 +266,19 @@ module Preference
 
     def resource_pref_prefix
       case preference_class.name
-      when "AppPreference" then "User"
+      when "AppPreference" then "Client"
       when "OrgPreference" then "Operator"
+      end
+    end
+
+    def preference_child_association_prefix(preference)
+      case preference
+      when ClientPreference
+        "user_preference"
+      when OperatorPreference
+        "staff_preference"
+      else
+        preference.class.name.underscore
       end
     end
   end

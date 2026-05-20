@@ -15,7 +15,7 @@ module EmailValidation
   end
 
   def identity_email_model
-    UserEmail
+    ClientEmail
   end
 
   def find_email_with_timing_protection(email)
@@ -33,8 +33,6 @@ module EmailValidation
   end
 
   def email_lookup_timing_protection_seconds
-    return 0.0 if Rails.env.test? && ENV["ENABLE_TIMING_PROTECTION_IN_TEST"] != "1"
-
     0.05
   end
 end

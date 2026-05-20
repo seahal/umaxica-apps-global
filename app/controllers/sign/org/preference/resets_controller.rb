@@ -4,8 +4,7 @@
 module Sign
   module Org
     module Preference
-      class ResetsController < ApplicationController
-        public_strict!
+      class ResetsController < PreferencesBaseController
         include ::Preference::SignScreenActions
 
         preference_screen :reset

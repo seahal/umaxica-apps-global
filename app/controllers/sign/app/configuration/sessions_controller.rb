@@ -4,58 +4,23 @@
 module Sign
   module App
     module Configuration
-      class SessionsController < ApplicationController
-        auth_required!
+      class SessionsController < PrivateController
+        include Sign::Configuration::SessionManagement
 
-        before_action :authenticate_user!
-        before_action :set_session, only: %i(destroy)
-
-        def index
-          @sessions = visible_sessions.order(created_at: :desc)
-
-          respond_to do |format|
-            format.html
-            format.json do
-              render json: { sessions: @sessions.map { |s|
-                { public_id: s.public_id, created_at: s.created_at }
-              } }
-            end
-          end
-        end
-
-        def destroy
-          if @session.public_id == current_session_public_id
-            return render_current_session_error
-          end
-
-          revoke_sessions!([@session], action: "session.revoke")
-          render_revoke_success
-        end
-
-        def others
-          revoke_sessions!(other_active_sessions, action: "session.revoke_others")
-          render_revoke_success
-        end
-
-        def revoke_all
-          return if require_step_up!(scope: "session_revoke_all") == false
-
-          sessions = visible_sessions.to_a
-          revoke_sessions!(sessions, action: "session.revoke_all")
-          Rails.event.notify(
-            "security.session_revoke_all",
-            actor_type: current_resource.class.name,
-            actor_id: current_resource.id,
-            session_count: sessions.length,
-          )
-          log_out
-          render_revoke_all_success
-        end
+        before_action :authenticate_client!
 
         private
 
         def visible_sessions
-          current_user.user_tokens.session_inventory
+          current_client.client_tokens.session_inventory
+        end
+
+        def session_owner
+          current_client
+        end
+
+        def revoke_all_reason
+          "app_user_logout_all_sessions"
         end
 
         def render_revoke_success
@@ -74,22 +39,9 @@ module Sign
           )
         end
 
-        def other_active_sessions
-          sessions = visible_sessions
-          return sessions if current_session_public_id.blank?
-
-          sessions.where.not(public_id: current_session_public_id)
-        end
-
-        def revoke_sessions!(sessions, action:)
-          revoked_count = 0
-          each_session(sessions) do |session|
-            session.revoke!
-            revoked_count += 1
-          end
-
+        def record_session_revoke_activity(action:, revoked_count:)
           Sign::App::SessionRevokeAudit.record!(
-            actor: current_user,
+            actor: current_client,
             revoked_session_count: revoked_count,
             action: action,
             ip_address: request.remote_ip,
@@ -97,25 +49,11 @@ module Sign
           )
         end
 
-        def each_session(sessions, &)
-          return sessions.find_each(&) if sessions.respond_to?(:find_each)
-
-          sessions.each(&)
-        end
-
         def render_current_session_error
           redirect_to(
             sign_app_configuration_sessions_path,
             alert: t("session_limit.cannot_revoke_current"),
           )
-        end
-
-        def set_session
-          @session = visible_sessions.find_by(public_id: params[:id])
-          return if @session
-
-          head :not_found
-          nil
         end
       end
     end

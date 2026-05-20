@@ -7,12 +7,11 @@ module Sign
   module Org
     module In
       module Challenge
-        class PasskeysController < Sign::Org::ApplicationController
+        class PasskeysController < Sign::Org::In::GuestController
           include Sign::Webauthn
           include SessionLimitGate
           include ::CloudflareTurnstile
 
-          before_action :reject_logged_in_session
           before_action :ensure_pending_mfa!
 
           def new
@@ -35,7 +34,7 @@ module Sign
                 }, user_verification: "discouraged",
               )
           rescue Sign::Webauthn::OriginValidationError => e
-            Rails.logger.error("WebAuthn origin validation failed: #{e.message}")
+            Rails.event.error("webauthn.origin_validation_failed", message: e.message)
             redirect_to(
               sign_org_in_challenge_path, alert: I18n.t("errors.webauthn.origin_invalid"),
                                           status: :see_other,

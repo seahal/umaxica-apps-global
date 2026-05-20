@@ -1,0 +1,86 @@
+# typed: false
+# frozen_string_literal: true
+
+# == Schema Information
+#
+# Table name: user_preferences
+# Database name: app_principal
+#
+#  id              :bigint           not null, primary key
+#  consent_version :uuid
+#  consented       :boolean          default(FALSE), not null
+#  consented_at    :datetime
+#  currency        :string           default("jpy"), not null
+#  date_format     :string           default("iso"), not null
+#  density         :string           default("standard"), not null
+#  functional      :boolean          default(FALSE), not null
+#  items_per_page  :string           default("20"), not null
+#  language        :string           default("ja"), not null
+#  motion          :string           default("standard"), not null
+#  performant      :boolean          default(FALSE), not null
+#  region          :string           default("jp"), not null
+#  targetable      :boolean          default(FALSE), not null
+#  theme           :string           default("sy"), not null
+#  time_format     :string           default("hour_24"), not null
+#  timezone        :string           default("Asia/Tokyo"), not null
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  public_id       :string(21)
+#  user_id         :bigint           not null
+#
+# Indexes
+#
+#  index_user_preferences_on_public_id  (public_id) UNIQUE
+#  index_user_preferences_on_user_id    (user_id) UNIQUE
+#
+class ClientPreference < AppPrincipalRecord
+  self.table_name = "user_preferences"
+  belongs_to :user, class_name: "Client", inverse_of: :user_preference
+
+  has_one :user_preference_language, class_name: "ClientPreferenceLanguage",
+                                     foreign_key: :preference_id,
+                                     inverse_of: :preference,
+                                     dependent: :destroy
+  has_one :user_preference_timezone, class_name: "ClientPreferenceTimezone",
+                                     foreign_key: :preference_id,
+                                     inverse_of: :preference,
+                                     dependent: :destroy
+  has_one :user_preference_region, class_name: "ClientPreferenceRegion",
+                                   foreign_key: :preference_id,
+                                   inverse_of: :preference,
+                                   dependent: :destroy
+  has_one :user_preference_theme, class_name: "ClientPreferenceTheme",
+                                  foreign_key: :preference_id,
+                                  inverse_of: :preference,
+                                  dependent: :destroy
+  has_one :user_preference_colortheme,
+          class_name: "ClientPreferenceTheme",
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+
+  validates :user_id, uniqueness: true
+  validates :consented, inclusion: { in: [true, false] }
+  validates :functional, inclusion: { in: [true, false] }
+  validates :performant, inclusion: { in: [true, false] }
+  validates :targetable, inclusion: { in: [true, false] }
+  validates :public_id, length: { maximum: 21 }, uniqueness: true, allow_blank: true
+
+  after_initialize :set_defaults
+  before_validation :generate_public_id, on: :create
+
+  private
+
+  def generate_public_id
+    self.public_id = Nanoid.generate(size: 21) if public_id.blank?
+  end
+
+  def set_defaults
+    return unless new_record?
+
+    self.consented = false if consented.nil?
+    self.functional = false if functional.nil?
+    self.performant = false if performant.nil?
+    self.targetable = false if targetable.nil?
+  end
+end

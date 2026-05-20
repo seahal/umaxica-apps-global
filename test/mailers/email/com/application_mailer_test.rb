@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable Rails/I18nLocaleTexts
+
 require "test_helper"
 
 class Email::Com::ApplicationMailerTest < ActionMailer::TestCase
@@ -62,3 +64,5 @@ class Email::Com::ApplicationMailerTest < ActionMailer::TestCase
     assert_equal "List-Unsubscribe=One-Click", email["List-Unsubscribe-Post"].value
   end
 end
+
+# rubocop:enable Rails/I18nLocaleTexts

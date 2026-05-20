@@ -56,6 +56,7 @@ Rails.application.configure do
 
   # Raise on SQL warnings from PostgreSQL (overrides :log in application.rb).
   config.active_record.db_warnings_action = :raise
+  config.active_record.dump_schema_after_migration = false
 
   # Highlight code that triggered database queries in logs.
   config.active_record.verbose_query_logs = true
@@ -75,7 +76,7 @@ Rails.application.configure do
   config.active_record.action_on_strict_loading_violation = :raise
 
   # Disallow deprecated .connection usage (must use .with_connection for multi-DB)
-  config.active_record.permanent_connection_checkout = :disallowed
+  config.active_record.permanent_connection_checkout = :deprecated
 
   # Raise error for missing translations.
   config.i18n.raise_on_missing_translations = true

@@ -4,10 +4,6 @@
 module Preference::Localization
   extend ActiveSupport::Concern
 
-  included do
-    before_action :apply_localization_preferences
-  end
-
   private
 
   def apply_localization_preferences

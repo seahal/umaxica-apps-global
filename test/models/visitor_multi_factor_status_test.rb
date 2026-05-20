@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_multi_factor_statuses
-# Database name: guest
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #

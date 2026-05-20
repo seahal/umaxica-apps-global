@@ -20,6 +20,18 @@ class HostContextResolverTest < ActiveSupport::TestCase
     assert_equal :org, context.surface
   end
 
+  test "resolves net surface from host" do
+    context = HostContextResolver.call(Request.new("base.net.localhost"))
+
+    assert_equal :net, context.surface
+  end
+
+  test "resolves dev surface from host" do
+    context = HostContextResolver.call(Request.new("id.dev.localhost"))
+
+    assert_equal :dev, context.surface
+  end
+
   test "falls back through Core surface defaults" do
     context = HostContextResolver.call(Request.new("example.test"))
 

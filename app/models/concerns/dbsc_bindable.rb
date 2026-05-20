@@ -36,7 +36,7 @@ module DbscBindable
         "AppPreference" => AppPreferenceBindingMethod,
         "ComPreference" => ComPreferenceBindingMethod,
         "OrgPreference" => OrgPreferenceBindingMethod,
-        "UserToken" => UserTokenBindingMethod,
+        "ClientToken" => ClientTokenBindingMethod,
         "OperatorToken" => OperatorTokenBindingMethod,
         "VisitorToken" => VisitorTokenBindingMethod,
       }
@@ -47,7 +47,7 @@ module DbscBindable
         "AppPreference" => AppPreferenceDbscStatus,
         "ComPreference" => ComPreferenceDbscStatus,
         "OrgPreference" => OrgPreferenceDbscStatus,
-        "UserToken" => UserTokenDbscStatus,
+        "ClientToken" => ClientTokenDbscStatus,
         "OperatorToken" => OperatorTokenDbscStatus,
         "VisitorToken" => VisitorTokenDbscStatus,
       }

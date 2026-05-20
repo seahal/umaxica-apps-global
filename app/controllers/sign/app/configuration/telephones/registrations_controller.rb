@@ -5,17 +5,15 @@ module Sign
   module App
     module Configuration
       module Telephones
-        class RegistrationsController < ::Sign::App::ApplicationController
-          auth_required!
-
+        class RegistrationsController < ::Sign::App::PrivateController
           include CloudflareTurnstile
           include Sign::TelephoneRegistrable
-          include ::Verification::User
+          include ::Verification::Client
 
-          before_action :authenticate_user!
+          before_action :authenticate_client!
 
           def new
-            @user_telephone = UserTelephone.new
+            @user_telephone = ClientTelephone.new
             reset_registration_session!
           end
 
@@ -31,11 +29,11 @@ module Sign
           end
 
           def create
-            user = current_user
+            user = current_client
             return head :unauthorized if user.blank?
 
             unless cloudflare_turnstile_stealth_validation["success"]
-              @user_telephone = UserTelephone.new
+              @user_telephone = ClientTelephone.new
               @user_telephone.errors.add(:base, t("turnstile_error"))
               flash.now[:alert] = t("turnstile_error")
               render(:new, status: :unprocessable_content)
@@ -88,10 +86,16 @@ module Sign
 
             status =
               complete_telephone_verification(@user_telephone.id, submitted_code) do |user_telephone|
-                user_telephone.user = current_user
+                user_telephone.user = current_client
                 user_telephone.save!
               end
 
+            handle_registration_update_status(status)
+          end
+
+          private
+
+          def handle_registration_update_status(status)
             case status
             when :success
               record_telephone_registration_step_up!
@@ -115,17 +119,15 @@ module Sign
             end
           end
 
-          private
-
           def current_registration_telephone
-            UserTelephone.find_by(id: session[registration_session_key])
+            ClientTelephone.find_by(id: session[registration_session_key])
           end
 
           def valid_registration_session?
             @user_telephone.present? &&
-              @user_telephone.user_id == current_user.id &&
+              @user_telephone.user_id == current_client.id &&
               !@user_telephone.otp_expired? &&
-              @user_telephone.user_telephone_status_id == UserTelephoneStatus::UNVERIFIED
+              @user_telephone.user_telephone_status_id == ClientTelephoneStatus::UNVERIFIED
           end
 
           def registration_session_key
@@ -141,21 +143,21 @@ module Sign
               last_step_up_at: Time.current,
               last_step_up_scope: verification_scope,
             )
-            create_audit_event!(UserChronicleEvent::TELEPHONE_REGISTERED)
+            create_audit_event!(ClientChronicleEvent::TELEPHONE_REGISTERED)
           end
 
           def create_audit_event!(event_id)
             ChronicleRecord.connected_to(role: :writing) do
-              UserChronicleEvent.find_or_create_by!(id: event_id)
-              UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+              ClientChronicleEvent.find_or_create_by!(id: event_id)
+              ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
             end
 
-            UserChronicle.create!(
-              actor_type: "User",
-              actor_id: current_user.id,
+            ClientChronicle.create!(
+              actor_type: "Client",
+              actor_id: current_client.id,
               event_id: event_id,
-              subject_id: current_user.id.to_s,
-              subject_type: "User",
+              subject_id: current_client.id.to_s,
+              subject_type: "Client",
               occurred_at: Time.current,
             )
           end

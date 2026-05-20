@@ -23,7 +23,7 @@
           </tr>
           </thead>
           <tbody>
-          <% @user_telephones.each do |telephone| %>
+          <% @client_telephones.each do |telephone| %>
             <tr>
               <td><%= telephone.number %></td>
               <td>
@@ -39,7 +39,7 @@
               </td>
             </tr>
           <% end %>
-          <% if @user_telephones.empty? %>
+          <% if @client_telephones.empty? %>
             <tr>
               <td colspan="3" class="italic">
                 <%= t("views.sign.com.configuration.telephones.index.empty") %>

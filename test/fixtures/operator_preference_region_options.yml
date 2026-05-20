@@ -1,0 +1,21 @@
+# == Schema Information
+#
+# Table name: staff_preference_region_options
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorPreferenceRegionOption
+
+# Table name: staff_preference_region_options
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 0
+us:
+  id: 1
+jp:
+  id: 2

@@ -4,10 +4,14 @@ GitHub: #558
 
 ## Status
 
-**Closed 2026-05-10.** The existing one-time consume implementation is the accepted baseline.
-`docs/security/refresh-token-rotation.md` now documents the current contract and records that Redis
-JTI deduplication / short grace windows are intentionally deferred until a measured retry problem
-requires them.
+**Deprecated 2026-05-19.** Do not use this plan as implementation direction. Its Redis/JTI
+deduplication direction is rejected; token rotation concurrency must be handled with DB-backed state
+and PostgreSQL row-level atomicity only. See `plans/active/token-rotation-concurrency-hardening.md`.
+
+**Closed 2026-05-10.** The existing one-time consume implementation was the accepted baseline at
+that time. `docs/security/refresh-token-rotation.md` now documents the current contract and records
+that Redis JTI deduplication / short grace windows are intentionally deferred until a measured retry
+problem requires them.
 
 ## Problem
 
@@ -61,22 +65,25 @@ Remaining:
 - Separate already-landed replay handling from still-open grace-window or deduplication work so the
   issue does not duplicate `GH-612`.
 
-## 2026-05-07 現状差分と改善として残すこと
+## 2026-05-07 What to leave as current differences and improvements
 
-Refresh token rotation の中核は現行ツリーで実装済み。
+The core of Refresh token rotation is already implemented in the current tree.
 
-確認済み:
+Confirmed:
 
-- `app/services/sign/refresh_token_service.rb` が存在する。
-- `test/services/sign/refresh_token_service_test.rb` が存在する。
-- session limit / token status management 側にも refresh token service を使うテストがある。
+- `app/services/sign/refresh_token_service.rb` exists.
+- `test/services/sign/refresh_token_service_test.rb` exists.
+- There is also a test that uses refresh token service on the session limit / token status
+  management side.
 
-この文書は「rotation を実装する」計画ではなく、追加改善の判断メモとして残す。
+This document is not a plan to ``implement rotation,'' but is left as a memo for making decisions
+about additional improvements.
 
-残す改善:
+Improvements to leave:
 
-- 現行 `Sign::RefreshTokenService` の仕様を docs 化する。
-- short grace window が本当に必要か、既存の one-time consume / replay
-  handling で足りるかを判断する。
-- Redis / JTI deduplication は必須要件ではなく、必要性が確認できた場合だけ追加する。
-- 追加する場合は、family-wide revocation を弱めないことをテストで固定する。
+- Convert the current `Sign::RefreshTokenService` specifications into docs.
+- Do you really need a short grace window or do you have an existing one-time consume / replay?
+  Determine whether handling is sufficient.
+- Redis / JTI deduplication is not a mandatory requirement and should be added only if the necessity
+  is confirmed.
+- If added, test to ensure that family-wide revocation is not weakened.

@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: com_preference_regions
-# Database name: setting
+# Database name: com_setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -23,14 +23,12 @@
 
 # frozen_string_literal: true
 
-class ComPreferenceRegion < SettingRecord
+class ComPreferenceRegion < ComSettingRecord
   belongs_to :preference, class_name: "ComPreference", inverse_of: :com_preference_region
   belongs_to :option,
              class_name: "ComPreferenceRegionOption",
-             inverse_of: :com_preference_regions,
-             optional: true
+             inverse_of: :com_preference_regions
   validates :preference_id, uniqueness: true
-  validates :option_id, presence: true
   before_validation :set_option_id
 
   private

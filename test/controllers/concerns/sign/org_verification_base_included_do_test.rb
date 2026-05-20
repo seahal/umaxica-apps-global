@@ -40,24 +40,24 @@ class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_includes Harness.included_modules, Sign::VerificationAuditAndCookie
   end
 
-  test "included do includes Sign::VerificationReauthSessionStore module" do
-    assert_includes Harness.included_modules, Sign::VerificationReauthSessionStore
+  test "included do includes Sign::VerificationStepUpSessionStore module" do
+    assert_includes Harness.included_modules, Sign::VerificationStepUpSessionStore
   end
 
-  test "included do includes Sign::VerificationReauthLifecycle module" do
-    assert_includes Harness.included_modules, Sign::VerificationReauthLifecycle
+  test "included do includes Sign::VerificationStepUpLifecycle module" do
+    assert_includes Harness.included_modules, Sign::VerificationStepUpLifecycle
   end
 
   test "included do includes Sign::VerificationPasskeyChecks module" do
     assert_includes Harness.included_modules, Sign::VerificationPasskeyChecks
   end
 
-  test "REAUTH_TTL constant is defined" do
-    assert_equal 15.minutes, Sign::OrgVerificationBase::REAUTH_TTL
+  test "STEP_UP_TTL constant is defined" do
+    assert_equal 15.minutes, Sign::OrgVerificationBase::STEP_UP_TTL
   end
 
-  test "REAUTH_SESSION_KEY constant is defined" do
-    assert_equal :reauth, Sign::OrgVerificationBase::REAUTH_SESSION_KEY
+  test "STEP_UP_SESSION_KEY constant is defined" do
+    assert_equal :step_up, Sign::OrgVerificationBase::STEP_UP_SESSION_KEY
   end
 
   test "ALLOWED_SCOPES constant is defined" do

@@ -54,6 +54,6 @@ module Sign::CommonHelper
 
     short_format = I18n.t("time.formats.short")
     format_string = short_format.presence || "%Y/%m/%d %H:%M"
-    time.strftime(format_string)
+    time.utc.strftime(format_string)
   end
 end

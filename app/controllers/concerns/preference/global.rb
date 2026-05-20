@@ -16,11 +16,6 @@ module Preference::Global
       .transform_values { |value| value.to_s.downcase }
       .freeze
 
-  included do
-    helper_method :get_language, :get_timezone, :get_region, :get_colortheme
-    helper_method :effective_context, :required_ri
-  end
-
   def resolve_param_context
     effective_context
   end
@@ -210,6 +205,8 @@ module Preference::Global
   end
 
   def set_region
+    return if request_format_json?
+
     normalized_ri = normalized_param_ri
     redirect_params = sanitized_context_query_parameters
     query_changed = redirect_params != request.query_parameters
@@ -246,6 +243,10 @@ module Preference::Global
     )
 
     redirect_to(redirect_url, status: redirect_status_for_ri?)
+  end
+
+  def request_format_json?
+    request.respond_to?(:format) && request.format.json?
   end
 
   def set_locale

@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: staff_secret_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 
-class OperatorSecretStatus < OperatorRecord
+class OperatorSecretStatus < OrgPrincipalRecord
   self.table_name = "staff_secret_statuses"
   # Fixed IDs - do not modify these values
   ACTIVE = 1

@@ -13,12 +13,12 @@ class ReferenceDefaultsTest < ActiveSupport::TestCase
     JwtOccurrenceStatus,
     OperatorPreferenceRegionOption,
     TelephoneOccurrenceStatus,
-    UserOccurrenceStatus,
-    UserEmailStatus,
-    UserMultiFactor,
-    UserPreferenceLanguageOption,
-    UserPreferenceRegionOption,
-    UserStatus,
+    ClientOccurrenceStatus,
+    ClientEmailStatus,
+    ClientMultiFactor,
+    ClientPreferenceLanguageOption,
+    ClientPreferenceRegionOption,
+    ClientStatus,
     ZipOccurrenceStatus,
   ].freeze
 

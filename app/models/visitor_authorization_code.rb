@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_authorization_codes
-# Database name: symbol
+# Database name: com_ticket
 #
 #  id                    :bigint           not null, primary key
 #  acr                   :string
@@ -13,9 +13,9 @@
 #  code_challenge        :string           not null
 #  code_challenge_method :string(8)        default("S256"), not null
 #  consumed_at           :datetime
-#  lapses_at             :datetime         default(Infinity), not null
+#  discarded_at          :datetime         default(Infinity), not null
 #  nonce                 :string
-#  purge_at              :datetime         default(Infinity), not null
+#  purged_at             :datetime         default(Infinity), not null
 #  redirect_uri          :text             not null
 #  scope                 :string
 #  state                 :string
@@ -29,7 +29,7 @@
 #  index_visitor_authorization_codes_on_code        (code) UNIQUE
 #  index_visitor_authorization_codes_on_visitor_id  (visitor_id)
 #
-class VisitorAuthorizationCode < SymbolRecord
+class VisitorAuthorizationCode < ComTicketRecord
   include Retainable
 
   CODE_TTL = 10.seconds
@@ -42,9 +42,9 @@ class VisitorAuthorizationCode < SymbolRecord
   validates :redirect_uri, presence: true
   validates :code_challenge, presence: true
   validates :code_challenge_method, inclusion: { in: %w(S256) }
-  validates :lapses_at, presence: true
+  validates :discarded_at, presence: true
 
-  scope :valid, -> { where(consumed_at: nil).where("lapses_at > ?", Time.current) }
+  scope :valid, -> { where(consumed_at: nil).where("discarded_at > ?", Time.current) }
 
   def resource
     visitor
@@ -73,13 +73,13 @@ class VisitorAuthorizationCode < SymbolRecord
         nonce: nonce,
         auth_method: auth_method,
         acr: acr,
-        lapses_at: CODE_TTL.from_now,
+        discarded_at: CODE_TTL.from_now,
       )
     end
   end
 
   def expired?
-    lapses_at <= Time.current
+    discarded_at <= Time.current
   end
 
   def consumed?
@@ -87,7 +87,7 @@ class VisitorAuthorizationCode < SymbolRecord
   end
 
   def revoked?
-    lapses_at <= Time.current
+    discarded_at <= Time.current
   end
 
   def usable?
@@ -102,7 +102,7 @@ class VisitorAuthorizationCode < SymbolRecord
   end
 
   def revoke!
-    update!(lapses_at: Time.current)
+    update!(discarded_at: Time.current)
   end
 
   def verify_pkce(code_verifier)

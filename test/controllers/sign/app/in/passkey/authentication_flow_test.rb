@@ -6,8 +6,8 @@ require "minitest/mock"
 
 module Sign::App::In::Passkey
   class AuthenticationFlowTest < ActionDispatch::IntegrationTest
-    fixtures :users, :user_statuses, :user_email_statuses, :user_passkey_statuses,
-             :user_one_time_password_statuses
+    fixtures :clients, :client_statuses, :client_email_statuses, :client_passkey_statuses,
+             :client_one_time_password_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -17,11 +17,11 @@ module Sign::App::In::Passkey
       @original_trusted_origins = Webauthn.method(:trusted_origins)
       Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://id.org.localhost"] }
 
-      @user = users(:one)
-      UserEmail.create!(
+      @user = clients(:one)
+      ClientEmail.create!(
         user: @user,
         address: "one@example.com",
-        user_email_status_id: UserEmailStatus::VERIFIED,
+        user_email_status_id: ClientEmailStatus::VERIFIED,
         otp_attempts_count: 0,
         otp_counter: "0",
         otp_private_key: "secret",
@@ -33,14 +33,14 @@ module Sign::App::In::Passkey
       @raw_credential_id = "credential-12345"
       @encoded_credential_id = Base64.urlsafe_encode64(@raw_credential_id, padding: false)
 
-      @passkey = UserPasskey.create!(
+      @passkey = ClientPasskey.create!(
         user: @user,
         webauthn_id: @encoded_credential_id,
         public_key: "dummy-public-key",
         sign_count: 10,
         description: "Test Passkey",
         external_id: SecureRandom.uuid,
-        status_id: UserPasskeyStatus::ACTIVE,
+        status_id: ClientPasskeyStatus::ACTIVE,
       )
     end
 
@@ -51,7 +51,7 @@ module Sign::App::In::Passkey
     end
 
     test "should generate authentication options and store challenge in session" do
-      email = @user.user_emails.first.address
+      email = @user.client_emails.first.address
       post options_sign_app_in_passkeys_url(ri: "jp"), params: options_params(identifier: email), as: :json
 
       assert_response :success
@@ -68,7 +68,7 @@ module Sign::App::In::Passkey
 
     test "should verify valid credential and log in" do
       # 1. Get options to setup session
-      email = @user.user_emails.first.address
+      email = @user.client_emails.first.address
       post options_sign_app_in_passkeys_url(ri: "jp"), params: options_params(identifier: email), as: :json
 
       json_response = response.parsed_body
@@ -120,14 +120,14 @@ module Sign::App::In::Passkey
 
     test "passkey login completes without additional MFA even when MFA is enabled" do
       @user.update!(multi_factor_enabled: true)
-      UserOneTimePassword.create!(
+      ClientOneTimePassword.create!(
         user: @user,
         private_key: ROTP::Base32.random_base32,
-        user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+        user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
         title: "app",
       )
 
-      email = @user.user_emails.first.address
+      email = @user.client_emails.first.address
       post options_sign_app_in_passkeys_url(ri: "jp"), params: options_params(identifier: email), as: :json
       challenge_id = response.parsed_body["challenge_id"]
 

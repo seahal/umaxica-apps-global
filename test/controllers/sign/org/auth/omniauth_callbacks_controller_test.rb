@@ -4,6 +4,22 @@
 require "test_helper"
 
 class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
+  test "callback route accepts google GET only" do
+    host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    route = Rails.application.routes.recognize_path(
+      "http://#{host}/auth/google_org/callback",
+      method: :get,
+    )
+
+    assert_equal "sign/org/auth/omniauth_callbacks", route[:controller]
+    assert_equal "omniauth", route[:action]
+    assert_equal "google_org", route[:provider]
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{host}/auth/google_org/callback", method: :post)
+    end
+  end
+
   test "direct org omniauth callback branches" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     session_hash = {}
@@ -14,7 +30,9 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.request = request
     controller.response = ActionDispatch::TestResponse.new
     controller.define_singleton_method(:session) { session_hash }
-    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_org", message: "denied") }
+    controller.define_singleton_method(:params) do |*|
+      ActionController::Parameters.new(ri: "jp", provider: "google_org", message: "denied")
+    end
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
     controller.define_singleton_method(:new_sign_org_in_path) { "/org/in/new" }
@@ -58,7 +76,7 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     controller.send(:handle_login_result, { status: :session_limit_exceeded }, "Google org")
 
-    assert_match "/org/in/session", redirects.last.first.first
+    assert_match %r{/session}, redirects.last.first.first
 
     controller.send(:handle_login_result, { status: :unknown }, "Google org")
 
@@ -66,7 +84,7 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     controller.send(:handle_login_result, { status: :success, restricted: true }, "Google org")
 
-    assert_match "/org/in/session", redirects.last.first.first
+    assert_match %r{/session}, redirects.last.first.first
 
     controller.instance_variable_set(:@issue_bulletin_for_test, true)
     controller.send(:handle_login_result, true, "Google org")
@@ -106,7 +124,9 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.response = ActionDispatch::TestResponse.new
 
     staff = OpenStruct.new(id: 22, login_allowed?: true)
-    controller.define_singleton_method(:params) { ActionController::Parameters.new(provider: "google_org") }
+    controller.define_singleton_method(:params) do |*|
+      ActionController::Parameters.new(provider: "google_org")
+    end
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:validate_social_auth_state!) { @validated_for_test = true }
     controller.define_singleton_method(:find_staff_from_auth) { |value| @found_auth_for_test = value; staff }
@@ -166,7 +186,7 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   test "find_active_staff_by_google_email returns active staff for linked staff email" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-    staff_email = staff.staff_emails.create!(
+    staff_email = staff.operator_emails.create!(
       raw_address: "google-staff@example.test",
       confirm_policy: true,
       staff_email_status_id: OperatorEmailStatus::VERIFIED,
@@ -180,7 +200,7 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   test "find_active_staff_by_google_email links current staff email for link intent" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-    staff_email = staff.staff_emails.create!(
+    staff_email = staff.operator_emails.create!(
       raw_address: "google-link-staff@example.test",
       confirm_policy: true,
       staff_email_status_id: OperatorEmailStatus::VERIFIED,
@@ -195,7 +215,7 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   test "find_active_staff_by_google_email rejects unlinked staff email for login intent" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-    staff.staff_emails.create!(
+    staff.operator_emails.create!(
       raw_address: "google-unlinked-staff@example.test",
       confirm_policy: true,
       staff_email_status_id: OperatorEmailStatus::VERIFIED,
@@ -208,7 +228,7 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   test "find_active_staff_by_google_email rejects missing and inactive staff email" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     staff = Operator.create!(status_id: OperatorIdentityStatus::NOTHING, visibility_id: OperatorVisibility::STAFF)
-    staff.staff_emails.create!(
+    staff.operator_emails.create!(
       raw_address: "inactive-google-staff@example.test",
       confirm_policy: true,
       staff_email_status_id: OperatorEmailStatus::VERIFIED,

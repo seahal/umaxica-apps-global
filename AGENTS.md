@@ -25,22 +25,36 @@ models, services, policies, or shared concerns.
 Use these `.harnes/` files as task-specific instructions:
 
 - Controller or endpoint work: `.harnes/tasks/implement_controller.md`,
-  `.harnes/context/auth_pipeline.md`, `.harnes/context/routing.md`
+  `.harnes/context/routing.md`, `docs/architecture/controller-lifecycle.md`
 - Minitest work: `.harnes/tasks/write_minitest.md`, `.harnes/policies/testing_rules.md`
 - Migration work: `.harnes/tasks/add_migration.md`, `.harnes/policies/migration_rules.md`
 - Security-sensitive work or broad refactors: `.harnes/policies/forbidden_patterns.md`
 - Surface, routing, or authentication changes: `.harnes/context/architecture.md`,
-  `.harnes/context/routing.md`, `.harnes/context/auth_pipeline.md`
+  `.harnes/context/routing.md`, `docs/architecture/controller-lifecycle.md`
+- Non-trivial implementation decisions, plan deviations, or handoff notes:
+  `.harnes/policies/implementation_notes.md`
 
 If a task touches one of these areas, read the relevant harness file before editing.
 
 ## Decision Context
 
-Use `adr/`, `plans/`, and `docs/` as required decision inputs, not as optional background.
+Use `memo/`, `notes/`, `adr/`, `plans/`, and `docs/` as required context inputs, not as optional
+background. Only `adr/`, `docs/`, and current `plans/` are source-of-truth decision material.
+
+Repository knowledge is separated by purpose:
+
+- `adr/` - accepted architecture and design decisions.
+- `plans/` - implementation plans, active work, proposals, and backlog items.
+- `docs/` - current stable documentation for implemented behavior and operations.
+- `notes/` - non-authoritative ADR-adjacent notes and implementation handoff notes.
+- `memo/` - exploratory observations and notes that do not affect implementation.
 
 Before making non-trivial architecture, routing, authentication, authorization, database,
 preference, engine/surface, or service-layer changes:
 
+- Read `memo/` for exploratory notes, rough analysis, and unresolved observations.
+- Read `notes/` for ADR-adjacent notes, handoff context, and implementation notes relevant to the
+  change.
 - Read `docs/index.md` to confirm the documentation model.
 - Read `adr/README.md` and the ADRs relevant to the change.
 - Read `plans/README.md` and relevant files under `plans/active/`.
@@ -57,11 +71,21 @@ Decision priority when sources disagree:
 4. Stable docs in `docs/`.
 5. Active plans in `plans/active/`.
 6. Backlog notes in `plans/backlog/`.
-7. Archived plans in `plans/archive/`.
+7. Notes in `notes/`.
+8. Archived plans in `plans/archive/`.
 
 If an ADR or doc conflicts with current code, call out the conflict before choosing an
 implementation path. If implementing an active plan changes stable behavior, update the relevant
 `docs/` file or mention that documentation still needs to be updated.
+
+## Working Notes
+
+- Use `notes/implementation/` for implementation decisions, plan deviations, compromises, and
+  handoff context discovered while carrying out a plan.
+- Use `memo/` for provisional analysis, investigation notes, and draft observations that do not
+  affect implementation.
+- Do not treat `notes/` or `memo/` as source of truth; promote stable or actionable content to
+  `adr/`, `plans/`, or `docs/`.
 
 ## Non-Negotiable Rules
 

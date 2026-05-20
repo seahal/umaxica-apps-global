@@ -17,11 +17,11 @@ module Apex
         assert_includes controller.class, ::Verification::Operator
         assert_includes controller.class, ActionPolicy::Controller
         assert_includes controller.class, ::Oidc::SsoInitiator
-        assert_includes controller.class, ::CurrentSupport
+        assert_includes controller.class, ::ActorSupport
         assert_includes controller.class, ::Finisher
       end
 
-      test "has preference-related prepend_before_action callbacks" do
+      test "has preference-related before_action callbacks" do
         callbacks = ApplicationController._process_action_callbacks
         before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
 
@@ -35,18 +35,31 @@ module Apex
         callbacks = ApplicationController._process_action_callbacks
         before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
 
-        assert_includes before_filters, :check_default_rate_limit
-        assert_includes before_filters, :transparent_refresh_access_token
-        assert_includes before_filters, :enforce_access_policy!
-        assert_includes before_filters, :enforce_verification_if_required
-        assert_includes before_filters, :set_current
+        expected_order = %i(
+          check_default_rate_limit
+          set_current_context
+          reset_flash
+          set_preferences_cookie
+          resolve_param_context
+          set_region
+          transparent_refresh_access_token
+          set_current_actor
+          apply_localization_preferences
+          set_color_theme
+          enforce_verification_if_required
+          enforce_access_policy!
+        )
+
+        expected_order.each_cons(2) do |first, second|
+          assert_operator before_filters.index(first), :<, before_filters.index(second)
+        end
       end
 
-      test "has finish_request append_after_action" do
+      test "clears actor context through around lifecycle" do
         callbacks = ApplicationController._process_action_callbacks
-        after_filters = callbacks.select { |c| c.kind == :after }.map(&:filter)
+        around_filters = callbacks.select { |c| c.kind == :around }.map(&:filter)
 
-        assert_includes after_filters, :purge_current
+        assert_includes around_filters, :with_actor_lifecycle
       end
 
       test "has oidc_client_id method" do

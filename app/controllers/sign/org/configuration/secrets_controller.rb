@@ -4,9 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class SecretsController < ApplicationController
-        auth_required!
-
+      class SecretsController < PrivateController
         include ::Verification::Operator
 
         before_action :authenticate_operator!
@@ -62,6 +60,11 @@ module Sign
         end
 
         def destroy
+          if AuthMethodGuard.last_method?(current_operator, excluding: @secret)
+            flash[:alert] = t(".last_method")
+            return redirect_to(sign_org_configuration_secrets_path)
+          end
+
           OperatorSecrets::Destroy.call(actor: current_operator, secret: @secret)
           flash[:notice] = t(".destroyed")
           redirect_to(sign_org_configuration_secrets_path, status: :see_other)
@@ -70,7 +73,7 @@ module Sign
         private
 
         def set_secret
-          @secret = current_operator.staff_secrets.find_by!(public_id: params.expect(:id))
+          @secret = current_operator.staff_secrets.find_by!(public_id: params(:id))
         end
 
         def secret_params

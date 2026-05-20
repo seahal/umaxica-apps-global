@@ -5,21 +5,21 @@ require "test_helper"
 require "base64"
 
 class VerificationSessionsTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_one_time_password_statuses, :user_token_statuses, :user_token_kinds
+  fixtures :clients, :client_statuses, :client_one_time_password_statuses, :client_token_statuses, :client_token_kinds
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
 
-    @user = User.create!(status_id: UserStatus::NOTHING)
+    @user = Client.create!(status_id: ClientStatus::NOTHING)
 
-    @token = UserToken.create!(
+    @token = ClientToken.create!(
       user: @user,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       public_id: "verify_#{SecureRandom.hex(4)}",
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
     )
     @token.update!(created_at: 1.hour.ago)
 
@@ -28,10 +28,10 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }.freeze
 
-    UserOneTimePassword.create!(
+    ClientOneTimePassword.create!(
       user: @user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
   end

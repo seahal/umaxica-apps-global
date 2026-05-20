@@ -21,8 +21,7 @@ module SignedSessionReference
       public_id = data[:pid] || data["pid"]
       find_logic = -> { find_by(id: token_id, public_id: public_id) }
 
-      role = Rails.env.test? ? :writing : signed_ref_lookup_role
-      connection_owner.connected_to(role: role, &find_logic)
+      connection_owner.connected_to(role: signed_ref_lookup_role, &find_logic)
     rescue ActiveSupport::MessageVerifier::InvalidSignature
       nil
     end
@@ -41,8 +40,7 @@ module SignedSessionReference
           where(id: ids, public_id: public_ids).to_a
         end
 
-      role = Rails.env.test? ? :writing : signed_ref_lookup_role
-      connection_owner.connected_to(role: role, &find_logic)
+      connection_owner.connected_to(role: signed_ref_lookup_role, &find_logic)
     rescue ActiveSupport::MessageVerifier::InvalidSignature
       []
     end

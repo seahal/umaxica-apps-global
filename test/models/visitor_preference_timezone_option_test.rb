@@ -4,9 +4,13 @@
 # == Schema Information
 #
 # Table name: visitor_preference_timezone_options
-# Database name: setting
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
+#
+# Indexes
+#
+#  index_visitor_preference_timezone_options_on_id  (id) UNIQUE
 #
 require "test_helper"
 

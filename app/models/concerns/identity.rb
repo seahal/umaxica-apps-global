@@ -1,12 +1,11 @@
 # typed: false
 # frozen_string_literal: true
 
-# Shared identity logic for User, Operator, and Visitor.
+# Shared identity logic for Client, Operator, and Visitor.
 # These are the authenticatable principals that own credentials and sessions.
 module Identity
   extend ActiveSupport::Concern
 
-  include ::Accountable
   include ::Withdrawable
 
   included do

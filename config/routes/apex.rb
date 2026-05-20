@@ -1,19 +1,22 @@
 # typed: false
 # frozen_string_literal: true
 
+# FIXME: What's the point of this?
 apex_hosts =
   lambda do |env_key, fallback, *local_aliases|
     hosts = [ENV.fetch(env_key, fallback)]
     hosts.concat(local_aliases) unless Rails.env.production?
-    hosts.compact.uniq
+    hosts.compact!
+    hosts.uniq!
+    hosts
   end
 
 scope module: :apex, as: :apex do
-  constraints host: apex_hosts.call("APEX_CORPORATE_URL", "www.com.localhost", "com.localhost") do
+  constraints host: apex_hosts.call("APEX_CORPORATE_URL", "www.com.localhost") do
     scope module: :com, as: :com do
       root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
@@ -30,7 +33,7 @@ scope module: :apex, as: :apex do
       # Edge API endpoint (browser/SPA)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show, controller: "health"
+          resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
         end
@@ -39,19 +42,20 @@ scope module: :apex, as: :apex do
       namespace :auth do
         resource :callback, only: :show
       end
+      namespace :sso do
+        resource :authorization, only: :show, path: "authorize"
+        resource :logout, only: :create
+      end
       # for account page
       resources :accounts, only: [:index]
-      namespace :accounts do
-        resource :profile, only: %i(show update)
-      end
     end
   end
 
-  constraints host: apex_hosts.call("APEX_SERVICE_URL", "www.app.localhost", "app.localhost") do
+  constraints host: apex_hosts.call("APEX_SERVICE_URL", "www.app.localhost") do
     scope module: :app, as: :app do
       root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
@@ -68,7 +72,7 @@ scope module: :apex, as: :apex do
       # Edge API endpoint (browser/SPA)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show, controller: "health"
+          resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
         end
@@ -77,23 +81,28 @@ scope module: :apex, as: :apex do
       namespace :auth do
         resource :callback, only: :show
       end
+      namespace :sso do
+        resource :authorization, only: :show, path: "authorize"
+        resource :logout, only: :create
+      end
       # for account page
       resources :accounts, only: [:index]
-      namespace :accounts do
-        resource :profile, only: %i(show update)
-      end
     end
   end
 
-  constraints host: apex_hosts.call("APEX_STAFF_URL", "www.org.localhost", "org.localhost") do
+  constraints host: apex_hosts.call("APEX_STAFF_URL", "www.org.localhost") do
     scope module: :org, as: :org do
       root to: "roots#index"
       # OIDC callback
       namespace :auth do
         resource :callback, only: :show
       end
+      namespace :sso do
+        resource :authorization, only: :show, path: "authorize"
+        resource :logout, only: :create
+      end
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
@@ -110,30 +119,31 @@ scope module: :apex, as: :apex do
       # Edge API endpoint (browser/SPA)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show, controller: "health"
+          resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
         end
       end
       # for account page
       resources :accounts, only: [:index]
-      namespace :accounts do
-        resource :profile, only: %i(show update)
-      end
     end
+  end
 
-    constraints host: ENV["APEX_NETWORK_URL"] do
-      root to: "roots#index", as: :network_root
+  constraints host: ENV["APEX_NETWORK_URL"] do
+    scope module: :net, as: :network do
+      root to: "roots#index", as: :root
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
+  end
 
-    constraints host: ENV["APEX_DEVELOPER_URL"] do
-      root to: "roots#index", as: :developer_root
+  constraints host: ENV["APEX_DEVELOPER_URL"] do
+    scope module: :dev, as: :developer do
+      root to: "roots#index", as: :root
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # to show the jobs page

@@ -5,27 +5,27 @@ require "test_helper"
 require "minitest/mock"
 
 class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users,
-           :user_statuses,
-           :user_token_statuses,
-           :user_token_kinds,
-           :user_one_time_password_statuses,
+  fixtures :clients,
+           :client_statuses,
+           :client_token_statuses,
+           :client_token_kinds,
+           :client_one_time_password_statuses,
            :app_preference_chronicle_levels,
-           :user_chronicle_events,
-           :user_chronicle_levels
+           :client_chronicle_events,
+           :client_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
+    @user = clients(:one)
     # Clear existing TOTPs to avoid limit error
-    @user.user_one_time_passwords.destroy_all
-    UserEmail.create!(
+    @user.client_one_time_passwords.destroy_all
+    ClientEmail.create!(
       user: @user,
       address: "totp-config-test@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    @token = UserToken.create!(user_id: @user.id)
+    @token = ClientToken.create!(user_id: @user.id)
     @token.rotate_refresh_token!
     @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "configuration_totp")
     access_token = Authentication::Base::Token.encode(
@@ -42,12 +42,12 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     satisfy_user_verification(@token)
     @headers.freeze
 
-    @totp = UserOneTimePassword.create!(
+    @totp = ClientOneTimePassword.create!(
       user: @user,
       private_key: ROTP::Base32.random_base32,
       last_otp_at: Time.zone.at(0),
       title: "Main TOTP",
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
     )
 
     CloudflareTurnstile.test_mode = true
@@ -72,8 +72,8 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "index stays accessible when no totp is registered" do
-    user = User.create!(status_id: UserStatus::NOTHING)
-    token = UserToken.create!(user_id: user.id)
+    user = Client.create!(status_id: ClientStatus::NOTHING)
+    token = ClientToken.create!(user_id: user.id)
     satisfy_user_verification(token)
     access_token = Authentication::Base::Token.encode(
       user,
@@ -97,13 +97,13 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "index requires step up when multi factor status is active even without totp" do
-    user = User.create!(status_id: UserStatus::NOTHING)
-    UserEmail.create!(
+    user = Client.create!(status_id: ClientStatus::NOTHING)
+    ClientEmail.create!(
       user: user,
       address: "totp-active-with-email@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
-    token = UserToken.create!(user_id: user.id)
+    token = ClientToken.create!(user_id: user.id)
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
     access_token = Authentication::Base::Token.encode(
       user,
@@ -127,7 +127,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_totp", query["scope"]
-    assert_equal UserMultiFactorStatus::ACTIVE, user.reload.multi_factor_status_id
+    assert_equal ClientMultiFactorStatus::ACTIVE, user.reload.multi_factor_status_id
   end
 
   test "should show up link on index page" do
@@ -172,7 +172,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "should destroy with public_id" do
-    assert_difference("UserOneTimePassword.count", -1) do
+    assert_difference("ClientOneTimePassword.count", -1) do
       with_prosopite_paused do
         delete sign_app_configuration_totp_url(@totp.public_id, ri: "jp"), headers: @headers
       end
@@ -182,13 +182,13 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "should return 404 for other user's totp" do
-    other_user = users(:two)
-    other_totp = UserOneTimePassword.create!(
+    other_user = clients(:two)
+    other_totp = ClientOneTimePassword.create!(
       user: other_user,
       private_key: ROTP::Base32.random_base32,
       last_otp_at: Time.zone.at(0),
       title: "Other TOTP",
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
     )
 
     with_prosopite_paused do
@@ -200,7 +200,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
   test "should create totp with valid token" do
     # Clear TOTP created in setup to allow creation of a new one (limit is 2)
-    @user.user_one_time_passwords.destroy_all
+    @user.client_one_time_passwords.destroy_all
 
     with_mocked_totp do |secret|
       with_prosopite_paused do
@@ -212,15 +212,15 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
       token = ROTP::TOTP.new(secret).now
       step_up_before = Time.current
 
-      assert_difference("UserOneTimePassword.count") do
+      assert_difference("ClientOneTimePassword.count") do
         assert_difference(
           -> {
-            UserChronicle.where(
-              actor_type: "User",
+            ClientChronicle.where(
+              actor_type: "Client",
               actor_id: @user.id,
-              subject_type: "User",
+              subject_type: "Client",
               subject_id: @user.id,
-              event_id: UserChronicleEvent::TOTP_ENABLED,
+              event_id: ClientChronicleEvent::TOTP_ENABLED,
             ).count
           },
           1,
@@ -240,7 +240,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "should assign attributes to created totp" do
-    @user.user_one_time_passwords.destroy_all
+    @user.client_one_time_passwords.destroy_all
 
     with_mocked_totp do |secret|
       with_prosopite_paused do
@@ -257,7 +257,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
              headers: @headers
       end
 
-      created_totp = UserOneTimePassword.order(created_at: :desc).first
+      created_totp = ClientOneTimePassword.order(created_at: :desc).first
 
       assert_equal "New TOTP", created_totp.title
       assert_not_nil created_totp.last_otp_at
@@ -272,7 +272,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     assert_response :success
     assert_select "input[name='cf-turnstile-response']"
 
-    assert_no_difference("UserOneTimePassword.count") do
+    assert_no_difference("ClientOneTimePassword.count") do
       with_prosopite_paused do
         post sign_app_configuration_totps_url(ri: "jp"),
              params: { user_one_time_password: { first_token: "000000" } },
@@ -295,7 +295,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
       CloudflareTurnstile.test_validation_response = { "success" => false }
       token = ROTP::TOTP.new(secret).now
 
-      assert_no_difference("UserOneTimePassword.count") do
+      assert_no_difference("ClientOneTimePassword.count") do
         with_prosopite_paused do
           post sign_app_configuration_totps_url(ri: "jp"),
                params: { user_one_time_password: { first_token: token, title: "Blocked TOTP" } },
@@ -310,7 +310,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
   test "initial setup user can access totp pages without step-up" do
     user = create_verified_user_with_email(email_address: "initial_totp_access@example.com")
-    token = UserToken.create!(user_id: user.id)
+    token = ClientToken.create!(user_id: user.id)
     token.rotate_refresh_token!
     token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "configuration_totp")
     satisfy_user_verification(token)
@@ -336,7 +336,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
   test "initial setup user can create first totp without step-up" do
     user = create_verified_user_with_email(email_address: "initial_totp_create@example.com")
-    token = UserToken.create!(user_id: user.id)
+    token = ClientToken.create!(user_id: user.id)
     token.rotate_refresh_token!
     token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "configuration_totp")
     satisfy_user_verification(token)
@@ -361,7 +361,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
       assert_response :success
       first_code = ROTP::TOTP.new(secret).now
 
-      assert_difference("UserOneTimePassword.count", 1) do
+      assert_difference("ClientOneTimePassword.count", 1) do
         with_prosopite_paused do
           post sign_app_configuration_totps_url(ri: "jp"),
                params: { user_one_time_password: { first_token: first_code } },

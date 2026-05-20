@@ -4,13 +4,19 @@
 # == Schema Information
 #
 # Table name: visitor_preference_theme_options
-# Database name: setting
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
+#
+# Indexes
+#
+#  index_visitor_preference_theme_options_on_id  (id) UNIQUE
 #
 require "test_helper"
 
 class VisitorPreferenceThemeOptionTest < ActiveSupport::TestCase
+  fixtures_only :visitor_preference_theme_options
+
   test "has correct constants" do
     assert_equal 0, VisitorPreferenceThemeOption::SYSTEM
     assert_equal 1, VisitorPreferenceThemeOption::LIGHT

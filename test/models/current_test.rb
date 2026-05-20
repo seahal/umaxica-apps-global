@@ -18,22 +18,51 @@ class ActorContextTest < ActiveSupport::TestCase
     assert_equal Actor::Preference::NULL, Actor.preference
     assert_predicate Actor, :unauthenticated?
     assert_not Actor.authenticated?
-    assert_nil Actor.user
+    assert_not Actor.signed_in?
+    assert_not Actor.signed_up?
+    assert_nil Actor.client
     assert_nil Actor.operator
     assert_nil Actor.visitor
+    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Configuration::NULL, Actor.configuration
   end
 
-  test "setting user actor" do
-    user = User.new(id: 123)
+  test "setting client actor" do
+    user = Client.new(id: 123)
     Actor.actor = user
-    Actor.actor_type = :user
+    Actor.actor_type = :client
 
     assert_equal user, Actor.actor
-    assert_equal :user, Actor.actor_type
-    assert_predicate Actor, :user?
+    assert_equal :client, Actor.actor_type
+    assert_predicate Actor, :client?
     assert_predicate Actor, :authenticated?
-    assert_equal user, Actor.user
+    assert_predicate Actor, :signed_in?
+    assert_predicate Actor, :signed_up?
+    assert_equal user, Actor.client
     assert_not Actor.unauthenticated?
+  end
+
+  test "signed_up is false for authenticated actor without persisted identity" do
+    Actor.actor = Client.new
+    Actor.actor_type = :client
+
+    assert_predicate Actor, :signed_in?
+    assert_not Actor.signed_up?
+  end
+
+  test "authentication null object is safe for guests" do
+    assert_predicate Actor.authentication, :null?
+    assert_nil Actor.authentication.login_public_id
+    assert_equal [], Actor.authentication.amr
+    assert_not Actor.authentication.restricted?
+    assert_not Actor.authentication.verified?
+  end
+
+  test "configuration null object is safe for guests" do
+    assert_predicate Actor.configuration, :null?
+    assert_predicate Actor.configuration.anything, :blank?
+    assert_not Actor.configuration.anything.enabled?
+    assert_equal "", Actor.configuration.anything.deeply.nested.to_s
   end
 
   test "setting staff actor" do
@@ -81,22 +110,32 @@ class ActorContextTest < ActiveSupport::TestCase
   end
 
   test "preference from jwt" do
-    claim = { "lx" => "en", "ri" => "us", "tz" => "UTC", "ct" => "dr" }
+    claim = {
+      "lx" => "en",
+      "ri" => "us",
+      "tz" => "UTC",
+      "ct" => "dr",
+      "cu" => "usd",
+      "df" => "mdy",
+      "tf" => "hour_12",
+      "mo" => "reduced",
+      "dn" => "compact",
+      "ipp" => "50",
+    }
     pref = Actor::Preference.from_jwt(claim)
 
     assert_equal "en", pref.language
     assert_equal :en, pref.locale
     assert_equal "us", pref.region
     assert_equal "UTC", pref.time_zone.name
+    assert_equal "usd", pref.currency
+    assert_equal "mdy", pref.date_format
+    assert_equal "hour_12", pref.time_format
+    assert_equal "reduced", pref.motion
+    assert_equal "compact", pref.density
+    assert_equal "50", pref.items_per_page
     assert_predicate pref, :dark_mode?
     assert_not pref.null?
-  end
-
-  test "preference exposes public_id" do
-    pref = Actor::Preference.new(public_id: "pref-public")
-
-    assert_equal "pref-public", pref.public_id
-    assert_equal "pref-public", pref.with_cookie(nil).public_id
   end
 
   test "preference handles custom locale and cookie object values" do
@@ -124,11 +163,12 @@ class ActorContextTest < ActiveSupport::TestCase
   end
 
   test "preference to_h" do
-    pref = Actor::Preference.new(language: "en", theme: "dr")
+    pref = Actor::Preference.new(language: "en", theme: "dr", motion: "reduced")
     hash = pref.to_h
 
     assert_equal "en", hash[:language]
     assert_equal "dr", hash[:theme]
+    assert_equal "reduced", hash[:motion]
     assert_not hash[:consented]
   end
 

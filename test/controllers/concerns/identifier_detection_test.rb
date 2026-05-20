@@ -36,12 +36,12 @@ class IdentifierDetectionTest < ActionDispatch::IntegrationTest
     assert_equal :unknown, @controller.send(:detect_identifier_type, nil)
   end
 
-  test "identity_email_model returns UserEmail" do
-    assert_equal UserEmail, @controller.send(:identity_email_model)
+  test "identity_email_model returns ClientEmail" do
+    assert_equal ClientEmail, @controller.send(:identity_email_model)
   end
 
-  test "identity_telephone_model returns UserTelephone" do
-    assert_equal UserTelephone, @controller.send(:identity_telephone_model)
+  test "identity_telephone_model returns ClientTelephone" do
+    assert_equal ClientTelephone, @controller.send(:identity_telephone_model)
   end
 
   test "identity_from_email_record returns nil for nil" do

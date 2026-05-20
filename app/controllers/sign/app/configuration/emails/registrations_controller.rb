@@ -5,15 +5,16 @@ module Sign
   module App
     module Configuration
       module Emails
-        class RegistrationsController < ::Sign::App::ApplicationController
-          auth_required!
-
+        class RegistrationsController < ::Sign::App::PrivateController
           include Sign::EmailRegistrationFlow
-          include ::Verification::User
+          include ::Verification::Client
 
-          before_action :authenticate_user!
-          before_action only: %i(new create edit update) do
+          before_action :authenticate_client!
+          before_action only: %i(new create) do
             require_step_up_unless_bootstrap!(scope: verification_scope)
+          end
+          before_action only: %i(edit update) do
+            require_step_up!(scope: verification_scope)
           end
 
           private
@@ -22,13 +23,13 @@ module Sign
             turnstile_result = cloudflare_turnstile_stealth_validation
             return true if turnstile_result["success"]
 
-            @user_email = UserEmail.new(raw_address: email_address, confirm_policy: confirm_policy)
+            @user_email = ClientEmail.new(raw_address: email_address, confirm_policy: confirm_policy)
             @user_email.errors.add(:base, t("sign.app.registration.email.create.turnstile_validation_failed"))
             false
           end
 
           def email_registration_target_user
-            current_user
+            current_client
           end
 
           def after_email_registration_started_path(params = {})
@@ -52,11 +53,11 @@ module Sign
           end
 
           def pending_email_status_id
-            UserEmailStatus::UNVERIFIED
+            ClientEmailStatus::UNVERIFIED
           end
 
           def verified_email_status_id
-            UserEmailStatus::VERIFIED
+            ClientEmailStatus::VERIFIED
           end
 
           def on_email_registration_verified!(*)
@@ -64,21 +65,21 @@ module Sign
               last_step_up_at: Time.current,
               last_step_up_scope: verification_scope,
             )
-            create_audit_event!(UserChronicleEvent::EMAIL_REGISTERED)
+            create_audit_event!(ClientChronicleEvent::EMAIL_REGISTERED)
           end
 
           def create_audit_event!(event_id)
             ChronicleRecord.connected_to(role: :writing) do
-              UserChronicleEvent.find_or_create_by!(id: event_id)
-              UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+              ClientChronicleEvent.find_or_create_by!(id: event_id)
+              ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
             end
 
-            UserChronicle.create!(
-              actor_type: "User",
-              actor_id: current_user.id,
+            ClientChronicle.create!(
+              actor_type: "Client",
+              actor_id: current_client.id,
               event_id: event_id,
-              subject_id: current_user.id.to_s,
-              subject_type: "User",
+              subject_id: current_client.id.to_s,
+              subject_type: "Client",
               occurred_at: Time.current,
             )
           end

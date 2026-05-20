@@ -4,18 +4,16 @@
 module Sign
   module Com
     module Configuration
-      class TelephonesController < ApplicationController
-        auth_required!
-
+      class TelephonesController < PrivateController
         include Common::Otp
-        include ::Verification::User
+        include ::Verification::Visitor
 
         TELEPHONE_VERIFICATION_RATE_LIMIT = 5
         TELEPHONE_VERIFICATION_RATE_WINDOW = 60
         before_action :authenticate_visitor!
 
         def index
-          @user_telephones = current_visitor.visitor_telephones.order(created_at: :asc)
+          @client_telephones = current_visitor.visitor_telephones.order(created_at: :asc)
         end
 
         def new
@@ -23,14 +21,14 @@ module Sign
         end
 
         def edit
-          @user_telephone = current_visitor.visitor_telephones.find_by!(public_id: params.expect(:id))
+          @user_telephone = current_visitor.visitor_telephones.find_by!(public_id: params(:id))
         end
 
         def create
           visitor = current_visitor
           return head :unauthorized if visitor.blank?
 
-          tel_params = params.expect(user_telephone: [:raw_number, :number])
+          tel_params = params(user_telephone: [:raw_number, :number])
           number = tel_params[:raw_number] || tel_params[:number]
           if initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: true)
             redirect_to(edit_sign_com_configuration_telephone_path(@user_telephone.id, ri: params[:ri]))
@@ -40,7 +38,7 @@ module Sign
         end
 
         def destroy
-          telephone = current_visitor.visitor_telephones.find_by!(public_id: params.expect(:id))
+          telephone = current_visitor.visitor_telephones.find_by!(public_id: params(:id))
 
           unless AuthMethodGuard.can_remove_telephone?(current_visitor, telephone)
             redirect_to(
@@ -51,7 +49,7 @@ module Sign
           end
 
           telephone.destroy!
-          create_audit_event!(UserChronicleEvent::TELEPHONE_REMOVED, subject: telephone)
+          create_audit_event!(ClientChronicleEvent::TELEPHONE_REMOVED, subject: telephone)
 
           redirect_to(
             sign_com_configuration_telephones_path(ri: params[:ri]),
@@ -64,11 +62,11 @@ module Sign
 
         def create_audit_event!(event_id, subject:)
           ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            ClientChronicleEvent.find_or_create_by!(id: event_id)
+            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
           end
 
-          UserChronicle.create!(
+          ClientChronicle.create!(
             actor_type: "Visitor",
             actor_id: current_visitor.id,
             event_id: event_id,
@@ -121,10 +119,10 @@ module Sign
 
         def send_telephone_verification_sms(visitor_telephone, otp_number)
           message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
-          SmsDeliveryJob.perform_later(
+          Outbound::Sms.deliver_later(
             to: visitor_telephone.number,
-            message: message,
-            subject: message,
+            title: message,
+            body: message,
           )
         end
 

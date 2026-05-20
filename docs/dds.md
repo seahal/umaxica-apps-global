@@ -44,7 +44,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
     ├─ PostgreSQL (identity, guest, universal, token, etc.)
     ├─ Valkey (sessions, rate limit, Memorize)
     ├─ ActionMailer + SMTP
-    ├─ AwsSmsService
+    ├─ Outbound::Sms
     └─ OpenTelemetry exporter → Tempo / Logs → Loki / Dashboards → Grafana
 ```
 
@@ -54,7 +54,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 | -------------- | ----------------------------------------------------------------------------------------- |
 | Presentation   | Namespaced controllers and Turbo/React views under `app/javascript`                       |
 | Domain Logic   | Concerns in `app/controllers/concerns`, services in `app/services`, models per DB         |
-| Integration    | `app/mailers`, `AwsSmsService`, OTEL instrumentation                                      |
+| Integration    | `app/mailers`, `Outbound::Sms`, OTEL instrumentation                                      |
 | Infrastructure | Compose services (Postgres, Valkey, MinIO, Loki, Tempo, Grafana), pnpm/Tailwind toolchain |
 
 ---
@@ -104,7 +104,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 1. `#new`: clears session slot, ensures user not logged in, instantiates `UserIdentityEmail`.
 2. `#create`: validates Turnstile, generates HOTP secret + counter, stores intermediate state in
-   session, dispatches OTP via `Email::App::RegistrationMailer`.
+   session, dispatches OTP via the surface-specific `Email::*::OtpMailer`.
 3. `#edit`: ensures session data matches requested ID and not expired.
 4. `#update`: validates OTP; on success, persists `UserIdentityEmail`, clears session, redirects to
    home.
@@ -134,10 +134,10 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 ### 3.5 Help Namespace
 
 - `Help::Com::ContactsController` handles `new/create/show`.
-- `ServiceSiteContact` (GuestRecord) encrypts email, phone, title, description; requires either
-  email or telephone plus policy consent.
+- `ServiceSiteContact` (ComPrincipalRecord) encrypts email, phone, title, description; requires
+  either email or telephone plus policy consent.
 - Turnstile integration ensures bot mitigation; errors are logged via `Rails.logger`.
-- OTP dispatch uses `Email::App::ContactMailer` and `AwsSmsService`.
+- OTP dispatch uses surface-specific `Email::{App,Com,Org}::OtpMailer` classes and `Outbound::Sms`.
 
 ### 3.6 Docs & News Namespaces
 
@@ -175,7 +175,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 3.10 Services & Integrations
 
-- `AwsSmsService` handles SMS dispatch for OTP-related flows.
+- `Outbound::Sms` handles SMS dispatch for OTP-related flows.
 - Other service placeholders (`AccountService`, `CoreService`, `EntityService`) mark future
   boundaries (business/customer mgmt, tokens).
 - `RedisMemorize` (inside `Memorize`) encrypts values using `ActiveSupport::MessageEncryptor`
@@ -212,7 +212,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 1. `Sign::App::Registration::EmailsController#new` resets session, renders form.
 2. `#create` verifies Turnstile, generates HOTP secret/counter, stores metadata in session, and
-   emails OTP via `Email::App::RegistrationMailer`.
+   emails OTP via the surface-specific `Email::*::OtpMailer`.
 3. User enters OTP → `#update` reuses `UserIdentityEmail` validations; ensures session ID matches
    and not expired.
 4. On success, `UserIdentityEmail` persists to identity DB, session cleared, redirect with success
@@ -224,7 +224,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 2. Form ensures policy consent via `views/www/app/inquiry/before_submit.js`.
 3. `#create` builds `ServiceSiteContact`, ensures Turnstile passes, encrypts PII, and stores IP
    address.
-4. Send immediate email via `Email::App::ContactMailer`.
+4. Send immediate email through the surface-specific alert mailer.
 5. Redirect back with success notice.
 
 ### 4.4 Passkey Enrollment
@@ -233,7 +233,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
    `webauthn_id`, collects exclude credentials.
 2. `WebAuthn::Credential.options_for_create` returns challenge; stored in
    `session[:webauthn_create_challenge]`.
-3. VisitorAccount JS uses `navigator.credentials.create` with challenge; POSTs `/setting/passkeys/verify`.
+3. VisitorAccount JS uses `navigator.credentials.create` with challenge; POSTs
+   `/setting/passkeys/verify`.
 4. Server verifies challenge (TODO) and persists `UserPasskey` with `webauthn_id`, `public_key`,
    `sign_count`.
 
@@ -243,15 +244,15 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 5.1 Models & Storage
 
-| Model                                  | Base DB             | Notes                                                                            |
-| -------------------------------------- | ------------------- | -------------------------------------------------------------------------------- |
-| `User`, `Staff`                        | `IdentitiesRecord`  | `has_many :emails`, `:phones`, `webauthn_id` stored                              |
-| `UserIdentityEmail`                    | `IdentitiesRecord`  | Includes `Email` concern, encrypts `address`, `before_create` sets UUID v7       |
-| `ServiceSiteContact`                   | `GuestRecord`       | Encrypts email/phone/title/description, validates OTP codes, stores `ip_address` |
-| `TimeBasedOneTimePassword`             | `OccurrenceRecord`  | Encrypts `private_key`, stores `last_otp_at`, `first_token` virtual attr         |
-| `UserPasskey`                          | `ApplicationRecord` | Validates `webauthn_id`, `public_key`, `description`, `sign_count`               |
-| `UserToken`, `OperatorToken`              | `TokensRecord`      | Reference tokens for JWT refresh handling                                        |
-| `IdentifierRegionCode` and join tables | `OccurrenceRecord`  | Future mapping for personas/staff region codes                                   |
+| Model                                  | Base DB              | Notes                                                                            |
+| -------------------------------------- | -------------------- | -------------------------------------------------------------------------------- |
+| `User`, `Staff`                        | `IdentitiesRecord`   | `has_many :emails`, `:phones`, `webauthn_id` stored                              |
+| `UserIdentityEmail`                    | `IdentitiesRecord`   | Includes `Email` concern, encrypts `address`, `before_create` sets UUID v7       |
+| `ServiceSiteContact`                   | `ComPrincipalRecord` | Encrypts email/phone/title/description, validates OTP codes, stores `ip_address` |
+| `TimeBasedOneTimePassword`             | `OccurrenceRecord`   | Encrypts `private_key`, stores `last_otp_at`, `first_token` virtual attr         |
+| `UserPasskey`                          | `ApplicationRecord`  | Validates `webauthn_id`, `public_key`, `description`, `sign_count`               |
+| `UserToken`, `OperatorToken`           | `TokensRecord`       | Reference tokens for JWT refresh handling                                        |
+| `IdentifierRegionCode` and join tables | `OccurrenceRecord`   | Future mapping for personas/staff region codes                                   |
 
 ### 5.2 Cookies & Sessions
 
@@ -276,14 +277,14 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ## 6. External Interfaces
 
-| Interface            | Endpoint(s)                                                                                               | Details                                                                                                                                                                                       |
-| -------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTP/Turbo           | `/`, `/health`, `/v1/health`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                                             |
-| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                                                                                                                             |
-| ActionMailer         | `Email::App::RegistrationMailer`, `Email::App::ContactMailer`, etc.                                       | Default sender is surface-specific (`SMTP_FROM_ADDRESS_APP`, `SMTP_FROM_ADDRESS_COM`, `SMTP_FROM_ADDRESS_ORG`) with `from@umaxica.app`, `from@umaxica.com`, and `from@umaxica.org` fallbacks. |
-| SMS                  | `AwsSmsService`                                                                                           | Called via `AwsSmsService.send_message` for OTP-related flows.                                                                                                                                |
-| OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                                |
-| Storage              | MinIO / Google Cloud Storage                                                                              | `google-cloud-storage` + `shrine` used for file storage (future).                                                                                                                             |
+| Interface            | Endpoint(s)                                                                                               | Details                                                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP/Turbo           | `/`, `/health`, `/v1/health`, `/preference/*`, `/sign/*`, `/help/contacts`, `/api/v1/inquiry/*`, `/bff/*` | Host-specific responses; `allow_browser` enforces modern clients.                                                                                                               |
+| Cloudflare Turnstile | `https://challenges.cloudflare.com/turnstile/v0/siteverify`                                               | Called server-side with secret key, form response, and client IP.                                                                                                               |
+| ActionMailer         | `Email::{App,Com,Org}::{OtpMailer,AlertMailer,PromotionalMailer}`                                         | OTP, alert, and promotion senders are fixed per surface and purpose, for example `otp@umaxica.app` and `promotion@umaxica.org`. OTP job arguments carry encrypted OTP payloads. |
+| SMS                  | `Outbound::Sms`                                                                                           | Called via `Outbound::Sms.deliver_later` for OTP-related flows; `SMS_PROVIDER` selects the concrete provider. SMS job arguments carry encrypted message bodies.                 |
+| OpenTelemetry        | OTLP exporter                                                                                             | Default endpoint `http://tempo:4318/v1/traces` (configurable).                                                                                                                  |
+| Storage              | MinIO / Google Cloud Storage                                                                              | `google-cloud-storage` + `shrine` used for file storage (future).                                                                                                               |
 
 ---
 
@@ -317,8 +318,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 - **Rate limiting**: Configured via `RateLimit` concern (Valkey backend).
 - **Data encryption**: Active Record encryption for PII (emails, phones, private keys, titles,
   descriptions). `ServiceSiteContact` ensures deterministic encryption for lookups where needed.
-- **Passkeys & OTP**: WebAuthn for passkeys, ROTP for HOTP/TOTP, RQRCode for QR codes, AwsSmsService
-  for SMS OTP.
+- **Passkeys & OTP**: WebAuthn for passkeys, ROTP for HOTP/TOTP, RQRCode for QR codes,
+  `Outbound::Sms` for SMS OTP.
 - **Redirect safety**: `Redirect::ALLOWED_HOSTS` enumerates acceptable targets;
   `generate_redirect_url` rejects unknown hosts.
 - **Browser allowlist**: `allow_browser versions: :modern` prevents outdated user agents from

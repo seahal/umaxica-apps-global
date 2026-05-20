@@ -10,11 +10,11 @@
 #  actor_type     :text             default(""), not null
 #  context        :jsonb            not null
 #  current_value  :text             default(""), not null
+#  discarded_at   :datetime         default(Infinity), not null
 #  ip_address     :inet             default(#<IPAddr: IPv4:0.0.0.0/255.255.255.255>), not null
-#  lapses_at      :datetime         default(Infinity), not null
 #  occurred_at    :datetime         not null
 #  previous_value :text             default(""), not null
-#  purge_at       :datetime         not null
+#  purged_at      :datetime         not null
 #  subject_type   :text             not null
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
@@ -31,7 +31,7 @@
 #  index_staff_chronicles_on_event_id                     (event_id)
 #  index_staff_chronicles_on_level_id                     (level_id)
 #  index_staff_chronicles_on_occurred_at                  (occurred_at)
-#  index_staff_chronicles_on_purge_at                     (purge_at)
+#  index_staff_chronicles_on_purged_at                    (purged_at)
 #  index_staff_chronicles_on_subject_id                   (subject_id)
 #
 # Foreign Keys
@@ -46,7 +46,7 @@ class OperatorChronicle < ChronicleRecord
 
   belongs_to :staff_chronicle_event, class_name: "OperatorChronicleEvent", foreign_key: :event_id,
                                      inverse_of: :staff_chronicles
-  belongs_to :actor, polymorphic: true, optional: true
+  belongs_to :actor, polymorphic: true
   belongs_to :staff_chronicle_level, class_name: "OperatorChronicleLevel", foreign_key: :level_id,
                                      inverse_of: :staff_chronicles
   # subject_id/subject_type for cross-DB compatibility (no FK)
@@ -61,6 +61,7 @@ class OperatorChronicle < ChronicleRecord
   validate :event_id_must_exist
   # Helper methods for compatibility with existing code
   before_create :set_timestamp
+  before_validation :default_actor_to_subject
 
   def set_timestamp
     self.timestamp ||= Time.current
@@ -82,14 +83,26 @@ class OperatorChronicle < ChronicleRecord
     return if event_id.blank?
 
     # Always use writing role to check event existence (avoid read replica lag)
-    exists =
-      ChronicleRecord.connected_to(role: :writing) do
-        OperatorChronicleEvent.exists?(id: event_id)
+    operation =
+      lambda do
+        ChronicleRecord.connected_to(role: :writing) do
+          OperatorChronicleEvent.exists?(id: event_id)
+        end
       end
+
+    exists = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
 
     return if exists
 
     errors.add(:event_id, "must reference a valid staff audit event")
+  end
+
+  def default_actor_to_subject
+    return if actor_id.present? && actor_type.present?
+    return unless subject_id.present? && subject_type.present?
+
+    self.actor_id = subject_id
+    self.actor_type = subject_type
   end
 
   encrypts :previous_value

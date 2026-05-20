@@ -9,16 +9,19 @@ module Sign
       include ::Preference::Global
       include ::Preference::Adoption
       include ::Authentication::Visitor
+      include ::Authentication::CredentialInventoryReader
       include ::Authorization::Visitor
       include ::Verification::Visitor
       include ActionPolicy::Controller
       include ::RestrictedSessionGuard
       include Sign::Com::RouteAliasHelper
-      include ::CurrentSupport
+      include ::ActorSupport
       include ::Finisher
 
+      authorize :user, through: :current_visitor
+      public_strict!
+
       helper Sign::Com::ApplicationHelper
-      helper_method :current_user if respond_to?(:helper_method)
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: HostOriginEnv.trusted_origins(
@@ -26,25 +29,24 @@ module Sign
                            ),
                            with: :exception
 
-      # The com surface allows public sign-up/sign-in pages and redirects authenticated visitors
-      # away from guest-only endpoints through the shared authentication pipeline.
-      guest_only!
-
       before_action :check_default_rate_limit
+      before_action :set_current_context
       before_action :reset_flash
-      prepend_before_action :set_preferences_cookie
-      prepend_before_action :resolve_param_context
-      prepend_before_action :set_region
+      before_action :set_preferences_cookie
+      before_action :resolve_param_context
+      before_action :set_region
 
-      prepend_before_action :set_color_theme
-      before_action :enforce_restricted_session_guard!
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
+      before_action :set_current_actor
+      before_action :apply_localization_preferences
+      before_action :set_color_theme
+      before_action :enforce_withdrawal_gate!
+      before_action :enforce_restricted_session_guard!
       before_action :enforce_required_telephone_registration!
-      before_action :enforce_access_policy!
       before_action :enforce_verification_if_required
-      before_action :set_current
+      before_action :enforce_access_policy!
       before_action :set_current_observability
-      after_action :purge_current
+      prepend_around_action :with_actor_lifecycle
 
       class << self
         def local_prefixes
@@ -55,14 +57,6 @@ module Sign
       end
 
       private
-
-      def current_user
-        current_visitor
-      end
-
-      def authenticate_user!
-        authenticate_visitor!
-      end
 
       def actor_staff?
         false
@@ -132,12 +126,10 @@ module Sign
       def telephone_registration_allowed_path?
         allowed = [
           "sign/com/configuration/telephones/registrations",
-          "sign/com/configuration/outs",
+          "sign/com/outs",
         ]
         allowed.include?(controller_path)
       end
     end
   end
 end
-
-Sign::Com::ApplicationController.send(:public, :current_user)

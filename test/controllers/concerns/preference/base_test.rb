@@ -367,7 +367,7 @@ module Preference
     FakePreferenceState =
       Struct.new(
         :binding_method, :dbsc_status, :dbsc_session_id, :expires_at,
-        :device_id, :device_id_digest, :status_id, :lapses_at, :replaced_by_id, :public_id,
+        :device_id, :device_id_digest, :status_id, :discarded_at, :replaced_by_id, :public_id,
         keyword_init: true,
       ) do
         def binding_method_dbsc? = binding_method == :dbsc
@@ -385,21 +385,82 @@ module Preference
         def replay? = false
 
         def accessible?
-          lapses_at.nil? || (lapses_at.respond_to?(:infinite?) && lapses_at.infinite?) || lapses_at > Time.current
+          discarded_at.nil? ||
+            (discarded_at.respond_to?(:infinite?) && discarded_at.infinite?) ||
+            discarded_at > Time.current
         end
 
-        def revoked? = lapses_at.present? && lapses_at <= Time.current
+        def revoked? = discarded_at.present? && discarded_at <= Time.current
       end
 
     setup do
+      Actor.reset
       @controller = PreferenceSanitizeTestController.new
       @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.app.localhost")
       @controller.response = ActionDispatch::TestResponse.new
     end
 
+    teardown do
+      Actor.reset
+    end
+
     test "resolve_option_id_from_param returns default for blank value" do
       assert_equal 99, @controller.send(:resolve_option_id_from_param, nil, :timezone, 99, "prefix")
       assert_equal 99, @controller.send(:resolve_option_id_from_param, "", :timezone, 99, "prefix")
+    end
+
+    test "resolve preference transport delegates to legacy preference cookie pipeline" do
+      delegated = false
+      @controller.define_singleton_method(:set_preferences_cookie) { delegated = true }
+
+      @controller.send(:resolve_preference_transport)
+
+      assert delegated
+    end
+
+    test "preference edit entry refresh copies resource preference before issuing token" do
+      resource = Object.new
+      resource_preference = Object.new
+      shared_preference = Object.new
+      calls = []
+
+      @controller.instance_variable_set(:@preferences, shared_preference)
+      @controller.define_singleton_method(:current_resource) { resource }
+      @controller.define_singleton_method(:resolved_resource_preference) { |candidate|
+        (candidate == resource) ? resource_preference : nil
+      }
+      @controller.define_singleton_method(:copy_preference_values!) do |source, target, prefix|
+        calls << [:copy, source, target, prefix]
+      end
+      @controller.define_singleton_method(:preference_prefix) { "App" }
+      @controller.define_singleton_method(:reload_preference_for_token!) do |preference|
+        calls << [:reload, preference]
+      end
+      @controller.define_singleton_method(:issue_access_token_from) do |preference|
+        calls << [:issue, preference]
+      end
+
+      @controller.send(:refresh_preference_token_from_db_for_edit_entry!)
+
+      assert_equal [
+        [:copy, resource_preference, shared_preference, "App"],
+        [:reload, shared_preference],
+        [:issue, shared_preference],
+      ], calls
+    end
+
+    test "preference edit entry refresh is a no-op without a logged-in resource preference" do
+      calls = []
+
+      @controller.instance_variable_set(:@preferences, Object.new)
+      @controller.define_singleton_method(:current_resource) { nil }
+      @controller.define_singleton_method(:copy_preference_values!) do |_source, _target, _prefix|
+        calls << :copy
+      end
+
+      @controller.send(:refresh_preference_token_from_db_for_edit_entry!)
+
+      assert_empty calls
     end
 
     test "resolve_option_id_from_param returns integer for valid input" do
@@ -541,7 +602,7 @@ module Preference
         binding_method: :dbsc,
         dbsc_status: :active,
         dbsc_session_id: "session-1",
-        lapses_at: 20.minutes.from_now,
+        discarded_at: 20.minutes.from_now,
       )
       legacy = FakePreferenceState.new(binding_method: :legacy, dbsc_status: :pending)
       nothing = FakePreferenceState.new(binding_method: :nothing, dbsc_status: :nothing)
@@ -571,7 +632,7 @@ module Preference
 
     test "preference refresh binding validates device cookie and dbsc cookie" do
       @controller.define_singleton_method(:digest_device_id) { |value| "digest:#{value}" }
-      @controller.send(:cookies)[Preference::CookieName.device(refresh_cookie_key: Preference::CookieName.refresh)] =
+      @controller.send(:cookies)[@controller.send(:preference_device_id_cookie_name)] =
         "device-1"
       legacy = FakePreferenceState.new(binding_method: :legacy, device_id_digest: "digest:device-1")
 
@@ -592,12 +653,12 @@ module Preference
       assert_not @controller.send(:preference_refresh_binding_allowed?, dbsc)
       assert_equal "missing_bound_cookie", @controller.instance_variable_get(:@preference_refresh_device_reason)
 
-      @controller.send(:cookies)[Preference::CookieName.dbsc] = "wrong"
+      @controller.send(:cookies)[@controller.send(:preference_dbsc_cookie_name)] = "wrong"
 
       assert_not @controller.send(:preference_refresh_binding_allowed?, dbsc)
       assert_equal "session_id_mismatch", @controller.instance_variable_get(:@preference_refresh_device_reason)
 
-      @controller.send(:cookies)[Preference::CookieName.dbsc] = "session-1"
+      @controller.send(:cookies)[@controller.send(:preference_dbsc_cookie_name)] = "session-1"
 
       assert @controller.send(:preference_refresh_binding_allowed?, dbsc)
     end
@@ -613,10 +674,10 @@ module Preference
       status_class = Class.new
       status_class.const_set(:DELETED, 99)
       @controller.define_singleton_method(:preference_status_class) { status_class }
-      valid = FakePreferenceState.new(status_id: 1, lapses_at: 5.minutes.from_now)
-      deleted = FakePreferenceState.new(status_id: 99, lapses_at: 5.minutes.from_now)
-      expired = FakePreferenceState.new(status_id: 1, lapses_at: 1.minute.ago)
-      revoked = FakePreferenceState.new(status_id: 1, lapses_at: Time.current)
+      valid = FakePreferenceState.new(status_id: 1, discarded_at: 5.minutes.from_now)
+      deleted = FakePreferenceState.new(status_id: 99, discarded_at: 5.minutes.from_now)
+      expired = FakePreferenceState.new(status_id: 1, discarded_at: 1.minute.ago)
+      revoked = FakePreferenceState.new(status_id: 1, discarded_at: Time.current)
 
       assert @controller.send(:valid_refresh_preference?, valid)
       assert_not @controller.send(:valid_refresh_preference?, nil)
@@ -642,7 +703,7 @@ module Preference
       @controller.send(:set_preference_device_id_cookie!, "device-1", expires_at: expires_at)
 
       assert_equal "refresh-token", @controller.send(:cookies)[@controller.send(:refresh_token_cookie_name)]
-      assert_equal "dbsc-token", @controller.send(:cookies)[Preference::CookieName.dbsc]
+      assert_equal "dbsc-token", @controller.send(:cookies)[@controller.send(:preference_dbsc_cookie_name)]
       assert_equal "device-1", @controller.send(:read_preference_device_id_cookie)
 
       deletion_options = @controller.send(:preference_cookie_deletion_options)
@@ -686,15 +747,18 @@ module Preference
     end
 
     test "load access token payload reads preference record through writing connection" do
+      preference = app_preferences(:one)
+      preference.update!(jti: "current-jti")
       payload = {
         "preferences" => { "ct" => "dr" },
         "public_id" => "existing-public",
+        "jti" => "current-jti",
       }
       relation = Struct.new(:record) do
         define_method(:find_by) do |*|
           record
         end
-      end.new(app_preferences(:one))
+      end.new(preference)
 
       roles = []
       @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
@@ -709,8 +773,103 @@ module Preference
               end
 
               assert @controller.send(:load_access_token_payload)
-              assert_equal app_preferences(:one), @controller.instance_variable_get(:@preferences)
+              assert_equal preference, @controller.instance_variable_get(:@preferences)
               assert_equal [:writing], roles
+            end
+          end
+        end
+      end
+    end
+
+    test "load access token payload rejects stale preference jti" do
+      preference = app_preferences(:one)
+      preference.update!(jti: "current-jti")
+      payload = {
+        "preferences" => { "ct" => "dr" },
+        "public_id" => preference.public_id,
+        "jti" => "stale-jti",
+      }
+      relation = Struct.new(:record) do
+        define_method(:find_by) do |*|
+          record
+        end
+      end.new(preference)
+
+      @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
+
+      Preference::Token.stub(:decode, payload) do
+        Preference::Token.stub(:extract_preference_type, AppPreference.name) do
+          Preference::Token.stub(:extract_public_id, preference.public_id) do
+            Preference::Token.stub(:extract_jti, "stale-jti") do
+              AppPreference.stub(:includes, relation) do
+                @controller.define_singleton_method(:preference_class) { AppPreference }
+
+                assert_not @controller.send(:load_access_token_payload)
+                assert_nil @controller.instance_variable_get(:@preferences)
+                assert_nil @controller.instance_variable_get(:@preference_payload)
+                assert_nil @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
+              end
+            end
+          end
+        end
+      end
+    end
+
+    test "load access token payload rejects missing jti when preference row has current jti" do
+      preference = app_preferences(:one)
+      preference.update!(jti: "current-jti")
+      payload = {
+        "preferences" => { "ct" => "dr" },
+        "public_id" => preference.public_id,
+      }
+      relation = Struct.new(:record) do
+        define_method(:find_by) do |*|
+          record
+        end
+      end.new(preference)
+
+      @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
+
+      Preference::Token.stub(:decode, payload) do
+        Preference::Token.stub(:extract_preference_type, AppPreference.name) do
+          Preference::Token.stub(:extract_public_id, preference.public_id) do
+            AppPreference.stub(:includes, relation) do
+              @controller.define_singleton_method(:preference_class) { AppPreference }
+
+              assert_not @controller.send(:load_access_token_payload)
+              assert_nil @controller.instance_variable_get(:@preferences)
+              assert_nil @controller.instance_variable_get(:@preference_payload)
+              assert_nil @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
+            end
+          end
+        end
+      end
+    end
+
+    test "load access token payload allows legacy preference rows without jti" do
+      preference = app_preferences(:one)
+      preference.update!(jti: nil)
+      payload = {
+        "preferences" => { "ct" => "dr" },
+        "public_id" => preference.public_id,
+        "jti" => "legacy-token-jti",
+      }
+      relation = Struct.new(:record) do
+        define_method(:find_by) do |*|
+          record
+        end
+      end.new(preference)
+
+      @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
+
+      Preference::Token.stub(:decode, payload) do
+        Preference::Token.stub(:extract_preference_type, AppPreference.name) do
+          Preference::Token.stub(:extract_public_id, preference.public_id) do
+            AppPreference.stub(:includes, relation) do
+              @controller.define_singleton_method(:preference_class) { AppPreference }
+
+              assert @controller.send(:load_access_token_payload)
+              assert_equal preference, @controller.instance_variable_get(:@preferences)
             end
           end
         end
@@ -738,6 +897,25 @@ module Preference
       @controller.send(:set_color_theme)
 
       assert_equal "dr", @controller.instance_variable_get(:@color_theme)
+    end
+
+    test "set color theme uses actor preference before jwt payload and cookie" do
+      Actor.preference = Actor::Preference.new(theme: "dr")
+      @controller.send(:cookies)[Preference::Base::THEME_COOKIE_KEY] = "li"
+      @controller.define_singleton_method(:preference_payload_value) { |_| "sy" }
+
+      @controller.send(:set_color_theme)
+
+      assert_equal "dr", @controller.instance_variable_get(:@color_theme)
+    end
+
+    test "set color theme keeps explicit request parameter before actor preference" do
+      Actor.preference = Actor::Preference.new(theme: "dr")
+      @controller.test_params = { Preference::IoKeys::Params::CT => "li" }
+
+      @controller.send(:set_color_theme)
+
+      assert_equal "li", @controller.instance_variable_get(:@color_theme)
     end
 
     test "cookie banner endpoint resolves helper on expected host" do
@@ -839,7 +1017,7 @@ module Preference
       rotated = FakePreferenceState.new(
         binding_method: :dbsc,
         dbsc_session_id: "dbsc-session",
-        lapses_at: 2.hours.from_now,
+        discarded_at: 2.hours.from_now,
         public_id: "rotated-public",
       )
       rotated.define_singleton_method(:class) { rotated_class }
@@ -850,8 +1028,8 @@ module Preference
 
       calls = []
       @controller.define_singleton_method(:create_audit_log) { |**kwargs| calls << [:audit, kwargs] }
-      @controller.define_singleton_method(:set_refresh_token_cookie) { |token, lapses_at|
-        calls << [:refresh_cookie, token, lapses_at]
+      @controller.define_singleton_method(:set_refresh_token_cookie) { |token, discarded_at|
+        calls << [:refresh_cookie, token, discarded_at]
       }
       @controller.define_singleton_method(:set_preference_dbsc_cookie!) { |token, expires_at:|
         calls << [:dbsc_cookie, token, expires_at]
@@ -875,7 +1053,7 @@ module Preference
     end
 
     test "load preference record from refresh token covers valid invalid and create branches" do
-      preference = FakePreferenceState.new(binding_method: :legacy, status_id: 1, lapses_at: 2.hours.from_now)
+      preference = FakePreferenceState.new(binding_method: :legacy, status_id: 1, discarded_at: 2.hours.from_now)
       @controller.define_singleton_method(:refresh_token_value) { "refresh-token" }
       @controller.define_singleton_method(:refresh_token_data) { |_| ["public-id", "digest"] }
       @controller.define_singleton_method(:find_refresh_preference) { |*, **| preference }
@@ -928,6 +1106,7 @@ module Preference
       assert payload["functional"]
       assert_not payload["performant"]
       assert_not payload["targetable"]
+      assert_equal Actor::Preference::SCHEMA_VERSION, payload["ver"]
       assert_equal "ja", payload["lx"]
       assert_equal "jp", payload["ri"]
       assert_equal "Asia/Tokyo", payload["tz"]

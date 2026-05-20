@@ -7,11 +7,11 @@ module Sign
   module Org
     module Preference
       class EmailsControllerTest < ActionDispatch::IntegrationTest
-        fixtures :staffs, :staff_email_statuses
+        fixtures_only :operators, :operator_email_statuses
 
         setup do
           @host = ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
-          @operator = staffs(:one)
+          @operator = operators(:one)
           @email = OperatorEmail.create!(
             staff: @operator,
             address: "operator-unsubscribe-#{SecureRandom.hex(4)}@example.com",
@@ -20,6 +20,11 @@ module Sign
           )
           @token = @email.promotional_unsubscribe_token
           host! @host
+        end
+
+        test "controller uses bare unsubscribe boundary" do
+          assert_operator Sign::Org::Preference::EmailsController, :<, Sign::Org::BareController
+          assert_not_operator Sign::Org::Preference::EmailsController, :<, Sign::Org::PreferencesBaseController
         end
 
         test "GET edit renders unsubscribe confirmation for a valid token" do
@@ -45,6 +50,24 @@ module Sign
 
           assert_response :ok
           assert_not @email.reload.promotional
+        end
+
+        test "POST create supports one-click unsubscribe when forgery protection is enabled" do
+          with_forgery_protection do
+            post sign_org_preference_email_path(@email), params: { token: @token }
+
+            assert_response :ok
+            assert_not @email.reload.promotional
+          end
+        end
+
+        test "DELETE destroy without csrf token is rejected when forgery protection is enabled" do
+          with_forgery_protection do
+            delete sign_org_preference_email_path(@email), params: { token: @token }
+
+            assert_response :unprocessable_content
+            assert @email.reload.promotional
+          end
         end
 
         test "unknown public id does not unsubscribe operator email" do

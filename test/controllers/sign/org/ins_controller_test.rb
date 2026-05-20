@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses
+  fixtures :operators, :operator_identity_statuses
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -54,7 +54,7 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "redirects to dashboard when logged in" do
-    staff = staffs(:one)
+    staff = operators(:one)
 
     get new_sign_org_in_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 

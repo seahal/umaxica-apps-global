@@ -1,0 +1,21 @@
+<% content_for :page_title, t("sign.app.configuration.birthdate.show.page_title") %>
+
+<%= link_to t("sign.app.configuration.show.back"), sign_app_configuration_path(ri: params[:ri]) %>
+
+<section>
+  <h1><%= t("sign.app.configuration.birthdate.show.page_title") %></h1>
+  <p><%= t("sign.app.configuration.birthdate.show.description") %></p>
+
+  <dl>
+    <dt><%= t("sign.app.configuration.birthdate.show.birthdate_label") %></dt>
+    <dd>
+      <% if current_client.birthdate.present? %>
+        <span data-birthdate><%= current_client.birthdate %></span>
+      <% else %>
+        <%= t("sign.app.configuration.birthdate.show.not_set") %>
+      <% end %>
+    </dd>
+  </dl>
+
+  <p><%= t("sign.app.configuration.birthdate.show.change_unavailable") %></p>
+</section>

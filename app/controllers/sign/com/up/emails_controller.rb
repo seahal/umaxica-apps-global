@@ -1,10 +1,12 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+
 module Sign
   module Com
     module Up
-      class EmailsController < ApplicationController
+      class EmailsController < GuestController
         include ::CloudflareTurnstile
         include Common::Redirect
         include Common::Otp
@@ -14,17 +16,15 @@ module Sign
         EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :sign_com_up_existing_visitor_email_skip_otp
         PENDING_VISITOR_ID_SESSION_KEY = :sign_com_up_pending_visitor_id
 
-        guest_only! status: :unauthorized
-
-        prepend_before_action :reject_logged_in_session, only: %i(new create)
         before_action :enforce_email_flow!
 
         def new
           @user_email = VisitorEmail.new
+          sign_up_cycle_locator.clear!
         end
 
         def edit
-          @user_email = VisitorEmail.find_by(public_id: params["id"])
+          @user_email = current_registration_email
           if @user_email.blank?
             reset_email_flow!
             redirect_to(
@@ -81,13 +81,14 @@ module Sign
             return
           end
 
+          bind_sign_up_cycle_to_email!(@user_email) unless existing_signup_email_flow?
           progress_email_flow!(:create)
           flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
-          redirect_to(edit_sign_com_up_email_path(@user_email, ri: params[:ri], rt: sanitized_rt_param))
+          redirect_to(edit_sign_com_up_email_path(ri: params[:ri], rt: sanitized_rt_param))
         end
 
         def update
-          @user_email = VisitorEmail.find_by(public_id: params["id"])
+          @user_email = current_registration_email
           return redirect_invalid_session unless valid_email_session?
           return render_code_required if params.dig("visitor_email", "pass_code").blank?
 
@@ -97,12 +98,15 @@ module Sign
                                            complete_visitor_email_verification!(submitted_code)
           return if result == :redirected
           return handle_locked_result if result == :locked
+          return redirect_invalid_session if result == :invalid_session
           return render :edit, status: :unprocessable_content unless result
 
           progress_email_flow!(:update)
-          create_welcome_bulletin!(current_resource)
-          redirect_to_sign_in_sequence!(
-            rt: redirect_parameter_value,
+          redirect_to(
+            sign_com_up_guardrail_path(
+              ri: params[:ri],
+              rt: params[:rt].presence,
+            ),
             notice: t("sign.app.registration.email.update.success"),
           )
         end
@@ -141,6 +145,7 @@ module Sign
           session.delete(EXISTING_EMAIL_SESSION_KEY)
           session.delete(EXISTING_EMAIL_SKIP_OTP_SESSION_KEY)
           session.delete(PENDING_VISITOR_ID_SESSION_KEY)
+          sign_up_cycle_locator.clear!
         end
 
         def redirect_invalid_session
@@ -222,8 +227,9 @@ module Sign
             @user_email.otp_last_sent_at = Time.current
             @user_email.save!
             token = @user_email.generate_verification_token
-            Email::App::RegistrationMailer.with(
-              hotp_token: otp_number, email_address: @user_email.address,
+            Email::Com::OtpMailer.with(
+              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_number),
+              email_address: @user_email.address,
               verification_token: token, public_id: @user_email.public_id,
             ).create.deliver_later
           end
@@ -247,20 +253,15 @@ module Sign
             return false
           end
 
+          sequence_advanced = false
           VisitorEmail.transaction do
             clear_otp(@user_email)
             @user_email.update!(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
-            visitor = @user_email.visitor
-            visitor.create_client_account! unless visitor.client_account
-            create_signup_audit!(visitor)
-            log_in(
-              visitor,
-              record_login_audit: true,
-              audit_context: { auth_method: "email" },
-            )
+            sequence_advanced = advance_sign_up_cycle_after_email_otp!
+            raise ActiveRecord::Rollback unless sequence_advanced
           end
 
-          true
+          sequence_advanced ? true : :invalid_session
         end
 
         def handle_existing_email_verification(submitted_code)
@@ -322,18 +323,6 @@ module Sign
           visitor_email.errors.details.any?
         end
 
-        def create_signup_audit!(visitor)
-          event_id = UserChronicleEvent::SIGNED_UP_WITH_EMAIL
-          ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
-            UserChronicle.create!(
-              actor_type: "Visitor", actor_id: visitor.id, event_id: event_id,
-              subject_id: visitor.id.to_s, subject_type: "Visitor",
-            )
-          end
-        end
-
         def sanitized_rt_param
           encoded = redirect_parameter_value
           return if encoded.blank?
@@ -350,6 +339,80 @@ module Sign
 
           @user_email.errors.delete(:visitor)
           @user_email.errors.delete(:visitor_id)
+        end
+
+        def current_registration_email
+          if existing_signup_email_flow?
+            return VisitorEmail.find_by(id: session_existing_email_id)
+          end
+
+          pending_visitor_id = session[PENDING_VISITOR_ID_SESSION_KEY]
+          return if pending_visitor_id.blank?
+
+          VisitorEmail.find_by(
+            visitor_id: pending_visitor_id,
+            visitor_email_status_id: VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP,
+          )
+        end
+
+        def issue_sign_up_cycle!
+          ComTicketRecord.connected_to(role: :writing) do
+            VisitorSignUpCycleStatus.ensure_defaults!
+          end
+
+          sign_up_cycle_locator.issue!(
+            VisitorSignUpCycle.create!(
+              principal_id: nil,
+              status_id: VisitorSignUpCycleStatus::STARTED,
+              step: "start",
+              nonce_digest: VisitorSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+              issued_at: Time.current,
+              expires_at: VisitorSignUpCycle.default_ttl.from_now,
+              entry_method: "email",
+              return_to: sanitized_return_to,
+            ),
+          )
+        end
+
+        def current_sign_up_cycle
+          sign_up_cycle_locator.current || issue_sign_up_cycle!
+        end
+
+        def bind_sign_up_cycle_to_email!(email)
+          cycle = current_sign_up_cycle
+          ComTicketRecord.connected_to(role: :writing) do
+            cycle.update!(
+              principal_id: email.visitor_id,
+              pending_contact_type: "email",
+              pending_contact_id: email.id,
+            )
+            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authentication)
+          end
+          session[:sign_com_up_sequence_id] = cycle.public_id
+        end
+
+        def advance_sign_up_cycle_after_email_otp!
+          cycle = sign_up_cycle_locator.current
+          return false unless cycle
+
+          result =
+            ComTicketRecord.connected_to(role: :writing) do
+              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authentication)
+            end
+          result.status == :advanced
+        end
+
+        def sign_up_cycle_locator
+          SignUp::CycleLocator.new(session, surface: :com, cycle_class: VisitorSignUpCycle)
+        end
+
+        def sanitized_return_to
+          encoded_url = params[:rt].presence
+          return if encoded_url.blank?
+
+          safe_internal_path(Base64.urlsafe_decode64(encoded_url))
+        rescue ArgumentError, URI::InvalidURIError
+          nil
         end
       end
     end

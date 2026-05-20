@@ -8,18 +8,20 @@ module Dpop
 
     def self.record!(jti)
       return false if jti.blank?
-      return false unless redis_available?
 
       key = "#{REDIS_KEY_PREFIX}:#{jti}"
+      return cache_record!(key) unless redis_available?
+
       result = redis.set(key, "1", nx: true, ex: TTL_SECONDS)
       result == true || result == "OK"
     end
 
     def self.recorded?(jti)
       return false if jti.blank?
-      return false unless redis_available?
 
       key = "#{REDIS_KEY_PREFIX}:#{jti}"
+      return cache_recorded?(key) unless redis_available?
+
       redis.exists?(key).present?
     end
 
@@ -31,6 +33,14 @@ module Dpop
       redis.ping == "PONG"
     rescue Redis::CannotConnectError, Redis::ConnectionError, StandardError
       false
+    end
+
+    def self.cache_record!(key)
+      Rails.cache.write(key, "1", expires_in: TTL_SECONDS.seconds, unless_exist: true)
+    end
+
+    def self.cache_recorded?(key)
+      Rails.cache.exist?(key)
     end
   end
 end

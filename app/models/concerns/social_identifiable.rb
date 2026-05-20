@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-# Shared concern for social identity models (UserSocialGoogle, UserSocialApple, etc.)
+# Shared concern for social identity models (ClientSocialGoogle, ClientSocialApple, etc.)
 # Provides common methods for OAuth identity management.
 module SocialIdentifiable
   extend ActiveSupport::Concern
@@ -26,9 +26,9 @@ module SocialIdentifiable
     def model_for_provider(provider)
       case provider.to_s
       when "google_app", "google_org", "google"
-        UserSocialGoogle
+        ClientSocialGoogle
       when "apple"
-        UserSocialApple
+        ClientSocialApple
       else
         raise ArgumentError, "Unknown provider: #{provider}"
       end

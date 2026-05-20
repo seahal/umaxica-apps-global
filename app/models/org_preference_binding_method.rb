@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: org_preference_binding_methods
-# Database name: operator
+# Database name: org_setting
 #
 #  id :bigint           not null, primary key
 #
-class OrgPreferenceBindingMethod < OperatorRecord
+class OrgPreferenceBindingMethod < OrgSettingRecord
   include ReferenceRecord
 
   NOTHING = 0

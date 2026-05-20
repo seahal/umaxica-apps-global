@@ -5,8 +5,7 @@ module Apex
   module App
     module Edge
       module V0
-        class CookiesController < ApplicationController
-          public_strict!
+        class CookiesController < OpenController
           include ::Preference::WebCookieEndpoint
 
           skip_before_action :set_preferences_cookie, raise: false

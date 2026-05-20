@@ -4,13 +4,13 @@
 require "test_helper"
 
 class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users
+  fixtures :clients
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
+    @user = clients(:one)
     # Clean up any existing tokens for this user
-    UserToken.where(user: @user).delete_all
+    ClientToken.where(user: @user).delete_all
     @original_allow_forgery_protection = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = false
   end
@@ -74,12 +74,12 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show counts only usable active sessions" do
-    active_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     rotated_refresh = active_token.rotate_refresh_token!
     Sign::RefreshTokenService.call(refresh_token: rotated_refresh)
 
-    current_active = UserToken.where(user_id: @user.id, user_token_status_id: UserTokenStatus::ACTIVE).order(:created_at).last
-    other_active = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    current_active = ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::ACTIVE).order(:created_at).last
+    other_active = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     other_active.rotate_refresh_token!
     restricted_token = create_restricted_session(@user)
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -87,7 +87,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_in_session_url(ri: "jp"), headers: headers
 
     assert_response :success
-    assert_includes response.body, "(2/#{UserToken::MAX_SESSIONS_PER_USER})"
+    assert_includes response.body, "(2/#{ClientToken::MAX_SESSIONS_PER_USER})"
     assert_not_equal active_token.public_id, current_active.public_id
   end
 
@@ -147,13 +147,13 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # ===================================================================
 
   test "update revokes selected sessions and promotes restricted session" do
-    active_token1 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token1 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token1.rotate_refresh_token!
 
-    active_token2 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token2 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token2.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -164,7 +164,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     restricted_token.reload
 
-    assert_equal UserTokenStatus::ACTIVE, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::ACTIVE, restricted_token.user_token_status_id
 
     active_token1.reload
 
@@ -177,13 +177,13 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update revokes session but does not promote when still at limit" do
-    active_token1 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token1 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token1.rotate_refresh_token!
 
-    active_token2 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token2 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token2.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -196,19 +196,19 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     # Still restricted -- not promoted because active_count == MAX_SESSIONS_PER_USER
     restricted_token.reload
 
-    assert_equal UserTokenStatus::RESTRICTED, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::RESTRICTED, restricted_token.user_token_status_id
     assert_response :success # re-renders show
   end
 
   test "update skips current session ref in batch revoke" do
     # Need 2 active sessions to prevent auto-promotion after no-op revoke
-    active_token1 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token1 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token1.rotate_refresh_token!
 
-    active_token2 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token2 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token2.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -219,14 +219,14 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     restricted_token.reload
 
-    assert_equal UserTokenStatus::RESTRICTED, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::RESTRICTED, restricted_token.user_token_status_id
     assert_predicate restricted_token, :currently_usable?
   end
 
   test "update ignores ref belonging to another user" do
-    other_user = users(:two)
-    UserToken.where(user: other_user).delete_all
-    other_token = UserToken.create!(user: other_user, user_token_status_id: UserTokenStatus::ACTIVE)
+    other_user = clients(:two)
+    ClientToken.where(user: other_user).delete_all
+    other_token = ClientToken.create!(user: other_user, user_token_status_id: ClientTokenStatus::ACTIVE)
     other_token.rotate_refresh_token!
 
     restricted_token = create_restricted_session(@user)
@@ -246,10 +246,10 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # ===================================================================
 
   test "update with ref param revokes specific session" do
-    active_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -264,18 +264,18 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     restricted_token.reload
 
-    assert_equal UserTokenStatus::ACTIVE, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::ACTIVE, restricted_token.user_token_status_id
   end
 
   test "update with ref param rejects revoking current session" do
     # Need 2 active sessions to prevent auto-promotion
-    active_token1 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token1 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token1.rotate_refresh_token!
 
-    active_token2 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token2 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token2.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -286,19 +286,19 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     restricted_token.reload
 
-    assert_equal UserTokenStatus::RESTRICTED, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::RESTRICTED, restricted_token.user_token_status_id
     assert_predicate restricted_token, :currently_usable?
   end
 
   test "update with invalid ref param flashes alert and stays on page" do
     # Need 2 active sessions to prevent auto-promotion
-    active_token1 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token1 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token1.rotate_refresh_token!
 
-    active_token2 = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token2 = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token2.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -310,7 +310,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success # re-renders show
     restricted_token.reload
 
-    assert_equal UserTokenStatus::RESTRICTED, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::RESTRICTED, restricted_token.user_token_status_id
   end
 
   # ===================================================================
@@ -318,10 +318,10 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # ===================================================================
 
   test "update promotes and redirects to configuration path by default" do
-    active_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -335,10 +335,10 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update with rt param decodes Base64 and redirects to decoded path" do
-    active_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -351,7 +351,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     restricted_token.reload
 
-    assert_equal UserTokenStatus::ACTIVE, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::ACTIVE, restricted_token.user_token_status_id
 
     assert_response :redirect
     assert_match %r{/configuration}, response.location
@@ -359,10 +359,10 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update with invalid rt param falls back to default path" do
-    active_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -373,7 +373,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     restricted_token.reload
 
-    assert_equal UserTokenStatus::ACTIVE, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::ACTIVE, restricted_token.user_token_status_id
 
     assert_response :redirect
     assert_match %r{/configuration}, response.location
@@ -418,7 +418,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     token.reload
 
     assert_not token.currently_usable?
-    assert_equal UserTokenStatus::REVOKED, token.user_token_status_id
+    assert_equal ClientTokenStatus::REVOKED, token.user_token_status_id
   end
 
   # ===================================================================
@@ -426,10 +426,10 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # ===================================================================
 
   test "destroy with ref param revokes specific session and re-renders show" do
-    active_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
-    restricted_token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted_token.rotate_refresh_token!
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
@@ -446,7 +446,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     restricted_token.reload
 
-    assert_equal UserTokenStatus::RESTRICTED, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::RESTRICTED, restricted_token.user_token_status_id
   end
 
   test "destroy with ref param rejects revoking current session" do
@@ -460,7 +460,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     restricted_token.reload
 
-    assert_equal UserTokenStatus::RESTRICTED, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::RESTRICTED, restricted_token.user_token_status_id
     assert_predicate restricted_token, :currently_usable?
   end
 
@@ -475,13 +475,13 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     restricted_token.reload
 
-    assert_equal UserTokenStatus::RESTRICTED, restricted_token.user_token_status_id
+    assert_equal ClientTokenStatus::RESTRICTED, restricted_token.user_token_status_id
   end
 
   test "destroy with ref belonging to another user does not revoke" do
-    other_user = users(:two)
-    UserToken.where(user: other_user).delete_all
-    other_token = UserToken.create!(user: other_user, user_token_status_id: UserTokenStatus::ACTIVE)
+    other_user = clients(:two)
+    ClientToken.where(user: other_user).delete_all
+    other_token = ClientToken.create!(user: other_user, user_token_status_id: ClientTokenStatus::ACTIVE)
     other_token.rotate_refresh_token!
 
     restricted_token = create_restricted_session(@user)
@@ -501,7 +501,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # ===================================================================
 
   test "restricted session at 14 minutes is still accessible (boundary: within TTL)" do
-    token = create_restricted_session(@user, lapses_at: 15.minutes.from_now)
+    token = create_restricted_session(@user, discarded_at: 15.minutes.from_now)
     headers = as_user_headers_with_token(@user, token, host: @host)
 
     travel 14.minutes do
@@ -513,11 +513,11 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     token.reload
 
-    assert_equal UserTokenStatus::RESTRICTED, token.user_token_status_id
+    assert_equal ClientTokenStatus::RESTRICTED, token.user_token_status_id
   end
 
   test "restricted session expires after 15 minutes and is locked on in/session" do
-    token = create_restricted_session(@user, lapses_at: 15.minutes.from_now)
+    token = create_restricted_session(@user, discarded_at: 15.minutes.from_now)
     headers = as_user_headers_with_token(@user, token, host: @host)
     events = []
 
@@ -554,21 +554,21 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def create_restricted_session(user, lapses_at: nil)
-    token = UserToken.create!(
+  def create_restricted_session(user, discarded_at: nil)
+    token = ClientToken.create!(
       user: user,
-      user_token_status_id: UserTokenStatus::RESTRICTED,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::RESTRICTED,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
     )
-    token.rotate_refresh_token!(lapses_at: lapses_at)
+    token.rotate_refresh_token!(discarded_at: discarded_at)
     token
   end
 
   def create_active_session(user)
-    token = UserToken.create!(
+    token = ClientToken.create!(
       user: user,
-      user_token_status_id: UserTokenStatus::ACTIVE,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
     )
     token.rotate_refresh_token!
     token

@@ -2,16 +2,16 @@
 # == Schema Information
 #
 # Table name: com_preferences
-# Database name: setting
+# Database name: com_setting
 #
 #  id                       :bigint           not null, primary key
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
+#  discarded_at             :datetime         default(Infinity), not null
 #  jti                      :string
-#  lapses_at                :datetime         default(Infinity), not null
-#  purge_at                 :datetime         default(Infinity), not null
+#  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -33,7 +33,7 @@
 #  index_com_preferences_on_device_id_digest   (device_id_digest)
 #  index_com_preferences_on_jti                (jti) UNIQUE
 #  index_com_preferences_on_public_id          (public_id) UNIQUE
-#  index_com_preferences_on_purge_at           (purge_at)
+#  index_com_preferences_on_purged_at          (purged_at)
 #  index_com_preferences_on_replaced_by_id     (replaced_by_id)
 #  index_com_preferences_on_status_id          (status_id)
 #  index_com_preferences_on_token_digest       (token_digest)
@@ -49,14 +49,14 @@
 
 # frozen_string_literal: true
 
-class ComPreference < SettingRecord
+class ComPreference < ComSettingRecord
   include Retainable
   include ::PublicId
   include ::SingleUseToken
   include ::Preference::Resettable
   include ::DbscBindable
 
-  alias_attribute :expires_at, :lapses_at
+  alias_attribute :expires_at, :discarded_at
 
   DBSC_BINDING_METHOD_CLASS = ComPreferenceBindingMethod
   DBSC_STATUS_CLASS = ComPreferenceDbscStatus
@@ -103,8 +103,7 @@ class ComPreference < SettingRecord
            inverse_of: :com_preference,
            dependent: :destroy
   belongs_to :replaced_by,
-             class_name: "ComPreference",
-             optional: true
+             class_name: "ComPreference"
   has_many :replacements,
            class_name: "ComPreference",
            foreign_key: :replaced_by_id,
@@ -114,4 +113,17 @@ class ComPreference < SettingRecord
   validates :jti, uniqueness: true, allow_nil: true
   attribute :binding_method_id, default: ComPreferenceBindingMethod::NOTHING
   attribute :dbsc_status_id, default: ComPreferenceDbscStatus::NOTHING
+
+  before_validation :default_replaced_by_to_self, on: :create
+  after_create :persist_self_replacement
+
+  private
+
+  def default_replaced_by_to_self
+    self.replaced_by ||= self
+  end
+
+  def persist_self_replacement
+    update_column(:replaced_by_id, id) if replaced_by_id.blank?
+  end
 end

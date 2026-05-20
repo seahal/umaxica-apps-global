@@ -2,16 +2,16 @@
 # == Schema Information
 #
 # Table name: app_preferences
-# Database name: principal
+# Database name: app_setting
 #
 #  id                       :bigint           not null, primary key
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
+#  discarded_at             :datetime         default(Infinity), not null
 #  jti                      :string
-#  lapses_at                :datetime         default(Infinity), not null
-#  purge_at                 :datetime         default(Infinity), not null
+#  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -33,7 +33,7 @@
 #  index_app_preferences_on_device_id_digest   (device_id_digest)
 #  index_app_preferences_on_jti                (jti) UNIQUE
 #  index_app_preferences_on_public_id          (public_id) UNIQUE
-#  index_app_preferences_on_purge_at           (purge_at)
+#  index_app_preferences_on_purged_at          (purged_at)
 #  index_app_preferences_on_replaced_by_id     (replaced_by_id)
 #  index_app_preferences_on_status_id          (status_id)
 #  index_app_preferences_on_token_digest       (token_digest)
@@ -169,7 +169,7 @@ class AppPreferenceTest < ActiveSupport::TestCase
     digest = AppPreference.digest_refresh_token("app-consume-once")
     preference = AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -194,20 +194,20 @@ class AppPreferenceTest < ActiveSupport::TestCase
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
       token_digest: revoked_digest,
-      lapses_at: Time.current,
+      discarded_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
       token_digest: compromised_digest,
-      lapses_at: Time.current,
+      discarded_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      lapses_at: 1.minute.ago,
+      discarded_at: 1.minute.ago,
       token_digest: expired_digest,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -223,7 +223,7 @@ class AppPreferenceTest < ActiveSupport::TestCase
 
     assert_not preference.revoked?
 
-    preference.lapses_at = Time.current
+    preference.discarded_at = Time.current
 
     assert_predicate preference, :revoked?
   end
@@ -232,7 +232,7 @@ class AppPreferenceTest < ActiveSupport::TestCase
     digest = AppPreference.digest_refresh_token("rotate-me")
     preference = AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: "device-1",
@@ -247,6 +247,25 @@ class AppPreferenceTest < ActiveSupport::TestCase
     assert_equal "device-1", rotated.device_id
     assert_predicate rotated.token_digest, :present?
     assert_equal rotated.id, preference.reload.replaced_by_id
+  end
+
+  test "rotate! rejects mismatched device without consuming token" do
+    digest = AppPreference.digest_refresh_token("rotate-wrong-device")
+    preference = AppPreference.create!(
+      status_id: AppPreferenceStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      token_digest: digest,
+      jti: SecureRandom.uuid,
+      device_id: "device-1",
+    )
+
+    rotated = AppPreference.rotate!(presented_digest: digest, device_id: "device-2", now: Time.current)
+
+    assert_nil rotated
+    preference.reload
+
+    assert_nil preference.used_at
+    assert_equal preference.id, preference.replaced_by_id
   end
 
   test "migrate_preference_children! moves child preference reference" do

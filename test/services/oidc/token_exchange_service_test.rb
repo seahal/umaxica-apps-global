@@ -5,7 +5,7 @@ require "test_helper"
 
 class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   setup do
-    @user = users(:one)
+    @user = clients(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
       Digest::SHA256.digest(@code_verifier),
@@ -34,6 +34,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     assert_predicate result, :success?
     assert_predicate result.token_response[:access_token], :present?
     assert_predicate result.token_response[:refresh_token], :present?
+    assert_predicate result.token_response[:id_token], :present?
     assert_equal "Bearer", result.token_response[:token_type]
     assert_kind_of Integer, result.token_response[:expires_in]
   end
@@ -113,7 +114,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   test "fails for expired code" do
     code_record = issue_code!
 
-    travel UserAuthorizationCode::CODE_TTL + 1.second do
+    travel ClientAuthorizationCode::CODE_TTL + 1.second do
       result =
         with_authenticated_client do
           Oidc::TokenExchangeService.call(
@@ -210,7 +211,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   test "creates user token record" do
     code_record = issue_code!
 
-    assert_difference "UserToken.count", 1 do
+    assert_difference "ClientToken.count", 1 do
       with_authenticated_client do
         Oidc::TokenExchangeService.call(
           grant_type: "authorization_code",
@@ -224,10 +225,91 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "records user RP connection and stamps issued token" do
+    code_record = issue_code!(scope: "openid profile email")
+
+    with_authenticated_client do
+      Oidc::TokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: @redirect_uri,
+        client_id: "core_app",
+        client_secret: @client_secret,
+        code_verifier: @code_verifier,
+      )
+    end
+
+    connection = ClientOidcConnection.find_by!(user_id: @user.id, client_id: "core_app")
+    token = ClientToken.order(:created_at).last
+
+    assert_equal "openid profile email", connection.scope
+    assert_nil connection.revoked_at
+    assert_equal connection.id, token.oidc_connection_id
+    assert_equal "core_app", token.oidc_client_id
+    assert_equal "openid profile email", token.oidc_scope
+  end
+
+  test "reactivates existing user RP connection on token exchange" do
+    connection = ClientOidcConnection.create!(
+      user: @user,
+      client_id: "core_app",
+      scope: "openid",
+      last_used_at: 1.day.ago,
+      revoked_at: 1.hour.ago,
+    )
+    code_record = issue_code!(scope: "openid email")
+
+    with_authenticated_client do
+      Oidc::TokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: @redirect_uri,
+        client_id: "core_app",
+        client_secret: @client_secret,
+        code_verifier: @code_verifier,
+      )
+    end
+
+    connection.reload
+
+    assert_equal "openid email", connection.scope
+    assert_nil connection.revoked_at
+    assert_operator connection.last_used_at, :>, 1.minute.ago
+  end
+
+  test "refresh rotation preserves RP token linkage" do
+    code_record = issue_code!(scope: "openid profile")
+
+    result =
+      with_authenticated_client do
+        Oidc::TokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core_app",
+          client_secret: @client_secret,
+          code_verifier: @code_verifier,
+        )
+      end
+
+    connection = ClientOidcConnection.find_by!(user_id: @user.id, client_id: "core_app")
+    previous_last_used_at = connection.last_used_at
+    rotated = nil
+    travel 1.minute do
+      rotated = Sign::RefreshTokenService.call(refresh_token: result.token_response[:refresh_token])
+    end
+    replacement = rotated[:token]
+
+    assert_equal connection.id, replacement.oidc_connection_id
+    assert_equal "core_app", replacement.oidc_client_id
+    assert_equal "openid profile", replacement.oidc_scope
+    assert_operator connection.reload.last_used_at, :>, previous_last_used_at
+  end
+
   # --- Operator OIDC token exchange tests ---
 
   test "exchanges valid operator code for tokens with OperatorToken" do
-    staff = staffs(:one)
+    staff = operators(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
     staff_secret = "test_secret_for_core_org"
@@ -238,6 +320,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
       redirect_uri: org_redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
+      nonce: "staff_nonce",
     )
 
     result =
@@ -259,7 +342,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   end
 
   test "creates staff token record for org client" do
-    staff = staffs(:one)
+    staff = operators(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
     staff_secret = "test_secret_for_core_org"
@@ -270,6 +353,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
       redirect_uri: org_redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
+      nonce: "staff_nonce",
     )
 
     assert_difference "OperatorToken.count", 1 do
@@ -286,6 +370,38 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "records staff RP connection" do
+    staff = operators(:one)
+    org_client = Oidc::ClientRegistry.find("core_org")
+    staff_secret = "test_secret_for_core_org"
+    code_record = OperatorAuthorizationCode.issue!(
+      staff: staff,
+      client_id: "core_org",
+      redirect_uri: org_client.redirect_uris.first,
+      code_challenge: @code_challenge,
+      code_challenge_method: "S256",
+      nonce: "staff_nonce",
+      scope: "openid staff",
+    )
+
+    with_authenticated_org_client(staff_secret) do
+      Oidc::TokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: org_client.redirect_uris.first,
+        client_id: "core_org",
+        client_secret: staff_secret,
+        code_verifier: @code_verifier,
+      )
+    end
+
+    connection = OperatorOidcConnection.find_by!(staff_id: staff.id, client_id: "core_org")
+    token = OperatorToken.order(:created_at).last
+
+    assert_equal "openid staff", connection.scope
+    assert_equal connection.id, token.oidc_connection_id
+  end
+
   test "exchanges valid visitor code for tokens with VisitorToken" do
     visitor = create_visitor!
     com_client = Oidc::ClientRegistry.find("core_com")
@@ -298,6 +414,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
       redirect_uri: com_redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
+      nonce: "visitor_nonce",
     )
 
     result =
@@ -330,6 +447,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
       redirect_uri: com_redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
+      nonce: "visitor_nonce",
     )
 
     assert_difference "VisitorToken.count", 1 do
@@ -344,6 +462,38 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
         )
       end
     end
+  end
+
+  test "records visitor RP connection" do
+    visitor = create_visitor!
+    com_client = Oidc::ClientRegistry.find("core_com")
+    visitor_secret = "test_secret_for_core_com"
+    code_record = VisitorAuthorizationCode.issue!(
+      visitor: visitor,
+      client_id: "core_com",
+      redirect_uri: com_client.redirect_uris.first,
+      code_challenge: @code_challenge,
+      code_challenge_method: "S256",
+      nonce: "visitor_nonce",
+      scope: "openid visitor",
+    )
+
+    with_authenticated_com_client(visitor_secret) do
+      Oidc::TokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: com_client.redirect_uris.first,
+        client_id: "core_com",
+        client_secret: visitor_secret,
+        code_verifier: @code_verifier,
+      )
+    end
+
+    connection = VisitorOidcConnection.find_by!(visitor_id: visitor.id, client_id: "core_com")
+    token = VisitorToken.order(:created_at).last
+
+    assert_equal "openid visitor", connection.scope
+    assert_equal connection.id, token.oidc_connection_id
   end
 
   # --- DPoP token exchange tests ---
@@ -373,7 +523,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     assert_equal "DPoP", result.token_response[:token_type]
     assert_predicate result.token_response[:access_token], :present?
 
-    token_record = UserToken.last
+    token_record = ClientToken.last
 
     assert_predicate token_record.dpop_jkt, :present?
   end
@@ -395,7 +545,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
 
     assert_predicate result, :success?
     assert_equal "Bearer", result.token_response[:token_type]
-    assert_nil UserToken.last.dpop_jkt
+    assert_nil ClientToken.last.dpop_jkt
   end
 
   test "fails when DPoP proof has wrong htm" do
@@ -460,13 +610,15 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end
 
-  def issue_code!
-    UserAuthorizationCode.issue!(
+  def issue_code!(scope: nil)
+    ClientAuthorizationCode.issue!(
       user: @user,
       client_id: "core_app",
       redirect_uri: @redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
+      nonce: "test_nonce",
+      scope: scope,
     )
   end
 

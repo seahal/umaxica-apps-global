@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: staff_token_dbsc_statuses
-# Database name: token
+# Database name: org_ticket
 #
 #  id :bigint           not null, primary key
 #
-class OperatorTokenDbscStatus < TokenRecord
+class OperatorTokenDbscStatus < OrgTicketRecord
   self.table_name = "staff_token_dbsc_statuses"
   include ReferenceRecord
 
@@ -20,6 +20,11 @@ class OperatorTokenDbscStatus < TokenRecord
   DEFAULTS = [NOTHING, ACTIVE, PENDING, FAILED, REVOKE].freeze
 
   has_many :staff_tokens,
+           class_name: "OperatorToken",
+           foreign_key: :staff_token_dbsc_status_id,
+           dependent: :restrict_with_error,
+           inverse_of: :staff_token_dbsc_status
+  has_many :operator_tokens,
            class_name: "OperatorToken",
            foreign_key: :staff_token_dbsc_status_id,
            dependent: :restrict_with_error,

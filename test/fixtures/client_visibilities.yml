@@ -1,0 +1,15 @@
+# == Schema Information
+#
+# Table name: user_visibilities
+# Database name: app_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 0
+user:
+  id: 1
+staff:
+  id: 2
+both:
+  id: 3

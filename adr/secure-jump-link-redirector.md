@@ -6,97 +6,107 @@ Accepted implementation note.
 
 ## Context
 
-限定公開 URL をそのまま共有・転送すると、URL 自体が認可情報のように扱われる。とくにジャンプページやリダイレクトインターセプターを挟む設計では、次の問題が起きる。
+If you share or transfer the private URL as is, URL itself will be treated like authorization
+information. In particular, the following problems occur when designing with jump pages and redirect
+interceptors.
 
-- `destination_url` を query
-  parameter に含めると、ジャンプ URL を見た第三者やログ閲覧者に秘匿 URL が抜かれる。
-- Teams などの「アクセス制御のない限定公開 URL」は、URL を知っていることが実質的な権限になり、転送・ログ・Referer・ブラウザ履歴で漏えいしやすい。
-- ジャンプ先 URL をレスポンス本文や Rails の通常ログに出すと、秘匿 URL を公開 URL 側の運用面へ持ち出してしまう。
-- Cookie が付くドメインでジャンプを処理すると、不要な認証・セッション情報をジャンプ要求に同伴させることになる。
+- query `destination_url` If you include it in the parameter, the hidden URL will be hidden by a
+  third party or log viewer who saw the jump URL.
+- For "private public URL without access control" such as Teams, knowing URL becomes the effective
+  authority, and it is easy to leak through transfers, logs, referers, and browser history.
+- If you post the jump destination URL in the response body or the normal Rails log, the secret URL
+  will be brought out to the operational side of the public URL.
+- If you process a jump on a domain with cookies, unnecessary authentication/session information
+  will be included in the jump request.
 
-このため、公開されるジャンプ URL は秘匿情報を含まないランダムトークンだけにし、対応する宛先 URL、状態、権限情報、利用回数、失効時刻、削除可能時刻はサーバ側で管理する。
+Therefore, the jump URL that is made public is only a random token that does not contain
+confidential information, and the corresponding destination URL, status, authority information,
+number of uses, expiration time, and deletion possible time are managed on the server side.
 
 ## Decision
 
-ジャンプ URL は次の形式に限定する。
+Jump URL is limited to the following format.
 
 ```text
 GET /?to=:public_id
 ```
 
-`public_id` は Nanoid 21 文字の opaque identifier とし、公開 URL には `destination_url`
-や権限情報を含めない。
+`public_id` is a Nanoid 21 character opaque identifier and public URL is `destination_url` or
+permission information.
 
-TLD ごとにモデルとテーブルを 1:1 で分ける。
+Separate the model and table 1:1 for each TLD.
 
 - `jump.example.app` -> `AppJumpLink` -> `app_jump_links`
 - `jump.example.com` -> `ComJumpLink` -> `com_jump_links`
 - `jump.example.org` -> `OrgJumpLink` -> `org_jump_links`
 
-単一の polymorphic table は使わない。各テーブルは専用の `redirector` database connection に置く。
+Do not use a single polymorphic table. Place each table in its own `redirector` database connection.
 
-各レコードは次の運用情報を持つ。
+Each record has the following operational information.
 
-- `destination_url`: サーバ側だけで管理する実際の遷移先
-- `status_id`: `active`, `disabled`, `revoked` を integer constant で表す
-- `revoked_at`: 期限・失効判定に使う。未失効は far-future sentinel
-- `deletable_at`: retention 後の削除可能時刻。未設定時は far-future sentinel
-- `max_uses` / `uses_count`: 使用回数制限。`max_uses = 0` は無制限
-- `policy`: 将来の認可条件用 hook
+- `destination_url`: Actual transition destination managed only on the server side
+- `status_id`: Represent `active`, `disabled`, `revoked` as an integer constant
+- `revoked_at`: Used for expiration/revocation determination. Unexpired is far-future sentinel
+- `deletable_at`: Deletable time after retention. far-future sentinel if not set
+- `max_uses` / `uses_count`: Limit on number of uses. `max_uses = 0` is unlimited
+- `policy`: hook for future authorization conditions
 
-`revoked_at` と `deletable_at` は nullable にせず、未設定状態を `Time.utc(9999, 12, 31, 23, 59, 59)`
-で表す。
+`revoked_at` and `deletable_at` should not be nullable, and the unset state should be set to
+`Time.utc(9999, 12, 31, 23, 59, 59)` Expressed as
 
 ## Implemented Behavior
 
-今回の実装では、共有モデル concern `JumpLinkable` に以下を集約した。
+In this implementation, the following is consolidated into the shared model concern `JumpLinkable`.
 
-- `public_id` の Nanoid 生成
-- far-future sentinel の補完
-- integer constant による状態管理。Rails enum は使わない
+- Nanoid generation of `public_id`
+- far-future sentinel completion
+- State management with integer constant. Don't use Rails enums
 - `active?`
 - `available_for?(user:)`
 - `revoke!`
-- row lock による race-safe な `uses_count` increment
+- Race-safe `uses_count` increment with row lock
 
-リダイレクト処理は `Jump::ToRedirector` controller concern に集約し、各 TLD
-controller が明示的にモデルを指定する。
+Redirect processing is centralized in `Jump::ToRedirector` controller concern, and each TLD
+controller explicitly specifies the model.
 
 - `Jump::App::RootsController::JUMP_LINK_MODEL = AppJumpLink`
 - `Jump::Com::RootsController::JUMP_LINK_MODEL = ComJumpLink`
 - `Jump::Org::RootsController::JUMP_LINK_MODEL = OrgJumpLink`
 
-各 controller は root (`GET /`) を redirect endpoint として使い、`to` query parameter から
-`public_id` を取得する。
+Each controller uses root (`GET /`) as redirect endpoint, and from `to` query parameter Get
+`public_id`.
 
-controller は `public_id` だけでレコードを探し、利用可能性チェックと利用回数加算を同一の row
-lock 内で行う。利用不可、存在しない、または上限到達の場合は `404` を返す。
+The controller searches for records using only `public_id`, and performs availability checks and
+usage count additions in the same row. Do this within lock. Returns `404` if unavailable,
+non-existent, or limit reached.
 
-リダイレクト時は次を守る。
+Observe the following when redirecting.
 
 - `redirect_to destination_url, allow_other_host: true`
 - `Referrer-Policy: no-referrer`
-- Cookie session を skip
-- 通常の redirect log line へ `destination_url` を出しにくくするため、redirect 呼び出しを logger
-  silence 内で実行
-- レスポンス本文に `destination_url` を出さない
+- Skip cookie session
+- In order to make it difficult to output `destination_url` to the normal redirect log line, the
+  redirect call is run in silence
+- Do not display `destination_url` in the response body
 
 ## Tradeoffs
 
-DB にレコードを持たせる設計は、単純な署名付き URL より運用コストが高い。ただし、次の要件を満たすにはサーバ側状態が必要になる。
+The design of having records in the DB is more expensive to operate than a simple signed URL.
+However, server-side state is required to meet the following requirements:
 
-- 宛先 URL を公開 URL に含めない
-- 後から revoke できる
-- `max_uses` を並行アクセス下でも超過させない
-- 将来の policy / 認可条件を追加できる
-- retention と削除可能時刻を明示できる
+- Do not include destination URL in public URL
+- Can be revoke later
+- Do not allow `max_uses` to exceed even under concurrent access
+- Ability to add future policy/authorization conditions
+- Retention and deletion time can be specified
 
-`deletable_at`
-は初期実装では削除ジョブまで実装しないが、レコードのライフサイクルを DB スキーマに明示するため最初から持たせる。
+`deletable_at` does not implement the deletion job in the initial implementation, but it is included
+from the beginning to clarify the record lifecycle in the DB schema.
 
 ## Follow-up
 
-- 実ドメインでは Cookie を同伴しないジャンプ専用ドメインを使う。
-- `policy` の評価内容を決めるまでは、hook は明示したまま常に許可にしておく。
-- retention job / purge job は別途実装する。
-- 実運用前に redirector DB の migration と CI を通す。
+- For the real domain, use a jump-only domain that does not include cookies.
+- Until the evaluation contents of `policy` are determined, the hook should always be explicitly
+  allowed.
+- Retention job / purge job will be implemented separately.
+- Run redirector DB migration and CI before actual operation.

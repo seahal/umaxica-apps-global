@@ -19,7 +19,9 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     assert_not_nil client
     assert_equal "core_app", client.client_id
     assert_equal "umaxica-core-app", client.aud
-    assert_equal "user", client.resource_type
+    assert_equal "client", client.resource_type
+    assert_equal "Core App", client.name
+    assert_includes client.domains, "main.app.localhost"
     assert_kind_of Array, client.redirect_uris
     assert client.redirect_uris.any? { |uri| uri.include?("/auth/callback") }
   end
@@ -75,11 +77,11 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     end
   end
 
-  test "app clients have user resource_type" do
+  test "app clients have client resource_type" do
     %w(apex_app core_app docs_app news_app help_app).each do |client_id|
       client = Oidc::ClientRegistry.find(client_id)
 
-      assert_equal "user", client.resource_type, "#{client_id} should be user type"
+      assert_equal "client", client.resource_type, "#{client_id} should be client type"
     end
   end
 

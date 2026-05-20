@@ -3,8 +3,6 @@
 
 require_relative "boot"
 
-ENV["PARALLEL_WORKERS"] ||= "1" if ENV["RAILS_ENV"] == "test" || ARGV.include?("test")
-
 require "rails/all"
 
 Bundler.require(*Rails.groups)
@@ -56,6 +54,12 @@ module Jit
       config.active_record.encryption.key_derivation_salt = encryption_keys.fetch(:key_derivation_salt)
     end
 
+    # Rails encrypted/signed cookies derive keys from secret_key_base.
+    # Pin modern primitives explicitly and do not keep SHA1 compatibility rotations.
+    config.action_dispatch.signed_cookie_digest = "SHA256"
+    config.action_dispatch.encrypted_cookie_cipher = "aes-256-gcm"
+    config.action_dispatch.use_authenticated_cookie_encryption = true
+
     # USE UTC
     config.time_zone = "UTC"
     config.active_record.default_timezone = :utc
@@ -82,6 +86,11 @@ module Jit
 
     # Multi-database async query executor (one thread pool per database)
     config.active_record.async_query_executor = :multi_thread_pool
+
+    # Required belongs_to validation should confirm the associated row, not only
+    # the foreign-key value. Tests that create many records should pass loaded
+    # reference associations when they intentionally exercise bulk validation.
+    config.active_record.belongs_to_required_validates_foreign_key = true
 
     # Log SQL warnings from PostgreSQL
     config.active_record.db_warnings_action = :log

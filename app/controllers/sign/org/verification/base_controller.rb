@@ -4,9 +4,7 @@
 module Sign
   module Org
     module Verification
-      class BaseController < Sign::Org::ApplicationController
-        auth_required!
-
+      class BaseController < Sign::Org::PrivateController
         include Sign::OrgVerificationBase
 
         skip_before_action :enforce_verification_if_required, raise: false

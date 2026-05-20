@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: staff_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 
-class OperatorIdentityStatus < OperatorRecord
+class OperatorIdentityStatus < OrgPrincipalRecord
   self.table_name = "staff_statuses"
   include ReferenceRecord
 

@@ -6,21 +6,21 @@
 # Table name: area_occurrences
 # Database name: occurrence
 #
-#  id         :bigint           not null, primary key
-#  body       :string           default(""), not null
-#  lapses_at  :datetime         default(Infinity), not null
-#  memo       :string           default(""), not null
-#  purge_at   :datetime         default(Infinity), not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  public_id  :string(21)       default(""), not null
-#  status_id  :bigint           default(0), not null
+#  id           :bigint           not null, primary key
+#  body         :string           default(""), not null
+#  discarded_at :datetime         default(Infinity), not null
+#  memo         :string           default(""), not null
+#  purged_at    :datetime         default(Infinity), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  public_id    :string(21)       default(""), not null
+#  status_id    :bigint           default(0), not null
 #
 # Indexes
 #
 #  index_area_occurrences_on_body       (body) UNIQUE
 #  index_area_occurrences_on_public_id  (public_id) UNIQUE
-#  index_area_occurrences_on_purge_at   (purge_at)
+#  index_area_occurrences_on_purged_at  (purged_at)
 #  index_area_occurrences_on_status_id  (status_id)
 #
 # Foreign Keys

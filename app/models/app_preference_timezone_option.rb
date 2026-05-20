@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: app_preference_timezone_options
-# Database name: principal
+# Database name: app_setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class AppPreferenceTimezoneOption < PrincipalRecord
+class AppPreferenceTimezoneOption < AppSettingRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

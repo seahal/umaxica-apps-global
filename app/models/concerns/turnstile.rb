@@ -7,16 +7,19 @@ require "uri"
 module Turnstile
   extend ActiveSupport::Concern
 
-  # Test helper for mocking Turnstile responses in tests
+  VALIDATION_OVERRIDE_RESPONSE = Concurrent::AtomicReference.new
 
   class << self
-    def test_response
-      Thread.current[:turnstile_test_response]
+    def validation_override_response
+      VALIDATION_OVERRIDE_RESPONSE.value
     end
 
-    def test_response=(value)
-      Thread.current[:turnstile_test_response] = value
+    def validation_override_response=(value)
+      VALIDATION_OVERRIDE_RESPONSE.value = value
     end
+
+    alias_method :test_response, :validation_override_response
+    alias_method :test_response=, :validation_override_response=
   end
 
   included do
@@ -60,10 +63,7 @@ module Turnstile
 
   module ClassMethods
     def verify_turnstile(turnstile_response:, remote_ip:)
-      # Legacy test support synchronization
-      if Turnstile.test_response
-        Jit::Security::TurnstileVerifier.test_response = Turnstile.test_response
-      end
+      return Turnstile.validation_override_response if Turnstile.validation_override_response.present?
 
       Jit::Security::TurnstileVerifier.verify(
         token: turnstile_response,

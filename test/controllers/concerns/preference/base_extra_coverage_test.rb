@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Preference::BaseExtraCoverageTest < Minitest::Test
+class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
   extend ActiveSupport::Testing::Declarative
 
   class Harness < ApplicationController
@@ -90,7 +90,7 @@ class Preference::BaseExtraCoverageTest < Minitest::Test
   end
 
   test "restore_preference_from_resource! calls adopt_preference_for!" do
-    @harness.current_resource = User.new
+    @harness.current_resource = Client.new
     # We need to stub adopt_preference_for! to verify it's called
     called = false
     @harness.define_singleton_method(:adopt_preference_for!) { |_res| called = true }
@@ -138,7 +138,7 @@ class Preference::BaseExtraCoverageTest < Minitest::Test
     assert_equal "Asia/Tokyo", @harness.send(:option_id_to_timezone, option_class::ASIA_TOKYO, prefix)
   end
 
-  test "handle_preference_refresh_replay! updates lapses_at" do
+  test "handle_preference_refresh_replay! updates discarded_at" do
     pref = AppPreference.new(public_id: "p1")
     # We need to mock update! because it's not a real DB record here
     pref.define_singleton_method(:update!) do |*_args, **_kwargs|

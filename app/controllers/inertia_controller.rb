@@ -4,5 +4,5 @@
 class InertiaController < ApplicationController
   # Share data with all Inertia responses
   # see https://inertia-rails.dev/guide/shared-data
-  #   inertia_share user: -> { Actor.user&.as_json(only: [:id, :name, :email]) }
+  #   inertia_share client: -> { Actor.client&.as_json(only: [:id, :name, :email]) }
 end

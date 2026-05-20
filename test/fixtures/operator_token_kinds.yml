@@ -1,0 +1,21 @@
+# == Schema Information
+#
+# Table name: staff_token_kinds
+# Database name: org_ticket
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorTokenKind
+
+# Table name: staff_token_kinds
+# Database name: org_ticket
+#
+#  id :bigint           not null, primary key
+#
+browser_web:
+  id: 1
+client_ios:
+  id: 2
+client_android:
+  id: 3

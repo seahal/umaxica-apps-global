@@ -32,7 +32,7 @@ class EmailValidationTest < ActionDispatch::IntegrationTest
     assert_not @controller.send(:valid_email_format?, "invalid-email")
   end
 
-  test "identity_email_model returns UserEmail" do
-    assert_equal UserEmail, @controller.send(:identity_email_model)
+  test "identity_email_model returns ClientEmail" do
+    assert_equal ClientEmail, @controller.send(:identity_email_model)
   end
 end

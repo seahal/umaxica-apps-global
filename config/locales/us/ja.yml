@@ -1537,7 +1537,7 @@ core:
       apex_preference: Apexの設定
   sign:
     app:
-      reauth:
+      step_up:
         index:
           title: 再認証セッション
           new: 新規

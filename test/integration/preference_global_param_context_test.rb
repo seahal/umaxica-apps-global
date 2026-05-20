@@ -4,6 +4,8 @@
 require "test_helper"
 
 class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   setup do
     https!
   end

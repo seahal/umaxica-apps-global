@@ -7,55 +7,57 @@ module Retainable
   SENTINEL = ::Float::INFINITY
 
   included do
-    attribute :lapses_at, :datetime, default: -> { SENTINEL }
-    attribute :purge_at, :datetime, default: -> { SENTINEL }
+    attribute :discarded_at, :datetime, default: -> { SENTINEL }
+    attribute :purged_at, :datetime, default: -> { SENTINEL }
 
-    validates :lapses_at, presence: true
-    validates :purge_at, presence: true
-    validate :lapses_at_not_after_purge_at
+    validates :discarded_at, presence: true
+    validates :purged_at, presence: true
+    validate :discarded_at_not_after_purged_at
     validate :retention_times_not_before_created_at, on: :update
   end
 
   # NOTE: ActiveRecord scope はあえて定義しない（既存 `.active` / `.deletable` 等の
-  #   暗黙挙動と混乱するため）。クエリは raw `where('lapses_at > ?', Time.current)` で書く。
+  #   暗黙挙動と混乱するため）。クエリは raw `where('discarded_at > ?', Time.current)` で書く。
 
   def accessible?
-    future_time?(lapses_at)
+    future_time?(discarded_at)
   end
 
   def lapsed?
-    !future_time?(lapses_at)
+    !future_time?(discarded_at)
   end
 
   def purgeable?
-    !future_time?(purge_at)
+    !future_time?(purged_at)
   end
 
-  def schedule_retention!(lapses_at:, purge_at:)
-    raise ArgumentError, "lapses_at must be in the future" unless future_time?(lapses_at)
-    raise ArgumentError, "purge_at must be in the future" unless future_time?(purge_at)
-    raise ArgumentError, "lapses_at must be <= purge_at" if time_after?(lapses_at, purge_at)
+  def schedule_retention!(discarded_at:, purged_at:)
+    raise ArgumentError, "discarded_at must be in the future" unless future_time?(discarded_at)
+    raise ArgumentError, "purged_at must be in the future" unless future_time?(purged_at)
+    raise ArgumentError, "discarded_at must be <= purged_at" if time_after?(discarded_at, purged_at)
 
-    update!(lapses_at: lapses_at, purge_at: purge_at)
+    update!(discarded_at: discarded_at, purged_at: purged_at)
   end
 
   private
 
-  def lapses_at_not_after_purge_at
-    return if lapses_at.blank? || purge_at.blank?
+  def discarded_at_not_after_purged_at
+    return if discarded_at.blank? || purged_at.blank?
 
-    return unless time_after?(lapses_at, purge_at)
+    return unless time_after?(discarded_at, purged_at)
 
-    Rails.logger.debug { "DEBUG: #{self.class.name} lapses_at: #{lapses_at.inspect}, purge_at: #{purge_at.inspect}" }
-    errors.add(:lapses_at, "must be <= purge_at")
+    Rails.logger.debug {
+      "DEBUG: #{self.class.name} discarded_at: #{discarded_at.inspect}, purged_at: #{purged_at.inspect}"
+    }
+    errors.add(:discarded_at, "must be <= purged_at")
 
   end
 
   def retention_times_not_before_created_at
     return if created_at.blank?
 
-    errors.add(:lapses_at, "must be >= created_at") if time_before?(lapses_at, created_at)
-    errors.add(:purge_at, "must be >= created_at") if time_before?(purge_at, created_at)
+    errors.add(:discarded_at, "must be >= created_at") if time_before?(discarded_at, created_at)
+    errors.add(:purged_at, "must be >= created_at") if time_before?(purged_at, created_at)
   end
 
   def future_time?(value)

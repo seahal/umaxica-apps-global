@@ -8,7 +8,6 @@ module Sign
       #
       # Routes:
       #   POST /social/auth/:provider/continue -> #continue
-      #   POST /social/auth/:provider/start    -> #start (compatibility alias)
       #   DELETE /social/auth/:provider         -> #destroy
       #
       # Operator social continue signs in existing staff only; unknown staff are not created.
@@ -17,8 +16,12 @@ module Sign
         include ::Verification::Operator
 
         SUPPORTED_PROVIDERS = %w(google_org).freeze
+        GOOGLE_LOGIN_STATUSES = [
+          OperatorEmailStatus::ACTIVE,
+          OperatorEmailStatus::VERIFIED,
+        ].freeze
 
-        public_strict! only: %i(continue start)
+        public_strict! only: :continue
         auth_required! only: :destroy
         before_action -> { require_step_up!(scope: "social_unlink") }, only: :destroy
 
@@ -44,12 +47,6 @@ module Sign
           handle_social_auth_error(e)
         end
 
-        # POST /social/auth/:provider/start
-        # Compatibility alias for older callers.
-        def start
-          continue
-        end
-
         def destroy
           provider = params[:provider]
           unless SUPPORTED_PROVIDERS.include?(provider)
@@ -70,11 +67,6 @@ module Sign
         end
 
         private
-
-        GOOGLE_LOGIN_STATUSES = [
-          OperatorEmailStatus::ACTIVE,
-          OperatorEmailStatus::VERIFIED,
-        ].freeze
 
         def unlink_google_org!
           emails = current_operator.staff_emails

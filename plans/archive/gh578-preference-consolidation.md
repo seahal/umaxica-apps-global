@@ -62,52 +62,54 @@ Remaining:
 - Split UI polish, token reissue rules, and database moves into separate subtracks. They have
   different validation paths and should not block each other.
 
-## 2026-05-07 現状差分と改善として残すこと
+## 2026-05-07 What to leave as current differences and improvements
 
-この issue の大部分は既に進んでいる。
+Most of this issue is already in progress.
 
-確認済み:
+Confirmed:
 
-- `Current::Preference` は実装済み。
-- `Auth::TokenService` と token claims 周辺のテストが存在する。
-- preference DB 配置は、少なくとも app / org / com /
-  customer の主要移動が現行 schema に反映されている。
+- `Current::Preference` is already implemented.
+- There are tests around `Auth::TokenService` and token claims.
+- preference DB placement is at least app / org / com / The major moves of the customer are
+  reflected in the current schema.
 
-この文書は「preference 全体を統合する大計画」としてではなく、残り改善の親メモとして残す。
+This document should not be left as a "grand plan to unify the entire preference" but as a parent
+memo for any remaining improvements.
 
-残す改善:
+Improvements to leave:
 
-- preference 変更時に access token / preference snapshot を再発行すべき条件を明文化する。
-- dark mode / cookie consent の AJAX 化は UI 改善として独立させる。
-- obsolete shim / bridge / duplicate model の削除は
-  `plans/backlog/legacy-preference-models-retirement-plan.md` 側で扱う。
-- 新しい DB 移動をこの文書へ追加しない。DB 配置の変更は個別 plan に分ける。
+- Clarify the conditions for reissuing access token/preference snapshot when preference changes.
+- Converting dark mode/cookie consent to AJAX will be made independent as a UI improvement.
+- Deleting obsolete shim / bridge / duplicate model Handled by
+  `plans/backlog/legacy-preference-models-retirement-plan.md` side.
+- Do not add new DB moves to this document. Changes to DB placement are divided into individual
+  plans.
 
 ## Closed Scope (2026-05-10)
 
 **Status: CLOSED**
 
-`gh578` の runtime consolidation 範囲は現行実装で満たしているものとして閉じる。
+The runtime consolidation range of `gh578` is closed as satisfied by the current implementation.
 
-確認済み:
+Confirmed:
 
-- `Current::Preference` は request runtime read interface として実装済み。
-- Auth access token の `prf` claim は `Auth::TokenClaims` で発行される。
-- `CurrentSupport` は actor-side preference record を優先し、なければ JWT `prf`
-  claim、それもなければ safe default を使う。
-- `Preference::Core` の preference 変更系 action は shared preference を reload し、access
-  token を再発行する。
-- `/web/v0/theme` と `/web/v0/cookie` の JSON endpoint は dark mode / cookie
-  consent の no-full-page-reload 更新経路として存在する。
-- 現行 DB 配置は `app` -> `principal`, `org` -> `operator`, `com` -> `setting` で、
-  `customer_preferences` も `setting` 側にある。
-- `docs/architecture/preference.md` を現行 layout、JWT `prf`、token reissue rule、AJAX
-  endpoint の実態に合わせて更新した。
+- `Current::Preference` has been implemented as a request runtime read interface.
+- Auth access token `prf` claim is issued by `Auth::TokenClaims`.
+- `CurrentSupport` takes precedence over actor-side preference record, otherwise JWT `prf` claim,
+  otherwise use safe default.
+- The preference change action of `Preference::Core` reloads the shared preference and access
+  Reissue the token.
+- JSON endpoint of `/web/v0/theme` and `/web/v0/cookie` is dark mode / cookie Exists as a
+  no-full-page-reload update path for consent.
+- The current DB arrangement is `app` -> `principal`, `org` -> `operator`, `com` -> `setting`,
+  `customer_preferences` is also on the `setting` side.
+- `docs/architecture/preference.md` to current layout, JWT `prf`, token reissue rule, AJAX Updated
+  according to the actual situation of endpoint.
 
-残りはこの plan では扱わない:
+The rest are not covered by this plan:
 
-- Re-login reconciliation の product decision は
-  `plans/backlog/gh629-preference-reconciliation-strategy.md` で扱う。
-- obsolete shim / bridge / duplicate model の削除は
-  `plans/backlog/legacy-preference-models-retirement-plan.md` で扱う。
-- 新しい DB 移動は個別 migration plan で扱う。
+- The product decision for Re-login reconciliation is Handled by
+  `plans/backlog/gh629-preference-reconciliation-strategy.md`.
+- Deleting obsolete shim / bridge / duplicate model Handled by
+  `plans/backlog/legacy-preference-models-retirement-plan.md`.
+- New DB migrations are handled in separate migration plans.

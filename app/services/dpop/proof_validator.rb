@@ -45,6 +45,7 @@ module Dpop
 
       return Result.new(valid: false, error: "missing_iat") unless payload["iat"].is_a?(Integer)
       return Result.new(valid: false, error: "iat_out_of_window") unless iat_within_window?(payload["iat"])
+      return jti_replay_result(payload["jti"]) if jti_replay_detection_enabled?
 
       if @access_token.present?
         expected_ath = Jit::Security::Jwt::ThumbprintCalculator.ath(@access_token)
@@ -58,6 +59,16 @@ module Dpop
     end
 
     private
+
+    def jti_replay_detection_enabled?
+      ActiveModel::Type::Boolean.new.cast(ENV.fetch("DPOP_JTI_REPLAY_DETECTION_ENABLED", "false"))
+    end
+
+    def jti_replay_result(jti)
+      return Result.new(valid: false, error: "missing_jti") if jti.blank?
+
+      Result.new(valid: false, error: "jti_replay") unless Dpop::JtiReplayGuard.record!(jti)
+    end
 
     def decode_unverified
       segments = @proof_jwt.split(".")

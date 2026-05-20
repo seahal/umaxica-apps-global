@@ -4,11 +4,9 @@
 module Sign
   module Com
     module Configuration
-      class PasskeysController < ApplicationController
-        include ::Verification::User
+      class PasskeysController < PrivateController
+        include ::Verification::Visitor
         include Sign::Webauthn
-
-        auth_required!
 
         before_action :authenticate_visitor!
         before_action only: %i(new create options verification) do
@@ -56,10 +54,10 @@ module Sign
             options: creation_options,
           }, status: :ok
         rescue Sign::Webauthn::OriginValidationError => e
-          Rails.logger.error("WebAuthn origin validation failed: #{e.message}")
+          Rails.event.error("webauthn.origin_validation_failed", message: e.message)
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
         rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
-          Rails.logger.error("WebAuthn registration options failed: #{e.message}")
+          Rails.event.error("webauthn.registration_options_failed", error_class: e.class.name, message: e.message)
           render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
         end
 
@@ -134,6 +132,23 @@ module Sign
         end
 
         def destroy
+          unless AuthMethodGuard.can_remove_passkey?(current_visitor, @passkey)
+            respond_to do |format|
+              format.html do
+                redirect_to(
+                  sign_com_configuration_passkeys_path,
+                  status: :see_other,
+                  alert: t("messages.cannot_delete_last_passkey"),
+                )
+              end
+              format.json do
+                render json: { error: t("messages.cannot_delete_last_passkey") },
+                       status: :unprocessable_content
+              end
+            end
+            return
+          end
+
           @passkey.destroy!
 
           respond_to do |format|
@@ -151,7 +166,10 @@ module Sign
         private
 
         def set_passkey
-          @passkey = current_visitor.visitor_passkeys.find(params.expect(:id))
+          passkey_id = params(:id)
+          @passkey = current_visitor.visitor_passkeys.find_by(public_id: passkey_id)
+          @passkey ||= current_visitor.visitor_passkeys.find(passkey_id) if passkey_id.to_s.match?(/\A\d+\z/)
+          raise ActiveRecord::RecordNotFound unless @passkey
         end
 
         def credential_params
@@ -168,7 +186,7 @@ module Sign
 
         def update_params
           key = params.key?(:visitor_passkey) ? :visitor_passkey : :passkey
-          params.expect(key => [:description]) || {}
+          params.fetch(key, {}).permit(:description)
         end
 
         def passkey_description

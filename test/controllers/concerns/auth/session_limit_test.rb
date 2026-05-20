@@ -22,15 +22,15 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
     end
 
     def resource_class
-      User
+      Client
     end
 
     def token_class
-      UserToken
+      ClientToken
     end
 
     def audit_class
-      UserChronicle
+      ClientChronicle
     end
 
     def resource_foreign_key
@@ -56,13 +56,13 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
 
   setup do
     @harness = SessionLimitHarness.new
-    @user = users(:one)
+    @user = clients(:one)
   end
 
-  test "max_sessions_for_resource returns correct value for User" do
+  test "max_sessions_for_resource returns correct value for Client" do
     result = @harness.send(:max_sessions_for_resource, @user)
 
-    assert_equal UserToken::MAX_SESSIONS_PER_USER, result
+    assert_equal ClientToken::MAX_SESSIONS_PER_USER, result
   end
 
   test "max_sessions_for_resource returns correct value for Staff" do
@@ -79,16 +79,16 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   end
 
   test "session_limit_state_for returns :within_limit when under max" do
-    UserToken.where(user_id: @user.id).delete_all
+    ClientToken.where(user_id: @user.id).delete_all
     result = @harness.send(:session_limit_state_for, @user)
 
     assert_equal :within_limit, result
   end
 
   test "session_limit_state_for returns :issue_restricted when at max" do
-    UserToken.where(user_id: @user.id).delete_all
-    UserToken::MAX_SESSIONS_PER_USER.times do
-      UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    ClientToken.where(user_id: @user.id).delete_all
+    ClientToken::MAX_SESSIONS_PER_USER.times do
+      ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     end
 
     result = @harness.send(:session_limit_state_for, @user)
@@ -97,11 +97,11 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   end
 
   test "session_limit_state_for returns :hard_reject when restricted exists" do
-    UserToken.where(user_id: @user.id).delete_all
-    UserToken::MAX_SESSIONS_PER_USER.times do
-      UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    ClientToken.where(user_id: @user.id).delete_all
+    ClientToken::MAX_SESSIONS_PER_USER.times do
+      ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     end
-    UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
     result = @harness.send(:session_limit_state_for, @user)
 
@@ -109,8 +109,8 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   end
 
   test "count_active_sessions counts only active non-restricted sessions" do
-    UserToken.where(user_id: @user.id).delete_all
-    2.times { UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE) }
+    ClientToken.where(user_id: @user.id).delete_all
+    2.times { ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE) }
 
     result = @harness.send(:count_active_sessions, @user)
 
@@ -118,9 +118,9 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   end
 
   test "count_active_sessions ignores rotated refresh-token ancestors" do
-    UserToken.where(user_id: @user.id).delete_all
+    ClientToken.where(user_id: @user.id).delete_all
 
-    token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+    token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
     Sign::RefreshTokenService.call(refresh_token: refresh)
 
@@ -143,30 +143,30 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
   end
 
   test "restricted_session_exists? returns true when restricted session exists" do
-    UserToken.where(user_id: @user.id).delete_all
-    UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
+    ClientToken.where(user_id: @user.id).delete_all
+    ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
     assert @harness.send(:restricted_session_exists?, @user)
   end
 
   test "restricted_session_exists? ignores expired restricted sessions" do
-    UserToken.where(user_id: @user.id).delete_all
-    UserToken.create!(
+    ClientToken.where(user_id: @user.id).delete_all
+    ClientToken.create!(
       user: @user,
-      user_token_status_id: UserTokenStatus::RESTRICTED,
-      lapses_at: 1.minute.ago,
+      user_token_status_id: ClientTokenStatus::RESTRICTED,
+      discarded_at: 1.minute.ago,
     )
 
     assert_not @harness.send(:restricted_session_exists?, @user)
   end
 
   test "restricted_session_exists? returns false when no restricted session" do
-    UserToken.where(user_id: @user.id).delete_all
+    ClientToken.where(user_id: @user.id).delete_all
 
     assert_not @harness.send(:restricted_session_exists?, @user)
   end
 
-  test "find_restricted_sessions_scope returns correct relation for User" do
+  test "find_restricted_sessions_scope returns correct relation for Client" do
     relation = @harness.send(:find_restricted_sessions_scope, @user)
 
     assert_kind_of ActiveRecord::Relation, relation

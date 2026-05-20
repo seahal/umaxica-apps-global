@@ -18,6 +18,7 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
       VisitorSecretKind.find_or_create_by!(id: VisitorSecretKind::LOGIN)
       VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::ACTIVE)
+      VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::DELETED)
     end
     @visitor = Visitor.create!(
       status_id: VisitorStatus::ACTIVE,
@@ -41,6 +42,7 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     satisfy_visitor_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret")
 
     @secret = VisitorSecret.create!(
       visitor: @visitor,
@@ -123,6 +125,7 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     )
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(token)
+    token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret")
     secret = VisitorSecret.create!(
       visitor: visitor,
       name: "Destroy Secret",
@@ -131,7 +134,7 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
     )
 
-    UserSecrets::Destroy.stub(:call, true) do
+    ClientSecrets::Destroy.stub(:call, true) do
       delete sign_com_configuration_secret_url(secret.public_id, ri: "jp"),
              headers: {
                "Host" => @host,

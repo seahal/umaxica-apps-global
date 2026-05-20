@@ -1,0 +1,79 @@
+import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+
+vi.mock("@hotwired/stimulus", () => ({
+  Controller: class {
+    constructor() {
+      this.challengeIdTarget = { value: "" };
+      this.credentialJsonTarget = { value: "" };
+      this.errorTarget = { textContent: "", classList: { add: vi.fn(), remove: vi.fn() } };
+      this.statusTarget = { textContent: "", classList: { add: vi.fn(), remove: vi.fn() } };
+      this.hasErrorTarget = true;
+      this.hasStatusTarget = true;
+      this.element = { closest: vi.fn(() => ({ requestSubmit: vi.fn() })) };
+    }
+
+    connect() {}
+  },
+}));
+
+vi.mock("controllers/webauthn_utils", () => ({ normalizePublicKeyOptions: vi.fn((opt) => opt) }));
+
+const { default: StepUpPasskeyController } =
+  await import("../../../app/javascript/controllers/step_up_passkey_controller.js");
+
+describe("StepUpPasskeyController", () => {
+  let controller;
+
+  beforeEach(() => {
+    controller = new StepUpPasskeyController();
+    controller.optionsValue = JSON.stringify({ challenge: "abc" });
+    controller.challengeIdValue = "challenge-123";
+
+    vi.stubGlobal("window", { PublicKeyCredential: true });
+    vi.stubGlobal("navigator", { credentials: { get: vi.fn() } });
+    vi.stubGlobal("btoa", (str) => Buffer.from(str, "binary").toString("base64"));
+  });
+
+  test("authenticate: 成功時にフォームを送信する", async () => {
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1, 2, 3]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4, 5, 6]).buffer,
+        authenticatorData: new Uint8Array([7, 8, 9]).buffer,
+        signature: new Uint8Array([10, 11, 12]).buffer,
+        userHandle: null,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.get.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.credentialJsonTarget.value).toContain('"id":"cred-id"');
+    expect(controller.challengeIdTarget.value).toBe("challenge-123");
+    expect(controller.element.closest).toHaveBeenCalledWith("form");
+  });
+
+  test("authenticate: NotAllowedError のときに適切なエラーメッセージを表示する", async () => {
+    const error = new Error("Cancelled");
+    error.name = "NotAllowedError";
+    navigator.credentials.get.mockRejectedValue(error);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証がキャンセルされました");
+  });
+
+  test("authenticate: WebAuthn 未対応時にエラーを表示する", async () => {
+    window.PublicKeyCredential = false;
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("このブラウザはPasskeyに対応していません");
+  });
+});

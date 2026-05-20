@@ -6,8 +6,6 @@ module Sign
     extend ActiveSupport::Concern
 
     included do
-      public_strict!
-      protect_from_forgery with: :null_session, only: :create
       before_action :set_promotional_email
     end
 
@@ -25,6 +23,19 @@ module Sign
     end
 
     private
+
+    def verified_request?
+      super || promotional_unsubscribe_create_request?
+    end
+
+    def promotional_unsubscribe_create_request?
+      return false unless action_name == "create"
+
+      email = promotional_email_model.find_by(public_id: params[:id])
+      return false unless email
+
+      PromotionalEmailUnsubscribeToken.valid?(email, params[:token], scope: promotional_email_scope)
+    end
 
     def set_promotional_email
       @email = promotional_email_model.find_by(public_id: params[:id])

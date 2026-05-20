@@ -4,10 +4,10 @@
 require "test_helper"
 
 class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_tokens, :users
+  fixtures :operators, :operator_tokens, :clients
 
   setup do
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @host = ENV.fetch("ID_STAFF_URL", "test.umaxica.com")
   end
 
@@ -70,13 +70,13 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   end
 
   test "GET check with user token on staff endpoint returns 401" do
-    user = users(:one)
+    user = clients(:one)
 
     # Create a staff token record for the session to exist
     token_record = OperatorToken.create!(staff: @staff)
     token_record.rotate_refresh_token!
 
-    # Generate a JWT with user actor type (wrong for staff endpoint)
+    # Generate a JWT with client actor type (wrong for staff endpoint)
     access_token = jwt_access_token_for(
       user,
       host: @host,

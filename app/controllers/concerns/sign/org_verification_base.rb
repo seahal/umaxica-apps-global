@@ -5,19 +5,10 @@ module Sign
   module OrgVerificationBase
     extend ActiveSupport::Concern
 
-    REAUTH_TTL = 15.minutes
-    REAUTH_SESSION_KEY = :reauth
+    STEP_UP_TTL = 15.minutes
+    STEP_UP_SESSION_KEY = :step_up
 
-    ALLOWED_SCOPES = {
-      "social_unlink" => %r{\A/social/},
-      "session_revoke_all" => %r{\A/configuration/sessions},
-      "withdrawal" => %r{\A/configuration/withdrawal},
-      "configuration_email" => %r{\A/configuration/emails},
-      "configuration_telephone" => %r{\A/configuration/telephones},
-      "configuration_passkey" => %r{\A/configuration/passkeys},
-      "configuration_mfa" => %r{\A/configuration/challenge},
-      "configuration_secret" => %r{\A/configuration/secrets},
-    }.freeze
+    ALLOWED_SCOPES = StepUp::ScopeCatalog::ORG
 
     included do
       include ::Preference::Global
@@ -28,10 +19,11 @@ module Sign
       include Sign::VerificationTiming
       include Sign::VerificationCommonBase
       include Sign::VerificationAuditAndCookie
-      include Sign::VerificationReauthSessionStore
-      include Sign::VerificationReauthLifecycle
+      include Sign::VerificationStepUpSessionStore
+      include Sign::VerificationStepUpLifecycle
       include Sign::VerificationPasskeyChecks
 
+      before_action :apply_localization_preferences
       before_action :authenticate_operator!
       before_action :set_actor_token
       before_action :require_ri!
@@ -41,17 +33,17 @@ module Sign
       # in Ruby's method resolution order (methods defined in included block
       # are defined on the including class AFTER submodules are mixed in)
 
-      define_method(:valid_reauth_session?) do |rs|
+      define_method(:valid_step_up_session?) do |rs|
         rs.present? &&
-          rs.lapses_at > Time.current &&
+          rs.discarded_at > Time.current &&
           rs.staff_token_id == actor_token.id &&
           rs.status == "PENDING" &&
           rs.scope.present? &&
           rs.return_to.present?
       end
 
-      define_method(:handle_invalid_reauth_session!) do
-        clear_reauth_state!
+      define_method(:handle_invalid_step_up_session!) do
+        clear_step_up_state!
         safe_redirect_to(
           sign_org_configuration_path(ri: params[:ri]),
           fallback: "/configuration",
@@ -60,7 +52,7 @@ module Sign
         false
       end
 
-      define_method(:clear_reauth_state!) do
+      define_method(:clear_step_up_state!) do
         true
       end
 
@@ -103,8 +95,8 @@ module Sign
       sign_org_verification_path(ri: params[:ri])
     end
 
-    def reauth_session_model = OperatorReauthSession
+    def step_up_session_model = OperatorStepUpSession
 
-    def reauth_session_token_foreign_key = :staff_token_id
+    def step_up_session_token_foreign_key = :staff_token_id
   end
 end

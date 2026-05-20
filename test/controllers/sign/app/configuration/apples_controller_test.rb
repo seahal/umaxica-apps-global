@@ -6,11 +6,11 @@ require "base64"
 
 module Sign::App::Configuration
   class ApplesControllerTest < ActionDispatch::IntegrationTest
-    fixtures :users, :user_statuses, :user_social_apple_statuses
+    fixtures :clients, :client_statuses, :client_social_apple_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-      @user = users(:one)
+      @user = clients(:one)
       @headers = { "X-TEST-CURRENT-USER" => @user.id }.freeze
     end
 
@@ -37,20 +37,20 @@ module Sign::App::Configuration
     end
 
     test "show treats revoked apple identity as unlinked" do
-      UserSocialApple.create!(
+      ClientSocialApple.create!(
         user: @user,
         uid: "revoked-apple-config",
         provider: "apple",
         token: "token",
         expires_at: 1.hour.from_now.to_i,
-        user_social_apple_status: user_social_apple_statuses(:revoked),
+        user_social_apple_status: client_social_apple_statuses(:revoked),
       )
 
       get sign_app_configuration_apple_url(ri: "jp"), headers: @headers
 
       assert_response :success
       assert_select "form[action=?]", sign_app_social_authentication_path(provider: "apple"), count: 0
-      assert_select "form[action*=?]", "/social/auth/apple/start", count: 1
+      assert_select "form[action*=?]", "/social/auth/apple/continue", count: 1
     end
   end
 end

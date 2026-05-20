@@ -3,20 +3,20 @@
 
 # == Schema Information
 #
-# Table name: client_statuses
-# Database name: principal
+# Table name: client_profile_statuses
+# Database name: app_zenith
 #
 #  id :bigint           not null, primary key
 #
-class VisitorAccountStatus < PrincipalRecord
-  self.table_name = "client_statuses"
+class VisitorAccountStatus < AppRpRecord
+  self.table_name = "client_profile_statuses"
 
   has_many :clients,
-           class_name: "VisitorAccount",
+           class_name: "ClientProfile",
            inverse_of: :client_status,
            dependent: :restrict_with_exception
   has_many :status_clients,
-           class_name: "VisitorAccount",
+           class_name: "ClientProfile",
            foreign_key: :status_id,
            inverse_of: :status,
            dependent: :restrict_with_exception

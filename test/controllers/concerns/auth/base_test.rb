@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable I18n/RailsI18n/DecorateString
+
 require "test_helper"
 
 module Auth
@@ -29,18 +31,18 @@ module Auth
 
       include Authentication::Base
 
-      attr_accessor :actor_type
-      attr_writer :logged_in
+      attr_accessor :actor_type, :checkpoint_participant, :dashboard_participant
+      attr_writer :resource, :logged_in, :current_session_record, :allowed_policy
 
       def resource_type
         actor_type
       end
 
-      def resource_class = User
+      def resource_class = Client
 
-      def token_class = UserToken
+      def token_class = ClientToken
 
-      def audit_class = UserChronicle
+      def audit_class = ClientChronicle
 
       def resource_foreign_key = :user_id
 
@@ -57,9 +59,9 @@ module Auth
         @session_hash = {}
         @flash_hash = {}
         @logged_in = false
-        @request_stub = Struct.new(:format, :host, :request_id, :remote_ip).new(
+        @request_stub = Struct.new(:format, :host, :request_id, :remote_ip, :headers).new(
           Struct.new(:json?).new(false),
-          "app.localhost", "req-123", "127.0.0.1",
+          "app.localhost", "req-123", "127.0.0.1", {},
         )
         @cookies = MockCookies.new(self.class.encrypted_cookies)
       end
@@ -77,7 +79,13 @@ module Auth
       end
 
       def current_resource
+        return @resource if defined?(@resource)
+
         @logged_in ? Object.new : nil
+      end
+
+      def current_session
+        @current_session_record
       end
 
       def params
@@ -101,11 +109,11 @@ module Auth
       end
 
       def json_request!
-        @request_stub = Struct.new(:format).new(Struct.new(:json?).new(true))
+        @request_stub = Struct.new(:format, :headers).new(Struct.new(:json?).new(true), {})
       end
 
       def html_request!
-        @request_stub = Struct.new(:format).new(Struct.new(:json?).new(false))
+        @request_stub = Struct.new(:format, :headers).new(Struct.new(:json?).new(false), {})
       end
 
       def render(**kwargs)
@@ -124,6 +132,40 @@ module Auth
         @redirected
       end
 
+      def sign_in_sequence_surface
+        :app
+      end
+
+      def sign_app_dashboard_path(ri: nil, rt: nil)
+        path = "/dashboard"
+        query = []
+        query << "ri=#{ri}" if ri.present?
+        query << "rt=#{rt}" if rt.present?
+        query.any? ? "#{path}?#{query.join("&")}" : path
+      end
+
+      def sign_app_configuration_path(ri: nil)
+        ri.present? ? "/configuration?ri=#{ri}" : "/configuration"
+      end
+
+      def allowed_to?(rule = nil, *)
+        if defined?(@allowed_policy) && @allowed_policy.is_a?(Hash)
+          return @allowed_policy.fetch(rule)
+        end
+
+        return true unless defined?(@allowed_policy)
+
+        @allowed_policy
+      end
+
+      def sign_in_checkpoint_participant(cycle)
+        checkpoint_participant || super
+      end
+
+      def sign_in_dashboard_participant(cycle)
+        dashboard_participant || super
+      end
+
       def jump_to_generated_url(url, fallback:)
         @jumped = [url, fallback]
       end
@@ -136,6 +178,18 @@ module Auth
         "translated:#{key}"
       end
     end
+
+    ResourceStub = Struct.new(:id)
+    BlockingParticipant =
+      Struct.new(:cycle) do
+        def advance_if_clear!
+          SignIn::ParticipantResult.new(
+            participant: :checkpoint,
+            stack: [SignIn::ParticipantItem.new(key: :blocked_for_test, blocking: true, cleared: false)],
+            next_status: "DASHBOARD_PENDING",
+          )
+        end
+      end
 
     test "VALID_POLICIES constant is defined" do
       assert_equal %i(public_strict auth_required guest_only), Authentication::Base::VALID_POLICIES
@@ -166,7 +220,7 @@ module Auth
     test "test_header_key resolves actor specific keys" do
       harness = HeaderKeyHarness.new
 
-      harness.actor_type = "user"
+      harness.actor_type = "client"
 
       assert_equal "X-TEST-CURRENT-USER", harness.send(:test_header_key)
 
@@ -184,14 +238,12 @@ module Auth
     end
 
     test "device cookie helper methods are defined" do
-      # rubocop:disable I18n/RailsI18n/DecorateString
       assert HeaderKeyHarness.private_method_defined?(:set_device_id_cookie!),
              "HeaderKeyHarness should define set_device_id_cookie!"
       assert HeaderKeyHarness.private_method_defined?(:clear_device_id_cookie!),
              "HeaderKeyHarness should define clear_device_id_cookie!"
       assert HeaderKeyHarness.private_method_defined?(:read_device_id_cookie),
              "HeaderKeyHarness should define read_device_id_cookie"
-      # rubocop:enable I18n/RailsI18n/DecorateString
     end
 
     test "ACCESS_TOKEN_TTL is defined" do
@@ -211,11 +263,107 @@ module Auth
     end
 
     test "VALID_ACTOR_TYPES constant is defined" do
-      assert_equal %w(user operator visitor), Authentication::Base::VALID_ACTOR_TYPES
+      assert_equal %w(client operator visitor), Authentication::Base::VALID_ACTOR_TYPES
     end
 
     test "Token.extract_act returns nil for nil payload" do
       assert_nil Authentication::Base::Token.extract_act(nil)
+    end
+
+    test "begin_sign_in_sequence stores only safe encoded return paths" do
+      harness = HeaderKeyHarness.new
+      harness.resource = ResourceStub.new(42)
+      Actor.tld = :app
+      Actor.authentication = Actor::Authentication.new(amr: ["email_otp"])
+
+      unsafe_result = harness.send(
+        :begin_sign_in_sequence!,
+        rt: Base64.urlsafe_encode64("https://evil.example/phish", padding: false),
+        checkpoint_required: true,
+      )
+
+      assert_equal :success, unsafe_result.status
+      assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("rt")
+      assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
+
+      safe_rt = Base64.urlsafe_encode64("/configuration", padding: false)
+      safe_result = harness.send(:begin_sign_in_sequence!, rt: safe_rt, checkpoint_required: true)
+
+      assert_equal :success, safe_result.status
+      assert_equal safe_rt, harness.session.fetch(:app_sign_in_sequence).fetch("rt")
+      assert_equal safe_rt, harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
+    ensure
+      Actor.reset
+    end
+
+    test "checkpoint continuation uses db-backed sign-in cycle when locator is present" do
+      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      token = ClientToken.create!(user: user)
+      cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
+      harness = db_sequence_harness(user, token)
+      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+
+      harness.send(:continue_checkpoint_sequence_without_content!)
+
+      assert_predicate cycle.reload, :sign_in_dashboard_pending?
+      assert_equal ["/dashboard?rt=/after", {}], harness.redirected
+    end
+
+    test "checkpoint continuation keeps blocking db-backed cycle at checkpoint" do
+      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      token = ClientToken.create!(user: user)
+      cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
+      harness = db_sequence_harness(user, token)
+      harness.checkpoint_participant = BlockingParticipant.new(cycle)
+      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+
+      harness.send(:continue_checkpoint_sequence_without_content!)
+
+      assert_nil harness.redirected
+      assert_nil harness.rendered
+      assert_predicate cycle.reload, :sign_in_checkpoint_pending?
+    end
+
+    test "dashboard continuation consumes db-backed return path and completes cycle" do
+      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      token = ClientToken.create!(user: user)
+      cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
+      harness = db_sequence_harness(user, token)
+      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+
+      harness.send(:continue_dashboard_sequence_without_content!)
+
+      assert_equal ["/after", {}], harness.redirected
+      assert_predicate cycle.reload, :sign_in_completed?
+      assert_nil cycle.return_to
+    end
+
+    test "dashboard continuation requires dashboard policy before advancing" do
+      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      token = ClientToken.create!(user: user)
+      cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
+      harness = db_sequence_harness(user, token)
+      harness.allowed_policy = { show_dashboard?: false }
+      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+
+      assert_not harness.send(:continue_dashboard_sequence_without_content!)
+
+      assert_equal({ plain: I18n.t("errors.messages.not_authorized"), status: :bad_request }, harness.rendered)
+      assert_predicate cycle.reload, :sign_in_dashboard_pending?
+      assert_equal "/after", cycle.return_to
+    end
+
+    test "db-backed sequence rejects wrong participant without advancing" do
+      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      token = ClientToken.create!(user: user)
+      cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
+      harness = db_sequence_harness(user, token)
+      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+
+      assert_not harness.send(:continue_checkpoint_sequence_without_content!)
+
+      assert_equal({ plain: I18n.t("errors.messages.not_authorized"), status: :bad_request }, harness.rendered)
+      assert_predicate cycle.reload, :sign_in_dashboard_pending?
     end
 
     test "Token.extract_type returns nil for nil payload" do
@@ -358,25 +506,46 @@ module Auth
     end
 
     test "JwtConfiguration.issuer respects resource_type" do
-      assert_equal "umaxica-auth:user", Authentication::Base::JwtConfiguration.issuer("user")
+      assert_equal "umaxica-auth:client", Authentication::Base::JwtConfiguration.issuer("client")
       assert_equal "umaxica-auth:operator", Authentication::Base::JwtConfiguration.issuer("operator")
       assert_equal "umaxica-auth", Authentication::Base::JwtConfiguration.issuer("invalid")
     end
 
     test "JwtConfiguration.audiences respects resource_type specific env" do
-      with_env("AUTH_JWT_USER_AUDIENCES" => "u1,u2", "AUTH_JWT_AUDIENCES" => "default") do
-        assert_equal %w(u1 u2), Authentication::Base::JwtConfiguration.audiences("user")
+      with_env("AUTH_JWT_CLIENT_AUDIENCES" => "u1,u2", "AUTH_JWT_AUDIENCES" => "default") do
+        assert_equal %w(u1 u2), Authentication::Base::JwtConfiguration.audiences("client")
         assert_equal %w(default), Authentication::Base::JwtConfiguration.audiences("operator")
       end
     end
 
     test "JwtConfiguration.token_type returns correct format" do
-      assert_equal "auth-access-token;user", Authentication::Base::JwtConfiguration.token_type("user")
+      assert_equal "auth-access-token;client", Authentication::Base::JwtConfiguration.token_type("client")
       assert_equal "auth-access-token;operator", Authentication::Base::JwtConfiguration.token_type("operator")
       assert_raises(ArgumentError) { Authentication::Base::JwtConfiguration.token_type("invalid") }
     end
 
     private
+
+    def db_sequence_harness(user, token)
+      HeaderKeyHarness.new.tap do |harness|
+        harness.actor_type = "client"
+        harness.resource = user
+        harness.current_session_record = token
+      end
+    end
+
+    def db_sign_in_cycle(user, token, status_name:, step:)
+      ClientSignInCycle.create!(
+        principal_id: user.id,
+        token: token,
+        status_id: ClientSignInCycle.status_id_for(status_name),
+        step: step,
+        return_to: "/after",
+        nonce_digest: ClientSignInCycle.digest_nonce("nonce"),
+        issued_at: Time.current,
+        expires_at: 15.minutes.from_now,
+      )
+    end
 
     def with_env(vars)
       original = vars.keys.index_with { |k| ENV[k] }
@@ -387,3 +556,5 @@ module Auth
     end
   end
 end
+
+# rubocop:enable I18n/RailsI18n/DecorateString

@@ -51,11 +51,11 @@ Remove the `pundit` gem and replace all references across controllers, concerns,
 Changes made:
 
 - `Gemfile`: removed `gem "pundit"`.
-- Engine ApplicationControllers (13 files): `include Pundit::Authorization` replaced with
+- Former engine-era ApplicationControllers (13 files): `include Pundit::Authorization` replaced with
   `include ActionPolicy::Controller`.
 - `app/controllers/concerns/authorization_audit.rb`: updated to `ActionPolicy::Unauthorized`,
   `exception.rule`, `exception.object`.
-- `engines/signature/app/controllers/concerns/sign/error_responses.rb`: updated to
+- former `engines/signature/app/controllers/concerns/sign/error_responses.rb`: updated to
   `ActionPolicy::Unauthorized`.
 - 15 test files: `Pundit::Authorization` references updated to `ActionPolicy::Controller`.
 

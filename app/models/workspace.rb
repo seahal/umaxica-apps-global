@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: workspaces
-# Database name: operator
+# Database name: org_principal
 #
 #  id         :bigint           not null, primary key
 #  name       :string           not null
@@ -13,8 +13,6 @@
 # frozen_string_literal: true
 
 # Workspace uses the conventional workspaces table.
-class Workspace < OperatorRecord
-  has_many :user_memberships, dependent: :destroy, inverse_of: :workspace
-
+class Workspace < OrgPrincipalRecord
   validates :name, presence: true
 end

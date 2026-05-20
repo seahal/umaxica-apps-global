@@ -92,9 +92,9 @@ en:
     inquiry_detail: Detail of inquiry.
   sign:
     app:
-      reauth:
+      step_up:
         index:
-          title: Re-authentication Sessions
+          title: Step-up authentication Sessions
           new: New
           empty: No sessions found
           table:
@@ -1246,6 +1246,11 @@ en:
             accept_performance_cookies: Allow performance cookies
             accept_targeting_cookies: Allow targeting cookies
             accept_consent_cookies: Allow consent cookies
+        language:
+          edit:
+            heading: Language Settings
+            description: Change the display language for the organization console.
+            language_label: Language
   support:
     array:
       last_word_connector: ", and "

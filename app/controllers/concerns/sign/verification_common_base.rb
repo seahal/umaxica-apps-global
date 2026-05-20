@@ -31,7 +31,7 @@ module Sign
     end
 
     def verification_scope
-      current_reauth_session&.scope
+      current_step_up_session&.scope
     end
 
     def redirect_if_recent_verification_for_get!
@@ -39,7 +39,7 @@ module Sign
       return false unless scope
       return false unless verification_recent_for_get?(scope: scope)
 
-      consume_reauth_session!
+      consume_step_up_session!
       true
     end
 
@@ -48,7 +48,7 @@ module Sign
       return false unless scope
       return false unless verification_recent_for_post?(scope: scope)
 
-      consume_reauth_session!
+      consume_step_up_session!
       true
     end
 

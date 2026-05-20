@@ -7,11 +7,11 @@
 # Database name: avatar
 #
 #  id                           :bigint           not null, primary key
+#  discarded_at                 :datetime         default(Infinity), not null
 #  image_data                   :jsonb            not null
-#  lapses_at                    :datetime         default(Infinity), not null
 #  lock_version                 :integer          default(0), not null
 #  moniker                      :string           not null
-#  purge_at                     :datetime         default(Infinity), not null
+#  purged_at                    :datetime         default(Infinity), not null
 #  created_at                   :datetime         not null
 #  updated_at                   :datetime         not null
 #  active_handle_id             :bigint           not null
@@ -29,7 +29,7 @@
 #  index_avatars_on_client_id                     (client_id)
 #  index_avatars_on_owner_organization_id         (owner_organization_id)
 #  index_avatars_on_public_id                     (public_id) UNIQUE
-#  index_avatars_on_purge_at                      (purge_at)
+#  index_avatars_on_purged_at                     (purged_at)
 #  index_avatars_on_representing_organization_id  (representing_organization_id)
 #
 # Foreign Keys
@@ -42,7 +42,7 @@ class Avatar < AvatarRecord
   include Retainable
   include PublicId
 
-  belongs_to :member, optional: true, inverse_of: :avatars
+  belongs_to :member, foreign_key: :client_id, inverse_of: :avatars
   belongs_to :capability, class_name: "AvatarCapability"
   belongs_to :active_handle, class_name: "Handle"
 

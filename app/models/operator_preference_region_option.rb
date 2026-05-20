@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: staff_preference_region_options
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class OperatorPreferenceRegionOption < OperatorRecord
+class OperatorPreferenceRegionOption < OrgPrincipalRecord
   self.table_name = "staff_preference_region_options"
   include ReferenceRecord
 

@@ -35,9 +35,9 @@ class Sign::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
   end
 
   test "after cooldown returns 200 and logs issued occurrence" do
-    user = users(:one)
+    user = clients(:one)
     telephone = "+8190#{rand(10_000_000..99_999_999)}"
-    user.user_telephones.create!(number: telephone, user_telephone_status_id: UserTelephoneStatus::VERIFIED)
+    user.client_telephones.create!(number: telephone, user_telephone_status_id: ClientTelephoneStatus::VERIFIED)
 
     hmac = Occurrence::Hmac.digest(kind: :telephone, body: telephone)
     TelephoneOccurrence.where(body: hmac).delete_all
@@ -47,7 +47,7 @@ class Sign::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
       memo: "purpose=in issued=#{31.seconds.ago.to_i}",
     )
 
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       post sign_app_web_v0_in_telephone_otp_path,
            params: { state: state_for(telephone) },
            headers: { "Host" => @host },
@@ -67,10 +67,10 @@ class Sign::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
   end
 
   test "success rotates OTP so only latest code verifies" do
-    user = users(:one)
-    telephone_record = user.user_telephones.create!(
+    user = clients(:one)
+    telephone_record = user.client_telephones.create!(
       number: "+8190#{rand(10_000_000..99_999_999)}",
-      user_telephone_status_id: UserTelephoneStatus::VERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
 
     old_private_key = ROTP::Base32.random_base32

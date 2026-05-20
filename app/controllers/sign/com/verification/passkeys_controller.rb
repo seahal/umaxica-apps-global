@@ -4,8 +4,7 @@
 module Sign
   module Com
     module Verification
-      class PasskeysController < Sign::Com::ApplicationController
-        include Sign::ComVerificationBase
+      class PasskeysController < Sign::Com::Verification::BaseController
         include Sign::VerificationPasskeyActions
       end
     end

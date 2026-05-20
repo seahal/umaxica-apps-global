@@ -1,4 +1,6 @@
 <% content_for :page_title, t("sign.app.configuration.passkeys.edit.title") %>
+<%= link_to t("sign.app.configuration.show.back"), sign_app_configuration_passkeys_path(ri: params[:ri]) %>
+
 <div>
   <div>
     <h1><%= t("sign.app.configuration.passkeys.edit.title") %></h1>

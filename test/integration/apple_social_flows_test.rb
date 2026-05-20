@@ -2,15 +2,14 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/social_callback_test_helper"
 
 class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_social_apple_statuses, :app_preference_chronicle_levels
+  fixtures :clients, :client_statuses, :client_social_apple_statuses, :app_preference_chronicle_levels
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @callback_headers = SocialCallbackTestHelper.callback_headers(@host)
+    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    @callback_headers = social_callback_headers(@host)
   end
 
   teardown do
@@ -20,10 +19,13 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
   test "sign up creates user and identity" do
     setup_apple_mock_auth(uid: "apple_flow_signup")
 
-    assert_difference("User.count", 1) do
-      assert_difference("UserSocialApple.count", 1) do
-        get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-            headers: @callback_headers
+    state = start_social_auth_flow(intent: "login")
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientSocialApple.count", 1) do
+        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+             params: { state: state },
+             headers: @callback_headers
       end
     end
 
@@ -31,20 +33,23 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
   end
 
   test "sign in uses existing identity" do
-    user = User.create!(status_id: UserStatus::ACTIVE)
-    UserSocialApple.create!(
+    user = Client.create!(status_id: ClientStatus::ACTIVE)
+    ClientSocialApple.create!(
       user: user,
       uid: "apple_flow_existing",
       provider: "apple",
       token: "token_old",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_apple_status: user_social_apple_statuses(:active),
+      user_social_apple_status: client_social_apple_statuses(:active),
     )
 
     setup_apple_mock_auth(uid: "apple_flow_existing", token: "token_new")
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: @callback_headers
+    state = start_social_auth_flow(intent: "login")
+
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+         params: { state: state },
+         headers: @callback_headers
 
     assert_redirected_to sign_app_dashboard_url(ri: "jp")
     assert_equal I18n.t("sign.app.social.sessions.create.already_registered", provider: "Apple"),
@@ -52,75 +57,75 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
   end
 
   test "link succeeds for logged in user" do
-    user = users(:one)
+    user = clients(:one)
     setup_apple_mock_auth(uid: "apple_flow_link")
 
-    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
-         headers: as_user_headers(user, host: @host)
+    state = start_social_auth_flow(intent: "link", user: user)
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: @callback_headers.merge(as_user_headers(user, host: @host))
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+         params: { state: state },
+         headers: @callback_headers.merge(as_user_headers(user, host: @host))
 
     assert_response :redirect
     follow_redirect!
 
     assert_predicate flash[:notice], :present?
 
-    identity = UserSocialApple.find_by(uid: "apple_flow_link")
+    identity = ClientSocialApple.find_by(uid: "apple_flow_link")
 
     assert_not_nil identity
     assert_equal user.id, identity.user_id
   end
 
   test "link succeeds even when auth headers are missing on callback" do
-    user = users(:one)
+    user = clients(:one)
     setup_apple_mock_auth(uid: "apple_flow_link_session_only")
 
-    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
-         headers: as_user_headers(user, host: @host)
+    state = start_social_auth_flow(intent: "link", user: user)
 
     # Simulate Apple POST callback without auth cookies/headers
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: @callback_headers
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+         params: { state: state },
+         headers: @callback_headers
 
     assert_response :redirect
     follow_redirect!
 
     assert_predicate flash[:notice], :present?
 
-    identity = UserSocialApple.find_by(uid: "apple_flow_link_session_only")
+    identity = ClientSocialApple.find_by(uid: "apple_flow_link_session_only")
 
     assert_not_nil identity
     assert_equal user.id, identity.user_id
   end
 
   test "link conflict returns error" do
-    owner = users(:one)
-    other = users(:two)
+    owner = clients(:one)
+    other = clients(:two)
 
-    UserSocialApple.create!(
+    ClientSocialApple.create!(
       user: owner,
       uid: "apple_flow_conflict",
       provider: "apple",
       token: "token_old",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_apple_status: user_social_apple_statuses(:active),
+      user_social_apple_status: client_social_apple_statuses(:active),
     )
 
     setup_apple_mock_auth(uid: "apple_flow_conflict")
 
-    post start_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
-         headers: as_user_headers(other, host: @host)
+    state = start_social_auth_flow(intent: "link", user: other)
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: @callback_headers.merge(as_user_headers(other, host: @host))
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+         params: { state: state },
+         headers: @callback_headers.merge(as_user_headers(other, host: @host))
 
     assert_response :redirect
     follow_redirect!
 
     assert_predicate flash[:alert], :present?
 
-    identity = UserSocialApple.find_by(uid: "apple_flow_conflict")
+    identity = ClientSocialApple.find_by(uid: "apple_flow_conflict")
 
     assert_equal owner.id, identity.user_id
   end
@@ -137,5 +142,9 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
         expires_at: 1.week.from_now.to_i,
       },
     )
+  end
+
+  def start_social_auth_flow(intent:, user: nil)
+    seed_social_auth_session(provider: "apple", intent: intent, user: user, ri: "jp")
   end
 end

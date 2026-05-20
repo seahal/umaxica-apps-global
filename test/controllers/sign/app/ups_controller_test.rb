@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses
+  fixtures :clients, :client_statuses
 
   test "should get new" do
     get new_sign_app_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
@@ -25,7 +25,7 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "[data-testid=?]", "registration-method", count: 4
+    assert_select "[data-test-id=?]", "registration-method", count: 4
   end
 
   test "shows telephone registration link" do
@@ -94,7 +94,7 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should redirect to dashboard when logged in" do
-    user = users(:one)
+    user = clients(:one)
     get new_sign_app_up_url(format: :html, ri: "jp"), headers: as_user_headers(user, host: host)
 
     assert_redirected_to sign_app_dashboard_url(ri: "jp")

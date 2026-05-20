@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :user_chronicle_events, :user_chronicle_levels
+  fixtures :client_chronicle_events, :client_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
@@ -18,7 +18,7 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     satisfy_visitor_verification(@token)
 
     ChronicleRecord.connected_to(role: :writing) do
-      UserChronicle.delete_all
+      ClientChronicle.delete_all
     end
   end
 
@@ -32,7 +32,7 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "shows only current visitor activity logs" do
     create_user_audit(
       visitor: @visitor,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 2.minutes.ago,
       context: { tag: "my-login-event" },
     )
@@ -41,7 +41,7 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     other_visitor = create_verified_visitor_with_email(email_address: other_email)
     create_user_audit(
       visitor: other_visitor,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 1.minute.ago,
       context: { tag: "other-user-event" },
     )
@@ -56,19 +56,19 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "orders activity by occurred_at desc" do
     create_user_audit(
       visitor: @visitor,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 3.hours.ago,
       context: { tag: "oldest-entry" },
     )
     create_user_audit(
       visitor: @visitor,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 2.hours.ago,
       context: { tag: "middle-entry" },
     )
     create_user_audit(
       visitor: @visitor,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 1.hour.ago,
       context: { tag: "newest-entry" },
     )
@@ -88,13 +88,13 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "filters to login success events" do
     create_user_audit(
       visitor: @visitor,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 2.minutes.ago,
       context: { tag: "login-success-event" },
     )
     create_user_audit(
       visitor: @visitor,
-      event_id: UserChronicleEvent::ACCOUNT_WITHDRAWN,
+      event_id: ClientChronicleEvent::ACCOUNT_WITHDRAWN,
       occurred_at: 1.minute.ago,
       context: { tag: "non-login-event" },
     )
@@ -109,7 +109,7 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "renders user agent summary and login method" do
     create_user_audit(
       visitor: @visitor,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: Time.current,
       context: {
         tag: "ua-method-entry",
@@ -130,7 +130,7 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     controller.request = ActionDispatch::TestRequest.create
 
     known_activity = build_activity(
-      event_id: UserChronicleEvent::LOGIN_SUCCESS,
+      event_id: ClientChronicleEvent::LOGIN_SUCCESS,
       ip_address: "203.0.113.25",
       context: {
         user_agent: "Mozilla/5.0 Firefox/120.0",
@@ -166,13 +166,13 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   end
 
   def create_user_audit(visitor:, event_id:, occurred_at:, context:, ip_address: "203.0.113.25")
-    UserChronicle.create!(
-      actor_type: "User",
+    ClientChronicle.create!(
+      actor_type: "Visitor",
       actor_id: visitor.id,
       event_id: event_id,
-      level_id: UserChronicleLevel::NOTHING,
+      level_id: ClientChronicleLevel::NOTHING,
       subject_id: visitor.id,
-      subject_type: "User",
+      subject_type: "Visitor",
       occurred_at: occurred_at,
       ip_address: ip_address,
       context: context,

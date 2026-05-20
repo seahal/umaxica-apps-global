@@ -236,7 +236,7 @@ class PreferenceTokenModelTest < ActiveSupport::TestCase
         jti: @jti,
       )
       payload, _header = JWT.decode(token, nil, false)
-      tampered = JWT.encode(payload, @private_key, "ES384", { typ: "auth-access-token;user" })
+      tampered = JWT.encode(payload, @private_key, "ES384", { typ: "auth-access-token;client" })
 
       assert_nil Preference::Token.decode(tampered, host: @host)
     end

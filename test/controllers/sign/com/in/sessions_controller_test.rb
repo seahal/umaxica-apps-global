@@ -79,7 +79,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     # Redirect to configuration because restricted session is promoted after revoking the only active session
     assert_match %r{/configuration\?ri=jp}, response.location
-    assert_not_nil active_token.reload.lapses_at
+    assert_not_nil active_token.reload.discarded_at
     assert_equal VisitorTokenStatus::ACTIVE, @token.reload.visitor_token_status_id
   end
 
@@ -193,7 +193,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.send(:revoke_session_by_ref, @visitor, active_token.signed_ref)
 
     assert_equal I18n.t("sign.app.in.session.session_revoked"), flash_hash[:notice]
-    assert active_token.reload.lapses_at
+    assert active_token.reload.discarded_at
 
     batch_token = create_active_session(@visitor)
     controller.send(
@@ -201,7 +201,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       [restricted_token.signed_ref, batch_token.signed_ref, "bad-ref"],
     )
 
-    assert batch_token.reload.lapses_at
+    assert batch_token.reload.discarded_at
     assert_not_predicate restricted_token.reload, :revoked?
 
     controller.update

@@ -4,13 +4,13 @@
 require "test_helper"
 
 class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_email_statuses
+  fixtures :operators, :operator_identity_statuses, :operator_email_statuses
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     cookies["csrf_token"] = csrf_token_value
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
@@ -70,7 +70,7 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_response :redirect
     assert_redirected_to edit_sign_org_configuration_emails_registration_url(ri: "jp")
-    assert_not @staff.staff_emails.order(:created_at).last.notifiable
+    assert_not @staff.operator_emails.order(:created_at).last.notifiable
   end
 
   test "update verifies OTP and confirms email" do
@@ -83,7 +83,7 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
            headers: request_headers
     end
 
-    staff_email = @staff.staff_emails.order(:created_at).last
+    staff_email = @staff.operator_emails.order(:created_at).last
 
     assert_not_nil staff_email
     otp_data = staff_email.get_otp
@@ -107,7 +107,7 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
            headers: request_headers
     end
 
-    staff_email = @staff.staff_emails.order(:created_at).last
+    staff_email = @staff.operator_emails.order(:created_at).last
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
     patch sign_org_configuration_emails_registration_url(ri: "jp"),

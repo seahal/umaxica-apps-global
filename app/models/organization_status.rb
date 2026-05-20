@@ -4,15 +4,16 @@
 # == Schema Information
 #
 # Table name: organization_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class OrganizationStatus < OperatorRecord
+class OrganizationStatus < OrgPrincipalRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values
   NOTHING = 1
+  DEFAULTS = [NOTHING].freeze
   has_many :organizations,
            class_name: "Organization",
            foreign_key: :workspace_status_id,

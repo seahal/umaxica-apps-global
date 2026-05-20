@@ -7,12 +7,22 @@ module Health
   DATABASE_RECORD_CLASSES = [
     ChronicleRecord,
     AvatarRecord,
-    GuestRecord,
-    NotificationRecord,
+    AppPrincipalRecord,
+    AppTicketRecord,
+    AppRpRecord,
+    AppSignalRecord,
+    AppSettingRecord,
+    OrgPrincipalRecord,
+    OrgTicketRecord,
+    OrgRpRecord,
+    OrgSignalRecord,
+    OrgSettingRecord,
+    ComPrincipalRecord,
+    ComTicketRecord,
+    ComRpRecord,
+    ComSignalRecord,
+    ComSettingRecord,
     OccurrenceRecord,
-    OperatorRecord,
-    PrincipalRecord,
-    TokenRecord,
   ].freeze
 
   DB_ROLES = %i(writing reading).freeze
@@ -30,15 +40,6 @@ module Health
       [503, "UNHEALTHY", errors, Rails.app.revision.to_s]
     end
   rescue StandardError => e
-    # Debug print for tests
-    if Rails.env.test?
-      Rails.event.error(
-        "health.check_failed",
-        error_class: e.class.name,
-        message: e.message,
-        exception: e,
-      )
-    end
     Rails.event.record("health_check.failed", error_class: e.class.name, error_message: e.message)
     [503, "ERROR"]
   end
@@ -73,8 +74,7 @@ module Health
   end
 
   def check_redis(errors)
-    # Check Redis connectivity if configured (skip in test environment unless mocked)
-    if defined?(Redis) && defined?(REDIS_CLIENT) && !Rails.env.test?
+    if defined?(Redis) && defined?(REDIS_CLIENT)
       begin
         REDIS_CLIENT.ping
       rescue StandardError => e

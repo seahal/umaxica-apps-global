@@ -4,24 +4,22 @@
 module Sign
   module Com
     module Configuration
-      class EmailsController < ApplicationController
-        auth_required!
-
+      class EmailsController < PrivateController
         include CloudflareTurnstile
-        include ::Verification::User
+        include ::Verification::Visitor
 
         before_action :authenticate_visitor!
 
         def index
-          @user_emails = current_visitor.visitor_emails
+          @client_emails = current_visitor.visitor_emails
         end
 
         def edit
-          @user_email = current_visitor.visitor_emails.find_by!(public_id: params.expect(:id))
+          @user_email = current_visitor.visitor_emails.find_by!(public_id: params(:id))
         end
 
         def update
-          @user_email = current_visitor.visitor_emails.find_by!(public_id: params.expect(:id))
+          @user_email = current_visitor.visitor_emails.find_by!(public_id: params(:id))
 
           unless cloudflare_turnstile_stealth_validation["success"]
             @user_email.errors.add(:base, t("turnstile_error"))
@@ -43,7 +41,7 @@ module Sign
         end
 
         def destroy
-          @user_email = current_visitor.visitor_emails.find_by!(public_id: params.expect(:id))
+          @user_email = current_visitor.visitor_emails.find_by!(public_id: params(:id))
 
           if @user_email.undeletable?
             redirect_to(
@@ -62,7 +60,7 @@ module Sign
           end
 
           @user_email.destroy!
-          create_audit_event!(UserChronicleEvent::EMAIL_REMOVED, subject: @user_email)
+          create_audit_event!(ClientChronicleEvent::EMAIL_REMOVED, subject: @user_email)
 
           redirect_to(
             sign_com_configuration_emails_path(ri: params[:ri]),
@@ -75,11 +73,11 @@ module Sign
 
         def create_audit_event!(event_id, subject:)
           ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            ClientChronicleEvent.find_or_create_by!(id: event_id)
+            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
           end
 
-          UserChronicle.create!(
+          ClientChronicle.create!(
             actor_type: "Visitor",
             actor_id: current_visitor.id,
             event_id: event_id,

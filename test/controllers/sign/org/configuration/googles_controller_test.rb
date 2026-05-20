@@ -5,13 +5,13 @@ require "test_helper"
 require "base64"
 
 class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_emails, :staff_email_statuses,
-           :staff_chronicle_events, :staff_chronicle_levels
+  fixtures :operators, :operator_identity_statuses, :operator_emails, :operator_email_statuses,
+           :operator_chronicle_events, :operator_chronicle_levels
 
   setup do
     @host = ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
     host! @host
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @headers = { "Host" => @host, "X-TEST-CURRENT-STAFF" => @staff.id }.freeze
   end
 

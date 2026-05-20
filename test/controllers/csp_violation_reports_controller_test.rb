@@ -42,16 +42,14 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
       [ENV.fetch("APEX_SERVICE_URL"), :apex_app_csp_violation_report_path],
       [ENV.fetch("APEX_CORPORATE_URL"), :apex_com_csp_violation_report_path],
       [ENV.fetch("APEX_STAFF_URL"), :apex_org_csp_violation_report_path],
-      [ENV.fetch("APEX_NETWORK_URL"), :apex_csp_violation_report_path],
-      [ENV.fetch("APEX_DEVELOPER_URL"), :apex_csp_violation_report_path],
+      [ENV.fetch("APEX_NETWORK_URL"), :apex_network_csp_violation_report_path],
+      [ENV.fetch("APEX_DEVELOPER_URL"), :apex_developer_csp_violation_report_path],
       [ENV.fetch("JUMP_SERVICE_URL"), :jump_app_csp_violation_report_path],
       [ENV.fetch("JUMP_CORPORATE_URL"), :jump_com_csp_violation_report_path],
       [ENV.fetch("JUMP_STAFF_URL"), :jump_org_csp_violation_report_path],
       [ENV.fetch("SIGN_SERVICE_URL"), :sign_app_csp_violation_report_path],
       [ENV.fetch("SIGN_CORPORATE_URL"), :sign_com_csp_violation_report_path],
       [ENV.fetch("SIGN_STAFF_URL"), :sign_org_csp_violation_report_path],
-      [ENV.fetch("SIGN_SERVICE_URL"), :sign_csp_violation_report_path],
-      [ENV.fetch("SIGN_CORPORATE_URL"), :sign_csp_violation_report_path],
     ]
   end
 

@@ -41,7 +41,7 @@ module Jit
         raise KeyError, "missing credential: #{key}" if Rails.env.production?
 
         fallback = fallback_key_for(key)
-        Rails.logger&.warn("Using development/test fallback Active Record encryption key for #{key}")
+        Rails.logger&.warn("Using local fallback Active Record encryption key for #{key}")
         fallback
       end
 

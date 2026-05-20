@@ -4,12 +4,12 @@
 require "test_helper"
 
 class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_token_statuses, :staff_token_kinds
+  fixtures :operators, :operator_identity_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
-    @staff = staffs(:one)
+    @staff = operators(:one)
     # Clean up any existing tokens for this staff
     OperatorToken.where(staff: @staff).delete_all
     @original_allow_forgery_protection = ActionController::Base.allow_forgery_protection
@@ -196,7 +196,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update ignores ref belonging to another staff" do
-    other_staff = staffs(:two)
+    other_staff = operators(:two)
     OperatorToken.where(staff: other_staff).delete_all
     other_token = OperatorToken.create!(staff: other_staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     other_token.rotate_refresh_token!
@@ -446,7 +446,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "destroy with ref belonging to another staff does not revoke" do
-    other_staff = staffs(:two)
+    other_staff = operators(:two)
     OperatorToken.where(staff: other_staff).delete_all
     other_token = OperatorToken.create!(staff: other_staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     other_token.rotate_refresh_token!
@@ -468,7 +468,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # ===================================================================
 
   test "restricted session at 14 minutes is still accessible (boundary: within TTL)" do
-    token = create_restricted_session(@staff, lapses_at: 15.minutes.from_now)
+    token = create_restricted_session(@staff, discarded_at: 15.minutes.from_now)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
     travel 14.minutes do
@@ -484,7 +484,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "restricted session expires after 15 minutes and is locked" do
-    token = create_restricted_session(@staff, lapses_at: 15.minutes.from_now)
+    token = create_restricted_session(@staff, discarded_at: 15.minutes.from_now)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
     events = []
 
@@ -521,13 +521,13 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def create_restricted_session(staff, lapses_at: nil)
+  def create_restricted_session(staff, discarded_at: nil)
     token = OperatorToken.create!(
       staff: staff,
       staff_token_status_id: OperatorTokenStatus::RESTRICTED,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
     )
-    token.rotate_refresh_token!(lapses_at: lapses_at)
+    token.rotate_refresh_token!(discarded_at: discarded_at)
     token
   end
 

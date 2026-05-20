@@ -4,10 +4,8 @@
 module Sign
   module Org
     module In
-      class CheckpointsController < Sign::Org::ApplicationController
-        auth_required!
+      class CheckpointsController < Sign::Org::PrivateController
         before_action :authenticate_operator!
-        before_action :maybe_inject_test_bulletin!
         before_action :continue_checkpoint_sequence_without_content!
         before_action :guard_timeout, only: %i(show update)
 
@@ -27,6 +25,14 @@ module Sign
         end
 
         private
+
+        def sign_in_sequence_surface
+          :org
+        end
+
+        def legacy_checkpoint_bulletin_satisfies_sequence?(participant, sequence)
+          participant.to_sym == :checkpoint && sequence.blank? && bulletin_state.present?
+        end
 
         def guard_timeout
           return unless bulletin_expired?

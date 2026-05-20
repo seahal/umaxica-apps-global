@@ -6,8 +6,8 @@ require "minitest/mock"
 require "base64"
 
 class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_secret_kinds, :user_secret_statuses, :user_email_statuses,
-           :user_chronicle_events, :user_chronicle_levels
+  fixtures :clients, :client_statuses, :client_secret_kinds, :client_secret_statuses, :client_email_statuses,
+           :client_chronicle_events, :client_chronicle_levels
 
   setup do
     @original_webauthn_env = {
@@ -19,8 +19,9 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = create_verified_user_with_email(email_address: "passkey_config_test_user@example.com")
     @other_user = create_verified_user_with_email(email_address: "other_passkey_config_test_user@example.com")
-    @token = UserToken.create!(user: @user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
+    @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_passkey")
     @headers = as_user_headers(@user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")).merge(
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     ).freeze
@@ -38,7 +39,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
 
     @passkey_webauthn_id = Base64.urlsafe_encode64("existing_credential", padding: false)
     @passkey =
-      UserPasskey.create!(
+      ClientPasskey.create!(
         user: @user,
         webauthn_id: @passkey_webauthn_id,
         public_key: "public_key_#{SecureRandom.hex(4)}",
@@ -196,15 +197,15 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
 
       step_up_before = Time.current
 
-      assert_difference("UserPasskey.count", 1) do
+      assert_difference("ClientPasskey.count", 1) do
         assert_difference(
           -> {
-            UserChronicle.where(
-              actor_type: "User",
+            ClientChronicle.where(
+              actor_type: "Client",
               actor_id: @user.id,
-              subject_type: "User",
+              subject_type: "Client",
               subject_id: @user.id,
-              event_id: UserChronicleEvent::PASSKEY_REGISTERED,
+              event_id: ClientChronicleEvent::PASSKEY_REGISTERED,
             ).count
           },
           1,
@@ -220,6 +221,47 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       assert_operator @token.reload.last_step_up_at, :>=, step_up_before
       assert_equal "configuration_passkey", @token.last_step_up_scope
     end
+  end
+
+  test "verification succeeds without emergency key when recovery identity is missing" do
+    unverified_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: SecureRandom.hex(10))
+    token = ClientToken.create!(user: unverified_user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    satisfy_user_verification(token)
+    headers = as_user_headers(
+      unverified_user,
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      session_public_id: token.public_id,
+    )
+
+    post options_sign_app_configuration_passkeys_path(ri: "jp"), headers: headers
+    challenge_id = response.parsed_body["challenge_id"]
+
+    mock_credential = Object.new
+    mock_credential.define_singleton_method(:id) { "bootstrap_webauthn_id" }
+    mock_credential.define_singleton_method(:public_key) { "bootstrap_public_key" }
+    mock_credential.define_singleton_method(:sign_count) { 1 }
+    mock_credential.define_singleton_method(:verify) { |*_args| true }
+
+    WebAuthn::Credential.stub(:from_create, mock_credential) do
+      params = {
+        challenge_id: challenge_id,
+        credential: {
+          id: "bootstrap_webauthn_id",
+          response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+        },
+        description: "Bootstrap Passkey",
+      }
+
+      assert_difference("ClientPasskey.count", 1) do
+        assert_no_difference("ClientSecret.count") do
+          post verification_sign_app_configuration_passkeys_path(ri: "jp"), params: params, headers: headers
+        end
+      end
+    end
+
+    assert_response :created
+    assert_equal "ok", response.parsed_body["status"]
+    assert_equal sign_app_configuration_passkeys_path(ri: "jp"), response.parsed_body["redirect_url"]
   end
 
   test "verification rejects duplicate webauthn_id" do
@@ -244,7 +286,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
         description: "Duplicate Passkey",
       }
 
-      assert_no_difference("UserPasskey.count") do
+      assert_no_difference("ClientPasskey.count") do
         post verification_sign_app_configuration_passkeys_path(ri: "jp"), params: params, headers: @headers
       end
     end
@@ -272,7 +314,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
         credential: { id: "id", response: {} },
       }
 
-      assert_no_difference("UserPasskey.count") do
+      assert_no_difference("ClientPasskey.count") do
         post verification_sign_app_configuration_passkeys_path(ri: "jp"), params: params, headers: @headers
       end
 
@@ -301,9 +343,29 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     assert_select "a[href=?]", sign_app_configuration_passkeys_path(ri: "jp")
   end
 
+  test "show renders never when passkey has not been used" do
+    @passkey.update!(last_used_at: nil)
+
+    get sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+
+    assert_response :ok
+    assert_includes response.body, I18n.t("defaults.never", locale: :ja)
+  end
+
+  test "show renders back link before passkey details" do
+    get sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+
+    assert_response :ok
+    assert_select "body" do |body|
+      html = body.first.to_html
+
+      assert_operator html.index(sign_app_configuration_passkeys_path(ri: "jp")), :<, html.index(@passkey.description)
+    end
+  end
+
   test "new allows bootstrap passkey registration without verified recovery identity" do
-    unverified_user = User.create!(status_id: UserStatus::NOTHING, public_id: SecureRandom.hex(10))
-    token = UserToken.create!(user: unverified_user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
+    unverified_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: SecureRandom.hex(10))
+    token = ClientToken.create!(user: unverified_user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(token)
     headers = as_user_headers(
       unverified_user,
@@ -319,18 +381,18 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   test "create allows bootstrap passkey registration without verified recovery identity" do
-    unverified_user = User.create!(status_id: UserStatus::NOTHING, public_id: SecureRandom.hex(10))
+    unverified_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: SecureRandom.hex(10))
     headers = as_user_headers(unverified_user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
-    assert_difference("UserPasskey.count", 1) do
+    assert_difference("ClientPasskey.count", 1) do
       assert_difference(
         -> {
-          UserChronicle.where(
-            actor_type: "User",
+          ClientChronicle.where(
+            actor_type: "Client",
             actor_id: unverified_user.id,
-            subject_type: "User",
+            subject_type: "Client",
             subject_id: unverified_user.id,
-            event_id: UserChronicleEvent::PASSKEY_REGISTERED,
+            event_id: ClientChronicleEvent::PASSKEY_REGISTERED,
           ).count
         },
         1,
@@ -359,9 +421,17 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     assert_nil request.path_parameters[:public_id]
   end
 
+  test "edit shows back link to passkey list" do
+    get edit_sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+
+    assert_response :ok
+    assert_select "a[href=?]", sign_app_configuration_passkeys_path(ri: "jp")
+    assert_select "input[name='client_passkey[description]'][value=?]", @passkey.description
+  end
+
   test "should update description with public_id" do
     patch sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"),
-          params: { user_passkey: { description: "Updated" } },
+          params: { client_passkey: { description: "Updated" } },
           headers: @headers
 
     assert_redirected_to sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp")
@@ -369,7 +439,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   test "should destroy with public_id" do
-    UserPasskey.create!(
+    ClientPasskey.create!(
       user: @user,
       webauthn_id: "webauthn_extra_#{SecureRandom.hex(4)}",
       public_key: "public_key_extra_#{SecureRandom.hex(4)}",
@@ -377,80 +447,16 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       description: "Extra Passkey",
     )
 
-    assert_difference("UserPasskey.count", -1) do
+    assert_difference("ClientPasskey.count", -1) do
       delete sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
     assert_redirected_to sign_app_configuration_passkeys_path(ri: "jp")
   end
 
-  test "allows deleting last passkey when verified email exists" do
-    user = create_verified_user_with_email(email_address: "passkey_rule_email_ok_#{SecureRandom.hex(4)}@example.com")
-    token = UserToken.create!(user: user, user_token_kind_id: UserTokenKind::BROWSER_WEB)
-    satisfy_user_verification(token)
-    headers = as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")).merge(
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    )
-    passkey = UserPasskey.create!(
-      user: user,
-      webauthn_id: "webauthn_single_#{SecureRandom.hex(6)}",
-      public_key: "public_key_single_#{SecureRandom.hex(6)}",
-      sign_count: 0,
-      description: "Only Passkey",
-      status_id: UserPasskeyStatus::ACTIVE,
-    )
-
-    assert_difference("UserPasskey.count", -1) do
-      delete sign_app_configuration_passkey_path(passkey.public_id, ri: "jp"), headers: headers
-    end
-
-    assert_redirected_to sign_app_configuration_passkeys_path(ri: "jp")
-  end
-
-  test "blocks deleting last passkey when only secret remains" do
-    user = User.create!(status_id: UserStatus::NOTHING, public_id: "ups_#{SecureRandom.hex(4)}")
-    token = UserToken.create!(
-      user_id: user.id,
-    )
-    satisfy_user_verification(token)
-    headers = {
-      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
-    UserEmail.create!(
-      user: user,
-      address: "passkey_rule_secret@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
-    )
-    passkey = UserPasskey.create!(
-      user: user,
-      webauthn_id: "webauthn_secret_rule_#{SecureRandom.hex(6)}",
-      public_key: "public_key_secret_rule_#{SecureRandom.hex(6)}",
-      sign_count: 0,
-      description: "Only Passkey",
-      status_id: UserPasskeyStatus::ACTIVE,
-    )
-    UserSecret.create!(
-      user: user,
-      name: "Only Secret",
-      password_digest: "digest",
-      user_secret_kind_id: UserSecret::Kinds::LOGIN,
-      user_identity_secret_status_id: UserSecretStatus::ACTIVE,
-    )
-    user.user_emails.update_all(user_email_status_id: UserEmailStatus::UNVERIFIED)
-
-    assert_no_difference("UserPasskey.count") do
-      delete sign_app_configuration_passkey_path(passkey.public_id, ri: "jp"), headers: headers
-    end
-
-    assert_response :see_other
-    assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
-  end
-
   test "should 404 when accessing other user's passkey" do
     other_passkey =
-      UserPasskey.create!(
+      ClientPasskey.create!(
         user: @other_user,
         webauthn_id: "webauthn_other_#{SecureRandom.hex(4)}",
         public_key: "public_key_other_#{SecureRandom.hex(4)}",

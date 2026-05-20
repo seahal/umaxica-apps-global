@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: workspaces
-# Database name: operator
+# Database name: org_principal
 #
 #  id         :bigint           not null, primary key
 #  name       :string           not null
@@ -23,6 +23,6 @@ class WorkspaceTest < ActiveSupport::TestCase
 
   test "uses conventional table name" do
     assert_equal "workspaces", Workspace.table_name
-    assert_operator Workspace, :<, OperatorRecord
+    assert_operator Workspace, :<, OrgPrincipalRecord
   end
 end

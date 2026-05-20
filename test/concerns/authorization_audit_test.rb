@@ -4,7 +4,7 @@
 require "test_helper"
 
 class AuthorizationAuditTest < ActiveSupport::TestCase
-  fixtures :users, :staffs, :user_statuses, :staff_statuses
+  fixtures :clients, :operators, :client_statuses, :operator_identity_statuses
 
   class DummyPolicy
     attr_accessor :record
@@ -71,23 +71,23 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "current_user_or_staff prefers current_user" do
-    user = users(:one)
-    staff = staffs(:one)
+    user = clients(:one)
+    staff = operators(:one)
     audit = DummyAudit.new(current_user: user, current_operator: staff)
 
     assert_equal user, audit.send(:current_user_or_staff)
   end
 
   test "current_user_or_staff falls back to current_operator" do
-    staff = staffs(:one)
+    staff = operators(:one)
     audit = DummyAudit.new(current_user: nil, current_operator: staff)
 
     assert_equal staff, audit.send(:current_user_or_staff)
   end
 
   test "log_authorization_failure notifies once" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
     result = capture_log_data(audit, exception)
@@ -96,8 +96,8 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "log_authorization_failure routes to user audit" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
     result = capture_log_data(audit, exception)
@@ -107,7 +107,7 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "log_authorization_failure routes to staff audit" do
-    staff = staffs(:one)
+    staff = operators(:one)
     exception = build_exception(record: staff)
     audit = DummyAudit.new(current_operator: staff)
 
@@ -118,19 +118,19 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "log_authorization_failure includes actor metadata" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
     result = capture_log_data(audit, exception)
 
-    assert_equal "User", result[:log_data][:actor_type]
+    assert_equal "Client", result[:log_data][:actor_type]
     assert_equal user.id, result[:log_data][:actor_id]
   end
 
   test "log_authorization_failure includes policy metadata" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
     result = capture_log_data(audit, exception)
@@ -140,20 +140,20 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "log_authorization_failure includes record metadata" do
-    user = users(:one)
-    record = users(:two)
+    user = clients(:one)
+    record = clients(:two)
     exception = build_exception(record: record)
     audit = DummyAudit.new(current_user: user)
 
     result = capture_log_data(audit, exception)
 
-    assert_equal "User", result[:log_data][:record_type]
+    assert_equal "Client", result[:log_data][:record_type]
     assert_equal record.id, result[:log_data][:record_id]
   end
 
   test "log_authorization_failure includes request metadata" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
     result = capture_log_data(audit, exception)
@@ -163,8 +163,8 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "log_authorization_failure includes timestamp" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
     result = capture_log_data(audit, exception)
@@ -174,7 +174,7 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
 
   test "log_authorization_failure skips when no actor" do
     audit = DummyAudit.new
-    exception = build_exception(record: users(:one))
+    exception = build_exception(record: clients(:one))
 
     result = capture_log_data(audit, exception)
 
@@ -183,22 +183,22 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "log_authorization_failure creates real user audit record" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
-    assert_difference "UserChronicle.count", 1 do
+    assert_difference "ClientChronicle.count", 1 do
       audit.send(:log_authorization_failure, exception)
     end
 
-    record = UserChronicle.last
+    record = ClientChronicle.last
 
     assert_equal user, record.user
     assert_equal 3, record.event_id
   end
 
   test "log_authorization_failure creates real staff audit record" do
-    staff = staffs(:one)
+    staff = operators(:one)
     exception = build_exception(record: staff)
     audit = DummyAudit.new(current_operator: staff)
 
@@ -213,8 +213,8 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "handle_authorization_error handles html format" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
     # We need to stub respond_to to only execute html block to simulate html request
@@ -238,8 +238,8 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   test "handle_authorization_error handles json format" do
-    user = users(:one)
-    exception = build_exception(record: users(:two))
+    user = clients(:one)
+    exception = build_exception(record: clients(:two))
     audit = DummyAudit.new(current_user: user)
 
     # We need to stub respond_to to only execute json block to simulate json request

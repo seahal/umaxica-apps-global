@@ -4,7 +4,7 @@
 
 <h1><%= t("sign.app.configuration.email.new.page_title") %></h1>
 
-<%= form_with model: @user_email, url: sign_app_configuration_emails_registration_path do |form| %>
+<%= form_with model: @user_email, url: sign_app_configuration_emails_registration_path, scope: :user_email do |form| %>
   <% if @user_email.errors.any? %>
     <div>
       <ul role="list">

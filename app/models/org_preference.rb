@@ -2,16 +2,16 @@
 # == Schema Information
 #
 # Table name: org_preferences
-# Database name: operator
+# Database name: org_setting
 #
 #  id                       :bigint           not null, primary key
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
+#  discarded_at             :datetime         default(Infinity), not null
 #  jti                      :string
-#  lapses_at                :datetime         default(Infinity), not null
-#  purge_at                 :datetime         default(Infinity), not null
+#  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -33,7 +33,7 @@
 #  index_org_preferences_on_device_id_digest   (device_id_digest)
 #  index_org_preferences_on_jti                (jti) UNIQUE
 #  index_org_preferences_on_public_id          (public_id) UNIQUE
-#  index_org_preferences_on_purge_at           (purge_at)
+#  index_org_preferences_on_purged_at          (purged_at)
 #  index_org_preferences_on_replaced_by_id     (replaced_by_id)
 #  index_org_preferences_on_status_id          (status_id)
 #  index_org_preferences_on_token_digest       (token_digest)
@@ -49,14 +49,14 @@
 
 # frozen_string_literal: true
 
-class OrgPreference < OperatorRecord
+class OrgPreference < OrgSettingRecord
   include Retainable
   include ::PublicId
   include ::SingleUseToken
   include ::Preference::Resettable
   include ::DbscBindable
 
-  alias_attribute :expires_at, :lapses_at
+  alias_attribute :expires_at, :discarded_at
 
   DBSC_BINDING_METHOD_CLASS = OrgPreferenceBindingMethod
   DBSC_STATUS_CLASS = OrgPreferenceDbscStatus
@@ -77,8 +77,7 @@ class OrgPreference < OperatorRecord
              inverse_of: :org_preferences
   # waht is this?
   belongs_to :replaced_by,
-             class_name: "OrgPreference",
-             optional: true
+             class_name: "OrgPreference"
 
   has_one :org_preference_cookie,
           foreign_key: :preference_id,
@@ -109,10 +108,6 @@ class OrgPreference < OperatorRecord
            foreign_key: :subject_id,
            inverse_of: :org_preference,
            dependent: :destroy
-  # waht is this?
-  has_many :staff_org_preferences, class_name: "OperatorOrgPreference", dependent: :delete_all,
-                                   inverse_of: :org_preference
-  # waht is this?
   has_many :replacements,
            class_name: "OrgPreference",
            foreign_key: :replaced_by_id,
@@ -121,4 +116,17 @@ class OrgPreference < OperatorRecord
 
   validates :status_id, numericality: { only_integer: true }
   validates :jti, uniqueness: true, allow_nil: true
+
+  before_validation :default_replaced_by_to_self, on: :create
+  after_create :persist_self_replacement
+
+  private
+
+  def default_replaced_by_to_self
+    self.replaced_by ||= self
+  end
+
+  def persist_self_replacement
+    update_column(:replaced_by_id, id) if replaced_by_id.blank?
+  end
 end

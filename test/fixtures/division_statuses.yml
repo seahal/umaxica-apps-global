@@ -2,8 +2,11 @@
 # == Schema Information
 #
 # Table name: division_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 #  index_division_statuses_on_lower_id  (lower((id)::text)) UNIQUE
+
+nothing:
+  id: <%= DivisionStatus::NOTHING %>

@@ -43,18 +43,14 @@ Allowed values:
 
 ## `acr`
 
-Allowed values:
+Allowed product AAL boundaries are defined in `adr/authentication-assurance-level-boundaries.md`.
+For the current OIDC token paths:
 
-- `aal1`
-- `aal2`
-
-Rules:
-
-- post-login default is always `aal1`
-- even `passkey` login starts at `aal1`
-- `aal2` is granted only after explicit verification / step-up
-- refreshed access tokens downgrade to `aal1`
-- `aal3` is out of scope for now
+- post-login default is always `aal1`;
+- even passkey login starts at `aal1`;
+- `aal2` is granted only after explicit verification / step-up;
+- refreshed access tokens downgrade to `aal1`;
+- `aal3` is reserved and not currently emitted.
 
 ## `amr`
 
@@ -64,7 +60,7 @@ Allowed values:
 - `passkey`
 - `apple`
 - `google`
-- `recovery_code`
+- `passcode`
 - `totp`
 
 Rules:
@@ -78,7 +74,7 @@ Examples:
 - `["email_otp"]`
 - `["google"]`
 - `["passkey"]`
-- `["recovery_code"]`
+- `["passcode"]`
 - `["email_otp", "totp"]`
 - `["google", "passkey"]`
 

@@ -3,10 +3,8 @@
 
 module Sign
   module Org
-    class SitemapsController < Sign::PublicController
+    class SitemapsController < BareController
       include ::Sitemap
-
-      public_strict!
 
       def show
         show_xml

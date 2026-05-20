@@ -5,16 +5,16 @@ require "test_helper"
 require "base64"
 
 class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users
+  fixtures :clients
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
+    @user = clients(:one)
     @headers = as_user_headers(@user, host: @host)
-    UserEmail.create!(
+    ClientEmail.create!(
       user: @user,
       address: "verification-link-#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       otp_private_key: "otp_private_key",
       otp_counter: "0",
     )
@@ -27,7 +27,7 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "redirects to setup page when no verification methods are registered" do
-    user = User.create!
+    user = Client.create!
     headers = as_user_headers(user, host: @host)
 
     get sign_app_verification_url(ri: "jp"), headers: headers
@@ -63,7 +63,7 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show handles scope and return target mismatch without redirecting back to verification" do
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_challenge_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(sign_app_configuration_mfa_challenge_path(ri: "jp"))
 
     get sign_app_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
         headers: @headers
@@ -72,27 +72,27 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_configuration_path(ri: "jp")
   end
 
-  test "show discards expired reauth session instead of redirecting to itself" do
-    token = UserToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
-    UserReauthSession.create!(
+  test "show discards expired step_up session instead of redirecting to itself" do
+    token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    ClientStepUpSession.create!(
       user_token: token,
       scope: "configuration_email",
       return_to: sign_app_configuration_emails_path(ri: "jp"),
       status: "PENDING",
-      lapses_at: 1.minute.ago,
-      purge_at: 1.minute.from_now,
+      discarded_at: 1.minute.ago,
+      purged_at: 1.minute.from_now,
     )
 
     get sign_app_verification_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     assert_redirected_to sign_app_configuration_path(ri: "jp")
-    assert_nil token.reload.reauth_session
+    assert_nil token.reload.step_up_session
   end
 
   test "show with recent verification shows success message" do
     # Create a token with recent step_up
-    token = UserToken.find_by(user_id: @user.id)
+    token = ClientToken.find_by(user_id: @user.id)
     token&.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "configuration_email")
 
     get sign_app_verification_url(ri: "jp"), headers: @headers

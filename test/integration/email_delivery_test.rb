@@ -4,7 +4,7 @@
 require "test_helper"
 
 class EmailDeliveryTest < ActionDispatch::IntegrationTest
-  fixtures :user_email_statuses, :user_statuses
+  fixtures :client_email_statuses, :client_statuses
 
   setup do
     # Use the solid_queue adapter for this test to verify DB persistence
@@ -28,7 +28,7 @@ class EmailDeliveryTest < ActionDispatch::IntegrationTest
     email = "delivery_test_#{SecureRandom.hex(4)}@example.com"
 
     assert_difference -> { SolidQueue::Job.where(class_name: "ActionMailer::MailDeliveryJob").count }, 1 do
-      post sign_app_up_emails_url(ri: "jp"),
+      post sign_app_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,

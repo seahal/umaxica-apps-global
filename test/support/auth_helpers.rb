@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "../../app/controllers/concerns/authentication/base"
-require_relative "../../app/controllers/concerns/authentication/user"
+require_relative "../../app/controllers/concerns/authentication/client"
 require_relative "../../app/controllers/concerns/authentication/operator"
 
 module AuthHelpers
@@ -12,7 +12,7 @@ module AuthHelpers
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
   MODERN_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
                       "AppleWebKit/537.36 (KHTML, like Gecko) " \
-                      "Chrome/120.0.0.0 Safari/537.36"
+                      "Chrome/120.0.0.0 Safari/537.36" unless const_defined?(:MODERN_USER_AGENT)
 
   def host_headers(host = nil)
     host_value =
@@ -20,7 +20,7 @@ module AuthHelpers
       (respond_to?(:request, true) ? request&.host : nil) ||
       ENV["DEFAULT_URL_HOST"]
 
-    headers = { "User-Agent" => MODERN_USER_AGENT }
+    headers = { "Client-Agent" => MODERN_USER_AGENT }
     headers["Host"] = host_value if host_value.present?
     headers
   end
@@ -28,7 +28,7 @@ module AuthHelpers
   def browser_headers
     csrf_token = "test_csrf_token"
     headers = {
-      "User-Agent" => MODERN_USER_AGENT,
+      "Client-Agent" => MODERN_USER_AGENT,
       "X-CSRF-Token" => csrf_token,
     }
 
@@ -41,20 +41,38 @@ module AuthHelpers
     headers
   end
 
-  def as_user_headers(user, host: nil, headers: {})
+  def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
     base = host_headers(host).merge(headers).merge(TEST_USER_HEADER => user.id.to_s)
 
-    if user.respond_to?(:persisted?) && user.persisted? && user.class.name == "User"
-      token = UserToken.where(user_id: user.id).where("lapses_at > ?", Time.current).order(created_at: :desc).first
-      token ||= UserToken.create!(user_id: user.id, user_token_kind_id: UserTokenKind::BROWSER_WEB)
-      base["X-TEST-SESSION-PUBLIC-ID"] = token.public_id
+    if user.respond_to?(:persisted?) && user.persisted? && user.class.name == "Client"
+      token =
+        if session_public_id.present?
+          ClientToken.find_by(public_id: session_public_id)
+        else
+          ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+        end
+      token ||= ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     end
 
     base
   end
 
-  def as_staff_headers(staff, host: nil, headers: {})
-    host_headers(host).merge(headers).merge(TEST_STAFF_HEADER => staff.id.to_s)
+  def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
+    base = host_headers(host).merge(headers).merge(TEST_STAFF_HEADER => staff.id.to_s)
+
+    if staff.respond_to?(:persisted?) && staff.persisted? && staff.class.name == "Operator"
+      token =
+        if session_public_id.present?
+          OperatorToken.find_by(public_id: session_public_id)
+        else
+          OperatorToken.where(staff_id: staff.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+        end
+      token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    end
+
+    base
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {})
@@ -64,7 +82,7 @@ module AuthHelpers
 
     if visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
       token = VisitorToken.where(visitor_id: visitor.id).where(
-        "lapses_at > ?",
+        "discarded_at > ?",
         Time.current,
       ).order(created_at: :desc).first
       token ||= VisitorToken.create!(visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
@@ -83,7 +101,7 @@ module AuthHelpers
     host_value = host || (respond_to?(:request, true) ? request&.host : nil) || "unknown"
     resource_type ||=
       case resource
-      when User then "user"
+      when Client then "client"
       when Operator then "operator"
       when Visitor then "visitor"
       end
@@ -107,7 +125,7 @@ module AuthHelpers
   end
 
   def satisfy_user_verification(user_token)
-    cookies[UserVerification.cookie_name] = "#{TEST_VERIFICATION_COOKIE_PREFIX}#{user_token.public_id}"
+    cookies[ClientVerification.cookie_name] = "#{TEST_VERIFICATION_COOKIE_PREFIX}#{user_token.public_id}"
     true
   end
 
@@ -164,4 +182,7 @@ module AuthHelpers
   end
 end
 
-ActiveSupport.on_load(:action_dispatch_integration_test) { include AuthHelpers }
+ActiveSupport.on_load(:action_dispatch_integration_test) do
+  include AuthHelpers
+  include MissingHelpers if defined?(MissingHelpers)
+end

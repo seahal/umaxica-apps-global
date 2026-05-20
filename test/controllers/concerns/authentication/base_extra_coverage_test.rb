@@ -4,6 +4,15 @@
 require "test_helper"
 
 class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
+  class FakeRequest
+    attr_accessor :headers, :format, :host, :original_url, :remote_ip, :user_agent, :request_id, :fullpath,
+                  :request_method
+
+    def get?
+      request_method == "GET"
+    end
+  end
+
   class Harness < ApplicationController
     include Authentication::Base
 
@@ -13,13 +22,7 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
       super
       @session_hash = {}
       @headers = {}
-      @request_obj = Object.new
-      class << @request_obj
-        # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-        attr_accessor :headers, :format, :host, :original_url, :remote_ip, :user_agent, :request_id, :fullpath,
-                      :request_method
-        # rubocop:enable ThreadSafety/ClassAndModuleAttributes
-      end
+      @request_obj = FakeRequest.new
       @request_obj.headers = @headers
       @request_obj.format = Struct.new(:json?).new(false)
       @request_obj.host = "localhost"
@@ -29,9 +32,6 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
       @request_obj.request_id = "req-1"
       @request_obj.fullpath = "/test"
       @request_obj.request_method = "GET"
-      def @request_obj.get?
-        request_method == "GET"
-      end
       @response_obj = Struct.new(:headers).new({})
     end
 
@@ -83,15 +83,15 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
 
     # Abstract methods implementation
     def resource_class
-      User
+      Client
     end
 
     def token_class
-      UserToken
+      ClientToken
     end
 
     def audit_class
-      UserChronicle
+      ClientChronicle
     end
 
     def resource_type
@@ -153,7 +153,7 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "issue_bulletin! sets session" do
-    @harness.current_resource = User.new
+    @harness.current_resource = Client.new
 
     assert @harness.issue_bulletin!(kind: "welcome")
     assert_equal "welcome", @harness.session[Authentication::Base::BULLETIN_SESSION_KEY]["kind"]
@@ -169,14 +169,14 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
 
   test "consume_bulletin! clears session" do
     @harness.session[Authentication::Base::BULLETIN_SESSION_KEY] = { "bulletin_id" => 1 }
-    @harness.current_resource = User.new
+    @harness.current_resource = Client.new
     @harness.consume_bulletin!
 
     assert_nil @harness.session[Authentication::Base::BULLETIN_SESSION_KEY]
   end
 
   test "load_authentication_session handles missing session" do
-    result = @harness.load_authentication_session("key", User, "/login", "errors.messages.not_authorized")
+    result = @harness.load_authentication_session("key", Client, "/login", "errors.messages.not_authorized")
 
     assert_nil result
     assert_equal ["/login", { notice: "translated:errors.messages.not_authorized" }], @harness.redirected
@@ -198,7 +198,7 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "reject_logged_in_session renders unauthorized if logged in" do
-    @harness.current_resource = User.new
+    @harness.current_resource = Client.new
     @harness.request.request_method = "POST"
     @harness.reject_logged_in_session
 
@@ -263,7 +263,7 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "log_out clears session and cookies" do
-    @harness.current_resource = User.new
+    @harness.current_resource = Client.new
     # Mock clear_auth_cookies! and destroy_refresh_token_from_cookie
     @harness.define_singleton_method(:clear_auth_cookies!) do
       nil

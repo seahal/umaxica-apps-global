@@ -4,8 +4,7 @@
 module Sign
   module Com
     module In
-      class ChallengesController < ApplicationController
-        before_action :reject_logged_in_session
+      class ChallengesController < GuestController
         before_action :ensure_pending_mfa!
 
         def show

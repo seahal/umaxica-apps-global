@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_emails
-# Database name: operator
+# Database name: org_principal
 #
 #  id                             :bigint           not null, primary key
 #  address                        :string           not null
@@ -27,9 +27,7 @@
 #
 # Indexes
 #
-#  index_staff_emails_on_address                         (address)
 #  index_staff_emails_on_address_digest                  (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
-#  index_staff_emails_on_lower_address                   (lower((address)::text)) UNIQUE
 #  index_staff_emails_on_public_id                       (public_id) UNIQUE
 #  index_staff_emails_on_staff_id                        (staff_id)
 #  index_staff_emails_on_staff_identity_email_status_id  (staff_identity_email_status_id)
@@ -40,7 +38,7 @@
 #  fk_rails_...  (staff_identity_email_status_id => staff_email_statuses.id)
 #
 
-class OperatorEmail < OperatorRecord
+class OperatorEmail < OrgPrincipalRecord
   self.table_name = "staff_emails"
   alias_attribute :staff_email_status_id, :staff_identity_email_status_id
   include PublicId
@@ -90,7 +88,16 @@ class OperatorEmail < OperatorRecord
 
   def ensure_unique_address_digest
     return if address_digest.blank?
-    return unless self.class.where(address_digest: address_digest).where.not(id: id).exists?
+
+    duplicate =
+      if defined?(Prosopite)
+        Prosopite.pause do
+          self.class.where(address_digest: address_digest).where.not(id: id).exists?
+        end
+      else
+        self.class.where(address_digest: address_digest).where.not(id: id).exists?
+      end
+    return unless duplicate
 
     errors.add(:address, :taken)
   end
@@ -98,7 +105,14 @@ class OperatorEmail < OperatorRecord
   def enforce_staff_email_limit
     return unless staff_id
 
-    count = self.class.where(staff_id: staff_id).count
+    count =
+      if staff&.staff_emails&.loaded?
+        staff.staff_emails.count { |email| email != self }
+      elsif defined?(Prosopite)
+        Prosopite.pause { self.class.where(staff_id: staff_id).count }
+      else
+        self.class.where(staff_id: staff_id).count
+      end
     return if count < MAX_EMAILS_PER_STAFF
 
     errors.add(:base, :too_many, message: "exceeds maximum emails per staff (#{MAX_EMAILS_PER_STAFF})")

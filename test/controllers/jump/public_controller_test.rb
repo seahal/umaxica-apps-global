@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class JumpTestCsrfController < Jump::PublicController
+class JumpTestCsrfController < Jump::App::BareController
   def show
     render plain: form_authenticity_token
   end
@@ -14,6 +14,8 @@ class JumpTestCsrfController < Jump::PublicController
 end
 
 class JumpPublicControllerTest < ActionDispatch::IntegrationTest
+  self.fixture_table_names = []
+
   test "health endpoint returns successfully" do
     host! ENV["JUMP_SERVICE_URL"]
     get "/health"
@@ -60,7 +62,7 @@ class JumpPublicControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_nil Actor.surface
+    assert_nil Actor.tld
   end
 
   test "POST without CSRF token returns 422" do

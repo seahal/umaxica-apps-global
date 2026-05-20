@@ -3,13 +3,8 @@
 
 module Sign
   module App
-    class CspViolationReportsController < PublicController
+    class CspViolationReportsController < BareController
       include CspViolationReport
-
-      public_strict!
-
-      skip_before_action :canonicalize_query_params, raise: false
-      skip_before_action :set_region, raise: false
 
       def create
         record_csp_violation!

@@ -5,39 +5,39 @@ require "test_helper"
 
 module Preference
   class AdoptionTest < ActiveSupport::TestCase
-    fixtures :users, :user_statuses, :staffs, :staff_statuses,
+    fixtures :clients, :client_statuses, :operators, :operator_identity_statuses,
              :app_preferences, :app_preference_statuses,
              :app_preference_binding_methods, :app_preference_dbsc_statuses,
              :org_preferences, :org_preference_statuses,
              :org_preference_binding_methods, :org_preference_dbsc_statuses,
              :app_preference_language_options, :app_preference_timezone_options,
              :app_preference_region_options, :app_preference_theme_options,
-             :user_preference_language_options, :user_preference_timezone_options,
-             :user_preference_region_options, :user_preference_theme_options,
-             :staff_preference_language_options, :staff_preference_timezone_options,
-             :staff_preference_region_options, :staff_preference_theme_options
+             :client_preference_language_options, :client_preference_timezone_options,
+             :client_preference_region_options, :client_preference_theme_options,
+             :operator_preference_language_options, :operator_preference_timezone_options,
+             :operator_preference_region_options, :operator_preference_theme_options
 
     setup do
-      @user = users(:none_user)
+      @user = clients(:none_user)
       @preference = AppPreference.create!(
         status_id: AppPreferenceStatus::NOTHING,
         binding_method_id: AppPreferenceBindingMethod::NOTHING,
         dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
-        lapses_at: 20.years.from_now,
-        purge_at: 20.years.from_now,
+        discarded_at: 20.years.from_now,
+        purged_at: 20.years.from_now,
       )
       @new_preference = AppPreference.create!(
         status_id: AppPreferenceStatus::NOTHING,
         binding_method_id: AppPreferenceBindingMethod::NOTHING,
         dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
-        lapses_at: 20.years.from_now,
-        purge_at: 20.years.from_now,
+        discarded_at: 20.years.from_now,
+        purged_at: 20.years.from_now,
       )
       @adoption = build_adoption_context(@preference)
 
-      # Clean up any existing UserPreference for our test user
-      PrincipalRecord.connected_to(role: :writing) do
-        UserPreference.where(user_id: @user.id).delete_all
+      # Clean up any existing ClientPreference for our test user
+      AppPrincipalRecord.connected_to(role: :writing) do
+        ClientPreference.where(user_id: @user.id).delete_all
       end
     end
 
@@ -55,13 +55,13 @@ module Preference
 
     # --- find_resource_preference ---
 
-    test "find_resource_preference returns nil when no UserPreference exists" do
+    test "find_resource_preference returns nil when no ClientPreference exists" do
       result = @adoption.send(:find_resource_preference, @user)
 
       assert_nil result
     end
 
-    test "find_resource_preference returns UserPreference when it exists" do
+    test "find_resource_preference returns ClientPreference when it exists" do
       user_pref = create_user_preference!(@user)
 
       # Reload to pick up association
@@ -73,13 +73,13 @@ module Preference
 
     # --- find_or_create_resource_preference! ---
 
-    test "find_or_create_resource_preference! creates UserPreference when none exists" do
-      assert_difference "UserPreference.count", 1 do
+    test "find_or_create_resource_preference! creates ClientPreference when none exists" do
+      assert_difference "ClientPreference.count", 1 do
         @adoption.send(:find_or_create_resource_preference!, @user)
       end
     end
 
-    test "find_or_create_resource_preference! keeps UserPreference generated public_id" do
+    test "find_or_create_resource_preference! keeps ClientPreference generated public_id" do
       user_pref = @adoption.send(:find_or_create_resource_preference!, @user)
 
       assert_predicate user_pref.public_id, :present?
@@ -91,8 +91,8 @@ module Preference
         status_id: AppPreferenceStatus::NOTHING,
         binding_method_id: AppPreferenceBindingMethod::NOTHING,
         dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
-        lapses_at: 20.years.from_now,
-        purge_at: 20.years.from_now,
+        discarded_at: 20.years.from_now,
+        purged_at: 20.years.from_now,
       )
       user_pref = create_user_preference!(@user)
       adoption = build_adoption_context(app_preference)
@@ -108,8 +108,8 @@ module Preference
         status_id: AppPreferenceStatus::NOTHING,
         binding_method_id: AppPreferenceBindingMethod::NOTHING,
         dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
-        lapses_at: 20.years.from_now,
-        purge_at: 20.years.from_now,
+        discarded_at: 20.years.from_now,
+        purged_at: 20.years.from_now,
       )
       user_pref = create_user_preference!(@user)
       user_pref.update!(public_id: existing_app_preference.public_id)
@@ -123,11 +123,11 @@ module Preference
       assert_not_equal existing_app_preference.public_id, @preference.reload.public_id
     end
 
-    test "find_or_create_resource_preference! returns existing UserPreference" do
+    test "find_or_create_resource_preference! returns existing ClientPreference" do
       user_pref = create_user_preference!(@user)
       @user.reload
 
-      assert_no_difference "UserPreference.count" do
+      assert_no_difference "ClientPreference.count" do
         result = @adoption.send(:find_or_create_resource_preference!, @user)
 
         assert_equal user_pref, result
@@ -141,25 +141,25 @@ module Preference
       user_pref = create_user_preference!(@user)
       target_lang = user_pref.user_preference_language
 
-      @adoption.send(:copy_preference_values!, @preference, user_pref, "User")
+      @adoption.send(:copy_preference_values!, @preference, user_pref, "Client")
 
       target_lang.reload
 
-      assert_equal UserPreferenceLanguageOption::EN, target_lang.option_id
+      assert_equal ClientPreferenceLanguageOption::EN, target_lang.option_id
     end
 
     test "copy_preference_values! does not raise when source has no child records" do
       user_pref = create_user_preference!(@user)
 
       assert_nothing_raised do
-        @adoption.send(:copy_preference_values!, @preference, user_pref, "User")
+        @adoption.send(:copy_preference_values!, @preference, user_pref, "Client")
       end
     end
 
     # --- adopt_preference_for! (integration) ---
 
-    test "adopt_preference_for! creates UserPreference on first login" do
-      assert_difference "UserPreference.count", 1 do
+    test "adopt_preference_for! creates ClientPreference on first login" do
+      assert_difference "ClientPreference.count", 1 do
         @adoption.send(:adopt_preference_for!, @user)
       end
     end
@@ -167,20 +167,20 @@ module Preference
     test "adopt_preference_for! syncs preferences on subsequent login" do
       create_child_record!(@preference, :language, AppPreferenceLanguageOption::EN)
 
-      # Simulate first login and create UserPreference.
+      # Simulate first login and create ClientPreference.
       user_pref = create_user_preference!(@user)
       @user.reload
 
       # Touch app preference to make it newer
-      SettingRecord.connected_to(role: :writing) { @preference.touch }
+      ComSettingRecord.connected_to(role: :writing) { @preference.touch }
 
-      # Now adopt and sync AppPreference to UserPreference.
+      # Now adopt and sync AppPreference to ClientPreference.
       adoption = build_adoption_context(@preference)
       adoption.send(:adopt_preference_for!, @user)
 
       user_pref.user_preference_language.reload
 
-      assert_equal UserPreferenceLanguageOption::EN, user_pref.user_preference_language.option_id
+      assert_equal ClientPreferenceLanguageOption::EN, user_pref.user_preference_language.option_id
     end
 
     test "sync_preferences! treats newer resource preference as whole-record winner" do
@@ -222,14 +222,14 @@ module Preference
     end
 
     test "adopt_preference_for! is no-op when resource is blank" do
-      assert_no_difference "UserPreference.count" do
+      assert_no_difference "ClientPreference.count" do
         @adoption.send(:adopt_preference_for!, nil)
       end
     end
 
     # --- adopt_rotated_preference! ---
 
-    test "adopt_rotated_preference! syncs values to existing UserPreference" do
+    test "adopt_rotated_preference! syncs values to existing ClientPreference" do
       user_pref = create_user_preference!(@user)
       @user.reload
 
@@ -239,7 +239,7 @@ module Preference
 
       user_pref.user_preference_language.reload
 
-      assert_equal UserPreferenceLanguageOption::EN, user_pref.user_preference_language.option_id
+      assert_equal ClientPreferenceLanguageOption::EN, user_pref.user_preference_language.option_id
     end
 
     test "adopt_rotated_preference! does not raise on error and logs event" do
@@ -261,7 +261,7 @@ module Preference
     end
 
     test "adopt_rotated_preference! is no-op when resource is blank" do
-      assert_no_difference "UserPreference.count" do
+      assert_no_difference "ClientPreference.count" do
         @adoption.send(:adopt_rotated_preference!, nil, @new_preference)
       end
     end
@@ -298,12 +298,12 @@ module Preference
     end
 
     def create_user_preference!(user)
-      PrincipalRecord.connected_to(role: :writing) do
-        pref = UserPreference.create!(user_id: user.id)
-        UserPreferenceLanguage.create!(preference_id: pref.id, option_id: UserPreferenceLanguageOption::JA)
-        UserPreferenceTimezone.create!(preference_id: pref.id, option_id: UserPreferenceTimezoneOption::ASIA_TOKYO)
-        UserPreferenceRegion.create!(preference_id: pref.id, option_id: UserPreferenceRegionOption::JP)
-        UserPreferenceTheme.create!(preference_id: pref.id, option_id: UserPreferenceThemeOption::SYSTEM)
+      AppPrincipalRecord.connected_to(role: :writing) do
+        pref = ClientPreference.create!(user_id: user.id)
+        ClientPreferenceLanguage.create!(preference_id: pref.id, option_id: ClientPreferenceLanguageOption::JA)
+        ClientPreferenceTimezone.create!(preference_id: pref.id, option_id: ClientPreferenceTimezoneOption::ASIA_TOKYO)
+        ClientPreferenceRegion.create!(preference_id: pref.id, option_id: ClientPreferenceRegionOption::JP)
+        ClientPreferenceTheme.create!(preference_id: pref.id, option_id: ClientPreferenceThemeOption::SYSTEM)
         pref.reload
         pref
       end

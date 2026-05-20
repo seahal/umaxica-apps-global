@@ -19,13 +19,13 @@ class AddRetentionOrderConstraintsToOccurrences < ActiveRecord::Migration[8.2]
   def up
     TABLES.each do |table_name|
       next unless table_exists?(table_name)
-      next unless column_exists?(table_name, :lapses_at) && column_exists?(table_name, :purge_at)
+      next unless column_exists?(table_name, :discarded_at) && column_exists?(table_name, :purged_at)
 
       constraint_name = constraint_name_for(table_name)
       unless check_constraint_exists?(table_name, name: constraint_name)
         add_check_constraint(
           table_name,
-          "lapses_at <= purge_at",
+          "discarded_at <= purged_at",
           name: constraint_name,
           validate: false,
         )

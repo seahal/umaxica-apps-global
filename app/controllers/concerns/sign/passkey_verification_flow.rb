@@ -5,7 +5,6 @@ module Sign
   module PasskeyVerificationFlow
     extend ActiveSupport::Concern
 
-    # rubocop:disable Metrics/AbcSize
     def verification
       challenge_id = params[:challenge_id]
       return render_error("errors.webauthn.challenge_id_required", :bad_request) if challenge_id.blank?
@@ -35,7 +34,6 @@ module Sign
       emit_passkey_auth_failed(reason: "verification_failed")
       render_error("errors.webauthn.verification_failed", :unauthorized)
     end
-    # rubocop:enable Metrics/AbcSize
 
     private
 

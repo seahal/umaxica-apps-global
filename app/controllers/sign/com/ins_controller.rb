@@ -3,9 +3,7 @@
 
 module Sign
   module Com
-    class InsController < ApplicationController
-      before_action :reject_logged_in_session
-
+    class InsController < In::GuestController
       def new
       end
     end

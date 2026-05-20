@@ -19,8 +19,8 @@ The shared preference records use child option records:
 
 - `AppPreference`, `OrgPreference`, and `ComPreference`
 
-The local preference records use the same child option records and also keep direct snapshot
-columns for account-local reads:
+The local preference records use the same child option records and also keep direct snapshot columns
+for account-local reads:
 
 - `UserPreference`
 - `OperatorPreference`
@@ -41,5 +41,6 @@ payload, and preference UI actions use one shared path instead of per-surface br
 ## Consequences
 
 - New preference types must be added through the registry and reference-table path.
-- Surface-specific controllers should remain thin and only declare the preference screen they expose.
+- Surface-specific controllers should remain thin and only declare the preference screen they
+  expose.
 - Foreign keys must protect every child option record from pointing at an unknown option.

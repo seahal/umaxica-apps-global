@@ -8,6 +8,7 @@ class I18nRuntimeDefaultCleanupTest < ActiveSupport::TestCase
 
   KEYS = %w(
     meta.default_title
+    defaults.never
     time.formats.short
     session_limit.edit.page_title
     sign.app.configuration.totp.index.new_link

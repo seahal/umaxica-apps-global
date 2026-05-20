@@ -16,11 +16,11 @@ module Apex
         assert_includes controller.class, ::Verification::Visitor
         assert_includes controller.class, ActionPolicy::Controller
         assert_includes controller.class, ::Oidc::SsoInitiator
-        assert_includes controller.class, ::CurrentSupport
+        assert_includes controller.class, ::ActorSupport
         assert_includes controller.class, ::Finisher
       end
 
-      test "has preference-related prepend_before_action callbacks" do
+      test "has preference-related before_action callbacks" do
         callbacks = ApplicationController._process_action_callbacks
         before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
 
@@ -36,11 +36,18 @@ module Apex
 
         expected_order = %i(
           check_default_rate_limit
-          enforce_withdrawal_gate!
+          set_current_context
+          reset_flash
+          set_preferences_cookie
+          resolve_param_context
+          set_region
           transparent_refresh_access_token
-          enforce_access_policy!
+          set_current_actor
+          apply_localization_preferences
+          set_color_theme
+          enforce_withdrawal_gate!
           enforce_verification_if_required
-          set_current
+          enforce_access_policy!
         )
 
         expected_order.each_cons(2) do |first, second|
@@ -54,11 +61,11 @@ module Apex
         end
       end
 
-      test "has finish_request append_after_action" do
+      test "clears actor context through around lifecycle" do
         callbacks = ApplicationController._process_action_callbacks
-        after_filters = callbacks.select { |c| c.kind == :after }.map(&:filter)
+        around_filters = callbacks.select { |c| c.kind == :around }.map(&:filter)
 
-        assert_includes after_filters, :purge_current
+        assert_includes around_filters, :with_actor_lifecycle
       end
 
       test "has oidc_client_id method" do

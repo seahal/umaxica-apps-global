@@ -4,18 +4,16 @@
 module Sign
   module App
     module Configuration
-      class WithdrawalsController < ApplicationController
-        auth_required!
-
-        include ::Verification::User
+      class WithdrawalsController < PrivateController
+        include ::Verification::Client
         include Common::Redirect
 
-        before_action :authenticate_user!
+        before_action :authenticate_client!
 
         def new
-          @schedule_form = Withdrawal::ScheduleForm.new(schedule_params)
-          @deactivate_form = Withdrawal::DeactivateForm.new
-          @schedule_confirmed = false
+          build_forms
+          @schedule_confirmed = current_client.closing?
+          @terminated = current_client.terminated?
 
           return unless params.key?(:ack_schedule_purge)
 
@@ -27,7 +25,7 @@ module Sign
         end
 
         def edit
-          unless current_user.deactivated?
+          unless current_client.withdrawal_in_progress? || current_client.terminated?
             return safe_redirect_to(
               new_sign_app_configuration_withdrawal_path(ri: params[:ri]),
               fallback: sign_app_configuration_path(ri: params[:ri]),
@@ -35,12 +33,11 @@ module Sign
             )
           end
 
-          @recovery_deadline = current_user.deactivated_at + recovery_period
-          @recoverable = recoverable_withdrawal?
+          assign_status_view_state(current_client)
         end
 
         def create
-          unless recoverable_withdrawal?
+          unless current_client.can_recover?
             return safe_redirect_to(
               edit_sign_app_configuration_withdrawal_path(ri: params[:ri]),
               fallback: new_sign_app_configuration_withdrawal_path(ri: params[:ri]),
@@ -48,21 +45,7 @@ module Sign
             )
           end
 
-          User.transaction do
-            current_user.update!(
-              withdrawal_started_at: nil,
-              deactivated_at: nil,
-              lapses_at: Float::INFINITY,
-              purge_at: Float::INFINITY,
-              withdrawn_at: nil,
-            )
-
-            Rails.event.notify(
-              "user.withdrawal.recovered",
-              user_id: current_user.id,
-              ip_address: request.remote_ip,
-            )
-          end
+          ::Withdrawal::Lifecycle.recover!(actor: current_client, event: Rails.event, request: request)
 
           safe_redirect_to(
             sign_app_configuration_path(ri: params[:ri]),
@@ -72,26 +55,37 @@ module Sign
         end
 
         def update
-          @schedule_form = Withdrawal::ScheduleForm.new(ack_schedule_purge: "1")
-          @deactivate_form = Withdrawal::DeactivateForm.new(deactivate_params)
+          build_forms
+
+          return start_closing! if should_start_closing?
 
           unless @deactivate_form.valid?
             return render_update_validation_error
           end
 
-          deactivate_user!
+          ::Withdrawal::Lifecycle.suspend!(
+            actor: current_client,
+            current_session_public_id: current_session_public_id,
+            event: Rails.event,
+            request: request,
+          )
 
           safe_redirect_to(
-            edit_sign_app_configuration_path(ri: params[:ri]),
+            edit_sign_app_configuration_withdrawal_path(ri: params[:ri]),
             fallback: sign_app_configuration_path(ri: params[:ri]),
             status: :see_other,
+            notice: t("sign.app.configuration.withdrawal.deactivate.success"),
           )
         rescue ActiveRecord::RecordInvalid
           handle_deactivation_failure
         end
 
-        # Reserved for future withdrawal cancellation flow.
         def destroy
+          ::Withdrawal::Lifecycle.terminate!(
+            actor: current_client, event: Rails.event,
+            request: request,
+          ) if current_client.early_terminatable?
+
           safe_redirect_to(
             edit_sign_app_configuration_withdrawal_path(ri: params[:ri]),
             fallback: sign_app_configuration_path(ri: params[:ri]),
@@ -101,14 +95,42 @@ module Sign
 
         private
 
-        def recoverable_withdrawal?
-          return false if current_user.deactivated_at.blank?
-
-          Time.current < current_user.deactivated_at + recovery_period
+        def build_forms
+          @schedule_form = Withdrawal::ScheduleForm.new(schedule_params)
+          @deactivate_form = Withdrawal::DeactivateForm.new(deactivate_params)
         end
 
-        def recovery_period
-          31.days
+        def should_start_closing?
+          !current_client.closing? && !params.key?(:ack_deactivate_today)
+        end
+
+        def start_closing!
+          unless @schedule_form.valid?
+            @schedule_confirmed = false
+            return render :new, status: :unprocessable_content
+          end
+
+          ::Withdrawal::Lifecycle.start!(
+            actor: current_client,
+            current_session_public_id: current_session_public_id,
+            event: Rails.event,
+            request: request,
+          )
+
+          safe_redirect_to(
+            new_sign_app_configuration_withdrawal_path(ri: params[:ri], ack_schedule_purge: "1"),
+            fallback: sign_app_configuration_path(ri: params[:ri]),
+            status: :see_other,
+          )
+        end
+
+        def assign_status_view_state(actor)
+          @recovery_available_at = actor.recovery_available_at
+          @recovery_deadline = actor.recovery_deadline
+          @early_termination_available_at = actor.early_termination_available_at
+          @recoverable = actor.can_recover?
+          @early_terminatable = actor.early_terminatable?
+          @terminated = actor.terminated?
         end
 
         def schedule_params
@@ -124,39 +146,11 @@ module Sign
           render :new, status: :unprocessable_content
         end
 
-        def deactivate_user!
-          now = Time.current
-
-          User.transaction do
-            assign_withdrawal_schedule!(now)
-            current_user.save!
-            notify_deactivation!
-          end
-        end
-
-        def assign_withdrawal_schedule!(now)
-          current_user.withdrawal_started_at ||= now
-          current_user.deactivated_at ||= now
-          deactivated = current_user.deactivated_at
-          current_user.lapses_at = deactivated
-          current_user.purge_at = deactivated + 31.days
-        end
-
-        def notify_deactivation!
-          Rails.event.notify(
-            "user.withdrawal.deactivated",
-            user_id: current_user.id,
-            deactivated_at: current_user.deactivated_at,
-            purge_at: current_user.purge_at,
-            ip_address: request.remote_ip,
-          )
-        end
-
         def handle_deactivation_failure
           Rails.event.notify(
-            "user.withdrawal.deactivation_failed",
-            user_id: current_user.id,
-            errors: current_user.errors.full_messages,
+            "user.withdrawal.suspension_failed",
+            user_id: current_client.id,
+            errors: current_client.errors.full_messages,
             ip_address: request.remote_ip,
           )
           @schedule_confirmed = true

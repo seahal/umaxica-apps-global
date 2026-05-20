@@ -101,7 +101,7 @@ SIGN_CORPORATE_URL=id.umaxica.com
 SIGN_SERVICE_URL=id.umaxica.app
 SIGN_STAFF_URL=id.umaxica.org
 JUMP_CORPORATE_URL=jump.com.localhost
-JUMP_SERVICE_URL=jump.app.localhost
+JUMP_SERVICE_URL=jump.app.localhost/
 JUMP_STAFF_URL=jump.org.localhost
 EDGE_CORPORATE_URL=jp.umaxica.com
 EDGE_SERVICE_URL=jp.umaxica.app
@@ -119,3 +119,5 @@ WEBAUTHN_ORG_ORIGIN=https://id.umaxica.org
 WEBAUTHN_COM_RP_ID=id.umaxica.com
 WEBAUTHN_COM_ORIGIN=https://id.umaxica.com
 # HMAC Secret is resolved from encrypted credentials via Rails.app.creds.
+# VITE Configuration
+VITE_RUBY_PACKAGE_MANAGER=pnpm

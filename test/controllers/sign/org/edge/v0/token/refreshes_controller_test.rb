@@ -4,10 +4,10 @@
 require "test_helper"
 
 class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_tokens, :staff_occurrence_statuses
+  fixtures :operators, :operator_tokens, :operator_occurrence_statuses
 
   setup do
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @host = ENV.fetch("ID_STAFF_URL", "test.umaxica.com")
     @device_id = SecureRandom.uuid
     @original_allow_forgery_protection = ActionController::Base.allow_forgery_protection
@@ -179,7 +179,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       staff: @staff, staff_token_status_id: OperatorTokenStatus::RESTRICTED,
       device_id: @device_id,
     )
-    refresh_plain = token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
+    refresh_plain = token_record.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     csrf_token = "test_csrf_token"
     cookies["csrf_token"] = csrf_token

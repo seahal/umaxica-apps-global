@@ -4,8 +4,8 @@
 require "test_helper"
 
 class SignRouteHostTest < ActionDispatch::IntegrationTest
-  test "sign app routes match ID_SERVICE_URL" do
-    with_env("ID_SERVICE_URL" => "sign.app.example.test") do
+  test "sign app routes match SIGN_SERVICE_URL" do
+    with_env("SIGN_SERVICE_URL" => "sign.app.example.test") do
       Rails.application.reload_routes!
       host!("sign.app.example.test")
 

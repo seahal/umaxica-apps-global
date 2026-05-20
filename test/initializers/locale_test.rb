@@ -1,6 +1,9 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable I18n/RailsI18n/DecorateString
+# rubocop:disable I18n/RailsI18n/DecorateStringFormattingUsingInterpolation
+
 require "test_helper"
 
 class LocaleInitializerTest < ActiveSupport::TestCase
@@ -216,6 +219,36 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
   end
 
+  test "region preference screens provide language labels for every surface and locale" do
+    expectations = {
+      en: {
+        app: ["Language Settings", "Change the display language for the application.", "Language"],
+        org: ["Language Settings", "Change the display language for the organization console.", "Language"],
+        com: ["Language Settings", "Change the display language for the corporate site.", "Language"],
+      },
+      ja: {
+        app: ["言語設定", "アプリケーションの表示言語を変更します。", "言語"],
+        org: ["言語設定", "組織コンソールの表示言語を変更します。", "言語"],
+        com: ["言語設定", "コーポレート画面の表示言語を変更します。", "言語"],
+      },
+    }
+
+    %w(jp us).each do |region_code|
+      ENV["REGION_CODE"] = region_code
+      assert_nothing_raised { reload_locale_initializer }
+
+      expectations.each do |locale, surfaces|
+        I18n.with_locale(locale) do
+          surfaces.each do |surface, (heading, description, label)|
+            assert_equal heading, I18n.t("apex.#{surface}.preference.language.edit.heading")
+            assert_equal description, I18n.t("apex.#{surface}.preference.language.edit.description")
+            assert_equal label, I18n.t("apex.#{surface}.preference.language.edit.language_label")
+          end
+        end
+      end
+    end
+  end
+
   test "REGION_CODE=us provides localized labels for org regional option screens" do
     ENV["REGION_CODE"] = "us"
 
@@ -287,3 +320,6 @@ class LocaleInitializerTest < ActiveSupport::TestCase
                      "Expected I18n.load_path to include #{location}, but got #{I18n.load_path}"
   end
 end
+
+# rubocop:enable I18n/RailsI18n/DecorateStringFormattingUsingInterpolation
+# rubocop:enable I18n/RailsI18n/DecorateString

@@ -16,6 +16,9 @@ inherit_from:
 # 7. テスト（Minitest）
 # 8. その他（Rake, I18n, Naming）
 
+Style/DisableCopsWithinSourceCodeDirective:
+  Enabled: false
+
 # ============================================================
 # 1. 基本設定
 # ============================================================
@@ -1420,15 +1423,6 @@ Style/IpAddresses:
     - "db/initial_schemas/**/*"
 
 # rubocop:disable コメントの使用を可視化（安易な無効化を抑止）
-Style/DisableCopsWithinSourceCodeDirective:
-  Enabled: true
-  AllowedCops:
-    - Layout/LineLength
-    - Metrics/AbcSize
-    - Metrics/MethodLength
-    - Metrics/CyclomaticComplexity
-    - Metrics/PerceivedComplexity
-    - I18n/RailsI18n/DecorateString
     - Rails/SkipsModelValidations
     - Minitest/NoAssertions
     - Lint/EmptyBlock

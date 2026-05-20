@@ -27,5 +27,12 @@ class Sign::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Dashboard"
     assert_select "a[href=?]", sign_com_configuration_path(ri: "jp")
+    assert_select "footer" do
+      assert_select "a[href=?]", sign_com_dashboard_url(ri: "jp"),
+                    text: I18n.t("sign.com.preferences.footer.dashboard")
+      assert_select "a[href=?]", sign_com_root_url(ri: "jp"),
+                    text: I18n.t("sign.com.preferences.footer.home"),
+                    count: 0
+    end
   end
 end

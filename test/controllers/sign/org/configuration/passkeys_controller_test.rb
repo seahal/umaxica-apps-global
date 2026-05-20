@@ -4,15 +4,16 @@
 require "test_helper"
 
 class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_passkey_statuses
+  fixtures_only :operators, :operator_identity_statuses, :operator_passkey_statuses
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     @token.rotate_refresh_token!
     satisfy_staff_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_passkey")
     @host_headers = { "Host" => ENV["ID_STAFF_URL"] || "id.org.localhost" }.freeze
     @headers = @host_headers.merge(
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
@@ -40,6 +41,11 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     get sign_org_configuration_passkey_url(passkey, ri: "jp"), headers: @headers
 
     assert_response :success
+    assert_select "body" do |body|
+      html = body.first.to_html
+
+      assert_operator html.index(sign_org_configuration_passkeys_path(ri: "jp")), :<, html.index(passkey.description)
+    end
   end
 
   test "should get new" do
@@ -109,6 +115,7 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     get edit_sign_org_configuration_passkey_url(passkey, ri: "jp"), headers: @headers
 
     assert_response :success
+    assert_select "input[name='operator_passkey[description]'][value=?]", passkey.description
   end
 
   test "should patch update" do
@@ -122,7 +129,7 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     )
 
     patch sign_org_configuration_passkey_url(passkey, ri: "jp"),
-          params: { staff_passkey: { description: "Updated Name" } },
+          params: { operator_passkey: { description: "Updated Name" } },
           headers: @headers
 
     assert_redirected_to sign_org_configuration_passkey_path(passkey, ri: "jp")
@@ -156,6 +163,14 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       external_id: "test_external_id_5",
       public_key: "test_public_key_5",
       name: "Test Passkey",
+      status_id: OperatorPasskeyStatus::ACTIVE,
+    )
+    OperatorPasskey.create!(
+      staff: @staff,
+      webauthn_id: "test_webauthn_id_5_extra",
+      external_id: "test_external_id_5_extra",
+      public_key: "test_public_key_5_extra",
+      name: "Extra Passkey",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
@@ -234,6 +249,14 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       external_id: "test_external_id_json_destroy",
       public_key: "test_public_key_json_destroy",
       name: "Delete Me",
+      status_id: OperatorPasskeyStatus::ACTIVE,
+    )
+    OperatorPasskey.create!(
+      staff: @staff,
+      webauthn_id: "test_webauthn_id_json_destroy_extra",
+      external_id: "test_external_id_json_destroy_extra",
+      public_key: "test_public_key_json_destroy_extra",
+      name: "Keep Me",
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 

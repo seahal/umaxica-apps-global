@@ -4,17 +4,18 @@
 module Sign
   module Org
     module Up
-      class BaseController < ApplicationController
+      class BaseController < GuestController
         include ::RateLimit
         include ActionPolicy::Controller
         # Note: Authentication::Operator is NOT included here for unauthenticated sign-up
         include ::Preference::Global
         include ::Preference::Adoption
-        include ::CurrentSupport
+        include ::ActorSupport
         include ::Finisher
 
         allow_browser versions: :modern
 
+        before_action :apply_localization_preferences
         before_action :set_preferences_cookie
         before_action :resolve_param_context
         before_action :set_region

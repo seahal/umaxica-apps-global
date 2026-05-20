@@ -4,13 +4,15 @@
 module MultiFactorConfigurable
   extend ActiveSupport::Concern
 
-  included do
-    class_attribute :multi_factor_reference_class, instance_accessor: false
-  end
+  REFERENCE_CLASSES = Concurrent::Map.new
 
   class_methods do
     def multi_factor_reference(model_class)
-      self.multi_factor_reference_class = model_class
+      REFERENCE_CLASSES[self] = model_class
+    end
+
+    def multi_factor_reference_class
+      REFERENCE_CLASSES.fetch(self)
     end
   end
 

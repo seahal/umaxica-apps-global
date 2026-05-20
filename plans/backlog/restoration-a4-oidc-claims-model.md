@@ -5,8 +5,8 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 ## Source
 
 - `adr/oidc-claims-decision.md`
-- `adr/notes/oidc-claims-model.md`
-- `adr/notes/oidc-session-model.md`
+- `notes/oidc-claims-model.md`
+- `notes/oidc-session-model.md`
 
 ## Goal
 

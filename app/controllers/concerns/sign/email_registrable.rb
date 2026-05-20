@@ -77,13 +77,13 @@ module Sign
       redirect_to(new_sign_app_up_email_path)
     end
 
-    # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
     def initiate_email_verification!(
       email_address,
       confirm_policy: "1",
       allow_existing: false,
       email_preferences: {}
     )
+      ensure_signup_reference_defaults!
       return false unless ensure_turnstile!(email_address, confirm_policy)
 
       build_user_email(email_address, confirm_policy, email_preferences)
@@ -92,7 +92,7 @@ module Sign
       @user_email.validate
       existing_email =
         if allow_existing && @user_email.address_digest.present?
-          UserEmail.find_by(address_digest: @user_email.address_digest)
+          ClientEmail.find_by(address_digest: @user_email.address_digest)
         end
       uniqueness_only = email_uniqueness_only_error?(@user_email)
 
@@ -109,11 +109,12 @@ module Sign
       end
 
       cooldown_active = false
+      otp_number = nil
       begin
-        UserEmail.transaction do
+        ClientEmail.transaction do
           # 2. Definitive check inside transaction with row lock
           if pending_email_status?(existing_email)
-            locked = UserEmail.lock.find_by(id: existing_email.id)
+            locked = ClientEmail.lock.find_by(id: existing_email.id)
             if locked&.reregistration_window_active?
               cooldown_active = true
               raise ActiveRecord::Rollback
@@ -124,11 +125,9 @@ module Sign
           remove_existing_unverified_emails!
           create_pending_user!
 
-          num = generate_otp_attributes(@user_email)
+          otp_number = generate_otp_attributes(@user_email)
           @user_email.otp_last_sent_at = Time.current
           @user_email.save!
-
-          send_verification_email(num)
         end
       rescue ActiveRecord::RecordInvalid => e
         @user_email = e.record
@@ -137,12 +136,12 @@ module Sign
 
       return :cooldown if cooldown_active
 
+      send_verification_email(otp_number)
       true
     end
-    # rubocop:enable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
     def complete_email_verification!(id, submitted_code, token = nil)
-      @user_email = UserEmail.find_by(public_id: id)
+      @user_email = ClientEmail.find_by(public_id: id)
 
       # Session validation should be done in controller
       # This method assumes valid session
@@ -188,13 +187,13 @@ module Sign
       turnstile_result = cloudflare_turnstile_validation
       return true if turnstile_result["success"]
 
-      @user_email = UserEmail.new(raw_address: email_address, confirm_policy: confirm_policy)
+      @user_email = ClientEmail.new(raw_address: email_address, confirm_policy: confirm_policy)
       @user_email.errors.add(:base, t("sign.app.registration.email.create.turnstile_validation_failed"))
       false
     end
 
     def build_user_email(email_address, confirm_policy, email_preferences = {})
-      @user_email = UserEmail.new(
+      @user_email = ClientEmail.new(
         { raw_address: email_address, confirm_policy: confirm_policy }.merge(email_preferences),
       )
     end
@@ -203,19 +202,19 @@ module Sign
       pending_user_id = session[:pending_sign_up_user_id]
       return if pending_user_id.blank?
 
-      User.find_by(id: pending_user_id, status_id: UserStatus::UNVERIFIED_WITH_SIGN_UP)&.destroy!
+      Client.find_by(id: pending_user_id, status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)&.destroy!
     end
 
     def remove_existing_unverified_emails!
       return if @user_email.address_digest.blank?
 
-      existing_emails = UserEmail.where(
+      existing_emails = ClientEmail.where(
         address_digest: @user_email.address_digest,
         user_email_status_id: pending_email_status_ids,
       ).to_a
 
       pending_user_ids = existing_emails.filter_map(&:user_id)
-      User.where(id: pending_user_ids).find_each(&:destroy!) if pending_user_ids.any?
+      Client.where(id: pending_user_ids).find_each(&:destroy!) if pending_user_ids.any?
 
       existing_emails.each do |email|
         email.destroy! if email.user_id.blank?
@@ -223,11 +222,11 @@ module Sign
     end
 
     def pending_email_status_id
-      UserEmailStatus::UNVERIFIED_WITH_SIGN_UP
+      ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
     end
 
     def verified_email_status_id
-      UserEmailStatus::VERIFIED_WITH_SIGN_UP
+      ClientEmailStatus::VERIFIED_WITH_SIGN_UP
     end
 
     def pending_email_status_ids
@@ -239,17 +238,25 @@ module Sign
     end
 
     def create_pending_user!
-      @pending_user = User.create!(status_id: UserStatus::UNVERIFIED_WITH_SIGN_UP)
+      @pending_user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
       @user_email.user = @pending_user
       session[:pending_sign_up_user_id] = @pending_user.id
       session[:pending_sign_up_email] = @user_email.address.to_s.downcase
     end
 
+    def ensure_signup_reference_defaults!
+      ClientStatus.ensure_defaults!
+      ClientVisibility.ensure_defaults!
+      ClientMultiFactor.ensure_defaults!
+      ClientMultiFactorStatus.ensure_defaults!
+      ClientEmailStatus.ensure_defaults!
+    end
+
     def send_verification_email(otp_number)
       token = @user_email.generate_verification_token
 
-      Email::App::RegistrationMailer.with(
-        hotp_token: otp_number,
+      Email::App::OtpMailer.with(
+        encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_number),
         email_address: @user_email.address,
         verification_token: token,
         public_id: @user_email.public_id,

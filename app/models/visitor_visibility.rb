@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: visitor_visibilities
-# Database name: guest
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
 
-class VisitorVisibility < GuestRecord
+class VisitorVisibility < ComPrincipalRecord
   include ReferenceRecord
 
   NOBODY = 0

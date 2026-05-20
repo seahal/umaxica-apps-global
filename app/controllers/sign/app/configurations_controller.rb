@@ -3,15 +3,14 @@
 
 module Sign
   module App
-    class ConfigurationsController < ApplicationController
-      auth_required!
-      before_action :authenticate_user!
+    class ConfigurationsController < PrivateController
+      before_action :authenticate_client!
 
       def show
       end
 
       def edit
-        return if current_user.deactivated?
+        return if current_client.deactivated?
 
         safe_redirect_to(
           sign_app_configuration_path(ri: params[:ri]),

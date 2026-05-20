@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/preference_jwt_helper"
 
 class Apex::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper

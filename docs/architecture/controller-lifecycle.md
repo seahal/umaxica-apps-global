@@ -1,0 +1,158 @@
+# Controller Lifecycle
+
+## Purpose
+
+This document is the operating guide for controller boundary implementation.
+
+The four semantic controller bases are:
+
+- `OpenController`
+- `BareController`
+- `PrivateController`
+- `GuestController`
+
+Use this document with `docs/architecture/controller-boundaries.md` and
+`docs/architecture/current_context.md`.
+
+## Source Of Truth
+
+Current implementation work should follow these documents in this order:
+
+1. `adr/static-and-guest-controller-boundaries.md`
+2. `adr/actor-current-facade.md`
+3. `adr/preference-soft-bubble-doctrine.md`
+4. `docs/architecture/controller-boundaries.md`
+5. `docs/architecture/current_context.md`
+6. `docs/architecture/preference.md`
+
+`adr/three-tier-controller-base.md` and `adr/public-controller-base.md` are historical context only.
+Do not use them as the current implementation contract.
+
+## Boundary Summary
+
+`OpenController` is reachable with or without a signed-in actor. It may inspect session,
+authentication, preference, and `Actor` state when present, but it must not require a signed-in
+actor by default.
+
+`BareController` is for endpoints that do not implement application authentication. Bare endpoints
+must not read actor, current-context, preference, authentication, verification, or authorization
+pipeline state.
+
+`PrivateController` requires an authenticated actor and runs the full surface pipeline.
+
+`GuestController` is for flows that authenticated actors must not enter.
+
+`ApplicationController` is a Rails compatibility parent. It is not a semantic boundary.
+
+## Request Lifecycle Shape
+
+Controller lifecycle code should move toward this shape:
+
+1. Rate limiting and request self-defense.
+2. Token verification and decode.
+3. Actor base initialization from verified token state.
+4. Request-local preference overlay.
+5. Side-effect reflection from resolved Actor values.
+6. Action execution.
+7. Guaranteed Actor cleanup.
+
+`ActorSupport#set_current_context` belongs before authentication-sensitive state is completed. It
+may set host/surface context and the unauthenticated actor fallback. It must not write cookies,
+mutate preference records, issue tokens, or recover broken preference tokens from the database.
+
+`ActorSupport#set_current_actor` belongs after authentication and preference loading have had the
+opportunity to resolve the request resource. It completes the `Actor` snapshot with actor,
+authentication, configuration, and preference values.
+
+The target authenticated lifecycle is:
+
+```text
+rate limit
+-> verify/decode access token
+-> refresh preference token from DB for logged-in HTML preference edit entry when applicable
+-> initialize Actor from token state
+-> overlay valid request-local lx/ct/tz onto Actor.preference
+-> apply locale/timezone/theme from Actor.preference
+-> controller action
+-> ensure Actor.clear
+```
+
+The request-local `lx`, `ct`, and `tz` overlay changes only the current request's
+`Actor.preference`. It must not write the database, reissue JWTs, or update the persistent
+preference snapshot. Locale, timezone, theme, observability, and similar request effects should be
+applied after the Actor snapshot and request overlay are resolved. During migration, older code may
+still apply some of these values from preference cookies, JWT payloads, or controller instance
+variables. New code should prefer `Actor.preference`.
+
+The logged-in HTML preference edit entry refresh is a bounded preference-screen exception. It exists
+so preference edit screens can pick up actor-local DB changes made in another browser or device
+before rendering. It must run before `set_current_actor`, and it must not be used as a generic
+database fallback for normal pages or broken JWTs.
+
+Actor cleanup should use the domain-facing `Actor.clear` API. Prefer a prepended `around_action`
+with `ensure` for new lifecycle code so redirects, renders, and exceptions do not leave stale
+request state behind.
+
+## Authorization
+
+Authorization uses Action Policy.
+
+The Action Policy subject key remains `user`. In this codebase that name is an authorization-library
+interface, not a `User` model or application-facing current-context API. Do not rename it to
+`actor`; `Actor` is the CurrentAttributes facade.
+
+## Preference Read Contract
+
+Runtime preference reads should go through `Actor.preference`.
+
+For normal Rails request code, preference data flows in one direction:
+
+```text
+DB -> access-token JWT prf -> Actor.preference
+```
+
+The database is the source of truth and storage boundary. The access-token JWT is the runtime read
+cache. `Actor.preference` is the immutable request runtime value built from that claim, with valid
+request-local `lx`, `ct`, and `tz` values overlaid when explicitly present. JS-readable preference
+cookies are Rails write-only compatibility mirrors and must not be trusted as Rails request input.
+
+The overlay is not a write path. For example, if the token says `lx=ja` and the request says
+`lx=en`, the current request renders with `Actor.preference.language == "en"`, but the database and
+JWT remain `ja`.
+
+Controllers should not directly read and interpret preference model internals when a concern method
+or `Actor.preference` exposes the needed value. Writes remain in the preference concerns and
+surface-specific models because shared preference and actor-local preference are stored separately.
+
+Here, "shared preference" means `AppPreference`, `OrgPreference`, or `ComPreference`: the
+login-independent surface preference state. "Actor-local preference" means `UserPreference`,
+`OperatorPreference`, or `VisitorPreference`: the account-local state for the current runtime actor.
+This is not Rails `session`, and it is not the `Actor` CurrentAttributes object.
+
+## Cookie Key Compatibility
+
+The language cookie key remains `language`.
+
+Although the request/JWT shorthand key is `lx`, the `language` cookie name follows the Hono
+framework language convention and is still in use. Do not rename the cookie to `lx` without a
+separate compatibility plan.
+
+The theme key remains `ct` for request parameters, JWT payloads, and theme cookie transport.
+
+## Known Migration Gaps
+
+`Preference::Localization` must not register callbacks from an `included do` block. Controllers that
+need locale/timezone reflection must explicitly place
+`before_action :apply_localization_preferences` in their base class.
+
+Preference concerns must not register request callbacks or callback skips from `included do` blocks.
+Controller bases and endpoint controllers own callback order explicitly.
+
+Some controllers still call `set_color_theme` before `set_current_actor`, so theme reflection can
+come from params, cookies, JWT payload, or `@preferences` before `Actor.preference` is complete.
+
+Some preference setup code still has deliberate side effects, including preference token reissue,
+cookie writes, refresh token lifetime updates, and login-time adoption. Those effects should remain
+inside preference/authentication concerns and must not be moved into `set_current_context`.
+
+Exception controllers are tracked by `plans/active/controller-boundary-lifecycle-unification.md`.

@@ -13,7 +13,7 @@ module Sign
       # 2. POST /configuration/passkeys/options to get WebAuthn challenge
       # 3. Browser performs navigator.credentials.create()
       # 4. POST /configuration/passkeys/verification with credential + challenge_id
-      # 5. Server verifies and creates UserPasskey record
+      # 5. Server verifies and creates ClientPasskey record
       #
       # CRUD operations:
       # - GET /configuration/passkeys (index)
@@ -21,13 +21,11 @@ module Sign
       # - GET /configuration/passkeys/:id/edit (edit)
       # - PATCH /configuration/passkeys/:id (update - description only)
       # - DELETE /configuration/passkeys/:id (destroy)
-      class PasskeysController < ApplicationController
-        auth_required!
-
-        include ::Verification::User
+      class PasskeysController < PrivateController
+        include ::Verification::Client
         include Sign::Webauthn
 
-        before_action :authenticate_user!
+        before_action :authenticate_client!
         before_action only: %i(new create options verification) do
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
@@ -35,7 +33,7 @@ module Sign
 
         # GET /configuration/passkeys
         def index
-          @passkeys = authorized_scope(current_user.user_passkeys).order(created_at: :desc)
+          @passkeys = authorized_scope(current_client.client_passkeys).order(created_at: :desc)
         end
 
         # GET /configuration/passkeys/:id
@@ -45,7 +43,7 @@ module Sign
 
         # GET /configuration/passkeys/new
         def new
-          @passkey = current_user.user_passkeys.new
+          @passkey = current_client.client_passkeys.new
         end
 
         # GET /configuration/passkeys/:id/edit
@@ -55,7 +53,7 @@ module Sign
 
         # POST /configuration/passkeys
         def create
-          @passkey = current_user.user_passkeys.new(create_params)
+          @passkey = current_client.client_passkeys.new(create_params)
           authorize!(@passkey)
 
           return unless @passkey.save
@@ -75,12 +73,12 @@ module Sign
         def options
           # Build exclude list from existing passkeys
           existing_credentials =
-            current_user.user_passkeys.map do |passkey|
+            current_client.client_passkeys.map do |passkey|
               { id: passkey.webauthn_id }
             end
 
           challenge_id, creation_options = create_registration_challenge(
-            resource: current_user,
+            resource: current_client,
             exclude_credentials: existing_credentials,
           )
 
@@ -122,7 +120,7 @@ module Sign
             passkey = build_passkey_from_credential(credential)
             persist_passkey!(passkey)
 
-            issue_emergency_key!
+            issue_emergency_key_if_available!
             record_passkey_registration_step_up!
             render_verification_success
           end
@@ -171,7 +169,7 @@ module Sign
         def destroy
           authorize!(@passkey)
 
-          unless AuthMethodGuard.can_remove_passkey?(current_user, @passkey)
+          unless AuthMethodGuard.can_remove_passkey?(current_client, @passkey)
             respond_to do |format|
               format.html do
                 redirect_to(
@@ -205,7 +203,7 @@ module Sign
         private
 
         def set_passkey
-          @passkey = current_user.user_passkeys.find_by!(public_id: params.expect(:id))
+          @passkey = current_client.client_passkeys.find_by!(public_id: params(:id))
         end
 
         def credential_params
@@ -235,7 +233,7 @@ module Sign
         end
 
         def build_passkey_from_credential(credential)
-          current_user.user_passkeys.new(
+          current_client.client_passkeys.new(
             webauthn_id: credential.id,
             public_key: credential.public_key,
             sign_count: credential.sign_count,
@@ -249,7 +247,7 @@ module Sign
 
         def render_verification_success
           default_redirect_url =
-            if respond_to?(:sign_app_configuration_emergency_key_path, true)
+            if emergency_key_issued? && respond_to?(:sign_app_configuration_emergency_key_path, true)
               sign_app_configuration_emergency_key_path(ri: params[:ri])
             else
               sign_app_configuration_passkeys_path(ri: params[:ri])
@@ -263,7 +261,9 @@ module Sign
         end
 
         def update_params
-          key = params.key?(:user_passkey) ? :user_passkey : :passkey
+          key = %i(client_passkey user_passkey passkey).find { |candidate| params.key?(candidate) }
+          return {} unless key
+
           params.fetch(key, {}).permit(:description)
         end
 
@@ -274,9 +274,15 @@ module Sign
           )
         end
 
-        def issue_emergency_key!
-          result = UserSecrets::IssueRecovery.call(actor: current_user, user: current_user)
+        def issue_emergency_key_if_available!
+          return unless current_client.has_verified_recovery_identity?
+
+          result = ClientSecrets::IssueRecovery.call(actor: current_client, user: current_client)
           session[:recovery_secret_raw] = result.raw_secret
+        end
+
+        def emergency_key_issued?
+          session[:recovery_secret_raw].present?
         end
 
         def passkey_description
@@ -288,21 +294,21 @@ module Sign
             last_step_up_at: Time.current,
             last_step_up_scope: verification_scope,
           )
-          create_audit_event!(UserChronicleEvent::PASSKEY_REGISTERED)
+          create_audit_event!(ClientChronicleEvent::PASSKEY_REGISTERED)
         end
 
         def create_audit_event!(event_id)
           ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            ClientChronicleEvent.find_or_create_by!(id: event_id)
+            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
           end
 
-          UserChronicle.create!(
-            actor_type: "User",
-            actor_id: current_user.id,
+          ClientChronicle.create!(
+            actor_type: "Client",
+            actor_id: current_client.id,
             event_id: event_id,
-            subject_id: current_user.id.to_s,
-            subject_type: "User",
+            subject_id: current_client.id.to_s,
+            subject_type: "Client",
             occurred_at: Time.current,
           )
         end

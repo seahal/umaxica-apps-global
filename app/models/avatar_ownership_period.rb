@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: avatar_ownership_periods
@@ -32,7 +30,7 @@
 
 class AvatarOwnershipPeriod < AvatarRecord
   belongs_to :avatar
-  belongs_to :avatar_ownership_status, optional: true
+  belongs_to :avatar_ownership_status
 
   validates :avatar_id,
             uniqueness: { conditions: -> { where("valid_to = 'infinity'::timestamp with time zone") } }
@@ -40,5 +38,3 @@ class AvatarOwnershipPeriod < AvatarRecord
   validates :valid_from, presence: true
   validates :id, length: { maximum: 255 }
 end
-
-# rubocop:enable Layout/LineLength

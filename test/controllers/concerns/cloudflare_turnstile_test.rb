@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class CloudflareTurnstileTest < Minitest::Test
+class CloudflareTurnstileTest < ActiveSupport::TestCase
   class TestController < ApplicationController
     include CloudflareTurnstile
 

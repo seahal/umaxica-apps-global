@@ -7,11 +7,11 @@
 # Database name: avatar
 #
 #  id                           :bigint           not null, primary key
+#  discarded_at                 :datetime         default(Infinity), not null
 #  image_data                   :jsonb            not null
-#  lapses_at                    :datetime         default(Infinity), not null
 #  lock_version                 :integer          default(0), not null
 #  moniker                      :string           not null
-#  purge_at                     :datetime         default(Infinity), not null
+#  purged_at                    :datetime         default(Infinity), not null
 #  created_at                   :datetime         not null
 #  updated_at                   :datetime         not null
 #  active_handle_id             :bigint           not null
@@ -29,7 +29,7 @@
 #  index_avatars_on_client_id                     (client_id)
 #  index_avatars_on_owner_organization_id         (owner_organization_id)
 #  index_avatars_on_public_id                     (public_id) UNIQUE
-#  index_avatars_on_purge_at                      (purge_at)
+#  index_avatars_on_purged_at                     (purged_at)
 #  index_avatars_on_representing_organization_id  (representing_organization_id)
 #
 # Foreign Keys
@@ -56,7 +56,7 @@ class AvatarTest < ActiveSupport::TestCase
     avatar = Avatar.new(
       capability: @capability,
       active_handle: @handle,
-      moniker: "Test User",
+      moniker: "Test Client",
       image_data: { url: "http://example.com/img.png" },
     )
 
@@ -140,7 +140,7 @@ class AvatarTest < ActiveSupport::TestCase
 
   test "create_with_owner creates avatar and assigns owner" do
     create_user_and_status
-    user = User.find_by!(public_id: "one_id")
+    user = Client.find_by!(public_id: "one_id")
     avatar = nil
     assert_difference ["Avatar.count", "AvatarAssignment.count"], 1 do
       avatar = Avatar.create_with_owner(
@@ -157,7 +157,7 @@ class AvatarTest < ActiveSupport::TestCase
   end
 
   test "role associations" do
-    user = User.find_by!(public_id: "one_id")
+    user = Client.find_by!(public_id: "one_id")
     avatar = Avatar.create!(capability: @capability, active_handle: @handle, moniker: "Role Test")
 
     # Affiliation
@@ -216,7 +216,7 @@ class AvatarTest < ActiveSupport::TestCase
 
   test "dependent associations" do
     avatar = Avatar.create!(capability: @capability, active_handle: @handle, moniker: "Dependent Test")
-    user = User.find_by!(public_id: "one_id")
+    user = Client.find_by!(public_id: "one_id")
 
     # Assignments
     avatar.avatar_assignments.create!(user_id: user.id, role: "viewer")
@@ -241,9 +241,9 @@ class AvatarTest < ActiveSupport::TestCase
   end
 
   def create_user_and_status
-    UserStatus.find_or_create_by!(id: UserStatus::NOTHING)
-    User.find_or_create_by!(public_id: "one_id") do |u|
-      u.status_id = UserStatus::NOTHING
+    ClientStatus.find_or_create_by!(id: ClientStatus::NOTHING)
+    Client.find_or_create_by!(public_id: "one_id") do |u|
+      u.status_id = ClientStatus::NOTHING
     end
   end
 end

@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: org_preference_timezone_options
-# Database name: operator
+# Database name: org_setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class OrgPreferenceTimezoneOption < OperatorRecord
+class OrgPreferenceTimezoneOption < OrgSettingRecord
   self.primary_key = :id
   # Fixed IDs - do not modify these values
   ETC_UTC = 1

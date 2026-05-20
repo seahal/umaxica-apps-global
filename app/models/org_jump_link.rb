@@ -8,10 +8,10 @@
 #
 #  id              :bigint           not null, primary key
 #  destination_url :text             not null
-#  lapses_at       :datetime         default(Infinity), not null
+#  discarded_at    :datetime         default(Infinity), not null
 #  max_uses        :integer          default(0), not null
 #  policy          :jsonb            not null
-#  purge_at        :datetime         not null
+#  purged_at       :datetime         not null
 #  uses_count      :integer          default(0), not null
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null
@@ -21,7 +21,7 @@
 # Indexes
 #
 #  index_org_jump_links_on_public_id  (public_id) UNIQUE
-#  index_org_jump_links_on_purge_at   (purge_at)
+#  index_org_jump_links_on_purged_at  (purged_at)
 #  index_org_jump_links_on_status_id  (status_id)
 #
 class OrgJumpLink < RedirectorRecord

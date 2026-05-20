@@ -1,0 +1,17 @@
+# == Schema Information
+#
+# Table name: user_passkey_statuses
+# Database name: app_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 5
+active:
+  id: 1
+deleted:
+  id: 4
+disabled:
+  id: 2
+revoked:
+  id: 3

@@ -4,10 +4,7 @@
 module Preference::Core
   extend ActiveSupport::Concern
   include Preference::Base
-
-  included do
-    before_action :ensure_preferences_record
-  end
+  include Preference::ResourceSync
 
   COOKIE_EXPIRY = 400.days
 
@@ -21,12 +18,12 @@ module Preference::Core
     with_preference_connection(:writing) do
       @preference_region = load_or_refresh_preference_child("Region", option_id: nil)
 
-      update_preference_child_with_audit(
+      update_preference_child_with_resource_first!(
         @preference_region,
         sanitize_option_id(preference_region_params, option_type: :region),
-        "UPDATE_PREFERENCE_REGION",
+        option_type: :region,
+        audit_event: "UPDATE_PREFERENCE_REGION",
       )
-      reload_preferences_and_reissue_token!
     end
   end
 
@@ -40,12 +37,12 @@ module Preference::Core
     with_preference_connection(:writing) do
       @preference_language = load_or_refresh_preference_child("Language", option_id: nil)
 
-      update_preference_child_with_audit(
+      update_preference_child_with_resource_first!(
         @preference_language,
         sanitize_option_id(preference_language_params, option_type: :language),
-        "UPDATE_PREFERENCE_LANGUAGE",
+        option_type: :language,
+        audit_event: "UPDATE_PREFERENCE_LANGUAGE",
       )
-      reload_preferences_and_reissue_token!
     end
 
     return if @preference_language.option_id.blank?
@@ -72,12 +69,12 @@ module Preference::Core
       @preference_timezone = load_or_refresh_preference_child("Timezone", option_id: nil)
 
       begin
-        update_preference_child_with_audit(
+        update_preference_child_with_resource_first!(
           @preference_timezone,
           sanitize_option_id(preference_timezone_params, option_type: :timezone),
-          "UPDATE_PREFERENCE_TIMEZONE",
+          option_type: :timezone,
+          audit_event: "UPDATE_PREFERENCE_TIMEZONE",
         )
-        reload_preferences_and_reissue_token!
       rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ArgumentError
         raise PreferenceOperationError
       end
@@ -105,12 +102,12 @@ module Preference::Core
     with_preference_connection(:writing) do
       @preference_colortheme = load_or_refresh_preference_child("Colortheme", option_id: nil)
 
-      update_preference_child_with_audit(
+      update_preference_child_with_resource_first!(
         @preference_colortheme,
         sanitize_option_id(preference_colortheme_params, option_type: :colortheme),
-        "UPDATE_PREFERENCE_COLORTHEME",
+        option_type: :theme,
+        audit_event: "UPDATE_PREFERENCE_COLORTHEME",
       )
-      reload_preferences_and_reissue_token!
     end
 
     return if @preference_colortheme.option_id.blank?
@@ -136,12 +133,12 @@ module Preference::Core
       ensure_model_defaults!(Preference::ClassRegistry.option_class(preference_prefix, type))
       @preference_option = load_or_refresh_preference_child(preference_child_class_suffix(type), option_id: nil)
 
-      update_preference_child_with_audit(
+      update_preference_child_with_resource_first!(
         @preference_option,
         sanitize_option_id(selectable_preference_params(type), option_type: type),
-        "UPDATE_PREFERENCE_#{type.to_s.upcase}",
+        option_type: type,
+        audit_event: "UPDATE_PREFERENCE_#{type.to_s.upcase}",
       )
-      reload_preferences_and_reissue_token!
     rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ArgumentError
       raise PreferenceOperationError
     end
@@ -188,12 +185,11 @@ module Preference::Core
 
       update_params = build_cookie_update_params(@preference_cookie, preference_cookie_params)
 
-      update_preference_child_with_audit(
+      update_preference_cookie_with_resource_first!(
         @preference_cookie,
         update_params,
-        "UPDATE_PREFERENCE_COOKIE",
+        audit_event: "UPDATE_PREFERENCE_COOKIE",
       )
-      reload_preferences_and_reissue_token!
     end
   end
 
@@ -213,7 +209,7 @@ module Preference::Core
     load_or_create_preference_child(child_type, default_attributes)
   end
 
-  def reload_preferences_and_reissue_token!
+  def reload_preferences_and_reissue_token!(sync_resource: true)
     @preferences.reload
     # Force reload all preference associations to ensure they reflect DB state
     Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
@@ -222,7 +218,40 @@ module Preference::Core
     end
     issue_access_token_from(@preferences)
 
-    sync_to_resource_preference!
+    sync_to_resource_preference! if sync_resource
+  end
+
+  def update_preference_child_with_resource_first!(child, attributes, option_type:, audit_event:)
+    raise PreferenceOperationError if child.blank? || attributes.blank?
+
+    p_hash = attributes.to_h.with_indifferent_access
+    resource_pref = preference_write_resource_preference!
+    authorize_resource_preference_write!(resource_pref)
+    write_resource_preference_option!(
+      resource_pref, option_type,
+      p_hash[Preference::IoKeys::Params::OPTION_ID],
+    ) if resource_pref
+
+    update_preference_child_with_audit(child, p_hash, audit_event)
+    reload_preferences_and_reissue_token!(sync_resource: false)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ActionPolicy::Unauthorized, ArgumentError => e
+    record_preference_write_error("preference.write.option_error", e, target: option_type)
+    raise PreferenceOperationError
+  end
+
+  def update_preference_cookie_with_resource_first!(cookie, attributes, audit_event:)
+    raise PreferenceOperationError if cookie.blank? || attributes.blank?
+
+    p_hash = attributes.to_h.with_indifferent_access
+    resource_pref = preference_write_resource_preference!
+    authorize_resource_preference_write!(resource_pref)
+    write_resource_preference_cookie!(resource_pref, p_hash) if resource_pref
+
+    update_preference_child_with_audit(cookie, p_hash, audit_event)
+    reload_preferences_and_reissue_token!(sync_resource: false)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ActionPolicy::Unauthorized, ArgumentError => e
+    record_preference_write_error("preference.write.cookie_error", e, target: :cookie)
+    raise PreferenceOperationError
   end
 
   def render_preference_update_response
@@ -252,7 +281,7 @@ module Preference::Core
   end
 
   # Dual-write: when logged in, sync current AppPreference/ComPreference/OrgPreference values
-  # to the corresponding UserPreference/VisitorPreference/OperatorPreference.
+  # to the corresponding ClientPreference/VisitorPreference/OperatorPreference.
   def sync_to_resource_preference!
     return unless respond_to?(:current_resource, true)
 
@@ -267,6 +296,7 @@ module Preference::Core
       end
     return if resource_pref.blank?
 
+    authorize!(resource_pref, to: :update?) if respond_to?(:authorize!, true)
     sync_direct_resource_preference!(resource_pref)
     copy_preference_values!(@preferences, resource_pref, resource_pref_prefix_for_sync)
   rescue StandardError => e
@@ -275,7 +305,7 @@ module Preference::Core
 
   def resource_pref_prefix_for_sync
     case preference_class.name
-    when "AppPreference" then "User"
+    when "AppPreference" then "Client"
     when "ComPreference" then "Visitor"
     when "OrgPreference" then "Operator"
     end
@@ -443,10 +473,30 @@ module Preference::Core
     }
   end
 
-  def safe_return_to_path
-    return if params[:return_to].blank?
+  def record_preference_write_error(event_name, error, target:)
+    Rails.event.record(
+      event_name,
+      error: error.class.name,
+      message: error.message,
+      preference_type: preference_class.name,
+      target: target.to_s,
+      surface: preference_surface_key,
+      owner_id: preference_write_owner_id,
+      request_id: request.request_id,
+    )
+  end
 
-    candidate = params.expect(:return_to).to_s
+  def preference_write_owner_id
+    return unless respond_to?(:current_resource, true)
+
+    resource = begin; current_resource; rescue StandardError; nil; end
+    resource&.id
+  end
+
+  def safe_return_to_path
+    return if params["return_to"].blank?
+
+    candidate = params.expect("return_to").to_s
     return unless candidate.start_with?("/")
     return if candidate.start_with?("//")
 
@@ -466,11 +516,11 @@ module Preference::Core
   end
 
   def preference_update_notice
-    t("#{preference_translation_scope}.update_success")
+    t([preference_translation_scope, "update_success"].join("."))
   end
 
   def preference_reset_destroyed_notice
-    t("apex.#{preference_surface_key}.preference.resets.destroyed")
+    t(["apex", preference_surface_key, "preference.resets.destroyed"].join("."))
   end
 
   def preference_operation_failed_alert
@@ -513,19 +563,19 @@ module Preference::Core
   end
 
   # Reset preferences to defaults (explicit user action, not logout).
-  # Resets BOTH AppPreference/OrgPreference AND UserPreference/OperatorPreference.
+  # Resets BOTH AppPreference/OrgPreference AND ClientPreference/OperatorPreference.
   def reset_preference_to_defaults!
     return if @preferences.blank?
 
-    reset_app_org_preference_to_defaults!(@preferences)
     reset_resource_preference_to_defaults!
+    reset_app_org_preference_to_defaults!(@preferences)
 
     create_audit_log(
       event_id: preference_audit_event_class::RESET_BY_USER_DECISION,
       context: { preference_reset: true, reset_to_defaults: true },
     )
 
-    reload_preferences_and_reissue_token!
+    reload_preferences_and_reissue_token!(sync_resource: false)
   end
 
   private
@@ -581,43 +631,14 @@ module Preference::Core
   end
 
   def reset_resource_preference_to_defaults!
-    return unless respond_to?(:current_resource, true)
-
-    resource = begin; current_resource; rescue; nil; end
-    return if resource.blank?
-
-    resource_pref =
-      case preference_class.name
-      when "AppPreference" then resource.user_preference
-      when "ComPreference" then ensure_visitor_resource_preference_for_sync(resource)
-      when "OrgPreference" then resource.staff_preference
-      end
+    resource_pref = preference_write_resource_preference!
     return if resource_pref.blank?
 
-    res_prefix = resource_pref_prefix_for_sync
-    resource_assoc = resource_pref.class.name.underscore
-    connection_class =
-      resource_pref.class.ancestors.find { |ancestor| ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class? }
-
-    connection_class.connected_to(role: :writing) do
-      Preference::Adoption::CHILD_RECORD_TYPES.each do |type|
-        child = resource_pref.public_send("#{resource_assoc}_#{type}")
-        next unless child
-
-        ensure_model_defaults!(Preference::ClassRegistry.option_class(res_prefix, type))
-        default_id = Preference::ClassRegistry.default_option_id(res_prefix, type)
-        child.update!(option_id: default_id) if child.option_id != default_id
-      end
-
-      # Reset cookie consent columns
-      resource_pref.update!(
-        consented: false, functional: false,
-        performant: false, targetable: false,
-        consented_at: nil,
-      )
-    end
+    authorize_resource_preference_write!(resource_pref)
+    reset_resource_preference_defaults_for_write!(resource_pref)
   rescue StandardError => e
-    Rails.event.record("preference.reset_resource.error", error: e.class.name, message: e.message)
+    record_preference_write_error("preference.reset_resource.error", e, target: :reset)
+    raise PreferenceOperationError
   end
 
   def reset_preference_state

@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_token_dbsc_statuses
-# Database name: symbol
+# Database name: com_ticket
 #
 #  id :bigint           not null, primary key
 #

@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_secret_kinds, :user_secret_statuses, :user_social_apple_statuses
+  fixtures :clients, :client_statuses, :client_secret_kinds, :client_secret_statuses, :client_social_apple_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -13,29 +13,31 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     @user = create_verified_user_with_email(email_address: "social_link_test@example.com")
     # Ensure @user has at least one auth method to start (e.g. password secret)
     # Check fixtures or add one.
-    # Note: UserSecretKind should be seeded. If validation fails, check seeded values.
-    UserSecretKind.find_or_create_by!(id: UserSecretKind::LOGIN)
-    UserSecretStatus.find_or_create_by!(id: UserSecretStatus::ACTIVE)
-    UserSocialAppleStatus.find_or_create_by!(id: UserSocialAppleStatus::ACTIVE)
-    UserSocialAppleStatus.find_or_create_by!(id: UserSocialAppleStatus::REVOKED)
+    # Note: ClientSecretKind should be seeded. If validation fails, check seeded values.
+    ClientSecretKind.find_or_create_by!(id: ClientSecretKind::LOGIN)
+    ClientSecretStatus.find_or_create_by!(id: ClientSecretStatus::ACTIVE)
+    ClientSocialAppleStatus.find_or_create_by!(id: ClientSocialAppleStatus::ACTIVE)
+    ClientSocialAppleStatus.find_or_create_by!(id: ClientSocialAppleStatus::REVOKED)
 
-    UserSecret.create!(
+    ClientSecret.create!(
       user: @user,
-      user_secret_kind_id: UserSecretKind::LOGIN,
+      user_secret_kind_id: ClientSecretKind::LOGIN,
       password_digest: "digest",
       name: "default",
     )
 
     # Login as user
     @headers = as_user_headers(@user, host: @host)
+    @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
   end
 
   test "should unlink apple account when another identity exists" do
     # Create Apple identity directly (link flow is handled elsewhere)
-    UserSocialApple.create!(
+    ClientSocialApple.create!(
       user: @user, uid: "apple_uid_link", provider: "apple",
       token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
+    satisfy_user_verification(@token)
 
     delete sign_app_social_authentication_url(provider: "apple", ri: "jp"), headers: @headers
 
@@ -43,31 +45,30 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     follow_redirect!(headers: @headers)
 
     assert_equal I18n.t("sign.app.social.sessions.unlink.success", provider: "Apple"), flash[:notice]
-    assert_nil UserSocialApple.find_by(uid: "apple_uid_link")
+    assert_nil ClientSocialApple.find_by(uid: "apple_uid_link")
   end
 
   test "should prevent unlinking last identity" do
     # Create user with ONLY Apple identity (remove password secret)
-    @user.user_secrets.destroy_all
-    @user.user_emails.destroy_all
+    @user.client_secrets.destroy_all
+    @user.client_emails.destroy_all
 
-    UserSocialApple.create!(
+    ClientSocialApple.create!(
       user: @user, uid: "apple_uid_solo", provider: "apple",
       token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
+    satisfy_user_verification(@token)
 
     # Try to unlink Apple
     delete sign_app_social_authentication_url(provider: "apple", ri: "jp"), headers: @headers
 
-    # Current implementation redirects on failure
     assert_response :redirect
-    # assert_redirected_to sign_app_configuration_apple_url(ri: "jp")
-    # follow_redirect!(headers: @headers)
+    assert_redirected_to sign_app_configuration_url(ri: "jp")
+    follow_redirect!(headers: @headers)
 
-    # Should show error (flash check commented out as it might be flaky/missing)
-    # assert_equal I18n.t("errors.social_auth.insufficient_login_methods"), flash[:alert]
+    assert_equal I18n.t("errors.social_auth.insufficient_login_methods"), flash[:alert]
 
     # Ensure it wasn't destroyed
-    assert UserSocialApple.find_by(uid: "apple_uid_solo")
+    assert ClientSocialApple.find_by(uid: "apple_uid_solo")
   end
 end

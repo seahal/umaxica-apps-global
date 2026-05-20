@@ -62,7 +62,7 @@ class Sign::Com::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "create registers telephone for current visitor" do
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("VisitorTelephone.count", 1) do
         post sign_com_configuration_telephones_registration_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000039" } },
@@ -136,7 +136,7 @@ class Sign::Com::Configuration::Telephones::RegistrationsControllerTest < Action
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => @host)
     controller.response = ActionDispatch::TestResponse.new
     controller.define_singleton_method(:session) { session_hash }
-    controller.define_singleton_method(:params) { params_hash }
+    controller.define_singleton_method(:params) { |*| params_hash }
     controller.define_singleton_method(:flash) { @flash ||= {}.freeze }
     controller.define_singleton_method(:current_visitor) { @visitor_for_test }
     controller.instance_variable_set(:@visitor_for_test, @visitor)

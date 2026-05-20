@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: visitor_token_dbsc_statuses
-# Database name: symbol
+# Database name: com_ticket
 #
 #  id :bigint           not null, primary key
 #
-class VisitorTokenDbscStatus < SymbolRecord
+class VisitorTokenDbscStatus < ComTicketRecord
   include ReferenceRecord
 
   NOTHING = 0

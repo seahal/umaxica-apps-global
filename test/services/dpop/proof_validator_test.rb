@@ -11,8 +11,8 @@ module Dpop
       [ec, jwk.export]
     end
 
-    def build_proof(private_key, jwk, method:, uri:, iat: Time.current.to_i, ath: nil)
-      payload = { "htm" => method, "htu" => uri, "iat" => iat }
+    def build_proof(private_key, jwk, method:, uri:, iat: Time.current.to_i, ath: nil, jti: SecureRandom.uuid)
+      payload = { "htm" => method, "htu" => uri, "iat" => iat, "jti" => jti }
       payload["ath"] = ath if ath.present?
       JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
     end
@@ -158,6 +158,37 @@ module Dpop
       assert_equal "iat_out_of_window", result.error
     end
 
+    test "missing jti does not fail while replay detection is deferred" do
+      private_key, jwk = generate_proof_jwk
+      payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
+      proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
+
+      result = ProofValidator.new(
+        proof_jwt: proof,
+        request_method: "GET",
+        request_uri: "http://example.com/api",
+      ).call
+
+      assert_predicate result, :valid?
+    end
+
+    test "missing jti fails when replay detection is enabled" do
+      private_key, jwk = generate_proof_jwk
+      payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
+      proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
+
+      with_env("DPOP_JTI_REPLAY_DETECTION_ENABLED" => "true") do
+        result = ProofValidator.new(
+          proof_jwt: proof,
+          request_method: "GET",
+          request_uri: "http://example.com/api",
+        ).call
+
+        assert_not result.valid?
+        assert_equal "missing_jti", result.error
+      end
+    end
+
     test "ath mismatch returns error" do
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", ath: "wrong_ath")
@@ -203,6 +234,16 @@ module Dpop
 
       assert_not result.valid?
       assert_equal "invalid_signature", result.error
+    end
+
+    def with_env(values)
+      previous = values.keys.index_with { |key| ENV[key] }
+      values.each { |key, value| ENV[key] = value }
+      yield
+    ensure
+      previous.each do |key, value|
+        value.nil? ? ENV.delete(key) : ENV[key] = value
+      end
     end
   end
 end

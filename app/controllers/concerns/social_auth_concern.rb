@@ -5,7 +5,7 @@
 # Provides intent/state management and callback processing.
 #
 # Intent Flow:
-# 1. User visits /social_auth/start?intent=link
+# 1. User submits POST /social/auth/:provider/continue?intent=link
 # 2. Controller calls prepare_social_auth_intent!("link")
 # 3. User is redirected to OmniAuth provider
 # 4. Provider redirects back to callback
@@ -27,9 +27,9 @@ module SocialAuthConcern
   SOCIAL_ENTRY_SESSION_KEY = :social_auth_entry
   SOCIAL_RI_SESSION_KEY = :social_auth_ri
   STATE_TTL = 5.minutes
-  REAUTH_TTL = 10.minutes
+  STEP_UP_TTL = 10.minutes
 
-  VALID_INTENTS = %w(login link reauth).freeze
+  VALID_INTENTS = %w(login link).freeze
 
   included do
     rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
@@ -41,16 +41,28 @@ module SocialAuthConcern
   # Prepare social auth intent before redirecting to OmniAuth provider.
   # Stores intent context in session (no custom state; OmniAuth handles OAuth state).
   #
-  # @param intent [String] One of: "login", "link", "reauth"
+  # @param intent [String] One of: "login", "link"
   # @return [void]
   def prepare_social_auth_intent!(intent, provider: nil, rt: nil, entry: nil, ri: nil)
     intent = intent.to_s
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent") unless VALID_INTENTS.include?(intent)
 
-    if %w(link reauth).include?(intent) && !logged_in?
-      raise SocialAuth::UnauthorizedError.new("errors.social_auth.not_logged_in")
-    end
+    validate_social_auth_login_requirement!(intent)
 
+    store_social_auth_intent_context(intent, provider: provider, rt: rt, entry: entry, ri: ri)
+    store_social_callback_state(provider)
+    store_social_auth_user_context(intent)
+
+    session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY]
+  end
+
+  def validate_social_auth_login_requirement!(intent)
+    return unless intent == "link" && !logged_in?
+
+    raise SocialAuth::UnauthorizedError.new("errors.social_auth.not_logged_in")
+  end
+
+  def store_social_auth_intent_context(intent, provider:, rt:, entry:, ri:)
     session[SOCIAL_INTENT_SESSION_KEY] = intent
     session[SOCIAL_STARTED_AT_SESSION_KEY] = Time.current.to_i
     session[SOCIAL_FLOW_ID_SESSION_KEY] = SecureRandom.hex(16)
@@ -62,21 +74,24 @@ module SocialAuthConcern
     else
       session.delete(SOCIAL_RT_SESSION_KEY)
     end
+  end
+
+  def store_social_callback_state(provider)
     session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = SecureRandom.hex(24)
     session[SocialCallbackGuard::SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
     session[SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
     session[SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
+  end
 
-    if %w(link reauth).include?(intent)
+  def store_social_auth_user_context(intent)
+    if intent == "link"
       session[SOCIAL_USER_ID_SESSION_KEY] = current_resource&.id
     else
       session.delete(SOCIAL_USER_ID_SESSION_KEY)
     end
-
-    session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY]
   end
 
-  # Validate social auth context from session for link/reauth.
+  # Validate social auth context from session for link intent.
   # OAuth state validation is handled by OmniAuth.
   #
   # @raise [SocialAuth::UnauthorizedError] if context is missing or expired
@@ -93,14 +108,14 @@ module SocialAuthConcern
   end
 
   def validate_intent_presence!(intent, provider)
-    return if %w(link reauth).include?(intent) && session[SOCIAL_FLOW_ID_SESSION_KEY].present?
+    return if intent == "link" && session[SOCIAL_FLOW_ID_SESSION_KEY].present?
 
     Rails.event.notify("social_auth.state_missing", provider: provider)
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.state_missing")
   end
 
   def extract_callback_state
-    params.expect(:state).to_s.presence
+    request.parameters["state"].to_s.presence
   end
 
   def current_social_auth_intent
@@ -137,32 +152,35 @@ module SocialAuthConcern
     @social_auth_user = nil
   end
 
-  def require_recent_reauth!(ttl: REAUTH_TTL)
+  def require_recent_step_up!(ttl: STEP_UP_TTL)
     return unless current_resource
 
-    last_reauth = current_resource.last_reauth_at
-    return unless last_reauth.blank? || last_reauth < ttl.ago
+    last_step_up = current_resource.last_step_up_at
+    return unless last_step_up.blank? || last_step_up < ttl.ago
 
     Rails.event.notify(
-      "social_auth.reauth_required",
+      "social_auth.step_up_required",
       user_id: current_resource.id,
-      last_reauth_at: last_reauth&.iso8601,
+      last_step_up_at: last_step_up&.iso8601,
       required_within: Integer(ttl.to_s, 10),
     )
-    raise SocialAuth::ReauthRequiredError.new("errors.social_auth.reauth_required")
+    raise SocialAuth::StepUpRequiredError.new("errors.social_auth.step_up_required")
   end
 
   def process_social_auth_callback
     auth_hash = omniauth_auth_hash
     intent = current_social_auth_intent
     rt = current_social_auth_rt
+    entry = current_social_auth_entry
 
     result = SocialAuthService.handle_callback(
       auth_hash: auth_hash,
-      current_user: social_auth_user,
+      current_client: social_auth_user,
       intent: intent,
+      sign_up_entry: entry == "sign_up",
     )
     result[:rt] = rt if rt.present?
+    result[:entry] = entry if entry.present?
 
     clear_social_auth_intent!
     result
@@ -186,14 +204,14 @@ module SocialAuthConcern
     return current_resource if current_resource.present?
 
     intent = current_social_auth_intent
-    return nil unless %w(link reauth).include?(intent)
+    return nil unless intent == "link"
 
     user_id = session[SOCIAL_USER_ID_SESSION_KEY].presence
     return nil if user_id.blank?
 
     @social_auth_user ||=
       begin
-        klass = respond_to?(:resource_class, true) ? resource_class : User
+        klass = respond_to?(:resource_class, true) ? resource_class : Client
         klass.find_by(id: user_id)
       end
   end
@@ -268,7 +286,7 @@ module SocialAuthConcern
   end
 
   def validate_user_consistency!(intent)
-    return unless %w(link reauth).include?(intent)
+    return unless intent == "link"
 
     intent_user_id = session[SOCIAL_USER_ID_SESSION_KEY].to_s
     current_id = social_auth_user&.id&.to_s
@@ -284,7 +302,7 @@ module SocialAuthConcern
   end
 
   def social_auth_failure_redirect_path_for_intent(intent:, provider:)
-    return social_auth_failure_redirect_path unless %w(link reauth).include?(intent)
+    return social_auth_failure_redirect_path unless intent == "link"
 
     provider_from_path = request.path.to_s.split("/auth/").last&.split("/")&.first
     provider = provider.presence || session[SOCIAL_PROVIDER_SESSION_KEY] || params[:provider] || provider_from_path

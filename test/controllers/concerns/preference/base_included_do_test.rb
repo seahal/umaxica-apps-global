@@ -17,7 +17,8 @@ class PreferenceBaseIncludedDoTest < ActiveSupport::TestCase
   end
 
   test "set_preferences_cookie method exists (private)" do
-    assert_includes Preference::Base.private_instance_methods(false), :set_preferences_cookie
+    assert_includes Harness.private_instance_methods, :set_preferences_cookie
+    assert_includes Preference::Transport.private_instance_methods(false), :set_preferences_cookie
   end
 
   test "ACCESS_TOKEN_TTL constant is defined" do
@@ -26,5 +27,11 @@ class PreferenceBaseIncludedDoTest < ActiveSupport::TestCase
 
   test "REFRESH_TOKEN_TTL constant is defined" do
     assert_kind_of ActiveSupport::Duration, Preference::Base::REFRESH_TOKEN_TTL
+  end
+
+  test "including base does not register preference callbacks implicitly" do
+    callbacks = Harness._process_action_callbacks.map(&:filter)
+
+    assert_not_includes callbacks, :set_preferences_cookie
   end
 end

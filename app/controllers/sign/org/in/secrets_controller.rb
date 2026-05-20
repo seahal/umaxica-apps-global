@@ -4,7 +4,7 @@
 module Sign
   module Org
     module In
-      class SecretsController < ApplicationController
+      class SecretsController < GuestController
         include ::CloudflareTurnstile
         include SessionLimitGate
 
@@ -33,8 +33,6 @@ module Sign
         end
 
         SecretVerificationResult = Struct.new(:secret, :reason, keyword_init: true)
-
-        before_action :reject_logged_in_session
 
         def new
           @secret_form = SecretLoginForm.new
@@ -100,26 +98,30 @@ module Sign
 
         def process_standard_login(staff)
           rt = redirect_parameter_value
-          result = complete_sign_in_or_start_mfa!(
+          result = establish_signed_in_session!(
             staff, rt: rt, ri: params[:ri], auth_method: "secret",
           )
+          sign_in_result = sign_in_result_from_session_result(result, actor: staff)
 
-          if result[:status] == :mfa_required
-            redirect_to(result[:redirect_path])
-          elsif result[:status] == :session_limit_hard_reject
-            render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
-          elsif result[:restricted]
+          if sign_in_result.mfa_required?
+            redirect_to(sign_in_result.redirect_to)
+          elsif sign_in_result.status == :session_limit_hard_reject
+            render_session_limit_hard_reject(
+              message: sign_in_result.message,
+              http_status: sign_in_result.response_status,
+            )
+          elsif sign_in_result.session_limit_pending?
             redirect_to(
-              sign_org_in_session_path(ri: params[:ri]),
+              sign_in_result.redirect_to,
               notice: I18n.t("session_limit.restricted_notice"),
             )
-          elsif result[:status] == :success
+          elsif sign_in_result.success?
             redirect_to_sign_in_sequence!(
               rt: rt,
               notice: t("sign.org.authentication.secret.create.success"),
             )
           else
-            render_failed_login(result[:status])
+            render_failed_login(sign_in_result.status)
           end
         end
 

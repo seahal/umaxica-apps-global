@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: workspace_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class WorkspaceStatus < OperatorRecord
+class WorkspaceStatus < OrgPrincipalRecord
   include ReferenceRecord
 
   self.primary_key = "id"

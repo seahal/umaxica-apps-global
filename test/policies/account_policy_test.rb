@@ -5,8 +5,8 @@ require "test_helper"
 
 class AccountPolicyTest < ActiveSupport::TestCase
   def setup
-    @user = User.new
-    @record = User.new
+    @user = Client.new
+    @record = Client.new
     @policy = AccountPolicy.new(@record, user: @user)
   end
 

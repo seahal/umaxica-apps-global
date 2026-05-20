@@ -4,17 +4,18 @@
 require "test_helper"
 
 class Sign::App::Configuration::Telephones::RegistrationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_telephone_statuses, :user_chronicle_events, :user_chronicle_levels
+  fixtures :clients, :client_statuses, :client_telephone_statuses, :client_chronicle_events, :client_chronicle_levels
   include ActiveJob::TestHelper
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
-    @token = UserToken.create!(
+    @user = clients(:one)
+    @token = ClientToken.create!(
       user_id: @user.id,
     )
     satisfy_user_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_telephone")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -26,16 +27,27 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   def request_headers
+    access_token = Authentication::TokenService.encode(
+      @user,
+      host: @host,
+      session_public_id: @token.public_id,
+      resource_type: "client",
+      expires_at: 1.hour.from_now,
+      acr: "aal1",
+      amr: ["test"],
+    )
+
     {
       "Host" => @host,
+      "Authorization" => "Bearer #{access_token}",
       "X-TEST-CURRENT-USER" => @user.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
   end
 
   test "create registers telephone for current user without signup confirmation params" do
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
-      assert_difference("UserTelephone.count", 1) do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
+      assert_difference("ClientTelephone.count", 1) do
         post sign_app_configuration_telephones_registration_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000009" } },
              headers: request_headers
@@ -45,19 +57,19 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
     assert_response :redirect
     assert_redirected_to edit_sign_app_configuration_telephones_registration_url(ri: "jp")
 
-    user_telephone = UserTelephone.order(created_at: :desc).first
+    user_telephone = ClientTelephone.order(created_at: :desc).first
 
     assert_equal @user.id, user_telephone.user_id
-    assert_equal UserTelephoneStatus::UNVERIFIED, user_telephone.user_telephone_status_id
-    assert_equal 0, UserTelephone.where(user_id: 0).count
+    assert_equal ClientTelephoneStatus::UNVERIFIED, user_telephone.user_telephone_status_id
+    assert_equal 0, ClientTelephone.where(user_id: 0).count
     job = enqueued_jobs.last
 
-    assert_equal SmsDeliveryJob, job[:job]
+    assert_equal Outbound::SmsDeliveryJob, job[:job]
     assert_equal "+10000000009", job[:args].first["to"]
   end
 
   test "create returns 422 for invalid number" do
-    assert_no_difference("UserTelephone.count") do
+    assert_no_difference("ClientTelephone.count") do
       post sign_app_configuration_telephones_registration_url(ri: "jp"),
            params: { user_telephone: { raw_number: "invalid-number" } },
            headers: request_headers
@@ -67,14 +79,14 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "create reuses existing telephone and sends sms when same number is submitted again" do
-    existing = UserTelephone.create!(
+    existing = ClientTelephone.create!(
       number: "+10000000011",
       user: @user,
-      user_telephone_status_id: UserTelephoneStatus::VERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
 
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
-      assert_no_difference("UserTelephone.count") do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
+      assert_no_difference("ClientTelephone.count") do
         post sign_app_configuration_telephones_registration_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000011" } },
              headers: request_headers
@@ -84,9 +96,9 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
     assert_response :redirect
     assert_redirected_to edit_sign_app_configuration_telephones_registration_url(ri: "jp")
 
-    reused = UserTelephone.find(existing.id)
+    reused = ClientTelephone.find(existing.id)
 
-    assert_equal UserTelephoneStatus::UNVERIFIED, reused.user_telephone_status_id
+    assert_equal ClientTelephoneStatus::UNVERIFIED, reused.user_telephone_status_id
   end
   test "new renders successfully and resets session" do
     get new_sign_app_configuration_telephones_registration_url(ri: "jp"),
@@ -100,7 +112,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   test "create rejects when turnstile fails" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    assert_no_difference("UserTelephone.count") do
+    assert_no_difference("ClientTelephone.count") do
       post sign_app_configuration_telephones_registration_url(ri: "jp"),
            params: { user_telephone: { raw_number: "+10000000009" } },
            headers: request_headers
@@ -121,10 +133,10 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "edit renders if valid session" do
-    tel = UserTelephone.create!(
+    tel = ClientTelephone.create!(
       user: @user,
       raw_number: "+19999999999",
-      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
       otp_private_key: "secret",
       otp_expires_at: 10.minutes.from_now,
     )
@@ -148,10 +160,10 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "update renders unprocessable if code is blank" do
-    tel = UserTelephone.create!(
+    tel = ClientTelephone.create!(
       user: @user,
       raw_number: "+19999999999",
-      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
       otp_private_key: "secret",
       otp_expires_at: 10.minutes.from_now,
     )
@@ -165,10 +177,10 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "update rejects when turnstile fails" do
-    tel = UserTelephone.create!(
+    tel = ClientTelephone.create!(
       user: @user,
       raw_number: "+19999999998",
-      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
       otp_private_key: "secret",
       otp_expires_at: 10.minutes.from_now,
     )
@@ -181,15 +193,15 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
 
       assert_response :unprocessable_content
       assert_includes response.body, I18n.t("turnstile_error")
-      assert_equal UserTelephoneStatus::UNVERIFIED, tel.reload.user_telephone_status_id
+      assert_equal ClientTelephoneStatus::UNVERIFIED, tel.reload.user_telephone_status_id
     end
   end
 
   test "update successfully verifies telephone" do
-    tel = UserTelephone.create!(
+    tel = ClientTelephone.create!(
       user: @user,
       raw_number: "+19999999999",
-      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
       otp_private_key: "secret",
       otp_expires_at: 10.minutes.from_now,
     )
@@ -197,12 +209,12 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       with_complete_telephone_verification(:success, tel) do
         assert_difference(
           -> {
-            UserChronicle.where(
-              actor_type: "User",
+            ClientChronicle.where(
+              actor_type: "Client",
               actor_id: @user.id,
-              subject_type: "User",
+              subject_type: "Client",
               subject_id: @user.id,
-              event_id: UserChronicleEvent::TELEPHONE_REGISTERED,
+              event_id: ClientChronicleEvent::TELEPHONE_REGISTERED,
             ).count
           },
           1,
@@ -221,19 +233,10 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "telephone registration satisfies telephone configuration step-up" do
-    bootstrap_user = users(:two)
-    bootstrap_token = UserToken.create!(user: bootstrap_user)
-    satisfy_user_verification(bootstrap_token)
-
-    bootstrap_headers = request_headers.merge(
-      "X-TEST-CURRENT-USER" => bootstrap_user.id,
-      "X-TEST-SESSION-PUBLIC-ID" => bootstrap_token.public_id,
-    )
-
-    tel = UserTelephone.create!(
-      user: bootstrap_user,
+    tel = ClientTelephone.create!(
+      user: @user,
       raw_number: "+18888888888",
-      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
       otp_private_key: "secret",
       otp_expires_at: 10.minutes.from_now,
     )
@@ -242,25 +245,20 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       with_complete_telephone_verification(:success, tel) do
         patch sign_app_configuration_telephones_registration_url(ri: "jp"),
               params: { user_telephone: { pass_code: "123456" } },
-              headers: bootstrap_headers
+              headers: request_headers
       end
     end
 
     assert_redirected_to sign_app_configuration_telephones_url(ri: "jp")
-    assert_equal "configuration_telephone", bootstrap_token.reload.last_step_up_scope
-
-    bootstrap_token.update!(created_at: 1.hour.ago)
-
-    get sign_app_configuration_telephones_url(ri: "jp"), headers: bootstrap_headers
-
-    assert_response :success
+    assert_equal "configuration_telephone", @token.reload.last_step_up_scope
+    assert_not_nil @token.reload.last_step_up_at
   end
 
   test "update handles session_expired from verification" do
-    tel = UserTelephone.create!(
+    tel = ClientTelephone.create!(
       user: @user,
       raw_number: "+19999999999",
-      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
       otp_private_key: "secret",
       otp_expires_at: 10.minutes.from_now,
     )
@@ -277,10 +275,10 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "update handles locked from verification" do
-    tel = UserTelephone.create!(
+    tel = ClientTelephone.create!(
       user: @user,
       raw_number: "+19999999999",
-      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
       otp_private_key: "secret",
       otp_expires_at: 10.minutes.from_now,
     )
@@ -297,10 +295,10 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "update handles invalid code from verification" do
-    tel = UserTelephone.create!(
+    tel = ClientTelephone.create!(
       user: @user,
       raw_number: "+19999999999",
-      user_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
       otp_private_key: "secret",
       otp_expires_at: 10.minutes.from_now,
     )
@@ -321,7 +319,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
     # Using the backdoor or stubs. Since it's integration test, let's use a workaround.
     original_method = Sign::App::Configuration::Telephones::RegistrationsController.instance_method(:current_registration_telephone)
     Sign::App::Configuration::Telephones::RegistrationsController.define_method(:current_registration_telephone) do
-      UserTelephone.find(id)
+      ClientTelephone.find(id)
     end
 
     begin

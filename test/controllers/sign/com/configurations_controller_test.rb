@@ -28,6 +28,7 @@ module Sign
         # Assert existing com links
         assert_select "a[href^=?]", sign_com_configuration_emails_path(ri: "jp")
         assert_select "a[href^=?]", sign_com_configuration_telephones_path(ri: "jp")
+        assert_select "a[href^=?]", sign_com_configuration_birthdate_path(ri: "jp")
         assert_select "a[href^=?]", sign_com_configuration_challenge_path(ri: "jp")
       end
 

@@ -4,18 +4,17 @@
 module Sign
   module App
     module Up
-      class EmailsController < ApplicationController
+      class EmailsController < GuestController
         include Sign::EmailRegistrable
         include ::CloudflareTurnstile
 
-        guest_only! status: :unauthorized
-
         def new
-          @user_email = UserEmail.new
+          @user_email = ClientEmail.new
+          sign_up_cycle_locator.clear!
         end
 
         def edit
-          @user_email = UserEmail.find_by(public_id: params["id"])
+          @user_email = current_registration_email
 
           # Security: Verify email exists and belongs to current session
           if @user_email.blank?
@@ -39,7 +38,7 @@ module Sign
 
         def create
           unless cloudflare_turnstile_validation["success"]
-            @user_email = UserEmail.new
+            @user_email = ClientEmail.new
             @user_email.errors.add(
               :base, t("sign.app.registration.email.create.turnstile_validation_failed"),
             )
@@ -53,7 +52,7 @@ module Sign
           email_address = email_params&.[](:raw_address).presence || email_params&.[](:address).presence
 
           if email_address.blank?
-            @user_email = UserEmail.new
+            @user_email = ClientEmail.new
             @user_email.errors.add(
               :base, t("sign.app.registration.email.create.address_required"),
             )
@@ -81,15 +80,21 @@ module Sign
             return
           end
 
+          bind_sign_up_cycle_to_email!(@user_email)
           progress_email_flow!(:create)
           redirect_params = build_notice_params(t("sign.app.registration.email.create.verification_code_sent"))
           flash[:notice] = redirect_params.delete(:notice)
           sanitize_redirect_params!(redirect_params)
-          redirect_to(edit_sign_app_up_email_path(@user_email, redirect_params))
+          redirect_to(edit_sign_app_up_email_path(redirect_params))
         end
 
         def update
-          @user_email = UserEmail.find_by(public_id: params["id"])
+          @user_email =
+            if defined?(Prosopite)
+              Prosopite.pause { current_registration_email }
+            else
+              current_registration_email
+            end
 
           return redirect_invalid_session unless valid_email_session?
           return render_code_required unless validate_code_present
@@ -126,8 +131,16 @@ module Sign
           if existing_signup_email_flow?
             handle_existing_email_verification(submitted_code)
           else
-            complete_email_verification!(params["id"], submitted_code) do |user_email|
-              create_user_and_login(user_email)
+            if defined?(Prosopite)
+              Prosopite.pause do
+                complete_email_verification!(@user_email.public_id, submitted_code) do |user_email|
+                  prepare_email_for_checkpoint!(user_email)
+                end
+              end
+            else
+              complete_email_verification!(@user_email.public_id, submitted_code) do |user_email|
+                prepare_email_for_checkpoint!(user_email)
+              end
             end
           end
         end
@@ -140,9 +153,12 @@ module Sign
 
         def complete_update_and_redirect
           progress_email_flow!(:update)
-          create_welcome_bulletin!(current_resource)
-          redirect_to_sign_in_sequence!(
-            rt: redirect_parameter_value,
+          advance_sign_up_cycle_after_email_otp!
+          redirect_to(
+            sign_app_up_guardrail_path(
+              ri: params[:ri],
+              rt: params[:rt].presence,
+            ),
             notice: t("sign.app.registration.email.update.success"),
           )
         end
@@ -177,7 +193,7 @@ module Sign
           else
             return false if @user_email.otp_expired?
 
-            @user_email.user_email_status_id == UserEmailStatus::UNVERIFIED_WITH_SIGN_UP
+            @user_email.user_email_status_id == ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
           end
         end
 
@@ -225,48 +241,8 @@ module Sign
           :redirected
         end
 
-        def create_user_and_login(user_email)
-          # Update existing pending user to verified status
-          # Note: This is called within complete_email_verification!'s transaction
-          @user = user_email.user
-          @user.update!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
-          @user.create_user_account! unless @user.user_account
-
-          create_signup_audit!
-
+        def prepare_email_for_checkpoint!(user_email)
           user_email.save!
-          log_in(
-            @user,
-            record_login_audit: true,
-            audit_context: { auth_method: "email" },
-          )
-        end
-
-        def create_signup_audit!
-          event_id = UserChronicleEvent::SIGNED_UP_WITH_EMAIL
-
-          ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
-          end
-
-          audit = UserChronicle.new(
-            actor_type: "User",
-            actor_id: @user.id,
-            event_id: event_id,
-            subject_id: @user.id.to_s,
-            subject_type: "User",
-          )
-          audit.save!
-        rescue ActiveRecord::RecordInvalid => e
-          Rails.event.error(
-            "sign.signup.email.audit_save_failed",
-            user_id: @user&.id,
-            event_id: event_id,
-            errors: e.record.errors.full_messages,
-            exception: e,
-          )
-          raise
         end
 
         private
@@ -285,6 +261,87 @@ module Sign
 
           @user_email.errors.delete(:user)
           @user_email.errors.delete(:user_id)
+        end
+
+        def current_registration_email
+          if existing_signup_email_flow?
+            return ClientEmail.find_by(id: session_existing_email_id)
+          end
+
+          pending_user_id = session[:pending_sign_up_user_id]
+          return if pending_user_id.blank?
+
+          ClientEmail.find_by(
+            user_id: pending_user_id,
+            user_email_status_id: ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP,
+          )
+        end
+
+        def issue_sign_up_cycle!
+          AppTicketRecord.connected_to(role: :writing) do
+            ClientSignUpCycleStatus.ensure_defaults!
+          end
+
+          sign_up_cycle_locator.issue!(
+            ClientSignUpCycle.create!(
+              principal_id: nil,
+              status_id: ClientSignUpCycleStatus::STARTED,
+              step: "start",
+              nonce_digest: ClientSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+              issued_at: Time.current,
+              expires_at: ClientSignUpCycle.default_ttl.from_now,
+              entry_method: "email",
+              return_to: sanitized_return_to,
+            ),
+          )
+        end
+
+        def current_sign_up_cycle
+          sign_up_cycle_locator.current || issue_sign_up_cycle!
+        end
+
+        def bind_sign_up_cycle_to_email!(email)
+          cycle = current_sign_up_cycle
+          AppTicketRecord.connected_to(role: :writing) do
+            cycle.update!(
+              principal_id: email.user_id,
+              pending_contact_type: "email",
+              pending_contact_id: email.id,
+            )
+            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authentication)
+          end
+          session[:sign_app_up_sequence_id] = cycle.public_id
+        end
+
+        def advance_sign_up_cycle_after_email_otp!
+          cycle = sign_up_cycle_locator.current
+          return unless cycle
+
+          result =
+            AppTicketRecord.connected_to(role: :writing) do
+              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authentication)
+            end
+          return if result.status == :advanced
+
+          Rails.event.warn(
+            "sign.signup.email.sequence_advance_failed",
+            cycle_id: cycle.public_id,
+            result_status: result.status,
+            errors: result.errors,
+          )
+        end
+
+        def sign_up_cycle_locator
+          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpCycle)
+        end
+
+        def sanitized_return_to
+          encoded_url = params[:rt].presence
+          return if encoded_url.blank?
+
+          safe_internal_path(Base64.urlsafe_decode64(encoded_url))
+        rescue ArgumentError, URI::InvalidURIError
+          nil
         end
       end
     end

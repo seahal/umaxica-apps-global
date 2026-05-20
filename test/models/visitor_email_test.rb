@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_emails
-# Database name: guest
+# Database name: com_principal
 #
 #  id                        :bigint           not null, primary key
 #  address                   :string           default(""), not null
@@ -29,7 +29,6 @@
 # Indexes
 #
 #  index_visitor_emails_on_address_digest           (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
-#  index_visitor_emails_on_lower_address            (lower((address)::text)) UNIQUE
 #  index_visitor_emails_on_otp_last_sent_at         (otp_last_sent_at)
 #  index_visitor_emails_on_public_id                (public_id) UNIQUE
 #  index_visitor_emails_on_visitor_email_status_id  (visitor_email_status_id)
@@ -92,12 +91,23 @@ class VisitorEmailTest < ActiveSupport::TestCase
 
   test "rejects creating more than the maximum emails per visitor" do
     VisitorEmail.where(visitor: @visitor).delete_all
+    status = VisitorEmailStatus.find(VisitorEmailStatus::UNVERIFIED)
 
     VisitorEmail::MAX_EMAILS_PER_VISITOR.times do
-      VisitorEmail.create!(@valid_attributes.merge(address: "limit-#{SecureRandom.hex(4)}@example.com"))
+      VisitorEmail.create!(
+        @valid_attributes.merge(
+          address: "limit-#{SecureRandom.hex(4)}@example.com",
+          visitor_email_status: status,
+        ),
+      )
     end
 
-    extra = VisitorEmail.new(@valid_attributes.merge(address: "limit-extra-#{SecureRandom.hex(4)}@example.com"))
+    extra = VisitorEmail.new(
+      @valid_attributes.merge(
+        address: "limit-extra-#{SecureRandom.hex(4)}@example.com",
+        visitor_email_status: status,
+      ),
+    )
 
     assert_not extra.valid?
     assert_not_empty extra.errors[:base]

@@ -107,7 +107,7 @@ module Sign
 
     # Creates a WebAuthn registration challenge for the given user/staff.
     #
-    # @param resource [User, Operator] The user or staff to create credential for
+    # @param resource [Client, Operator] The user or staff to create credential for
     # @param exclude_credentials [Array<Hash>] Existing credentials to exclude
     # @return [Array<String, WebAuthn::PublicKeyCredential::CreationOptions>]
     #   Returns [challenge_id, options]
@@ -256,8 +256,8 @@ module Sign
 
     # Returns a display name for the resource.
     def resource_display_name(resource)
-      if resource.respond_to?(:user_emails) && resource.user_emails.any?
-        resource.user_emails.first.address
+      if resource.respond_to?(:client_emails) && resource.client_emails.any?
+        resource.client_emails.first.address
       elsif resource.respond_to?(:staff_emails) && resource.staff_emails.any?
         resource.staff_emails.first.address
       elsif resource.respond_to?(:public_id)

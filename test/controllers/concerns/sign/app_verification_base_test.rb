@@ -6,9 +6,9 @@ require "test_helper"
 class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :users
+  fixtures :clients
 
-  UserStruct = Struct.new(:id, :public_id, :user_passkeys, :user_one_time_passwords)
+  ClientStruct = Struct.new(:id, :public_id, :client_passkeys, :client_one_time_passwords)
 
   class Harness
     class << self
@@ -52,7 +52,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       @hotp_result = true
     end
 
-    def current_user = user
+    def current_client = user
 
     def actor_token = user_token
 
@@ -72,12 +72,12 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       "/?#{params.to_query}"
     end
 
-    def current_reauth_session
-      user_token&.reauth_session
+    def current_step_up_session
+      user_token&.step_up_session
     end
 
-    def start_reauth_session!(scope:, return_to_param:)
-      Sign::VerificationReauthSessionStore.instance_method(:start_reauth_session!).bind_call(
+    def start_step_up_session!(scope:, return_to_param:)
+      Sign::VerificationStepUpSessionStore.instance_method(:start_step_up_session!).bind_call(
         self,
         scope: scope,
         return_to_param: return_to_param,
@@ -96,16 +96,16 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       Sign::AppVerificationBase.instance_method(method_name).bind_call(self, ...)
     end
 
-    def clear_reauth_state!
-      app_call(:clear_reauth_state!)
+    def clear_step_up_state!
+      app_call(:clear_step_up_state!)
     end
 
-    def restore_reauth_session_from_params!
-      app_call(:restore_reauth_session_from_params!)
+    def restore_step_up_session_from_params!
+      app_call(:restore_step_up_session_from_params!)
     end
 
-    def valid_reauth_session?(rs)
-      app_call(:valid_reauth_session?, rs)
+    def valid_step_up_session?(rs)
+      app_call(:valid_step_up_session?, rs)
     end
   end
 
@@ -119,7 +119,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   end
 
   test "verification params and incoming redirect helpers prefer verification payload" do
-    user = UserStruct.new(7, "user-public-id", [], [])
+    user = ClientStruct.new(7, "user-public-id", [], [])
     harness = Harness.new(user: user)
     return_to = Base64.urlsafe_encode64("/configuration/emails")
     harness.params_hash = {
@@ -142,19 +142,22 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     assert_equal %w(scope return_to), harness.app_call(:verification_params).keys
   end
 
-  test "email otp session active and nonce helpers use reauth session" do
-    user = users(:one)
-    token = UserToken.create!(user: user)
+  test "email otp session active and nonce helpers use step_up session" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user)
     harness = Harness.new(user: user, user_token: token)
 
     assert_not harness.app_call(:email_otp_session_active?)
 
-    reauth_session = create_user_reauth_session(user_token: token)
-    Rails.cache.write("reauth_session:#{reauth_session.id}:email_otp", { "secret" => "secret" }, expires_in: 5.minutes)
+    step_up_session = create_user_step_up_session(user_token: token)
+    Rails.cache.write(
+      "step_up_session:#{step_up_session.id}:email_otp", { "secret" => "secret" },
+      expires_in: 5.minutes,
+    )
 
     assert harness.app_call(:email_otp_session_active?)
 
-    Rails.cache.delete("reauth_session:#{reauth_session.id}:email_otp")
+    Rails.cache.delete("step_up_session:#{step_up_session.id}:email_otp")
 
     assert_not harness.app_call(:email_otp_session_active?)
 
@@ -162,83 +165,83 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
     assert_predicate nonce, :present?
     assert_equal nonce, harness.app_call(:ensure_email_nonce!)
-    assert_equal "configuration_email", harness.app_call(:current_reauth_scope)
-    assert_equal Base64.urlsafe_encode64("/configuration/emails"), harness.app_call(:current_reauth_return_to_param)
+    assert_equal "configuration_email", harness.app_call(:current_step_up_scope)
+    assert_equal Base64.urlsafe_encode64("/configuration/emails"), harness.app_call(:current_step_up_return_to_param)
   end
 
-  test "reauth session validation and restore from params" do
-    user = users(:one)
-    token = UserToken.create!(user: user)
-    other_token = UserToken.create!(user: user)
+  test "step_up session validation and restore from params" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user)
+    other_token = ClientToken.create!(user: user)
     harness = Harness.new(user: user, user_token: token)
-    valid_session = create_user_reauth_session(user_token: token)
+    valid_session = create_user_step_up_session(user_token: token)
 
-    assert harness.app_call(:valid_reauth_session?, valid_session)
+    assert harness.app_call(:valid_step_up_session?, valid_session)
     assert_not harness.app_call(
-      :valid_reauth_session?, valid_session.dup.tap { |rs|
-                                rs.user_token_id = other_token.id
-                              },
+      :valid_step_up_session?, valid_session.dup.tap { |rs|
+                                 rs.user_token_id = other_token.id
+                               },
     )
-    assert_not harness.app_call(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.lapses_at = 1.minute.ago })
-    assert_not harness.app_call(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.scope = "" })
-    assert_not harness.app_call(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.return_to = "" })
+    assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.discarded_at = 1.minute.ago })
+    assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.scope = "" })
+    assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.return_to = "" })
 
     return_to = Base64.urlsafe_encode64("/configuration/emails")
     harness.params_hash = { scope: "configuration_email", return_to: return_to }
 
-    assert harness.app_call(:restore_reauth_session_from_params!)
-    restored = token.reload.reauth_session
+    assert harness.app_call(:restore_step_up_session_from_params!)
+    restored = token.reload.step_up_session
 
     assert_equal "configuration_email", restored.scope
     assert_equal "/configuration/emails", restored.return_to
 
     harness.params_hash = {}
 
-    assert_not harness.app_call(:restore_reauth_session_from_params!)
+    assert_not harness.app_call(:restore_step_up_session_from_params!)
   end
 
-  test "invalid reauth session redirects and clears state" do
-    user = users(:one)
-    token = UserToken.create!(user: user)
+  test "invalid step_up session redirects and clears state" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user)
     harness = Harness.new(user: user, user_token: token)
     harness.params_hash = { ri: "jp" }
-    reauth_session = create_user_reauth_session(user_token: token)
-    Rails.cache.write("reauth_session:#{reauth_session.id}:email_otp", { "secret" => "old" })
+    step_up_session = create_user_step_up_session(user_token: token)
+    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret" => "old" })
 
-    assert_not harness.app_call(:handle_invalid_reauth_session!)
-    assert_nil Rails.cache.read("reauth_session:#{reauth_session.id}:email_otp")
+    assert_not harness.app_call(:handle_invalid_step_up_session!)
+    assert_nil Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp")
     assert_match "/configuration?", harness.redirect_args.first.first
   end
 
   test "app verification exposes user specific models and values" do
     passkey = Struct.new(:user_id).new(7)
-    user = UserStruct.new(7, "user-public-id", [:passkey], [])
+    user = ClientStruct.new(7, "user-public-id", [:passkey], [])
     harness = Harness.new(user: user)
     harness.params_hash = { ri: "jp" }
 
-    assert_equal :user_token_id, harness.app_call(:reauth_session_token_foreign_key)
+    assert_equal :user_token_id, harness.app_call(:step_up_session_token_foreign_key)
     assert_equal "/verification?ri=jp", harness.app_call(:verification_unavailable_redirect_path)
-    assert_equal UserVerification, harness.app_call(:verification_model)
-    assert_equal UserChronicleEvent::STEP_UP_VERIFIED, harness.app_call(:verification_success_event_id)
+    assert_equal ClientVerification, harness.app_call(:verification_model)
+    assert_equal ClientChronicleEvent::STEP_UP_VERIFIED, harness.app_call(:verification_success_event_id)
     assert_equal "sign.app.verification.success.complete", harness.app_call(:verification_success_notice_key)
     assert_equal "/verification?ri=jp", harness.app_call(:verification_success_fallback_path)
-    assert_equal UserChronicleEvent, harness.app_call(:verification_audit_event_class)
-    assert_equal UserChronicleLevel, harness.app_call(:verification_audit_level_class)
-    assert_equal UserChronicleLevel::NOTHING, harness.app_call(:verification_default_activity_level_id)
-    assert_equal UserChronicle, harness.app_call(:verification_activity_model)
+    assert_equal ClientChronicleEvent, harness.app_call(:verification_audit_event_class)
+    assert_equal ClientChronicleLevel, harness.app_call(:verification_audit_level_class)
+    assert_equal ClientChronicleLevel::NOTHING, harness.app_call(:verification_default_activity_level_id)
+    assert_equal ClientChronicle, harness.app_call(:verification_activity_model)
     assert_equal user, harness.app_call(:current_verification_actor)
-    assert_equal "User", harness.app_call(:verification_actor_type)
+    assert_equal "Client", harness.app_call(:verification_actor_type)
     assert_equal [:passkey], harness.app_call(:verification_passkeys_scope)
-    assert_equal UserPasskey, harness.app_call(:verification_passkey_model)
+    assert_equal ClientPasskey, harness.app_call(:verification_passkey_model)
     assert harness.app_call(:passkey_actor_matches?, passkey)
     assert_equal "sign.app.verification.errors.no_passkey", harness.app_call(:verification_no_passkey_i18n_key)
   end
 
   test "verify_email_otp handles invalid missing expired wrong and valid codes" do
-    user = users(:one)
-    token = UserToken.create!(user: user)
+    user = clients(:one)
+    token = ClientToken.create!(user: user)
     harness = Harness.new(user: user, user_token: token)
-    reauth_session = create_user_reauth_session(user_token: token)
+    step_up_session = create_user_step_up_session(user_token: token)
 
     harness.params_hash = { verification: { code: "abc" } }
 
@@ -251,17 +254,17 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     assert_equal ["確認コードの再送信が必要です"], harness.instance_variable_get(:@verification_errors)
 
     Rails.cache.write(
-      "reauth_session:#{reauth_session.id}:email_otp", {
+      "step_up_session:#{step_up_session.id}:email_otp", {
         "secret" => "secret",
         "counter" => 1,
       },
     )
-    reauth_session.update_columns(lapses_at: 1.minute.ago, purge_at: 1.minute.ago)
+    step_up_session.update_columns(discarded_at: 1.minute.ago, purged_at: 1.minute.ago)
 
     assert_not harness.app_call(:verify_email_otp!)
     assert_equal ["確認コードの有効期限が切れました"], harness.instance_variable_get(:@verification_errors)
 
-    reauth_session.update!(lapses_at: 5.minutes.from_now, purge_at: 5.minutes.from_now)
+    step_up_session.update!(discarded_at: 5.minutes.from_now, purged_at: 5.minutes.from_now)
     harness.hotp_result = false
 
     assert_not harness.app_call(:verify_email_otp!)
@@ -274,16 +277,16 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
   private
 
-  def create_user_reauth_session(user_token:, scope: "configuration_email", return_to: "/configuration/emails")
-    UserReauthSession.create!(
+  def create_user_step_up_session(user_token:, scope: "configuration_email", return_to: "/configuration/emails")
+    ClientStepUpSession.create!(
       user_token: user_token,
       scope: scope,
       return_to: return_to,
       method: nil,
       status: "PENDING",
       attempt_count: 0,
-      lapses_at: 5.minutes.from_now,
-      purge_at: 5.minutes.from_now,
+      discarded_at: 5.minutes.from_now,
+      purged_at: 5.minutes.from_now,
     )
   end
 end

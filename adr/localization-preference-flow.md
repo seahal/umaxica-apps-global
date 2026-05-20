@@ -57,6 +57,17 @@ for explicit request context.
 - Localization behavior is now part of the stable preference contract, not an incomplete follow-up.
 - Future work should extend this flow without changing the `ri` / `lx` / `tz` keys casually.
 
+## Current Operational Clarification
+
+As of the current controller-boundary migration, `ri` is mandatory request context on the sign
+`app`, `org`, and `com` surfaces. Earlier implementations had routes where `ri` could be absent; the
+current surfaces should redirect missing or invalid `ri` values to a valid `ri`.
+
+`lx` and `tz` remain optional request-local context. They can affect the current request when
+present and valid, but they are not preference write paths. Persistent preference changes must go
+through the dedicated preference write endpoints, which update the database and reissue the
+preference access token.
+
 ## Related
 
 - Former plan: `plans/backlog/gh631-localization-preference-flow.md`

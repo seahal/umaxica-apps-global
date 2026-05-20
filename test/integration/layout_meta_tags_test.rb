@@ -16,8 +16,6 @@ class LayoutMetaTagsTest < ActionDispatch::IntegrationTest
       "Sign::App" => ["ID_SERVICE_URL", "/"],
       "Sign::Org" => ["ID_STAFF_URL", "/"],
       "Sign::Com" => ["ID_CORPORATE_URL", "/"],
-      "Sign::Net" => ["SIGN_NETWORK_URL", "/"],
-      "Sign::Dev" => ["SIGN_DEVELOPER_URL", "/"],
     }
   end
 

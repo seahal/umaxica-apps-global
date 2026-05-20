@@ -1,0 +1,18 @@
+# == Schema Information
+#
+# Table name: visitor_statuses
+# Database name: com_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: VisitorStatus
+
+active:
+  id: <%= VisitorStatus::ACTIVE %>
+
+nothing:
+  id: <%= VisitorStatus::NOTHING %>
+
+reserved:
+  id: <%= VisitorStatus::RESERVED %>

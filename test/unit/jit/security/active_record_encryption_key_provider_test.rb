@@ -97,7 +97,9 @@ module Jit
 
       test "fetch_from_local prefers option values when available" do
         fake_creds = Object.new
-        fake_creds.define_singleton_method(:require) { |_key| raise "should not be called" }
+        fake_creds.define_singleton_method(:require) do |_key|
+          raise RuntimeError, "should not be called"
+        end
         fake_creds.define_singleton_method(:option) do |key, **|
           {
             ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: "current-key",

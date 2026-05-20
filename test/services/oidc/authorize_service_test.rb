@@ -5,7 +5,7 @@ require "test_helper"
 
 class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   setup do
-    @user = users(:one)
+    @user = clients(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
       Digest::SHA256.digest(@code_verifier),
@@ -104,28 +104,45 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
     assert_equal "my_state_123", query["state"]
   end
 
-  test "state is omitted from redirect URL when not provided" do
+  test "fails when state is not provided" do
     result = Oidc::AuthorizeService.call(
       params: valid_params.except(:state),
       resource: @user,
     )
 
-    assert_predicate result, :success?
-    uri = URI.parse(result.redirect_url)
-    query = URI.decode_www_form(uri.query).to_h
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal "state is required", result.error_description
+  end
 
-    assert_nil query["state"]
+  test "fails for inactive resource without issuing authorization code" do
+    @user.update!(
+      deactivated_at: Time.current,
+      discarded_at: Time.current,
+      purged_at: 1.day.from_now,
+    )
+
+    assert_no_difference "ClientAuthorizationCode.count" do
+      result = Oidc::AuthorizeService.call(
+        params: valid_params,
+        resource: @user,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+      assert_equal "resource is not active", result.error_description
+    end
   end
 
   test "authorization code is stored in database" do
-    assert_difference "UserAuthorizationCode.count", 1 do
+    assert_difference "ClientAuthorizationCode.count", 1 do
       Oidc::AuthorizeService.call(
         params: valid_params,
         resource: @user,
       )
     end
 
-    code = UserAuthorizationCode.last
+    code = ClientAuthorizationCode.last
 
     assert_equal @user.id, code.user_id
     assert_equal "core_app", code.client_id
@@ -137,7 +154,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   # --- Operator OIDC tests ---
 
   test "issues authorization code for operator with org client" do
-    staff = staffs(:one)
+    staff = operators(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
 
@@ -149,6 +166,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
         code_challenge: @code_challenge,
         code_challenge_method: "S256",
         state: "staff_state",
+        nonce: "staff_nonce",
       },
       resource: staff,
     )
@@ -163,7 +181,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "operator authorization code is stored with staff_id backing column" do
-    staff = staffs(:one)
+    staff = operators(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
 
@@ -175,6 +193,8 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
           redirect_uri: org_redirect_uri,
           code_challenge: @code_challenge,
           code_challenge_method: "S256",
+          state: "staff_state",
+          nonce: "staff_nonce",
         },
         resource: staff,
       )
@@ -199,6 +219,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
         code_challenge: @code_challenge,
         code_challenge_method: "S256",
         state: "visitor_state",
+        nonce: "visitor_nonce",
       },
       resource: visitor,
     )
@@ -224,6 +245,8 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
           redirect_uri: com_redirect_uri,
           code_challenge: @code_challenge,
           code_challenge_method: "S256",
+          state: "visitor_state",
+          nonce: "visitor_nonce",
         },
         resource: visitor,
       )
@@ -245,6 +268,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       state: "test_state",
+      nonce: "test_nonce",
     }
   end
 

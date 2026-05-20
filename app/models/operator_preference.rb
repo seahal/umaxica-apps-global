@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_preferences
-# Database name: operator
+# Database name: org_principal
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -37,7 +37,7 @@
 #
 #  fk_rails_...  (staff_id => operators.id)
 #
-class OperatorPreference < OperatorRecord
+class OperatorPreference < OrgPrincipalRecord
   self.table_name = "staff_preferences"
   belongs_to :staff, inverse_of: :staff_preference, class_name: "Operator"
 

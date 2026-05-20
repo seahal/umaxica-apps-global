@@ -4,7 +4,7 @@
 module Sign
   module Com
     module In
-      class SecretsController < ApplicationController
+      class SecretsController < GuestController
         include ::CloudflareTurnstile
         include EmailValidation
         include IdentifierDetection
@@ -36,15 +36,13 @@ module Sign
 
         SecretVerificationResult = Struct.new(:secret, :reason, :details, keyword_init: true)
 
-        before_action :reject_logged_in_session
-
         def new
           @secret_form = SecretLoginForm.new
         end
 
         def create
           @secret_form = SecretLoginForm.new(secret_params)
-          @secret_form.turnstile_response = params.expect("cf-turnstile-response").to_s
+          @secret_form.turnstile_response = params("cf-turnstile-response").to_s
           unless @secret_form.valid?
             return render_failed_login(
               reason: :form_invalid,
@@ -142,16 +140,20 @@ module Sign
         end
 
         def process_standard_login(visitor)
-          result = complete_sign_in_or_start_mfa!(
+          result = establish_signed_in_session!(
             visitor, rt: nil, ri: params[:ri], auth_method: "secret",
           )
+          sign_in_result = sign_in_result_from_session_result(result, actor: visitor)
 
-          if result[:status] == :mfa_required
-            redirect_to(result[:redirect_path], notice: t("sign.app.in.mfa.required"))
-          elsif result[:status] == :session_limit_hard_reject
-            render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
-          elsif result[:restricted]
-            redirect_to(sign_com_in_session_path, notice: I18n.t("sign.app.in.session.restricted_notice"))
+          if sign_in_result.mfa_required?
+            redirect_to(sign_in_result.redirect_to, notice: t("sign.app.in.mfa.required"))
+          elsif sign_in_result.status == :session_limit_hard_reject
+            render_session_limit_hard_reject(
+              message: sign_in_result.message,
+              http_status: sign_in_result.response_status,
+            )
+          elsif sign_in_result.session_limit_pending?
+            redirect_to(sign_in_result.redirect_to, notice: I18n.t("sign.app.in.session.restricted_notice"))
           else
             redirect_to_sign_in_sequence!(
               rt: redirect_parameter_value,

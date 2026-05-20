@@ -11,7 +11,7 @@
 require "test_helper"
 
 class AppPreferenceChronicleLevelTest < ActiveSupport::TestCase
-  fixtures :app_preference_chronicle_levels
+  fixtures_only :app_preference_chronicle_levels
 
   setup do
     clear_fixed_id_seed_cache

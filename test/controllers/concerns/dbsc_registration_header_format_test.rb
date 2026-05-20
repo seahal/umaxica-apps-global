@@ -4,17 +4,17 @@
 require "test_helper"
 
 class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
-  fixtures :users
+  fixtures :clients
 
   test "authentication dbsc registration header uses structured-field tokens" do
-    token = UserToken.create!(
-      user: users(:one),
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::NOTHING,
-      user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 2.days.from_now,
+    token = ClientToken.create!(
+      user: clients(:one),
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::NOTHING,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
     )
 
     controller = Sign::App::Edge::V0::Token::ChecksController.new
@@ -49,14 +49,14 @@ class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
   end
 
   test "authentication dbsc cookie value does not fall back to public id" do
-    token = UserToken.create!(
-      user: users(:one),
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::DBSC,
-      user_token_dbsc_status_id: UserTokenDbscStatus::ACTIVE,
-      lapses_at: 1.day.from_now,
-      purge_at: 2.days.from_now,
+    token = ClientToken.create!(
+      user: clients(:one),
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::DBSC,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
       public_id: "public-session-id",
       dbsc_session_id: nil,
     )

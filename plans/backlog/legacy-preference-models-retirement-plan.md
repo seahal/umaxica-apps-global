@@ -8,9 +8,10 @@ GitHub #691
 
 This plan operates under `adr/preference-soft-bubble-doctrine.md` (2026-05-06):
 
-- Preference databases stay **separate** (`principal` / `operator` / `setting`).
-- `guest` is **not** a preference database long-term — `customer_preferences` exits per
-  `plans/backlog/customer-preferences-move-to-setting-db.md`.
+- Preference databases stay **separate** (`principal` / `operator` / `com_preference`).
+- Com actor-local preferences stay in `com_principal` per the 2026-05-18 placement update in
+  `adr/preference-soft-bubble-doctrine.md`; the older customer-to-`com_preference` plan is archived
+  at `plans/archive/customer-preferences-move-to-com-preference-db.md`.
 - `Actor::Preference` is the **single runtime read interface**.
 - Session-side families (`AppPreference` / `ComPreference` / `OrgPreference`) are **not retired**;
   they were introduced deliberately so the front-end side does not own preference state.
@@ -37,23 +38,23 @@ What "retirement" means under the soft-bubble doctrine:
 
 ### Preference DBs and what lives there
 
-| DB          | Session-side       | Actor-side                                          | Bridge                  | TLD |
-| ----------- | ------------------ | --------------------------------------------------- | ----------------------- | --- |
-| `principal` | `app_preference_*` | `user_preference_*`, `staff_preference_*` ⚠️        | `user_app_preferences`  | app |
-| `operator`  | `org_preference_*` | (target for `staff_preference_*` after move)        | `staff_org_preferences` | org |
-| `setting`   | `com_preference_*` | `customer_preference_*` (move from `guest` ongoing) | —                       | com |
-| `guest`     | —                  | `customer_preferences` (leaving)                    | —                       | com |
+| DB              | Session-side       | Actor-side                                   | Bridge                  | TLD |
+| --------------- | ------------------ | -------------------------------------------- | ----------------------- | --- |
+| `principal`     | `app_preference_*` | `user_preference_*`, `staff_preference_*` ⚠️ | `user_app_preferences`  | app |
+| `operator`      | `org_preference_*` | (target for `staff_preference_*` after move) | `staff_org_preferences` | org |
+| `com_setting`   | `com_preference_*` | —                                            | —                       | com |
+| `com_principal` | —                  | `visitor_preference_*`                       | —                       | com |
 
-Two planned moves are in flight (driven by separate plans, not by this retirement plan):
+Historical planned moves were later superseded or completed outside this retirement plan:
 
-- `customer_preferences`: `guest` → `setting`
-  (`plans/backlog/customer-preferences-move-to-setting-db.md`)
+- `customer_preferences`: `guest` → `com_preference`
+  (`plans/archive/customer-preferences-move-to-com-preference-db.md`, superseded by the 2026-05-18
+  placement update)
 - `staff_preference_*`: `principal` → `operator`
-  (`plans/backlog/staff-preference-move-to-operator-db.md`)
+  (`plans/archive/staff-preference-move-to-operator-db.md`)
 
-After both moves complete, every TLD's preference data (session-side and actor-side) is co-located
-within its bubble. `guest` retains its role as the com TLD authentication DB (`customers`,
-`customer_passkeys`, etc.) and holds no preference tables.
+The current doctrine keeps session-side preferences in setting DBs and actor-local preferences in
+principal DBs. `com_principal` retains the com actor-local preference family.
 
 ### Class registry (per-prefix duplication)
 
@@ -73,14 +74,13 @@ Concrete model count today (under `app/models/`):
 ### Cross-bubble code paths
 
 - `app/controllers/concerns/preference/adoption.rb` — login-time sync between session-side and
-  actor-side. Active for App↔User (same DB: `principal`) and Org↔Staff (currently cross-DB:
-  `operator` ↔ `principal` until the staff_preference move completes). Customer is not in
-  `Adoption`; Com→Customer sync goes through `Preference::Core#sync_to_resource_preference!` which
-  currently crosses `setting` → `guest` (until the customer_preferences move completes).
+  actor-side. Active for App↔User and Org↔Staff. Visitor is not in `Adoption`; Com→Visitor sync goes
+  through `Preference::ResourceSync` / `Preference::Core` across the `com_setting` → `com_principal`
+  boundary.
 - After both bubble-closure moves complete, `Preference::Adoption#resolve_cross_db_option_id`
   becomes dead code (no double-write path crosses bubbles anymore).
-- `app/controllers/concerns/current_support.rb` — already reads via the unified
-  `Actor::Preference` interface; this part is the doctrine-aligned target shape.
+- `app/controllers/concerns/actor_support.rb` — already reads via the unified `Actor::Preference`
+  interface; this part is the doctrine-aligned target shape.
 
 ## Migration Strategy
 
@@ -151,8 +151,8 @@ tracked as a follow-up.
 ## Out of Scope (handled by other plans)
 
 - DB consolidation of any kind (rejected by doctrine)
-- Moving `customer_preferences` from `guest` to `setting`
-  (`plans/backlog/customer-preferences-move-to-setting-db.md`)
+- Moving `customer_preferences` from `guest` to `com_preference`
+  (`plans/archive/customer-preferences-move-to-com-preference-db.md`, superseded)
 - `ClassRegistry` redesign (C3 — separate plan)
 - Actor-side schema asymmetry decision (B2 — separate plan)
 - `Preference::Adoption` role re-evaluation (B3 — separate plan)
@@ -171,8 +171,8 @@ tracked as a follow-up.
 
 - [ ] Phase 1 inventory document committed (lists active / internal-only / unreferenced classes and
       bridge-table usage).
-- [ ] Each soft bubble (`principal` / `operator` / `setting`) keeps its session-side and actor-side
-      families and contains no preference-related dead tables.
+- [ ] Each soft bubble (`principal` / `operator` / `com_preference`) keeps its session-side and
+      actor-side families and contains no preference-related dead tables.
 - [ ] `guest` DB no longer contains preference tables (handled by separate plan; tracked here as a
       dependency).
 - [ ] `Preference::ClassRegistry` no longer hard-codes 6 × 8 entries (handled by C3; tracked here as
@@ -184,35 +184,38 @@ tracked as a follow-up.
 ## References
 
 - `adr/preference-soft-bubble-doctrine.md` — doctrine this plan obeys
-- `plans/backlog/customer-preferences-move-to-setting-db.md` — com TLD bubble closure
-- `plans/backlog/staff-preference-move-to-operator-db.md` — org TLD bubble closure
+- `plans/archive/customer-preferences-move-to-com-preference-db.md` — superseded com TLD bubble
+  closure note
+- `plans/archive/staff-preference-move-to-operator-db.md` — org TLD bubble closure
 - `plans/backlog/gh578-preference-consolidation.md` — `Actor::Preference` runtime consolidation
   status
-- `plans/backlog/current-support-integration-test-coverage.md` — `CurrentSupport` request-lifecycle
-  test coverage
+- `plans/archive/actor-support-integration-test-coverage.md` — `ActorSupport` request-lifecycle test
+  coverage
 - `plans/archive/gh628-move-preferences-to-setting-db.md` — rejected predecessor (kept for
   traceability)
 - `app/services/preference/class_registry.rb` — current registry
 - `app/controllers/concerns/preference/adoption.rb` — current Adoption logic
-- `app/controllers/concerns/current_support.rb` — current `Actor::Preference` resolver
+- `app/controllers/concerns/actor_support.rb` — current `Actor::Preference` resolver
 
-## 2026-05-07 現状差分と改善として残すこと
+## 2026-05-07 What to leave as current differences and improvements
 
-この文書の DB 移動前提は現行ツリーより古い。
+The DB movement assumptions in this document are older than the current tree.
 
-確認済み:
+Confirmed:
 
-- `customer_preferences` 系は `setting` DB 側へ移動済み。
-- `staff_preference_*` は `operator` 側に存在する。
-- `Actor::Preference` は実装済みで、runtime read interface として使われている。
+- The `customer_preferences` system has been moved to the `com_preference` DB side.
+- `staff_preference_*` exists on the `operator` side.
+- `Actor::Preference` has been implemented and is used as a runtime read interface.
 
-したがって、この文書は DB 移行計画ではなく、preference 周辺の重複削減計画として再スコープする。
+Therefore, this document is rescoped as a deduplication plan around preferences rather than a DB
+migration plan.
 
-残す改善:
+Improvements to leave:
 
-- `UserAppPreference` / `OperatorOrgPreference` bridge の現在の呼び出し元と必要性を棚卸しする。
-- `Preference::ClassRegistry` の 6 prefix
-  x 多数 key の重複を、削除可能なものと抽象化すべきものに分ける。
-- `AppPreference` / `ComPreference` / `OrgPreference` 自体は現時点では保持対象として扱う。
-- 削除判断は `Actor::Preference` の回帰テスト、cookie consent、JWT `prf`
-  claim のテストを先に固定してから行う。
+- Inventory current callers and need for `UserAppPreference` / `OperatorOrgPreference` bridge.
+- 6 prefix for `Preference::ClassRegistry` x Separate duplicate keys into those that can be deleted
+  and those that should be abstracted.
+- `AppPreference` / `ComPreference` / `OrgPreference` themselves are currently treated as retention
+  targets.
+- Deletion decisions are based on regression testing of `Actor::Preference`, cookie consent, JWT
+  `prf` Test the claim first and then fix it.

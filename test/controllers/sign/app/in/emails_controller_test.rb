@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :staffs, :user_statuses, :staff_statuses, :user_email_statuses
+  fixtures :clients, :operators, :client_statuses, :operator_identity_statuses, :client_email_statuses
 
   include ActiveSupport::Testing::TimeHelpers
 
@@ -24,16 +24,17 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "redirect already logged in user to dashboard" do
-    user = users(:one)
+  test "reject already logged in user" do
+    user = clients(:one)
     get new_sign_app_in_email_url(ri: "jp"),
         headers: as_user_headers(user, host: @host)
 
-    assert_redirected_to sign_app_dashboard_url(ri: "jp")
+    assert_response :bad_request
+    assert_includes response.body, I18n.t("sign.app.authentication.email.new.you_have_already_logged_in")
   end
 
   test "reject already logged in staff" do
-    staff = staffs(:one)
+    staff = operators(:one)
     get new_sign_app_in_email_url(ri: "jp"),
         headers: { "Host" => @host, "X-TEST-CURRENT-STAFF" => staff.id }
 
@@ -56,7 +57,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_app_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "input[name='user_email[address]']"
+    assert_select "input[name='client_email[address]']"
   end
 
   test "POST create without valid email redirects (enumeration protection)" do
@@ -71,8 +72,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "POST create responds the same for existing and missing emails" do
-    user = users(:one)
-    existing_email = user.user_emails.create!(address: "enum_test@example.com")
+    user = clients(:one)
+    existing_email = user.client_emails.create!(address: "enum_test@example.com")
 
     existing_session = open_session
     existing_session.post(
@@ -100,9 +101,9 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   test "POST create with existing email generates OTP and redirects to edit" do
     # Create a test email in the database
-    user = users(:one)
+    user = clients(:one)
     test_email = "auth_test_#{SecureRandom.hex(4)}@example.com"
-    user.user_emails.create!(address: test_email)
+    user.client_emails.create!(address: test_email)
 
     # Make the POST request with valid email and Turnstile response
     # Turnstile is automatically mocked to return true in test environment
@@ -124,8 +125,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   test "timing attack protection in update action" do
     # Create and verify an email
-    user = users(:one)
-    test_email = user.user_emails.create!(address: "timing_test@example.com")
+    user = clients(:one)
+    test_email = user.client_emails.create!(address: "timing_test@example.com")
     test_email.update!(pass_code: "123456", otp_attempts_count: 0)
 
     # Start session
@@ -187,8 +188,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   test "successful OTP verification redirects to dashboard" do
     # Create email with user association
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "login_test_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -219,11 +220,16 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :found
     assert_redirected_to sign_app_dashboard_path(ri: "jp")
+
+    cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
+
+    assert_predicate cycle, :sign_in_dashboard_pending?
+    assert_equal cycle.public_id, session.dig(:app_sign_in_cycle_locator, "public_id")
   end
 
   test "successful OTP verification sets auth cookies with app-localhost domain" do
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "cookie_domain_in_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -250,9 +256,9 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email sign-in redirects to MFA challenge when MFA is enabled" do
-    user = users(:one)
+    user = clients(:one)
     user.update!(multi_factor_enabled: true)
-    test_email = user.user_emails.create!(
+    test_email = user.client_emails.create!(
       address: "mfa_email_login_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -277,10 +283,10 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def test_setup_cooldown_test_email
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "cooldown_test_#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     assert_difference -> { ActionMailer::Base.deliveries.count }, 1 do
@@ -364,10 +370,10 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email sign in locks after five invalid OTP attempts" do
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "lockout_#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     post sign_app_in_email_url(ri: "jp"),
@@ -391,10 +397,10 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email sign in create does not send OTP during lockout" do
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "create_locked_#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       locked_at: 5.minutes.from_now,
       otp_attempts_count: Email::MAX_OTP_ATTEMPTS,
     )
@@ -415,8 +421,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "successful OTP verification records login audit event" do
-    user = users(:one)
-    test_email = user.user_emails.create!(address: "audit_login_#{SecureRandom.hex(4)}@example.com")
+    user = clients(:one)
+    test_email = user.client_emails.create!(address: "audit_login_#{SecureRandom.hex(4)}@example.com")
 
     post sign_app_in_email_url(ri: "jp"),
          params: {
@@ -433,21 +439,21 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     valid_pass_code = hotp.at(otp_counter).to_s
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    assert_difference -> { UserChronicle.where(event_id: UserChronicleEvent::LOGGED_IN).count }, 1 do
+    assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::LOGGED_IN).count }, 1 do
       patch sign_app_in_email_url(ri: "jp"),
             params: { user_email: { pass_code: valid_pass_code } },
             headers: { "Host" => @host }
     end
 
-    audit = UserChronicle.order(created_at: :desc).first
+    audit = ClientChronicle.order(created_at: :desc).first
 
-    assert_equal UserChronicleEvent::LOGGED_IN, audit.event_id
+    assert_equal ClientChronicleEvent::LOGGED_IN, audit.event_id
     assert_equal user, audit.user
   end
 
   test "invalid OTP code returns error message" do
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "invalid_otp_test_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -477,8 +483,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "invalid OTP attempt records login failed audit event" do
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "audit_login_failed_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -495,20 +501,20 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_counter = 56_789
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    assert_difference -> { UserChronicle.where(event_id: UserChronicleEvent::LOGIN_FAILED).count }, 1 do
+    assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::LOGIN_FAILED).count }, 1 do
       patch sign_app_in_email_url(ri: "jp"),
             params: { user_email: { pass_code: "000000" } },
             headers: { "Host" => @host }
     end
 
-    audit = UserChronicle.order(created_at: :desc).first
+    audit = ClientChronicle.order(created_at: :desc).first
 
-    assert_equal UserChronicleEvent::LOGIN_FAILED, audit.event_id
+    assert_equal ClientChronicleEvent::LOGIN_FAILED, audit.event_id
     assert_equal user, audit.user
   end
 
   test "already logged in user cannot authenticate via post" do
-    user = users(:one)
+    user = clients(:one)
     post sign_app_in_email_url(ri: "jp"),
          params: { user_email: { address: "some@example.com" } },
          headers: { "Host" => @host, "X-TEST-CURRENT-USER" => user.id }
@@ -518,12 +524,12 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   test "redirects to encoded URL after successful login when rt parameter is provided" do
     # Create a test user and email
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "redirect_login_test_#{SecureRandom.hex(4)}@example.com",
     )
 
-    redirect_url = "/dashboard"
+    redirect_url = sign_app_configuration_path(ri: "jp")
     encoded_rt = Base64.urlsafe_encode64(redirect_url)
 
     # Start authentication with rt parameter
@@ -559,11 +565,23 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :found
     assert_redirected_to sign_app_dashboard_path(ri: "jp", rt: encoded_rt)
+
+    cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
+
+    assert_predicate cycle, :sign_in_dashboard_pending?
+    assert_equal sign_app_configuration_path(ri: "jp"), cycle.return_to
+
+    follow_redirect!
+
+    assert_response :redirect
+    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_predicate cycle.reload, :sign_in_completed?
+    assert_nil cycle.return_to
   end
 
   test "rejects external rt parameter after successful login" do
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "redirect_external_test_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -600,8 +618,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   test "resets session ID after successful email login" do
     # Create email with user association
-    user = users(:one)
-    test_email = user.user_emails.create!(
+    user = clients(:one)
+    test_email = user.client_emails.create!(
       address: "session_reset_login_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -639,15 +657,15 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email login with session limit exceeded redirects to session management" do
-    user = users(:one)
-    UserToken.where(user_id: user.id).delete_all
+    user = clients(:one)
+    ClientToken.where(user_id: user.id).delete_all
 
     # Create 2 active sessions to hit the limit
     2.times do
       create_rotated_active_user_session(user, rotations: 3)
     end
 
-    test_email = user.user_emails.create!(
+    test_email = user.client_emails.create!(
       address: "session_limit_email_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -676,7 +694,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
     # A restricted token should have been created
-    restricted = UserToken.where(user_id: user.id, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted = ClientToken.where(user_id: user.id, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
     assert_equal 1, restricted.count
 
@@ -685,14 +703,14 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email login (JSON) with session limit exceeded returns session_restricted" do
-    user = users(:one)
-    UserToken.where(user_id: user.id).delete_all
+    user = clients(:one)
+    ClientToken.where(user_id: user.id).delete_all
 
     2.times do
       create_rotated_active_user_session(user, rotations: 3)
     end
 
-    test_email = user.user_emails.create!(
+    test_email = user.client_emails.create!(
       address: "session_limit_json_#{SecureRandom.hex(4)}@example.com",
     )
 
@@ -790,7 +808,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_rotated_active_user_session(user, rotations:)
-    token = UserToken.create!(user: user, user_token_status_id: UserTokenStatus::ACTIVE)
+    token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
 
     rotations.times do

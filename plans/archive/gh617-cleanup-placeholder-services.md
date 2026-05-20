@@ -67,21 +67,21 @@ Needs fresh audit to determine which placeholder services still exist. `TokenSer
 - Split boot-safety work from service cleanup. Encryption-credential handling and placeholder
   service removal do not need the same review path.
 
-## 2026-05-07 現状差分と改善として残すこと
+## 2026-05-07 What to leave as current differences and improvements
 
-この文書の placeholder 前提は一部古い。
+Some of the placeholder assumptions in this document are outdated.
 
-確認済み:
+Confirmed:
 
-- `app/services/auth/token_service.rb` は存在し、テストもある。
-- `test/services/event_publisher_test.rb` が存在するため、`EventPublisher`
-  は少なくとも現行テスト対象。
+- `app/services/auth/token_service.rb` exists and is tested.
+- Since `test/services/event_publisher_test.rb` exists, `EventPublisher` is at least the subject of
+  current testing.
 
-この文書は「TokenService placeholder cleanup」ではなく、未使用 service / event publisher / boot
-safety の改善メモとして残す。
+This document is not "TokenService placeholder cleanup" and is unused service / event publisher /
+boot Leave it as a safety improvement memo.
 
-残す改善:
+Improvements to leave:
 
-- 対象 placeholder service は現存しないため、この issue は閉じる。
-- 今後 EventPublisher を再導入する場合は、新規 plan で実 event path、payload
-  shape、失敗時の扱いを先に決める。
+- This issue is closed because the target placeholder service does not currently exist.
+- If you reintroduce EventPublisher in the future, create a new plan with the actual event path,
+  payload Decide on the shape and how to handle failure first.

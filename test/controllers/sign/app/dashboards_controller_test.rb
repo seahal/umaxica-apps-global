@@ -4,12 +4,12 @@
 require "test_helper"
 
 class Sign::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses
+  fixtures :clients, :client_statuses
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
-    @user.update!(status_id: UserStatus::ACTIVE)
+    @user = clients(:one)
+    @user.update!(status_id: ClientStatus::ACTIVE)
   end
 
   test "show redirects when not signed in" do
@@ -25,5 +25,12 @@ class Sign::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Dashboard"
     assert_select "a[href=?]", sign_app_configuration_path(ri: "jp")
+    assert_select "footer" do
+      assert_select "a[href=?]", sign_app_dashboard_url(ri: "jp"),
+                    text: I18n.t("sign.app.preferences.footer.dashboard")
+      assert_select "a[href=?]", sign_app_root_url(ri: "jp"),
+                    text: I18n.t("sign.app.preferences.footer.home"),
+                    count: 0
+    end
   end
 end

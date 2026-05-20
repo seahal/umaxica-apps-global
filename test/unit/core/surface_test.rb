@@ -25,6 +25,18 @@ module Main
       assert_equal :com, Core::Surface.detect(request)
     end
 
+    test "detects net surface from net.localhost" do
+      request = RequestStub.new("net.localhost", {})
+
+      assert_equal :net, Core::Surface.detect(request)
+    end
+
+    test "detects dev surface from dev.localhost" do
+      request = RequestStub.new("dev.localhost", {})
+
+      assert_equal :dev, Core::Surface.detect(request)
+    end
+
     test "falls back to com when host has no surface subdomain" do
       request = RequestStub.new("localhost", {})
 

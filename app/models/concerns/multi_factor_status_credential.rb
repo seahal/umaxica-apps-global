@@ -4,14 +4,17 @@
 module MultiFactorStatusCredential
   extend ActiveSupport::Concern
 
-  included do
-    class_attribute :multi_factor_status_owner_association, instance_accessor: false
-    after_commit :refresh_owner_multi_factor_status
-  end
+  OWNER_ASSOCIATIONS = Concurrent::Map.new
+
+  included { after_commit :refresh_owner_multi_factor_status }
 
   class_methods do
     def multi_factor_status_owner(association_name)
-      self.multi_factor_status_owner_association = association_name
+      OWNER_ASSOCIATIONS[self] = association_name
+    end
+
+    def multi_factor_status_owner_association
+      OWNER_ASSOCIATIONS.fetch(self)
     end
   end
 

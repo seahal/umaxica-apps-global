@@ -1,0 +1,19 @@
+# == Schema Information
+#
+# Table name: staff_preference_language_options
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorPreferenceLanguageOption
+
+# Table name: staff_preference_language_options
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+ja:
+  id: 1
+en:
+  id: 2

@@ -3,24 +3,24 @@
 
 require "test_helper"
 
-# Test with UserEmail which includes Email
+# Test with ClientEmail which includes Email
 class EmailTest < ActiveSupport::TestCase
-  fixtures :users, :staffs, :user_statuses, :staff_statuses
+  fixtures :clients, :operators, :client_statuses, :operator_identity_statuses
 
   setup do
-    @user = users(:none_user)
+    @user = clients(:none_user)
   end
 
   def build_email(attrs = {})
-    UserEmail.new({ user: @user }.merge(attrs))
+    ClientEmail.new({ user: @user }.merge(attrs))
   end
 
   def create_email(attrs = {})
-    UserEmail.create!({ user: @user }.merge(attrs))
+    ClientEmail.create!({ user: @user }.merge(attrs))
   end
 
   test "concern can be included in a class" do
-    assert_includes UserEmail.included_modules, Email
+    assert_includes ClientEmail.included_modules, Email
   end
 
   test "concern adds confirm_policy accessor" do
@@ -47,14 +47,14 @@ class EmailTest < ActiveSupport::TestCase
   test "stores distinct ciphertexts for distinct addresses" do
     email1 = create_email(address: "test1@example.com", confirm_policy: true)
     email2 = create_email(address: "test2@example.com", confirm_policy: true)
-    sql = "SELECT address FROM #{UserEmail.table_name} WHERE id = :id"
+    sql = "SELECT address FROM #{ClientEmail.table_name} WHERE id = :id"
 
     # Different emails should have different encrypted values
-    raw1 = UserEmail.connection.execute(
-      UserEmail.sanitize_sql_array([sql, { id: email1.id }]),
+    raw1 = ClientEmail.connection.execute(
+      ClientEmail.sanitize_sql_array([sql, { id: email1.id }]),
     ).first
-    raw2 = UserEmail.connection.execute(
-      UserEmail.sanitize_sql_array([sql, { id: email2.id }]),
+    raw2 = ClientEmail.connection.execute(
+      ClientEmail.sanitize_sql_array([sql, { id: email2.id }]),
     ).first
 
     assert_not_equal raw1["address"], raw2["address"]
@@ -146,7 +146,7 @@ class EmailTest < ActiveSupport::TestCase
     (Email::MAX_OTP_ATTEMPTS - 1).times do
       email.increment_attempts!
 
-      assert_not email.reload.locked?
+      assert_not email.locked?
     end
   end
 
@@ -155,7 +155,7 @@ class EmailTest < ActiveSupport::TestCase
 
     Email::MAX_OTP_ATTEMPTS.times { email.increment_attempts! }
 
-    assert_predicate email.reload, :locked?
+    assert_predicate email, :locked?
   end
 
   test "increment_attempts! sets lockout expiry when threshold is reached" do
@@ -254,7 +254,7 @@ class EmailTest < ActiveSupport::TestCase
           10.times do
             ActiveRecord::Base.connection_pool.with_connection do
               # Use a fresh instance to better simulate concurrent requests
-              UserEmail.find(email.id).increment_attempts!
+              ClientEmail.find(email.id).increment_attempts!
             end
           end
         end
@@ -402,7 +402,7 @@ class EmailTest < ActiveSupport::TestCase
     # otp_expires_at is "-infinity". ActiveSupport returns... Time?
     # AR might return nil if logic converts invalid date? No, -infinity is valid.
     # Test expects nil.
-    # I should assert UNLOCKED (locked_at: -infinity) and EXPIRED (lapses_at: -infinity).
+    # I should assert UNLOCKED (locked_at: -infinity) and EXPIRED (discarded_at: -infinity).
     assert(
       email.otp_expires_at.is_a?(Time) ||
       email.otp_expires_at.to_s == "-infinity" ||

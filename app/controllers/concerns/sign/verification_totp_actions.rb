@@ -6,14 +6,14 @@ module Sign
     extend ActiveSupport::Concern
 
     def new
-      return unless require_reauth_session!
+      return unless require_step_up_session!
       return if redirect_if_recent_verification_for_get!
 
       nil unless require_method_available!(:totp)
     end
 
     def create
-      return unless require_reauth_session!
+      return unless require_step_up_session!
       return if redirect_if_recent_verification_for_post!
       return unless require_method_available!(:totp)
 
@@ -24,7 +24,7 @@ module Sign
       end
 
       if verify_totp!
-        consume_reauth_session!
+        consume_step_up_session!
       else
         record_failed_step_up_attempt!(:totp)
         render :new, status: :unprocessable_content

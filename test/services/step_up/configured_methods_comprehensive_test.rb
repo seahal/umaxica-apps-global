@@ -4,7 +4,7 @@
 require "test_helper"
 
 class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
-  fixtures :users
+  fixtures :clients
 
   test "returns empty array for nil subject" do
     assert_equal [], StepUp::ConfiguredMethods.call(nil)
@@ -26,35 +26,35 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
     assert_not StepUp::ConfiguredMethods.configured_totp?(Object.new)
   end
 
-  test "configured_email? returns true for user with user_emails" do
-    user = users(:one)
+  test "configured_email? returns true for user with client_emails" do
+    user = clients(:one)
     result = StepUp::ConfiguredMethods.configured_email?(user)
-    expected = user.user_emails.exists?(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES)
+    expected = user.client_emails.exists?(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES)
 
     assert_equal expected, result
   end
 
-  test "configured_passkey? returns true for user with user_passkeys" do
-    user = users(:one)
+  test "configured_passkey? returns true for user with client_passkeys" do
+    user = clients(:one)
     result = StepUp::ConfiguredMethods.configured_passkey?(user)
-    expected = user.user_passkeys.active.exists?
+    expected = user.client_passkeys.active.exists?
 
     assert_equal expected, result
   end
 
-  test "configured_totp? returns false for user without user_one_time_passwords" do
-    user = users(:one)
+  test "configured_totp? returns false for user without client_one_time_passwords" do
+    user = clients(:one)
     result = StepUp::ConfiguredMethods.configured_totp?(user)
-    expected = user.user_one_time_passwords.exists?(
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+    expected = user.client_one_time_passwords.exists?(
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
     )
 
     assert_equal expected, result
   end
 
   test "call includes email_otp when user has emails" do
-    user = users(:one)
-    if user.user_emails.exists?(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES)
+    user = clients(:one)
+    if user.client_emails.exists?(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES)
       assert_includes StepUp::ConfiguredMethods.call(user), :email_otp
     else
       assert_not_includes StepUp::ConfiguredMethods.call(user), :email_otp
@@ -62,9 +62,9 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "call includes passkey when user has passkeys" do
-    user = users(:one)
+    user = clients(:one)
     result = StepUp::ConfiguredMethods.call(user)
-    if user.user_passkeys.active.exists?
+    if user.client_passkeys.active.exists?
       assert_includes result, :passkey
     else
       assert_not_includes result, :passkey
@@ -83,13 +83,13 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
     assert_not StepUp::ConfiguredMethods.configured_passkey?(visitor)
   end
 
-  test "configured_passkey? with staff_passkeys" do
+  test "configured_passkey? with operator_passkeys" do
     staff = Operator.new(status_id: OperatorIdentityStatus::NOTHING)
 
     assert_not StepUp::ConfiguredMethods.configured_passkey?(staff)
   end
 
-  test "configured_email? with staff_emails" do
+  test "configured_email? with operator_emails" do
     staff = Operator.new(status_id: OperatorIdentityStatus::NOTHING)
 
     assert_not StepUp::ConfiguredMethods.configured_email?(staff)

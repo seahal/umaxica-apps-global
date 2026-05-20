@@ -31,75 +31,77 @@ class RetainableTest < ActiveSupport::TestCase
     @dummy = DummyRetainable.new
   end
 
-  test "accessible? returns true if lapses_at is in the future" do
-    @dummy.lapses_at = 1.hour.from_now
+  test "accessible? returns true if discarded_at is in the future" do
+    @dummy.discarded_at = 1.hour.from_now
 
     assert_predicate @dummy, :accessible?
 
-    @dummy.lapses_at = Retainable::SENTINEL
+    @dummy.discarded_at = Retainable::SENTINEL
 
     assert_predicate @dummy, :accessible?
   end
 
-  test "accessible? returns false if lapses_at is in the past" do
-    @dummy.lapses_at = 1.hour.ago
+  test "accessible? returns false if discarded_at is in the past" do
+    @dummy.discarded_at = 1.hour.ago
 
     assert_not @dummy.accessible?
   end
 
-  test "lapsed? returns true if lapses_at is in the past" do
-    @dummy.lapses_at = 1.hour.ago
+  test "lapsed? returns true if discarded_at is in the past" do
+    @dummy.discarded_at = 1.hour.ago
 
     assert_predicate @dummy, :lapsed?
   end
 
-  test "purgeable? returns true if purge_at is in the past" do
-    @dummy.purge_at = 1.hour.ago
+  test "purgeable? returns true if purged_at is in the past" do
+    @dummy.purged_at = 1.hour.ago
 
     assert_predicate @dummy, :purgeable?
   end
 
   test "defaults use infinity sentinel" do
-    assert_equal Float::INFINITY, @dummy.lapses_at
-    assert_equal Float::INFINITY, @dummy.purge_at
+    assert_equal Float::INFINITY, @dummy.discarded_at
+    assert_equal Float::INFINITY, @dummy.purged_at
   end
 
-  test "validates lapses_at <= purge_at" do
-    @dummy.lapses_at = 2.hours.from_now
-    @dummy.purge_at = 1.hour.from_now
+  test "validates discarded_at <= purged_at" do
+    @dummy.discarded_at = 2.hours.from_now
+    @dummy.purged_at = 1.hour.from_now
 
     assert_not @dummy.valid?
-    assert_includes @dummy.errors[:lapses_at], "must be <= purge_at"
+    assert_includes @dummy.errors[:discarded_at], "must be <= purged_at"
   end
 
   test "validates retention times not before created_at on update" do
     @dummy.created_at = 2.hours.ago
     @dummy.validation_context = :update
 
-    @dummy.lapses_at = 3.hours.ago
+    @dummy.discarded_at = 3.hours.ago
 
     assert_not @dummy.valid?
-    assert_includes @dummy.errors[:lapses_at], "must be >= created_at"
+    assert_includes @dummy.errors[:discarded_at], "must be >= created_at"
 
-    @dummy.purge_at = 3.hours.ago
+    @dummy.purged_at = 3.hours.ago
     @dummy.valid?
 
-    assert_includes @dummy.errors[:purge_at], "must be >= created_at"
+    assert_includes @dummy.errors[:purged_at], "must be >= created_at"
   end
 
   test "schedule_retention! raises ArgumentError if times are invalid" do
-    assert_raises(ArgumentError) { @dummy.schedule_retention!(lapses_at: 1.hour.ago, purge_at: 1.hour.from_now) }
-    assert_raises(ArgumentError) { @dummy.schedule_retention!(lapses_at: 1.hour.from_now, purge_at: 1.hour.ago) }
-    assert_raises(ArgumentError) { @dummy.schedule_retention!(lapses_at: 2.hours.from_now, purge_at: 1.hour.from_now) }
+    assert_raises(ArgumentError) { @dummy.schedule_retention!(discarded_at: 1.hour.ago, purged_at: 1.hour.from_now) }
+    assert_raises(ArgumentError) { @dummy.schedule_retention!(discarded_at: 1.hour.from_now, purged_at: 1.hour.ago) }
+    assert_raises(ArgumentError) {
+      @dummy.schedule_retention!(discarded_at: 2.hours.from_now, purged_at: 1.hour.from_now)
+    }
   end
 
   test "schedule_retention! updates attributes if valid" do
     future_lapses = 1.day.from_now
     future_purge = 2.days.from_now
 
-    @dummy.schedule_retention!(lapses_at: future_lapses, purge_at: future_purge)
+    @dummy.schedule_retention!(discarded_at: future_lapses, purged_at: future_purge)
 
-    assert_equal future_lapses, @dummy.lapses_at
-    assert_equal future_purge, @dummy.purge_at
+    assert_equal future_lapses, @dummy.discarded_at
+    assert_equal future_purge, @dummy.purged_at
   end
 end

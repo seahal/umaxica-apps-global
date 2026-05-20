@@ -11,7 +11,7 @@ class Apex::Org::AccountsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_match(
-      %r{\Ahttp://#{Regexp.escape(ENV.fetch("ID_STAFF_URL", "id.org.localhost"))}/authorize\?},
+      %r{\Ahttp://#{Regexp.escape(ENV.fetch("ID_STAFF_URL", "id.org.localhost"))}/oauth/authorize\?},
       response.location,
     )
     assert_includes response.location, "client_id=apex_org"

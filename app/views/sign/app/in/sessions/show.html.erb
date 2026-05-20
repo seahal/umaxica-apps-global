@@ -23,7 +23,7 @@
           <h2>
             <%= t("sign.app.in.session.active_sessions") %>
             <span>
-              (<%= @active_sessions.count %>/<%= UserToken::MAX_SESSIONS_PER_USER %>)
+              (<%= @active_sessions.count %>/<%= ClientToken::MAX_SESSIONS_PER_USER %>)
             </span>
           </h2>
         </div>

@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_passkeys
-# Database name: guest
+# Database name: com_principal
 #
 #  id           :bigint           not null, primary key
 #  description  :string           default(""), not null
@@ -31,7 +31,7 @@
 #  fk_rails_...  (status_id => visitor_passkey_statuses.id)
 #  fk_rails_...  (visitor_id => visitors.id)
 #
-class VisitorPasskey < GuestRecord
+class VisitorPasskey < ComPrincipalRecord
   include PublicId
   include MultiFactorStatusCredential
 
@@ -41,7 +41,7 @@ class VisitorPasskey < GuestRecord
 
   belongs_to :visitor, inverse_of: :visitor_passkeys
   multi_factor_status_owner :visitor
-  belongs_to :status, class_name: "VisitorPasskeyStatus", optional: true
+  belongs_to :status, class_name: "VisitorPasskeyStatus"
 
   scope :active, -> { where(status_id: VisitorPasskeyStatus::ACTIVE) }
 
@@ -65,7 +65,14 @@ class VisitorPasskey < GuestRecord
   def enforce_visitor_passkey_limit
     return unless visitor_id
 
-    count = self.class.where(visitor_id: visitor_id).count
+    count =
+      if visitor&.visitor_passkeys&.loaded?
+        visitor.visitor_passkeys.count { |passkey| passkey != self }
+      else
+        operation = -> { self.class.where(visitor_id: visitor_id).count }
+        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
+      end
+
     return if count < MAX_PASSKEYS_PER_VISITOR
 
     errors.add(:base, :too_many, message: "exceeds maximum passkeys per visitor (#{MAX_PASSKEYS_PER_VISITOR})")

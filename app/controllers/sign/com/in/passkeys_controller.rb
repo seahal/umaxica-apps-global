@@ -4,7 +4,7 @@
 module Sign
   module Com
     module In
-      class PasskeysController < ApplicationController
+      class PasskeysController < GuestController
         include Sign::Webauthn
         include Sign::PasskeyAuthentication
         include Sign::PasskeyAuthenticationHelpers
@@ -17,8 +17,6 @@ module Sign
         include MinimumResponseBudget
         include SessionLimitGate
         include CloudflareTurnstile
-
-        before_action :reject_logged_in_session
 
         def new
         end
@@ -98,7 +96,7 @@ module Sign
 
         def perform_passkey_sign_in(passkey)
           rt = retrieve_redirect_parameter_for_checkpoint
-          complete_sign_in_or_start_mfa!(
+          establish_signed_in_session!(
             passkey.visitor, rt: rt, ri: params[:ri], auth_method: "passkey",
           )
         end

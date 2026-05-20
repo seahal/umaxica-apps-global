@@ -29,11 +29,31 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     assert_match %r{/auth/apple}, response.location
   end
 
-  test "start remains a compatibility alias for valid provider" do
-    post start_sign_app_social_authentication_path(provider: "google_app", ri: "jp")
+  test "continue with sign up entry issues social sign up cycle" do
+    post continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp"),
+         params: {
+           entry: "sign_up",
+           rt: Base64.urlsafe_encode64("/after-social"),
+         }
 
     assert_response :redirect
     assert_match %r{/auth/google_app}, response.location
+
+    cycle = ClientSignUpCycle.order(:id).last
+
+    assert_equal "google", cycle.entry_method
+    assert_equal "google", cycle.social_provider
+    assert_equal "/after-social", cycle.return_to
+    assert_equal "social_callback", cycle.step
+  end
+
+  test "start path is not routable" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "/social/auth/google_app/start",
+        method: :post,
+      )
+    end
   end
 
   test "continue redirects to sign-in with alert for unsupported provider" do

@@ -4,19 +4,22 @@
 # == Schema Information
 #
 # Table name: staff_tokens
-# Database name: token
+# Database name: org_ticket
 #
 #  id                            :bigint           not null, primary key
 #  dbsc_challenge                :text
 #  dbsc_challenge_issued_at      :datetime
 #  dbsc_public_key               :jsonb
 #  device_id_digest              :string
+#  discarded_at                  :datetime         default(Infinity), not null
 #  dpop_jkt                      :string
-#  lapses_at                     :datetime         default(Infinity), not null
 #  last_step_up_at               :datetime
 #  last_step_up_scope            :string
 #  last_used_at                  :datetime
-#  purge_at                      :datetime         default(Infinity), not null
+#  oidc_jti                      :uuid
+#  oidc_scope                    :string
+#  oidc_sid                      :uuid
+#  purged_at                     :datetime         default(Infinity), not null
 #  refresh_token_digest          :binary
 #  refresh_token_generation      :integer          default(0), not null
 #  rotated_at                    :datetime
@@ -24,9 +27,11 @@
 #  updated_at                    :datetime         not null
 #  dbsc_session_id               :string
 #  device_id                     :string           default(""), not null
+#  device_session_id             :bigint
+#  oidc_client_id                :string(64)
+#  oidc_connection_id            :bigint
 #  public_id                     :string(21)       default(""), not null
 #  refresh_token_family_id       :string
-#  session_id                    :string
 #  staff_id                      :bigint           not null
 #  staff_token_binding_method_id :bigint           default(0), not null
 #  staff_token_dbsc_status_id    :bigint           default(0), not null
@@ -35,15 +40,22 @@
 #
 # Indexes
 #
+#  index_staff_tokens_on_created_at                     (created_at)
 #  index_staff_tokens_on_dbsc_session_id                (dbsc_session_id) UNIQUE
 #  index_staff_tokens_on_device_id                      (device_id)
 #  index_staff_tokens_on_device_id_digest               (device_id_digest)
+#  index_staff_tokens_on_device_session_id              (device_session_id)
+#  index_staff_tokens_on_discarded_at                   (discarded_at)
+#  index_staff_tokens_on_oidc_connection_id             (oidc_connection_id)
+#  index_staff_tokens_on_oidc_jti                       (oidc_jti)
+#  index_staff_tokens_on_oidc_sid                       (oidc_sid)
 #  index_staff_tokens_on_public_id                      (public_id) UNIQUE
-#  index_staff_tokens_on_purge_at                       (purge_at)
+#  index_staff_tokens_on_purged_at                      (purged_at)
 #  index_staff_tokens_on_refresh_token_digest           (refresh_token_digest) UNIQUE
 #  index_staff_tokens_on_refresh_token_family_id        (refresh_token_family_id)
-#  index_staff_tokens_on_session_id                     (session_id)
+#  index_staff_tokens_on_rotated_at                     (rotated_at)
 #  index_staff_tokens_on_staff_id_and_last_step_up_at   (staff_id,last_step_up_at)
+#  index_staff_tokens_on_staff_id_and_oidc_client_id    (staff_id,oidc_client_id)
 #  index_staff_tokens_on_staff_token_binding_method_id  (staff_token_binding_method_id)
 #  index_staff_tokens_on_staff_token_dbsc_status_id     (staff_token_dbsc_status_id)
 #  index_staff_tokens_on_staff_token_kind_id            (staff_token_kind_id)
@@ -51,6 +63,7 @@
 #
 # Foreign Keys
 #
+#  fk_rails_...                                      (device_session_id => device_sessions.id)
 #  fk_staff_tokens_on_staff_token_binding_method_id  (staff_token_binding_method_id => staff_token_binding_methods.id)
 #  fk_staff_tokens_on_staff_token_dbsc_status_id     (staff_token_dbsc_status_id => staff_token_dbsc_statuses.id)
 #  fk_staff_tokens_on_staff_token_kind_id            (staff_token_kind_id => staff_token_kinds.id)
@@ -58,8 +71,8 @@
 #
 
 # Refresh tokens are persisted as digests only.
-# The public_id is used as the session identifier (sid).
-class OperatorToken < TokenRecord
+# OIDC sid/jti are protocol identifiers; public_id remains the token row identifier.
+class OperatorToken < OrgTicketRecord
   self.table_name = "staff_tokens"
   include ::PublicId
   include ::RefreshTokenable
@@ -67,6 +80,7 @@ class OperatorToken < TokenRecord
   include ::Retainable
   include ::TokenStatusManagement
   include ::DbscBindable
+  include ::SessionOidcConnection
 
   DBSC_BINDING_METHOD_CLASS = OperatorTokenBindingMethod
   DBSC_STATUS_CLASS = OperatorTokenDbscStatus
@@ -75,20 +89,25 @@ class OperatorToken < TokenRecord
   DELETION_GRACE_PERIOD = 1.day
   MAX_SESSIONS_PER_STAFF = 1
   MAX_TOTAL_SESSIONS_PER_STAFF = 2
+  session_oidc_connection_config actor_name: :staff, connection_class: OperatorOidcConnection
 
   belongs_to :staff, class_name: "Operator"
   belongs_to :staff_token_status, class_name: "OperatorTokenStatus"
-  belongs_to :staff_token_kind, class_name: "OperatorTokenKind", optional: true
+  belongs_to :staff_token_kind, class_name: "OperatorTokenKind"
   belongs_to :staff_token_binding_method, class_name: "OperatorTokenBindingMethod"
   belongs_to :staff_token_dbsc_status, class_name: "OperatorTokenDbscStatus"
+  belongs_to :oidc_connection, class_name: "OperatorOidcConnection"
+  belongs_to :device_session, class_name: "OperatorDeviceSession", inverse_of: :staff_tokens
   has_many :staff_verifications, class_name: "OperatorVerification",
                                  foreign_key: :staff_token_id,
                                  dependent: :delete_all,
                                  inverse_of: :staff_token
-  has_one :reauth_session,
-          class_name: "OperatorReauthSession",
+  has_one :step_up_session,
+          class_name: "OperatorStepUpSession",
           foreign_key: :staff_token_id,
-          inverse_of: :staff_token
+          inverse_of: :staff_token,
+          strict_loading: false,
+          dependent: :destroy
   attribute :staff_token_status_id, default: OperatorTokenStatus::ACTIVE
   attribute :staff_token_kind_id, default: OperatorTokenKind::BROWSER_WEB
   attribute :staff_token_binding_method_id, default: OperatorTokenBindingMethod::NOTHING
@@ -96,16 +115,10 @@ class OperatorToken < TokenRecord
 
   validates :public_id, uniqueness: true, length: { maximum: 21 }
 
-  before_create :ensure_session_id
-
   validate :enforce_concurrent_session_limit, on: :create
   attr_accessor :skip_session_limit_check
 
   private
-
-  def ensure_session_id
-    self.session_id = public_id if session_id.blank?
-  end
 
   # This is a model-level validation to provide a friendly error message to the user.
   # The primary enforcement of the session limit is done by a database trigger,

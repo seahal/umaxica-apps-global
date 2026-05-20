@@ -8,7 +8,7 @@ class TurnstileFormsTest < ActionDispatch::IntegrationTest
     # Map of paths that contain Turnstile forms with turbo disabled
     # Format: [Host ENV Name, Path, Description]
     @turnstile_form_paths = [
-      { name: "Sign::App registration emails", env_key: "ID_SERVICE_URL", path: "/sign/up/emails/new" },
+      { name: "Sign::App registration email", env_key: "ID_SERVICE_URL", path: "/sign/up/email/new" },
       { name: "Sign::App authentication email", env_key: "ID_SERVICE_URL", path: "/sign/in/email/new" },
       # { name: "Sign::Org registration emails", env_key: "ID_STAFF_URL", path: "/registration/emails/new" },
       # { name: "Sign::Org registration passkeys", env_key: "ID_STAFF_URL", path: "/registration/passkeys/new" },

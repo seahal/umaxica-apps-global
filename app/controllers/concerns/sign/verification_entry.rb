@@ -9,18 +9,18 @@ module Sign
       return_to_param = params[:return_to].presence || params[:rt].presence
 
       if params[:scope].present? && return_to_param.present?
-        start_reauth_session!(scope: params[:scope], return_to_param: return_to_param)
+        start_step_up_session!(scope: params[:scope], return_to_param: return_to_param)
       end
 
-      if current_reauth_session.present?
-        return unless require_reauth_session!
+      if current_step_up_session.present?
+        return unless require_step_up_session!
       elsif verification_recent_for_get?(scope: @actor_token&.last_step_up_scope)
         flash.now[:notice] = I18n.t(verification_success_notice_key)
       end
 
       @available_methods = available_step_up_methods
     rescue ActionController::BadRequest
-      clear_reauth_state! if respond_to?(:clear_reauth_state!, true)
+      clear_step_up_state! if respond_to?(:clear_step_up_state!, true)
       redirect_to(
         verification_invalid_request_redirect_path(ri: params[:ri]),
         alert: I18n.t("auth.step_up.invalid_request"),

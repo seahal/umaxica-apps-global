@@ -3,9 +3,7 @@
 
 module Apex
   module App
-    class AccountsController < ApplicationController
-      auth_required!
-
+    class AccountsController < PrivateController
       def index
       end
     end

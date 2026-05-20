@@ -39,7 +39,7 @@ module MinimumResponseBudget
   end
 
   def timing_protection_sleep_enabled?
-    !Rails.env.test? || ENV["ENABLE_TIMING_PROTECTION_IN_TEST"] == "1"
+    true
   end
 
   def minimum_response_budget_ms

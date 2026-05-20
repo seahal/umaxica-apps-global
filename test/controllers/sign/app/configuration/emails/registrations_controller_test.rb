@@ -6,15 +6,15 @@ require "test_helper"
 class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :users, :user_statuses, :user_token_statuses, :user_token_kinds, :user_email_statuses,
-           :user_chronicle_events, :user_chronicle_levels
+  fixtures :clients, :client_statuses, :client_token_statuses, :client_token_kinds, :client_email_statuses,
+           :client_chronicle_events, :client_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     cookies["csrf_token"] = csrf_token_value
-    @user = users(:one)
-    @token = UserToken.create!(
+    @user = clients(:one)
+    @token = ClientToken.create!(
       user: @user,
     )
     satisfy_user_verification(@token)
@@ -52,8 +52,8 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
   end
 
   test "registration new allows bootstrap when multi factor status is unconfigured" do
-    user = User.create!(status_id: UserStatus::NOTHING)
-    token = UserToken.create!(user_id: user.id)
+    user = Client.create!(status_id: ClientStatus::NOTHING)
+    token = ClientToken.create!(user_id: user.id)
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
     headers = request_headers.merge(
       "X-TEST-CURRENT-USER" => user.id.to_s,
@@ -65,17 +65,17 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     end
 
     assert_response :success
-    assert_equal UserMultiFactorStatus::UNCONFIGURED, user.reload.multi_factor_status_id
+    assert_equal ClientMultiFactorStatus::UNCONFIGURED, user.reload.multi_factor_status_id
   end
 
   test "registration new requires step up when multi factor status is active" do
-    user = User.create!(status_id: UserStatus::NOTHING)
-    UserEmail.create!(
+    user = Client.create!(status_id: ClientStatus::NOTHING)
+    ClientEmail.create!(
       user: user,
       address: "app-active-email-bootstrap@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
-    token = UserToken.create!(user_id: user.id)
+    token = ClientToken.create!(user_id: user.id)
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
     headers = request_headers.merge(
       "X-TEST-CURRENT-USER" => user.id.to_s,
@@ -92,7 +92,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_email", query["scope"]
-    assert_equal UserMultiFactorStatus::ACTIVE, user.reload.multi_factor_status_id
+    assert_equal ClientMultiFactorStatus::ACTIVE, user.reload.multi_factor_status_id
   end
 
   test "registration edit renders stealth turnstile" do
@@ -114,8 +114,32 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     assert_includes response.body, "turnstile.execute"
   end
 
+  test "create accepts browser submitted client email params without pass code validation" do
+    assert_enqueued_emails 1 do
+      post sign_app_configuration_emails_registration_url(ri: "jp"),
+           params: {
+             client_email: {
+               address: "config-browser-scope@example.com",
+               promotional: "0",
+               notifiable: "1",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: request_headers
+    end
+
+    assert_response :redirect
+    assert_redirected_to edit_sign_app_configuration_emails_registration_url(ri: "jp")
+
+    user_email = @user.client_emails.order(:created_at).last
+
+    assert_equal "config-browser-scope@example.com", user_email.address
+    assert_equal ClientEmailStatus::UNVERIFIED, user_email.user_email_status_id
+    assert_empty user_email.errors[:pass_code]
+  end
+
   test "create sends OTP email" do
-    assert_no_difference("User.count") do
+    assert_no_difference("Client.count") do
       assert_enqueued_emails 1 do
         post sign_app_configuration_emails_registration_url(ri: "jp"),
              params: {
@@ -131,9 +155,9 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     assert_response :redirect
     assert_redirected_to edit_sign_app_configuration_emails_registration_url(ri: "jp")
 
-    user_email = @user.user_emails.order(:created_at).last
+    user_email = @user.client_emails.order(:created_at).last
 
-    assert_equal UserEmailStatus::UNVERIFIED, user_email.user_email_status_id
+    assert_equal ClientEmailStatus::UNVERIFIED, user_email.user_email_status_id
   end
 
   test "create stores requested email preference flags" do
@@ -150,7 +174,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_response :redirect
 
-    user_email = @user.user_emails.order(:created_at).last
+    user_email = @user.client_emails.order(:created_at).last
 
     assert_not user_email.promotional
     assert_not user_email.notifiable
@@ -168,7 +192,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
            headers: request_headers
     end
 
-    user_email = @user.user_emails.order(:created_at).last
+    user_email = @user.client_emails.order(:created_at).last
 
     assert_not_nil user_email
     otp_data = user_email.get_otp
@@ -176,12 +200,12 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_difference(
       -> {
-        UserChronicle.where(
-          actor_type: "User",
+        ClientChronicle.where(
+          actor_type: "Client",
           actor_id: @user.id,
-          subject_type: "User",
+          subject_type: "Client",
           subject_id: @user.id,
-          event_id: UserChronicleEvent::EMAIL_REGISTERED,
+          event_id: ClientChronicleEvent::EMAIL_REGISTERED,
         ).count
       },
       1,
@@ -196,7 +220,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     end
 
     assert_redirected_to sign_app_configuration_emails_url(ri: "jp")
-    assert_equal UserEmailStatus::VERIFIED, user_email.reload.user_email_status_id
+    assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
     assert_equal @user.id, user_email.user_id
     assert_not_nil @token.reload.last_step_up_at
     assert_equal "configuration_email", @token.last_step_up_scope
@@ -214,7 +238,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
            headers: request_headers
     end
 
-    user_email = @user.user_emails.order(:created_at).last
+    user_email = @user.client_emails.order(:created_at).last
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
     patch sign_app_configuration_emails_registration_url(ri: "jp"),
@@ -227,13 +251,14 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("turnstile_error")
-    assert_equal UserEmailStatus::UNVERIFIED, user_email.reload.user_email_status_id
+    assert_equal ClientEmailStatus::UNVERIFIED, user_email.reload.user_email_status_id
   end
 
   test "bootstrap email registration satisfies email configuration step-up" do
-    bootstrap_user = users(:two)
-    bootstrap_token = UserToken.create!(user: bootstrap_user)
+    bootstrap_user = clients(:two)
+    bootstrap_token = ClientToken.create!(user: bootstrap_user)
     satisfy_user_verification(bootstrap_token)
+    bootstrap_token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
 
     bootstrap_headers = request_headers.merge(
       "X-TEST-CURRENT-USER" => bootstrap_user.id.to_s,
@@ -251,7 +276,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
            headers: bootstrap_headers
     end
 
-    user_email = bootstrap_user.user_emails.order(:created_at).last
+    user_email = bootstrap_user.client_emails.order(:created_at).last
     otp_data = user_email.get_otp
     code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
@@ -293,7 +318,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     assert_response :redirect
     assert_redirected_to edit_sign_app_configuration_emails_registration_url(ri: "jp", rt: rt)
 
-    user_email = @user.user_emails.order(:created_at).last
+    user_email = @user.client_emails.order(:created_at).last
     otp_data = user_email.get_otp
     code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
@@ -306,7 +331,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
           headers: request_headers
 
     assert_redirected_to return_to
-    assert_equal UserEmailStatus::VERIFIED, user_email.reload.user_email_status_id
+    assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
   end
 
   test "edit falls back to latest unverified email when session is missing" do
@@ -327,7 +352,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
   end
 
   test "edit renders OTP resend control" do
-    rt = Base64.urlsafe_encode64(sign_app_configuration_challenge_path(ri: "jp"))
+    rt = Base64.urlsafe_encode64(sign_app_configuration_mfa_challenge_path(ri: "jp"))
 
     post sign_app_configuration_emails_registration_url(ri: "jp", rt: rt),
          params: {
@@ -357,7 +382,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
          },
          headers: request_headers
 
-    user_email = @user.user_emails.order(:created_at).last
+    user_email = @user.client_emails.order(:created_at).last
     original_counter = user_email.otp_counter
 
     travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
@@ -399,7 +424,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
          },
          headers: request_headers
 
-    user_email = @user.user_emails.order(:created_at).last
+    user_email = @user.client_emails.order(:created_at).last
 
     assert_not_nil user_email
     session[:email_registration_public_id] = user_email.public_id
@@ -426,7 +451,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
          },
          headers: request_headers
 
-    user_email = @user.user_emails.order(:created_at).last
+    user_email = @user.client_emails.order(:created_at).last
 
     assert_not_nil user_email
     session[:email_registration_public_id] = user_email.public_id

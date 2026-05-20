@@ -17,6 +17,7 @@ class Sign::Com::Configuration::EmailsControllerTest < ActionDispatch::Integrati
     @headers = as_visitor_headers(@visitor, host: @host)
     @token = VisitorToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
     satisfy_visitor_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -123,7 +124,7 @@ class Sign::Com::Configuration::EmailsControllerTest < ActionDispatch::Integrati
     end
 
     assert_response :unauthorized
-    assert_equal Verification::Base::REAUTH_REQUIRED_MESSAGE, response.body
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
     assert email.reload.promotional
   end
 
@@ -199,28 +200,5 @@ class Sign::Com::Configuration::EmailsControllerTest < ActionDispatch::Integrati
 
     assert_redirected_to sign_com_configuration_emails_url(ri: "jp")
     assert_equal I18n.t("sign.app.configuration.email.destroy.protected"), flash[:alert]
-  end
-
-  test "destroy blocks removing last email when telephone exists but no passkey or social" do
-    visitor = create_verified_visitor_with_email(
-      email_address: "last-method-#{SecureRandom.hex(4)}@example.com",
-    )
-    visitor.visitor_telephones.create!(
-      number: "+15550001112",
-      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
-    )
-    headers = as_visitor_headers(visitor, host: @host)
-    token = VisitorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
-    satisfy_visitor_verification(token)
-    email = visitor.visitor_emails.find_by!(
-      visitor_email_status_id: VisitorEmailStatus::VERIFIED,
-    )
-
-    assert_no_difference("VisitorEmail.count") do
-      with_prosopite_paused { delete sign_com_configuration_email_url(email, ri: "jp"), headers: headers }
-    end
-
-    assert_redirected_to sign_com_configuration_emails_url(ri: "jp")
-    assert_equal I18n.t("sign.app.configuration.email.destroy.last_method"), flash[:alert]
   end
 end

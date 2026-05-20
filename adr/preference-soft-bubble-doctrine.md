@@ -5,6 +5,25 @@
 > **Partial supersession (2026-05-13):** `adr/actor-current-facade.md` supersedes this ADR's
 > application-facing read API. `Actor::Preference` is the value-object shape, and application code
 > reads it through `Actor.preference`.
+>
+> **Placement update (2026-05-18):** Session-side surface preference families now live in
+> `app_setting`, `org_setting`, and `com_setting`. Actor-local preferences stay in the matching
+> principal database.
+>
+> **Runtime overlay update (2026-05-19):** `Actor.preference` is the effective request runtime
+> preference. Normal authenticated requests build it from the verified access-token `prf` claim,
+> then overlay valid request-local `lx`, `ct`, and `tz` parameters when explicitly present. The
+> overlay is not a write path and must never be copied back to the database or JWT.
+>
+> **Preference edit entry update (2026-05-19):** Logged-in HTML preference edit screens are a
+> bounded DB -> JWT refresh point. They may copy the actor-local preference DB value into the
+> current surface preference and reissue the preference access-token before `Actor.preference` is
+> initialized, so edits made in another environment are visible on the edit screen.
+>
+> **Surface write-boundary update (2026-05-19):** Preference setting writes belong to the `sign`
+> surfaces. `apex` and `jump` consume the resolved runtime preference through `Actor.preference` and
+> must treat preference state as read-only. Request context overlays, RP rendering, and jump
+> redirects are not preference write paths.
 
 ## Context
 
@@ -14,8 +33,8 @@ planning documents disagree:
 
 - `adr/setting-preference-remove-polymorphic-owner.md` describes a `settings_preferences`
   polymorphic-owner table that does not exist.
-- `plans/backlog/gh628-move-preferences-to-setting-db.md` plans to move all session-side preferences
-  to one `setting` database; this was abandoned (only `com_preference_*` moved).
+- `plans/backlog/gh628-move-preferences-to-setting-db.md` planned to move all session-side
+  preferences to one database; this was abandoned. Each surface now has its own setting database.
 - `Preference::StorageAdapter`, the dual-read / dual-write layer that GH-628 introduced, has been
   removed.
 - `adr/current-context-boundary-by-engine.md` explicitly notes that a single-app `Current` design
@@ -23,20 +42,21 @@ planning documents disagree:
 
 The current factual state (2026-05-06) is:
 
-| DB          | Preference tables hosted                                                                 | Note                                                                                                   |
-| ----------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `principal` | `app_preference_*`, `user_preference_*`, `staff_preference_*` ⚠️, `user_app_preferences` | App TLD session-side + User actor-side; **`staff_preference_*` is out-of-place here**                  |
-| `operator`  | `org_preference_*`, `staff_org_preferences`                                              | Org TLD session-side; `staffs` (identity) and `staff_passkeys` / `staff_emails` / etc. also in this DB |
-| `setting`   | `com_preference_*`, `customer_preference_*` (move in progress)                           | Com TLD preference (both session-side and actor-side)                                                  |
-| `guest`     | `customer_preferences` (move in progress, leaving)                                       | Com TLD authentication DB (`customers` + `customer_passkeys` / `_emails` / etc.) — by design           |
+| DB              | Preference tables hosted | Note                            |
+| --------------- | ------------------------ | ------------------------------- |
+| `app_setting`   | `app_preference_*`       | App TLD session-side preference |
+| `app_principal` | `user_preference_*`      | App actor-side local preference |
+| `org_setting`   | `org_preference_*`       | Org TLD session-side preference |
+| `org_principal` | `staff_preference_*`     | Org actor-side local preference |
+| `com_setting`   | `com_preference_*`       | Com TLD session-side preference |
+| `com_principal` | `visitor_preference_*`   | Com actor-side local preference |
 
 Relevant runtime code is already in place:
 
-- `app/models/actor.rb` defines `Actor < ActiveSupport::CurrentAttributes` with a `preference`
-  slot.
+- `app/models/actor.rb` defines `Actor < ActiveSupport::CurrentAttributes` with a `preference` slot.
 - `app/models/actor/preference.rb` defines `Actor::Preference`, an immutable value object with a
   `from_jwt` constructor and a `NULL` instance for guests / bearer-only requests.
-- `app/controllers/concerns/current_support.rb` resolves `Actor.preference` via a three-stage
+- `app/controllers/concerns/actor_support.rb` resolves `Actor.preference` via a three-stage
   fallback: actor-side DB record → JWT `prf` claim → `NULL`.
 
 Past plans assumed two things that we now reject:
@@ -57,40 +77,54 @@ We adopt the **Preference Soft Bubble Doctrine**:
 The preference subsystem maps to TLDs as follows. Each TLD's preference state stays inside its own
 bubble so that token / preference data does not bleed across TLDs:
 
-- **app TLD** → `principal` bubble (`AppPreference` + `UserPreference` + `User` + User auth)
-- **com TLD** → `setting` bubble for preference + `guest` bubble for authentication. The split is
-  intentional: `guest` is com TLD's authentication DB (`customers` + `customer_passkeys` / `_emails`
-  / `_telephones` / `_secrets`) and the name is historical.
-- **org TLD** → `operator` bubble (`OrgPreference` + `OperatorPreference`(target) + `Staff` + Staff
-  auth)
+- **app TLD** → `app_setting` for `AppPreference`, `app_principal` for `UserPreference` and auth.
+- **org TLD** → `org_setting` for `OrgPreference`, `org_principal` for `OperatorPreference` and
+  auth.
+- **com TLD** → `com_setting` for `ComPreference`, `com_principal` for `VisitorPreference` and auth.
 
 Each database is a **soft bubble**: changes inside one bubble must not require coordinated changes
 in other bubbles. This is a deliberate constraint to limit blast radius. We do not pursue
 cross-database consolidation.
 
-Two known structural anomalies are being corrected as one-time exits, and these are the only
-structural DB changes permitted under this doctrine:
+The current placement keeps session-side and actor-side preference state separate:
 
-- **com TLD**: `customer_preferences` moves `guest` → `setting` so that com preference state is
-  co-located. See `plans/backlog/customer-preferences-move-to-setting-db.md`.
-- **org TLD**: `staff_preferences` moves `principal` → `operator` so that org preference state is
-  co-located with `staffs` and Staff credentials. See
-  `plans/backlog/staff-preference-move-to-operator-db.md`.
+- `AppPreference` lives in `app_setting`; `UserPreference` lives in `app_principal`.
+- `OrgPreference` lives in `org_setting`; `OperatorPreference` lives in `org_principal`.
+- `ComPreference` lives in `com_setting`; `VisitorPreference` lives in `com_principal`.
 
-After both moves complete, login-time double-write between session-side and actor-side
-(`Preference::Adoption`, `Preference::Core#sync_to_resource_preference!`) becomes a same-DB
-operation in all three TLDs, and `Preference::Adoption#resolve_cross_db_option_id` (currently
-required to bridge the cross-DB sync for org and com TLDs) becomes dead code.
+Login-time sync between session-side and actor-side preferences is therefore an explicit
+cross-database synchronization boundary.
 
 ### 2. Interface is unified through `Actor::Preference`
 
 `Actor::Preference` is the only runtime read interface for preference values. Application code
 (controllers, views, services) reads preference state via `Actor.preference.<field>` and never
-reaches into per-DB preference models for runtime reads. The differences between DB shapes are
-absorbed at the `CurrentSupport` boundary, not pushed up into callers.
+reaches into per-DB preference models for runtime reads. This includes `apex` and `jump`, which are
+preference consumers, not preference setting writers. The differences between DB shapes are absorbed
+at the `ActorSupport` boundary, not pushed up into callers.
 
-Writes still go to the per-DB models (since the bubbles are real), but read-side coupling to those
-models is to be removed over time.
+For normal authenticated requests, `Actor.preference` is the effective request runtime preference:
+
+```text
+DB -> access-token JWT prf -> Actor.preference
+request lx/ct/tz -> Actor.preference request overlay
+```
+
+Valid request-local `lx`, `ct`, and `tz` parameters may change the current request's effective
+language, theme, or timezone. They do not update the database, reissue JWTs, or mutate persistent
+preference state. If a token says `lx=ja` and a request says `lx=en`, the request renders in English
+while the persistent preference remains Japanese.
+
+Logged-in HTML preference edit screens are a bounded exception to the normal runtime cache path.
+Before initializing `Actor.preference`, they may read the actor-local preference database, copy it
+to the current surface preference, and issue a fresh access-token JWT. This exception exists only
+for preference screen entry; it is not a generic database fallback for normal pages or broken JWTs.
+
+Explicit preference setting writes still go to the per-DB models (since the bubbles are real), but
+those writes are owned by the `sign` preference surfaces. `apex` and `jump` must not persist
+preference changes; they may only consume `Actor.preference` and apply request-local overlays that
+do not write the database or reissue JWTs. Read-side coupling to the per-DB models is to be removed
+over time.
 
 ### 3. Session-side preference families are not retired
 
@@ -142,11 +176,10 @@ The following are explicitly out of scope of this ADR and will be addressed in s
 - `adr/setting-preference-remove-polymorphic-owner.md` — withdrawn (premise table never built)
 - `plans/archive/gh628-move-preferences-to-setting-db.md` — rejected predecessor plan
 - `plans/backlog/legacy-preference-models-retirement-plan.md` — to be rewritten under this doctrine
-- `plans/backlog/customer-preferences-move-to-setting-db.md` — com TLD bubble closure (one of two
-  allowed DB moves)
-- `plans/backlog/staff-preference-move-to-operator-db.md` — org TLD bubble closure (the other
-  allowed DB move)
+- `plans/archive/customer-preferences-move-to-com-preference-db.md` — superseded com TLD bubble
+  closure note
+- `plans/archive/staff-preference-move-to-operator-db.md` — historical org TLD bubble closure note
 - `plans/backlog/gh578-preference-consolidation.md` — `Actor::Preference` runtime consolidation
   (still relevant)
-- `plans/backlog/current-support-integration-test-coverage.md` — `CurrentSupport` request-lifecycle
-  test coverage gap
+- `plans/archive/actor-support-integration-test-coverage.md` — `ActorSupport` request-lifecycle test
+  coverage gap

@@ -33,14 +33,26 @@ The following points are especially important:
 
 ## 3. Authentication Methods
 
-### Available methods
+### Available methods and entry points
 
 - Email (OTP)
-- Telephone (SMS OTP)
 - Passkey
-- Secret
+- TOTP (`app`)
+- Passcode
 - Google social login (`app` and `org` only)
 - Apple social login (`app` only)
+
+Telephone (SMS OTP) is a sign-in or sign-up entry point and contact identifier. It is not itself an
+AAL authentication method. Knowing the telephone number may identify the actor and route them to an
+actual verifier such as TOTP, passcode, or passkey.
+
+Email address, telephone number, Google identity, and Apple identity are personal identifiers. Email
+address and telephone number are also contact identifiers. A sign-in flow that requires a personal
+identifier must require both the identifier and an AAL1 verifier; knowing only the identifier, or
+knowing only the verifier without the required identifier, must not complete login.
+
+Email address is not an AAL method by itself. Email functions as AAL1 or AAL2 only when email OTP
+verification succeeds.
 
 Social login provider availability is surface-specific:
 
@@ -52,10 +64,11 @@ Social login provider availability is surface-specific:
 
 ### Basic policy for authentication methods
 
-- Email / Telephone / Secret must not be updated in place
+- Email / Telephone / Passcode must not be updated in place
 - Changes must be handled as "delete + add new"
 - Passkey is the exception; only the display name may be changed
-- Social login (Google / Apple) is limited to linking and unlinking
+- Social login (Google / Apple) can be used for sign-in/sign-up on supported surfaces and can be
+  linked or unlinked through credential management
 
 ### Duplicate sign-up policy
 
@@ -131,12 +144,12 @@ If removing all passkeys, at least one of the following must exist:
 - Google
 - Apple
 
-Secret is not counted in this condition.
+Passcode is not counted in this condition.
 
-### Secret
+### Passcode
 
 - In principle, it may be removed
-- Do not create a state where login is possible only through Secret after removal
+- Do not create a state where login is possible only through passcode after removal
 
 ### Email / Telephone (contact methods)
 

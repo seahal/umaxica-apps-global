@@ -2,16 +2,16 @@
 # == Schema Information
 #
 # Table name: app_preferences
-# Database name: principal
+# Database name: app_setting
 #
 #  id                       :bigint           not null, primary key
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
+#  discarded_at             :datetime         default(Infinity), not null
 #  jti                      :string
-#  lapses_at                :datetime         default(Infinity), not null
-#  purge_at                 :datetime         default(Infinity), not null
+#  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -33,7 +33,7 @@
 #  index_app_preferences_on_device_id_digest   (device_id_digest)
 #  index_app_preferences_on_jti                (jti) UNIQUE
 #  index_app_preferences_on_public_id          (public_id) UNIQUE
-#  index_app_preferences_on_purge_at           (purge_at)
+#  index_app_preferences_on_purged_at          (purged_at)
 #  index_app_preferences_on_replaced_by_id     (replaced_by_id)
 #  index_app_preferences_on_status_id          (status_id)
 #  index_app_preferences_on_token_digest       (token_digest)
@@ -49,14 +49,14 @@
 
 # frozen_string_literal: true
 
-class AppPreference < PrincipalRecord
+class AppPreference < AppSettingRecord
   include Retainable
   include ::PublicId
   include ::SingleUseToken
   include ::Preference::Resettable
   include ::DbscBindable
 
-  alias_attribute :expires_at, :lapses_at
+  alias_attribute :expires_at, :discarded_at
 
   DBSC_BINDING_METHOD_CLASS = AppPreferenceBindingMethod
   DBSC_STATUS_CLASS = AppPreferenceDbscStatus
@@ -102,12 +102,8 @@ class AppPreference < PrincipalRecord
            foreign_key: :subject_id,
            inverse_of: :app_preference,
            dependent: :destroy
-  has_many :user_app_preferences,
-           dependent: :delete_all,
-           inverse_of: :app_preference
   belongs_to :replaced_by,
-             class_name: "AppPreference",
-             optional: true
+             class_name: "AppPreference"
   has_many :replacements,
            class_name: "AppPreference",
            foreign_key: :replaced_by_id,
@@ -117,4 +113,17 @@ class AppPreference < PrincipalRecord
   validates :jti, uniqueness: true, allow_nil: true
   attribute :binding_method_id, default: AppPreferenceBindingMethod::NOTHING
   attribute :dbsc_status_id, default: AppPreferenceDbscStatus::NOTHING
+
+  before_validation :default_replaced_by_to_self, on: :create
+  after_create :persist_self_replacement
+
+  private
+
+  def default_replaced_by_to_self
+    self.replaced_by ||= self
+  end
+
+  def persist_self_replacement
+    update_column(:replaced_by_id, id) if replaced_by_id.blank?
+  end
 end

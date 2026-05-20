@@ -15,12 +15,14 @@
       <p>
         <%= t("sign.org.ups.new.recruit_prompt") %>
       </p>
-      <%= link_to t("sign.org.ups.new.recruit_link_text"),
-                  apex_com_root_url(
-                    host: ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost"),
-                    ri: params[:ri],
-                    lx: params[:lx],
-                  ) %>
+      <% direct_message_url =
+           ENV["ORG_SIGN_UP_DIRECT_MESSAGE_URL"].presence ||
+           apex_com_root_url(
+             host: ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost"),
+             ri: params[:ri],
+             lx: params[:lx],
+           ) %>
+      <%= link_to t("sign.org.ups.new.recruit_link_text"), direct_message_url %>
     </div>
 
     <div>

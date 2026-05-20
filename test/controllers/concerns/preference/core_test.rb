@@ -165,8 +165,8 @@ class Preference::CoreTest < ActiveSupport::TestCase
       status_id: ComPreferenceStatus::NOTHING,
       binding_method_id: ComPreferenceBindingMethod::NOTHING,
       dbsc_status_id: ComPreferenceDbscStatus::NOTHING,
-      lapses_at: 20.years.from_now,
-      purge_at: 20.years.from_now,
+      discarded_at: 20.years.from_now,
+      purged_at: 20.years.from_now,
     )
     resource_pref = VisitorPreference.create!(visitor: Visitor.create!)
     @controller.instance_variable_set(:@preferences, preference)

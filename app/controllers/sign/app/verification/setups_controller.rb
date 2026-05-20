@@ -4,13 +4,11 @@
 module Sign
   module App
     module Verification
-      class SetupsController < Sign::App::ApplicationController
-        auth_required!
-
-        before_action :authenticate_user!
+      class SetupsController < Sign::App::PrivateController
+        before_action :authenticate_client!
 
         def new
-          @rt = params.expect(:rt).to_s.presence
+          @rt = params(:rt).to_s.presence
           @return_to = setup_return_to_path(@rt, root_path: sign_app_configuration_path(ri: params[:ri]))
           @missing_methods = step_up_supported_methods - configured_step_up_methods
 

@@ -5,11 +5,11 @@ require "test_helper"
 require "support/auth_helpers"
 
 class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_token_statuses, :staff_token_kinds
+  fixtures :operators, :operator_identity_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @host = ENV["ID_STAFF_URL"] || "id.org.localhost"
     OperatorToken.where(staff_id: @staff.id).delete_all
     # Create a token for the current session
@@ -18,11 +18,11 @@ class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::Integra
       "Host" => @host,
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @current_token.public_id,
-      "User-Agent" => AuthHelpers::MODERN_USER_AGENT,
+      "Client-Agent" => AuthHelpers::MODERN_USER_AGENT,
     }.freeze
     @unauthenticated_headers = {
       "Host" => @host,
-      "User-Agent" => AuthHelpers::MODERN_USER_AGENT,
+      "Client-Agent" => AuthHelpers::MODERN_USER_AGENT,
     }.freeze
   end
 
@@ -58,7 +58,7 @@ class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::Integra
   test "index excludes rotated and refresh-expired sessions from JSON response" do
     OperatorToken.where(staff_id: @staff.id).where.not(id: @current_token.id).delete_all
 
-    refresh_expired = create_staff_session_token!(lapses_at: 1.minute.ago)
+    refresh_expired = create_staff_session_token!(discarded_at: 1.minute.ago)
 
     rotated_token = create_staff_session_token!
     rotated_refresh = rotated_token.rotate_refresh_token!
@@ -132,7 +132,7 @@ class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::Integra
   end
 
   test "destroy does not revoke session belonging to another staff" do
-    other_staff = staffs(:two)
+    other_staff = operators(:two)
     other_staff_token = create_staff_session_token!(staff: other_staff)
 
     # Try to destroy another staff's token using current staff's session
@@ -183,14 +183,14 @@ class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::Integra
   test "others does not revoke already-expired sessions" do
     already_expired = create_staff_session_token!
     already_expired.revoke!
-    original_expired_at = already_expired.reload.lapses_at
+    original_expired_at = already_expired.reload.discarded_at
 
     delete others_sign_org_configuration_sessions_url(ri: "jp"), headers: @headers
 
     assert_response :see_other
     already_expired.reload
     # expired_at should not change (already filtered out by visible session scope)
-    assert_equal original_expired_at.to_i, already_expired.lapses_at.to_i
+    assert_equal original_expired_at.to_i, already_expired.discarded_at.to_i
   end
 
   # ===================================================================
@@ -285,7 +285,7 @@ class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::Integra
       {
         staff_id: staff.id,
         staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-        lapses_at: 1.day.from_now,
+        discarded_at: 1.day.from_now,
       }.merge(attributes),
     )
     token.save!(validate: false)

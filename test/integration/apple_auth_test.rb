@@ -2,16 +2,15 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/social_callback_test_helper"
 
 class AppleAuthTest < ActionDispatch::IntegrationTest
-  fixtures :user_statuses, :user_social_apple_statuses
+  fixtures :client_statuses, :client_social_apple_statuses
 
   setup do
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @callback_headers = SocialCallbackTestHelper.callback_headers(@host)
+    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    @callback_headers = social_callback_headers(@host)
   end
 
   teardown do
@@ -32,20 +31,22 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: browser_headers.merge(@callback_headers)
+    prepare_social_login(provider: "apple")
+
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+         headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_dashboard_url(ri: "jp")
     follow_redirect!
 
-    user = UserSocialApple.find_by(uid: "apple_uid_new").user
+    user = ClientSocialApple.find_by(uid: "apple_uid_new").user
 
-    assert_equal UserStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
-    assert_nil UserEmail.find_by(user: user)
+    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
+    assert_nil ClientEmail.find_by(user: user)
   end
 
   test "callback initializes preference timezone options when missing" do
-    SettingRecord.connected_to(role: :writing) do
+    ComSettingRecord.connected_to(role: :writing) do
       AppPreferenceTimezone.delete_all
       AppPreferenceRegion.delete_all
       AppPreferenceLanguage.delete_all
@@ -70,20 +71,22 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: browser_headers.merge(@callback_headers)
+    prepare_social_login(provider: "apple")
+
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+         headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_dashboard_url(ri: "jp")
 
-    SettingRecord.connected_to(role: :writing) do
+    ComSettingRecord.connected_to(role: :writing) do
       assert AppPreferenceTimezoneOption.exists?(id: AppPreferenceTimezoneOption::ASIA_TOKYO)
       assert_predicate AppPreferenceTimezone, :exists?
     end
   end
 
   test "should sign in existing user normally" do
-    user = User.create!(status_id: UserStatus::ACTIVE)
-    UserSocialApple.create!(
+    user = Client.create!(status_id: ClientStatus::ACTIVE)
+    ClientSocialApple.create!(
       user: user,
       uid: "apple_uid_existing",
       provider: "apple",
@@ -103,8 +106,10 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: browser_headers.merge(@callback_headers)
+    prepare_social_login(provider: "apple")
+
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+         headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_dashboard_url(ri: "jp")
 
@@ -131,13 +136,15 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
+    prepare_social_login(provider: "apple")
+
     uid = OmniAuth.config.mock_auth[:apple].uid
 
     # Should create user and identity
-    assert_difference("User.count", 1) do
-      assert_difference("UserSocialApple.count", 1) do
-        get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-            headers: browser_headers.merge(@callback_headers)
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientSocialApple.count", 1) do
+        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+             headers: browser_headers.merge(@callback_headers)
       end
     end
 
@@ -148,19 +155,19 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:notice], :present?, "Should have success message"
 
     # Verify user and identity were created
-    identity = UserSocialApple.find_by(uid: uid)
+    identity = ClientSocialApple.find_by(uid: uid)
 
-    assert_not_nil identity, "UserSocialApple identity should exist"
-    assert_not_nil identity.user, "User should be associated with identity"
+    assert_not_nil identity, "ClientSocialApple identity should exist"
+    assert_not_nil identity.user, "Client should be associated with identity"
 
     # CRITICAL: Verify NO email was saved
     user = identity.user
 
-    assert_nil UserEmail.find_by(user: user), "NO UserEmail should exist for social login user"
+    assert_nil ClientEmail.find_by(user: user), "NO ClientEmail should exist for social login user"
   end
 
-  test "Apple login without email does NOT save email to UserSocialApple" do
-    # Even though UserSocialApple schema may have an email column (legacy),
+  test "Apple login without email does NOT save email to ClientSocialApple" do
+    # Even though ClientSocialApple schema may have an email column (legacy),
     # we MUST NOT write to it during social login
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
@@ -174,21 +181,23 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
+    prepare_social_login(provider: "apple")
+
     uid = OmniAuth.config.mock_auth[:apple].uid
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: browser_headers.merge(@callback_headers)
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+         headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
 
-    identity = UserSocialApple.find_by(uid: uid)
+    identity = ClientSocialApple.find_by(uid: uid)
 
     assert_not_nil identity
 
     # Verify email column is NOT populated (if it exists in schema)
     # This ensures we don't accidentally write email even if the column exists
     if identity.respond_to?(:email)
-      assert_nil identity.email, "UserSocialApple.email should be nil"
+      assert_nil identity.email, "ClientSocialApple.email should be nil"
     end
   end
 
@@ -208,25 +217,33 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
+    prepare_social_login(provider: "google_app")
+
     uid = OmniAuth.config.mock_auth[:google_app].uid
 
-    assert_difference("User.count", 1) do
-      assert_difference("UserSocialGoogle.count", 1) do
-        get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientSocialGoogle.count", 1) do
+        get sign_app_auth_callback_url(provider: "google_app", ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
     end
 
     assert_redirected_to sign_app_dashboard_url(ri: "jp")
 
-    identity = UserSocialGoogle.find_by(uid: uid)
+    identity = ClientSocialGoogle.find_by(uid: uid)
 
     assert_not_nil identity
-    assert_nil UserEmail.find_by(user: identity.user), "NO UserEmail for Google login user"
+    assert_nil ClientEmail.find_by(user: identity.user), "NO ClientEmail for Google login user"
 
     # Verify email column is NOT populated
     if identity.respond_to?(:email)
-      assert_nil identity.email, "UserSocialGoogle.email should be nil"
+      assert_nil identity.email, "ClientSocialGoogle.email should be nil"
     end
+  end
+
+  private
+
+  def prepare_social_login(provider:)
+    @social_state = seed_social_auth_session(provider: provider, intent: "login", ri: "jp")
   end
 end

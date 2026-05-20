@@ -2,9 +2,7 @@
 # frozen_string_literal: true
 
 module Sign::Org
-  class InsController < ApplicationController
-    before_action :reject_logged_in_session
-
+  class InsController < In::GuestController
     def new
     end
   end

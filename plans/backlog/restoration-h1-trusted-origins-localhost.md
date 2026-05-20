@@ -5,7 +5,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 ## Source
 
 - `adr/audit/audit-findings-2026-03-30.md` (Critical finding)
-- `adr/notes/env-trusted-origins.md`
+- `notes/env-trusted-origins.md`
 
 ## Goal
 

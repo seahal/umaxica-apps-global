@@ -3,10 +3,8 @@
 
 module Apex
   module Org
-    class SitemapsController < Apex::PublicController
+    class SitemapsController < BareController
       include ::Sitemap
-
-      public_strict!
 
       def show
         show_xml

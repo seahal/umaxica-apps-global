@@ -1,52 +1,57 @@
-# 用語集（Glossary）
+# Glossary
 
-このドキュメントは、umaxica-app-jitレポジトリで使用されるドメイン固有の用語や略語、命名規則についてまとめたものです。新規参加者や開発者が理解しやすいよう、随時更新してください。
-
----
-
-## 基本用語
-
-- **ビジネス（Business）**
-  - サービス提供者や事業体を表すモデル。関連する情報や管理機能を持つ。
-
-- **ゲスト（Guest）**
-  - サービス利用者や顧客を表すモデル。予約や問い合わせなどの機能と連携。
-
-- **プロファイル（Profile）**
-  - ユーザーや事業体の詳細情報を管理するモデル。
-
-- **トークン（Token）**
-  - 認証や一時的なアクセス権を管理するための値。
-
-- **スペシャリティ（Speciality）**
-  - サービスや事業の専門分野・カテゴリ。
-
-- **アイデンティティ（Identity）**
-  - 認証・認可に関する情報や外部連携ID。
-
-- **通知（Notification）**
-  - ユーザーや事業体への各種通知機能。
+This document summarizes domain-specific terms, abbreviations, and naming conventions used in the
+umaxica-app-jit repository. Please update it regularly to make it easier for new participants and
+developers to understand.
 
 ---
 
-## 略語・命名規則
+## Basic terms
+
+- **Business**
+  - A model that represents a service provider or business entity. Contains related information and
+    management functions.
+
+- **Guest**
+  - A model that represents a service user or customer. Links with functions such as reservations
+    and inquiries.
+
+- **Profile**
+  - A model for managing detailed information about users and entities.
+
+- **Token**
+  - Values ​​for managing authentication and temporary access rights.
+
+- **Speciality**
+  - Specialized field/category of service or business.
+
+- **Identity**
+  - Information regarding authentication/authorization and external collaboration ID.
+
+- **Notification**
+  - Various notification functions for users and business entities.
+
+---
+
+## Abbreviations and naming conventions
 
 - **schema**
-  - DBスキーマ定義ファイル。各ドメインごとに分割管理。
+  - DB schema definition file. Separate management for each domain.
 
 - **migrate**
-  - マイグレーションファイル。DB構造変更用。
+  - migration file. For changing DB structure.
 
 - **controller / service / policy**
-  - Rails標準のMVC構成。ビジネスロジックはservice、権限管理はpolicyに分離。
+  - Rails standard MVC configuration. Business logic is separated into services and authority
+    management is separated into policies.
 
 ---
 
-## その他
+## others
 
-- 用語や命名規則は、プロジェクトの進行に合わせて追加・修正してください。
-- 不明な用語や新規追加時は、必ずこのファイルに追記してください。
+- Add or modify terms and naming conventions as the project progresses.
+- Be sure to add any unknown terms or new additions to this file.
 
 ---
 
-最終更新: 2025-11-10
+Last updated: 2025-11-10

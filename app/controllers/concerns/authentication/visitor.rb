@@ -54,7 +54,7 @@ module Authentication
     end
 
     def audit_class
-      ::UserChronicle
+      ::ClientChronicle
     end
 
     def resource_type
@@ -71,37 +71,42 @@ module Authentication
       super
     end
 
-    def test_header_key
-      Auth::IoKeys::Headers::TEST_CURRENT_RESOURCE
-    end
-
     def record_audit(event_id, resource:, actor: resource, context: {})
       return unless resource && event_id
 
       normalized_event_id =
         case event_id.to_s
-        when "LOGGED_IN" then UserChronicleEvent::LOGGED_IN
-        when "LOGGED_OUT" then UserChronicleEvent::LOGGED_OUT
-        when "LOGIN_FAILED" then UserChronicleEvent::LOGIN_FAILED
-        when "TOKEN_REFRESHED" then UserChronicleEvent::TOKEN_REFRESHED
+        when "LOGGED_IN" then ClientChronicleEvent::LOGGED_IN
+        when "LOGGED_OUT" then ClientChronicleEvent::LOGGED_OUT
+        when "LOGOUT" then ClientChronicleEvent::LOGOUT
+        when "LOGIN_FAILED" then ClientChronicleEvent::LOGIN_FAILED
+        when "TOKEN_REFRESHED" then ClientChronicleEvent::TOKEN_REFRESHED
         else event_id
         end
 
-      ChronicleRecord.connected_to(role: :writing) do
-        UserChronicle.create!(
-          actor_id: actor&.id || 0,
-          actor_type: actor&.class&.name || "Visitor",
-          subject_id: resource.id.to_s,
-          subject_type: "Visitor",
-          event_id: normalized_event_id,
-          level_id: UserChronicleLevel::NOTHING,
-          ip_address: request_ip_address,
-          occurred_at: Time.current,
-          context: context.presence || {},
-        )
-      end
+      operation =
+        lambda do
+          ChronicleRecord.connected_to(role: :writing) do
+            ClientChronicle.create!(
+              actor_id: actor&.id || 0,
+              actor_type: actor&.class&.name || "Visitor",
+              subject_id: resource.id.to_s,
+              subject_type: "Visitor",
+              event_id: normalized_event_id,
+              level_id: ClientChronicleLevel::NOTHING,
+              ip_address: request_ip_address,
+              occurred_at: Time.current,
+              context: context.presence || {},
+            )
+          end
+        end
+      defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
     rescue StandardError => e
-      Rails.logger.error("[Authentication::Visitor] audit write failed: #{e.class}: #{e.message}")
+      Rails.event.error(
+        "authentication.visitor.audit_write_failed",
+        error_class: e.class.name,
+        message: e.message,
+      )
       false
     end
 

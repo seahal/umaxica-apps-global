@@ -29,11 +29,11 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_select "footer" do
       assert_select "a"
       assert_select "a[href=?]", sign_com_root_url(ri: "jp"),
-                    text: I18n.t("sign.app.preferences.footer.home")
+                    text: I18n.t("sign.com.preferences.footer.home")
       assert_select "a[href=?]", sign_com_preference_url(ri: "jp"),
-                    text: I18n.t("sign.app.preferences.footer.preference")
+                    text: I18n.t("sign.com.preferences.footer.preference")
       assert_select "a[href=?]", sign_com_configuration_url(ri: "jp"),
-                    text: I18n.t("sign.app.preferences.footer.configuration")
+                    text: I18n.t("sign.com.preferences.footer.configuration")
     end
   end
 

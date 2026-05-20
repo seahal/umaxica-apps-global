@@ -5,9 +5,9 @@
 57 of 368 model files have no test file. This plan creates test files for all non-abstract models in
 that gap. The work is split into groups by pattern similarity to allow parallel execution.
 
-Abstract base models (`AvatarRecord`, `CommerceRecord`, `MessageRecord`, `OperatorRecord`,
-`PrincipalRecord`, `PublicationRecord`, `TokenRecord`) and `CustomerPreferenceRegionOption` are
-excluded — they are not directly instantiated or have no testable behavior.
+Abstract base models (`AvatarRecord`, `CommerceRecord`, `MessageRecord`, `OrgPrincipalRecord`,
+`AppPrincipalRecord`, `PublicationRecord`, `OrgTicketRecord`) and `CustomerPreferenceRegionOption`
+are excluded — they are not directly instantiated or have no testable behavior.
 
 ## Groups
 
@@ -15,14 +15,14 @@ excluded — they are not directly instantiated or have no testable behavior.
 
 These have non-trivial constraints, scopes, or time-based logic.
 
-| Model                  | Test file                                   | Key rules to cover                                                                                                                                                                                                                             |
-| ---------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CustomerPasskey`      | `test/models/customer_passkey_test.rb`      | `MAX_PASSKEYS_PER_CUSTOMER = 4`: below/at/above BVA; recovery identity required on create; `sign_count >= 0`; cascade delete with customer                                                                                                     |
-| `CustomerSecret`       | `test/models/customer_secret_test.rb`       | `MAX_SECRETS_PER_CUSTOMER = 10`: below/at/above BVA; `name` max 255; expiry boundary inclusive/exclusive; `usable_for_secret_sign_in?` and `verify_for_secret_sign_in!`; limit isolation per customer                                          |
-| `CustomerVerification` | `test/models/customer_verification_test.rb` | `token_digest` required and unique; `expires_at` required; `active?` true when not revoked and now < expires_at; `active?` false at exact expiry (boundary); `issue_for_token!` revokes all previous active verifications atomically           |
-| `ReauthSession`        | `test/models/reauth_session_test.rb`        | `method` inclusion in `METHODS` list; invalid method rejected; `status` inclusion in `STATUSES` list; invalid status rejected; `expired?` false 1 second before expires_at; `expired?` true at exact expires_at; `attempt_count >= 0` enforced |
-| `OperatorAccountMembership`        | `test/models/staff_operator_test.rb`        | `operator_id` uniqueness scoped to `staff_id`; same operator+staff rejected; same operator+different staff allowed                                                                                                                             |
-| `UserMember`           | `test/models/user_member_test.rb`           | `member_id` uniqueness scoped to `user_id`; same member+user rejected; same member+different user allowed                                                                                                                                      |
+| Model                       | Test file                                   | Key rules to cover                                                                                                                                                                                                                             |
+| --------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CustomerPasskey`           | `test/models/customer_passkey_test.rb`      | `MAX_PASSKEYS_PER_CUSTOMER = 4`: below/at/above BVA; recovery identity required on create; `sign_count >= 0`; cascade delete with customer                                                                                                     |
+| `CustomerSecret`            | `test/models/customer_secret_test.rb`       | `MAX_SECRETS_PER_CUSTOMER = 10`: below/at/above BVA; `name` max 255; expiry boundary inclusive/exclusive; `usable_for_secret_sign_in?` and `verify_for_secret_sign_in!`; limit isolation per customer                                          |
+| `CustomerVerification`      | `test/models/customer_verification_test.rb` | `token_digest` required and unique; `expires_at` required; `active?` true when not revoked and now < expires_at; `active?` false at exact expiry (boundary); `issue_for_token!` revokes all previous active verifications atomically           |
+| `ReauthSession`             | `test/models/reauth_session_test.rb`        | `method` inclusion in `METHODS` list; invalid method rejected; `status` inclusion in `STATUSES` list; invalid status rejected; `expired?` false 1 second before expires_at; `expired?` true at exact expires_at; `attempt_count >= 0` enforced |
+| `OperatorAccountMembership` | `test/models/staff_operator_test.rb`        | `operator_id` uniqueness scoped to `staff_id`; same operator+staff rejected; same operator+different staff allowed                                                                                                                             |
+| `UserMember`                | `test/models/user_member_test.rb`           | `member_id` uniqueness scoped to `user_id`; same member+user rejected; same member+different user allowed                                                                                                                                      |
 
 ### Group 2 — Preference Detail Models (12 models)
 

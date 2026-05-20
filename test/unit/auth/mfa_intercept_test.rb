@@ -4,46 +4,46 @@
 require "test_helper"
 
 # Unit tests for the MFA intercept logic in Authentication::Base.
-# Tests mfa_required_for?, complete_sign_in_or_start_mfa!, and related helpers.
+# Tests mfa_required_for?, establish_signed_in_session!, and related helpers.
 class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
-  fixtures :user_statuses
+  fixtures :client_statuses
 
   test "mfa_required_for? returns false for user without multi_factor_enabled" do
-    user = User.create!(multi_factor_enabled: false)
+    user = Client.create!(multi_factor_enabled: false)
     controller = build_test_controller
 
     assert_not controller.send(:mfa_required_for?, user)
   end
 
   test "mfa_required_for? returns true for user with multi_factor_enabled" do
-    user = User.create!(multi_factor_enabled: true)
+    user = Client.create!(multi_factor_enabled: true)
     controller = build_test_controller
 
     assert controller.send(:mfa_required_for?, user)
   end
 
   test "mfa_required_for? returns true for user with full multi_factor_id" do
-    user = User.create!(multi_factor_id: UserMultiFactor::FULL)
+    user = Client.create!(multi_factor_id: ClientMultiFactor::FULL)
     controller = build_test_controller
 
     assert controller.send(:mfa_required_for?, user)
   end
 
   test "mfa_required_for? returns false for user with nothing multi_factor_id" do
-    user = User.create!(multi_factor_id: UserMultiFactor::NOTHING)
+    user = Client.create!(multi_factor_id: ClientMultiFactor::NOTHING)
     controller = build_test_controller
 
     assert_not controller.send(:mfa_required_for?, user)
   end
 
-  test "mfa_required_for? returns false for non-User resources" do
+  test "mfa_required_for? returns false for non-Client resources" do
     controller = build_test_controller
 
     assert_not controller.send(:mfa_required_for?, nil)
   end
 
   test "check_totp_requirement returns mfa_required status for MFA user" do
-    user = User.create!(multi_factor_enabled: true)
+    user = Client.create!(multi_factor_enabled: true)
     controller = build_test_controller
 
     result = controller.send(:check_totp_requirement, user)
@@ -52,7 +52,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   end
 
   test "check_totp_requirement returns nil for non-MFA user" do
-    user = User.create!(multi_factor_enabled: false)
+    user = Client.create!(multi_factor_enabled: false)
     controller = build_test_controller
 
     result = controller.send(:check_totp_requirement, user)
@@ -85,7 +85,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   end
 
   test "complete_sign_in_or_start_mfa adds auth method to login audit context" do
-    user = User.create!(multi_factor_enabled: false)
+    user = Client.create!(multi_factor_enabled: false)
     controller = build_test_controller
     captured = nil
 
@@ -95,7 +95,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
     end
 
     result = controller.send(
-      :complete_sign_in_or_start_mfa!,
+      :establish_signed_in_session!,
       user,
       rt: nil,
       ri: "jp",
@@ -109,7 +109,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   end
 
   test "complete_sign_in_or_start_mfa preserves explicit audit context" do
-    user = User.create!(multi_factor_enabled: false)
+    user = Client.create!(multi_factor_enabled: false)
     controller = build_test_controller
     captured = nil
 
@@ -119,7 +119,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
     end
 
     controller.send(
-      :complete_sign_in_or_start_mfa!,
+      :establish_signed_in_session!,
       user,
       rt: nil,
       ri: "jp",
@@ -150,15 +150,15 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
         end
 
         define_method(:resource_class) do
-          ::User
+          ::Client
         end
 
         define_method(:token_class) do
-          UserToken
+          ClientToken
         end
 
         define_method(:audit_class) do
-          ::UserChronicle
+          ::ClientChronicle
         end
 
         define_method(:resource_type) do

@@ -7,7 +7,7 @@ module Sign
       module V0
         module In
           module Telephone
-            class OtpsController < ApplicationController
+            class OtpsController < Sign::Com::In::GuestController
               def create
                 result = Sign::In::OtpResendService.new(kind: :telephone, state: otp_params[:state]).call
                 render_result(result)

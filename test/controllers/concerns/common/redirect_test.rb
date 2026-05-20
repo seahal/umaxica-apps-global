@@ -62,4 +62,67 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "normalize_host downcases host" do
     assert_equal "example.com", Common::Redirect.normalize_host("HTTPS://EXAMPLE.COM")
   end
+
+  # --- Open-redirect regression guards -------------------------------------
+  #
+  # safe_internal_path / safe_return_path are the security boundary that keeps
+  # user-supplied return targets from redirecting off-site. These tests pin the
+  # rejection contract so a future refactor cannot silently widen it.
+
+  def redirect_helper
+    @redirect_helper ||=
+      Class.new(ApplicationController) { include Common::Redirect }.new
+  end
+
+  test "safe_internal_path rejects blank and control-character input" do
+    assert_nil redirect_helper.send(:safe_internal_path, nil)
+    assert_nil redirect_helper.send(:safe_internal_path, "")
+    assert_nil redirect_helper.send(:safe_internal_path, "/dash\nboard")
+    assert_nil redirect_helper.send(:safe_internal_path, "/dash\tboard")
+  end
+
+  test "safe_internal_path rejects absolute, scheme, host, and userinfo targets" do
+    assert_nil redirect_helper.send(:safe_internal_path, "https://evil.example/path")
+    assert_nil redirect_helper.send(:safe_internal_path, "//evil.example/path")
+    assert_nil redirect_helper.send(:safe_internal_path, "http://user:pass@evil.example/")
+    assert_nil redirect_helper.send(:safe_internal_path, "javascript:alert(1)")
+    assert_nil redirect_helper.send(:safe_internal_path, "relative/path")
+  end
+
+  test "safe_internal_path accepts clean internal paths and preserves query" do
+    assert_equal "/dashboard", redirect_helper.send(:safe_internal_path, "/dashboard")
+    assert_equal "/dashboard?a=1&b=2", redirect_helper.send(:safe_internal_path, "/dashboard?a=1&b=2")
+  end
+
+  test "safe_return_path rejects external hosts when no host is allowed" do
+    assert_nil redirect_helper.send(:safe_return_path, "https://evil.example/path")
+    assert_nil redirect_helper.send(:safe_return_path, "//evil.example/path")
+  end
+
+  test "safe_return_path rejects non-http schemes and userinfo even for allowed hosts" do
+    allowed = ["trusted.example.com"]
+
+    assert_nil redirect_helper.send(:safe_return_path, "ftp://trusted.example.com/x", allowed_hosts: allowed)
+    assert_nil redirect_helper.send(:safe_return_path, "javascript:alert(1)", allowed_hosts: allowed)
+    assert_nil redirect_helper.send(:safe_return_path, "https://u:p@trusted.example.com/x", allowed_hosts: allowed)
+  end
+
+  test "safe_return_path allows an explicitly allowed host and keeps only path and query" do
+    allowed = ["trusted.example.com"]
+
+    assert_equal "/welcome?ref=1",
+                 redirect_helper.send(
+                   :safe_return_path, "https://trusted.example.com/welcome?ref=1",
+                   allowed_hosts: allowed,
+                 )
+  end
+
+  test "generate_redirect_url drops off-site targets and round-trips internal ones" do
+    assert_nil redirect_helper.send(:generate_redirect_url, "https://evil.example/x")
+
+    encoded = redirect_helper.send(:generate_redirect_url, "/safe?a=1")
+
+    assert_not_nil encoded
+    assert_equal "/safe?a=1", redirect_helper.send(:safe_return_path, Base64.urlsafe_decode64(encoded))
+  end
 end

@@ -4,9 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class TelephonesController < ApplicationController
-        auth_required!
-
+      class TelephonesController < PrivateController
         include Sign::OperatorTelephoneRegistrable
         include ::Verification::Operator
 
@@ -21,11 +19,11 @@ module Sign
         end
 
         def edit
-          @staff_telephone = current_operator.staff_telephones.find(params.expect(:id))
+          @staff_telephone = current_operator.staff_telephones.find(params(:id))
         end
 
         def create
-          tel_params = params.expect(staff_telephone: [:raw_number, :number])
+          tel_params = params(staff_telephone: [:raw_number, :number])
           number = tel_params[:raw_number] || tel_params[:number]
 
           unless initiate_staff_telephone_verification(current_operator, number)
@@ -37,9 +35,9 @@ module Sign
         end
 
         def destroy
-          @staff_telephone = current_operator.staff_telephones.find(params.expect(:id))
+          @staff_telephone = current_operator.staff_telephones.find(params(:id))
 
-          unless removable_telephone?(@staff_telephone)
+          unless AuthMethodGuard.can_remove_telephone?(current_operator, @staff_telephone)
             redirect_to(
               sign_org_configuration_telephones_path,
               alert: t("sign.org.configuration.telephone.destroy.last_method"),
@@ -56,11 +54,6 @@ module Sign
         end
 
         private
-
-        def removable_telephone?(staff_telephone)
-          verified_staff_telephones_for(current_operator).where.not(id: staff_telephone.id).exists? ||
-            current_operator.staff_emails.exists?(staff_identity_email_status_id: [OperatorEmailStatus::ACTIVE, OperatorEmailStatus::VERIFIED])
-        end
 
         def verification_required_action?
           true

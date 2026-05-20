@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_18_044459) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -18,8 +18,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
 
   create_table "area_domain_occurrences", force: :cascade do |t|
     t.bigint "area_occurrence_id", null: false
-    t.datetime "created_at", null: false
     t.bigint "domain_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["area_occurrence_id", "domain_occurrence_id"], name: "idx_area_domain_occ_on_ids", unique: true
     t.index ["domain_occurrence_id"], name: "index_area_domain_occurrences_on_domain_occurrence_id"
@@ -27,8 +27,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
 
   create_table "area_email_occurrences", force: :cascade do |t|
     t.bigint "area_occurrence_id", null: false
-    t.datetime "created_at", null: false
     t.bigint "email_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["area_occurrence_id", "email_occurrence_id"], name: "idx_area_email_occ_on_ids", unique: true
     t.index ["email_occurrence_id"], name: "index_area_email_occurrences_on_email_occurrence_id"
@@ -36,8 +36,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
 
   create_table "area_ip_occurrences", force: :cascade do |t|
     t.bigint "area_occurrence_id", null: false
-    t.datetime "created_at", null: false
     t.bigint "ip_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["area_occurrence_id", "ip_occurrence_id"], name: "idx_area_ip_occ_on_ids", unique: true
     t.index ["ip_occurrence_id"], name: "index_area_ip_occurrences_on_ip_occurrence_id"
@@ -47,25 +47,25 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   end
 
   create_table "area_occurrences", force: :cascade do |t|
-    t.string "body", default: "", null: false
-    t.datetime "created_at", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.string "body", default: "", null: false
     t.bigint "status_id", default: 0, null: false
+    t.string "memo", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body"], name: "index_area_occurrences_on_body", unique: true
     t.index ["public_id"], name: "index_area_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_area_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_area_occurrences_on_purged_at"
     t.index ["status_id"], name: "index_area_occurrences_on_status_id"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_area_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_area_occurrences_retention_order"
   end
 
   create_table "area_staff_occurrences", force: :cascade do |t|
     t.bigint "area_occurrence_id", null: false
-    t.datetime "created_at", null: false
     t.bigint "staff_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["area_occurrence_id", "staff_occurrence_id"], name: "idx_area_staff_occ_on_ids", unique: true
     t.index ["staff_occurrence_id"], name: "index_area_staff_occurrences_on_staff_occurrence_id"
@@ -73,8 +73,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
 
   create_table "area_telephone_occurrences", force: :cascade do |t|
     t.bigint "area_occurrence_id", null: false
-    t.datetime "created_at", null: false
     t.bigint "telephone_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["area_occurrence_id", "telephone_occurrence_id"], name: "idx_area_telephone_occ_on_ids", unique: true
     t.index ["telephone_occurrence_id"], name: "index_area_telephone_occurrences_on_telephone_occurrence_id"
@@ -82,44 +82,44 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
 
   create_table "area_user_occurrences", force: :cascade do |t|
     t.bigint "area_occurrence_id", null: false
+    t.bigint "user_occurrence_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_occurrence_id", null: false
     t.index ["area_occurrence_id", "user_occurrence_id"], name: "idx_area_user_occ_on_ids", unique: true
     t.index ["user_occurrence_id"], name: "index_area_user_occurrences_on_user_occurrence_id"
   end
 
   create_table "area_visitor_occurrences", force: :cascade do |t|
     t.bigint "area_occurrence_id", null: false
+    t.bigint "visitor_occurrence_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "visitor_occurrence_id", null: false
     t.index ["area_occurrence_id", "visitor_occurrence_id"], name: "idx_area_visitor_occ_on_ids", unique: true
     t.index ["visitor_occurrence_id"], name: "index_area_visitor_occurrences_on_visitor_occurrence_id"
   end
 
   create_table "area_zip_occurrences", force: :cascade do |t|
     t.bigint "area_occurrence_id", null: false
+    t.bigint "zip_occurrence_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "zip_occurrence_id", null: false
     t.index ["area_occurrence_id", "zip_occurrence_id"], name: "idx_area_zip_occ_on_ids", unique: true
     t.index ["zip_occurrence_id"], name: "index_area_zip_occurrences_on_zip_occurrence_id"
   end
 
   create_table "domain_email_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "domain_occurrence_id", null: false
     t.bigint "email_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["domain_occurrence_id", "email_occurrence_id"], name: "idx_domain_email_occ_on_ids", unique: true
     t.index ["email_occurrence_id"], name: "index_domain_email_occurrences_on_email_occurrence_id"
   end
 
   create_table "domain_ip_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "domain_occurrence_id", null: false
     t.bigint "ip_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["domain_occurrence_id", "ip_occurrence_id"], name: "idx_domain_ip_occ_on_ids", unique: true
     t.index ["ip_occurrence_id"], name: "index_domain_ip_occurrences_on_ip_occurrence_id"
@@ -129,61 +129,61 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   end
 
   create_table "domain_occurrences", force: :cascade do |t|
-    t.string "body", default: "", null: false
-    t.datetime "created_at", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.string "body", default: "", null: false
     t.bigint "status_id", default: 0, null: false
+    t.string "memo", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body"], name: "index_domain_occurrences_on_body", unique: true
     t.index ["public_id"], name: "index_domain_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_domain_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_domain_occurrences_on_purged_at"
     t.index ["status_id"], name: "index_domain_occurrences_on_status_id"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_domain_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_domain_occurrences_retention_order"
   end
 
   create_table "domain_staff_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "domain_occurrence_id", null: false
     t.bigint "staff_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["domain_occurrence_id", "staff_occurrence_id"], name: "idx_domain_staff_occ_on_ids", unique: true
     t.index ["staff_occurrence_id"], name: "index_domain_staff_occurrences_on_staff_occurrence_id"
   end
 
   create_table "domain_telephone_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "domain_occurrence_id", null: false
     t.bigint "telephone_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["domain_occurrence_id", "telephone_occurrence_id"], name: "idx_domain_telephone_occ_on_ids", unique: true
     t.index ["telephone_occurrence_id"], name: "index_domain_telephone_occurrences_on_telephone_occurrence_id"
   end
 
   create_table "domain_user_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "domain_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["domain_occurrence_id", "user_occurrence_id"], name: "idx_domain_user_occ_on_ids", unique: true
     t.index ["user_occurrence_id"], name: "index_domain_user_occurrences_on_user_occurrence_id"
   end
 
   create_table "domain_zip_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "domain_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "zip_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["domain_occurrence_id", "zip_occurrence_id"], name: "idx_domain_zip_occ_on_ids", unique: true
     t.index ["zip_occurrence_id"], name: "index_domain_zip_occurrences_on_zip_occurrence_id"
   end
 
   create_table "email_ip_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "email_occurrence_id", null: false
     t.bigint "ip_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["email_occurrence_id", "ip_occurrence_id"], name: "idx_email_ip_occ_on_ids", unique: true
     t.index ["ip_occurrence_id"], name: "index_email_ip_occurrences_on_ip_occurrence_id"
@@ -193,64 +193,64 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   end
 
   create_table "email_occurrences", force: :cascade do |t|
-    t.string "body", default: "", null: false
-    t.datetime "created_at", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.string "body", default: "", null: false
     t.bigint "status_id", default: 0, null: false
+    t.string "memo", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body", "created_at"], name: "index_email_occurrences_on_body_created_at"
     t.index ["body"], name: "index_email_occurrences_on_body", unique: true
     t.index ["public_id"], name: "index_email_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_email_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_email_occurrences_on_purged_at"
     t.index ["status_id"], name: "index_email_occurrences_on_status_id"
     t.check_constraint "char_length(memo::text) <= 1000", name: "chk_email_occurrences_memo_length"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_email_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_email_occurrences_retention_order"
   end
 
   create_table "email_staff_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "email_occurrence_id", null: false
     t.bigint "staff_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["email_occurrence_id", "staff_occurrence_id"], name: "idx_email_staff_occ_on_ids", unique: true
     t.index ["staff_occurrence_id"], name: "index_email_staff_occurrences_on_staff_occurrence_id"
   end
 
   create_table "email_telephone_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "email_occurrence_id", null: false
     t.bigint "telephone_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["email_occurrence_id", "telephone_occurrence_id"], name: "idx_email_telephone_occ_on_ids", unique: true
     t.index ["telephone_occurrence_id"], name: "index_email_telephone_occurrences_on_telephone_occurrence_id"
   end
 
   create_table "email_user_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "email_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["email_occurrence_id", "user_occurrence_id"], name: "idx_email_user_occ_on_ids", unique: true
     t.index ["user_occurrence_id"], name: "index_email_user_occurrences_on_user_occurrence_id"
   end
 
   create_table "email_visitor_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "email_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "visitor_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["email_occurrence_id", "visitor_occurrence_id"], name: "idx_email_visitor_occ_on_ids", unique: true
     t.index ["visitor_occurrence_id"], name: "index_email_visitor_occurrences_on_visitor_occurrence_id"
   end
 
   create_table "email_zip_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "email_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "zip_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["email_occurrence_id", "zip_occurrence_id"], name: "idx_email_zip_occ_on_ids", unique: true
     t.index ["zip_occurrence_id"], name: "index_email_zip_occurrences_on_zip_occurrence_id"
   end
@@ -259,82 +259,82 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   end
 
   create_table "ip_occurrences", force: :cascade do |t|
-    t.string "body", default: "", null: false
-    t.datetime "created_at", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.string "body", default: "", null: false
     t.bigint "status_id", default: 0, null: false
+    t.string "memo", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body", "created_at"], name: "index_ip_occurrences_on_body_created_at"
     t.index ["body"], name: "index_ip_occurrences_on_body", unique: true
     t.index ["public_id"], name: "index_ip_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_ip_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_ip_occurrences_on_purged_at"
     t.index ["status_id"], name: "index_ip_occurrences_on_status_id"
     t.check_constraint "char_length(memo::text) <= 1000", name: "chk_ip_occurrences_memo_length"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_ip_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_ip_occurrences_retention_order"
   end
 
   create_table "ip_staff_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "ip_occurrence_id", null: false
     t.bigint "staff_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["ip_occurrence_id", "staff_occurrence_id"], name: "idx_ip_staff_occ_on_ids", unique: true
     t.index ["staff_occurrence_id"], name: "index_ip_staff_occurrences_on_staff_occurrence_id"
   end
 
   create_table "ip_telephone_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "ip_occurrence_id", null: false
     t.bigint "telephone_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["ip_occurrence_id", "telephone_occurrence_id"], name: "idx_ip_telephone_occ_on_ids", unique: true
     t.index ["telephone_occurrence_id"], name: "index_ip_telephone_occurrences_on_telephone_occurrence_id"
   end
 
   create_table "ip_user_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "ip_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["ip_occurrence_id", "user_occurrence_id"], name: "idx_ip_user_occ_on_ids", unique: true
     t.index ["user_occurrence_id"], name: "index_ip_user_occurrences_on_user_occurrence_id"
   end
 
   create_table "ip_visitor_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "ip_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "visitor_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["ip_occurrence_id", "visitor_occurrence_id"], name: "idx_ip_visitor_occ_on_ids", unique: true
     t.index ["visitor_occurrence_id"], name: "index_ip_visitor_occurrences_on_visitor_occurrence_id"
   end
 
   create_table "ip_zip_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "ip_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "zip_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["ip_occurrence_id", "zip_occurrence_id"], name: "idx_ip_zip_occ_on_ids", unique: true
     t.index ["zip_occurrence_id"], name: "index_ip_zip_occurrences_on_zip_occurrence_id"
   end
 
   create_table "jwt_anomaly_events", force: :cascade do |t|
-    t.string "alg", default: "", null: false
+    t.bigint "jwt_occurrence_id", null: false
     t.string "code", default: "", null: false
-    t.datetime "created_at", null: false
-    t.string "error_class", default: "", null: false
-    t.string "error_message", default: "", null: false
+    t.string "request_host", default: "", null: false
+    t.string "kid", default: "", null: false
+    t.string "alg", default: "", null: false
+    t.string "typ", default: "", null: false
     t.string "issuer", default: "", null: false
     t.string "jti", default: "", null: false
-    t.bigint "jwt_occurrence_id", null: false
-    t.string "kid", default: "", null: false
+    t.string "error_class", default: "", null: false
+    t.string "error_message", default: "", null: false
     t.jsonb "metadata", default: {}, null: false
     t.datetime "occurred_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.string "request_host", default: "", null: false
-    t.string "typ", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["code"], name: "index_jwt_anomaly_events_on_code"
     t.index ["jwt_occurrence_id"], name: "index_jwt_anomaly_events_on_jwt_occurrence_id"
@@ -347,20 +347,20 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
 
   create_table "jwt_occurrences", force: :cascade do |t|
     t.string "body", default: "", null: false
-    t.datetime "created_at", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
     t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
     t.bigint "status_id", default: 1, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body", "created_at"], name: "index_jwt_occurrences_on_body_and_created_at"
     t.index ["body"], name: "index_jwt_occurrences_on_body", unique: true
     t.index ["public_id"], name: "index_jwt_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_jwt_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_jwt_occurrences_on_purged_at"
     t.index ["status_id"], name: "index_jwt_occurrences_on_status_id"
     t.check_constraint "char_length(memo::text) <= 1000", name: "chk_jwt_occurrences_memo_length"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_jwt_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_jwt_occurrences_retention_order"
   end
 
   create_table "staff_occurrence_statuses", force: :cascade do |t|
@@ -368,47 +368,47 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   end
 
   create_table "staff_occurrences", force: :cascade do |t|
-    t.string "body", default: "", null: false
-    t.jsonb "context", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.string "event_type", default: "", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.string "body", default: "", null: false
     t.bigint "status_id", default: 0, null: false
+    t.string "memo", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "event_type", default: "", null: false
+    t.jsonb "context", default: {}, null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body"], name: "index_staff_occurrences_on_body", unique: true
     t.index ["event_type", "created_at"], name: "index_staff_occurrences_on_event_type_and_created_at"
     t.index ["public_id"], name: "index_staff_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_staff_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_staff_occurrences_on_purged_at"
     t.index ["status_id", "created_at"], name: "index_staff_occurrences_on_status_id_and_created_at"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_staff_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_staff_occurrences_retention_order"
   end
 
   create_table "staff_telephone_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "staff_occurrence_id", null: false
     t.bigint "telephone_occurrence_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["staff_occurrence_id", "telephone_occurrence_id"], name: "idx_staff_telephone_occ_on_ids", unique: true
     t.index ["telephone_occurrence_id"], name: "index_staff_telephone_occurrences_on_telephone_occurrence_id"
   end
 
   create_table "staff_user_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "staff_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["staff_occurrence_id", "user_occurrence_id"], name: "idx_staff_user_occ_on_ids", unique: true
     t.index ["user_occurrence_id"], name: "index_staff_user_occurrences_on_user_occurrence_id"
   end
 
   create_table "staff_zip_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "staff_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "zip_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["staff_occurrence_id", "zip_occurrence_id"], name: "idx_staff_zip_occ_on_ids", unique: true
     t.index ["zip_occurrence_id"], name: "index_staff_zip_occurrences_on_zip_occurrence_id"
   end
@@ -417,37 +417,37 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   end
 
   create_table "telephone_occurrences", force: :cascade do |t|
-    t.string "body", default: "", null: false
-    t.datetime "created_at", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.string "body", default: "", null: false
     t.bigint "status_id", default: 0, null: false
+    t.string "memo", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body", "created_at"], name: "index_telephone_occurrences_on_body_created_at"
     t.index ["body"], name: "index_telephone_occurrences_on_body", unique: true
     t.index ["public_id"], name: "index_telephone_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_telephone_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_telephone_occurrences_on_purged_at"
     t.index ["status_id"], name: "index_telephone_occurrences_on_status_id"
     t.check_constraint "char_length(memo::text) <= 1000", name: "chk_telephone_occurrences_memo_length"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_telephone_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_telephone_occurrences_retention_order"
   end
 
   create_table "telephone_user_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "telephone_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["telephone_occurrence_id", "user_occurrence_id"], name: "idx_telephone_user_occ_on_ids", unique: true
     t.index ["user_occurrence_id"], name: "index_telephone_user_occurrences_on_user_occurrence_id"
   end
 
   create_table "telephone_zip_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "telephone_occurrence_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "zip_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["telephone_occurrence_id", "zip_occurrence_id"], name: "idx_telephone_zip_occ_on_ids", unique: true
     t.index ["zip_occurrence_id"], name: "index_telephone_zip_occurrences_on_zip_occurrence_id"
   end
@@ -457,29 +457,29 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   end
 
   create_table "user_occurrences", force: :cascade do |t|
-    t.string "body", default: "", null: false
-    t.jsonb "context", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.string "event_type", default: "", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.string "body", default: "", null: false
     t.bigint "status_id", default: 0, null: false
+    t.string "memo", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "event_type", default: "", null: false
+    t.jsonb "context", default: {}, null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body"], name: "index_user_occurrences_on_body", unique: true
     t.index ["event_type", "created_at"], name: "index_user_occurrences_on_event_type_and_created_at"
     t.index ["public_id"], name: "index_user_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_user_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_user_occurrences_on_purged_at"
     t.index ["status_id", "created_at"], name: "index_user_occurrences_on_status_id_and_created_at"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_user_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_user_occurrences_retention_order"
   end
 
   create_table "user_zip_occurrences", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_occurrence_id", null: false
     t.bigint "zip_occurrence_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["user_occurrence_id", "zip_occurrence_id"], name: "idx_user_zip_occ_on_ids", unique: true
     t.index ["zip_occurrence_id"], name: "index_user_zip_occurrences_on_zip_occurrence_id"
   end
@@ -491,39 +491,39 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_13_130000) do
   create_table "visitor_occurrences", force: :cascade do |t|
     t.string "body", default: "", null: false
     t.jsonb "context", default: {}, null: false
-    t.datetime "created_at", null: false
     t.string "event_type", default: "", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
     t.bigint "status_id", default: 0, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["body"], name: "index_visitor_occurrences_on_body", unique: true
     t.index ["event_type", "created_at"], name: "index_visitor_occurrences_on_event_type_and_created_at"
     t.index ["public_id"], name: "index_visitor_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_visitor_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_visitor_occurrences_on_purged_at"
     t.index ["status_id", "created_at"], name: "index_visitor_occurrences_on_status_id_and_created_at"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_customer_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_customer_occurrences_retention_order"
   end
 
   create_table "zip_occurrence_statuses", force: :cascade do |t|
   end
 
   create_table "zip_occurrences", force: :cascade do |t|
-    t.string "body", default: "", null: false
-    t.datetime "created_at", null: false
-    t.datetime "lapses_at", default: ::Float::INFINITY, null: false
-    t.string "memo", default: "", null: false
     t.string "public_id", limit: 21, default: "", null: false
-    t.datetime "purge_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.string "body", default: "", null: false
     t.bigint "status_id", default: 0, null: false
+    t.string "memo", default: "", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "purged_at", precision: nil, default: ::Float::INFINITY, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.index ["body"], name: "index_zip_occurrences_on_body", unique: true
     t.index ["public_id"], name: "index_zip_occurrences_on_public_id", unique: true
-    t.index ["purge_at"], name: "index_zip_occurrences_on_purge_at"
+    t.index ["purged_at"], name: "index_zip_occurrences_on_purged_at"
     t.index ["status_id"], name: "index_zip_occurrences_on_status_id"
-    t.check_constraint "lapses_at <= purge_at", name: "chk_zip_occurrences_retention_order"
+    t.check_constraint "discarded_at <= purged_at", name: "chk_zip_occurrences_retention_order"
   end
 
   add_foreign_key "area_domain_occurrences", "area_occurrences", validate: false

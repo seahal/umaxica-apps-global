@@ -1,0 +1,224 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class SignUpStateMachineTest < ActiveSupport::TestCase
+  test "contact submission and verification advance the ticket" do
+    ticket = create_cycle(ClientSignUpCycle, entry_method: "email")
+
+    submit = SignUp::StateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
+    verify = SignUp::StateMachine.call(ticket: ticket.reload, event: :verify_contact, actor_context: nil)
+
+    assert_equal :advanced, submit.status
+    assert_equal :verify_contact, submit.next_event
+    assert_equal ClientSignUpCycleStatus::CONTACT_VERIFIED, ticket.reload.status_id
+    assert_equal "contact_verified", ticket.step
+    assert_equal :enter_guardrail, verify.next_event
+  end
+
+  test "expired tickets reject mutation before side effects" do
+    ticket = create_cycle(ClientSignUpCycle, issued_at: 2.minutes.ago, expires_at: 1.minute.ago)
+
+    result = SignUp::StateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
+
+    assert_equal :expired, result.status
+    assert_equal ClientSignUpCycleStatus::STARTED, ticket.reload.status_id
+    assert_equal "start", ticket.step
+  end
+
+  test "terminal tickets reject mutation" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      status_id: ClientSignUpCycleStatus::COMPLETED,
+      step: "completed",
+      completed_at: Time.current,
+    )
+
+    result = SignUp::StateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
+
+    assert_equal :invalid_transition, result.status
+    assert_equal ClientSignUpCycleStatus::COMPLETED, ticket.reload.status_id
+  end
+
+  test "com tickets reject social callback events" do
+    ticket = create_cycle(VisitorSignUpCycle, entry_method: "email")
+
+    result = SignUp::StateMachine.call(ticket: ticket, event: :start_social_callback, actor_context: nil)
+
+    assert_equal :invalid_transition, result.status
+    assert_equal VisitorSignUpCycleStatus::STARTED, ticket.reload.status_id
+  end
+
+  test "app social tickets can enter and complete callback for new identities" do
+    ticket = create_cycle(ClientSignUpCycle, entry_method: "google")
+
+    start = SignUp::StateMachine.call(ticket: ticket, event: :start_social_callback, actor_context: nil)
+    complete = SignUp::StateMachine.call(ticket: ticket.reload, event: :complete_social_callback, actor_context: nil)
+
+    assert_equal :advanced, start.status
+    assert_equal ClientSignUpCycleStatus::CONTACT_VERIFIED, ticket.reload.status_id
+    assert_equal "contact_verified", ticket.step
+    assert_equal :enter_guardrail, complete.next_event
+  end
+
+  test "checkpoint requirement clearing persists safe requirement state" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      entry_method: "telephone",
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+    )
+
+    result = SignUp::StateMachine.call(
+      ticket: ticket,
+      event: :clear_requirement,
+      actor_context: nil,
+      payload: { requirement: :birthdate },
+    )
+
+    assert_equal :advanced, result.status
+    assert_equal :clear_requirement, result.next_event
+    assert ticket.reload.requirement_cleared?(:birthdate)
+    assert_not ticket.requirement_cleared?(:passkey)
+  end
+
+  test "clearing the last checkpoint requirement points to finalization" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      entry_method: "email",
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+    )
+
+    result = SignUp::StateMachine.call(
+      ticket: ticket,
+      event: :clear_requirement,
+      actor_context: nil,
+      payload: { requirement: :birthdate },
+    )
+
+    assert_equal :finalize, result.next_event
+    assert ticket.reload.requirement_cleared?(:birthdate)
+  end
+
+  test "finalize blocks until every required requirement is clear" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      entry_method: "telephone",
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      completed_requirements: { "birthdate" => { "cleared" => true } },
+    )
+
+    result = SignUp::StateMachine.call(ticket: ticket, event: :finalize, actor_context: nil)
+
+    assert_equal :blocked, result.status
+    assert_equal ClientSignUpCycleStatus::CHECKPOINT_PENDING, ticket.reload.status_id
+  end
+
+  test "finalize requires accepted typed side effect result" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      entry_method: "email",
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      completed_requirements: { "birthdate" => { "cleared" => true } },
+    )
+
+    missing_result = SignUp::StateMachine.call(ticket: ticket, event: :finalize, actor_context: nil)
+    accepted = SignUp::StateMachine.call(
+      ticket: ticket.reload,
+      event: :finalize,
+      actor_context: nil,
+      payload: { finalization_result: :accepted },
+    )
+
+    assert_equal :blocked, missing_result.status
+    assert_equal :advanced, accepted.status
+    assert_equal ClientSignUpCycleStatus::FINALIZED, ticket.reload.status_id
+    assert_equal "finalized", ticket.step
+  end
+
+  test "sign-in handoff accepted then complete marks sign-up completed" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      entry_method: "email",
+      status_id: ClientSignUpCycleStatus::FINALIZED,
+      step: "finalized",
+      completed_requirements: { "birthdate" => { "cleared" => true } },
+    )
+
+    handoff = SignUp::StateMachine.call(
+      ticket: ticket,
+      event: :handoff_to_sign_in,
+      actor_context: nil,
+      payload: { sign_in_handoff_status: :accepted, sign_in_handoff: :boundary_result },
+    )
+    complete = SignUp::StateMachine.call(ticket: ticket.reload, event: :complete, actor_context: nil)
+
+    assert_equal :sign_in_handoff_accepted, handoff.status
+    assert_equal :complete, handoff.next_event
+    assert_equal :completed, complete.status
+    assert_equal ClientSignUpCycleStatus::COMPLETED, ticket.reload.status_id
+    assert_equal "completed", ticket.step
+    assert_predicate ticket.completed_at, :present?
+  end
+
+  test "failed handoff does not mark durable sign-up completed" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      entry_method: "email",
+      status_id: ClientSignUpCycleStatus::FINALIZED,
+      step: "finalized",
+      completed_requirements: { "birthdate" => { "cleared" => true } },
+    )
+
+    result = SignUp::StateMachine.call(
+      ticket: ticket,
+      event: :handoff_to_sign_in,
+      actor_context: nil,
+      payload: { sign_in_handoff_status: :failed, sign_in_handoff: :boundary_result },
+    )
+
+    assert_equal :sign_in_handoff_failed, result.status
+    assert_equal ClientSignUpCycleStatus::FINALIZED, ticket.reload.status_id
+  end
+
+  test "fail expire and cancel use terminal statuses" do
+    failed = create_cycle(ClientSignUpCycle)
+    expired = create_cycle(ClientSignUpCycle)
+    cancelled = create_cycle(ClientSignUpCycle)
+
+    fail_result = SignUp::StateMachine.call(ticket: failed, event: :fail, actor_context: nil)
+    expire_result = SignUp::StateMachine.call(ticket: expired, event: :expire, actor_context: nil)
+    cancel_result = SignUp::StateMachine.call(ticket: cancelled, event: :cancel, actor_context: nil)
+
+    assert_equal :failed, fail_result.status
+    assert_equal ClientSignUpCycleStatus::FAILED, failed.reload.status_id
+    assert_predicate failed.failed_at, :present?
+    assert_equal :expired, expire_result.status
+    assert_equal ClientSignUpCycleStatus::EXPIRED, expired.reload.status_id
+    assert_equal :failed, cancel_result.status
+    assert_equal ClientSignUpCycleStatus::CANCELLED, cancelled.reload.status_id
+    assert_predicate cancelled.cancelled_at, :present?
+  end
+
+  private
+
+  def create_cycle(cycle_class, attrs = {})
+    cycle_class.create!(cycle_attrs(cycle_class).merge(attrs))
+  end
+
+  def cycle_attrs(cycle_class)
+    {
+      principal_id: 123,
+      status_id: cycle_class::STATUS_IDS.first,
+      step: cycle_class::STEPS.first,
+      nonce_digest: cycle_class.digest_nonce("nonce"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+      entry_method: "email",
+    }
+  end
+end

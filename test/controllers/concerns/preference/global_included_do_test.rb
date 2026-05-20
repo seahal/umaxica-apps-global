@@ -19,4 +19,15 @@ class PreferenceGlobalIncludedDoTest < ActiveSupport::TestCase
   test "default_context method exists" do
     assert_includes Preference::Global.instance_methods(false), :default_context
   end
+
+  test "including global does not register localization callback implicitly" do
+    controller =
+      Class.new(ApplicationController) do
+        include Preference::Global
+      end
+
+    callbacks = controller._process_action_callbacks.map(&:filter)
+
+    assert_not_includes callbacks, :apply_localization_preferences
+  end
 end

@@ -4,18 +4,18 @@
 require "test_helper"
 
 class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users
+  fixtures :clients
 
   setup do
-    @user = users(:one)
+    @user = clients(:one)
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
-    UserToken.where(user: @user).delete_all
+    ClientToken.where(user: @user).delete_all
   end
 
   test "GET check with valid JWT access token returns 200" do
     # Create a token record and generate tokens
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     token_record.rotate_refresh_token!
 
     # Generate a valid JWT access token
@@ -23,7 +23,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       @user,
       host: @host,
       session_public_id: token_record.public_id,
-      resource_type: "user",
+      resource_type: "client",
     )
 
     cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
@@ -35,10 +35,10 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     assert_response :ok
     json = response.parsed_body
 
-    assert json["authenticated"], "User should be authenticated"
-    assert_equal "user", json["type"]
+    assert json["authenticated"], "Client should be authenticated"
+    assert_equal "client", json["type"]
     assert_equal @user.id, json["id"]
-    assert_equal token_record.public_id, json["sid"]
+    assert_equal token_record.device_session.public_id, json["sid"]
   end
 
   test "GET check without access token returns 401" do
@@ -69,7 +69,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   test "GET check with expired JWT returns 401" do
     # Create a token record
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     token_record.rotate_refresh_token!
 
     # Generate a JWT that's already expired
@@ -80,7 +80,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
         @user,
         host: @host,
         session_public_id: token_record.public_id,
-        resource_type: "user",
+        resource_type: "client",
       )
     end
 
@@ -99,7 +99,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   test "GET check with wrong resource type returns 401" do
     # Create a token record
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     token_record.rotate_refresh_token!
 
     # Generate a JWT with wrong resource type (operator instead of user)
@@ -124,10 +124,10 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   end
 
   test "GET check includes Cache-Control no-store header" do
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     access_token = jwt_access_token_for(
       @user, host: @host, session_public_id: token_record.public_id,
-             resource_type: "user",
+             resource_type: "client",
     )
     cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
 
@@ -142,7 +142,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   test "GET check with Bearer header takes precedence over cookie" do
     # Create a token record and generate tokens
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     token_record.rotate_refresh_token!
 
     # Generate a valid JWT access token
@@ -150,7 +150,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       @user,
       host: @host,
       session_public_id: token_record.public_id,
-      resource_type: "user",
+      resource_type: "client",
     )
 
     # Set invalid cookie but valid Bearer header
@@ -168,13 +168,13 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     json = response.parsed_body
 
     assert json["authenticated"], "Bearer token should take precedence"
-    assert_equal "user", json["type"]
+    assert_equal "client", json["type"]
     assert_equal @user.id, json["id"]
-    assert_equal token_record.public_id, json["sid"]
+    assert_equal token_record.device_session.public_id, json["sid"]
   end
 
   test "GET check accepts DPoP-bound token with valid proof" do
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     private_key, jwk = generate_dpop_jwk
     jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
     token_record.update!(dpop_jkt: jkt)
@@ -182,7 +182,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       @user,
       host: @host,
       session_public_id: token_record.public_id,
-      resource_type: "user",
+      resource_type: "client",
       dpop_jkt: jkt,
     )
     proof = build_dpop_proof(
@@ -201,18 +201,18 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :ok
     assert response.parsed_body["authenticated"]
-    assert_equal token_record.public_id, response.parsed_body["sid"]
+    assert_equal token_record.device_session.public_id, response.parsed_body["sid"]
   end
 
   test "GET check rejects DPoP-bound token presented as Bearer" do
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     private_key, jwk = generate_dpop_jwk
     jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @user,
       host: @host,
       session_public_id: token_record.public_id,
-      resource_type: "user",
+      resource_type: "client",
       dpop_jkt: jkt,
     )
     proof = build_dpop_proof(
@@ -235,14 +235,14 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   end
 
   test "GET check rejects DPoP-bound token without proof" do
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     _private_key, jwk = generate_dpop_jwk
     jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @user,
       host: @host,
       session_public_id: token_record.public_id,
-      resource_type: "user",
+      resource_type: "client",
       dpop_jkt: jkt,
     )
 
@@ -260,14 +260,14 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   end
 
   test "GET check rejects DPoP proof with wrong ath" do
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     private_key, jwk = generate_dpop_jwk
     jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @user,
       host: @host,
       session_public_id: token_record.public_id,
-      resource_type: "user",
+      resource_type: "client",
       dpop_jkt: jkt,
     )
     proof = build_dpop_proof(
@@ -289,12 +289,44 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     assert_equal({ "authenticated" => false }, response.parsed_body)
   end
 
+  test "GET check rejects when access token cnf jkt differs from stored token JKT" do
+    token_record = ClientToken.create!(user: @user)
+    _stored_key, stored_jwk = generate_dpop_jwk
+    proof_key, proof_jwk = generate_dpop_jwk
+    stored_jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(stored_jwk)
+    proof_jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(proof_jwk)
+    token_record.update!(dpop_jkt: stored_jkt)
+    access_token = jwt_access_token_for(
+      @user,
+      host: @host,
+      session_public_id: token_record.public_id,
+      resource_type: "client",
+      dpop_jkt: proof_jkt,
+    )
+    proof = build_dpop_proof(
+      proof_key, proof_jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
+                            access_token: access_token,
+    )
+
+    get "/edge/v0/token/check",
+        headers: {
+          "Host" => @host,
+          "Accept" => "application/json",
+          "Authorization" => "DPoP #{access_token}",
+          "DPoP" => proof,
+        },
+        as: :json
+
+    assert_response :unauthorized
+    assert_equal({ "authenticated" => false }, response.parsed_body)
+  end
+
   test "GET check with missing sid returns 401" do
     access_token = jwt_access_token_for(
       @user,
       host: @host,
       session_public_id: nil,
-      resource_type: "user",
+      resource_type: "client",
     )
 
     get "/edge/v0/token/check",
@@ -310,20 +342,20 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   end
 
   test "logout destroys token record so old Bearer access fails" do
-    token_record = UserToken.create!(user: @user)
+    token_record = ClientToken.create!(user: @user)
     refresh_plain = token_record.rotate_refresh_token!
     access_token = jwt_access_token_for(
       @user,
       host: @host,
       session_public_id: token_record.public_id,
-      resource_type: "user",
+      resource_type: "client",
     )
 
     cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
     # Verify token exists before logout
-    assert_not_nil UserToken.find_by(public_id: token_record.public_id)
+    assert_not_nil ClientToken.find_by(public_id: token_record.public_id)
 
     # Simulate logout by destroying the token directly (the cookie-based destroy
     # requires domain matching which is complex in integration tests)

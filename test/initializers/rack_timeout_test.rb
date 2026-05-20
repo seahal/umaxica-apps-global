@@ -44,13 +44,15 @@ class RackTimeoutInitializerTest < ActiveSupport::TestCase
     return if defined?(Rack::Timeout)
 
     Rack.const_set(:Timeout, Module.new)
-    Rack::Timeout.const_set(
-      :Logger, Class.new do
-                 class << self
-                   attr_accessor :level
-                 end
-               end,
-    )
+    logger_class = Class.new
+    def logger_class.level
+      @level
+    end
+
+    def logger_class.level=(value)
+      @level = value
+    end
+    Rack::Timeout.const_set(:Logger, logger_class)
     @rack_timeout_stubbed = true
   end
 

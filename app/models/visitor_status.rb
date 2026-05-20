@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: visitor_statuses
-# Database name: guest
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
 
-class VisitorStatus < GuestRecord
+class VisitorStatus < ComPrincipalRecord
   include ReferenceRecord
 
   ACTIVE = 1

@@ -7,12 +7,20 @@ module Sign
   module App
     module Preference
       class EmailsControllerTest < ActionDispatch::IntegrationTest
+        fixtures_none!
+
         setup do
           @host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
-          @user = create_verified_user_with_email(email_address: "client-unsubscribe-#{SecureRandom.hex(4)}@example.com")
-          @email = @user.user_emails.first
+          email_address = "client-unsubscribe-#{SecureRandom.hex(4)}@example.com"
+          @user = create_verified_user_with_email(email_address: email_address)
+          @email = @user.client_emails.first
           @token = @email.promotional_unsubscribe_token
           host! @host
+        end
+
+        test "controller uses bare unsubscribe boundary" do
+          assert_operator Sign::App::Preference::EmailsController, :<, Sign::App::BareController
+          assert_not_operator Sign::App::Preference::EmailsController, :<, Sign::App::PreferencesBaseController
         end
 
         test "GET edit renders unsubscribe confirmation for a valid token" do
@@ -37,15 +45,21 @@ module Sign
         end
 
         test "POST create supports one-click unsubscribe when forgery protection is enabled" do
-          previous = ActionController::Base.allow_forgery_protection
-          ActionController::Base.allow_forgery_protection = true
+          with_forgery_protection do
+            post(sign_app_preference_email_path(@email), params: { token: @token })
 
-          post(sign_app_preference_email_path(@email), params: { token: @token })
+            assert_response :ok
+            assert_not @email.reload.promotional
+          end
+        end
 
-          assert_response :ok
-          assert_not @email.reload.promotional
-        ensure
-          ActionController::Base.allow_forgery_protection = previous
+        test "DELETE destroy without csrf token is rejected when forgery protection is enabled" do
+          with_forgery_protection do
+            delete sign_app_preference_email_path(@email), params: { token: @token }
+
+            assert_response :unprocessable_content
+            assert @email.reload.promotional
+          end
         end
 
         test "invalid token does not unsubscribe" do

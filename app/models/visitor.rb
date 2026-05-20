@@ -4,14 +4,16 @@
 # == Schema Information
 #
 # Table name: visitors
-# Database name: guest
+# Database name: com_principal
 #
 #  id                     :bigint           not null, primary key
+#  birthdate              :text
 #  deactivated_at         :datetime
-#  lapses_at              :datetime         default(Infinity), not null
+#  discarded_at           :datetime         default(Infinity), not null
 #  lock_version           :integer          default(0), not null
 #  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purge_at               :datetime         default(Infinity), not null
+#  purged_at              :datetime         default(Infinity), not null
+#  terminated_at          :datetime
 #  withdrawal_started_at  :datetime
 #  withdrawn_at           :datetime         default(Infinity)
 #  created_at             :datetime         not null
@@ -25,11 +27,13 @@
 # Indexes
 #
 #  index_visitors_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_visitors_on_discarded_at            (discarded_at)
 #  index_visitors_on_multi_factor_id         (multi_factor_id)
 #  index_visitors_on_multi_factor_status_id  (multi_factor_status_id)
 #  index_visitors_on_public_id               (public_id) UNIQUE
-#  index_visitors_on_purge_at                (purge_at)
+#  index_visitors_on_purged_at               (purged_at)
 #  index_visitors_on_status_id               (status_id)
+#  index_visitors_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
 #  index_visitors_on_visibility_id           (visibility_id)
 #  index_visitors_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
 #  index_visitors_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
@@ -42,10 +46,14 @@
 #  fk_rails_...  (visibility_id => visitor_visibilities.id)
 #
 
-class Visitor < GuestRecord
+class Visitor < ComPrincipalRecord
+  # rubocop:disable Rails/HasManyOrHasOneDependent
   include Retainable
+  include Withdrawable
+  include HasBirthdate
   include ::PublicId
   include ::Identity
+  include Authentication::CredentialInventoryOwner
   include MultiFactorConfigurable
   include MultiFactorStatusTrackable
 
@@ -83,6 +91,9 @@ class Visitor < GuestRecord
   has_many :visitor_emails,
            dependent: :destroy,
            inverse_of: :visitor
+  has_many :visitor_withdrawal_cycles,
+           dependent: :restrict_with_error,
+           inverse_of: :visitor
   has_many :visitor_telephones,
            dependent: :destroy,
            inverse_of: :visitor
@@ -95,10 +106,28 @@ class Visitor < GuestRecord
   has_many :visitor_tokens,
            dependent: :delete_all,
            inverse_of: :visitor
-  has_one :client_account,
-          class_name: "VisitorClientAccount",
-          dependent: :destroy,
-          inverse_of: :visitor
+  has_many :visitor_device_sessions,
+           dependent: :destroy,
+           inverse_of: :visitor
+  has_many :visitor_banners,
+           dependent: :destroy,
+           inverse_of: :visitor
+  has_many :oidc_connections,
+           class_name: "VisitorOidcConnection",
+           dependent: :destroy,
+           inverse_of: :visitor
+  # Cross-database (com_signal DB). Purged explicitly via
+  # Retention::CrossDatabaseChildPurge from the account purge path, not by an
+  # implicit cross-DB AR cascade.
+  has_many :notification_records,
+           class_name: "VisitorNotificationRecord",
+           inverse_of: :visitor
+  # Cross-database (com_zenith DB). Purged explicitly via
+  # Retention::CrossDatabaseChildPurge, not by an implicit cross-DB cascade.
+  has_one :rp_account,
+          class_name: "VisitorAccount",
+          inverse_of: :visitor,
+          dependent: :destroy
 
   def staff?
     false
@@ -137,7 +166,13 @@ class Visitor < GuestRecord
   end
 
   def passkey_login_available?
-    return false unless visitor_passkeys.active.exists?
+    has_active_passkey =
+      if visitor_passkeys.loaded?
+        visitor_passkeys.any? { |passkey| passkey.status_id == VisitorPasskeyStatus::ACTIVE }
+      else
+        visitor_passkeys.active.exists?
+      end
+    return false unless has_active_passkey
 
     verified_telephone?
   end
@@ -145,9 +180,6 @@ class Visitor < GuestRecord
   private
 
   def configured_multi_factor_methods
-    methods = []
-    methods << :email_otp if visitor_emails.exists?(visitor_email_status_id: VERIFIED_RECOVERY_EMAIL_STATUS_IDS)
-    methods << :passkey if visitor_passkeys.active.exists?
-    methods
+    step_up_methods
   end
 end

@@ -42,6 +42,7 @@ class Sign::Com::Configuration::ChallengesControllerTest < ActionDispatch::Integ
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     satisfy_visitor_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_mfa")
     @passkey = @visitor.visitor_passkeys.create!(
       webauthn_id: "challenge-passkey",
       public_key: "public-key",
@@ -62,6 +63,10 @@ class Sign::Com::Configuration::ChallengesControllerTest < ActionDispatch::Integ
       "X-TEST-CURRENT-RESOURCE" => @visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
+  end
+
+  test "challenge route uses mfa path" do
+    assert_equal "/configuration/mfa/challenge", URI.parse(sign_com_configuration_challenge_url(ri: "jp")).path
   end
 
   test "show renders current passkeys and secrets" do

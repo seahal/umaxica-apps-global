@@ -1,0 +1,40 @@
+# == Schema Information
+#
+# Table name: client_profiles
+# Database name: app_zenith
+#
+#  id               :bigint           not null, primary key
+#  lock_version     :integer          default(0), not null
+#  moniker          :string
+#  created_at       :datetime         not null
+#  updated_at       :datetime         not null
+#  client_status_id :bigint           default(0), not null
+#  division_id      :bigint
+#  public_id        :string           not null
+#  status_id        :bigint           default(0), not null
+#  user_id          :bigint
+#
+# Indexes
+#
+#  index_client_profiles_on_client_status_id  (client_status_id)
+#  index_client_profiles_on_division_id       (division_id)
+#  index_client_profiles_on_public_id         (public_id) UNIQUE
+#  index_client_profiles_on_status_id         (status_id)
+#  index_client_profiles_on_user_id           (user_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (client_status_id => client_profile_statuses.id)
+#  fk_rails_...  (status_id => client_profile_statuses.id)
+#
+_fixture:
+  model_class: ClientProfile
+
+reserved_client:
+  client_status_id: 1
+  status_id: 1
+  user: reserved_user
+  public_id: "reserved_client"
+  moniker: "Reserved client"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

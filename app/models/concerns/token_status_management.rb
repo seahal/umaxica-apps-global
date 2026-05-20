@@ -50,8 +50,8 @@ module TokenStatusManagement
     now = Time.current
     ensure_token_status_defaults!
     attrs = { self.class.token_status_foreign_key => self.class.token_status_model::REVOKED }
-    if has_attribute?(:lapses_at)
-      attrs[:lapses_at] = [now, created_at].compact.max
+    if has_attribute?(:discarded_at)
+      attrs[:discarded_at] = [now, created_at].compact.max
     end
     update_status_transition!(attrs)
   end
@@ -59,7 +59,7 @@ module TokenStatusManagement
   def expired?
     return true if revoked?
     return true if token_status_id == self.class.token_status_model::EXPIRED
-    return true if respond_to?(:lapses_at) && has_attribute?(:lapses_at) && past_or_present_time?(lapses_at)
+    return true if respond_to?(:discarded_at) && has_attribute?(:discarded_at) && past_or_present_time?(discarded_at)
     return true if scheduled_revocation_due?
 
     false
@@ -68,13 +68,13 @@ module TokenStatusManagement
   def currently_usable?(now = Time.current)
     return false if expired?
     return false if has_attribute?(:rotated_at) && rotated_at.present?
-    return false if has_attribute?(:lapses_at) && past_or_present_time?(lapses_at, now)
+    return false if has_attribute?(:discarded_at) && past_or_present_time?(discarded_at, now)
 
     true
   end
 
   def scheduled_revocation_due?(now = Time.current)
-    has_attribute?(:lapses_at) && past_or_present_time?(lapses_at, now)
+    has_attribute?(:discarded_at) && past_or_present_time?(discarded_at, now)
   end
 
   module ClassMethods
@@ -82,8 +82,8 @@ module TokenStatusManagement
       scope = currently_valid_at(now)
       scope = scope.where(rotated_at: nil) if column_names.include?("rotated_at")
 
-      if column_names.include?("lapses_at")
-        scope = scope.where(arel_table[:lapses_at].gt(now))
+      if column_names.include?("discarded_at")
+        scope = scope.where(arel_table[:discarded_at].gt(now))
       end
       if column_names.include?(token_status_foreign_key.to_s)
         scope = scope.where.not(token_status_foreign_key => [token_status_model::EXPIRED, token_status_model::REVOKED])
@@ -93,15 +93,15 @@ module TokenStatusManagement
     end
 
     def currently_valid_at(now = Time.current)
-      return all unless column_names.include?("lapses_at")
+      return all unless column_names.include?("discarded_at")
 
-      where(arel_table[:lapses_at].gt(now))
+      where(arel_table[:discarded_at].gt(now))
     end
 
     def expiry_column
-      return :lapses_at if column_names.include?("lapses_at")
+      return :discarded_at if column_names.include?("discarded_at")
 
-      raise ArgumentError, "#{name} does not have lapses_at column"
+      raise ArgumentError, "#{name} does not have discarded_at column"
     end
 
     def token_status_foreign_key
@@ -110,7 +110,13 @@ module TokenStatusManagement
     end
 
     def token_status_model
-      "#{name}Status".constantize
+      case name
+      when "OperatorToken" then OperatorTokenStatus
+      when "ClientToken" then ClientTokenStatus
+      when "VisitorToken" then VisitorTokenStatus
+      else
+        raise ArgumentError, "#{name} does not have token status model"
+      end
     end
   end
 
@@ -138,6 +144,8 @@ module TokenStatusManagement
   def update_status_transition!(attrs)
     attrs = attrs.dup
     attrs[:updated_at] = Time.current if has_attribute?(:updated_at)
-    update_columns(attrs)
+    assign_attributes(attrs)
+    operation = -> { save! }
+    defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
   end
 end

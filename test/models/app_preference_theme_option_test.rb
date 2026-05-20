@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_theme_options
-# Database name: principal
+# Database name: app_setting
 #
 #  id :bigint           not null, primary key
 #

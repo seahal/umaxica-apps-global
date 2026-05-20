@@ -3,8 +3,7 @@
 
 module Sign
   module Com
-    class ConfigurationsController < ApplicationController
-      auth_required!
+    class ConfigurationsController < PrivateController
       before_action :authenticate_visitor!
 
       def show

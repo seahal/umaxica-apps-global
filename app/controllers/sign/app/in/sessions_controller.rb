@@ -22,7 +22,6 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
 
   # This controller handles session management for both authenticated users
   # and users who are in the process of logging in (with a pending gate).
-  # Override the default guest_only! policy to allow access.
   public_strict!
 
   # For show/update/destroy, user must be logged in (even if restricted)
@@ -35,14 +34,14 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
 
   # Revoke selected sessions and optionally promote restricted to active
   def update
-    @current_user = resolve_current_user
-    return redirect_to_login unless @current_user
+    @current_client = resolve_current_client
+    return redirect_to_login unless @current_client
 
     ref = params[:ref]
 
     if ref.present?
       # Revoke a specific session by signed reference
-      revoke_session_by_ref(@current_user, ref)
+      revoke_session_by_ref(@current_client, ref)
     else
       # Revoke selected sessions by signed references
       refs = Array(params[:revoke_refs]).compact_blank
@@ -52,11 +51,20 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
         return render :show, status: :unprocessable_content
       end
 
-      revoke_sessions_by_refs(@current_user, refs)
+      revoke_sessions_by_refs(@current_client, refs)
     end
 
     # Check if we can promote restricted session to active
-    if current_session_restricted? && can_promote_session?(@current_user)
+    if current_session_restricted? && can_promote_session?(@current_client)
+      if promote_current_session_limit_cycle!(@current_client)
+        consume_session_limit_gate!
+        session.delete(:pending_login_user_id)
+        return redirect_to_sign_in_sequence!(
+          rt: retrieve_redirect_parameter.presence || session_limit_return_to,
+          notice: I18n.t("sign.app.in.session.promoted"),
+        )
+      end
+
       promote_current_session!
       consume_session_limit_gate!
       session.delete(:pending_login_user_id)
@@ -71,14 +79,14 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
 
   # Cancel the restricted session (logout) or revoke a specific session
   def destroy
-    @current_user = resolve_current_user
-    return redirect_to_login unless @current_user
+    @current_client = resolve_current_client
+    return redirect_to_login unless @current_client
 
     ref = params[:ref]
 
     if ref.present?
       # Revoke a specific session by signed reference
-      revoke_session_by_ref(@current_user, ref)
+      revoke_session_by_ref(@current_client, ref)
       load_session_data
       render :show
     else
@@ -137,44 +145,44 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
     end
   end
 
-  def resolve_current_user
+  def resolve_current_client
     # Prefer current_resource (logged in user)
     return current_resource if current_resource
 
     # Fall back to pending user from gate
     user_id = session[:pending_login_user_id]
-    User.find_by(id: user_id) if user_id
+    Client.find_by(id: user_id) if user_id
   end
 
   def load_session_data
-    @current_user = resolve_current_user
-    return unless @current_user
+    @current_client = resolve_current_client
+    return unless @current_client
 
-    @active_sessions = @current_user.user_tokens.active_status.order(created_at: :desc)
-    @restricted_sessions = @current_user.user_tokens.restricted_status.order(created_at: :desc)
+    @active_sessions = @current_client.client_tokens.active_status.order(created_at: :desc)
+    @restricted_sessions = @current_client.client_tokens.restricted_status.order(created_at: :desc)
     @current_session_public_id = current_session_public_id
   end
 
   def can_promote_session?(user)
     # Can promote if active session count is below limit
     active_count =
-      TokenRecord.connected_to(role: :writing) do
-        UserToken.active_status.where(user_id: user.id).count
+      OrgTicketRecord.connected_to(role: :writing) do
+        ClientToken.active_status.where(user_id: user.id).count
       end
-    active_count < UserToken::MAX_SESSIONS_PER_USER
+    active_count < ClientToken::MAX_SESSIONS_PER_USER
   end
 
   def promote_current_session!
     return unless current_session&.restricted?
 
-    TokenRecord.connected_to(role: :writing) do
+    OrgTicketRecord.connected_to(role: :writing) do
       current_session.promote_to_active!
     end
     @current_session = nil # Clear cached session
   end
 
   def revoke_session_by_ref(user, ref)
-    token = UserToken.find_from_signed_ref(ref)
+    token = ClientToken.find_from_signed_ref(ref)
     unless token && token.user_id == user.id
       flash[:alert] = I18n.t("sign.app.in.session.invalid_session")
       return
@@ -186,7 +194,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
       return
     end
 
-    TokenRecord.connected_to(role: :writing) do
+    OrgTicketRecord.connected_to(role: :writing) do
       token.revoke!
     end
 
@@ -196,9 +204,9 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
   def revoke_sessions_by_refs(user, refs)
     revoked_count = 0
 
-    TokenRecord.connected_to(role: :writing) do
-      UserToken.transaction do
-        UserToken.find_from_signed_refs(refs).each do |token|
+    OrgTicketRecord.connected_to(role: :writing) do
+      ClientToken.transaction do
+        ClientToken.find_from_signed_refs(refs).each do |token|
           next unless token && token.user_id == user.id
           next if token.public_id == current_session_public_id # Skip current session
 

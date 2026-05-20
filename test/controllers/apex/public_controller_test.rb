@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class ApexTestCsrfController < Apex::PublicController
+class ApexTestCsrfController < Apex::App::BareController
   def show
     render plain: form_authenticity_token
   end
@@ -14,6 +14,8 @@ class ApexTestCsrfController < Apex::PublicController
 end
 
 class ApexPublicControllerTest < ActionDispatch::IntegrationTest
+  self.fixture_table_names = []
+
   test "health endpoint returns successfully" do
     host! ENV["APEX_SERVICE_URL"]
     get "/health"

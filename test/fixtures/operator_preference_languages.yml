@@ -1,0 +1,51 @@
+# == Schema Information
+#
+# Table name: staff_preference_languages
+# Database name: org_principal
+#
+#  id            :bigint           not null, primary key
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  option_id     :bigint           not null
+#  preference_id :bigint           not null
+#
+# Indexes
+#
+#  index_staff_preference_languages_on_option_id      (option_id)
+#  index_staff_preference_languages_on_preference_id  (preference_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_staff_preference_languages_on_option_id      (option_id => staff_preference_language_options.id)
+#  fk_staff_preference_languages_on_preference_id  (preference_id => staff_preferences.id)
+#
+_fixture:
+  model_class: OperatorPreferenceLanguage
+
+# Table name: staff_preference_languages
+# Database name: org_principal
+#
+#  id            :bigint           not null, primary key
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  option_id     :bigint           not null
+#  preference_id :bigint           not null
+#
+# Indexes
+#
+#  index_staff_preference_languages_on_option_id      (option_id)
+#  index_staff_preference_languages_on_preference_id  (preference_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_staff_preference_languages_on_option_id      (option_id => staff_preference_language_options.id)
+#  fk_staff_preference_languages_on_preference_id  (preference_id => staff_preferences.id)
+#
+one:
+  id: 1
+  preference_id: 1
+  option_id: 1
+two:
+  id: 2
+  preference_id: 2
+  option_id: 1

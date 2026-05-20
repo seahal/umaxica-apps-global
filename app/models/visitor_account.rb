@@ -3,50 +3,26 @@
 
 # == Schema Information
 #
-# Table name: clients
-# Database name: principal
+# Table name: visitor_accounts
+# Database name: com_zenith
 #
-#  id               :bigint           not null, primary key
-#  lock_version     :integer          default(0), not null
-#  moniker          :string
-#  created_at       :datetime         not null
-#  updated_at       :datetime         not null
-#  client_status_id :bigint           default(0), not null
-#  division_id      :bigint
-#  public_id        :string           not null
-#  status_id        :bigint           default(0), not null
-#  user_id          :bigint
+#  id         :bigint           not null, primary key
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  public_id  :string           default(""), not null
+#  visitor_id :bigint           not null
 #
 # Indexes
 #
-#  index_clients_on_client_status_id  (client_status_id)
-#  index_clients_on_division_id       (division_id)
-#  index_clients_on_public_id         (public_id) UNIQUE
-#  index_clients_on_status_id         (status_id)
-#  index_clients_on_user_id           (user_id)
+#  index_visitor_accounts_on_public_id   (public_id) UNIQUE
+#  index_visitor_accounts_on_visitor_id  (visitor_id) UNIQUE
 #
-# Foreign Keys
-#
-#  fk_clients_on_client_status_id  (client_status_id => client_statuses.id)
-#  fk_clients_on_status_id         (status_id => client_statuses.id)
-#  fk_rails_...                    (client_status_id => client_statuses.id)
-#  fk_rails_...                    (user_id => users.id) ON DELETE => nullify
-#
-class VisitorAccount < PrincipalRecord
-  self.table_name = "clients"
+class VisitorAccount < ComRpRecord
+  self.table_name = "visitor_accounts"
 
-  belongs_to :client_status,
-             class_name: "VisitorAccountStatus",
-             inverse_of: :clients
-  belongs_to :status,
-             class_name: "VisitorAccountStatus",
-             inverse_of: :status_clients
-  belongs_to :user,
-             optional: true,
-             inverse_of: :clients
+  include ::PublicId
 
-  has_many :client_banners,
-           class_name: "VisitorAccountBanner",
-           dependent: :destroy,
-           inverse_of: :client
+  belongs_to :visitor, inverse_of: :rp_account
+
+  validates :visitor_id, uniqueness: true
 end

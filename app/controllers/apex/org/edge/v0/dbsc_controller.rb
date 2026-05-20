@@ -5,7 +5,7 @@ module Apex
   module Org
     module Edge
       module V0
-        class DbscController < ApplicationController
+        class DbscController < Apex::Org::ApplicationController
           include ::Preference::WebCookieEndpoint
           include ::Preference::DbscRegistrationEndpoint
 

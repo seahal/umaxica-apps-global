@@ -26,13 +26,13 @@
           </tr>
           </thead>
           <tbody>
-          <% @user_emails.each do |email| %>
+          <% @client_emails.each do |email| %>
             <tr>
               <td>
                 <%= email.address %>
               </td>
               <td>
-                <% if [UserEmailStatus::VERIFIED, UserEmailStatus::VERIFIED_WITH_SIGN_UP].include?(email.user_email_status_id) %>
+                <% if [ClientEmailStatus::VERIFIED, ClientEmailStatus::VERIFIED_WITH_SIGN_UP].include?(email.user_email_status_id) %>
                       <span>
                         <%= t("views.sign.app.configuration.emails.index.verified") %>
                       </span>
@@ -48,7 +48,7 @@
               </td>
             </tr>
           <% end %>
-          <% if @user_emails.empty? %>
+          <% if @client_emails.empty? %>
             <tr>
               <td colspan="3">
                 <div>

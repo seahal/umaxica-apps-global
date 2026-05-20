@@ -531,7 +531,7 @@ Content-Security-Policy: default-src 'self'; connect-src 'self' https:
 
 ### Compatibility with existing systems
 
-- Coexist with TOTP and recovery-code flows.
+- Coexist with TOTP and passcode flows.
 - Integrate with the session management layer.
 - Ensure alignment with the multi-domain architecture.
 

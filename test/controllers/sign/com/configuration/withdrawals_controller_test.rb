@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "base64"
 
 class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
@@ -19,11 +18,11 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     @token = VisitorToken.create!(
       visitor: @visitor,
       visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
-      lapses_at: 1.day.from_now,
-      purge_at: 2.days.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
     )
-    perform_withdrawal_step_up!
-    @headers = as_visitor_headers(@visitor, host: @host).merge("X-TEST-SESSION-PUBLIC-ID" => @token.public_id)
+    record_withdrawal_step_up!
+    @headers = withdrawal_headers
   end
 
   test "new requires schedule confirmation to proceed" do
@@ -50,6 +49,55 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     assert_nil @visitor.reload.deactivated_at
   end
 
+  test "update rejects fresh aal1 session without withdrawal step-up" do
+    clear_withdrawal_step_up!
+
+    patch sign_com_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_deactivate_today: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_nil @visitor.reload.withdrawal_started_at
+    assert_nil @visitor.deactivated_at
+  end
+
+  test "update rejects generic verification step-up scope" do
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "verification")
+
+    patch sign_com_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_deactivate_today: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_nil @visitor.reload.withdrawal_started_at
+    assert_nil @visitor.deactivated_at
+  end
+
+  test "update rejects unrelated step-up scope" do
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
+
+    patch sign_com_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_deactivate_today: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_nil @visitor.reload.withdrawal_started_at
+    assert_nil @visitor.deactivated_at
+  end
+
+  test "update rejects expired withdrawal step-up" do
+    @token.update!(last_step_up_at: 16.minutes.ago, last_step_up_scope: "withdrawal")
+
+    patch sign_com_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_deactivate_today: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_nil @visitor.reload.withdrawal_started_at
+    assert_nil @visitor.deactivated_at
+  end
+
   test "update sets deactivation timestamps" do
     travel_to Time.zone.parse("2026-02-09 10:00:00") do
       patch sign_com_configuration_withdrawal_url(ri: "jp"),
@@ -58,21 +106,73 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     end
 
     assert_response :see_other
-    assert_redirected_to edit_sign_com_configuration_url(ri: "jp")
+    assert_redirected_to edit_sign_com_configuration_withdrawal_path(ri: "jp")
+    assert_equal I18n.t("sign.app.configuration.withdrawal.deactivate.success"), flash[:notice]
 
     @visitor.reload
 
     assert_not_nil @visitor.withdrawal_started_at
     assert_not_nil @visitor.deactivated_at
-    assert_equal @visitor.deactivated_at + 31.days, @visitor.purge_at
+    assert_equal @visitor.deactivated_at.to_i, @visitor.discarded_at.to_i
+    assert_equal @visitor.deactivated_at + 31.days, @visitor.purged_at
+    assert VisitorToken.exists?(id: @token.id)
+
+    cycle = @visitor.visitor_withdrawal_cycles.recent_first.first
+
+    assert_predicate cycle, :withdrawal_discarded?
+    assert_equal 3, cycle.visitor_withdrawal_cycle_events.count
+  end
+
+  test "fresh sign-in token cannot schedule withdrawal" do
+    @token.update!(last_step_up_at: nil, last_step_up_scope: nil)
+
+    patch sign_com_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_schedule_purge: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_nil @visitor.reload.withdrawal_started_at
+  end
+
+  test "wrong step-up scope cannot recover withdrawal" do
+    @visitor.update!(
+      deactivated_at: 10.days.ago,
+      withdrawal_started_at: 10.days.ago,
+      discarded_at: 1.day.from_now,
+      purged_at: 21.days.from_now,
+    )
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
+
+    post sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
+
+    assert_response :unauthorized
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_not_nil @visitor.reload.deactivated_at
+  end
+
+  test "expired withdrawal step-up cannot terminate withdrawal early" do
+    @visitor.update!(
+      deactivated_at: 8.days.ago,
+      withdrawal_started_at: 8.days.ago,
+      discarded_at: 1.day.from_now,
+      purged_at: 23.days.from_now,
+    )
+    @token.update!(last_step_up_at: 16.minutes.ago, last_step_up_scope: "withdrawal")
+
+    delete sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
+
+    assert_response :unauthorized
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_nil @visitor.reload.terminated_at
   end
 
   test "edit shows recoverable state within 31 days" do
     @visitor.update!(
       deactivated_at: 10.days.ago,
       withdrawal_started_at: 10.days.ago,
-      lapses_at: 1.day.from_now,
-      purge_at: 21.days.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 21.days.from_now,
     )
 
     get edit_sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -85,8 +185,8 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     @visitor.update!(
       deactivated_at: 10.days.ago,
       withdrawal_started_at: 10.days.ago,
-      lapses_at: 1.day.from_now,
-      purge_at: 21.days.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 21.days.from_now,
     )
 
     post sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -97,15 +197,31 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
 
     assert_nil @visitor.deactivated_at
     assert_nil @visitor.withdrawal_started_at
-    assert_equal Float::INFINITY, @visitor.purge_at
+    assert_equal Float::INFINITY, @visitor.purged_at
+  end
+
+  test "create rejects recovery without withdrawal step-up" do
+    clear_withdrawal_step_up!
+    @visitor.update!(
+      deactivated_at: 10.days.ago,
+      withdrawal_started_at: 10.days.ago,
+      discarded_at: 1.day.from_now,
+      purged_at: 21.days.from_now,
+    )
+
+    post sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
+
+    assert_response :unauthorized
+    assert_not_nil @visitor.reload.deactivated_at
+    assert_not_nil @visitor.withdrawal_started_at
   end
 
   test "create does not recover account after 31 days" do
     @visitor.update!(
       deactivated_at: 31.days.ago,
       withdrawal_started_at: 31.days.ago,
-      lapses_at: 2.days.ago,
-      purge_at: 1.day.ago,
+      discarded_at: 2.days.ago,
+      purged_at: 1.day.ago,
     )
 
     post sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -116,45 +232,48 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     assert_not_nil @visitor.deactivated_at
   end
 
-  private
-
-  def perform_withdrawal_step_up!
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_withdrawal_path(ri: "jp"))
-    headers = host_headers(@host).merge(
-      "X-TEST-CURRENT-RESOURCE" => @visitor.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+  test "destroy rejects early termination without withdrawal step-up" do
+    clear_withdrawal_step_up!
+    @visitor.update!(
+      deactivated_at: 8.days.ago,
+      withdrawal_started_at: 8.days.ago,
+      discarded_at: 8.days.ago,
+      purged_at: 23.days.from_now,
+      terminated_at: nil,
     )
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
-      Email::App::RegistrationMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
-        get(sign_com_verification_url(scope: "withdrawal", return_to: return_to, ri: "jp"), headers: headers)
+    delete sign_com_configuration_withdrawal_url(ri: "jp"), headers: @headers
 
-        assert_response :success
-
-        get(new_sign_com_verification_email_url(ri: "jp"), headers: headers)
-
-        assert_response :redirect
-        nonce = response.location[%r{/verification/emails/([^/]+)/edit}, 1]
-
-        with_verify_email_otp_stub(true) do
-          patch(
-            sign_com_verification_email_url(nonce, ri: "jp"),
-            params: { verification: { code: "123456" } },
-            headers: headers,
-          )
-        end
-
-        assert_response :redirect
-        @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
-      end
-    end
+    assert_response :unauthorized
+    assert_nil @visitor.reload.terminated_at
   end
 
-  def with_verify_email_otp_stub(result)
-    original_method = Sign::Com::Verification::EmailsController.instance_method(:verify_email_otp!)
-    Sign::Com::Verification::EmailsController.define_method(:verify_email_otp!) { result }
-    yield
-  ensure
-    Sign::Com::Verification::EmailsController.define_method(:verify_email_otp!, original_method)
+  private
+
+  def record_withdrawal_step_up!
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
+  end
+
+  def clear_withdrawal_step_up!
+    @token.update!(last_step_up_at: nil, last_step_up_scope: nil)
+  end
+
+  def withdrawal_headers
+    access_token = Authentication::TokenService.encode(
+      @visitor,
+      host: @host,
+      session_public_id: @token.public_id,
+      resource_type: "visitor",
+      expires_at: 1.hour.from_now,
+      acr: "aal1",
+      amr: ["test"],
+    )
+
+    {
+      "Host" => @host,
+      "Authorization" => "Bearer #{access_token}",
+      "X-TEST-CURRENT-VIEWER" => @visitor.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    }
   end
 end

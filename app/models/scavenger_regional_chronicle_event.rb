@@ -16,6 +16,7 @@ class ScavengerRegionalChronicleEvent < ChronicleRecord
   STARTED = 2
   FINISHED = 3
   FAILED = 4
+  DEFAULTS = [NOTHING, CREATED, STARTED, FINISHED, FAILED].freeze
 
   has_many :scavenger_regional_chronicles,
            class_name: "ScavengerRegionalChronicle",

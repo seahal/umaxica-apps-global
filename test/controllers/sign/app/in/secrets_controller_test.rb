@@ -4,15 +4,15 @@
 require "test_helper"
 
 class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_secret_kinds, :user_secret_statuses, :user_email_statuses,
-           :user_telephone_statuses
+  fixtures :clients, :client_statuses, :client_secret_kinds, :client_secret_statuses, :client_email_statuses,
+           :client_telephone_statuses
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
+    @user = clients(:one)
     @raw_email = "secret_login_#{SecureRandom.hex(4)}@example.com".freeze
-    @email = @user.user_emails.create!(address: @raw_email, user_email_status_id: UserEmailStatus::VERIFIED)
-    @telephone = @user.user_telephones.create!(number: "+819012345678")
+    @email = @user.client_emails.create!(address: @raw_email, user_email_status_id: ClientEmailStatus::VERIFIED)
+    @telephone = @user.client_telephones.create!(number: "+819012345678")
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -48,29 +48,29 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, I18n.t("sign.app.authentication.secret.create.invalid")
   end
 
-  test "returns 409 when user is at session hard_reject limit" do
-    _secret, raw_secret = issue_secret!(kind: UserSecretKind::PERMANENT, uses: 10)
+  test "returns 403 when user is at session hard_reject limit" do
+    _secret, raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)
 
     # Create 2 active + 1 restricted to hit the hard limit
-    UserToken.where(user_id: @user.id).delete_all
+    ClientToken.where(user_id: @user.id).delete_all
     2.times do
       create_rotated_active_user_session(@user, rotations: 3)
     end
-    restricted = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
-    restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
+    restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
+    restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: raw_secret),
          headers: default_headers
 
-    assert_response :conflict
+    assert_response :forbidden
     assert_includes response.body, I18n.t("session_limit.login_limit_exceeded")
   end
 
   test "redirects to session management when logical session limit is reached despite rotated rows" do
-    _secret, raw_secret = issue_secret!(kind: UserSecretKind::PERMANENT, uses: 10)
+    _secret, raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)
 
-    UserToken.where(user_id: @user.id).delete_all
+    ClientToken.where(user_id: @user.id).delete_all
     2.times do
       create_rotated_active_user_session(@user, rotations: 4)
     end
@@ -82,7 +82,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_response :found
     assert_redirected_to sign_app_in_session_path(ri: "jp")
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
-    assert_equal 1, UserToken.where(user_id: @user.id, user_token_status_id: UserTokenStatus::RESTRICTED).count
+    assert_equal 1, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
   end
 
   test "turnstile failure returns unified authentication error" do
@@ -98,7 +98,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email and matching permanent secret logs in successfully" do
-    _secret, raw_secret = issue_secret!(kind: UserSecretKind::PERMANENT, uses: 10)
+    _secret, raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)
 
     get new_sign_app_in_secret_url(ri: "jp"), headers: default_headers
 
@@ -115,7 +115,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "telephone and matching permanent secret logs in successfully" do
-    _secret, raw_secret = issue_secret!(kind: UserSecretKind::PERMANENT, uses: 10)
+    _secret, raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: "+819012345678", secret_value: raw_secret),
@@ -127,7 +127,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
   test "secret sign-in redirects to MFA challenge for weak method when MFA is enabled" do
     @user.update!(multi_factor_enabled: true)
-    _secret, raw_secret = issue_secret!(kind: UserSecretKind::PERMANENT, uses: 10)
+    _secret, raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: raw_secret),
@@ -158,7 +158,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "known user with no secret fails with unified message" do
-    @user.user_secrets.delete_all
+    @user.client_secrets.delete_all
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: "nope"),
@@ -169,15 +169,15 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "reserved user cannot sign in with secret" do
-    reserved_user = users(:reserved_user)
-    email = reserved_user.user_emails.create!(
+    reserved_user = clients(:reserved_user)
+    email = reserved_user.client_emails.create!(
       address: "reserved_secret_#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
-    secret, raw_secret = UserSecret.issue!(
+    secret, raw_secret = ClientSecret.issue!(
       name: "Reserved secret",
       user_id: reserved_user.id,
-      user_secret_kind_id: UserSecretKind::PERMANENT,
+      user_secret_kind_id: ClientSecretKind::PERMANENT,
       uses: 10,
       status: :active,
     )
@@ -188,11 +188,11 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, I18n.t("sign.app.authentication.secret.create.invalid")
-    assert_equal UserSecretStatus::ACTIVE, secret.reload.user_secret_status_id
+    assert_equal ClientSecretStatus::ACTIVE, secret.reload.user_secret_status_id
   end
 
   test "secret login returns same response for secret mismatch and missing verified pii" do
-    _secret, _raw_secret = issue_secret!(kind: UserSecretKind::PERMANENT, uses: 10)
+    _secret, _raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: "wrong-secret"),
@@ -201,22 +201,22 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_includes response.body, I18n.t("sign.app.authentication.secret.create.invalid")
 
-    user_without_verified_pii = User.create!(status_id: UserStatus::NOTHING)
-    email_for_secret_issue = user_without_verified_pii.user_emails.create!(
+    user_without_verified_pii = Client.create!(status_id: ClientStatus::NOTHING)
+    email_for_secret_issue = user_without_verified_pii.client_emails.create!(
       address: "secret_verified_#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
-    _pii_secret, pii_raw_secret = UserSecret.issue!(
+    _pii_secret, pii_raw_secret = ClientSecret.issue!(
       name: "PII missing secret",
       user_id: user_without_verified_pii.id,
-      user_secret_kind_id: UserSecretKind::PERMANENT,
+      user_secret_kind_id: ClientSecretKind::PERMANENT,
       uses: 10,
       status: :active,
     )
-    email_for_secret_issue.update!(user_email_status_id: UserEmailStatus::UNVERIFIED)
-    unverified_email = user_without_verified_pii.user_emails.create!(
+    email_for_secret_issue.update!(user_email_status_id: ClientEmailStatus::UNVERIFIED)
+    unverified_email = user_without_verified_pii.client_emails.create!(
       address: "secret_unverified_#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::UNVERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
     post sign_app_in_secret_url(ri: "jp"),
@@ -228,7 +228,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "one-time secret decrements uses and cannot be reused once exhausted" do
-    one_time_secret, raw_secret = issue_secret!(kind: UserSecretKind::ONE_TIME, uses: 1)
+    one_time_secret, raw_secret = issue_secret!(kind: ClientSecretKind::ONE_TIME, uses: 1)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: raw_secret),
@@ -237,7 +237,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_response :found
     assert_redirected_to sign_app_dashboard_path(ri: "jp")
     assert_equal 0, one_time_secret.reload.uses_remaining
-    assert_equal UserSecretStatus::USED, one_time_secret.user_secret_status_id
+    assert_equal ClientSecretStatus::USED, one_time_secret.user_secret_status_id
 
     reset!
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -253,7 +253,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "expired secret fails authentication" do
-    _secret, raw_secret = issue_secret!(lapses_at: 1.minute.ago)
+    _secret, raw_secret = issue_secret!(discarded_at: 1.minute.ago)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: raw_secret),
@@ -264,7 +264,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "one-time secret with uses_remaining 0 fails authentication" do
-    secret, raw_secret = issue_secret!(kind: UserSecretKind::ONE_TIME, uses: 1)
+    secret, raw_secret = issue_secret!(kind: ClientSecretKind::ONE_TIME, uses: 1)
     secret.update!(uses_remaining: 0)
 
     post sign_app_in_secret_url(ri: "jp"),
@@ -287,7 +287,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "secret with disallowed kind fails authentication" do
-    _secret, raw_secret = issue_secret!(kind: UserSecretKind::TOTP, uses: 10)
+    _secret, raw_secret = issue_secret!(kind: ClientSecretKind::TOTP, uses: 10)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: raw_secret),
@@ -309,7 +309,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil session.id
   end
 
-  test "guest request does not query users with null mfa_user_id" do
+  test "guest request does not query clients with null mfa_user_id" do
     queries =
       capture_sql_queries do
         get(new_sign_app_in_secret_url(ri: "jp"), headers: default_headers)
@@ -318,14 +318,14 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
       end
 
     assert_response :success
-    assert_not queries.any? { |sql| sql.match?(/FROM "users".*"users"."id" IS NULL/i) },
-               "expected no users.id IS NULL query, got: #{queries.grep(/users/i).join("\n")}"
+    assert_not queries.any? { |sql| sql.match?(/FROM "clients".*"clients"."id" IS NULL/i) },
+               "expected no clients.id IS NULL query, got: #{queries.grep(/clients/i).join("\n")}"
   end
 
   private
 
   def create_rotated_active_user_session(user, rotations:)
-    token = UserToken.create!(user: user, user_token_status_id: UserTokenStatus::ACTIVE)
+    token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
 
     rotations.times do
@@ -333,13 +333,13 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  def issue_secret!(kind: UserSecretKind::PERMANENT, uses: 1, lapses_at: nil, status: :active)
-    UserSecret.issue!(
+  def issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 1, discarded_at: nil, status: :active)
+    ClientSecret.issue!(
       name: "Secret-#{SecureRandom.hex(4)}",
       user_id: @user.id,
       user_secret_kind_id: kind,
       uses: uses,
-      lapses_at: lapses_at,
+      discarded_at: discarded_at,
       status: status,
     )
   end
@@ -379,15 +379,15 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
   public
 
   test "secret login with session limit exceeded redirects to session management" do
-    UserToken.where(user_id: @user.id).delete_all
+    ClientToken.where(user_id: @user.id).delete_all
 
     # Create 2 active sessions to hit the limit
     2.times do
-      token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+      token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
       token.rotate_refresh_token!
     end
 
-    _secret, raw_secret = issue_secret!(kind: UserSecretKind::PERMANENT, uses: 10)
+    _secret, raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)
 
     post sign_app_in_secret_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_value: raw_secret),
@@ -398,7 +398,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
     # A restricted token should have been created
-    restricted = UserToken.where(user_id: @user.id, user_token_status_id: UserTokenStatus::RESTRICTED)
+    restricted = ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
     assert_equal 1, restricted.count
 
@@ -575,26 +575,26 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal :unexpected, failures.last[:reason]
 
-    controller.define_singleton_method(:complete_sign_in_or_start_mfa!) { |*|
+    controller.define_singleton_method(:establish_signed_in_session!) { |*|
       { status: :mfa_required, redirect_path: "/challenge" }
     }
     controller.process_standard_login(@user)
 
     assert_equal ["/challenge", { notice: "sign.app.in.mfa.required" }], redirects.last
 
-    controller.define_singleton_method(:complete_sign_in_or_start_mfa!) { |*|
+    controller.define_singleton_method(:establish_signed_in_session!) { |*|
       { status: :session_limit_hard_reject, message: "limit", http_status: :conflict }
     }
     controller.process_standard_login(@user)
 
     assert_equal :hard_reject, failures.last[:reason]
 
-    controller.define_singleton_method(:complete_sign_in_or_start_mfa!) { |*| { restricted: true } }
+    controller.define_singleton_method(:establish_signed_in_session!) { |*| { restricted: true } }
     controller.process_standard_login(@user)
 
     assert_equal ["/sign/in/session", { notice: I18n.t("sign.app.in.session.restricted_notice") }], redirects.last
 
-    controller.define_singleton_method(:complete_sign_in_or_start_mfa!) { |*| { status: :success } }
+    controller.define_singleton_method(:establish_signed_in_session!) { |*| { status: :success } }
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.process_standard_login(@user)
 

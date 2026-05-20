@@ -17,5 +17,6 @@ class HandleStatus < AvatarRecord
   ACTIVE = 3
   DELETED = 4
   NOTHING = 5
+  DEFAULTS = [INACTIVE, PENDING, ACTIVE, DELETED, NOTHING].freeze
   has_many :handles, dependent: :restrict_with_error
 end

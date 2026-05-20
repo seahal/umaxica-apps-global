@@ -16,6 +16,15 @@ class AuthenticationOperatorIncludedDoTest < ActiveSupport::TestCase
     assert_includes Harness.included_modules, AuthorizationAudit
   end
 
+  test "included do does not register refresh callback" do
+    refresh_callbacks =
+      Harness._process_action_callbacks.select { |callback|
+        callback.kind == :before && callback.filter == :transparent_refresh_access_token
+      }
+
+    assert_empty refresh_callbacks
+  end
+
   test "active_operator? method exists" do
     assert_includes Authentication::Operator.instance_methods(false), :active_operator?
   end

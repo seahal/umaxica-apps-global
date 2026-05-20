@@ -16,11 +16,11 @@ module IdentifierDetection
   end
 
   def identity_email_model
-    UserEmail
+    ClientEmail
   end
 
   def identity_telephone_model
-    UserTelephone
+    ClientTelephone
   end
 
   def identity_from_email_record(record)

@@ -4,7 +4,7 @@
 ownership [] Edge cases tested for invalid host names, malformed cookies, and cross-boundary
 redirects [] Run full test suite: `bundle exec rails test` [] Run linting: `bundle exec rubocop` []
 Run ERB lint: `bundle exec erb_lint .` [] Run JS checks: `vp check` [] Confirm docs and plans match
-the current Identity / Zenith / Foundation / Distributor boundary model
+the current surface/repository boundary model
 
 ## API Design Anti-Patterns (AVOID THESE)
 

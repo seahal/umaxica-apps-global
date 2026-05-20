@@ -1,8 +1,8 @@
 # ADR: Remove Polymorphic Owner from SettingPreference
 
 > **Status update (2026-05-06):** Withdrawn. The `settings_preferences` polymorphic-owner table
-> described here was never implemented. Only `com_preference_*` ended up in the `setting` database,
-> and the broader unification target was abandoned (see
+> described here was never implemented. The current session-side Com preference family lives in the
+> `com_setting` database, and the broader unification target was abandoned (see
 > `plans/archive/gh628-move-preferences-to-setting-db.md`). Polymorphic-owner concerns no longer
 > apply because no polymorphic preference table exists. Per `adr/preference-soft-bubble-doctrine.md`
 > (2026-05-06), preference databases stay separate by design. Treat this document as historical
@@ -14,17 +14,17 @@ GitHub: #697
 
 ## Context
 
-`SettingPreference` is a unified preference store in the `setting` database that currently uses
-Rails polymorphic associations (`belongs_to :owner, polymorphic: true`) to represent ownership by
-different entity types:
+`SettingPreference` was a proposed unified preference store that would have used Rails polymorphic
+associations (`belongs_to :owner, polymorphic: true`) to represent ownership by different entity
+types:
 
 - `AppPreference` → owned by `User`
 - `ComPreference` → owned by `Customer`
 - `OrgPreference` → owned by `Staff`
 
-The current schema stores ownership as `owner_type` (string) + `owner_id` (bigint). While
-polymorphic associations provide flexibility, they prevent database-level foreign key constraints
-and leave referential integrity entirely to application code.
+The proposed schema would have stored ownership as `owner_type` (string) + `owner_id` (bigint).
+While polymorphic associations provide flexibility, they prevent database-level foreign key
+constraints and leave referential integrity entirely to application code.
 
 During the Rails Engine migration, we identified that controller implementations are temporarily
 broken, making this an opportune time to fix the underlying data model before stabilizing the API.
@@ -40,9 +40,9 @@ Replace the polymorphic `owner` association with explicit nullable owner columns
 Enforce exactly-one-owner semantics at both database and application levels.
 
 **Important Note on Foreign Keys**: Due to the multi-database architecture, foreign key constraints
-cannot be added because the `setting` database cannot reference tables in the `principal` database
-(users, staff, customers). Referential integrity is enforced at the application level via model
-validations and the `exactly_one_owner_present` validation.
+cannot be added across separate surface databases (users, staff, customers). Referential integrity
+is enforced at the application level via model validations and the `exactly_one_owner_present`
+validation.
 
 ## Implementation Plan
 
@@ -221,10 +221,10 @@ This allows:
 ## Affected Components
 
 - `app/models/setting_preference.rb`
-- `app/services/preference/storage_adapter.rb`
-- `app/services/preference/class_registry.rb` (owner type mapping)
+- `Preference::StorageAdapter`
+- `app/controllers/concerns/preference/class_registry.rb` (owner type mapping)
 - `app/controllers/concerns/preference/base.rb` (anonymous owner handling)
-- `db/settings_migrate/` (new migration files)
+- historical `db/com_preferences_migrate/` migration files
 
 ## Non-Goals
 
@@ -237,6 +237,6 @@ This allows:
 - Issue #697: Remove polymorphic owner from SettingPreference
 - Issue #696: Similar refactoring for Treeable concern (independent work)
 - `app/models/setting_preference.rb`
-- `app/services/preference/storage_adapter.rb`
-- `app/services/preference/class_registry.rb`
-- `db/settings_migrate/20260407000001_create_unified_preferences_in_setting_db.rb`
+- `Preference::StorageAdapter`
+- `app/controllers/concerns/preference/class_registry.rb`
+- historical `db/com_preferences_migrate/20260407000001_create_unified_preferences_in_setting_db.rb`

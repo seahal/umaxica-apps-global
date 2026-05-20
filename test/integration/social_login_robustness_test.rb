@@ -2,16 +2,13 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/social_callback_test_helper"
 
 class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
-  include SocialCallbackTestHelper
-
-  fixtures :users, :user_statuses, :user_social_google_statuses
+  fixtures :clients, :client_statuses, :client_social_google_statuses
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
+    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
   end
 
   teardown do
@@ -66,24 +63,26 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
   end
 
   test "link requires logged-in state" do
-    users(:one)
+    clients(:one)
 
     # Set link intent without authentication
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
-         headers: { "Host" => @host }
+    seed_social_auth_session(provider: "google_app", intent: "link", ri: "jp")
 
-    # Should require authentication
+    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: social_auth_state_from_response },
+        headers: social_callback_headers(@host)
+
     assert_includes [301, 302, 401, 403], response.status,
                     "Link intent without authentication should return error/redirect, got #{response.status}"
   end
 
-  test "reauth updates last_reauth_at timestamp" do
-    user = users(:one)
+  test "social auth rejects step_up intent" do
+    user = clients(:one)
 
     # Create a social identity for the user
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
       provider: "google_app",
-      uid: "reauth_test_#{SecureRandom.hex(4)}",
+      uid: "step_up_test_#{SecureRandom.hex(4)}",
       info: { image: "https://example.com/image.jpg" },
       credentials: {
         token: "google_token_#{SecureRandom.hex(8)}",
@@ -93,63 +92,58 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     )
 
     # First, link the identity
-    UserSocialGoogle.create!(
+    ClientSocialGoogle.create!(
       user: user,
       uid: OmniAuth.config.mock_auth[:google_app].uid,
       provider: "google_app",
       token: "existing_token",
       refresh_token: "existing_refresh",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: user_social_google_statuses(:active),
+      user_social_google_status: client_social_google_statuses(:active),
     )
+    original_step_up_at = user.reload.last_step_up_at
 
-    # Start reauth
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "reauth", ri: "jp"),
+    post continue_sign_app_social_authentication_url(provider: "google_app", intent: "step_up", ri: "jp"),
          headers: as_user_headers(user, host: @host)
 
     assert_response :redirect
-
-    # Now do the callback with reauth
-    post sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
-         headers: SocialCallbackTestHelper.callback_headers(@host).merge(
-           as_user_headers(user, host: @host),
-         )
-
-    # Application may return 403 if user is not properly authenticated or MFA required
-    assert_includes [302, 403], response.status
-
-    # user.reload
-    # assert_not_nil user.last_reauth_at, "last_reauth_at should be set after reauth"
+    assert_equal I18n.t("errors.social_auth.invalid_intent"), flash[:alert]
+    user.reload
+    if original_step_up_at
+      assert_equal original_step_up_at, user.last_step_up_at
+    else
+      assert_nil user.last_step_up_at
+    end
   end
 
   test "social login does not require additional MFA during callback" do
     # Even if the user has MFA enabled, the social login process itself shouldn't
     # require entering MFA code during the callback
-    user = users(:one)
+    user = clients(:one)
 
     # Setup user with MFA
-    UserOneTimePassword.create!(
+    ClientOneTimePassword.create!(
       user: user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       title: "totp",
     )
 
     # Setup social identity
-    UserSocialGoogle.create!(
+    ClientSocialGoogle.create!(
       user: user,
       uid: "mfa_test_#{SecureRandom.hex(4)}",
       provider: "google_app",
       token: "test_token",
       refresh_token: "test_refresh",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: user_social_google_statuses(:active),
+      user_social_google_status: client_social_google_statuses(:active),
     )
 
     # Setup mock auth
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
       provider: "google_app",
-      uid: user.user_social_googles.first.uid,
+      uid: user.client_social_googles.first.uid,
       info: { image: "https://example.com/image.jpg" },
       credentials: {
         token: "new_token_#{SecureRandom.hex(8)}",
@@ -158,21 +152,28 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
       },
     )
 
-    # Start social login
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
-         headers: { "Host" => @host }
-
-    assert_response :redirect
+    state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
 
     # Do callback - this should redirect to MFA, but the callback processing itself
     # should not fail
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
-        headers: SocialCallbackTestHelper.callback_headers(@host)
+        params: { state: state },
+        headers: social_callback_headers(@host)
 
     # If MFA is required, that's OK - but the callback should succeed (redirect)
     # not return 500
     assert_not_equal 500, response.status,
                      "Social login callback should not return 500 even if MFA is required"
     assert_response :redirect
+  end
+
+  def social_auth_state_from_response
+    session[:social_auth_state].presence ||
+      begin
+        uri = URI.parse(response.location.to_s)
+        Rack::Utils.parse_nested_query(uri.query.to_s)["state"].presence
+      rescue URI::InvalidURIError
+        nil
+      end
   end
 end

@@ -1,0 +1,37 @@
+# typed: false
+# frozen_string_literal: true
+
+module SignUp
+  class RequirementPolicy < BasePolicy
+    def clear_requirement?
+      mutable_ticket? &&
+        at_step?("checkpoint") &&
+        pending_actor_matches? &&
+        requirement_belongs_to_ticket?
+    end
+
+    def clear_birthdate?
+      clear_named_requirement?(:birthdate)
+    end
+
+    def register_passkey?
+      clear_named_requirement?(:passkey)
+    end
+
+    def confirm_passcode?
+      clear_named_requirement?(:passcode)
+    end
+
+    private
+
+    def clear_named_requirement?(requirement)
+      clear_requirement? && context.requirement == requirement
+    end
+
+    def requirement_belongs_to_ticket?
+      RequirementRegistry.for_ticket(ticket, surface: surface).requirement?(context.requirement)
+    rescue ArgumentError
+      false
+    end
+  end
+end

@@ -11,14 +11,14 @@ module Sign
         class TimezonesControllerTest < ActionDispatch::IntegrationTest
           include PreferenceJwtHelper
 
-          fixtures :users, :user_telephone_statuses, :com_preferences
+          fixtures :clients, :client_telephone_statuses, :com_preferences
 
           setup do
             @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-            @user = users(:one)
-            @user.user_telephones.create!(
+            @user = clients(:one)
+            @user.client_telephones.create!(
               number: "+819012340003",
-              user_telephone_status_id: UserTelephoneStatus::VERIFIED,
+              user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
             )
             host! @host
           end

@@ -1,0 +1,145 @@
+# typed: false
+# frozen_string_literal: true
+
+# == Schema Information
+#
+# Table name: app_sign_up_cycles
+# Database name: app_ticket
+#
+#  id                     :bigint           not null, primary key
+#  cancelled_at           :datetime
+#  cleanup_token          :string           default(""), not null
+#  completed_at           :datetime
+#  completed_requirements :jsonb            not null
+#  discarded_at           :datetime         default(Infinity), not null
+#  entry_method           :string
+#  expires_at             :datetime         not null
+#  failed_at              :datetime
+#  issued_at              :datetime         not null
+#  nonce_digest           :string           not null
+#  pending_contact_type   :string
+#  purged_at              :datetime         default(Infinity), not null
+#  return_to              :text
+#  social_provider        :string
+#  state                  :string           not null
+#  step                   :string           not null
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  pending_contact_id     :bigint
+#  principal_id           :bigint
+#  public_id              :string(21)       not null
+#  status_id              :bigint           default(10), not null
+#  token_id               :bigint
+#
+# Indexes
+#
+#  index_app_sign_up_cycles_on_cleanup_token             (cleanup_token)
+#  index_app_sign_up_cycles_on_discarded_at              (discarded_at)
+#  index_app_sign_up_cycles_on_expires_at                (expires_at)
+#  index_app_sign_up_cycles_on_pending_contact_id        (pending_contact_id)
+#  index_app_sign_up_cycles_on_principal_id              (principal_id)
+#  index_app_sign_up_cycles_on_public_id                 (public_id) UNIQUE
+#  index_app_sign_up_cycles_on_state                     (state)
+#  index_app_sign_up_cycles_on_status_id                 (status_id)
+#  index_app_sign_up_cycles_on_status_id_and_expires_at  (status_id,expires_at)
+#  index_app_sign_up_cycles_on_token_id                  (token_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (status_id => client_sign_up_cycle_statuses.id)
+#  fk_rails_...  (token_id => user_tokens.id) ON DELETE => cascade
+#
+class ClientSignUpCycle < AppTicketRecord
+  self.table_name = "app_sign_up_cycles"
+  include SignCycle
+  include Cycle::SignUp
+  include SignUpCycleTicket
+
+  STATUS_MODEL = ClientSignUpCycleStatus
+  ENTRY_METHODS = %w(email telephone google apple).freeze
+  SOCIAL_ENTRY_METHODS = %w(google apple).freeze
+  STATUSES = {
+    "STARTED" => STATUS_MODEL::STARTED,
+    "CONTACT_PENDING" => STATUS_MODEL::CONTACT_PENDING,
+    "CREDENTIAL_PENDING" => STATUS_MODEL::CREDENTIAL_PENDING,
+    "CONTACT_VERIFIED" => STATUS_MODEL::CONTACT_VERIFIED,
+    "SOCIAL_CALLBACK_PENDING" => STATUS_MODEL::SOCIAL_CALLBACK_PENDING,
+    "GUARDRAIL_PENDING" => STATUS_MODEL::GUARDRAIL_PENDING,
+    "CHECKPOINT_PENDING" => STATUS_MODEL::CHECKPOINT_PENDING,
+    "FINALIZING" => STATUS_MODEL::FINALIZING,
+    "FINALIZED" => STATUS_MODEL::FINALIZED,
+    "SIGN_IN_HANDOFF_PENDING" => STATUS_MODEL::SIGN_IN_HANDOFF_PENDING,
+    "COMPLETED" => STATUS_MODEL::COMPLETED,
+    "FAILED" => STATUS_MODEL::FAILED,
+    "EXPIRED" => STATUS_MODEL::EXPIRED,
+    "CANCELLED" => STATUS_MODEL::CANCELLED,
+  }.freeze
+  STATUS_NAMES = STATUSES.invert.freeze
+  STATUS_IDS = STATUSES.values.freeze
+  STEPS = %w(
+    start contact credential contact_verified social_callback guardrail checkpoint finalizing
+    finalized sign_in_handoff completed failed expired cancelled
+  ).freeze
+  TRANSITIONS = {
+    STATUS_MODEL::STARTED => [
+      STATUS_MODEL::CONTACT_PENDING,
+      STATUS_MODEL::CREDENTIAL_PENDING,
+      STATUS_MODEL::SOCIAL_CALLBACK_PENDING,
+      STATUS_MODEL::FAILED,
+      STATUS_MODEL::EXPIRED,
+      STATUS_MODEL::CANCELLED,
+    ],
+    STATUS_MODEL::CONTACT_PENDING => [
+      STATUS_MODEL::CREDENTIAL_PENDING,
+      STATUS_MODEL::CONTACT_VERIFIED,
+      STATUS_MODEL::FAILED,
+      STATUS_MODEL::EXPIRED,
+      STATUS_MODEL::CANCELLED,
+    ],
+    STATUS_MODEL::CREDENTIAL_PENDING => [
+      STATUS_MODEL::CONTACT_VERIFIED,
+      STATUS_MODEL::FAILED,
+      STATUS_MODEL::EXPIRED,
+      STATUS_MODEL::CANCELLED,
+    ],
+    STATUS_MODEL::CONTACT_VERIFIED => [
+      STATUS_MODEL::GUARDRAIL_PENDING,
+      STATUS_MODEL::CHECKPOINT_PENDING,
+      STATUS_MODEL::FAILED,
+      STATUS_MODEL::EXPIRED,
+      STATUS_MODEL::CANCELLED,
+    ],
+    STATUS_MODEL::SOCIAL_CALLBACK_PENDING => [
+      STATUS_MODEL::CONTACT_VERIFIED,
+      STATUS_MODEL::GUARDRAIL_PENDING,
+      STATUS_MODEL::CHECKPOINT_PENDING,
+      STATUS_MODEL::FAILED,
+      STATUS_MODEL::EXPIRED,
+      STATUS_MODEL::CANCELLED,
+    ],
+    STATUS_MODEL::GUARDRAIL_PENDING => [
+      STATUS_MODEL::CHECKPOINT_PENDING,
+      STATUS_MODEL::FAILED,
+      STATUS_MODEL::EXPIRED,
+      STATUS_MODEL::CANCELLED,
+    ],
+    STATUS_MODEL::CHECKPOINT_PENDING => [
+      STATUS_MODEL::FINALIZING,
+      STATUS_MODEL::FAILED,
+      STATUS_MODEL::EXPIRED,
+      STATUS_MODEL::CANCELLED,
+    ],
+    STATUS_MODEL::FINALIZING => [STATUS_MODEL::FINALIZED, STATUS_MODEL::FAILED],
+    STATUS_MODEL::FINALIZED => [STATUS_MODEL::SIGN_IN_HANDOFF_PENDING, STATUS_MODEL::FAILED],
+    STATUS_MODEL::SIGN_IN_HANDOFF_PENDING => [STATUS_MODEL::COMPLETED, STATUS_MODEL::FAILED],
+    STATUS_MODEL::COMPLETED => [],
+    STATUS_MODEL::FAILED => [],
+    STATUS_MODEL::EXPIRED => [],
+    STATUS_MODEL::CANCELLED => [],
+  }.freeze
+
+  belongs_to :token, class_name: "ClientToken"
+  belongs_to :status, class_name: "ClientSignUpCycleStatus"
+
+  validates :social_provider, inclusion: { in: SOCIAL_ENTRY_METHODS }, allow_nil: true
+end

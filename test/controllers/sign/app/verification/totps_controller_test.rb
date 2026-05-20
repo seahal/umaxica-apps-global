@@ -5,13 +5,13 @@ require "test_helper"
 require "base64"
 
 class Sign::App::Verification::TotpsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_one_time_password_statuses
+  fixtures :clients, :client_one_time_password_statuses
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = User.create!(status_id: UserStatus::NOTHING)
+    @user = Client.create!(status_id: ClientStatus::NOTHING)
     @headers = as_user_headers(@user, host: @host)
-    @token = UserToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -27,10 +27,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "creates verification on success" do
     private_key = "JBSWY3DPEHPK3PXP"
-    UserOneTimePassword.create!(
+    ClientOneTimePassword.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -49,7 +49,7 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_response :success
     assert_select "input[name='cf-turnstile-response']"
 
-    session[:reauth_email_otp] = { "expires_at" => 5.minutes.from_now.to_i }
+    session[:step_up_email_otp] = { "expires_at" => 5.minutes.from_now.to_i }
 
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
 
@@ -66,16 +66,16 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     assert_not_nil @token.last_step_up_at
     assert_equal "configuration_email", @token.last_step_up_scope
-    assert_nil session[:reauth]
-    assert_nil session[:reauth_email_otp]
+    assert_nil session[:step_up]
+    assert_nil session[:step_up_email_otp]
   end
 
   test "renders new on failure" do
     private_key = "JBSWY3DPEHPK3PXP"
-    UserOneTimePassword.create!(
+    ClientOneTimePassword.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -98,10 +98,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "returns 422 on malformed code" do
     private_key = "JBSWY3DPEHPK3PXP"
-    UserOneTimePassword.create!(
+    ClientOneTimePassword.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -124,10 +124,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "new keeps scope and return_to in form hidden fields" do
     private_key = "JBSWY3DPEHPK3PXP"
-    UserOneTimePassword.create!(
+    ClientOneTimePassword.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -155,10 +155,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "configuration_totp flow keeps return_to through method selection and returns to totps" do
     private_key = "JBSWY3DPEHPK3PXP"
-    UserOneTimePassword.create!(
+    ClientOneTimePassword.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -201,10 +201,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "POST returns 422 when turnstile stealth fails" do
     private_key = "JBSWY3DPEHPK3PXP"
-    UserOneTimePassword.create!(
+    ClientOneTimePassword.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 

@@ -20,9 +20,6 @@ module Authentication
       alias_method :current_operator, :current_resource
       alias_method :authenticate_operator!, :authenticate!
       alias_method :logged_in_operator?, :logged_in?
-      before_action :transparent_refresh_access_token, unless: -> {
-        request.format.json?
-      } if respond_to?(:before_action)
       include ::AuthorizationAudit
     end
 
@@ -66,11 +63,6 @@ module Authentication
 
     def resource_foreign_key
       :staff_id
-    end
-
-    # FIXME: what is this method?
-    def test_header_key
-      "X-TEST-CURRENT-STAFF"
     end
 
     def sign_in_url_with_return(return_to)

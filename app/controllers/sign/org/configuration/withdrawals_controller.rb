@@ -4,9 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class WithdrawalsController < ApplicationController
-        auth_required!
-
+      class WithdrawalsController < PrivateController
         include ::Verification::Operator
 
         before_action :authenticate_operator!

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 namespace :identifier_blind_index do
-  desc "Backfill blind-index digests for user and staff email/telephone rows"
+  desc "Backfill blind-index digests for user, staff, and visitor email/telephone rows"
   task backfill: :environment do
     result = IdentifierBlindIndexBackfill.new.call
 
@@ -12,6 +12,8 @@ namespace :identifier_blind_index do
         "user_telephones=#{result.user_telephones_updated}",
         "staff_emails=#{result.staff_emails_updated}",
         "staff_telephones=#{result.staff_telephones_updated}",
+        "visitor_emails=#{result.visitor_emails_updated}",
+        "visitor_telephones=#{result.visitor_telephones_updated}",
       ].join(" "),
     )
   end

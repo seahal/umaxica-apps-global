@@ -1,0 +1,15 @@
+# == Schema Information
+#
+# Table name: visitor_token_binding_methods
+# Database name: com_ticket
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: <%= VisitorTokenBindingMethod::NOTHING %>
+
+dbsc:
+  id: <%= VisitorTokenBindingMethod::DBSC %>
+
+legacy:
+  id: <%= VisitorTokenBindingMethod::LEGACY %>

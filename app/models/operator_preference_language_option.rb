@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: staff_preference_language_options
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class OperatorPreferenceLanguageOption < OperatorRecord
+class OperatorPreferenceLanguageOption < OrgPrincipalRecord
   self.table_name = "staff_preference_language_options"
   include ReferenceRecord
 
@@ -18,6 +18,11 @@ class OperatorPreferenceLanguageOption < OperatorRecord
   EN = 2
 
   has_many :staff_preference_languages,
+           class_name: "OperatorPreferenceLanguage",
+           foreign_key: :option_id,
+           inverse_of: :option,
+           dependent: :restrict_with_error
+  has_many :operator_preference_languages,
            class_name: "OperatorPreferenceLanguage",
            foreign_key: :option_id,
            inverse_of: :option,

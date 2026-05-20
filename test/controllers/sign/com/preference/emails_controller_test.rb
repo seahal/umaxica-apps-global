@@ -7,6 +7,13 @@ module Sign
   module Com
     module Preference
       class EmailsControllerTest < ActionDispatch::IntegrationTest
+        fixtures_only :visitor_statuses,
+                      :visitor_visibilities,
+                      :visitor_multi_factors,
+                      :visitor_multi_factor_statuses,
+                      :visitor_email_statuses,
+                      :visitor_telephone_statuses
+
         setup do
           @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
           @visitor = create_verified_visitor_with_email(
@@ -15,6 +22,11 @@ module Sign
           @email = @visitor.visitor_emails.first
           @token = @email.promotional_unsubscribe_token
           host! @host
+        end
+
+        test "controller uses bare unsubscribe boundary" do
+          assert_operator Sign::Com::Preference::EmailsController, :<, Sign::Com::BareController
+          assert_not_operator Sign::Com::Preference::EmailsController, :<, Sign::Com::PreferencesBaseController
         end
 
         test "GET edit renders unsubscribe confirmation for a valid token" do
@@ -40,6 +52,24 @@ module Sign
 
           assert_response :ok
           assert_not @email.reload.promotional
+        end
+
+        test "POST create supports one-click unsubscribe when forgery protection is enabled" do
+          with_forgery_protection do
+            post sign_com_preference_email_path(@email), params: { token: @token }
+
+            assert_response :ok
+            assert_not @email.reload.promotional
+          end
+        end
+
+        test "DELETE destroy without csrf token is rejected when forgery protection is enabled" do
+          with_forgery_protection do
+            delete sign_com_preference_email_path(@email), params: { token: @token }
+
+            assert_response :unprocessable_content
+            assert @email.reload.promotional
+          end
         end
 
         test "missing token does not unsubscribe visitor email" do

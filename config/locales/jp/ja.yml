@@ -79,7 +79,10 @@ ja:
       sign_out:
         title: ログアウトしますか？
         button: ログアウトします
-        success: ログアウトします
+        success: ログアウトしました
+        completed_title: ログアウトしました
+        completed_description: このログアウト確認は一度だけ表示されます。
+        home_link: ホームへ戻る
     app:
       authentication:
         passkey:
@@ -320,7 +323,7 @@ ja:
             description: あなたのアカウントは現在退会状態です。下のボタンをクリックしてアカウントを復旧してください。
             recovery_code_label: リカバリーコード確認
             submit: アカウントを復旧する
-      reauth:
+      step_up:
         index:
           title: 再認証セッション
           new: 新規
@@ -401,7 +404,7 @@ ja:
             failure: サインインに失敗しました。もう一度お試しください。
             not_found: このGoogleアカウントに紐づくスタッフアカウントが見つかりません。管理者にお問い合わせください。
             session_limit: アクティブなセッションが多すぎます。別のデバイスからサインアウトしてからお試しください。
-      reauth:
+      step_up:
         index:
           title: 再認証セッション
           new: 新規
@@ -567,6 +570,7 @@ ja:
           back: もどる
           mfa: MFA設定
           mfa_desc: 多要素認証の有効化と管理
+          mfa_reset: MFAリセットを申請する
         passkeys:
           new:
             page_title: パスキーを登録
@@ -592,6 +596,7 @@ ja:
             totps_desc: 登録済み %{count} 件
             secrets: シークレット
             secrets_desc: 有効 %{count} 件
+            reset_request: MFAリセットを申請する
           update:
             success: MFA設定を更新しました。
             failure: MFA設定の更新に失敗しました。
@@ -1600,7 +1605,9 @@ ja:
         resets: *8
         language:
           edit:
-            language_label: 言語洗濯
+            heading: 言語設定
+            description: コーポレート画面の表示言語を変更します。
+            language_label: 言語
             h1: 言語選択
     org:
       configurations:

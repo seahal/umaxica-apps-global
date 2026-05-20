@@ -7,25 +7,25 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
   class DummyAuthController < ApplicationController
     include Authentication::Base
 
-    class UserAudit
+    class ClientAudit
       def self.create!(*args)
       end
     end
 
     def resource_class
-      User
+      Client
     end
 
     def token_class
-      UserToken
+      ClientToken
     end
 
     def audit_class
-      UserAudit
+      ClientAudit
     end
 
     def resource_type
-      "user"
+      "client"
     end
 
     def resource_foreign_key
@@ -41,7 +41,7 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     end
 
     def login_action
-      user = User.first
+      user = Client.first
       result = log_in(user, record_login_audit: false, token_kind_id: "BROWSER_WEB", require_totp_check: false)
       render json: result
     end
@@ -92,9 +92,9 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     end
 
     def test_load_session_record
-      session[:user_id] = User.first&.id
-      record1 = load_session_record(:user_id, User, custom: ->(_u) { true })
-      record2 = load_session_record(:user_id, User, custom: ->(_u) { false })
+      session[:user_id] = Client.first&.id
+      record1 = load_session_record(:user_id, Client, custom: ->(_u) { true })
+      record2 = load_session_record(:user_id, Client, custom: ->(_u) { false })
 
       render json: {
         record1_present: record1.present?,
@@ -103,13 +103,13 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     end
 
     def test_validate_session_with_expiry
-      session[:user_id] = User.first&.id
-      load_authentication_session(:user_id, User, "/login", "auth.unauthorized") do |u|
+      session[:user_id] = Client.first&.id
+      load_authentication_session(:user_id, Client, "/login", "auth.unauthorized") do |u|
         u.present?
       end
 
       session[:user_id] = 999_999
-      load_authentication_session(:user_id, User, "/login", "auth.unauthorized") do |u|
+      load_authentication_session(:user_id, Client, "/login", "auth.unauthorized") do |u|
         u.present?
       end unless performed?
 
@@ -148,8 +148,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "load session record" do
-    UserStatus.find_or_create_by!(id: 1)
-    User.create!(id: 1, status_id: 1) unless User.exists?(1)
+    ClientStatus.find_or_create_by!(id: 1)
+    Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     get "/test_load_session_record"
 
     assert_response :success
@@ -160,8 +160,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "validate session with expiry" do
-    UserStatus.find_or_create_by!(id: 1)
-    User.create!(id: 1, status_id: 1) unless User.exists?(1)
+    ClientStatus.find_or_create_by!(id: 1)
+    Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     get "/test_validate_session_with_expiry"
 
     assert_response :redirect
@@ -169,35 +169,35 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "login creates session and sets cookies" do
-    UserStatus.find_or_create_by!(id: 1)
-    User.create!(id: 1, status_id: 1) unless User.exists?(1)
+    ClientStatus.find_or_create_by!(id: 1)
+    Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
 
     assert_response :success
-    assert response.cookies.key?(Auth::CookieName.access)
-    assert response.cookies.key?(Auth::CookieName.refresh)
+    assert response.cookies.key?(Authentication::CookieName.access)
+    assert response.cookies.key?(Authentication::CookieName.refresh)
   end
 
   test "logout clears cookies" do
-    UserStatus.find_or_create_by!(id: 1)
-    User.create!(id: 1, status_id: 1) unless User.exists?(1)
+    ClientStatus.find_or_create_by!(id: 1)
+    Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
     post "/test_auth_logout"
 
     assert_response :success
-    assert_predicate response.cookies[Auth::CookieName.access], :blank?
-    assert_predicate response.cookies[Auth::CookieName.refresh], :blank?
+    assert_predicate response.cookies[Authentication::CookieName.access], :blank?
+    assert_predicate response.cookies[Authentication::CookieName.refresh], :blank?
   end
 
   test "transparent refresh" do
-    UserStatus.find_or_create_by!(id: 1)
-    User.create!(id: 1, status_id: 1) unless User.exists?(1)
+    ClientStatus.find_or_create_by!(id: 1)
+    Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
 
     # We need to simulate the request with cookies set
-    response.cookies[Auth::CookieName.access]
-    refresh_cookie = response.cookies[Auth::CookieName.refresh]
-    cookies[Auth::CookieName.refresh] = refresh_cookie
+    response.cookies[Authentication::CookieName.access]
+    refresh_cookie = response.cookies[Authentication::CookieName.refresh]
+    cookies[Authentication::CookieName.refresh] = refresh_cookie
 
     # Intentionally don't set access cookie so it triggers transparent refresh
     post "/test_auth_refresh"
@@ -214,12 +214,12 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "check auth allows authenticated" do
-    UserStatus.find_or_create_by!(id: 1)
-    User.create!(id: 1, status_id: 1) unless User.exists?(1)
+    ClientStatus.find_or_create_by!(id: 1)
+    Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
 
-    access_cookie = response.cookies[Auth::CookieName.access]
-    cookies[Auth::CookieName.access] = access_cookie
+    access_cookie = response.cookies[Authentication::CookieName.access]
+    cookies[Authentication::CookieName.access] = access_cookie
 
     get "/test_auth_check"
 
@@ -227,12 +227,12 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "reject logged in session" do
-    UserStatus.find_or_create_by!(id: 1)
-    User.create!(id: 1, status_id: 1) unless User.exists?(1)
+    ClientStatus.find_or_create_by!(id: 1)
+    Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
 
-    access_cookie = response.cookies[Auth::CookieName.access]
-    cookies[Auth::CookieName.access] = access_cookie
+    access_cookie = response.cookies[Authentication::CookieName.access]
+    cookies[Authentication::CookieName.access] = access_cookie
 
     get "/test_auth_reject"
 
@@ -241,12 +241,12 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "ensure not logged in" do
-    UserStatus.find_or_create_by!(id: 1)
-    User.create!(id: 1, status_id: 1) unless User.exists?(1)
+    ClientStatus.find_or_create_by!(id: 1)
+    Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
 
-    access_cookie = response.cookies[Auth::CookieName.access]
-    cookies[Auth::CookieName.access] = access_cookie
+    access_cookie = response.cookies[Authentication::CookieName.access]
+    cookies[Authentication::CookieName.access] = access_cookie
 
     get "/test_auth_ensure"
 

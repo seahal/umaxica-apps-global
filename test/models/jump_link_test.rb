@@ -17,8 +17,8 @@ class JumpLinkTest < ActiveSupport::TestCase
   test "fills sentinel timestamps" do
     jump_link = AppJumpLink.create!(destination_url: "https://destination.example/path")
 
-    assert_equal Float::INFINITY, jump_link.lapses_at
-    assert_equal Float::INFINITY, jump_link.purge_at
+    assert_equal Float::INFINITY, jump_link.discarded_at
+    assert_equal Float::INFINITY, jump_link.purged_at
   end
 
   test "availability requires active status" do
@@ -30,7 +30,7 @@ class JumpLinkTest < ActiveSupport::TestCase
     revoked = AppJumpLink.create!(
       destination_url: "https://destination.example/revoked",
       status_id: JumpLinkable::STATUS_REVOKED,
-      lapses_at: 1.minute.ago,
+      discarded_at: 1.minute.ago,
     )
 
     assert active.available_for?(user: nil)
@@ -75,7 +75,7 @@ class JumpLinkTest < ActiveSupport::TestCase
     jump_link.revoke!
 
     assert_equal JumpLinkable::STATUS_REVOKED, jump_link.status_id
-    assert_predicate jump_link.lapses_at, :present?
+    assert_predicate jump_link.discarded_at, :present?
   end
 
   test "models have strict tld mapping" do

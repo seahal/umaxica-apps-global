@@ -118,7 +118,7 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
   end
 
   def test_owner_returns_true_for_user_owner
-    actor = build_actor(User, 10)
+    actor = build_actor(Client, 10)
     record = Struct.new(:user_id).new(10)
     policy = ApplicationPolicy.new(record, user: actor)
 
@@ -126,7 +126,7 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
   end
 
   def test_owner_returns_false_for_user_non_owner
-    actor = build_actor(User, 10)
+    actor = build_actor(Client, 10)
     record = Struct.new(:user_id).new(11)
     policy = ApplicationPolicy.new(record, user: actor)
 
@@ -143,14 +143,14 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
 
   def test_owner_returns_false_for_unknown_actor_type
     actor = build_actor(String, 1)
-    record = Struct.new(:user_id, :staff_id).new(1, 1)
+    record = Struct.new(:client_id, :staff_id).new(1, 1)
     policy = ApplicationPolicy.new(record, user: actor)
 
     assert_not policy.send(:owner?)
   end
 
   def test_owner_returns_true_when_actor_and_record_are_same_user_record
-    user = User.new(id: 10)
+    user = Client.new(id: 10)
     policy = ApplicationPolicy.new(user, user: user)
 
     assert policy.send(:owner?)

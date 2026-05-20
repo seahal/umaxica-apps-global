@@ -120,27 +120,27 @@ module Sign
         otp_code = generate_otp_for(target)
 
         if @kind == "telephone"
-          SmsDeliveryJob.perform_later(
+          Outbound::Sms.deliver_later(
             to: target.number,
-            message: "PassCode => #{otp_code}",
-            subject: "PassCode => #{otp_code}",
+            title: "PassCode => #{otp_code}",
+            body: "PassCode => #{otp_code}",
           )
         else
-          Email::App::RegistrationMailer.with(
-            hotp_token: otp_code,
+          Email::App::OtpMailer.with(
+            encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),
             email_address: target.address,
           ).create.deliver_later
         end
       end
 
       def target_records(normalized_target)
-        return UserTelephone.none if @kind == "telephone" && normalized_target.blank?
-        return UserEmail.none if @kind == "email" && normalized_target.blank?
+        return ClientTelephone.none if @kind == "telephone" && normalized_target.blank?
+        return ClientEmail.none if @kind == "email" && normalized_target.blank?
 
         if @kind == "telephone"
-          UserTelephone.with_number(normalized_target)
+          ClientTelephone.with_number(normalized_target)
         else
-          UserEmail.with_address(normalized_target)
+          ClientEmail.with_address(normalized_target)
         end
       end
 

@@ -1,0 +1,35 @@
+# typed: false
+# frozen_string_literal: true
+
+module Oidc
+  module RpLogout
+    extend ActiveSupport::Concern
+
+    included do
+      public_strict!
+    end
+
+    def create
+      log_out
+      redirect_to(oidc_logout_url, allow_other_host: true)
+    end
+
+    private
+
+    def oidc_logout_url
+      ri = params[:ri].presence || "jp"
+      uri = URI::Generic.build(
+        scheme: request.ssl? ? "https" : "http",
+        host: oidc_sign_host,
+        port: oidc_port,
+        path: "/oidc/logout",
+      )
+      uri.query = {
+        client_id: oidc_client_id,
+        logout_request: Oidc::LogoutRequest.issue(client_id: oidc_client_id, ri: ri),
+        ri: ri,
+      }.to_query
+      uri.to_s
+    end
+  end
+end

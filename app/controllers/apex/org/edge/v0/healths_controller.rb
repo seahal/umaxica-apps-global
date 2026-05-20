@@ -5,7 +5,7 @@ module Apex
   module Org
     module Edge
       module V0
-        class HealthsController < ApplicationController
+        class HealthsController < Apex::Org::BareController
           include ::Health
 
           def show

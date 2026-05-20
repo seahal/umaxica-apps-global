@@ -23,15 +23,15 @@ class AuthCookieHelpersTest < ActiveSupport::TestCase
     end
 
     def resource_class
-      User
+      Client
     end
 
     def token_class
-      UserToken
+      ClientToken
     end
 
     def audit_class
-      UserChronicle
+      ClientChronicle
     end
 
     def resource_foreign_key

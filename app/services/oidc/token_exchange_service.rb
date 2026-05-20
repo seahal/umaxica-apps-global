@@ -55,12 +55,12 @@ module Oidc
 
     def find_and_validate_code!
       authorization_code =
-        TokenRecord.connected_to(role: :writing) do
+        OrgTicketRecord.connected_to(role: :writing) do
           OperatorAuthorizationCode.lock.find_by(code: code)
-        end || SymbolRecord.connected_to(role: :writing) do
+        end || ComTicketRecord.connected_to(role: :writing) do
           VisitorAuthorizationCode.lock.find_by(code: code)
-        end || MarkRecord.connected_to(role: :writing) do
-          UserAuthorizationCode.lock.find_by(code: code)
+        end || AppTicketRecord.connected_to(role: :writing) do
+          ClientAuthorizationCode.lock.find_by(code: code)
         end
 
       raise ActiveRecord::RecordNotFound unless authorization_code
@@ -86,15 +86,28 @@ module Oidc
     def consume_and_issue_tokens!(authorization_code, dpop_jkt: nil)
       client = Oidc::ClientRegistry.find!(client_id)
       resource = authorization_code.resource
+      raise RuntimeError, "resource is not active" unless resource&.active?
 
       connection_class = connection_class_for(authorization_code)
 
       connection_class.connected_to(role: :writing) do
         authorization_code.consume!
 
-        token_record = create_token_record!(client, resource, dpop_jkt: dpop_jkt)
-        refresh_plain = token_record.rotate_refresh_token!
         now = Time.current
+        oidc_connection = Oidc::ConnectionRecorder.call(
+          resource: resource,
+          client: client,
+          scope: authorization_code.scope,
+          used_at: now,
+        )
+        token_record = create_token_record!(
+          client,
+          resource,
+          dpop_jkt: dpop_jkt,
+          oidc_connection: oidc_connection,
+          oidc_scope: authorization_code.scope,
+        )
+        refresh_plain = token_record.rotate_refresh_token!
         access_expires_at = now + Authentication::Base::ACCESS_TOKEN_TTL
 
         id_host =
@@ -106,15 +119,25 @@ module Oidc
             ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
           end
 
-        access_token = Auth::TokenService.encode(
+        access_token = Authentication::TokenService.encode(
           resource,
           host: id_host,
-          session_id: token_record.public_id,
+          session_public_id: token_record.public_id,
+          oidc_sid: token_record_oidc_sid(token_record),
+          oidc_jti: token_record_oidc_jti(token_record),
           resource_type: token_resource_type(client),
           expires_at: access_expires_at,
           acr: authorization_code.acr,
           amr: Array(authorization_code.auth_method),
           dpop_jkt: dpop_jkt,
+        )
+        id_token = Oidc::IdTokenIssuer.call(
+          resource: resource,
+          client: client,
+          nonce: authorization_code.nonce,
+          issued_at: now,
+          acr: authorization_code.acr,
+          amr: Array(authorization_code.auth_method),
         )
 
         token_type = dpop_jkt.present? ? "DPoP" : "Bearer"
@@ -126,6 +149,7 @@ module Oidc
             token_type: token_type,
             expires_in: Integer(Authentication::Base::ACCESS_TOKEN_TTL.to_s, 10),
             refresh_token: refresh_plain,
+            id_token: id_token,
           },
           error: nil,
           error_description: nil,
@@ -133,30 +157,39 @@ module Oidc
       end
     end
 
-    def create_token_record!(client, resource, dpop_jkt: nil)
+    def create_token_record!(client, resource, dpop_jkt: nil, oidc_connection: nil, oidc_scope: nil)
+      oidc_attrs = {
+        oidc_connection_id: oidc_connection&.id,
+        oidc_client_id: client.client_id,
+        oidc_scope: oidc_scope,
+      }
+
       if operator_client?(client)
         OperatorToken.create!(
           staff: resource,
           public_id: SecureRandom.alphanumeric(21),
-          lapses_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
+          discarded_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
           staff_token_status_id: OperatorTokenStatus::ACTIVE,
           dpop_jkt: dpop_jkt,
+          **oidc_attrs,
         )
       elsif visitor_client?(client)
         VisitorToken.create!(
           visitor: resource,
           public_id: SecureRandom.alphanumeric(21),
-          lapses_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
+          discarded_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
           visitor_token_status_id: VisitorTokenStatus::ACTIVE,
           dpop_jkt: dpop_jkt,
+          **oidc_attrs,
         )
       else
-        UserToken.create!(
+        ClientToken.create!(
           user: resource,
           public_id: SecureRandom.alphanumeric(21),
-          lapses_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
-          user_token_status_id: UserTokenStatus::ACTIVE,
+          discarded_at: Authentication::Base::REFRESH_TOKEN_TTL.from_now,
+          user_token_status_id: ClientTokenStatus::ACTIVE,
           dpop_jkt: dpop_jkt,
+          **oidc_attrs,
         )
       end
     end
@@ -176,11 +209,26 @@ module Oidc
       client.resource_type
     end
 
+    def token_record_oidc_sid(token_record)
+      token_record_attribute(token_record, :oidc_sid).presence ||
+        token_record&.public_id
+    end
+
+    def token_record_oidc_jti(token_record)
+      token_record_attribute(token_record, :oidc_jti).presence
+    end
+
+    def token_record_attribute(token_record, attribute)
+      return unless token_record&.has_attribute?(attribute)
+
+      token_record.public_send(attribute)
+    end
+
     def connection_class_for(authorization_code)
       case authorization_code
-      when OperatorAuthorizationCode then TokenRecord
-      when VisitorAuthorizationCode then SymbolRecord
-      else MarkRecord
+      when OperatorAuthorizationCode then OrgTicketRecord
+      when VisitorAuthorizationCode then ComTicketRecord
+      else AppTicketRecord
       end
     end
 

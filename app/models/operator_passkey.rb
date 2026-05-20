@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_passkeys
-# Database name: operator
+# Database name: org_principal
 #
 #  id           :bigint           not null, primary key
 #  last_used_at :datetime
@@ -33,7 +33,7 @@
 #  fk_rails_...  (status_id => staff_passkey_statuses.id)
 #
 
-class OperatorPasskey < OperatorRecord
+class OperatorPasskey < OrgPrincipalRecord
   include MultiFactorStatusCredential
 
   self.table_name = "staff_passkeys"
@@ -44,7 +44,7 @@ class OperatorPasskey < OperatorRecord
 
   belongs_to :staff, inverse_of: :staff_passkeys, class_name: "Operator"
   multi_factor_status_owner :staff
-  belongs_to :status, class_name: "OperatorPasskeyStatus", optional: true
+  belongs_to :status, class_name: "OperatorPasskeyStatus"
 
   scope :active, -> { where(status_id: OperatorPasskeyStatus::ACTIVE) }
 
@@ -64,7 +64,14 @@ class OperatorPasskey < OperatorRecord
   def enforce_staff_passkey_limit
     return unless staff_id
 
-    count = self.class.where(staff_id: staff_id).count
+    count =
+      if staff&.staff_passkeys&.loaded?
+        staff.staff_passkeys.count { |passkey| passkey != self }
+      elsif defined?(Prosopite)
+        Prosopite.pause { self.class.where(staff_id: staff_id).count }
+      else
+        self.class.where(staff_id: staff_id).count
+      end
     return if count < MAX_PASSKEYS_PER_STAFF
 
     errors.add(:base, :too_many, message: "exceeds maximum passkeys per staff (#{MAX_PASSKEYS_PER_STAFF})")

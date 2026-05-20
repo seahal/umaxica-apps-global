@@ -11,7 +11,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
       Digest::SHA256.digest(@code_verifier),
@@ -26,7 +26,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record = issue_code!
 
     with_authenticated_client do
-      post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_org_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
       ), headers: browser_headers
     end
@@ -44,7 +44,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record = issue_code!
 
     with_authenticated_client do
-      post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_org_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
       ), headers: browser_headers
     end
@@ -57,7 +57,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record = issue_code!
 
     with_authenticated_client do
-      post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_org_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
         grant_type: "implicit",
       ), headers: browser_headers
@@ -71,7 +71,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
 
   test "returns error for nonexistent code" do
     with_authenticated_client do
-      post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_org_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: "nonexistent_code",
       ), headers: browser_headers
     end
@@ -86,7 +86,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record = issue_code!
 
     with_authenticated_client do
-      post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_org_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
         code_verifier: "wrong_verifier",
       ), headers: browser_headers
@@ -103,7 +103,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
 
     travel OperatorAuthorizationCode::CODE_TTL + 1.second do
       with_authenticated_client do
-        post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
+        post sign_org_oauth_token_url(host: @host, ri: "jp"), params: token_params(
           code: code_record.code,
         ), headers: browser_headers
       end
@@ -120,7 +120,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record.consume!
 
     with_authenticated_client do
-      post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_org_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
       ), headers: browser_headers
     end
@@ -144,7 +144,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
       end,
     ) do
       with_authenticated_client do
-        post sign_org_token_url(host: @host, ri: "jp"),
+        post sign_org_oauth_token_url(host: @host, ri: "jp"),
              params: token_params(code: code_record.code),
              headers: browser_headers.merge("DPoP" => "proof-jwt")
       end
@@ -160,7 +160,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference "OperatorToken.count", 1 do
       with_authenticated_client do
-        post sign_org_token_url(host: @host, ri: "jp"), params: token_params(
+        post sign_org_oauth_token_url(host: @host, ri: "jp"), params: token_params(
           code: code_record.code,
         ), headers: browser_headers
       end
@@ -187,6 +187,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
       redirect_uri: @redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
+      nonce: "test_nonce",
     )
   end
 

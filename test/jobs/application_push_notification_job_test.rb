@@ -5,7 +5,7 @@ require "test_helper"
 
 class ApplicationPushNotificationJobTest < ActiveJob::TestCase
   test "ApplicationPushNotificationJob inherits from ActionPushNative::NotificationJob" do
-    assert_equal ActionPushNative::NotificationJob, ApplicationPushNotificationJob.superclass
+    assert_equal "ActionPushNative::NotificationJob", ApplicationPushNotificationJob.superclass.name
   end
 
   test "job can be instantiated" do

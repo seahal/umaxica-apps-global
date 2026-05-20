@@ -12,9 +12,13 @@ class PreferenceDbscRegistrationEndpointTestController < ApplicationController
     end
   end
 
-  # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-  mattr_accessor :dbsc_test_preference_record, instance_accessor: false
-  # rubocop:enable ThreadSafety/ClassAndModuleAttributes
+  def self.dbsc_test_preference_record
+    @dbsc_test_preference_record
+  end
+
+  def self.dbsc_test_preference_record=(value)
+    @dbsc_test_preference_record = value
+  end
 
   include Preference::DbscRegistrationEndpoint
 

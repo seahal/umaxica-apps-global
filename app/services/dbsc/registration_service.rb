@@ -2,11 +2,8 @@
 # frozen_string_literal: true
 
 module Dbsc
+  # Completes DBSC registration by validating a proof and storing the binding key.
   class RegistrationService < ApplicationService
-    ALLOWED_ALGORITHMS = %w(ES256 RS256).freeze
-    CHALLENGE_TTL = 5.minutes
-    IAT_LEEWAY = 30.seconds
-
     def initialize(record:, proof:, now: Time.current, session_id: nil, expected_audience: nil)
       super
       @record = record
@@ -18,29 +15,17 @@ module Dbsc
 
     def call
       return failure("record_missing") if record.blank?
-      return failure("missing_proof") if proof.blank?
-      return failure("missing_challenge") if record.dbsc_challenge.to_s.blank?
-      return failure("challenge_expired") if challenge_expired?
 
-      unverified_payload, unverified_header = JWT.decode(proof, nil, false)
-      return failure("invalid_type") unless unverified_header["typ"].to_s == "dbsc+jwt"
-      return failure("invalid_algorithm") unless ALLOWED_ALGORITHMS.include?(unverified_header["alg"].to_s)
+      validation = validate_proof
+      return failure(validation.error_code, message: validation.message) unless validation.ok
 
-      return failure("missing_audience") if unverified_payload["aud"].to_s.blank?
-      return failure("audience_mismatch") if expected_audience.present? &&
-        unverified_payload["aud"] != expected_audience
-      return failure("missing_issued_at") unless unverified_payload["iat"].is_a?(Numeric)
-
-      issued_at = Time.zone.at(unverified_payload["iat"])
-      return failure("issued_at_future") if issued_at > now + IAT_LEEWAY
-      return failure("issued_at_expired") if issued_at < now - CHALLENGE_TTL
-
-      jwk = RecordAdapter.normalize_public_key(unverified_header["jwk"])
+      header = validation.header
+      jwk = RecordAdapter.normalize_public_key(header["jwk"])
       return failure("missing_public_key") if jwk.blank?
-      return failure("challenge_mismatch") unless unverified_payload["jti"].to_s == record.dbsc_challenge.to_s
 
       verify_key = JWT::JWK.import(jwk).public_key
-      JWT.decode(proof, verify_key, true, algorithms: [unverified_header["alg"]])
+      signature = proof_validator.verify_signature(verify_key, header["alg"])
+      return failure("invalid_proof", message: signature.message) unless signature.ok
 
       record.with_lock do
         record.update!(
@@ -54,7 +39,7 @@ module Dbsc
       end
 
       { ok: true, session_id: session_id, record: record }
-    rescue JWT::DecodeError, JWT::JWKError, JSON::ParserError, ArgumentError => e
+    rescue JWT::JWKError, JSON::ParserError, ArgumentError => e
       failure("invalid_proof", message: e.message)
     end
 
@@ -62,8 +47,18 @@ module Dbsc
 
     attr_reader :record, :proof, :now, :session_id, :expected_audience
 
-    def challenge_expired?
-      record.dbsc_challenge_issued_at.blank? || record.dbsc_challenge_issued_at < now - CHALLENGE_TTL
+    def validate_proof
+      proof_validator.call
+    end
+
+    def proof_validator
+      @proof_validator ||= ProofValidator.new(
+        proof: proof,
+        challenge: record.dbsc_challenge,
+        challenge_issued_at: record.dbsc_challenge_issued_at,
+        now: now,
+        expected_audience: expected_audience,
+      )
     end
 
     def failure(error_code, message: nil)

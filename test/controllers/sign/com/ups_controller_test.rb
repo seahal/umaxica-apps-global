@@ -12,7 +12,7 @@ class Sign::Com::UpsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "[data-testid=?]", "registration-method", count: 2
+    assert_select "[data-test-id=?]", "registration-method", count: 2
     assert_select "a[href=?]", new_sign_com_up_email_path(ri: "jp"), count: 1
     assert_select "a[href=?]", new_sign_com_up_telephone_path(ri: "jp"), count: 1
   end
@@ -21,11 +21,26 @@ class Sign::Com::UpsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "form[action*=?]", "/social/auth/google_app/start", count: 0
-    assert_select "form[action*=?]", "/social/auth/apple/start", count: 0
+    assert_select "form[action*=?]", "/social/auth/google_app/continue", count: 0
+    assert_select "form[action*=?]", "/social/auth/apple/continue", count: 0
   end
 
-  test "redirects to dashboard when logged in" do
+  test "does not route social sign up providers on com" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{host}/social/auth/google_app/continue",
+        method: :post,
+      )
+    end
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{host}/social/auth/apple/continue",
+        method: :post,
+      )
+    end
+  end
+
+  test "rejects when logged in" do
     visitor = create_verified_visitor_with_email(email_address: "com-up-logged-in@example.com")
     visitor.visitor_telephones.create!(
       number: "+15550002224",
@@ -34,7 +49,8 @@ class Sign::Com::UpsControllerTest < ActionDispatch::IntegrationTest
 
     get new_sign_com_up_url(ri: "jp"), headers: as_visitor_headers(visitor, host: host)
 
-    assert_redirected_to sign_com_dashboard_url(ri: "jp")
+    assert_response :unauthorized
+    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
   private

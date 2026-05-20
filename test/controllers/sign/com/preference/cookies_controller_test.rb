@@ -10,14 +10,14 @@ module Sign
       class CookiesControllerTest < ActionDispatch::IntegrationTest
         include PreferenceJwtHelper
 
-        fixtures :users, :user_telephone_statuses, :com_preferences, :com_preference_cookies
+        fixtures :clients, :client_telephone_statuses, :com_preferences, :com_preference_cookies
 
         setup do
           @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-          @user = users(:one)
-          @user.user_telephones.create!(
+          @user = clients(:one)
+          @user.client_telephones.create!(
             number: "+819012340001",
-            user_telephone_status_id: UserTelephoneStatus::VERIFIED,
+            user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
           )
           host! @host
         end

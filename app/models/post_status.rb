@@ -16,6 +16,7 @@ class PostStatus < AvatarRecord
   ACTIVE = 2
   INACTIVE = 3
   DELETED = 4
+  DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
   has_many :posts, dependent: :restrict_with_error
 end

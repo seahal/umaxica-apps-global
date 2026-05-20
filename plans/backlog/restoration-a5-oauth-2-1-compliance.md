@@ -4,7 +4,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/notes/oauth2-1-compliance-gap.md`
+- `notes/oauth2-1-compliance-gap.md`
 
 ## Goal
 

@@ -6,22 +6,22 @@
 # Table name: email_occurrences
 # Database name: occurrence
 #
-#  id         :bigint           not null, primary key
-#  body       :string           default(""), not null
-#  lapses_at  :datetime         default(Infinity), not null
-#  memo       :string           default(""), not null
-#  purge_at   :datetime         default(Infinity), not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  public_id  :string(21)       default(""), not null
-#  status_id  :bigint           default(0), not null
+#  id           :bigint           not null, primary key
+#  body         :string           default(""), not null
+#  discarded_at :datetime         default(Infinity), not null
+#  memo         :string           default(""), not null
+#  purged_at    :datetime         default(Infinity), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  public_id    :string(21)       default(""), not null
+#  status_id    :bigint           default(0), not null
 #
 # Indexes
 #
 #  index_email_occurrences_on_body             (body) UNIQUE
 #  index_email_occurrences_on_body_created_at  (body,created_at)
 #  index_email_occurrences_on_public_id        (public_id) UNIQUE
-#  index_email_occurrences_on_purge_at         (purge_at)
+#  index_email_occurrences_on_purged_at        (purged_at)
 #  index_email_occurrences_on_status_id        (status_id)
 #
 # Foreign Keys
@@ -36,7 +36,7 @@ class EmailOccurrence < OccurrenceRecord
 
   attribute :status_id, default: EmailOccurrenceStatus::NOTHING
 
-  belongs_to :email_occurrence_status, foreign_key: :status_id, optional: true, inverse_of: :email_occurrences
+  belongs_to :email_occurrence_status, foreign_key: :status_id, inverse_of: :email_occurrences
   has_many :area_email_occurrences, dependent: :destroy, inverse_of: :email_occurrence
   has_many :area_occurrences, through: :area_email_occurrences
   has_many :domain_email_occurrences, dependent: :destroy, inverse_of: :email_occurrence
@@ -50,8 +50,9 @@ class EmailOccurrence < OccurrenceRecord
   has_many :staff_occurrences, through: :email_staff_occurrences
   has_many :email_telephone_occurrences, dependent: :destroy, inverse_of: :email_occurrence
   has_many :telephone_occurrences, through: :email_telephone_occurrences
-  has_many :email_user_occurrences, dependent: :destroy, inverse_of: :email_occurrence
-  has_many :user_occurrences, through: :email_user_occurrences
+  has_many :email_user_occurrences, class_name: "EmailClientOccurrence", dependent: :destroy,
+                                    inverse_of: :email_occurrence
+  has_many :client_occurrences, through: :email_user_occurrences
   has_many :email_zip_occurrences, dependent: :destroy, inverse_of: :email_occurrence
   has_many :zip_occurrences, through: :email_zip_occurrences
 

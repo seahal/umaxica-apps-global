@@ -6,7 +6,7 @@ require "minitest/mock"
 require "base64"
 
 class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_passkeys, :staff_passkey_statuses
+  fixtures :operators, :operator_identity_statuses, :operator_passkeys, :operator_passkey_statuses
 
   setup do
     host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -19,7 +19,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://#{host}"] }
 
     # Setup active staff with email and passkey
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
     OperatorToken.where(staff_id: @staff.id).delete_all
 
@@ -69,7 +69,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "options returns error if staff has no passkeys" do
-    staff_no_passkey = staffs(:two)
+    staff_no_passkey = operators(:two)
     staff_no_passkey.update!(status_id: OperatorIdentityStatus::ACTIVE)
 
     post options_sign_org_in_passkeys_url(ri: "jp"), params: { identifier: staff_no_passkey.public_id }
@@ -228,7 +228,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     post options_sign_org_in_passkeys_url(ri: "jp"), params: { identifier: @staff.public_id }
     challenge_id = response.parsed_body["challenge_id"]
 
-    other_staff = staffs(:two)
+    other_staff = operators(:two)
     other_staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
     other_passkey = OperatorPasskey.create!(
       staff: other_staff,

@@ -370,6 +370,11 @@ module Preference
   module Base
     extend ActiveSupport::Concern
     include RefreshTokenShared
+    include Preference::CookieWriter
+    include Preference::AccessTokenTransport
+    include Preference::AccessTokenIssuer
+    include Preference::RefreshTokenTransport
+    include Preference::Transport
 
     ACCESS_TOKEN_TTL = 7.days
     REFRESH_TOKEN_TTL = 400.days
@@ -445,11 +450,6 @@ module Preference
       }.freeze,
     }.freeze
 
-    included do
-      helper_method :show_cookie_banner?, :cookie_banner_endpoint_url if respond_to?(:helper_method)
-      before_action :set_preferences_cookie
-    end
-
     def show_cookie_banner?
       false
     end
@@ -459,35 +459,6 @@ module Preference
     # ==========================================================================
     # 2) Preference request entrypoints (Request/Cookie I/O boundary)
     # ==========================================================================
-    def set_preferences_cookie
-      clear_preference_refresh_failure!
-      return if load_access_token_payload
-
-      preference, created = load_preference_record_from_refresh_token!(create_if_missing: true)
-      return render_preference_refresh_error! if preference_refresh_failed?
-      return if preference.blank?
-
-      # If a new preference was created and user is logged in, restore from UserPreference/OperatorPreference
-      restore_preference_from_resource!(preference) if created && respond_to?(:current_resource, true)
-
-      # Rotate refresh token on access token re-issue to limit replay if leaked.
-      refresh_refresh_token_lifetime(preference)
-      return render_preference_refresh_error! if preference_refresh_failed?
-
-      issue_access_token_from(@preferences || preference)
-      nil
-    end
-
-    def restore_preference_from_resource!(_preference)
-      resource = begin; current_resource; rescue; nil; end
-      return if resource.blank?
-      return unless respond_to?(:adopt_preference_for!, true)
-
-      adopt_preference_for!(resource)
-    rescue StandardError => e
-      Rails.event.record("preference.restore_from_resource.error", error: e.class.name, message: e.message)
-    end
-
     def cookie_banner_endpoint_url
       return nil unless cookie_banner_endpoint_available_for_request?
 
@@ -535,19 +506,29 @@ module Preference
 
     def set_color_theme
       theme = normalize_colortheme(params[Preference::IoKeys::Params::CT].presence)
-      theme ||= normalize_colortheme(cookies[THEME_COOKIE_KEY])
+      theme ||= normalize_colortheme(actor_preference_theme)
       theme ||= normalize_colortheme(preference_payload_value("ct"))
-      if theme.blank? && @preferences.present?
-        option_id = @preferences.public_send(preference_colortheme_association)&.option_id
-        theme = colortheme_short_code(option_id_to_colortheme(option_id, preference_prefix))
-      end
-      # Rails must not trust this value; use preference_access instead.
-      # However, for theme, we allow cookie to override stored preference to support local toggling/anonymous.
+      theme ||= normalize_colortheme(cookies[THEME_COOKIE_KEY])
+      theme ||= preference_record_theme
       theme ||= "sy"
 
       write_preference_cookie(THEME_COOKIE_KEY, theme)
       @color_theme = theme
       nil
+    end
+
+    def actor_preference_theme
+      preference = Actor.preference
+      return if preference.null?
+
+      preference.theme
+    end
+
+    def preference_record_theme
+      return if @preferences.blank?
+
+      option_id = @preferences.public_send(preference_colortheme_association)&.option_id
+      colortheme_short_code(option_id_to_colortheme(option_id, preference_prefix))
     end
 
     def create_preference_options(preference, params_hash = {})
@@ -643,12 +624,6 @@ module Preference
       else
         default
       end
-    end
-
-    def write_preference_cookie(key, value)
-      cookies[key] = preference_cookie_options(expires_at: REFRESH_TOKEN_TTL.from_now, httponly: false).merge(
-        value: value,
-      )
     end
 
     def set_locale_from_params
@@ -752,7 +727,7 @@ module Preference
           event_id: normalized_event_id,
           level_id: preference_audit_level_class::INFO,
           occurred_at: Time.current,
-          lapses_at: expires_at_value,
+          discarded_at: expires_at_value,
           ip_address: request.remote_ip || default_audit_ip,
           context: context,
         )
@@ -919,265 +894,12 @@ module Preference
     # ==========================================================================
     # 5) Refresh/access token lifecycle (Cookie/Header/Request I/O boundary)
     # ==========================================================================
-    def load_access_token_payload
-      token = cookies[access_token_cookie_name]
-      return false if token.blank?
-
-      payload = Token.decode(token, host: request.host)
-      return false if payload.blank?
-      return false if Token.extract_preference_type(payload) != preference_class.name
-
-      @preference_payload = payload
-
-      public_id = Token.extract_public_id(payload)
-      if public_id.present?
-        @preferences =
-          with_preference_connection(:writing) do
-            preference_class.includes(preference_associations_to_preload).find_by(public_id: public_id)
-          end
-        if @preferences.blank?
-          cookies.delete(access_token_cookie_name, **preference_cookie_deletion_options)
-          @preference_payload = nil
-          return false
-        end
-      end
-
-      true
-    end
-
-    def load_preference_record_from_refresh_token!(create_if_missing: false)
-      return [@preferences, false] if @preferences.present?
-
-      token_value = refresh_token_value
-      @refresh_token_value = token_value
-      @refresh_presented_digest = nil
-      @refresh_public_id = nil
-
-      refresh_public_id, refresh_digest = refresh_token_data(token_value)
-      preference = find_refresh_preference(refresh_public_id, refresh_digest)
-
-      if valid_refresh_preference?(preference)
-        @preferences = preference
-        return [preference, false]
-      end
-
-      if preference.present?
-        if preference.replay?
-          handle_preference_refresh_replay!(preference)
-        else
-          handle_preference_refresh_failed(preference, refresh_public_id)
-        end
-        return [nil, false]
-      end
-
-      if token_value.present?
-        handle_preference_refresh_failed(preference, refresh_public_id)
-        return [nil, false]
-      end
-
-      # Don't create new preference if device binding was denied (security violation)
-      return [nil, false] if @preference_refresh_device_denied
-
-      return [nil, false] unless create_if_missing
-
-      @refresh_presented_digest = nil
-      @refresh_public_id = nil
-      preference = create_new_preference_record!
-      [preference, true]
-    end
-
-    def refresh_token_data(token_value)
-      return [nil, nil] if token_value.blank?
-
-      refresh_public_id, refresh_verifier = parse_refresh_token(token_value)
-      refresh_digest =
-        if refresh_verifier.present?
-          digest_refresh_token(refresh_verifier)
-        else
-          refresh_token_lookup_digest(token_value)
-        end
-      [refresh_public_id, refresh_digest]
-    end
-
-    def find_refresh_preference(refresh_public_id, refresh_digest)
-      return nil if refresh_digest.blank?
-
-      @refresh_presented_digest = refresh_digest
-      @refresh_public_id = refresh_public_id
-
-      with_preference_connection(:writing) do
-        relation = preference_class.includes(preference_associations_to_preload)
-        pref =
-          if refresh_public_id.present?
-            relation.find_by(public_id: refresh_public_id)
-          else
-            relation.find_by(token_digest: refresh_digest)
-          end
-
-        digest_mismatch = refresh_digest_mismatch?(pref, refresh_digest)
-        binding_denied = pref.present? && !preference_refresh_binding_allowed?(pref)
-
-        return handle_invalid_refresh_digest(pref, refresh_public_id) if digest_mismatch
-        return handle_denied_refresh_binding(pref, refresh_public_id) if binding_denied
-
-        pref
-      end
-    end
-
-    def refresh_digest_mismatch?(pref, refresh_digest)
-      pref.present? && pref.token_digest.present? && !secure_compare?(pref.token_digest, refresh_digest)
-    end
-
-    def handle_invalid_refresh_digest(pref, refresh_public_id)
-      handle_preference_refresh_failed(pref, refresh_public_id)
-      nil
-    end
-
-    def handle_denied_refresh_binding(pref, refresh_public_id)
-      handle_preference_refresh_device_denied(pref, refresh_public_id)
-      nil
-    end
-
-    def create_new_preference_record!
-      expires_at = refresh_token_expiry
-      generated_token = nil
-
-      generated_device_id = SecureRandom.uuid
-
-      with_preference_connection(:writing) do
-        preference_connection_owner.transaction do
-          ensure_preference_reference_defaults!
-          @preferences = preference_class.create!(
-            expires_at: expires_at,
-            jti: Jit::Security::Jwt::JtiGenerator.generate,
-            device_id: generated_device_id,
-            device_id_digest: digest_device_id(generated_device_id),
-            binding_method_id: preference_binding_method_class::LEGACY,
-            dbsc_status_id: preference_dbsc_status_class::NOTHING,
-          )
-
-          generated_token, verifier = generate_refresh_token(public_id: @preferences.public_id)
-          @preferences.update!(
-            token_digest: digest_refresh_token(verifier),
-          )
-
-          create_preference_options(
-            @preferences,
-            params.slice(
-              Preference::IoKeys::Params::RI,
-              Preference::IoKeys::Params::LX,
-              Preference::IoKeys::Params::TZ,
-              Preference::IoKeys::Params::CT,
-            ),
-          )
-
-          create_audit_log(
-            event_id: "CREATE_NEW_PREFERENCE_TOKEN",
-            context: { token_created: true },
-            expires_at: expires_at,
-          )
-          create_audit_log(
-            event_id: "REFRESH_TOKEN_ROTATED",
-            context: { refresh_token_rotated: true, expires_at: expires_at },
-            expires_at: expires_at,
-          )
-        rescue ActiveRecord::RecordInvalid => e
-          @preferences&.destroy
-          raise e
-        end
-      end
-
-      @refresh_token_value = generated_token
-      set_refresh_token_cookie(generated_token, expires_at)
-      set_preference_dbsc_cookie!(
-        @preferences.dbsc_session_id,
-        expires_at: preference_dbsc_cookie_expires_at(@preferences),
-      ) if @preferences.binding_method_dbsc?
-      set_preference_device_id_cookie!(@preferences.device_id, expires_at: expires_at)
-      issue_preference_dbsc_registration_header_for(@preferences)
-
-      @preferences
-    end
-
-    def refresh_refresh_token_lifetime(preference)
-      return if @refresh_token_value.blank? || preference.blank? || @refresh_presented_digest.blank?
-
-      rotated_preference =
-        with_preference_connection(:writing) do
-          preference.class.rotate!(
-            presented_digest: @refresh_presented_digest,
-            device_id: preference.device_id,
-            now: Time.current,
-          )
-        end
-
-      unless rotated_preference
-        replayed_preference = find_preference_by_presented_token
-        if replayed_preference&.replay?
-          handle_preference_refresh_replay!(replayed_preference)
-          return
-        end
-
-        clear_preference_auth_cookies!
-        @preference_refresh_failed = true
-        return
-      end
-
-      new_token = rotated_preference.issued_refresh_token
-      new_expiry = rotated_preference.expires_at
-
-      @preferences = rotated_preference
-      create_audit_log(
-        event_id: "REFRESH_TOKEN_ROTATED",
-        context: { refresh_token_rotated: true, expires_at: new_expiry },
-        expires_at: new_expiry,
-      )
-
-      set_refresh_token_cookie(new_token, new_expiry)
-      set_preference_dbsc_cookie!(
-        rotated_preference.dbsc_session_id,
-        expires_at: preference_dbsc_cookie_expires_at(rotated_preference),
-      ) if rotated_preference.binding_method_dbsc?
-      set_preference_device_id_cookie!(rotated_preference.device_id, expires_at: new_expiry)
-      @refresh_token_value = new_token
-      issue_preference_dbsc_registration_header_for(rotated_preference)
-
-      return unless respond_to?(:adopt_rotated_preference!, true) && respond_to?(:current_resource, true)
-
-      resource = begin; current_resource; rescue; nil; end
-      adopt_rotated_preference!(resource, rotated_preference) if resource
-    end
-
-    def issue_access_token_from(preference)
-      rotate_preference_jti!(preference)
-      payload = build_preferences_payload(preference)
-      token = Token.encode(
-        payload,
-        host: request.host,
-        preference_type: preference.class.name,
-        public_id: preference.public_id,
-        jti: preference.jti,
-      )
-      return if token.blank?
-
-      cookies[access_token_cookie_name] = preference_auth_cookie_options(expires_at: ACCESS_TOKEN_TTL.from_now).merge(
-        value: token,
-      )
-
-      @preference_payload = Token.decode(token, host: request.host)
-      return if @preference_payload.present?
-
-      clear_preference_auth_cookies!
-      @preference_refresh_failed = true
-      nil
-    end
-
     def preference_binding_method_class
       case preference_class.name
       when "AppPreference" then AppPreferenceBindingMethod
       when "ComPreference" then ComPreferenceBindingMethod
       when "OrgPreference" then OrgPreferenceBindingMethod
-      when "UserToken" then UserTokenBindingMethod
+      when "ClientToken" then ClientTokenBindingMethod
       when "OperatorToken" then OperatorTokenBindingMethod
       else
         raise ArgumentError, "Unknown preference class: #{preference_class.name}"
@@ -1189,7 +911,7 @@ module Preference
       when "AppPreference" then AppPreferenceDbscStatus
       when "ComPreference" then ComPreferenceDbscStatus
       when "OrgPreference" then OrgPreferenceDbscStatus
-      when "UserToken" then UserTokenDbscStatus
+      when "ClientToken" then ClientTokenDbscStatus
       when "OperatorToken" then OperatorTokenDbscStatus
       else
         raise ArgumentError, "Unknown preference class: #{preference_class.name}"
@@ -1267,29 +989,41 @@ module Preference
     def build_preferences_payload(preference)
       association_prefix = preference.class.name.underscore
       option_prefix = preference.class.name.sub("Preference", "")
-      language = preference.public_send("#{association_prefix}_language")&.option_id
-      region = preference.public_send("#{association_prefix}_region")&.option_id
-      timezone = preference.public_send("#{association_prefix}_timezone")&.option_id
-      colortheme = preference.public_send("#{association_prefix}_theme")&.option_id
-      currency = preference.public_send("#{association_prefix}_currency")&.option_id
-      date_format = preference.public_send("#{association_prefix}_date_format")&.option_id
-      time_format = preference.public_send("#{association_prefix}_time_format")&.option_id
-      motion = preference.public_send("#{association_prefix}_motion")&.option_id
-      density = preference.public_send("#{association_prefix}_density")&.option_id
-      items_per_page = preference.public_send("#{association_prefix}_items_per_page")&.option_id
+      option_ids = preference_payload_option_ids(preference, association_prefix)
       consent_state = preference_cookie_consent_state(preference, association_prefix)
 
       {
-        "lx" => option_id_to_language(language, option_prefix) || "ja",
-        "ri" => option_id_to_region(region, option_prefix) || "jp",
-        "tz" => option_id_to_timezone(timezone, option_prefix) || "Asia/Tokyo",
-        "ct" => normalize_colortheme(option_id_to_colortheme(colortheme, option_prefix)) || "sy",
-        "cu" => option_id_to_preference_value(currency, option_prefix, :currency) || "jpy",
-        "df" => option_id_to_preference_value(date_format, option_prefix, :date_format) || "iso",
-        "tf" => option_id_to_preference_value(time_format, option_prefix, :time_format) || "hour_24",
-        "mo" => option_id_to_preference_value(motion, option_prefix, :motion) || "standard",
-        "dn" => option_id_to_preference_value(density, option_prefix, :density) || "standard",
-        "ipp" => option_id_to_preference_value(items_per_page, option_prefix, :items_per_page) || "20",
+        "ver" => Actor::Preference::SCHEMA_VERSION,
+        "lx" => option_id_to_language(option_ids[:language], option_prefix) || "ja",
+        "ri" => option_id_to_region(option_ids[:region], option_prefix) || "jp",
+        "tz" => option_id_to_timezone(option_ids[:timezone], option_prefix) || "Asia/Tokyo",
+        "ct" => normalize_colortheme(option_id_to_colortheme(option_ids[:theme], option_prefix)) || "sy",
+      }.merge(
+        preference_payload_extended_options(option_ids, option_prefix),
+        preference_payload_consent(consent_state),
+      )
+    end
+
+    def preference_payload_option_ids(preference, association_prefix)
+      %i(language region timezone theme currency date_format time_format motion density
+         items_per_page).index_with do |type|
+        preference.public_send("#{association_prefix}_#{type}")&.option_id
+      end
+    end
+
+    def preference_payload_extended_options(option_ids, option_prefix)
+      {
+        "cu" => option_id_to_preference_value(option_ids[:currency], option_prefix, :currency) || "jpy",
+        "df" => option_id_to_preference_value(option_ids[:date_format], option_prefix, :date_format) || "iso",
+        "tf" => option_id_to_preference_value(option_ids[:time_format], option_prefix, :time_format) || "hour_24",
+        "mo" => option_id_to_preference_value(option_ids[:motion], option_prefix, :motion) || "standard",
+        "dn" => option_id_to_preference_value(option_ids[:density], option_prefix, :density) || "standard",
+        "ipp" => option_id_to_preference_value(option_ids[:items_per_page], option_prefix, :items_per_page) || "20",
+      }
+    end
+
+    def preference_payload_consent(consent_state)
+      {
         "consented" => consent_state[:consented],
         "functional" => consent_state[:functional],
         "performant" => consent_state[:performant],
@@ -1420,7 +1154,7 @@ module Preference
         return false
       end
 
-      dbsc_cookie = cookies[Preference::CookieName.dbsc].to_s.presence
+      dbsc_cookie = cookies[preference_dbsc_cookie_name].to_s.presence
       if dbsc_cookie.blank?
         @preference_refresh_device_reason = "missing_bound_cookie"
         return false
@@ -1495,11 +1229,11 @@ module Preference
       now = Time.current
 
       with_preference_connection(:writing) do
-        updates = { lapses_at: now }
+        updates = { discarded_at: now }
         updates[:compromised_at] = now if preference.respond_to?(:compromised_at=)
         updates[:revoked_at] = now if preference.respond_to?(:revoked_at=)
 
-        lapses_at_value = preference.lapses_at
+        lapses_at_value = preference.discarded_at
         is_infinite = lapses_at_value.respond_to?(:infinite?) && lapses_at_value.infinite?
         already_handled =
           if preference.respond_to?(:compromised_at)
@@ -1522,12 +1256,6 @@ module Preference
       )
     end
 
-    def rotate_preference_jti!(preference)
-      with_preference_connection(:writing) do
-        preference.update!(jti: Jit::Security::Jwt::JtiGenerator.generate)
-      end
-    end
-
     # ==========================================================================
     # 6) Cookie/header/session helpers (I/O boundary)
     # ==========================================================================
@@ -1546,15 +1274,35 @@ module Preference
     end
 
     def access_token_cookie_name
-      self.class.name.start_with?("Apex::App::Preference") ? Authentication::Base::ACCESS_COOKIE_KEY : Preference::CookieName.access
+      if self.class.name.start_with?("Apex::App::Preference")
+        Authentication::Base::ACCESS_COOKIE_KEY
+      else
+        Preference::CookieName.access(surface: preference_cookie_surface)
+      end
+    end
+
+    def access_token_cookie_names
+      [access_token_cookie_name, Preference::CookieName.access].uniq
     end
 
     def refresh_token_cookie_name
-      Preference::CookieName.refresh
+      Preference::CookieName.refresh(surface: preference_cookie_surface)
     end
 
     def preference_device_id_cookie_name
       Preference::CookieName.device(refresh_cookie_key: refresh_token_cookie_name)
+    end
+
+    def preference_dbsc_cookie_name
+      Preference::CookieName.dbsc(surface: preference_cookie_surface)
+    end
+
+    def preference_cookie_surface
+      case preference_class.name
+      when "AppPreference" then :app
+      when "ComPreference" then :com
+      when "OrgPreference" then :org
+      end
     end
 
     def set_refresh_token_cookie(token, expires_at)
@@ -1564,7 +1312,7 @@ module Preference
     end
 
     def set_preference_dbsc_cookie!(token, expires_at:)
-      cookies[Preference::CookieName.dbsc] = preference_cookie_options(expires_at: expires_at, httponly: true).merge(
+      cookies[preference_dbsc_cookie_name] = preference_cookie_options(expires_at: expires_at, httponly: true).merge(
         value: token,
       )
     end
@@ -1584,7 +1332,7 @@ module Preference
 
     def clear_preference_auth_cookies!
       [access_token_cookie_name, refresh_token_cookie_name,
-       preference_device_id_cookie_name, Preference::CookieName.dbsc,].uniq.each do |cookie_name|
+       preference_device_id_cookie_name, preference_dbsc_cookie_name,].uniq.each do |cookie_name|
         cookies.delete(cookie_name, **preference_cookie_deletion_options)
       end
     end
@@ -1610,18 +1358,6 @@ module Preference
         "#{prefix}_density",
         "#{prefix}_items_per_page",
       ].map(&:to_sym)
-    end
-
-    def refresh_token_value
-      params[Preference::IoKeys::Params::REFRESH_TOKEN].presence || cookies[refresh_token_cookie_name]
-    end
-
-    def refresh_token_expiry
-      REFRESH_TOKEN_TTL.from_now
-    end
-
-    def refresh_token_lookup_digest(token)
-      legacy_refresh_token_digest(token)
     end
 
     # ==========================================================================

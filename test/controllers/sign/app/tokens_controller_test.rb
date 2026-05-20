@@ -11,7 +11,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
+    @user = clients(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
       Digest::SHA256.digest(@code_verifier),
@@ -26,7 +26,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record = issue_code!
 
     with_authenticated_client do
-      post sign_app_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_app_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
       ), headers: browser_headers
     end
@@ -44,7 +44,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record = issue_code!
 
     with_authenticated_client do
-      post sign_app_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_app_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
       ), headers: browser_headers
     end
@@ -57,7 +57,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record = issue_code!
 
     with_authenticated_client do
-      post sign_app_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_app_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
         grant_type: "implicit",
       ), headers: browser_headers
@@ -71,7 +71,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
 
   test "returns error for nonexistent code" do
     with_authenticated_client do
-      post sign_app_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_app_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: "nonexistent_code",
       ), headers: browser_headers
     end
@@ -86,7 +86,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record = issue_code!
 
     with_authenticated_client do
-      post sign_app_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_app_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
         code_verifier: "wrong_verifier",
       ), headers: browser_headers
@@ -101,9 +101,9 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
   test "returns error for expired code" do
     code_record = issue_code!
 
-    travel UserAuthorizationCode::CODE_TTL + 1.second do
+    travel ClientAuthorizationCode::CODE_TTL + 1.second do
       with_authenticated_client do
-        post sign_app_token_url(host: @host, ri: "jp"), params: token_params(
+        post sign_app_oauth_token_url(host: @host, ri: "jp"), params: token_params(
           code: code_record.code,
         ), headers: browser_headers
       end
@@ -120,7 +120,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
     code_record.consume!
 
     with_authenticated_client do
-      post sign_app_token_url(host: @host, ri: "jp"), params: token_params(
+      post sign_app_oauth_token_url(host: @host, ri: "jp"), params: token_params(
         code: code_record.code,
       ), headers: browser_headers
     end
@@ -144,7 +144,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
       end,
     ) do
       with_authenticated_client do
-        post sign_app_token_url(host: @host, ri: "jp"),
+        post sign_app_oauth_token_url(host: @host, ri: "jp"),
              params: token_params(code: code_record.code),
              headers: browser_headers.merge("DPoP" => "proof-jwt")
       end
@@ -169,12 +169,13 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
   end
 
   def issue_code!
-    UserAuthorizationCode.issue!(
+    ClientAuthorizationCode.issue!(
       user: @user,
       client_id: "core_app",
       redirect_uri: @redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
+      nonce: "test_nonce",
     )
   end
 

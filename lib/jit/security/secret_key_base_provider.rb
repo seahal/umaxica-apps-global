@@ -9,7 +9,7 @@ module Jit
     # Expected JSON format in Secrets Manager:
     #   { "current": "the_current_key", "previous": ["old_key_1", "old_key_2"] }
     #
-    # In dev/test, falls back to ENV or Rails credentials.
+    # Outside production, falls back to ENV or Rails credentials.
     module SecretKeyBaseProvider
       module_function
 
@@ -45,7 +45,11 @@ module Jit
 
         { current: current, previous: previous }
       rescue Aws::SecretsManager::Errors::ServiceError, JSON::ParserError, KeyError => e
-        Rails.logger.error("[SecretKeyBaseProvider] Failed to fetch from Secrets Manager: #{e.class} - #{e.message}")
+        Rails.event.error(
+          "secret_key_base.fetch_failed",
+          error_class: e.class.name,
+          message: e.message,
+        )
         raise
       end
 

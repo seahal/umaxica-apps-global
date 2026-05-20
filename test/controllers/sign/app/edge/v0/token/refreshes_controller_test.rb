@@ -4,10 +4,10 @@
 require "test_helper"
 
 class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_tokens, :user_occurrence_statuses
+  fixtures :clients, :client_tokens, :client_occurrence_statuses
 
   setup do
-    @user = users(:one)
+    @user = clients(:one)
     @host = ENV.fetch("ID_SERVICE_URL", "test.umaxica.com")
     @csrf_token = nil
     @device_id = SecureRandom.uuid
@@ -15,7 +15,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "POST refresh with valid refresh token sets both access and refresh cookies" do
     # Create a token record and generate a refresh token
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
@@ -50,7 +50,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     expires_at = Time.utc(2034, 4, 5, 6, 7, 8)
 
     travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
-      token_record = UserToken.create!(user: @user, device_id: @device_id)
+      token_record = ClientToken.create!(user: @user, device_id: @device_id)
       refresh_plain = token_record.rotate_refresh_token!
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -79,7 +79,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     expires_at = Time.utc(2034, 6, 7, 8, 9, 10)
 
     travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
-      token_record = UserToken.create!(user: @user, device_id: @device_id)
+      token_record = ClientToken.create!(user: @user, device_id: @device_id)
       refresh_plain = token_record.rotate_refresh_token!
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -106,7 +106,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "GET check with valid access token from refresh returns 200" do
     # Create a token record and generate tokens
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
@@ -132,12 +132,12 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :ok
     json = response.parsed_body
 
-    assert json["authenticated"], "User should be authenticated"
+    assert json["authenticated"], "Client should be authenticated"
   end
 
   test "POST refresh with old refresh token after rotation returns 401" do
     # Create a token record and generate a refresh token
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     old_refresh_plain = token_record.rotate_refresh_token!
 
     # Rotate once via endpoint
@@ -159,7 +159,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     json = response.parsed_body
 
     assert_equal "invalid_refresh_token", json["error_code"]
-    assert_equal "refresh_reuse_detected", UserOccurrence.order(:id).last&.event_type
+    assert_equal "refresh_reuse_detected", ClientOccurrence.order(:id).last&.event_type
   end
 
   test "GET check with invalid access token returns 401" do
@@ -200,9 +200,9 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "POST refresh with expired refresh token returns 401" do
     # Create a token record with expired refresh
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
-    token_record.update_columns(lapses_at: 1.day.ago)
+    token_record.update_columns(discarded_at: 1.day.ago)
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -215,7 +215,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "POST refresh with revoked token returns 401" do
     # Create a token record and revoke it
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
     token_record.revoke!
 
@@ -228,12 +228,74 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :unauthorized
   end
 
+  test "POST refresh for DPoP-bound token requires proof" do
+    _private_key, jwk = generate_dpop_jwk
+    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id, dpop_jkt: jkt)
+    refresh_plain = token_record.rotate_refresh_token!
+
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    post "/edge/v0/token/refresh",
+         headers: json_headers(with_csrf: true, device_id: @device_id),
+         as: :json
+
+    assert_response :unauthorized
+    assert_nil token_record.reload.rotated_at
+    assert_equal "refresh_dpop_denied", ClientOccurrence.order(:id).last.event_type
+  end
+
+  test "POST refresh for DPoP-bound token rejects mismatched proof key" do
+    _private_key, jwk = generate_dpop_jwk
+    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    attacker_key, attacker_jwk = generate_dpop_jwk
+    token_record = ClientToken.create!(user: @user, device_id: @device_id, dpop_jkt: jkt)
+    refresh_plain = token_record.rotate_refresh_token!
+    proof = build_dpop_proof(attacker_key, attacker_jwk, method: "POST", uri: "http://#{@host}/edge/v0/token/refresh")
+
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    post "/edge/v0/token/refresh",
+         headers: json_headers(with_csrf: true, device_id: @device_id).merge("DPoP" => proof),
+         as: :json
+
+    assert_response :unauthorized
+    assert_nil token_record.reload.rotated_at
+    occurrence = ClientOccurrence.order(:id).last
+
+    assert_equal "refresh_dpop_denied", occurrence.event_type
+    assert_equal "jkt_mismatch", occurrence.context["reason"]
+  end
+
+  test "POST refresh for DPoP-bound token preserves JKT after rotation" do
+    private_key, jwk = generate_dpop_jwk
+    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id, dpop_jkt: jkt)
+    refresh_plain = token_record.rotate_refresh_token!
+    proof = build_dpop_proof(private_key, jwk, method: "POST", uri: "http://#{@host}/edge/v0/token/refresh")
+
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    post "/edge/v0/token/refresh",
+         headers: json_headers(with_csrf: true, device_id: @device_id).merge("DPoP" => proof),
+         as: :json
+
+    assert_response :ok
+
+    rotated_token = ClientToken.where(user_id: @user.id, rotated_at: nil).order(created_at: :desc).first
+    access_token = extract_cookies_from_response[Authentication::Base::ACCESS_COOKIE_KEY]
+    payload = Authentication::Base::Token.decode(access_token, host: @host, resource_type: "client")
+
+    assert_equal jkt, rotated_token.dpop_jkt
+    assert_equal jkt, payload.dig("cnf", "jkt")
+  end
+
   test "POST refresh with restricted token returns 403 and does not rotate token" do
-    token_record = UserToken.create!(
-      user: @user, user_token_status_id: UserTokenStatus::RESTRICTED,
+    token_record = ClientToken.create!(
+      user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED,
       device_id: @device_id,
     )
-    refresh_plain = token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
+    refresh_plain = token_record.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
     before_generation = token_record.refresh_token_generation
     before_digest = token_record.refresh_token_digest
 
@@ -255,12 +317,12 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh with restricted token returns localized error message" do
-    token_record = UserToken.create!(
-      user: @user, user_token_status_id: UserTokenStatus::RESTRICTED,
+    token_record = ClientToken.create!(
+      user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED,
       device_id: @device_id,
     )
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] =
-      token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
+      token_record.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true, device_id: @device_id),
@@ -275,7 +337,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "refresh cookie contains a valid rotated token" do
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
@@ -291,7 +353,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
     assert_predicate new_value, :present?, "Refresh cookie should be present after rotation"
 
-    public_id, verifier = UserToken.parse_refresh_token(new_value)
+    public_id, verifier = ClientToken.parse_refresh_token(new_value)
 
     assert_predicate public_id, :present?, "Rotated refresh token should contain a public_id"
     assert_predicate verifier, :present?, "Rotated refresh token should contain a verifier"
@@ -299,7 +361,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "access cookie uses correct TTL" do
     # Create a token record and generate a refresh token
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
@@ -325,7 +387,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh without CSRF token succeeds (currently skipped for Edge)" do
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -342,11 +404,11 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh rejects deactivated user even with valid refresh token" do
     @user.update!(
       deactivated_at: Time.current, withdrawal_started_at: 1.hour.ago,
-      lapses_at: 30.days.from_now,
-      purge_at: 31.days.from_now,
+      discarded_at: 30.days.from_now,
+      purged_at: 31.days.from_now,
     )
 
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -362,7 +424,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh denies when device_id missing and writes occurrence" do
-    token_record = UserToken.create!(user: @user, device_id: SecureRandom.uuid)
+    token_record = ClientToken.create!(user: @user, device_id: SecureRandom.uuid)
     refresh_plain = token_record.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -371,7 +433,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
          as: :json
 
     assert_response :unauthorized
-    occurrence = UserOccurrence.order(:id).last
+    occurrence = ClientOccurrence.order(:id).last
 
     assert_equal "refresh_device_missing", occurrence.event_type
     assert_equal 1, occurrence.status_id
@@ -381,7 +443,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh denies when header and cookie device_id mismatch" do
-    token_record = UserToken.create!(user: @user, device_id: "cookie-device-id")
+    token_record = ClientToken.create!(user: @user, device_id: "cookie-device-id")
     refresh_plain = token_record.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -396,7 +458,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
          as: :json
 
     assert_response :unauthorized
-    occurrence = UserOccurrence.order(:id).last
+    occurrence = ClientOccurrence.order(:id).last
 
     assert_equal "refresh_device_mismatch", occurrence.event_type
     assert_equal "mismatch", occurrence.context["reason"]
@@ -404,7 +466,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh denies when device_id mismatches token family device_id" do
-    token_record = UserToken.create!(user: @user, device_id: "server-device-id")
+    token_record = ClientToken.create!(user: @user, device_id: "server-device-id")
     refresh_plain = token_record.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -413,14 +475,78 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
          as: :json
 
     assert_response :unauthorized
-    occurrence = UserOccurrence.order(:id).last
+    occurrence = ClientOccurrence.order(:id).last
 
     assert_equal "refresh_device_mismatch", occurrence.event_type
     assert_equal "mismatch", occurrence.context["reason"]
   end
 
+  test "POST refresh logs out DBSC-bound device session when proof is missing" do
+    token_record = dbsc_bound_token
+    refresh_plain = token_record.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
+
+    post "/edge/v0/token/refresh",
+         headers: json_headers(with_csrf: true).merge(
+           Auth::IoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
+         ),
+         as: :json
+
+    assert_response :unauthorized
+    assert_predicate token_record.reload, :revoked?
+    assert_predicate token_record.device_session.reload, :revoked?
+
+    occurrence = ClientOccurrence.order(:id).last
+
+    assert_equal "refresh_dbsc_denied", occurrence.event_type
+    assert_equal "missing_proof", occurrence.context["reason"]
+  end
+
+  test "POST refresh logs out DBSC-bound device session when proof is invalid" do
+    token_record = dbsc_bound_token
+    refresh_plain = token_record.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
+
+    post "/edge/v0/token/refresh",
+         headers: json_headers(with_csrf: true).merge(
+           Auth::IoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
+           Auth::IoKeys::Headers::DBSC_RESPONSE => "invalid-proof",
+         ),
+         as: :json
+
+    assert_response :unauthorized
+    assert_predicate token_record.reload, :revoked?
+    assert_predicate token_record.device_session.reload, :revoked?
+
+    occurrence = ClientOccurrence.order(:id).last
+
+    assert_equal "refresh_dbsc_denied", occurrence.event_type
+    assert_equal "invalid_proof", occurrence.context["reason"]
+  end
+
+  test "POST refresh accepts DBSC-bound device session with valid proof" do
+    token_record = dbsc_bound_token
+    refresh_plain = token_record.rotate_refresh_token!
+    proof = generate_dbsc_proof(private_key: @dbsc_private_key, challenge: token_record.dbsc_challenge)
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
+    cookies[Authentication::Base::DBSC_COOKIE_KEY] = "session-abc"
+
+    post "/edge/v0/token/refresh",
+         headers: json_headers(with_csrf: true).merge(
+           Auth::IoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
+           Auth::IoKeys::Headers::DBSC_RESPONSE => proof,
+         ),
+         as: :json
+
+    assert_response :ok
+    assert_not token_record.device_session.reload.revoked?
+  end
+
   test "device_id cookie is HttpOnly and contains raw UUID" do
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -444,7 +570,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "device_id cookie is set on token refresh" do
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -465,7 +591,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "device_id cookie roundtrips and validates against digest" do
-    token_record = UserToken.create!(user: @user, device_id: @device_id)
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
     refresh_plain = token_record.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -511,6 +637,36 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     @csrf_token ||= "test_csrf_token"
   end
 
+  def dbsc_bound_token
+    @dbsc_private_key = OpenSSL::PKey::EC.generate("prime256v1")
+    jwk = JWT::JWK.new(@dbsc_private_key, use: "sig", kid: SecureRandom.uuid)
+    token = ClientToken.create!(
+      user: @user,
+      device_id: @device_id,
+      user_token_binding_method_id: ClientTokenBindingMethod::DBSC,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::ACTIVE,
+      dbsc_session_id: "session-abc",
+      dbsc_public_key: jwk.export,
+      dbsc_challenge: SecureRandom.hex(16),
+      dbsc_challenge_issued_at: Time.current,
+    )
+    token.device_session.bind_dbsc!(session_id: "session-abc")
+    token
+  end
+
+  def generate_dbsc_proof(private_key:, challenge:)
+    JWT.encode(
+      {
+        "jti" => challenge,
+        "aud" => "http://#{@host}/edge/v0/token/dbsc",
+        "iat" => Time.current.to_i,
+      },
+      private_key,
+      "ES256",
+      { "typ" => "dbsc+jwt" },
+    )
+  end
+
   def with_cookie_domain_credentials(overrides)
     creds = Rails.app.creds
     fetch = ->(key, default: nil) { overrides.fetch(key, default) }
@@ -518,5 +674,21 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     creds.stub(:option, fetch) do
       yield
     end
+  end
+
+  def generate_dpop_jwk
+    ec = OpenSSL::PKey::EC.generate("prime256v1")
+    jwk = JWT::JWK.new(ec).export
+    [ec, jwk]
+  end
+
+  def build_dpop_proof(private_key, jwk, method:, uri:)
+    payload = {
+      "htm" => method,
+      "htu" => uri,
+      "iat" => Time.current.to_i,
+      "jti" => SecureRandom.uuid,
+    }
+    JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end
 end

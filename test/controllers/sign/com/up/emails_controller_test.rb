@@ -40,7 +40,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/UMAXICA \(sign, app\)/, response.body)
   end
 
-  test "new redirects to dashboard when visitor is already logged in" do
+  test "new rejects when visitor is already logged in" do
     visitor = create_verified_visitor_with_email(email_address: "logged-in-com-up-email@example.com")
     visitor.visitor_telephones.create!(
       number: "+15550002221",
@@ -50,14 +50,15 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_email_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
-    assert_redirected_to sign_com_dashboard_url(ri: "jp")
+    assert_response :unauthorized
+    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
   test "create rejects when visitor is already logged in" do
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
     assert_no_difference("VisitorEmail.count") do
-      post sign_com_up_emails_url(ri: "jp"),
+      post sign_com_up_email_url(ri: "jp"),
            params: {
              visitor_email: {
                raw_address: "logged-in-com@example.com",
@@ -69,16 +70,13 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unauthorized
-    assert_equal I18n.t("errors.messages.not_authorized"), response.body
+    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
-  test "collection get redirects to new email registration" do
-    get sign_com_up_emails_url(ri: "jp", hotwire_spark: true, reload: "123"), headers: default_headers
+  test "collection get is not routed" do
+    get sign_com_up_email_url(ri: "jp", hotwire_spark: true, reload: "123"), headers: default_headers
 
-    assert_response :redirect
-    assert_includes response.location, "/sign/up/emails/new?ri=jp"
-    assert_not_includes response.location, "hotwire_spark"
-    assert_not_includes response.location, "reload"
+    assert_response :not_found
   end
 
   test "includes navigation link back to sign in" do
@@ -90,7 +88,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create redirects to edit and allows edit page" do
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "com-flow-step@example.com",
@@ -102,18 +100,18 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :redirect
-    public_id = response.location.match(%r{/sign/up/emails/([^/]+)/edit})[1]
+    public_id = VisitorEmail.order(:created_at).last.public_id
 
     assert_not VisitorEmail.find_by!(public_id: public_id).notifiable
 
     follow_redirect!
 
     assert_response :success
-    assert_match(%r{/sign/up/emails/[^/]+/edit}, path)
+    assert_equal "/sign/up/email/edit", path
   end
 
-  test "successful OTP verification creates visitor scoped client account" do
-    post sign_com_up_emails_url(ri: "jp"),
+  test "successful OTP verification routes to guardrail without finalization" do
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "client-account-signup@example.com",
@@ -124,12 +122,12 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :redirect
-    public_id = response.location.match(%r{/sign/up/emails/([^/]+)/edit})[1]
+    public_id = VisitorEmail.order(:created_at).last.public_id
     visitor_email = VisitorEmail.find_by!(public_id: public_id)
     otp_data = visitor_email.get_otp
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
 
-    patch sign_com_up_email_url(id: public_id, ri: "jp"),
+    patch sign_com_up_email_url(ri: "jp"),
           params: {
             visitor_email: {
               pass_code: hotp.at(otp_data[:otp_counter]).to_s,
@@ -137,16 +135,20 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           },
           headers: default_headers
 
-    assert_redirected_to sign_com_dashboard_path(ri: "jp")
+    assert_redirected_to sign_com_up_guardrail_path(ri: "jp")
     visitor = visitor_email.reload.visitor
+    cycle = VisitorSignUpCycle.find_by!(public_id: session.dig(:com_sign_up_cycle_locator, "public_id"))
 
     assert_equal VisitorEmailStatus::VERIFIED_WITH_SIGN_UP, visitor_email.visitor_email_status_id
-    assert_predicate visitor.client_account, :present?
-    assert_equal VisitorRecord.connection_db_config.name, visitor.client_account.class.connection_db_config.name
+    assert_nil visitor.rp_account
+    assert_equal visitor.id, cycle.principal_id
+    assert_equal "email", cycle.pending_contact_type
+    assert_equal visitor_email.id, cycle.pending_contact_id
+    assert_equal "contact_verified", cycle.step
   end
 
-  test "successful OTP verification records signup and login audits" do
-    post sign_com_up_emails_url(ri: "jp"),
+  test "successful OTP verification does not record signup or login audits before finalization" do
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "audit-email-signup@example.com",
@@ -157,13 +159,13 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :redirect
-    public_id = response.location.match(%r{/sign/up/emails/([^/]+)/edit})[1]
+    public_id = VisitorEmail.order(:created_at).last.public_id
     visitor_email = VisitorEmail.find_by!(public_id: public_id)
     otp_data = visitor_email.get_otp
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
 
-    assert_difference("UserChronicle.count", 2) do
-      patch sign_com_up_email_url(id: public_id, ri: "jp"),
+    assert_no_difference("ClientChronicle.count") do
+      patch sign_com_up_email_url(ri: "jp"),
             params: {
               visitor_email: {
                 pass_code: hotp.at(otp_data[:otp_counter]).to_s,
@@ -174,29 +176,23 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     visitor = visitor_email.reload.visitor
 
-    assert_equal 1,
-                 UserChronicle.where(
-                   event_id: UserChronicleEvent::SIGNED_UP_WITH_EMAIL,
+    assert_equal 0,
+                 ClientChronicle.where(
+                   event_id: ClientChronicleEvent::SIGNED_UP_WITH_EMAIL,
                    subject_id: visitor.id.to_s,
                    subject_type: "Visitor",
                  ).count
-    assert_equal 1,
-                 UserChronicle.where(
-                   event_id: UserChronicleEvent::LOGGED_IN,
+    assert_equal 0,
+                 ClientChronicle.where(
+                   event_id: ClientChronicleEvent::LOGGED_IN,
                    subject_id: visitor.id.to_s,
                    subject_type: "Visitor",
                  ).count
-    assert_equal "email",
-                 UserChronicle.where(
-                   event_id: UserChronicleEvent::LOGGED_IN,
-                   subject_id: visitor.id.to_s,
-                   subject_type: "Visitor",
-                 ).last.context["auth_method"]
   end
 
   test "create renders unprocessable when visitor_email param missing" do
     assert_no_difference("VisitorEmail.count") do
-      post sign_com_up_emails_url(ri: "jp"),
+      post sign_com_up_email_url(ri: "jp"),
            params: { "cf-turnstile-response": "test" },
            headers: default_headers
     end
@@ -209,7 +205,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
     assert_no_difference("VisitorEmail.count") do
-      post sign_com_up_emails_url(ri: "jp"),
+      post sign_com_up_email_url(ri: "jp"),
            params: {
              visitor_email: {
                raw_address: "turnstile-failure@example.com",
@@ -236,7 +232,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("Visitor.count") do
       assert_no_difference("VisitorEmail.count") do
         assert_enqueued_emails 0 do
-          post sign_com_up_emails_url(ri: "jp"),
+          post sign_com_up_email_url(ri: "jp"),
                params: {
                  visitor_email: {
                    raw_address: existing_email.address,
@@ -250,8 +246,9 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_includes response.location, "/sign/up/emails/#{existing_email.public_id}/edit"
+    assert_includes response.location, "/sign/up/email/edit"
     assert_equal I18n.t("sign.com.registration.email.create.verification_code_sent"), flash[:notice]
+    assert_nil session[:com_sign_up_cycle_locator]
   end
 
   test "update for existing email flow redirects to sign in without otp" do
@@ -263,7 +260,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       visitor_email_status_id: VisitorEmailStatus::VERIFIED,
     )
 
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: existing_email.address,
@@ -275,22 +272,23 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    patch sign_com_up_email_url(id: existing_email.public_id, ri: "jp"),
+    patch sign_com_up_email_url(ri: "jp"),
           params: { visitor_email: { pass_code: "000000" } },
           headers: default_headers
 
     assert_redirected_to new_sign_com_in_path(ri: "jp")
     assert_equal I18n.t("sign.app.registration.email.update.sign_in_required"), flash[:notice]
+    assert_nil session[:com_sign_up_cycle_locator]
   end
 
   test "edit missing email resets flow and redirects to new" do
-    get edit_sign_com_up_email_url(id: "missing-public-id", ri: "jp"), headers: default_headers
+    get edit_sign_com_up_email_url(ri: "jp"), headers: default_headers
 
     assert_redirected_to new_sign_com_up_email_path(ri: "jp")
   end
 
   test "edit with expired session redirects to new" do
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "expired-session@example.com",
@@ -300,18 +298,18 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: default_headers
 
-    public_id = response.location.split("/").last(2).first
+    public_id = VisitorEmail.order(:created_at).last.public_id
     email = VisitorEmail.find_by(public_id: public_id)
     email.update!(otp_expires_at: 1.minute.ago)
 
-    get edit_sign_com_up_email_url(id: public_id, ri: "jp"), headers: default_headers
+    get edit_sign_com_up_email_url(ri: "jp"), headers: default_headers
 
     assert_redirected_to new_sign_com_up_email_path(ri: "jp")
     assert_equal I18n.t("sign.app.registration.email.edit.session_expired"), flash[:notice]
   end
 
   test "update without code renders edit" do
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "missing-code@example.com",
@@ -321,9 +319,9 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: default_headers
 
-    public_id = response.location.split("/").last(2).first
+    VisitorEmail.order(:created_at).last.public_id
 
-    patch sign_com_up_email_url(id: public_id, ri: "jp"),
+    patch sign_com_up_email_url(ri: "jp"),
           params: { visitor_email: { pass_code: "" } },
           headers: default_headers
 
@@ -331,7 +329,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update without a valid session redirects to new" do
-    email = VisitorEmail.create!(
+    VisitorEmail.create!(
       visitor: Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR),
       address: "invalid-session@example.com",
       confirm_policy: "1",
@@ -339,7 +337,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       otp_expires_at: 5.minutes.from_now,
     )
 
-    patch sign_com_up_email_url(id: email.public_id, ri: "jp"),
+    patch sign_com_up_email_url(ri: "jp"),
           params: { visitor_email: { pass_code: "123456" } },
           headers: default_headers
 
@@ -347,7 +345,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create with invalid email fails" do
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "invalid-email",
@@ -362,7 +360,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create with unconfirmed policy fails" do
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "com-flow-step-2@example.com",
@@ -378,7 +376,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "create with turnstile failure returns unprocessable content" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: { raw_address: "turnstile@example.com", confirm_policy: "1" },
            "cf-turnstile-response": "test",
@@ -392,7 +390,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     email_address = "cooldown-up@example.com"
 
     # First request
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
          headers: default_headers
@@ -400,7 +398,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     # Second request immediately should trigger the independent overwrite window
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
          headers: default_headers
@@ -411,18 +409,18 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "create after overwrite window replaces unverified email" do
     email_address = "overwrite-window-com@example.com"
 
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
          headers: default_headers
 
     assert_response :redirect
-    first_public_id = response.location.match(%r{/sign/up/emails/([^/]+)/edit})[1]
+    first_public_id = VisitorEmail.order(:created_at).last.public_id
     first_email = VisitorEmail.find_by!(public_id: first_public_id)
     first_visitor = first_email.visitor
 
     travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
-      post sign_com_up_emails_url(ri: "jp"),
+      post sign_com_up_email_url(ri: "jp"),
            params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                      "cf-turnstile-response": "test", },
            headers: default_headers
@@ -431,24 +429,24 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_not VisitorEmail.exists?(first_email.id)
     assert_not Visitor.exists?(first_visitor.id)
-    new_public_id = response.location.match(%r{/sign/up/emails/([^/]+)/edit})[1]
+    new_public_id = VisitorEmail.order(:created_at).last.public_id
 
     assert VisitorEmail.exists?(public_id: new_public_id)
   end
 
   test "patch update with attempts exceeded redirects to new" do
-    post sign_com_up_emails_url(ri: "jp"),
+    post sign_com_up_email_url(ri: "jp"),
          params: { visitor_email: { raw_address: "locked@example.com", confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
          headers: default_headers
 
-    public_id = response.location.split("/").last(2).first
+    public_id = VisitorEmail.order(:created_at).last.public_id
     email = VisitorEmail.find_by(public_id: public_id)
 
     # Simulate locked state
     email.update!(otp_attempts_count: 10)
 
-    patch sign_com_up_email_url(id: public_id, ri: "jp"),
+    patch sign_com_up_email_url(ri: "jp"),
           params: { visitor_email: { pass_code: "123456" } },
           headers: default_headers
 
@@ -471,9 +469,9 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:action_name) { @action_name || "new" }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
     controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }
-    controller.define_singleton_method(:new_sign_com_up_email_path) { |ri: nil| "/sign/up/emails/new?ri=#{ri}" }
-    controller.define_singleton_method(:edit_sign_com_up_email_path) { |email, ri: nil, rt: nil|
-      "/sign/up/emails/#{email.public_id}/edit?ri=#{ri}&rt=#{rt}"
+    controller.define_singleton_method(:new_sign_com_up_email_path) { |ri: nil| "/sign/up/email/new?ri=#{ri}" }
+    controller.define_singleton_method(:edit_sign_com_up_email_path) { |_email, ri: nil, rt: nil|
+      "/sign/up/email/edit?ri=#{ri}&rt=#{rt}"
     }
     controller.define_singleton_method(:new_sign_com_in_path) { |ri: nil| "/in?ri=#{ri}" }
     controller.define_singleton_method(:t) { |key, **| key }

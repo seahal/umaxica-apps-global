@@ -5,8 +5,8 @@ class RenameExpiresAtToPurgeAtAndAddLapsesAtOnChronicle < ActiveRecord::Migratio
     
     tables.each do |t|
       if table_exists?(t)
-        add_column t, :lapses_at, :datetime, null: false, default: -> { "'infinity'" } unless column_exists?(t, :lapses_at)
-        rename_column t, :expires_at, :purge_at if column_exists?(t, :expires_at)
+        add_column t, :discarded_at, :datetime, null: false, default: -> { "'infinity'" } unless column_exists?(t, :discarded_at)
+        rename_column t, :expires_at, :purged_at if column_exists?(t, :expires_at)
       end
     end
     end

@@ -4,7 +4,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/notes/oidc-callback-integration-tests.md`
+- `notes/oidc-callback-integration-tests.md`
 
 ## Goal
 

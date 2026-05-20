@@ -4,28 +4,33 @@
 require "test_helper"
 
 class AuthMethodGuardTest < ActiveSupport::TestCase
-  fixtures :users
+  fixtures :clients
+
+  setup do
+    @user = clients(:one)
+    ClientSocialGoogle.where(user: @user).delete_all
+    ClientSocialApple.where(user: @user).delete_all
+    ClientEmail.where(user: @user).delete_all
+    ClientTelephone.where(user: @user).delete_all
+    ClientSecret.where(user: @user).delete_all
+    ClientPasskey.where(user: @user).delete_all
+    ClientOneTimePassword.where(user: @user).delete_all
+  end
 
   test "remaining_count returns 0 for user with no methods" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
-    UserSocialApple.where(user: user).delete_all
-    UserEmail.where(user: user).delete_all
-    UserTelephone.where(user: user).delete_all
+    user = @user
 
     assert_equal 0, AuthMethodGuard.remaining_count(user)
   end
 
   test "remaining_count includes active Google identity" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
-    UserSocialApple.where(user: user).delete_all
+    user = @user
 
-    UserSocialGoogle.create!(
+    ClientSocialGoogle.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: UserSocialGoogleStatus::ACTIVE,
+      status_id: ClientSocialGoogleStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -34,15 +39,13 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   end
 
   test "remaining_count includes active Apple identity" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
-    UserSocialApple.where(user: user).delete_all
+    user = @user
 
-    UserSocialApple.create!(
+    ClientSocialApple.create!(
       user: user,
       uid: "test_apple_#{SecureRandom.hex(4)}",
       provider: "apple",
-      status_id: UserSocialAppleStatus::ACTIVE,
+      status_id: ClientSocialAppleStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -51,68 +54,62 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   end
 
   test "remaining_count includes verified emails" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
-    UserSocialApple.where(user: user).delete_all
-    UserEmail.where(user: user).delete_all
+    user = @user
 
-    UserEmail.create!(
+    ClientEmail.create!(
       user: user,
       address: "test#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     assert_equal 1, AuthMethodGuard.remaining_count(user)
   end
 
   test "remaining_count excludes unverified emails" do
-    user = users(:one)
-    UserEmail.where(user: user).delete_all
+    user = @user
 
-    UserEmail.create!(
+    ClientEmail.create!(
       user: user,
       address: "unverified#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::UNVERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
     assert_equal 0, AuthMethodGuard.remaining_count(user)
   end
 
-  test "remaining_count includes verified telephones" do
-    user = users(:one)
-    UserTelephone.where(user: user).delete_all
+  test "remaining_count excludes verified telephones because telephone is not aal1" do
+    user = @user
 
-    UserTelephone.create!(
+    ClientTelephone.create!(
       user: user,
       number: "+819012345678",
-      user_identity_telephone_status_id: UserTelephoneStatus::VERIFIED,
+      user_identity_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
 
-    assert_equal 1, AuthMethodGuard.remaining_count(user)
+    assert_equal 0, AuthMethodGuard.remaining_count(user)
+    assert_equal 1, Authentication::CredentialInventory.call(user).contact_identifier_count
   end
 
   test "remaining_count excludes unverified telephones" do
-    user = users(:one)
-    UserTelephone.where(user: user).delete_all
+    user = @user
 
-    UserTelephone.create!(
+    ClientTelephone.create!(
       user: user,
       number: "+819012345678",
-      user_identity_telephone_status_id: UserTelephoneStatus::UNVERIFIED,
+      user_identity_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
     )
 
     assert_equal 0, AuthMethodGuard.remaining_count(user)
   end
 
   test "remaining_count excludes specified identity" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
+    user = @user
 
-    google = UserSocialGoogle.create!(
+    google = ClientSocialGoogle.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: UserSocialGoogleStatus::ACTIVE,
+      status_id: ClientSocialGoogleStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -121,17 +118,13 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   end
 
   test "last_method returns true when only one method exists" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
-    UserSocialApple.where(user: user).delete_all
-    UserEmail.where(user: user).delete_all
-    UserTelephone.where(user: user).delete_all
+    user = @user
 
-    google = UserSocialGoogle.create!(
+    google = ClientSocialGoogle.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: UserSocialGoogleStatus::ACTIVE,
+      status_id: ClientSocialGoogleStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -141,75 +134,136 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   end
 
   test "last_method returns false when multiple methods exist" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
-    UserEmail.where(user: user).delete_all
+    user = @user
 
-    UserSocialGoogle.create!(
+    ClientSocialGoogle.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: UserSocialGoogleStatus::ACTIVE,
+      status_id: ClientSocialGoogleStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
 
-    UserEmail.create!(
+    ClientEmail.create!(
       user: user,
       address: "test#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     assert_not AuthMethodGuard.last_method?(user)
   end
 
   test "remaining_count counts multiple methods correctly" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
-    UserSocialApple.where(user: user).delete_all
-    UserEmail.where(user: user).delete_all
-    UserTelephone.where(user: user).delete_all
+    user = @user
 
-    UserSocialGoogle.create!(
+    ClientSocialGoogle.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: UserSocialGoogleStatus::ACTIVE,
+      status_id: ClientSocialGoogleStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
 
-    UserSocialApple.create!(
+    ClientSocialApple.create!(
       user: user,
       uid: "test_apple_#{SecureRandom.hex(4)}",
       provider: "apple",
-      status_id: UserSocialAppleStatus::ACTIVE,
+      status_id: ClientSocialAppleStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
 
-    UserEmail.create!(
+    ClientEmail.create!(
       user: user,
       address: "test#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     assert_equal 3, AuthMethodGuard.remaining_count(user)
   end
 
   test "remaining_count excludes inactive Google identity" do
-    user = users(:one)
-    UserSocialGoogle.where(user: user).delete_all
+    user = @user
 
-    UserSocialGoogle.create!(
+    ClientSocialGoogle.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: UserSocialGoogleStatus::REVOKED,
+      status_id: ClientSocialGoogleStatus::REVOKED,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
 
     assert_equal 0, AuthMethodGuard.remaining_count(user)
+  end
+
+  test "can_remove_telephone preserves at least one contact identifier" do
+    telephone = ClientTelephone.create!(
+      user: @user,
+      number: "+819012300001",
+      user_identity_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
+
+    assert_not AuthMethodGuard.can_remove_telephone?(@user, telephone)
+
+    ClientEmail.create!(
+      user: @user,
+      address: "telephone-removal#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+    )
+
+    assert AuthMethodGuard.can_remove_telephone?(@user, telephone)
+  end
+
+  test "can_remove_email preserves contact aal1 and aal2 dimensions" do
+    email = ClientEmail.create!(
+      user: @user,
+      address: "email-removal#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+    )
+    passkey = @user.client_passkeys.new(
+      webauthn_id: "auth_guard_passkey_#{SecureRandom.hex(4)}",
+      external_id: SecureRandom.uuid,
+      public_key: "public_key",
+      sign_count: 0,
+      description: "auth guard passkey",
+      status_id: ClientPasskeyStatus::ACTIVE,
+    )
+    passkey.save!(validate: false)
+
+    assert_not AuthMethodGuard.can_remove_email?(@user, email)
+
+    ClientTelephone.create!(
+      user: @user,
+      number: "+819012300002",
+      user_identity_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
+
+    assert AuthMethodGuard.can_remove_email?(@user, email)
+  end
+
+  test "can_remove_totp preserves at least one aal2 method" do
+    totp = ClientOneTimePassword.create!(
+      user: @user,
+      private_key: ROTP::Base32.random_base32,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      last_otp_at: Time.zone.at(0),
+    )
+
+    assert_not AuthMethodGuard.can_remove_totp?(@user, totp)
+
+    passkey = @user.client_passkeys.new(
+      webauthn_id: "auth_guard_totp_passkey_#{SecureRandom.hex(4)}",
+      external_id: SecureRandom.uuid,
+      public_key: "public_key",
+      sign_count: 0,
+      description: "auth guard totp passkey",
+      status_id: ClientPasskeyStatus::ACTIVE,
+    )
+    passkey.save!(validate: false)
+
+    assert AuthMethodGuard.can_remove_totp?(@user, totp)
   end
 end

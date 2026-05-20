@@ -1,0 +1,23 @@
+# == Schema Information
+#
+# Table name: staff_preference_theme_options
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorPreferenceThemeOption
+
+# Table name: staff_preference_theme_options
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 0
+light:
+  id: 1
+dark:
+  id: 2
+system:
+  id: 3

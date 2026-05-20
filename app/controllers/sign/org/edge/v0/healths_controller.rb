@@ -5,7 +5,7 @@ module Sign
   module Org
     module Edge
       module V0
-        class HealthsController < ApplicationController
+        class HealthsController < Sign::Org::BareController
           include ::Health
 
           def show

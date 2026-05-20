@@ -120,12 +120,12 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
     end
   end
 
-  test "require_recent_reauth! raises if last reauth is old" do
-    @harness.current_resource = User.new
-    @harness.current_resource.last_reauth_at = 1.hour.ago
+  test "require_recent_step_up! raises if last step-up is old" do
+    @harness.current_resource = Client.new
+    @harness.current_resource.last_step_up_at = 1.hour.ago
 
-    assert_raises(SocialAuth::ReauthRequiredError) do
-      @harness.send(:require_recent_reauth!)
+    assert_raises(SocialAuth::StepUpRequiredError) do
+      @harness.send(:require_recent_step_up!)
     end
   end
 

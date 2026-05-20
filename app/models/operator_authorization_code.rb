@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_authorization_codes
-# Database name: token
+# Database name: org_ticket
 #
 #  id                    :bigint           not null, primary key
 #  acr                   :string
@@ -13,9 +13,9 @@
 #  code_challenge        :string           not null
 #  code_challenge_method :string(8)        default("S256"), not null
 #  consumed_at           :datetime
-#  lapses_at             :datetime         default(Infinity), not null
+#  discarded_at          :datetime         default(Infinity), not null
 #  nonce                 :string
-#  purge_at              :datetime         default(Infinity), not null
+#  purged_at             :datetime         default(Infinity), not null
 #  redirect_uri          :text             not null
 #  scope                 :string
 #  state                 :string
@@ -29,7 +29,7 @@
 #  index_staff_authorization_codes_on_code      (code) UNIQUE
 #  index_staff_authorization_codes_on_staff_id  (staff_id)
 #
-class OperatorAuthorizationCode < TokenRecord
+class OperatorAuthorizationCode < OrgTicketRecord
   self.table_name = "staff_authorization_codes"
   include Retainable
 
@@ -43,9 +43,9 @@ class OperatorAuthorizationCode < TokenRecord
   validates :redirect_uri, presence: true
   validates :code_challenge, presence: true
   validates :code_challenge_method, inclusion: { in: %w(S256) }
-  validates :lapses_at, presence: true
+  validates :discarded_at, presence: true
 
-  scope :valid, -> { where(consumed_at: nil).where("lapses_at > ?", Time.current) }
+  scope :valid, -> { where(consumed_at: nil).where("discarded_at > ?", Time.current) }
 
   def resource
     staff
@@ -74,13 +74,13 @@ class OperatorAuthorizationCode < TokenRecord
         nonce: nonce,
         auth_method: auth_method,
         acr: acr,
-        lapses_at: CODE_TTL.from_now,
+        discarded_at: CODE_TTL.from_now,
       )
     end
   end
 
   def expired?
-    lapses_at <= Time.current
+    discarded_at <= Time.current
   end
 
   def consumed?
@@ -88,7 +88,7 @@ class OperatorAuthorizationCode < TokenRecord
   end
 
   def revoked?
-    lapses_at <= Time.current
+    discarded_at <= Time.current
   end
 
   def usable?
@@ -103,7 +103,7 @@ class OperatorAuthorizationCode < TokenRecord
   end
 
   def revoke!
-    update!(lapses_at: Time.current)
+    update!(discarded_at: Time.current)
   end
 
   def verify_pkce(code_verifier)

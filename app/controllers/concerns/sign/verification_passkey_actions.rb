@@ -6,7 +6,7 @@ module Sign
     extend ActiveSupport::Concern
 
     def new
-      return unless require_reauth_session!
+      return unless require_step_up_session!
       return if redirect_if_recent_verification_for_get!
       return unless require_method_available!(:passkey)
 
@@ -14,12 +14,12 @@ module Sign
     end
 
     def create
-      return unless require_reauth_session!
+      return unless require_step_up_session!
       return if redirect_if_recent_verification_for_post!
       return unless require_method_available!(:passkey)
 
       if verify_passkey!
-        consume_reauth_session!
+        consume_step_up_session!
       else
         record_failed_step_up_attempt!(:passkey)
         prepare_passkey_challenge!

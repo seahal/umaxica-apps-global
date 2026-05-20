@@ -5,7 +5,6 @@ module Sign
   module PasskeyOptionsFlow
     extend ActiveSupport::Concern
 
-    # rubocop:disable Metrics/AbcSize
     def options
       return unless before_passkey_options_request!
 
@@ -31,13 +30,12 @@ module Sign
         options: request_options,
       }, status: :ok
     rescue Sign::Webauthn::OriginValidationError => e
-      Rails.logger.error("WebAuthn origin validation failed: #{e.message}")
+      Rails.event.error("webauthn.origin_validation_failed", message: e.message)
       render_error("errors.webauthn.origin_invalid", :forbidden)
     rescue StandardError => e
-      Rails.logger.error("WebAuthn authentication options failed: #{e.message}")
+      Rails.event.error("webauthn.authentication_options_failed", error_class: e.class.name, message: e.message)
       render_error("errors.webauthn.options_failed", :unprocessable_content)
     end
-    # rubocop:enable Metrics/AbcSize
 
     private
 
@@ -46,7 +44,7 @@ module Sign
     end
 
     def normalized_passkey_identifier
-      params.expect(:identifier).to_s.strip
+      params(:identifier).to_s.strip
     end
 
     def passkey_identifier_required_error_key

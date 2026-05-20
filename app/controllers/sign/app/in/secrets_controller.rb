@@ -4,7 +4,7 @@
 module Sign
   module App
     module In
-      class SecretsController < ApplicationController
+      class SecretsController < GuestController
         include ::CloudflareTurnstile
         include EmailValidation
         include IdentifierDetection
@@ -50,8 +50,6 @@ module Sign
 
         MFA_USER_SESSION_KEY = :mfa_user_id
 
-        before_action :reject_logged_in_session
-
         def new
           if mfa_user
             @secret_form = MfaSecretForm.new
@@ -71,7 +69,7 @@ module Sign
 
         def handle_mfa_login
           @secret_form = MfaSecretForm.new(mfa_secret_params)
-          @secret_form.turnstile_response = params.expect("cf-turnstile-response").to_s
+          @secret_form.turnstile_response = turnstile_response_param
           unless @secret_form.valid?
             return render_failed_login(
               reason: :form_invalid,
@@ -98,7 +96,7 @@ module Sign
 
         def handle_standard_login
           @secret_form = SecretLoginForm.new(secret_params)
-          @secret_form.turnstile_response = params.expect("cf-turnstile-response").to_s
+          @secret_form.turnstile_response = turnstile_response_param
           unless @secret_form.valid?
             return render_failed_login(
               reason: :form_invalid,
@@ -167,15 +165,19 @@ module Sign
         end
 
         def process_standard_login(user)
-          result = complete_sign_in_or_start_mfa!(
+          result = establish_signed_in_session!(
             user, rt: nil, ri: params[:ri], auth_method: "secret",
           )
-          if result[:status] == :mfa_required
-            redirect_to(result[:redirect_path], notice: t("sign.app.in.mfa.required"))
-          elsif result[:status] == :session_limit_hard_reject
-            render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
-          elsif result[:restricted]
-            redirect_to(sign_app_in_session_path, notice: I18n.t("sign.app.in.session.restricted_notice"))
+          sign_in_result = sign_in_result_from_session_result(result, actor: user)
+          if sign_in_result.mfa_required?
+            redirect_to(sign_in_result.redirect_to, notice: t("sign.app.in.mfa.required"))
+          elsif sign_in_result.status == :session_limit_hard_reject
+            render_session_limit_hard_reject(
+              message: sign_in_result.message,
+              http_status: sign_in_result.response_status,
+            )
+          elsif sign_in_result.session_limit_pending?
+            redirect_to(sign_in_result.redirect_to, notice: I18n.t("sign.app.in.session.restricted_notice"))
           else
             redirect_to_sign_in_sequence!(
               rt: redirect_parameter_value,
@@ -185,6 +187,10 @@ module Sign
         end
 
         private
+
+        def turnstile_response_param
+          params.expect("cf-turnstile-response").to_s
+        end
 
         def mfa_user
           return @mfa_user if defined?(@mfa_user)
@@ -196,7 +202,7 @@ module Sign
             return nil
           end
 
-          @mfa_user = User.find_by(id: user_id)
+          @mfa_user = Client.find_by(id: user_id)
         end
 
         def clear_mfa_session!
@@ -213,10 +219,10 @@ module Sign
             details: {},
           ) unless user.has_verified_pii?
 
-          latest_secret = user.user_secrets.order(created_at: :desc).first
+          latest_secret = user.client_secrets.order(created_at: :desc).first
           return SecretVerificationResult.new(reason: :secret_not_found, details: {}) unless latest_secret
 
-          latest_eligible_secret = user.user_secrets.allowed_for_secret_sign_in.order(created_at: :desc).first
+          latest_eligible_secret = user.client_secrets.allowed_for_secret_sign_in.order(created_at: :desc).first
           unless latest_eligible_secret
             return SecretVerificationResult.new(
               reason: :secret_expired,
@@ -254,7 +260,7 @@ module Sign
         end
 
         def active_secret_hints_for(user)
-          user.user_secrets
+          user.client_secrets
             .allowed_for_secret_sign_in
             .order(created_at: :desc)
             .limit(10)
@@ -314,16 +320,16 @@ module Sign
 
         def audit_recovery_code_used!(user, secret)
           ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: UserChronicleEvent::RECOVERY_CODE_USED)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            ClientChronicleEvent.find_or_create_by!(id: ClientChronicleEvent::RECOVERY_CODE_USED)
+            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
           end
 
-          UserChronicle.create!(
-            actor_type: "User",
+          ClientChronicle.create!(
+            actor_type: "Client",
             actor_id: user.id,
-            event_id: UserChronicleEvent::RECOVERY_CODE_USED,
+            event_id: ClientChronicleEvent::RECOVERY_CODE_USED,
             subject_id: secret.id.to_s,
-            subject_type: "UserSecret",
+            subject_type: "ClientSecret",
             occurred_at: Time.current,
           )
         end

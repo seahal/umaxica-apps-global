@@ -2,22 +2,23 @@
 
 ## Context
 
-`acme.rb` の app / org スコープに `TODO: consider this. we did move this to sign routing.`
-というコメントがある。configuration ルートと関連コントローラ・ビューが sign 側に完全移行済みにもかかわらず acme 側にスタブとして残っている。com スコープにも同じ構造が TODO なしで残っている。
+`TODO: consider this. we did move this to sign routing.` in the app/org scope of `acme.rb` There is
+a comment. Even though the configuration route and related controller views have been completely
+migrated to the sign side, they remain as stubs on the acme side. The same structure remains in the
+com scope without TODO.
 
-sign 側は emails, totps, passkeys, secrets, sessions, activities,
-withdrawal 等を含む完全版。acme 側は show + emails
-(new/create/edit/update) のみのスタブ。レイアウトのヘッダーは既に `sign_*_configuration_url`
-にリンクしているが、フッターと roots/index は acme 側を参照している。
+The sign side is emails, totps, passkeys, secrets, sessions, activities, Complete version including
+withdrawal etc. acme side show + emails (new/create/edit/update) only stub. The layout's header is
+already `sign_*_configuration_url` However, the footer and roots/index refer to the acme side.
 
-acme/com/configuration/emails/edit.html.erb にコピペバグあり（`acme_app_*` を使っていて `acme_com_*`
-であるべき）。
+There is a copy-paste bug in acme/com/configuration/emails/edit.html.erb (when using `acme_app_*`
+and `acme_com_*` ).
 
 ## Approach
 
 ### Step 1: Route deletion — `config/routes/acme.rb`
 
-以下のブロックを削除:
+Delete the following blocks:
 
 - **com scope** (L35-39): `resource :configuration` + `namespace :configuration { emails }`
 - **app scope** (L71-76): TODO comment + `resource :configuration` +
@@ -33,22 +34,22 @@ acme/com/configuration/emails/edit.html.erb にコピペバグあり（`acme_app
 - `app/controllers/acme/app/configuration/emails_controller.rb`
 - `app/controllers/acme/org/configuration/emails_controller.rb`
 
-（acme/com/configuration/emails_controller.rb は存在しない）
+(acme/com/configuration/emails_controller.rb does not exist)
 
 ### Step 3: View deletion
 
 - `app/views/acme/app/configurations/` (show.html.erb)
 - `app/views/acme/com/configurations/` (show.html.erb)
 - `app/views/acme/org/configurations/` (show.html.erb)
-- `app/views/acme/app/configuration/emails/` (edit.html.erb 等)
-- `app/views/acme/com/configuration/emails/` (edit.html.erb 等)
-- `app/views/acme/org/configuration/emails/` (edit.html.erb 等)
+- `app/views/acme/app/configuration/emails/` (edit.html.erb etc.)
+- `app/views/acme/com/configuration/emails/` (edit.html.erb etc.)
+- `app/views/acme/org/configuration/emails/` (edit.html.erb etc.)
 
 ### Step 4: Link re-pointing
 
-acme のレイアウト・ルートページで `acme_*_configuration_path` を使っている箇所を
-`sign_*_configuration_url`
-に変更する。ヘッダーは既に sign を向いているので、フッターと roots/index のみ:
+The part where `acme_*_configuration_path` is used on the layout/root page of acme
+`sign_*_configuration_url` Change to The header is already facing the sign, so just the footer and
+roots/index:
 
 | File                                                  | Change                                                       |
 | ----------------------------------------------------- | ------------------------------------------------------------ |
@@ -64,7 +65,7 @@ acme のレイアウト・ルートページで `acme_*_configuration_path` を�
 
 ### Step 6: Empty directory cleanup
 
-削除後に空になるディレクトリを確認し削除:
+Check the directories that will be empty after deletion and delete them:
 
 - `app/controllers/acme/app/configuration/`
 - `app/controllers/acme/com/configuration/` (if exists)

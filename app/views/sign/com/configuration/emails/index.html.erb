@@ -23,7 +23,7 @@
           </tr>
           </thead>
           <tbody>
-          <% @user_emails.each do |email| %>
+          <% @client_emails.each do |email| %>
             <tr>
               <td><%= email.address %></td>
               <td>
@@ -39,7 +39,7 @@
               </td>
             </tr>
           <% end %>
-          <% if @user_emails.empty? %>
+          <% if @client_emails.empty? %>
             <tr>
               <td colspan="3">
                 <div>

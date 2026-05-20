@@ -8,7 +8,7 @@ module SingleUseToken
   PREFERENCE_REFRESH_TTL = 400.days
 
   included do
-    scope :active, -> { where(arel_table[:lapses_at].gt(Time.current)) }
+    scope :active, -> { where(arel_table[:discarded_at].gt(Time.current)) }
     scope :unconsumed, -> { where(used_at: nil) }
   end
 
@@ -17,18 +17,14 @@ module SingleUseToken
       return nil if digest.blank?
 
       consumed_at = now
-      scope = where(token_digest: digest, used_at: nil)
-      scope = scope.where(arel_table[:lapses_at].gt(consumed_at))
-      target_id = scope.order(:id).limit(1).pick(:id)
-      return nil unless target_id
+      consumed = nil
+      transaction do
+        record = lock_consumable_by_digest(digest, now: consumed_at)
+        next unless record
 
-      record = where(id: target_id, token_digest: digest, used_at: nil)
-        .where(arel_table[:lapses_at].gt(consumed_at))
-        .first
-      return nil unless record
-
-      record.update!(used_at: consumed_at, updated_at: consumed_at)
-      find_by(id: target_id)
+        consumed = consume_record!(record, now: consumed_at)
+      end
+      consumed
     end
 
     def rotate!(presented_digest:, device_id:, now: Time.current)
@@ -36,13 +32,17 @@ module SingleUseToken
       raw_refresh_token = nil
 
       transaction do
-        consumed = consume_once_by_digest!(digest: presented_digest, now: now)
-        return nil unless consumed
+        consumed = lock_consumable_by_digest(presented_digest, now: now)
+        next unless consumed
+        next unless refresh_token_device_matches?(consumed, device_id)
 
+        consume_record!(consumed, now: now)
         replacement = create_rotated_record!(consumed, device_id: device_id, now: now)
         consumed.update!(replaced_by_id: replacement.id)
         raw_refresh_token = replacement.issued_refresh_token
       end
+
+      return nil unless replacement
 
       replacement.issued_refresh_token = raw_refresh_token
       replacement
@@ -50,13 +50,28 @@ module SingleUseToken
 
     private
 
+    def lock_consumable_by_digest(digest, now:)
+      lock_refresh_token_record_by_digest(
+        digest,
+        digest_column: :token_digest,
+        unused_column: :used_at,
+        expires_at_column: :discarded_at,
+        now: now,
+      )
+    end
+
+    def consume_record!(record, now:)
+      record.update!(used_at: now, updated_at: now)
+      record
+    end
+
     def create_rotated_record!(consumed, device_id:, now:)
       new_device_id = device_id.presence || consumed.device_id
       attrs = {
         status_id: consumed.status_id,
         device_id: new_device_id,
         device_id_digest: digest_device_id(new_device_id),
-        lapses_at: now + PREFERENCE_REFRESH_TTL,
+        discarded_at: now + PREFERENCE_REFRESH_TTL,
         jti: Jit::Security::Jwt::JtiGenerator.generate,
         binding_method_id: consumed.binding_method_id,
         dbsc_status_id: consumed.dbsc_status_id,

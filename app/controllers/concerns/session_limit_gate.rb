@@ -1,6 +1,13 @@
 # typed: false
 # frozen_string_literal: true
 
+# Legacy compatibility gate for concurrent session-limit management.
+#
+# DB-backed sign-in cycles should use SignIn::SessionLimitManager as the
+# authoritative session-limit participant. This concern remains only for
+# sign-in entry points that have not yet been fully wired to DB-backed cycle
+# locators.
+#
 # Provides server-side session gating for concurrent session limit management.
 # When a user exceeds their maximum concurrent sessions, they are redirected to
 # a session management screen where they can revoke existing sessions.
@@ -19,7 +26,7 @@
 #   before_action :require_valid_gate
 #
 #   def edit
-#     @active_sessions = current_user.user_tokens.active
+#     @active_sessions = current_user.client_tokens.active
 #   end
 #
 #   def update
@@ -95,7 +102,7 @@ module SessionLimitGate
 
   def render_session_limit_hard_reject(message: nil, http_status: nil)
     msg = message || I18n.t("session_limit.login_limit_exceeded")
-    status = http_status || :conflict
+    status = http_status || :forbidden
 
     respond_to do |format|
       format.html { render plain: msg, status: status }

@@ -3,8 +3,7 @@
 
 module Sign
   module Org
-    class DashboardsController < ApplicationController
-      auth_required!
+    class DashboardsController < PrivateController
       before_action :authenticate_operator!
       before_action :continue_dashboard_sequence_without_content!
 

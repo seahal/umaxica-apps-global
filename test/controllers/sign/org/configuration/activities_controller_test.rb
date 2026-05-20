@@ -4,13 +4,13 @@
 require "test_helper"
 
 class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_chronicle_events, :staff_chronicle_levels
+  fixtures :operators, :operator_identity_statuses, :operator_chronicle_events, :operator_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
-    @other_staff = staffs(:two)
+    @staff = operators(:one)
+    @other_staff = operators(:two)
     @headers = as_staff_headers(@staff, host: @host)
 
     ChronicleRecord.connected_to(role: :writing) do
@@ -145,14 +145,23 @@ class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     OperatorChronicle.create!(
       actor_type: "Operator",
       actor_id: staff.id,
-      event_id: event_id,
-      level_id: OperatorChronicleLevel::NOTHING,
+      staff_chronicle_event: staff_chronicle_event_for(event_id),
+      staff_chronicle_level: staff_chronicle_level_for,
       subject_id: staff.id,
       subject_type: "Operator",
       occurred_at: occurred_at,
-      lapses_at: 1.year.from_now,
+      discarded_at: 1.year.from_now,
       ip_address: ip_address,
       context: context,
     )
+  end
+
+  def staff_chronicle_event_for(event_id)
+    @operator_chronicle_events ||= {}
+    @operator_chronicle_events[event_id] ||= OperatorChronicleEvent.find(event_id)
+  end
+
+  def staff_chronicle_level_for
+    @staff_chronicle_level ||= OperatorChronicleLevel.find(OperatorChronicleLevel::NOTHING)
   end
 end

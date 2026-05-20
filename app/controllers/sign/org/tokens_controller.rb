@@ -6,17 +6,8 @@ module Sign
     class TokensController < ApplicationController
       public_strict!
 
-      # FIXME: This configuration disables CSRF protection by nullifying the session
-      # instead of raising an exception on invalid/missing tokens. This is a potential
-      # security vulnerability, but is kept because this OAuth/OIDC token endpoint
-      # receives requests from third-party clients using client_id/client_secret
-      # authentication, which cannot include CSRF tokens.
-      # Consider implementing alternative security measures (e.g., origin validation,
-      # rate limiting) to mitigate the risk.
-      protect_from_forgery with: :null_session
-
       def create
-        result = Oidc::TokenExchangeService.call(
+        result = ::Oidc::TokenExchangeService.call(
           grant_type: params[:grant_type],
           code: params[:code],
           redirect_uri: params[:redirect_uri],

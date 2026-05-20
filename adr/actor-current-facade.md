@@ -15,28 +15,63 @@ This creates two problems. First, request-local storage and the application-faci
 Second, subdomain-specific current classes make every new surface/tenant/region look like it needs a
 new global-ish context class.
 
-The desired direction is one request-local current-context container with one application-facing API.
+The desired direction is one request-local current-context container with one application-facing
+API.
 
 ## Decision
 
 Adopt `Actor` as the only current-context container and application-facing API.
 
-`Actor` is backed by `ActiveSupport::CurrentAttributes`. Controllers, middleware, authentication,
-preference resolution, host/context resolvers, policies, services, and views read and write request
-context through `Actor`, for example:
+`Actor` is backed by `ActiveSupport::CurrentAttributes`, but the mutable request-local slot stores
+one immutable `Actor::Context` snapshot implemented with Ruby `Data.define`. Controllers,
+middleware, authentication, preference resolution, host/context resolvers, policies, services, and
+views read request context through `Actor`, for example:
 
 ```ruby
-Actor.user
+Actor.client
 Actor.account
-Actor.surface
+Actor.tld
+Actor.whoami
 Actor.preference.language
+Actor.authentication.login_public_id
 ```
 
 `Actor` does not branch by subdomain. Host and surface differences are resolved before application
 code runs, by a request-start resolver that populates `Actor`.
 
 Preference remains an immutable value object exposed as `Actor::Preference`. Callers should access
-the resolved request preference as `Actor.preference`.
+the resolved request preference as `Actor.preference`. It carries the request's localization and
+display preference snapshot, including `language`, `region`, `timezone`, `theme`, `currency`,
+`date_format`, `time_format`, `motion`, `density`, and `items_per_page`.
+
+For normal authenticated requests, `Actor.preference` is initialized from the verified access-token
+`prf` claim and then rebuilt with a request-local overlay for valid explicit `lx`, `ct`, and `tz`
+parameters. That overlay is part of the current request's effective runtime context only. It must
+not write the database, reissue tokens, or become the next persistent preference snapshot.
+
+Updates replace the whole `Actor::Context` snapshot instead of mutating independent current
+attributes in place. Existing `Actor.actor = ...` style writers may exist as convenience API, but
+they must update the snapshot by replacement.
+
+`Actor.whoami` exposes the current actor type (`:client`, `:operator`, `:visitor`, or
+`:unauthenticated`). `Actor.tld` exposes the current surface label (`:app`, `:com`, `:org`, `:net`,
+or `:dev`).
+
+`Actor.tld` is the only application-facing surface API. `Actor.surface` and `Actor.domain` are
+removed and must not be restored as compatibility aliases.
+
+Authentication state is exposed through `Actor.authentication`. The application-facing identifier
+for the current login/session row is `Actor.authentication.login_public_id`; this corresponds to the
+current entry shown in the user-facing configuration sessions pages, but avoids the ambiguous
+`session` name used by Rails. Direct `Actor.session` reads are deprecated compatibility API.
+
+Decoded access-token claims are not a general application API. `Actor.token` is deprecated. If a
+low-level auth or policy boundary must inspect raw access-token claims during the migration, use
+`Actor.authentication.access_claims` and prefer adding typed authentication readers such as `acr`,
+`amr`, `restricted?`, or `verified?` instead of spreading raw claim access.
+
+Authorization keeps the existing Action Policy context key `:user`. `Actor` is the request-context
+facade, but this ADR does not rename Action Policy's authorization context to `:actor`.
 
 ## Rejected Direction
 
@@ -51,17 +86,21 @@ Do not restore these classes as compatibility shims. Do not introduce more surfa
 
 The old global `Current` class is also removed. Do not restore it as a compatibility shim.
 
-`adr/jumper-current-boundary.md` is obsolete. Its provisional `Jumper` direction is no longer current
-intent.
+`adr/jumper-current-boundary.md` is obsolete. Its provisional `Jumper` direction is no longer
+current intent.
 
 ## Consequences
 
 - Request-local storage and application API are both centered on `Actor`.
+- `Actor` state is represented as an immutable snapshot, reducing hidden mutation between controller
+  callbacks.
 - Future surface, tenant, region, and host growth should extend resolver output and `Actor` fields,
   not create more `CurrentAttributes` classes.
 - Existing direct reads of `Current.*` in application code are migrated to `Actor.*`.
 - Existing `Jumper` / `Apexer` / `Signer` tests and lifecycle wiring are removed with this
   direction.
+- Action Policy keeps its existing `:user` context name unless a later accepted ADR explicitly
+  changes it.
 
 ## Related
 

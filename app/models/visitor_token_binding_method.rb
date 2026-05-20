@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: visitor_token_binding_methods
-# Database name: symbol
+# Database name: com_ticket
 #
 #  id :bigint           not null, primary key
 #
-class VisitorTokenBindingMethod < SymbolRecord
+class VisitorTokenBindingMethod < ComTicketRecord
   include ReferenceRecord
 
   NOTHING = 0

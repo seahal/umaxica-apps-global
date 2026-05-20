@@ -16,7 +16,9 @@
   <ul>
     <li><%= link_to t("controller.sign.app.setting.index.email"), sign_com_configuration_emails_path %></li>
     <li><%= link_to t("controller.sign.app.setting.index.telephone"), sign_com_configuration_telephones_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.birthdate"), sign_com_configuration_birthdate_path(ri: params[:ri]) %></li>
     <li><%= link_to t("controller.sign.app.setting.index.session"), sign_com_configuration_sessions_path %></li>
+    <li><%= link_to t("sign.configuration.connections.index.page_title"), sign_com_configuration_connections_path(ri: params[:ri]) %></li>
     <li><%= link_to t("controller.sign.app.setting.index.activity"), sign_com_configuration_activities_path %></li>
   </ul>
 </section>

@@ -8,8 +8,6 @@ encryption key plus an optional previous key chain.
 Set the current key in credentials or environment as:
 
 - `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY`
-- `EMAIL_ADDRESS_HMAC_SALT`
-- `TELEPHONE_NUMBER_HMAC_SALT`
 
 To keep old ciphertext readable while a rollout is in flight, set:
 
@@ -37,3 +35,6 @@ The previous value can be a single string or a JSON array of strings.
   digest lookup column (`address_digest` / `number_digest`).
 - Keep `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT` stable unless you are deliberately changing
   the broader encryption derivation contract.
+- Identifier HMAC keys are not Active Record Encryption keys. If `EMAIL_ADDRESS_HMAC_SALT` or
+  `TELEPHONE_NUMBER_HMAC_SALT` is exposed, follow
+  `docs/security/identifier-hmac-emergency-rotation.md`.

@@ -94,7 +94,7 @@ The current access attempt requires additional verification before it may procee
 
 Typical examples:
 
-- re-authentication for sensitive settings changes
+- step-up authentication for sensitive settings changes
 - destructive or account-critical actions
 
 ### Verified
@@ -106,23 +106,21 @@ scope and time window.
 
 The previous verification is no longer current for the required scope or TTL and must be re-done.
 
-## Identity Roles
+## Current Boundaries
 
-### Identity Boundary
+### App Surface
 
-The boundary that authenticates the subject, manages the core login state, and issues tokens.
+The end-user product surface.
 
-### Zenith Boundary
+### Org Surface
 
-The acme shared-entry surface that delegates identity work to the Identity boundary and then
-establishes the shared shell state.
+The staff and organization surface.
 
-### Foundation Boundary
+### Com Surface
 
-The boundary for `base.*` business and admin flows that depend on shared identity and own the main
-business-side write stores.
+The public and corporate surface.
 
-### Distributor Boundary
+### Regional Repository Boundary
 
-The boundary for `post.*` delivery and API flows that depend on shared identity where required but
-own the publication-side read and delivery contract.
+The separate repository for regional and locale-specific delivery, including docs, news, help, and
+similar content surfaces.

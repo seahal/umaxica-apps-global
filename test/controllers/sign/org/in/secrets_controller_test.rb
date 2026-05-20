@@ -4,14 +4,14 @@
 require "test_helper"
 
 class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_secrets, :staff_statuses, :staff_secret_statuses, :staff_secret_kinds
+  fixtures :operators, :operator_secrets, :operator_identity_statuses, :operator_secret_statuses, :operator_secret_kinds
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    @staff = staffs(:sample_staff)
+    @staff = operators(:sample_staff)
     @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
     OperatorToken.where(staff_id: @staff.id).delete_all
     @raw_secret = "11111111111111111111111111111111"
@@ -46,24 +46,32 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_includes response.headers["Location"], sign_org_dashboard_path(ri: "jp")
-    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
-    assert_predicate staff_secrets(:sample_login).reload.last_used_at, :present?
+    assert_equal OperatorSecretStatus::ACTIVE, operator_secrets(:sample_login).reload.staff_secret_status_id
+    assert_predicate operator_secrets(:sample_login).reload.last_used_at, :present?
   end
 
-  test "create allows reusing permanent secret for a second login attempt" do
-    2.times do
-      post sign_org_in_secret_url(ri: "jp"),
-           params: {
-             secret_login_form: {
-               identifier: @staff.public_id.downcase,
-               secret_value: @raw_secret,
-             },
-           }
+  test "create keeps permanent secret reusable and rejects repeated login in same session" do
+    post sign_org_in_secret_url(ri: "jp"),
+         params: {
+           secret_login_form: {
+             identifier: @staff.public_id.downcase,
+             secret_value: @raw_secret,
+           },
+         }
 
-      assert_response :redirect
-    end
+    assert_response :redirect
 
-    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    post sign_org_in_secret_url(ri: "jp"),
+         params: {
+           secret_login_form: {
+             identifier: @staff.public_id.downcase,
+             secret_value: @raw_secret,
+           },
+         }
+
+    assert_response :unauthorized
+
+    assert_equal OperatorSecretStatus::ACTIVE, operator_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects blank form" do
@@ -71,7 +79,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          params: { secret_login_form: { identifier: "", secret_value: "" } }
 
     assert_response :unprocessable_content
-    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, operator_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects email identifier" do
@@ -84,7 +92,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :unprocessable_content
-    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, operator_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects invalid secret" do
@@ -97,12 +105,12 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :unprocessable_content
-    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, operator_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects non login secret for secret login" do
     OperatorSecretKind.find_or_create_by!(id: OperatorSecretKind::NOTHING)
-    staff_secrets(:sample_login).update!(staff_secret_kind_id: OperatorSecretKind::NOTHING)
+    operator_secrets(:sample_login).update!(staff_secret_kind_id: OperatorSecretKind::NOTHING)
 
     post sign_org_in_secret_url(ri: "jp"),
          params: {
@@ -113,11 +121,11 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :unprocessable_content
-    assert_equal OperatorSecretStatus::ACTIVE, staff_secrets(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretStatus::ACTIVE, operator_secrets(:sample_login).reload.staff_secret_status_id
   end
 
   test "create rejects reserved staff" do
-    reserved_staff = staffs(:reserved_staff)
+    reserved_staff = operators(:reserved_staff)
     secret, raw_secret = OperatorSecret.issue!(
       name: "Reserved login",
       staff_id: reserved_staff.id,

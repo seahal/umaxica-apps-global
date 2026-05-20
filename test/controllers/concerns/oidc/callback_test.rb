@@ -9,6 +9,15 @@ class OidcCallbackTestController < ApplicationController
 
   include Oidc::Callback
 
+  def seed
+    session[:oidc_code_verifier] = params[:code_verifier] if params.key?(:code_verifier)
+    session[:oidc_state] = params[:state] if params.key?(:state)
+    session[:oidc_nonce] = params[:nonce] if params.key?(:nonce)
+    session[:oidc_return_to] = params[:return_to] if params.key?(:return_to)
+
+    head :no_content
+  end
+
   def oidc_client_id
     "test-client-id"
   end
@@ -17,18 +26,33 @@ class OidcCallbackTestController < ApplicationController
     "test-client-secret"
   end
 
-  def set_auth_cookies(**)
+  def oidc_token_url
+    "http://id.app.localhost/oauth/token"
+  end
+
+  def oidc_callback_url
+    "http://www.example.com/oidc/callback"
+  end
+
+  def oidc_resource_type
+    "client"
+  end
+
+  def provision_rp_account_from_id_token!(payload)
+    Struct.new(:id).new(payload.fetch("sub"))
+  end
+
+  def log_in(resource, **kwargs)
+    @logged_in_resource = resource
+    @login_kwargs = kwargs
+    { status: :success }
   end
 end
 
-# rubocop:disable Rails/ActionControllerTestCase
-class Oidc::CallbackTest < ActionController::TestCase
-  tests OidcCallbackTestController
-  # rubocop:enable Rails/ActionControllerTestCase
-
+class Oidc::CallbackTest < ActionDispatch::IntegrationTest
   setup do
-    @routes = Rails.application.routes
     Rails.application.routes.draw do
+      get "/oidc/callback/session" => "oidc_callback_test#seed"
       get "/oidc/callback" => "oidc_callback_test#show"
     end
   end
@@ -40,19 +64,25 @@ class Oidc::CallbackTest < ActionController::TestCase
   Result = Struct.new(:success?, :token_response, :error, :error_description, keyword_init: true)
 
   test "show redirects to return_to on successful exchange" do
-    @request.session[:oidc_code_verifier] = "verifier"
-    @request.session[:oidc_state] = "state"
-    @request.session[:oidc_return_to] = "/after"
+    get "/oidc/callback/session",
+        params: { code_verifier: "verifier", state: "state", nonce: "nonce", return_to: "/after" }
 
     result = Result.new(
       success?: true,
-      token_response: { access_token: "access", refresh_token: "refresh" },
+      token_response: { access_token: "access", refresh_token: "refresh", id_token: "id-token" },
       error: nil,
       error_description: nil,
     )
+    id_token_result = Struct.new(:success?, :payload, :error, keyword_init: true).new(
+      success?: true,
+      payload: { "sub" => "42", "nonce" => "nonce" },
+      error: nil,
+    )
 
-    Oidc::TokenExchangeService.stub(:call, result) do
-      get :show, params: { code: "abc", state: "state" }
+    Oidc::RpTokenClient.stub(:call, result) do
+      Oidc::IdTokenVerifier.stub(:call, id_token_result) do
+        get "/oidc/callback", params: { code: "abc", state: "state" }
+      end
     end
 
     assert_response :redirect
@@ -60,8 +90,7 @@ class Oidc::CallbackTest < ActionController::TestCase
   end
 
   test "show redirects to root on failed exchange" do
-    @request.session[:oidc_code_verifier] = "verifier"
-    @request.session[:oidc_state] = "state"
+    get "/oidc/callback/session", params: { code_verifier: "verifier", state: "state" }
 
     result = Result.new(
       success?: false,
@@ -71,23 +100,25 @@ class Oidc::CallbackTest < ActionController::TestCase
     )
     notifications = []
 
-    Oidc::TokenExchangeService.stub(:call, result) do
+    Oidc::RpTokenClient.stub(:call, result) do
       Rails.event.stub(:notify, ->(*args) { notifications << args }) do
-        get :show, params: { code: "abc", state: "state" }
+        get "/oidc/callback", params: { code: "abc", state: "state" }
       end
     end
 
     assert_response :redirect
     assert_redirected_to "/"
-    assert_equal 1, notifications.count { |args| args.first == "oidc.callback.failed" }
+    assert_equal 1, notifications.count { |args| args.first == "oidc.rp.callback.failed" }
   end
 
-  test "show raises when state does not match" do
-    @request.session[:oidc_state] = "expected"
+  test "show rejects mismatched state before token exchange" do
+    get "/oidc/callback/session", params: { state: "expected" }
 
-    assert_raises(ActionController::InvalidCrossOriginRequest) do
-      get :show, params: { code: "abc", state: "wrong" }
+    Oidc::RpTokenClient.stub(:call, ->(**) { flunk("token exchange should not run for state mismatch") }) do
+      get "/oidc/callback", params: { code: "abc", state: "wrong" }
     end
+
+    assert_response :unprocessable_content
   end
 
   test "default oidc_client_id raises NotImplementedError" do
@@ -114,7 +145,8 @@ class Oidc::CallbackTest < ActionController::TestCase
         include Oidc::Callback
 
         define_method(:oidc_client_id) do
-     "test-client"; end
+          "test-client"
+        end
       end
 
     client_mock = Struct.new(:client_secret).new("mock_secret")

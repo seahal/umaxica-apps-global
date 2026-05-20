@@ -4,11 +4,11 @@
 require "test_helper"
 
 class Sign::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs
+  fixtures :operators
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
   end
 
   test "show redirects when not signed in" do
@@ -24,5 +24,12 @@ class Sign::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Dashboard"
     assert_select "a[href=?]", sign_org_configuration_path(ri: "jp")
+    assert_select "footer" do
+      assert_select "a[href=?]", sign_org_dashboard_url(ri: "jp"),
+                    text: I18n.t("sign.org.preferences.footer.dashboard")
+      assert_select "a[href=?]", sign_org_root_url(ri: "jp"),
+                    text: I18n.t("sign.org.preferences.footer.home"),
+                    count: 0
+    end
   end
 end

@@ -40,6 +40,26 @@ class Apex::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not response.parsed_body["consented"]
   end
 
+  test "GET show ignores legacy access cookie for another preference surface" do
+    token = encode_preference_jwt(
+      preferences: { "consented" => true, "functional" => true, "performant" => true, "targetable" => true },
+      host: @host,
+      public_id: "pref-app-public-id",
+      preference_type: "AppPreference",
+    )
+    cookies[Preference::CookieName.access] = token
+
+    with_preference_jwt_keys(host: @host) do
+      get apex_com_web_v0_cookie_path, as: :json
+    end
+
+    assert_response :ok
+    assert_not response.parsed_body["consented"]
+    assert_not response.parsed_body["functional"]
+    assert_not response.parsed_body["performant"]
+    assert_not response.parsed_body["targetable"]
+  end
+
   test "PATCH update returns 200 and sets preference_consented cookie with com domain" do
     token = encode_preference_jwt(
       preferences: { "consented" => false },

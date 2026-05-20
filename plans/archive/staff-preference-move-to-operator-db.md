@@ -2,7 +2,7 @@
 
 ## Status
 
-Completed (2026-05-07).
+Completed and archived (verified 2026-05-19).
 
 > **Completion notes (2026-05-07):**
 >
@@ -13,182 +13,192 @@ Completed (2026-05-07).
 >   `db/operators_migrate/20260506210800_migrate_staff_preferences_data_to_operator.rb`.
 > - Principal-side drop:
 >   `db/principals_migrate/20260506210900_drop_staff_preferences_from_principal.rb`.
-> - All 9 model files (`app/models/staff_preference*.rb`) inherit from `OperatorRecord` and carry
->   `# Database name: operator`.
+> - All 9 model files (`app/models/staff_preference*.rb`) inherit from `OrgPrincipalRecord` and
+>   carry `# Database name: org_principal`.
 > - The Org↔Staff sync path in `Preference::Adoption` and
 >   `Preference::Core#sync_to_resource_preference!` now operates within a single DB (`operator`).
-> - `Preference::Adoption#resolve_cross_db_option_id`
->   (`app/controllers/concerns/preference/adoption.rb:131,148`) still exists — this is the
->   intentional out-of-scope follow-up. Its removal is paired with the customer-side move
->   (`plans/backlog/customer-preferences-move-to-setting-db.md`); once both are landed, the helper
->   becomes dead code and can be removed in a separate retirement pass.
+> - `Preference::Adoption#resolve_cross_db_option_id` still exists — this is the intentional
+>   out-of-scope follow-up. Its removal belongs to the preference retirement pass, not this
+>   completed DB move. The old customer-side pairing plan is archived as superseded at
+>   `plans/archive/customer-preferences-move-to-com-preference-db.md`.
 
 ## Summary
 
-`staff_preference_*` 系のテーブル群が現状 `principal` DB に残置されている。これは org
-TLD バブルの完結性を阻害しており、`Staff` 本体（`operator`）と
-`OperatorPreference`（`principal`）の DB が分かれている唯一の不整合である。`operator` DB に統一する。
+The `staff_preference_*` series tables are currently left in the `principal` DB. This is org TLD
+This is interfering with bubble completion, and the `Staff` main body (`operator`) The only
+inconsistency is that the DB of `OperatorPreference` (`principal`) is separated. `operator` Unify to
+DB.
 
-これは `customer-preferences-move-to-setting-db.md` と並列の作業（com TLD のために customer
-preference を guest → setting に移すのと同じ構造を、org TLD のために principal →
-operator で実施する）。
+This is the customer at the time preference Written as a parallel effort to movement planning.
+Currently the customer side plan is placement on 2026-05-18 It is superseded by update, and the
+correct policy is to place com actor-local preference in `com_principal`.
 
 ## Motivation
 
-### org TLD バブルの完結
+### org TLD The end of the bubble
 
-`adr/preference-soft-bubble-doctrine.md` で確認した「TLD
-blast-radius を抑えるために 3 バブルに分割した」設計に対し、現状 org
-TLD だけがバブル境界を跨いでいる:
+TLD confirmed with `adr/preference-soft-bubble-doctrine.md` Currently, org Only TLD straddles the
+bubble boundary:
 
-| TLD | 匿名 preference | actor preference    | actor 本体                          | actor 認証情報 |
-| --- | --------------- | ------------------- | ----------------------------------- | -------------- |
-| app | principal ✓     | principal ✓         | principal ✓                         | principal ✓    |
-| com | setting ✓       | setting ✓（移植中） | guest（com 認証 DB として意図通り） | guest ✓        |
-| org | operator ✓      | **principal** ✗     | operator ✓                          | operator ✓     |
+| TLD | anonymous preference | actor preference    | actor body                                   | actor authentication information |
+| --- | -------------------- | ------------------- | -------------------------------------------- | -------------------------------- |
+| app | principal ✓          | principal ✓         | principal ✓                                  | principal ✓                      |
+| com | setting ✓            | setting ✓ (porting) | guest (as intended as com authentication DB) | guest ✓                          |
+| org | operator ✓           | **principal** ✗     | operator ✓                                   | operator ✓                       |
 
-`staff_preference_*` を `operator` に移すと org TLD 全体が `operator` で完結する。
+If you move `staff_preference_*` to `operator`, the entire org TLD will be completed in `operator`.
 
-### Login 時 double-write の cross-DB 解消
+### Eliminate double-write cross-DB at login
 
-`Preference::Adoption` および `Preference::Core#sync_to_resource_preference!`
-は、ログイン時とおこのみ更新時に session-side と actor-side を双方向同期する。現状:
+`Preference::Adoption` and `Preference::Core#sync_to_resource_preference!` synchronizes session-side
+and actor-side in both directions when logging in and updating preferences. current situation:
 
-- app: `principal.app_preferences` ↔ `principal.user_preferences` — 同 DB
-- com: `setting.com_preferences` ↔ `setting.customer_preferences`（移植後）— 同 DB
-- **org**: `operator.org_preferences` ↔ **`principal.staff_preferences`** — **DB 跨ぎ**
+- app: `principal.app_preferences` ↔ `principal.user_preferences` — Same DB
+- com: `com_setting.com_preferences` ↔ `com_principal.visitor_preferences` — Explicit boundaries
+- **org**: `operator.org_preferences` ↔ **`principal.staff_preferences`** — **DB straddle**
 
-その対処のために `Preference::Adoption#resolve_cross_db_option_id`
-が存在し、option_id を名前で再解決している（DB が違うと option テーブルの ID 連番が一致しないため）。本移植が完了すれば org も同 DB 内 sync になり、`resolve_cross_db_option_id`
-経路は不要になる。
+To deal with it `Preference::Adoption#resolve_cross_db_option_id` exists, and the option_id is
+re-resolved by name (because the ID sequence numbers in the option table do not match if the DB is
+different). Once this porting is complete, org will also be synced within the same DB, and
+`resolve_cross_db_option_id` The route becomes unnecessary.
 
-### DB 制約の追加余地
+### Room for adding DB constraints
 
-現状 `staff_preferences.staff_id` は app-level FK にとどまる（`staffs` が `operator` にあり
-`staff_preferences` が `principal`
-にあるため、DB 制約を貼れない）。移植後は同 DB に揃うので、`staffs.id` への DB-level
-FK を追加できる（これは別件として扱ってよい）。
+Currently `staff_preferences.staff_id` remains app-level FK (`staffs` is in `operator`)
+`staff_preferences` is `principal` , so you cannot paste the DB constraint). After porting, the same
+DB will be used, so change the DB-level to `staffs.id`. FK can be added (this can be treated as a
+separate issue).
 
 ## Current State (2026-05-06)
 
-### `principal` 配下（移動対象、9 テーブル）
+### Under `principal` (move target, 9 tables)
 
-- `staff_preferences`（親）
+- `staff_preferences` (parent)
 - `staff_preference_languages`, `staff_preference_language_options`
 - `staff_preference_regions`, `staff_preference_region_options`
 - `staff_preference_timezones`, `staff_preference_timezone_options`
 - `staff_preference_colorthemes`, `staff_preference_colortheme_options`
 
-これらの DB-level FK は `staff_preference_<child>` → `staff_preferences` および
-`staff_preference_<child>` → `staff_preference_<child>_options` の internal リンクのみ。 `staffs`
-への DB-level FK は無い（cross-DB なので app-level のみ）。
+These DB-level FKs are `staff_preference_<child>` → `staff_preferences` and
+`staff_preference_<child>` → `staff_preference_<child>_options` internal link only. `staffs` There
+is no DB-level FK to (only app-level since it is cross-DB).
 
-### `operator` 配下（既存・近隣に置きたい先）
+### Under `operator` (existing/nearby)
 
-- `staffs`（actor 本体）
-- `staff_passkeys`, `staff_emails`, `staff_telephones`, `staff_secrets` 等（認証情報）
-- `org_preferences` 系（session-side preference）
-- `staff_org_preferences`（ブリッジ、現在 `org_preference_id` → `org_preferences`
-  の FK あり、`staff_id` は app-level FK）
+- `staffs` (actor body)
+- `staff_passkeys`, `staff_emails`, `staff_telephones`, `staff_secrets`, etc. (authentication
+  information)
+- `org_preferences` series (session-side preference)
+- `staff_org_preferences` (Bridge, currently `org_preference_id` → `org_preferences` `staff_id` is
+  app-level FK)
 
-### モデル参照点
+### model reference point
 
-- `app/models/staff_preference.rb` —
-  `# Database name: principal`、`class OperatorPreference < PrincipalRecord`
-- `app/models/staff_preference_language.rb` 他 8 ファイル — 同様に `PrincipalRecord` 継承
+- `app/models/staff_preference.rb` — `# Database name: app_principal`,
+  `class OperatorPreference < AppPrincipalRecord`
+- `app/models/staff_preference_language.rb` and 8 other files — also inherited from
+  `AppPrincipalRecord`
 - `app/models/staff.rb` — `has_one :staff_preference, dependent: :destroy`
-- `app/services/preference/class_registry.rb` — `"Staff"` エントリ
-- `app/controllers/concerns/preference/adoption.rb` — `find_resource_preference` で
-  `resource.staff_preference` を参照（適応経路は OrgPreference ↔ OperatorPreference）
-- `app/controllers/concerns/preference/adoption.rb` — `resolve_cross_db_option_id` ヘルパーが org
-  TLD のために存在している（移植後は org TLD では未使用になる）
+- `app/services/preference/class_registry.rb` — `"Staff"` entry
+- `app/controllers/concerns/preference/adoption.rb` — at `find_resource_preference` See
+  `resource.staff_preference` (adaptation path is OrgPreference ↔ OperatorPreference)
+- `app/controllers/concerns/preference/adoption.rb` — `resolve_cross_db_option_id` helper is org
+  Exists for TLD (will be unused for org TLD after porting)
 
 ## Target State
 
-- `staff_preferences` 系すべてが `operator` DB に存在する。
-- `app/models/staff_preference*.rb` の `# Database name:` コメントが `operator` を指す。
-- 親クラスが `PrincipalRecord` から `OperatorRecord` に変更されている。
-- `Preference::Adoption` の Org↔Staff 経路が同一 DB 内で済む。
-- `principal` DB から `staff_preference_*` テーブルが削除される（cutover 完了後）。
+- All `staff_preferences` series exist in `operator` DB.
+- `# Database name:` comment in `app/models/staff_preference*.rb` points to `operator`.
+- The parent class has been changed from `AppPrincipalRecord` to `OrgPrincipalRecord`.
+- The Org↔Staff route of `Preference::Adoption` can be within the same DB.
+- `staff_preference_*` table is removed from `principal` DB (after cutover completes).
 
 ## Migration Steps (high level)
 
-1. **Schema 移植**:
-   - `db/operators_migrate/` に `staff_preferences` 系 9 テーブル作成のマイグレーションを追加。
-   - 構造は当面**現状維持**（正規化スキーマ・option_id 外部キー方式のまま）。
-   - 内部 FK（`staff_preference_<child>` → `staff_preferences`、`<child>` →
-     `<child>_options`）は同 DB なのでそのまま再現。
-   - **追加の改善**として、新 `operator.staff_preferences.staff_id` に対し
-     `add_foreign_key :staff_preferences, :staffs`
-     を追加してよい（同 DB で可能）。これは本作業に含めるか分離するかは実装者判断。
-2. **モデルの接続先変更**:
-   - `app/models/staff_preference*.rb` 全 9 ファイルで:
-     - 親クラス `PrincipalRecord` → `OperatorRecord`
-     - スキーマコメント `# Database name: principal` → `operator`
-3. **データ移行**:
-   - `principal.staff_preferences` 系全 9 テーブルから `operator.staff_preferences`
-     系にデータを丸ごとコピーする one-time マイグレーション。
-   - `staff_id` は app-level FK のため cross-DB 参照は移動前後で同じ。
-   - option テーブル（`staff_preference_language_options`
-     等）は静的シードに近いので id を保ったままコピー、子テーブル（`staff_preference_languages`
-     等）も `option_id` を保ったままコピーすれば整合する。
+1. **Schema porting**:
+   - Added migration for `staff_preferences` series 9 table creation to `db/operators_migrate/`.
+   - The structure will remain the same for the time being (normalized schema and option_id foreign
+     key system).
+   - Internal FK (`staff_preference_<child>` → `staff_preferences`, `<child>` → `<child>_options`)
+     is the same DB, so it can be reproduced as is.
+   - **Additional improvements** for the new `operator.staff_preferences.staff_id`
+     `add_foreign_key :staff_preferences, :staffs` (possible with the same DB). It is up to the
+     implementer to decide whether to include this in this work or separate it.
+2. **Model connection destination change**:
+   - `app/models/staff_preference*.rb` with all 9 files:
+     - Parent class `AppPrincipalRecord` → `OrgPrincipalRecord`
+     - Schema comment `# Database name: app_principal` → `operator`
+3. **Data migration**:
+   - `principal.staff_preferences` From all 9 tables `operator.staff_preferences` One-time migration
+     that copies the entire data to the system.
+   - `staff_id` is an app-level FK, so cross-DB references are the same before and after the move.
+   - option table (`staff_preference_language_options` etc.) is close to a static seed, so copy it
+     while keeping the id, and copy the child table (`staff_preference_languages` etc.) will also be
+     consistent if you copy them while keeping `option_id`.
 4. **Cutover**:
-   - 読み書き両方を `operator` 側に切り替え（モデル修正で自動的に切り替わる）。
-   - 切替後、`db/principals_migrate/` に `staff_preference_*`
-     9 テーブルを drop する post-cutover マイグレーションを追加。
-   - drop 順序は内部 FK に注意（子テーブル → 親テーブル → option テーブルの順）。
-5. **検証**:
-   - Sign / Apex 各 surface（org / sign-org）の preference 編集（region / language / timezone /
-     colortheme）の integration test が緑であること。
-   - `Preference::Adoption` の Org→Staff 同期が回帰しないこと（login 時に `org_preferences` と
-     `staff_preferences` の updated_at 比較とコピーが同 DB 内で成功する）。
-   - `Preference::Core#sync_to_resource_preference!`
-     の OrgPreference→OperatorPreference 経路が回帰しないこと。
-   - JWT `prf` クレームと `Current::Preference` の整合性が保たれること（org TLD で login →
-     preference 更新 → token 再発行）。
+   - Switch both reading and writing to the `operator` side (automatically switched when modifying
+     the model).
+   - After switching, `db/principals_migrate/` to `staff_preference_*` 9 Added post-cutover
+     migration to drop tables.
+   - Pay attention to the internal FK drop order (child table → parent table → option table).
+5. **verification**:
+   - Sign / Apex Edit preferences for each surface (org / sign-org) (region / language / timezone /
+     colortheme) integration test is green.
+   - Org→Staff synchronization of `Preference::Adoption` does not regress (when logging in with
+     `org_preferences`) updated_at comparison and copy of `staff_preferences` is successful within
+     the same DB).
+   - `Preference::Core#sync_to_resource_preference!` The OrgPreference→OperatorPreference path does
+     not recur.
+
+- JWT `prf` claims are consistent with `Actor::Preference` (login → preference update → token
+  reissue).
 
 ## Out of Scope
 
-- `staff_preferences` の構造変更（正規化からデノーマル化、あるいは逆）。これは B2（actor-side
-  schema 統一）の課題として独立。
-- `Preference::Adoption#resolve_cross_db_option_id`
-  自体の削除。本移植後はこの経路を使うコードが居なくなるが、`customer_preferences`
-  移植 plan と整合させて C3 / 撤去 plan で扱う（dead-code としての扱い）。
-- `staff_org_preferences` ブリッジの設計見直し。現状で同 DB 内に収まっているので本件では触らない。
-- token DB 周り（mark / symbol / token）には触らない。
-- `staffs` への DB-level
-  FK 追加が範囲内かどうかは実装者判断（本作業に含めても、別 patch にしてもよい）。
+- Structural change of `staff_preferences` (from normalization to denormalization or vice versa).
+  This is B2 (actor-side schema unification) as an independent issue.
+- Delete `Preference::Adoption#resolve_cross_db_option_id` itself. Another preference remains after
+  this port. Since it belongs to the cleanup judgment, it is handled in the retirement plan.
+- `staff_org_preferences` Bridge design review. As it is currently within the same DB, it will not
+  be touched upon in this case.
+- Do not touch the area around the token DB (mark/symbol/token).
+- DB-level to `staffs` It is up to the implementer to decide whether adding FK is within the scope
+  (it may be included in this work or made into a separate patch).
 
 ## Risks / Notes
 
-- option テーブル（`staff_preference_language_options`
-  等）は ID を保ったままコピーする必要がある。コードが定数（`OperatorPreferenceLanguageOption::JA`
-  等）で ID を直接参照しているため、新旧で ID が一致していないと回帰する。
-- `Preference::Adoption#resolve_cross_db_option_id`
-  が「name で再解決」していたのはまさに ID が一致していないケースを救済するためなので、移植時にこのヘルパーを使えば片付くが、ID を保てるならそちらの方が単純。
-- 既存 `staff_preferences` の本番データ件数次第ではメンテナンス時間の確保が必要。
-- principal 側 drop migration はデータ完全移行と読み書き経路の切替確認が完了してから実施。
+- option table (`staff_preference_language_options` etc.) must be copied while preserving the ID.
+  The code is constant (`OperatorPreferenceLanguageOption::JA` etc.), the ID is directly referenced,
+  so if the old and new IDs do not match, a regression will occur.
+- `Preference::Adoption#resolve_cross_db_option_id` The reason for "resolving by name" is to remedy
+  the case where the IDs do not match, so you can use this helper when porting, but it is simpler if
+  you can maintain the ID.
+- Depending on the number of production data of the existing `staff_preferences`, it is necessary to
+  secure maintenance time.
+- Drop migration on the principal side is performed after complete data migration and confirmation
+  of read/write path switching is completed.
 
 ## Acceptance Criteria
 
-- [ ] `staff_preference_*` 系 9 テーブルが `operator` DB に存在する。
-- [ ] `app/models/staff_preference*.rb` 9 ファイルの親クラスが `OperatorRecord`、schema コメントが
-      `operator`。
-- [ ] `Preference::Adoption` の Org↔Staff 同期が同一 DB 内で完結する。
-- [ ] `principal` DB から `staff_preference_*` 9 テーブルが削除されている。
-- [ ] org TLD の preference 編集 / cookie consent / token rotation の回帰テストが緑。
-- [ ] login 時の double-write（`AppPreference`↔`UserPreference`、
-      `OrgPreference`↔`OperatorPreference`、`ComPreference`↔`CustomerPreference`）がすべて同 DB 内で完結する。
+- [x] `staff_preference_*` series 9 table exists in `operator` DB.
+- [x] `app/models/staff_preference*.rb` 9 The parent class of the file is `OrgPrincipalRecord`,
+      schema comment is `operator`.
+- [x] Org↔Staff synchronization of `Preference::Adoption` is completed within the same DB.
+- [x] `staff_preference_*` 9 table has been deleted from `principal` DB.
+- [x] org TLD preference edit / cookie consent / token rotation regression test is green.
+- [x] double-write at login (`AppPreference`↔`UserPreference`, `OrgPreference`↔`OperatorPreference`)
+      works as expected, and Com Explicit `com_setting`→`com_principal` of
+      `ComPreference`↔`VisitorPreference` treated as a boundary.
 
 ## References
 
-- `adr/preference-soft-bubble-doctrine.md` — DB は別バブルのまま、interface だけ統一という基本方針
-- `plans/backlog/customer-preferences-move-to-setting-db.md` — 同パターンの先行/並列作業（com TLD:
-  guest → setting）
-- `plans/backlog/legacy-preference-models-retirement-plan.md` — 全体の retirement ロードマップ
-- `app/services/preference/class_registry.rb` — `"Staff"` エントリ
-- `app/controllers/concerns/preference/adoption.rb` — `resolve_cross_db_option_id`
-  を含む double-write ロジック
-- `app/controllers/concerns/preference/core.rb` — `sync_to_resource_preference!` の OrgPreference →
-  OperatorPreference 経路
+- `adr/preference-soft-bubble-doctrine.md` — Basic policy of unifying the interface while keeping
+  the DB in a separate bubble
+- `plans/archive/customer-preferences-move-to-com-preference-db.md` — Parallel work when superseded
+- `plans/backlog/legacy-preference-models-retirement-plan.md` — Overall retirement roadmap
+- `app/services/preference/class_registry.rb` — `"Staff"` entry
+- `app/controllers/concerns/preference/adoption.rb` — `resolve_cross_db_option_id` double-write
+  logic, including
+- `app/controllers/concerns/preference/core.rb` — OrgPreference for `sync_to_resource_preference!` →
+  OperatorPreference route
 - `app/models/staff.rb` — `has_one :staff_preference`

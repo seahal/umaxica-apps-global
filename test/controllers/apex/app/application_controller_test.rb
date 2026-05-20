@@ -5,23 +5,23 @@ require "test_helper"
 
 module Apex
   module App
-    class ApplicationControllerTest < Minitest::Test
+    class ApplicationControllerTest < ActiveSupport::TestCase
       def test_includes_expected_concerns
         controller = ApplicationController.new
 
         assert_includes controller.class, RateLimit
         assert_includes controller.class, ::Preference::Global
         assert_includes controller.class, ::Preference::Adoption
-        assert_includes controller.class, ::Authentication::User
-        assert_includes controller.class, ::Authorization::User
-        assert_includes controller.class, ::Verification::User
+        assert_includes controller.class, ::Authentication::Client
+        assert_includes controller.class, ::Authorization::Client
+        assert_includes controller.class, ::Verification::Client
         assert_includes controller.class, ActionPolicy::Controller
         assert_includes controller.class, ::Oidc::SsoInitiator
-        assert_includes controller.class, ::CurrentSupport
+        assert_includes controller.class, ::ActorSupport
         assert_includes controller.class, ::Finisher
       end
 
-      def test_has_preference_related_prepend_before_action_callbacks
+      def test_has_preference_related_before_action_callbacks
         callbacks = ApplicationController._process_action_callbacks
         before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
 
@@ -37,11 +37,18 @@ module Apex
 
         expected_order = %i(
           check_default_rate_limit
-          enforce_withdrawal_gate!
+          set_current_context
+          reset_flash
+          set_preferences_cookie
+          resolve_param_context
+          set_region
           transparent_refresh_access_token
-          enforce_access_policy!
+          set_current_actor
+          apply_localization_preferences
+          set_color_theme
+          enforce_withdrawal_gate!
           enforce_verification_if_required
-          set_current
+          enforce_access_policy!
         )
 
         expected_order.each_cons(2) do |first, second|
@@ -55,11 +62,11 @@ module Apex
         end
       end
 
-      def test_has_finish_request_append_after_action
+      def test_clears_actor_context_through_around_lifecycle
         callbacks = ApplicationController._process_action_callbacks
-        after_filters = callbacks.select { |c| c.kind == :after }.map(&:filter)
+        around_filters = callbacks.select { |c| c.kind == :around }.map(&:filter)
 
-        assert_includes after_filters, :purge_current
+        assert_includes around_filters, :with_actor_lifecycle
       end
 
       def test_has_oidc_client_id_method

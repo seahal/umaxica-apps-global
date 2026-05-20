@@ -8,17 +8,15 @@ module Sign
     private
 
     def handle_login_result(result)
+      sign_in_result = sign_in_result_from_session_result(result)
       return if handle_domain_specific_login_status(result)
-      return render_passkey_success(result) if result[:status] == :success
+      return render_passkey_restricted_success(result) if sign_in_result.session_limit_pending?
+      return render_passkey_success(result, sign_in_result: sign_in_result) if sign_in_result.success?
 
       render_error("errors.login_failed", :unprocessable_content)
     end
 
-    def render_passkey_success(result)
-      if passkey_success_restricted?(result)
-        return render_passkey_restricted_success(result)
-      end
-
+    def render_passkey_success(result, sign_in_result:)
       rt = retrieve_redirect_parameter_for_checkpoint if respond_to?(:retrieve_redirect_parameter_for_checkpoint, true)
       render json: {
         status: "ok",

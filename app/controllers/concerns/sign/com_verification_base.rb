@@ -5,25 +5,27 @@ module Sign
   module ComVerificationBase
     extend ActiveSupport::Concern
 
+    ALLOWED_SCOPES = StepUp::ScopeCatalog::COM
+
     module Overrides
       private
 
-      def reauth_session_model = VisitorReauthSession
+      def step_up_session_model = VisitorStepUpSession
 
-      def reauth_session_token_foreign_key = :visitor_token_id
+      def step_up_session_token_foreign_key = :visitor_token_id
 
-      def valid_reauth_session?(rs)
+      def valid_step_up_session?(rs)
         rs.present? &&
-          rs.lapses_at > Time.current &&
+          rs.discarded_at > Time.current &&
           rs.visitor_token_id == actor_token.id &&
           rs.status == "PENDING" &&
           rs.scope.present? &&
           rs.return_to.present?
       end
 
-      def handle_invalid_reauth_session!
-        clear_reauth_state!
-        if restore_reauth_session_from_params! && valid_reauth_session?(current_reauth_session)
+      def handle_invalid_step_up_session!
+        clear_step_up_state!
+        if restore_step_up_session_from_params! && valid_step_up_session?(current_step_up_session)
           return true
         end
 
@@ -42,28 +44,29 @@ module Sign
       def verification_recovery_redirect_params
         attrs = { ri: params[:ri] }
 
-        scope = optional_incoming_scope || current_reauth_scope
+        scope = incoming_scope || current_step_up_scope
         attrs[:scope] = scope if scope.present?
 
-        return_to = optional_incoming_return_to || current_reauth_return_to_param
+        return_to = incoming_return_to || current_step_up_return_to_param
         attrs[:return_to] = return_to if return_to.present?
 
         attrs
       end
 
-      def optional_incoming_scope
-        verification_params[:scope].to_s.presence || params.expect(:scope).to_s.presence
+      def incoming_scope
+        verification_params[:scope].to_s.presence ||
+          request_parameters["scope"].to_s.presence
       end
 
-      def optional_incoming_return_to
+      def incoming_return_to
         verification_params[:return_to].to_s.presence ||
           verification_params[:rt].to_s.presence ||
-          params.expect(:return_to).to_s.presence ||
-          params.expect(:rt).to_s.presence
+          request_parameters["return_to"].to_s.presence ||
+          request_parameters["rt"].to_s.presence
       end
 
-      def clear_reauth_state!
-        Rails.cache.delete(email_otp_cache_key) if current_reauth_session.present?
+      def clear_step_up_state!
+        Rails.cache.delete(email_otp_cache_key) if current_step_up_session.present?
       end
 
       def verification_model
@@ -71,7 +74,7 @@ module Sign
       end
 
       def verification_success_event_id
-        UserChronicleEvent::STEP_UP_VERIFIED
+        ClientChronicleEvent::STEP_UP_VERIFIED
       end
 
       def verification_success_notice_key
@@ -82,13 +85,13 @@ module Sign
         sign_com_verification_path(ri: params[:ri])
       end
 
-      def verification_audit_event_class = UserChronicleEvent
+      def verification_audit_event_class = ClientChronicleEvent
 
-      def verification_audit_level_class = UserChronicleLevel
+      def verification_audit_level_class = ClientChronicleLevel
 
-      def verification_default_activity_level_id = UserChronicleLevel::NOTHING
+      def verification_default_activity_level_id = ClientChronicleLevel::NOTHING
 
-      def verification_activity_model = UserChronicle
+      def verification_activity_model = ClientChronicle
 
       def current_verification_actor = current_visitor
 
@@ -124,7 +127,7 @@ module Sign
             visitor_email_status_id: AuthMethodGuard::VISITOR_VERIFIED_EMAIL_STATUSES,
           ).order(created_at: :desc).first
         unless visitor_email
-          @verification_errors = ["メールアドレスが未確認です"]
+          @verification_errors = [I18n.t("sign.app.verification.errors.email_not_verified")]
           return false
         end
 
@@ -133,7 +136,7 @@ module Sign
           email_otp_cache_key, {
             "secret" => secret,
             "counter" => counter,
-          }, expires_in: [current_reauth_session.lapses_at - Time.current, 0].max,
+          }, expires_in: [current_step_up_session.discarded_at - Time.current, 0].max,
         )
 
         enqueue_step_up_email_otp!(
@@ -147,8 +150,8 @@ module Sign
 
       def enqueue_step_up_email_otp!(hotp_token:, email_address:, public_id:)
         SolidQueue::Record.connected_to(role: :writing) do
-          Email::App::RegistrationMailer.with(
-            hotp_token: hotp_token,
+          Email::Com::OtpMailer.with(
+            encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(hotp_token),
             email_address: email_address,
             public_id: public_id,
             verification_token: nil,
@@ -158,8 +161,10 @@ module Sign
     end
 
     included do
-      auth_required!
       include Sign::AppVerificationBase
+
+      skip_before_action :authenticate_client!, raise: false
+      before_action :authenticate_visitor!
       prepend Overrides
     end
   end

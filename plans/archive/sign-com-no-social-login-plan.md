@@ -25,7 +25,7 @@ Completed (2026-05-07).
 ## Summary
 
 The corporate IdP host (`id.umaxica.com` in production, `id.com.localhost` in development) currently
-renders a "Googleでサインイン" button on `/in/new` and Google/Apple links on `/configuration`, even
+renders a "Sign in with Google" button on `/in/new` and Google/Apple links on `/configuration`, even
 though social login is not intended for `:com`. The cause is template-lookup fallback:
 
 `app/controllers/sign/com/application_controller.rb:47-55` overrides `local_prefixes` so that any

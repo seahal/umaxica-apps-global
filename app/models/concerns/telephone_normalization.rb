@@ -18,7 +18,7 @@
 #
 # Usage:
 #   include TelephoneNormalization
-#   normalize_telephone_field :number  # for UserTelephone/OperatorTelephone
+#   normalize_telephone_field :number  # for ClientTelephone/OperatorTelephone
 #   normalize_telephone_field :telephone_number  # for ContactTelephones
 #   normalize_telephone_field :body  # for TelephoneOccurrence
 #

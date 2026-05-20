@@ -4,18 +4,18 @@
 require "test_helper"
 
 class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_email_statuses, :user_telephone_statuses,
-           :user_chronicle_events, :user_chronicle_levels
+  fixtures :clients, :client_statuses, :client_email_statuses, :client_telephone_statuses,
+           :client_chronicle_events, :client_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
-    @other_user = users(:two)
+    @user = clients(:one)
+    @other_user = clients(:two)
     @headers = as_user_headers(@user, host: @host)
 
     ChronicleRecord.connected_to(role: :writing) do
-      UserChronicle.delete_all
+      ClientChronicle.delete_all
     end
   end
 
@@ -29,13 +29,13 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "shows only current user activity logs" do
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 2.minutes.ago,
       context: { tag: "my-login-event" },
     )
     create_user_audit(
       user: @other_user,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 1.minute.ago,
       context: { tag: "other-user-event" },
     )
@@ -50,19 +50,19 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "orders activity by occurred_at desc" do
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 3.hours.ago,
       context: { tag: "oldest-entry" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 2.hours.ago,
       context: { tag: "middle-entry" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 1.hour.ago,
       context: { tag: "newest-entry" },
     )
@@ -84,7 +84,7 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     120.times do |i|
       create_user_audit(
         user: @user,
-        event_id: UserChronicleEvent::LOGGED_IN,
+        event_id: ClientChronicleEvent::LOGGED_IN,
         occurred_at: base_time + i.minutes,
         context: { tag: "limit-entry-#{i}" },
       )
@@ -102,91 +102,91 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "filters to visible security events" do
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: 2.minutes.ago,
       context: { tag: "login-success-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::LOGGED_OUT,
+      event_id: ClientChronicleEvent::LOGGED_OUT,
       occurred_at: 110.seconds.ago,
       context: { tag: "logged-out-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::SIGNED_UP_WITH_GOOGLE,
+      event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE,
       occurred_at: 100.seconds.ago,
       context: { tag: "google-signup-event", auth_method: "social", provider: "google" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::SOCIAL_LINKED,
+      event_id: ClientChronicleEvent::SOCIAL_LINKED,
       occurred_at: 95.seconds.ago,
       context: { tag: "social-linked-event", auth_method: "social", provider: "apple" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::SOCIAL_UNLINKED,
+      event_id: ClientChronicleEvent::SOCIAL_UNLINKED,
       occurred_at: 92.seconds.ago,
       context: { tag: "social-unlinked-event", auth_method: "social", provider: "google" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::SESSION_REVOKED,
+      event_id: ClientChronicleEvent::SESSION_REVOKED,
       occurred_at: 90.seconds.ago,
       context: { tag: "session-revoked-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::EMAIL_REGISTERED,
+      event_id: ClientChronicleEvent::EMAIL_REGISTERED,
       occurred_at: 80.seconds.ago,
       context: { tag: "email-registered-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::EMAIL_REMOVED,
+      event_id: ClientChronicleEvent::EMAIL_REMOVED,
       occurred_at: 70.seconds.ago,
       context: { tag: "email-removed-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::TELEPHONE_REGISTERED,
+      event_id: ClientChronicleEvent::TELEPHONE_REGISTERED,
       occurred_at: 60.seconds.ago,
       context: { tag: "telephone-registered-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::TELEPHONE_REMOVED,
+      event_id: ClientChronicleEvent::TELEPHONE_REMOVED,
       occurred_at: 50.seconds.ago,
       context: { tag: "telephone-removed-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::TOTP_ENABLED,
+      event_id: ClientChronicleEvent::TOTP_ENABLED,
       occurred_at: 40.seconds.ago,
       context: { tag: "totp-enabled-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::PASSKEY_REGISTERED,
+      event_id: ClientChronicleEvent::PASSKEY_REGISTERED,
       occurred_at: 30.seconds.ago,
       context: { tag: "passkey-registered-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::USER_SECRET_CREATED,
+      event_id: ClientChronicleEvent::USER_SECRET_CREATED,
       occurred_at: 20.seconds.ago,
       context: { tag: "user-secret-created-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::RECOVERY_CODES_GENERATED,
+      event_id: ClientChronicleEvent::RECOVERY_CODES_GENERATED,
       occurred_at: 10.seconds.ago,
       context: { tag: "recovery-codes-generated-event" },
     )
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::ACCOUNT_WITHDRAWN,
+      event_id: ClientChronicleEvent::ACCOUNT_WITHDRAWN,
       occurred_at: 1.minute.ago,
       context: { tag: "non-login-event" },
     )
@@ -224,18 +224,18 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   end
 
   test "shows email removal logs recorded with email subject when actor is current user" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       user: @user,
       address: "removed-activity@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
-    UserChronicle.create!(
-      actor_type: "User",
+    ClientChronicle.create!(
+      actor_type: "Client",
       actor_id: @user.id,
-      event_id: UserChronicleEvent::EMAIL_REMOVED,
-      level_id: UserChronicleLevel::NOTHING,
+      event_id: ClientChronicleEvent::EMAIL_REMOVED,
+      level_id: ClientChronicleLevel::NOTHING,
       subject_id: email.id,
-      subject_type: "UserEmail",
+      subject_type: "ClientEmail",
       occurred_at: Time.current,
       context: { tag: "email-subject-removal" },
     )
@@ -248,18 +248,18 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   end
 
   test "shows telephone removal logs recorded with telephone subject when actor is current user" do
-    telephone = UserTelephone.create!(
+    telephone = ClientTelephone.create!(
       user: @user,
       number: "+10000000123",
-      user_telephone_status_id: UserTelephoneStatus::VERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
-    UserChronicle.create!(
-      actor_type: "User",
+    ClientChronicle.create!(
+      actor_type: "Client",
       actor_id: @user.id,
-      event_id: UserChronicleEvent::TELEPHONE_REMOVED,
-      level_id: UserChronicleLevel::NOTHING,
+      event_id: ClientChronicleEvent::TELEPHONE_REMOVED,
+      level_id: ClientChronicleLevel::NOTHING,
       subject_id: telephone.id,
-      subject_type: "UserTelephone",
+      subject_type: "ClientTelephone",
       occurred_at: Time.current,
       context: { tag: "telephone-subject-removal" },
     )
@@ -274,7 +274,7 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "renders user agent summary and login method" do
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: Time.current,
       context: {
         tag: "ua-method-entry",
@@ -293,7 +293,7 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   test "renders social provider as login method when present" do
     create_user_audit(
       user: @user,
-      event_id: UserChronicleEvent::LOGGED_IN,
+      event_id: ClientChronicleEvent::LOGGED_IN,
       occurred_at: Time.current,
       context: {
         tag: "social-login-entry",
@@ -312,16 +312,26 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
   private
 
   def create_user_audit(user:, event_id:, occurred_at:, context:, ip_address: "203.0.113.25")
-    UserChronicle.create!(
-      actor_type: "User",
+    ClientChronicle.create!(
+      actor_type: "Client",
       actor_id: user.id,
-      event_id: event_id,
-      level_id: UserChronicleLevel::NOTHING,
+      user_chronicle_event: chronicle_event_for(event_id),
+      user_chronicle_level: chronicle_level_for(ClientChronicleLevel::NOTHING),
       subject_id: user.id,
-      subject_type: "User",
+      subject_type: "Client",
       occurred_at: occurred_at,
       ip_address: ip_address,
       context: context,
     )
+  end
+
+  def chronicle_event_for(event_id)
+    @chronicle_events_for_test ||= {}
+    @chronicle_events_for_test[event_id] ||= ClientChronicleEvent.find(event_id)
+  end
+
+  def chronicle_level_for(level_id)
+    @chronicle_levels_for_test ||= {}
+    @chronicle_levels_for_test[level_id] ||= ClientChronicleLevel.find(level_id)
   end
 end

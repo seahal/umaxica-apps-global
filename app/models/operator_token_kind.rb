@@ -2,13 +2,13 @@
 # == Schema Information
 #
 # Table name: staff_token_kinds
-# Database name: token
+# Database name: org_ticket
 #
 #  id :bigint           not null, primary key
 #
 # frozen_string_literal: true
 
-class OperatorTokenKind < TokenRecord
+class OperatorTokenKind < OrgTicketRecord
   self.table_name = "staff_token_kinds"
   include ReferenceRecord
 

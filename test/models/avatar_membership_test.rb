@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: avatar_memberships
@@ -51,4 +49,3 @@ class AvatarMembershipTest < ActiveSupport::TestCase
     assert_equal 99, record.id
   end
 end
-# rubocop:enable Layout/LineLength

@@ -14,11 +14,12 @@ account-like org association, not the authenticated org actor.
 
 The authenticated `org` actor is named `Operator`.
 
-- `Operator < OperatorRecord` owns the authenticated org actor table.
+- `Operator < OrgPrincipalRecord` owns the authenticated org actor table.
 - The physical actor table has been migrated from `staffs` to the conventional `operators` table.
 - Existing `staff_*` credential, token, preference, and audit tables remain physical backing tables
   for this step.
-- The prior `Operator < OperatorRecord` account association is renamed to `OperatorAccount`.
+- The prior `Operator < OrgPrincipalRecord` account association is renamed to
+  `OperatorWorkspaceAccount`. `OperatorAccount` is reserved for the org RP account in `org_zenith`.
 - Runtime authentication, current actor, and policy lookup use `operator` naming.
 - No `Staff` compatibility constants, helpers, params, policy names, or actor-type claims are
   retained for runtime code.

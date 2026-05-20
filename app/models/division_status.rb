@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: division_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class DivisionStatus < OperatorRecord
+class DivisionStatus < OrgPrincipalRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values
@@ -16,6 +16,7 @@ class DivisionStatus < OperatorRecord
   ACTIVE = 2
   INACTIVE = 3
   DELETED = 4
+  DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
   has_many :divisions, dependent: :restrict_with_error
 

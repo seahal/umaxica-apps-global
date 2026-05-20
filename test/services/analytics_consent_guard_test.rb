@@ -62,7 +62,7 @@ class AnalyticsConsentGuardTest < ActiveSupport::TestCase
 
   test "null preference allows pre-consent events" do
     assert AnalyticsConsentGuard.permit?("auth.login.success", preference: Actor::Preference::NULL)
-    assert AnalyticsConsentGuard.permit?("authentication.audit.failed", preference: Actor::Preference::NULL)
+    assert AnalyticsConsentGuard.permit?("authentication.audit.write_failed", preference: Actor::Preference::NULL)
   end
 
   test "pipeline integration drops disallowed events when consent is missing" do

@@ -4,24 +4,22 @@
 module Sign
   module App
     module Configuration
-      class EmailsController < ApplicationController
-        auth_required!
-
+      class EmailsController < PrivateController
         include CloudflareTurnstile
-        include ::Verification::User
+        include ::Verification::Client
 
-        before_action :authenticate_user!
+        before_action :authenticate_client!
 
         def index
-          @user_emails = current_user.user_emails
+          @client_emails = current_client.client_emails
         end
 
         def edit
-          @user_email = current_user.user_emails.find_by!(public_id: params.expect(:id))
+          @user_email = current_client.client_emails.find_by!(public_id: params(:id))
         end
 
         def update
-          @user_email = current_user.user_emails.find_by!(public_id: params.expect(:id))
+          @user_email = current_client.client_emails.find_by!(public_id: params(:id))
 
           unless cloudflare_turnstile_stealth_validation["success"]
             @user_email.errors.add(:base, t("turnstile_error"))
@@ -43,7 +41,7 @@ module Sign
         end
 
         def destroy
-          @user_email = current_user.user_emails.find_by!(public_id: params.expect(:id))
+          @user_email = current_client.client_emails.find_by!(public_id: params(:id))
 
           if @user_email.undeletable?
             redirect_to(
@@ -53,7 +51,7 @@ module Sign
             return
           end
 
-          if verified_email?(@user_email) && !AuthMethodGuard.can_remove_email?(current_user, @user_email)
+          if verified_email?(@user_email) && !AuthMethodGuard.can_remove_email?(current_client, @user_email)
             redirect_to(
               sign_app_configuration_emails_path(ri: params[:ri]),
               alert: t("sign.app.configuration.email.destroy.last_method"),
@@ -62,7 +60,7 @@ module Sign
           end
 
           @user_email.destroy!
-          create_audit_event!(UserChronicleEvent::EMAIL_REMOVED, subject: @user_email)
+          create_audit_event!(ClientChronicleEvent::EMAIL_REMOVED, subject: @user_email)
 
           redirect_to(
             sign_app_configuration_emails_path(ri: params[:ri]),
@@ -75,13 +73,13 @@ module Sign
 
         def create_audit_event!(event_id, subject:)
           ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            ClientChronicleEvent.find_or_create_by!(id: event_id)
+            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
           end
 
-          UserChronicle.create!(
-            actor_type: "User",
-            actor_id: current_user.id,
+          ClientChronicle.create!(
+            actor_type: "Client",
+            actor_id: current_client.id,
             event_id: event_id,
             subject_id: subject.id.to_s,
             subject_type: subject.class.name,
@@ -104,7 +102,9 @@ module Sign
         end
 
         def verification_required_action?
-          step_up_bootstrap_active?
+          return step_up_bootstrap_active? if action_name == "index"
+
+          %w(edit update destroy).include?(action_name)
         end
 
         def verification_scope

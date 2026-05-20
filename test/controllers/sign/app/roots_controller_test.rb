@@ -5,7 +5,7 @@ require "test_helper"
 require "support/root_theme_cookie_helper"
 
 class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses
+  fixtures :clients, :client_statuses
 
   include RootThemeCookieHelper
 
@@ -44,7 +44,8 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "footer" do
       assert_select "a"
-      assert_select "a", text: I18n.t("sign.app.preferences.footer.home")
+      assert_select "a[href=?]", sign_app_root_url(ri: "jp"),
+                    text: I18n.t("sign.app.preferences.footer.home")
       assert_select "a[href=?]", sign_app_preference_url(ri: "jp"),
                     text: I18n.t("sign.app.preferences.footer.preference")
       assert_select "a[href=?]", sign_app_configuration_url(ri: "jp"),
@@ -70,7 +71,7 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET / redirects to dashboard when logged in" do
-    user = users(:one)
+    user = clients(:one)
     get sign_app_root_url(ri: "jp"), headers: as_user_headers(user, host: "id.app.localhost")
 
     assert_redirected_to sign_app_dashboard_url(ri: "jp")

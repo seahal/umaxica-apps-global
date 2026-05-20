@@ -7,11 +7,11 @@ module Sign
   module Org
     module Preference
       class RegionsControllerTest < ActionDispatch::IntegrationTest
-        fixtures :staffs, :staff_preferences
+        fixtures :operators, :operator_preferences
 
         setup do
           @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-          @staff = staffs(:one)
+          @staff = operators(:one)
           host! @host
         end
 

@@ -30,7 +30,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
 
     def current_resource = resource
 
-    def resource_class = User
+    def resource_class = Client
 
     def sign_app_configuration_path = "/configuration"
 
@@ -75,10 +75,10 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     end
 
     harness.logged_in_value = true
-    harness.resource = users(:one)
+    harness.resource = clients(:one)
     harness.send(:prepare_social_auth_intent!, "link", provider: "apple")
 
-    assert_equal users(:one).id, harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
+    assert_equal clients(:one).id, harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
   end
 
   test "validate social auth state handles login missing expired and user mismatch" do
@@ -94,21 +94,21 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     assert_raises(SocialAuth::UnauthorizedError) { harness.send(:validate_social_auth_state!) }
 
     harness.session_hash[SocialAuthConcern::SOCIAL_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY] = users(:one).id
-    harness.resource = users(:two)
+    harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY] = clients(:one).id
+    harness.resource = clients(:two)
     assert_raises(SocialAuth::UnauthorizedError) { harness.send(:validate_social_auth_state!) }
   end
 
   test "social auth helpers clear session and resolve paths" do
     harness = Harness.new
     harness.logged_in_value = true
-    harness.resource = users(:one)
-    harness.send(:prepare_social_auth_intent!, "reauth", provider: "apple")
+    harness.resource = clients(:one)
+    harness.send(:prepare_social_auth_intent!, "link", provider: "apple")
 
-    assert_equal "reauth", harness.send(:current_social_auth_intent)
+    assert_equal "link", harness.send(:current_social_auth_intent)
     assert_equal "/auth/google?state=abc+123", harness.send(:omniauth_authorize_path, "google", state: "abc 123")
     assert_equal "/auth/google", harness.send(:omniauth_authorize_path, "google")
-    assert_equal users(:one), harness.send(:social_auth_user)
+    assert_equal clients(:one), harness.send(:social_auth_user)
     assert_equal "/", harness.send(:social_auth_success_redirect_path)
     assert_equal "/configuration/apple",
                  harness.send(:social_auth_failure_redirect_path_for_intent, intent: "link", provider: "apple")
@@ -128,7 +128,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness = Harness.new
     harness.send(:prepare_social_auth_intent!, "login", provider: "google", rt: "encoded-rt")
 
-    SocialAuthService.stub(:handle_callback, ->(**) { { user: users(:one), existing_account: true } }) do
+    SocialAuthService.stub(:handle_callback, ->(**) { { user: clients(:one), existing_account: true } }) do
       result = harness.send(:process_social_auth_callback)
 
       assert_equal "encoded-rt", result[:rt]

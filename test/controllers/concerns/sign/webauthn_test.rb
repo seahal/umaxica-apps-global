@@ -82,7 +82,7 @@ module Sign
     # Test normalize_webauthn_options_for_json
     test "normalize_webauthn_options_for_json converts symbol keys to string keys" do
       options = WebAuthn::Credential.options_for_create(
-        user: { id: "123".b, name: "test", display_name: "Test User" },
+        user: { id: "123".b, name: "test", display_name: "Test Client" },
         exclude: [],
       )
 
@@ -94,7 +94,7 @@ module Sign
 
     test "normalize_webauthn_options_for_json produces single challenge key in JSON" do
       options = WebAuthn::Credential.options_for_create(
-        user: { id: "123".b, name: "test", display_name: "Test User" },
+        user: { id: "123".b, name: "test", display_name: "Test Client" },
         exclude: [],
       )
 

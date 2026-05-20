@@ -1,4 +1,6 @@
 <% content_for :page_title, t('sign.org.configuration.passkeys.show.title') %>
+<%= link_to t('sign.org.configuration.passkeys.show.back'), sign_org_configuration_passkeys_path(ri: params[:ri]) %>
+
 <div>
   <div>
     <div>
@@ -23,7 +25,6 @@
   </div>
 
   <div>
-    <%= link_to t('sign.org.configuration.passkeys.show.back'), sign_org_configuration_passkeys_path %>
     <div>
       <%= link_to t('actions.edit'), edit_sign_org_configuration_passkey_path(@passkey) %>
       <%= link_to t('actions.destroy'), sign_org_configuration_passkey_path(@passkey), data: { turbo_method: :delete, turbo_confirm: t('messages.confirm_destroy') } %>

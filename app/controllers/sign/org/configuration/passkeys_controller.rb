@@ -19,7 +19,7 @@ module Sign
       # - GET /configuration/passkeys/:id/edit (edit)
       # - PATCH /configuration/passkeys/:id (update - description only)
       # - DELETE /configuration/passkeys/:id (destroy)
-      class PasskeysController < ApplicationController
+      class PasskeysController < PrivateController
         include ::Verification::Operator
         include Sign::Webauthn
 
@@ -28,9 +28,6 @@ module Sign
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
         before_action :set_passkey, only: %i(show edit update destroy)
-
-        auth_required!
-
         # GET /configuration/passkeys
         def index
           @passkeys = current_operator.staff_passkeys.order(created_at: :desc)
@@ -90,10 +87,10 @@ module Sign
             options: creation_options,
           }, status: :ok
         rescue Sign::Webauthn::OriginValidationError => e
-          Rails.logger.error("WebAuthn origin validation failed: #{e.message}")
+          Rails.event.error("webauthn.origin_validation_failed", message: e.message)
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
         rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
-          Rails.logger.error("WebAuthn registration options failed: #{e.message}")
+          Rails.event.error("webauthn.registration_options_failed", error_class: e.class.name, message: e.message)
           render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
         end
 
@@ -189,6 +186,23 @@ module Sign
 
         # DELETE /configuration/passkeys/:id
         def destroy
+          unless AuthMethodGuard.can_remove_passkey?(current_operator, @passkey)
+            respond_to do |format|
+              format.html do
+                redirect_to(
+                  sign_org_configuration_passkeys_path,
+                  status: :see_other,
+                  alert: t("messages.cannot_delete_last_passkey"),
+                )
+              end
+              format.json do
+                render json: { error: t("messages.cannot_delete_last_passkey") },
+                       status: :unprocessable_content
+              end
+            end
+            return
+          end
+
           @passkey.destroy!
 
           respond_to do |format|
@@ -206,11 +220,11 @@ module Sign
         private
 
         def set_passkey
-          @passkey = current_operator.staff_passkeys.find(params.expect(:id))
+          @passkey = current_operator.staff_passkeys.find(params(:id))
         end
 
         def credential_params
-          params.expect(
+          params(
             credential: [
               :id,
               :rawId,
@@ -224,8 +238,10 @@ module Sign
         end
 
         def update_params
-          key = params.key?(:staff_passkey) ? :staff_passkey : :passkey
-          params.expect(key => [:description]) || {}
+          key = %i(operator_passkey staff_passkey passkey).find { |candidate| params.key?(candidate) }
+          return {} unless key
+
+          params.fetch(key, {}).permit(:description)
         end
 
         def passkey_description

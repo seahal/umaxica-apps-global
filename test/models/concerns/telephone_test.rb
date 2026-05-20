@@ -4,12 +4,12 @@
 require "test_helper"
 
 class TelephoneConcernTest < ActiveSupport::TestCase
-  fixtures :staffs, :staff_statuses
+  fixtures :operators, :operator_identity_statuses
 
   setup do
     @telephone = OperatorTelephone.new(
       number: "+1234567890",
-      staff: staffs(:none_staff),
+      staff: operators(:none_staff),
     )
     @telephone.save!(validate: false)
   end
@@ -215,7 +215,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   end
 
   test "validate_number_format adds specific error for country code" do
-    zero_country = OperatorTelephone.new(number: "+0123456789", staff: staffs(:none_staff))
+    zero_country = OperatorTelephone.new(number: "+0123456789", staff: operators(:none_staff))
 
     assert_not zero_country.valid?
     assert_includes zero_country.errors.details[:number].pluck(:error),

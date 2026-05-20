@@ -27,6 +27,8 @@ You MUST NOT:
 - skip tests to make the suite pass
 - mock the code under test so heavily that the test no longer verifies behavior
 - add tests that merely restate implementation details without validating outcomes
+- edit `test_helper.rb` while implementing or editing tests; treat global test helper changes as
+  forbidden unless the user explicitly requests test infrastructure work
 
 ---
 
@@ -85,6 +87,10 @@ Add edge-case coverage when behavior depends on:
 ---
 
 ## Test Design Rules
+
+Apply the shared test code principles in `.harnes/policies/testing_rules.md` when writing or
+updating Minitest. In particular, prefer locally readable tests over clever shared abstractions,
+keep business setup visible, and make each test fail for one clear behavioral reason.
 
 ### Prefer request/integration tests for controller behavior
 

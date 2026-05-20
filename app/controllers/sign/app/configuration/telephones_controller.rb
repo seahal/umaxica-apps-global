@@ -4,31 +4,29 @@
 module Sign
   module App
     module Configuration
-      class TelephonesController < ApplicationController
-        auth_required!
-
+      class TelephonesController < PrivateController
         include Sign::TelephoneRegistrable
-        include ::Verification::User
+        include ::Verification::Client
 
-        before_action :authenticate_user!
+        before_action :authenticate_client!
 
         def index
-          @user_telephones = current_user.user_telephones
+          @client_telephones = current_client.client_telephones
         end
 
         def new
-          @user_telephone = UserTelephone.new
+          @user_telephone = ClientTelephone.new
         end
 
         def edit
-          @user_telephone = current_user.user_telephones.find_by!(public_id: params.expect(:id))
+          @user_telephone = current_client.client_telephones.find_by!(public_id: params(:id))
         end
 
         def create
-          user = current_user
+          user = current_client
           return head :unauthorized if user.blank?
 
-          tel_params = params.expect(user_telephone: [:raw_number, :number])
+          tel_params = params(user_telephone: [:raw_number, :number])
           number = tel_params[:raw_number] || tel_params[:number]
           if initiate_telephone_verification(user, number, auto_accept_confirmations: true)
             redirect_to(edit_sign_app_configuration_telephone_path(@user_telephone.id))
@@ -38,9 +36,9 @@ module Sign
         end
 
         def destroy
-          telephone = current_user.user_telephones.find_by!(public_id: params.expect(:id))
+          telephone = current_client.client_telephones.find_by!(public_id: params(:id))
 
-          unless AuthMethodGuard.can_remove_telephone?(current_user, telephone)
+          unless AuthMethodGuard.can_remove_telephone?(current_client, telephone)
             redirect_to(
               sign_app_configuration_telephones_path,
               alert: t("sign.app.configuration.telephone.destroy.last_method"),
@@ -49,7 +47,7 @@ module Sign
           end
 
           telephone.destroy!
-          create_audit_event!(UserChronicleEvent::TELEPHONE_REMOVED, subject: telephone)
+          create_audit_event!(ClientChronicleEvent::TELEPHONE_REMOVED, subject: telephone)
 
           redirect_to(
             sign_app_configuration_telephones_path,
@@ -62,13 +60,13 @@ module Sign
 
         def create_audit_event!(event_id, subject:)
           ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            ClientChronicleEvent.find_or_create_by!(id: event_id)
+            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
           end
 
-          UserChronicle.create!(
-            actor_type: "User",
-            actor_id: current_user.id,
+          ClientChronicle.create!(
+            actor_type: "Client",
+            actor_id: current_client.id,
             event_id: event_id,
             subject_id: subject.id.to_s,
             subject_type: subject.class.name,

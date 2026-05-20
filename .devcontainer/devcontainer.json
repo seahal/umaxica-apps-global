@@ -6,7 +6,7 @@
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": true,
-  "forwardPorts": [3002],
+  "forwardPorts": [3001, 5050],
   "remoteEnv": { "EDITOR": "code --wait --reuse-window", "DEBUGGER_DISABLE": "1" },
   "customizations": {
     "vscode": {
@@ -84,23 +84,11 @@
     }
   },
   "shutdownAction": "stopCompose",
-  "containerEnv": {
-    "DEVCONTAINER_AUTO_START_BIN_DEV": "1",
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "QT_QPA_PLATFORM": "wayland",
-    "GDK_BACKEND": "wayland",
-    "RUBY_YJIT_ENABLE": "1",
-    "RUBY_YJIT_CALL_THRESHOLD": "10",
-    "RUBY_DEBUG_OPEN": "false"
-  },
   "updateRemoteUserUID": true,
   "postStartCommand": "",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/copilot-cli:1": {},
-    "ghcr.io/stu-bell/devcontainer-features/gemini-cli:0": {},
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
-    "ghcr.io/jsburckhardt/devcontainer-features/opencode:1": {},
     "ghcr.io/devcontainers-extra/features/lefthook-asdf:1": {},
     "ghcr.io/jasonthedeveloper/features/trivy:1": {},
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
@@ -110,11 +98,10 @@
     "source=${localEnv:HOME}/.claude.json,target=/home/global/.claude.json,type=bind",
     "source=${localEnv:HOME}/.copilot,target=/home/global/.copilot,type=bind",
     "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
-    "source=${localEnv:HOME}/.gemini,target=/home/global/.gemini,type=bind",
-    "source=${localEnv:HOME}/.config/gh,target=/home/global/.config/gh,type=bind",
     "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind",
     "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind",
     "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind",
-    "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind"
+    "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind",
+    "type=bind,source=/etc/timezone,target=/etc/timezone,readonly"
   ]
 }

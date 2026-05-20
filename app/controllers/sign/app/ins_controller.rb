@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Sign::App
-  class InsController < ApplicationController
+  class InsController < In::GuestController
     def new
     end
   end

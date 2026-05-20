@@ -6,24 +6,24 @@
 # Table name: visitor_occurrences
 # Database name: occurrence
 #
-#  id         :bigint           not null, primary key
-#  body       :string           default(""), not null
-#  context    :jsonb            not null
-#  event_type :string           default(""), not null
-#  lapses_at  :datetime         default(Infinity), not null
-#  memo       :string           default(""), not null
-#  purge_at   :datetime         default(Infinity), not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  public_id  :string(21)       default(""), not null
-#  status_id  :bigint           default(0), not null
+#  id           :bigint           not null, primary key
+#  body         :string           default(""), not null
+#  context      :jsonb            not null
+#  discarded_at :datetime         default(Infinity), not null
+#  event_type   :string           default(""), not null
+#  memo         :string           default(""), not null
+#  purged_at    :datetime         default(Infinity), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  public_id    :string(21)       default(""), not null
+#  status_id    :bigint           default(0), not null
 #
 # Indexes
 #
 #  index_visitor_occurrences_on_body                       (body) UNIQUE
 #  index_visitor_occurrences_on_event_type_and_created_at  (event_type,created_at)
 #  index_visitor_occurrences_on_public_id                  (public_id) UNIQUE
-#  index_visitor_occurrences_on_purge_at                   (purge_at)
+#  index_visitor_occurrences_on_purged_at                  (purged_at)
 #  index_visitor_occurrences_on_status_id_and_created_at   (status_id,created_at)
 #
 # Foreign Keys
@@ -40,7 +40,7 @@ class VisitorOccurrence < OccurrenceRecord
 
   attribute :status_id, default: VisitorOccurrenceStatus::NOTHING
 
-  belongs_to :visitor_occurrence_status, foreign_key: :status_id, optional: true,
+  belongs_to :visitor_occurrence_status, foreign_key: :status_id,
                                          inverse_of: :visitor_occurrences
   has_many :area_visitor_occurrences, dependent: :destroy, inverse_of: :visitor_occurrence
   has_many :area_occurrences, through: :area_visitor_occurrences

@@ -43,8 +43,8 @@ Next.js and API client token usage.
 
 ## VisitorAccount Token Strategy
 
-See `docs/architecture/dpop.md` § VisitorAccount Token Strategy for the full matrix of token transport and
-binding mechanisms across all client types (Rails HTML, Next.js, iOS / Android).
+See `docs/architecture/dpop.md` § VisitorAccount Token Strategy for the full matrix of token
+transport and binding mechanisms across all client types (Rails HTML, Next.js, iOS / Android).
 
 ## Related
 

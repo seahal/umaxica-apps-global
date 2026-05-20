@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: visitor_verifications
-# Database name: symbol
+# Database name: com_ticket
 #
 #  id               :bigint           not null, primary key
-#  lapses_at        :datetime         default(Infinity), not null
+#  discarded_at     :datetime         default(Infinity), not null
 #  last_used_at     :datetime
-#  purge_at         :datetime         default(Infinity), not null
+#  purged_at        :datetime         default(Infinity), not null
 #  token_digest     :string           not null
 #  created_at       :datetime         not null
 #  updated_at       :datetime         not null
@@ -24,7 +24,7 @@
 #
 #  fk_rails_...  (visitor_token_id => visitor_tokens.id)
 #
-class VisitorVerification < SymbolRecord
+class VisitorVerification < ComTicketRecord
   include Retainable
   include RefreshTokenShared
   include VerificationCookieable
@@ -34,19 +34,19 @@ class VisitorVerification < SymbolRecord
   belongs_to :visitor_token, inverse_of: :visitor_verifications
 
   validates :token_digest, presence: true, uniqueness: true
-  validates :lapses_at, presence: true
+  validates :discarded_at, presence: true
 
-  scope :active, -> { where("lapses_at > ?", Time.current) }
+  scope :active, -> { where("discarded_at > ?", Time.current) }
 
   def active?
-    lapses_at.present? && lapses_at > Time.current
+    discarded_at.present? && discarded_at > Time.current
   end
 
   def self.digest_token(raw_token)
     digest_refresh_token(raw_token.to_s).unpack1("H*")
   end
 
-  def self.issue_for_token!(token:, lapses_at: TTL.from_now)
+  def self.issue_for_token!(token:, discarded_at: TTL.from_now)
     now = Time.current
     raw_token = SecureRandom.urlsafe_base64(32)
     digest = digest_token(raw_token)
@@ -54,13 +54,13 @@ class VisitorVerification < SymbolRecord
     verification =
       transaction do
         where(visitor_token_id: token.id).active.find_each do |verification_record|
-          verification_record.update!(lapses_at: now, updated_at: now)
+          verification_record.update!(discarded_at: now, updated_at: now)
         end
 
         create!(
           visitor_token: token,
           token_digest: digest,
-          lapses_at: lapses_at,
+          discarded_at: discarded_at,
           last_used_at: now,
         )
       end

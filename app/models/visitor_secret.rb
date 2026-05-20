@@ -4,14 +4,14 @@
 # == Schema Information
 #
 # Table name: visitor_secrets
-# Database name: guest
+# Database name: com_principal
 #
 #  id                       :bigint           not null, primary key
-#  lapses_at                :datetime         default(Infinity), not null
+#  discarded_at             :datetime         default(Infinity), not null
 #  last_used_at             :datetime
 #  name                     :string           default(""), not null
 #  password_digest          :string           default(""), not null
-#  purge_at                 :datetime         default(Infinity), not null
+#  purged_at                :datetime         default(Infinity), not null
 #  uses_remaining           :integer          default(1), not null
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
@@ -33,7 +33,7 @@
 #  fk_rails_...  (visitor_secret_kind_id => visitor_secret_kinds.id)
 #  fk_rails_...  (visitor_secret_status_id => visitor_secret_statuses.id)
 #
-class VisitorSecret < GuestRecord
+class VisitorSecret < ComPrincipalRecord
   include Retainable
   include PublicId
   include Secret
@@ -49,7 +49,7 @@ class VisitorSecret < GuestRecord
   attribute :visitor_secret_kind_id, default: VisitorSecretKind::LOGIN
 
   belongs_to :visitor, inverse_of: :visitor_secrets
-  belongs_to :visitor_secret_status, inverse_of: :visitor_secrets, optional: true
+  belongs_to :visitor_secret_status, inverse_of: :visitor_secrets
   belongs_to :visitor_secret_kind, inverse_of: :visitor_secrets
 
   validates :name, length: { maximum: 255 }
@@ -134,16 +134,22 @@ class VisitorSecret < GuestRecord
   end
 
   def expired_for_secret_sign_in?(now)
-    return false if lapses_at.nil?
-    return false if lapses_at.respond_to?(:infinite?) && lapses_at.infinite?
+    return false if discarded_at.nil?
+    return false if discarded_at.respond_to?(:infinite?) && discarded_at.infinite?
 
-    now > lapses_at
+    now > discarded_at
   end
 
   def enforce_secret_limit
     return unless visitor_id
 
-    count = self.class.where(visitor_id: visitor_id).count
+    count =
+      if visitor
+        visitor.visitor_secrets.load.count { |secret| secret != self }
+      else
+        operation = -> { self.class.where(visitor_id: visitor_id).count }
+        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
+      end
     return if count < MAX_SECRETS_PER_VISITOR
 
     errors.add(:base, :too_many, message: "exceeds maximum secrets per visitor (#{MAX_SECRETS_PER_VISITOR})")

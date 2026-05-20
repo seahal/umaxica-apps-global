@@ -23,11 +23,11 @@
           </tr>
           </thead>
           <tbody>
-          <% @user_telephones.each do |telephone| %>
+          <% @client_telephones.each do |telephone| %>
             <tr>
               <td><%= telephone.number %></td>
               <td>
-                <% if [UserTelephoneStatus::VERIFIED, UserTelephoneStatus::VERIFIED_WITH_SIGN_UP].include?(telephone.user_telephone_status_id) %>
+                <% if [ClientTelephoneStatus::VERIFIED, ClientTelephoneStatus::VERIFIED_WITH_SIGN_UP].include?(telephone.user_telephone_status_id) %>
                       <span>
                         <%= t("views.sign.app.configuration.telephones.index.verified") %>
                       </span>
@@ -43,7 +43,7 @@
               </td>
             </tr>
           <% end %>
-          <% if @user_telephones.empty? %>
+          <% if @client_telephones.empty? %>
             <tr>
               <td colspan="3" class="italic">
                 <%= t("views.sign.app.configuration.telephones.index.empty") %>

@@ -3,17 +3,17 @@
 
 module Sign
   module App
-    class AuthorizesController < ApplicationController
-      auth_required!
+    class AuthorizesController < PrivateController
       before_action :authenticate!
 
       def show
-        amr = Actor.token&.dig("amr")
-        result = Oidc::AuthorizeService.call(
+        access_claims = Actor.authentication.access_claims
+        amr = access_claims&.dig("amr")
+        result = ::Oidc::AuthorizeService.call(
           params: authorize_params,
-          resource: current_user,
+          resource: current_client,
           auth_method: Array(amr).first,
-          acr: Actor.token&.dig("acr"),
+          acr: access_claims&.dig("acr"),
         )
 
         if result.success?
@@ -30,6 +30,17 @@ module Sign
         params.permit(
           :response_type, :client_id, :redirect_uri, :state,
           :code_challenge, :code_challenge_method, :scope, :nonce,
+        )
+      end
+
+      def sign_in_url_with_return(return_to)
+        return super unless params[:screen_hint].to_s == "signup"
+
+        new_sign_app_up_url(
+          rt: return_to,
+          ri: params[:ri].presence,
+          host: sign_app_redirect_host,
+          protocol: request.protocol,
         )
       end
     end

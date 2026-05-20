@@ -9,7 +9,7 @@ class Sign::App::JwksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns JWKS as JSON" do
-    get sign_app_jwks_url(host: @host, ri: "jp"), headers: browser_headers
+    get sign_app_oauth_jwks_url(host: @host, ri: "jp"), headers: browser_headers
 
     assert_response :ok
     body = response.parsed_body
@@ -19,14 +19,14 @@ class Sign::App::JwksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "sets cache headers for 1 hour" do
-    get sign_app_jwks_url(host: @host, ri: "jp"), headers: browser_headers
+    get sign_app_oauth_jwks_url(host: @host, ri: "jp"), headers: browser_headers
 
     assert_response :ok
     assert_match(/max-age=3600/, response.headers["Cache-Control"])
   end
 
   test "JWKS keys have required fields when configured" do
-    get sign_app_jwks_url(host: @host, ri: "jp"), headers: browser_headers
+    get sign_app_oauth_jwks_url(host: @host, ri: "jp"), headers: browser_headers
 
     assert_response :ok
     body = response.parsed_body
@@ -42,7 +42,7 @@ class Sign::App::JwksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "accessible without authentication" do
-    get sign_app_jwks_url(host: @host, ri: "jp"), headers: browser_headers
+    get sign_app_oauth_jwks_url(host: @host, ri: "jp"), headers: browser_headers
 
     assert_response :ok
   end

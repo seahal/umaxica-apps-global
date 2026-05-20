@@ -11,11 +11,11 @@
 #
 # Routing (OmniAuth standard):
 # - Start:    POST /auth/:provider (CSRF protected via omniauth-rails_csrf_protection)
-# - Callback: GET/POST /auth/:provider/callback
-# - Failure:  GET/POST /auth/failure
+# - Callback: GET /auth/google_app/callback, POST /auth/apple/callback
+# - Failure:  GET /auth/failure
 #
 # Our custom entry point:
-# - POST /social/auth/:provider/start?intent=... -> prepares intent, redirects to /auth/:provider
+# - POST /social/auth/:provider/continue?intent=... -> prepares intent, redirects to /auth/:provider
 #
 # State Parameter:
 # - All providers use state validation (via SocialAuthConcern)
@@ -170,7 +170,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
 end
 
 # Allow both GET and POST for initiating OAuth
-# - GET: Used after our custom /social/auth/:provider/start entry point redirects to OmniAuth
+# - GET: Used after our custom /social/auth/:provider/continue entry point redirects to OmniAuth
 # - POST: Traditional form submission (CSRF protected by Rails token)
 # State validation in SocialAuthConcern provides CSRF protection for both methods
 OmniAuth.config.silence_get_warning = true

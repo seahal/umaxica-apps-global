@@ -1,0 +1,326 @@
+# typed: false
+# frozen_string_literal: true
+
+module Authentication
+  class CredentialInventory
+    Result =
+      Struct.new(
+        :actor,
+        :excluding,
+        :aal1_methods,
+        :aal2_methods,
+        :aal3_methods,
+        :contact_identifiers,
+        :phishing_resistant_methods,
+        keyword_init: true,
+      ) do
+        alias_method :login_methods, :aal1_methods
+        alias_method :step_up_methods, :aal2_methods
+
+        def aal1_method_count = aal1_methods.count
+
+        def aal2_method_count = aal2_methods.count
+
+        def aal3_method_count = aal3_methods.count
+
+        def contact_identifier_count = contact_identifiers.count
+
+        def login_method_count = aal1_method_count
+
+        def step_up_method_count = aal2_method_count
+
+        def aal1_available? = aal1_method_count.positive?
+
+        def aal2_available? = aal2_method_count.positive?
+
+        def aal3_available? = aal3_method_count.positive?
+
+        def contactable? = contact_identifier_count.positive?
+
+        def login_available? = aal1_available?
+
+        def step_up_available? = aal2_available?
+
+        def retains_aal1? = aal1_available?
+
+        def retains_aal2? = aal2_available?
+
+        def retains_aal3? = aal3_available?
+
+        def retains_contactability? = contactable?
+
+        def retains_login? = login_available?
+
+        def retains_step_up? = step_up_available?
+
+        def last_aal1_method? = aal1_method_count.zero?
+
+        def last_aal2_method? = aal2_method_count.zero?
+
+        def last_contact_identifier? = contact_identifier_count.zero?
+
+        def last_login_method? = last_aal1_method?
+
+        def last_step_up_method? = last_aal2_method?
+
+        def removable_aal1_credential? = !last_aal1_method?
+
+        def removable_aal2_credential? = !last_aal2_method?
+
+        def removable_contact_identifier? = !last_contact_identifier?
+
+        def removable_login_credential? = removable_aal1_credential?
+
+        def removable_step_up_credential? = removable_aal2_credential?
+
+        def after_excluding(credential, reload: false)
+          self.class.inventory_class.call(actor, excluding: credential, reload: reload)
+        end
+
+        def self.inventory_class
+          Authentication::CredentialInventory
+        end
+      end
+
+    def self.call(actor, excluding: nil, reload: false)
+      new(actor, excluding: excluding, reload: reload).call
+    end
+
+    def initialize(actor, excluding: nil, reload: false)
+      @actor = actor
+      @excluding = excluding
+      @reload = reload
+    end
+
+    def call
+      return empty_result unless actor
+
+      actor.reload if reload && actor.respond_to?(:persisted?) && actor.persisted?
+
+      Result.new(
+        actor: actor,
+        excluding: excluding,
+        aal1_methods: aal1_methods,
+        aal2_methods: aal2_methods,
+        aal3_methods: [],
+        contact_identifiers: contact_identifiers,
+        phishing_resistant_methods: phishing_resistant_methods,
+      )
+    end
+
+    private
+
+    attr_reader :actor, :excluding, :reload
+
+    def empty_result
+      Result.new(
+        actor: actor,
+        excluding: excluding,
+        aal1_methods: [],
+        aal2_methods: [],
+        aal3_methods: [],
+        contact_identifiers: [],
+        phishing_resistant_methods: [],
+      )
+    end
+
+    def aal1_methods
+      methods = []
+      methods.concat(client_social_login_methods)
+      methods << :email_otp if aal1_email_count.positive?
+      methods << :passkey if active_passkey_count.positive?
+      methods << :secret if sign_in_secret_count.positive?
+      methods
+    end
+
+    def aal2_methods
+      methods = []
+      methods << :email_otp if aal2_email_count.positive?
+      methods << :passkey if active_passkey_count.positive?
+      methods << :totp if active_totp_count.positive?
+      methods
+    end
+
+    def contact_identifiers
+      methods = []
+      methods << :email if contact_email_count.positive?
+      methods << :telephone if contact_telephone_count.positive?
+      methods
+    end
+
+    def phishing_resistant_methods
+      aal2_methods & [:passkey]
+    end
+
+    def client_social_login_methods
+      methods = []
+      methods << :google if active_client_google?
+      methods << :apple if active_client_apple?
+      methods << :google if active_operator_google?
+      methods
+    end
+
+    def active_client_google?
+      return false unless actor.respond_to?(:user_social_google)
+
+      identity = actor.user_social_google
+      identity&.status_id == ClientSocialGoogleStatus::ACTIVE && !excluded?(identity)
+    end
+
+    def active_client_apple?
+      return false unless actor.respond_to?(:user_social_apple)
+
+      identity = actor.user_social_apple
+      identity&.status_id == ClientSocialAppleStatus::ACTIVE && !excluded?(identity)
+    end
+
+    def active_operator_google?
+      return false unless actor.respond_to?(:staff_emails)
+
+      count_scope(
+        actor.staff_emails.where(
+          undeletable: true,
+          staff_identity_email_status_id: [
+            OperatorEmailStatus::ACTIVE,
+            OperatorEmailStatus::VERIFIED,
+          ],
+        ),
+        "OperatorEmail",
+      ).positive?
+    end
+
+    def aal1_email_count
+      return contact_email_count if actor.respond_to?(:client_emails)
+      return contact_email_count if actor.respond_to?(:visitor_emails)
+
+      0
+    end
+
+    def aal2_email_count
+      return contact_email_count if actor.respond_to?(:client_emails)
+      return contact_email_count if actor.respond_to?(:visitor_emails)
+
+      0
+    end
+
+    def contact_email_count
+      if actor.respond_to?(:client_emails)
+        return count_scope(
+          actor.client_emails.where(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES),
+          "ClientEmail",
+        )
+      end
+
+      if actor.respond_to?(:visitor_emails)
+        return count_scope(
+          actor.visitor_emails.where(visitor_email_status_id: AuthMethodGuard::VISITOR_VERIFIED_EMAIL_STATUSES),
+          "VisitorEmail",
+        )
+      end
+
+      if actor.respond_to?(:staff_emails)
+        return count_scope(
+          actor.staff_emails.where(
+            staff_identity_email_status_id: [
+              OperatorEmailStatus::ACTIVE,
+              OperatorEmailStatus::VERIFIED,
+            ],
+          ),
+          "OperatorEmail",
+        )
+      end
+
+      0
+    end
+
+    def contact_telephone_count
+      if actor.respond_to?(:client_telephones)
+        return count_scope(
+          actor.client_telephones.where(
+            user_identity_telephone_status_id: AuthMethodGuard::VERIFIED_TELEPHONE_STATUSES,
+          ),
+          "ClientTelephone",
+        )
+      end
+
+      if actor.respond_to?(:visitor_telephones)
+        return count_scope(
+          actor.visitor_telephones.where(
+            visitor_telephone_status_id: AuthMethodGuard::VISITOR_VERIFIED_TELEPHONE_STATUSES,
+          ),
+          "VisitorTelephone",
+        )
+      end
+
+      if actor.respond_to?(:staff_telephones)
+        return count_scope(
+          actor.staff_telephones.where(
+            staff_identity_telephone_status_id: [
+              OperatorTelephoneStatus::ACTIVE,
+              OperatorTelephoneStatus::VERIFIED,
+            ],
+          ),
+          "OperatorTelephone",
+        )
+      end
+
+      0
+    end
+
+    def active_passkey_count
+      if actor.respond_to?(:client_passkeys)
+        return count_scope(actor.client_passkeys.where(status_id: ClientPasskeyStatus::ACTIVE), "ClientPasskey")
+      end
+
+      if actor.respond_to?(:visitor_passkeys)
+        return count_scope(actor.visitor_passkeys.where(status_id: VisitorPasskeyStatus::ACTIVE), "VisitorPasskey")
+      end
+
+      if actor.respond_to?(:staff_passkeys)
+        return count_scope(actor.staff_passkeys.where(status_id: OperatorPasskeyStatus::ACTIVE), "OperatorPasskey")
+      end
+
+      0
+    end
+
+    def active_totp_count
+      return 0 unless actor.respond_to?(:client_one_time_passwords)
+
+      count_scope(
+        actor.client_one_time_passwords.where(
+          user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+        ),
+        "ClientOneTimePassword",
+      )
+    end
+
+    def sign_in_secret_count
+      if actor.respond_to?(:client_secrets)
+        return count_scope(actor.client_secrets.allowed_for_secret_sign_in, "ClientSecret")
+      end
+
+      if actor.respond_to?(:visitor_secrets)
+        return count_scope(actor.visitor_secrets.allowed_for_secret_sign_in, "VisitorSecret")
+      end
+
+      if actor.respond_to?(:staff_secrets)
+        return count_scope(actor.staff_secrets.allowed_for_secret_sign_in, "OperatorSecret")
+      end
+
+      0
+    end
+
+    def count_scope(scope, class_name)
+      scope = scope.where.not(id: excluding.id) if excluding_record?(class_name)
+      scope.count
+    end
+
+    def excluded?(record)
+      excluding.present? && excluding.respond_to?(:id) && excluding.class == record.class && excluding.id == record.id
+    end
+
+    def excluding_record?(class_name)
+      excluding.present? && excluding.respond_to?(:id) && excluding.class.name == class_name
+    end
+  end
+end

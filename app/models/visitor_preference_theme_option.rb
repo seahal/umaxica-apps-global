@@ -4,11 +4,15 @@
 # == Schema Information
 #
 # Table name: visitor_preference_theme_options
-# Database name: setting
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
-class VisitorPreferenceThemeOption < SettingRecord
+# Indexes
+#
+#  index_visitor_preference_theme_options_on_id  (id) UNIQUE
+#
+class VisitorPreferenceThemeOption < ComPrincipalRecord
   # Fixed IDs - do not modify these values
   SYSTEM = 0
   LIGHT = 1

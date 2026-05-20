@@ -1,0 +1,49 @@
+<% content_for :page_title, t("sign.org.configuration.operator_lifecycle_requests.show.title") %>
+
+<h1><%= t("sign.org.configuration.operator_lifecycle_requests.show.title") %></h1>
+
+<dl>
+  <dt><%= t("sign.org.configuration.operator_lifecycle_requests.form.action") %></dt>
+  <dd><%= t("sign.org.configuration.operator_lifecycle_requests.actions.#{@operator_lifecycle_request.action}") %></dd>
+
+  <dt><%= t("sign.org.configuration.operator_lifecycle_requests.show.status") %></dt>
+  <dd><%= @operator_lifecycle_request.status %></dd>
+
+  <dt><%= t("sign.org.configuration.operator_lifecycle_requests.form.target_operator_public_id") %></dt>
+  <dd><%= @operator_lifecycle_request.target_operator&.public_id || "-" %></dd>
+
+  <dt><%= t("sign.org.configuration.operator_lifecycle_requests.form.target_email") %></dt>
+  <dd><%= @operator_lifecycle_request.target_email.presence || "-" %></dd>
+
+  <dt><%= t("sign.org.configuration.operator_lifecycle_requests.form.reason") %></dt>
+  <dd><%= @operator_lifecycle_request.reason.presence || "-" %></dd>
+</dl>
+
+<% if @organization_invitation&.active? %>
+  <p>
+    <%= link_to t("sign.org.configuration.operator_lifecycle_requests.show.invitation_link"),
+                new_sign_org_up_invitation_path(invitation_code: @organization_invitation.code) %>
+  </p>
+<% end %>
+
+<% if @operator_lifecycle_request.pending? %>
+  <%= button_to t("sign.org.configuration.operator_lifecycle_requests.approve.submit"),
+                sign_org_configuration_operator_lifecycle_request_approval_path(@operator_lifecycle_request),
+                data: { turbo_confirm: t("sign.org.configuration.operator_lifecycle_requests.approve.confirm") } %>
+
+  <%= form_with url: sign_org_configuration_operator_lifecycle_request_rejection_path(@operator_lifecycle_request) do |form| %>
+    <%= form.label :rejection_reason,
+                   t("sign.org.configuration.operator_lifecycle_requests.reject.reason") %>
+    <%= form.text_area :rejection_reason, name: "operator_lifecycle_request[rejection_reason]", rows: 3 %>
+    <%= form.submit t("sign.org.configuration.operator_lifecycle_requests.reject.submit") %>
+  <% end %>
+<% elsif @operator_lifecycle_request.approved? %>
+  <%= button_to t("sign.org.configuration.operator_lifecycle_requests.execute.submit"),
+                sign_org_configuration_operator_lifecycle_request_execution_path(@operator_lifecycle_request),
+                data: { turbo_confirm: t("sign.org.configuration.operator_lifecycle_requests.execute.confirm") } %>
+<% end %>
+
+<p>
+  <%= link_to t("sign.org.configuration.show.back"),
+              sign_org_configuration_operator_lifecycle_requests_path %>
+</p>

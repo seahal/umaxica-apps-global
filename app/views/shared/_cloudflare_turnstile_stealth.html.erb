@@ -7,8 +7,9 @@
 <script>
   (function() {
     var executed = false;
-    var container = document.getElementById("<%= widget_id %>");
-    var responseInput = document.getElementById("<%= response_id %>");
+    var responseInput = document.currentScript.previousElementSibling;
+    var container = responseInput ? responseInput.previousElementSibling : null;
+    var widgetId = container ? container.id : null;
 
     function executeTurnstile() {
       if (executed || !window.turnstile || !container || !responseInput) {
@@ -21,35 +22,35 @@
         callback: function(token) {
           responseInput.value = token;
           window.dispatchEvent(
-            new CustomEvent("turnstile:success", { detail: { widgetId: "<%= widget_id %>" } }),
+            new CustomEvent("turnstile:success", { detail: { widgetId: widgetId } }),
           );
         },
         "error-callback": function(errorCode) {
           responseInput.value = "";
           console.error("Turnstile error occurred:", errorCode);
           window.dispatchEvent(
-            new CustomEvent("turnstile:error", { detail: { errorCode: errorCode, widgetId: "<%= widget_id %>" } }),
+            new CustomEvent("turnstile:error", { detail: { errorCode: errorCode, widgetId: widgetId } }),
           );
           return true;
         },
         "expired-callback": function() {
           responseInput.value = "";
           window.dispatchEvent(
-            new CustomEvent("turnstile:expired", { detail: { widgetId: "<%= widget_id %>" } }),
+            new CustomEvent("turnstile:expired", { detail: { widgetId: widgetId } }),
           );
         },
         "timeout-callback": function() {
           responseInput.value = "";
           console.error("Turnstile challenge timed out");
           window.dispatchEvent(
-            new CustomEvent("turnstile:timeout", { detail: { widgetId: "<%= widget_id %>" } }),
+            new CustomEvent("turnstile:timeout", { detail: { widgetId: widgetId } }),
           );
         },
         "unsupported-callback": function() {
           responseInput.value = "";
           console.error("Turnstile client is unsupported");
           window.dispatchEvent(
-            new CustomEvent("turnstile:unsupported", { detail: { widgetId: "<%= widget_id %>" } }),
+            new CustomEvent("turnstile:unsupported", { detail: { widgetId: widgetId } }),
           );
         },
       });

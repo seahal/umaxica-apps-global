@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: app_preference_statuses
-# Database name: principal
+# Database name: app_setting
 #
 #  id :bigint           not null, primary key
 #

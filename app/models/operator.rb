@@ -4,13 +4,16 @@
 # == Schema Information
 #
 # Table name: operators
-# Database name: operator
+# Database name: org_principal
 #
 #  id                     :bigint           not null, primary key
-#  lapses_at              :datetime         default(Infinity), not null
+#  birthdate              :text
+#  deactivated_at         :datetime
+#  discarded_at           :datetime         default(Infinity), not null
 #  lock_version           :integer          default(0), not null
 #  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purge_at               :datetime         default(Infinity), not null
+#  purged_at              :datetime         default(Infinity), not null
+#  withdrawal_started_at  :datetime
 #  withdrawn_at           :datetime
 #  created_at             :datetime         not null
 #  updated_at             :datetime         not null
@@ -22,12 +25,15 @@
 #
 # Indexes
 #
+#  index_operators_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_operators_on_discarded_at            (discarded_at)
 #  index_operators_on_multi_factor_id         (multi_factor_id)
 #  index_operators_on_multi_factor_status_id  (multi_factor_status_id)
 #  index_operators_on_public_id               (public_id) UNIQUE
-#  index_operators_on_purge_at                (purge_at)
+#  index_operators_on_purged_at               (purged_at)
 #  index_operators_on_status_id               (status_id)
 #  index_operators_on_visibility_id           (visibility_id)
+#  index_operators_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
 #  index_operators_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
@@ -38,14 +44,17 @@
 #  fk_rails_...  (visibility_id => staff_visibilities.id)
 #
 
-class Operator < OperatorRecord
+class Operator < OrgPrincipalRecord
+  # rubocop:disable Rails/HasManyOrHasOneDependent
   include Retainable
+  include HasBirthdate
 
   # Operator represents an authenticated actor for the org console.
   # It mirrors `User` for identity concerns but is used for org-scoped access.
   self.ignored_columns += ["operator_id", "webauthn_id"]
 
   include ::Identity
+  include Authentication::CredentialInventoryOwner
   include MultiFactorConfigurable
   include MultiFactorStatusTrackable
 
@@ -72,38 +81,65 @@ class Operator < OperatorRecord
              inverse_of: :staffs
   has_many :staff_emails, class_name: "OperatorEmail", dependent: :restrict_with_error,
                           inverse_of: :staff
+  has_many :operator_emails, class_name: "OperatorEmail", foreign_key: :staff_id,
+                             inverse_of: :staff
   has_many :staff_telephones, class_name: "OperatorTelephone", dependent: :restrict_with_error,
                               inverse_of: :staff
+  has_many :operator_telephones, class_name: "OperatorTelephone", foreign_key: :staff_id,
+                                 inverse_of: :staff
   has_many :staff_passkeys, class_name: "OperatorPasskey", dependent: :destroy,
                             inverse_of: :staff
+  has_many :operator_passkeys, class_name: "OperatorPasskey", foreign_key: :staff_id,
+                               inverse_of: :staff
+  # Cross-database (chronicle DB): append-only audit history. No dependent:
+  # cascade — audit records intentionally outlive actor purge and are not
+  # mutated/deleted across the DB boundary. See
+  # adr/chronicle-audit-db-consolidation.md.
   has_many :staff_chronicles,
            -> { where(subject_type: "Operator") },
            class_name: "OperatorChronicle",
            foreign_key: :subject_id,
-           dependent: :nullify,
            inverse_of: false
-  has_many :user_chronicles,
-           as: :actor,
-           dependent: :nullify
+  # Cross-database (chronicle DB), polymorphic audit history. See above.
+  has_many :client_chronicles,
+           as: :actor
   has_many :staff_secrets, class_name: "OperatorSecret", dependent: :destroy,
                            inverse_of: :staff
+  has_many :operator_secrets, class_name: "OperatorSecret", foreign_key: :staff_id,
+                              inverse_of: :staff
   has_many :staff_tokens, class_name: "OperatorToken", dependent: :destroy,
                           inverse_of: :staff
-  has_many :staff_notifications, class_name: "StaffNotification", dependent: :destroy,
-                                 inverse_of: :staff
-  has_many :staff_operators, class_name: "OperatorAccountMembership", dependent: :destroy,
-                             inverse_of: :staff
-  has_many :operator_accounts,
-           class_name: "OperatorAccount",
+  has_many :operator_device_sessions,
+           class_name: "OperatorDeviceSession",
            foreign_key: :staff_id,
-           inverse_of: :operator,
+           dependent: :destroy,
+           inverse_of: :staff
+  has_many :operator_tokens, class_name: "OperatorToken", foreign_key: :staff_id,
+                             inverse_of: :staff
+  has_many :oidc_connections,
+           class_name: "OperatorOidcConnection",
+           foreign_key: :staff_id,
+           dependent: :destroy,
+           inverse_of: :staff
+  # Cross-database (org_signal DB). Purged explicitly via
+  # Retention::CrossDatabaseChildPurge from the operator purge path, not by an
+  # implicit cross-DB AR cascade.
+  has_many :notification_records,
+           class_name: "OperatorNotificationRecord",
+           foreign_key: :staff_id,
+           inverse_of: :operator
+  has_many :staff_operators, class_name: "OperatorWorkspaceAccountMembership",
+                             foreign_key: :staff_id,
+                             dependent: :destroy,
+                             inverse_of: false
+  has_many :operator_workspace_accounts,
+           class_name: "OperatorWorkspaceAccount",
+           foreign_key: :staff_id,
+           inverse_of: false,
            dependent: :destroy
   has_many :staff_bulletins, class_name: "OperatorBulletin", dependent: :destroy, inverse_of: :staff
   has_many :staff_banners, class_name: "OperatorBanner", dependent: :destroy, inverse_of: :staff
-  has_many :staff_org_preferences, class_name: "OperatorOrgPreference", foreign_key: :staff_id,
-                                   dependent: :delete_all,
-                                   inverse_of: :staff
-  has_one :staff_account, class_name: "OperatorPersonnelAccount", dependent: :destroy, inverse_of: :staff
+  has_one :rp_account, class_name: "OperatorAccount", dependent: :destroy, inverse_of: :staff
   has_one :staff_preference, class_name: "OperatorPreference", dependent: :destroy, inverse_of: :staff
 
   validates :public_id,
@@ -147,7 +183,7 @@ class Operator < OperatorRecord
   private
 
   def configured_multi_factor_methods
-    staff_passkeys.active.exists? ? [:passkey] : []
+    step_up_methods
   end
 
   def normalize_public_id

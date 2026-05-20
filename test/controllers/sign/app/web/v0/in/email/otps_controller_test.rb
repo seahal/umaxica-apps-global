@@ -34,9 +34,9 @@ class Sign::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
   end
 
   test "after cooldown returns 200 and logs issued occurrence" do
-    user = users(:one)
+    user = clients(:one)
     email = "ok_#{SecureRandom.hex(4)}@example.com"
-    user.user_emails.create!(address: email, user_email_status_id: UserEmailStatus::VERIFIED)
+    user.client_emails.create!(address: email, user_email_status_id: ClientEmailStatus::VERIFIED)
 
     hmac = Occurrence::Hmac.digest(kind: :email, body: email)
     EmailOccurrence.where(body: hmac).delete_all
@@ -68,10 +68,10 @@ class Sign::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
   end
 
   test "success rotates OTP so only latest code verifies" do
-    user = users(:one)
-    email_record = user.user_emails.create!(
+    user = clients(:one)
+    email_record = user.client_emails.create!(
       address: "rotate_#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     old_private_key = ROTP::Base32.random_base32

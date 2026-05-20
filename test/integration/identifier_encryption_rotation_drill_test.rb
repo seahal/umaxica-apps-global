@@ -20,8 +20,8 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP)
     VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
 
-    @user = users(:one)
-    @staff = staffs(:one)
+    @user = clients(:one)
+    @staff = operators(:one)
     @staff_token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@staff_token)
   end
@@ -43,18 +43,18 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     old_provider = encryption_key_provider(old_primary_key)
     rotation_provider = encryption_key_provider(new_primary_key, old_primary_key)
     ActiveRecord::Encryption.with_encryption_context(key_provider: old_provider) do
-      old_app_email = UserEmail.create!(
+      old_app_email = ClientEmail.create!(
         user: @user,
         raw_address: app_email_address,
         confirm_policy: true,
-        user_email_status_id: UserEmailStatus::VERIFIED,
+        user_email_status_id: ClientEmailStatus::VERIFIED,
       )
-      old_app_telephone = UserTelephone.create!(
+      old_app_telephone = ClientTelephone.create!(
         user: @user,
         raw_number: app_telephone_number,
         confirm_policy: true,
         confirm_using_mfa: true,
-        user_telephone_status_id: UserTelephoneStatus::VERIFIED,
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
       )
       old_staff_email = OperatorEmail.create!(
         staff: @staff,
@@ -81,7 +81,7 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
         assert_operator reencrypt_result.staff_emails_reencrypted, :>=, 1
         assert_operator reencrypt_result.visitor_emails_reencrypted, :>=, 1
 
-        assert_equal old_app_email.id, UserEmail.find_by(address: app_email_address)&.id
+        assert_equal app_email_address, old_app_email.reload.address
         assert_equal app_telephone_number, old_app_telephone.reload.number
         assert_equal staff_email_address, old_staff_email.reload.address
         assert_equal visitor_email_address, old_visitor_email.reload.address
@@ -105,7 +105,7 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
 
     assert_response :found
 
-    email = UserEmail.find_by(address: address)
+    email = ClientEmail.find_by!(address_digest: IdentifierBlindIndex.bidx_for_email(address))
     otp_data = email.get_otp
     code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 

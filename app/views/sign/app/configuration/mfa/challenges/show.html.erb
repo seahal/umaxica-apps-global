@@ -1,0 +1,19 @@
+<%= link_to t("sign.app.configuration.show.back"), sign_app_configuration_path(ri: params[:ri]) %>
+
+<% content_for :page_title, t("sign.app.configuration.mfa.show.title") %>
+
+<h1><%= t("sign.app.configuration.mfa.show.title") %></h1>
+
+<p>
+  <%= link_to t("sign.app.configuration.mfa.show.reset_request"), sign_app_mfa_reset_path(ri: params[:ri]) %>
+</p>
+
+<%= form_with model: @user, scope: :user, url: sign_app_configuration_mfa_challenge_path(ri: params[:ri]), method: :patch do |form| %>
+  <div>
+    <span><%= t("sign.app.configuration.mfa.show.toggle_title") %></span>
+    <span><%= @user.multi_factor_enabled? ? t("sign.app.configuration.mfa.show.enabled") : t("sign.app.configuration.mfa.show.disabled") %></span>
+    <%= form.check_box :multi_factor_id, {}, ClientMultiFactor::FULL, ClientMultiFactor::NOTHING %>
+  </div>
+
+  <%= form.submit t("actions.save") %>
+<% end %>

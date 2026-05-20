@@ -4,8 +4,7 @@
 module Sign
   module App
     module Preference
-      class RegionsController < ApplicationController
-        public_strict!
+      class RegionsController < PreferencesBaseController
         include ::Preference::SignScreenActions
 
         preference_screen :region

@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: visitor_multi_factors
-# Database name: guest
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
-class VisitorMultiFactor < GuestRecord
+class VisitorMultiFactor < ComPrincipalRecord
   include ReferenceRecord
 
   NOTHING = 0

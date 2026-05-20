@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::UpsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses
+  fixtures :operators, :operator_identity_statuses
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -20,8 +20,8 @@ class Sign::Org::UpsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_org_up_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "[data-testid=?]", "registration-method", count: 0
-    assert_select "a[href=?]", "/sign/up/emails/new?ri=jp", count: 0
+    assert_select "[data-test-id=?]", "registration-method", count: 0
+    assert_select "a[href=?]", "/sign/up/email/new?ri=jp", count: 0
     assert_select "form[action*=?]", "/social/auth/google", count: 0
     assert_select "form[action*=?]", "/social/auth/apple", count: 0
   end
@@ -46,22 +46,41 @@ class Sign::Org::UpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "direct app-style email sign up route is not available" do
-    get "/sign/up/emails/new?ri=jp", headers: { "Host" => @host }
+    get "/sign/up/email/new?ri=jp", headers: { "Host" => @host }
 
     assert_response :not_found
   end
 
   test "direct app-style telephone sign up route is not available" do
-    get "/sign/up/telephones/new?ri=jp", headers: { "Host" => @host }
+    get "/sign/up/telephone/new?ri=jp", headers: { "Host" => @host }
 
     assert_response :not_found
   end
 
-  test "redirects to dashboard when logged in" do
-    staff = staffs(:one)
+  test "legacy invitation email sign up routes are not available" do
+    get "/sign/up/invitations/emails/new?ri=jp", headers: { "Host" => @host }
+
+    assert_response :not_found
+
+    post "/sign/up/invitations/emails?ri=jp", headers: { "Host" => @host }
+
+    assert_response :not_found
+
+    get "/sign/up/invitations/emails/invite-code/edit?ri=jp", headers: { "Host" => @host }
+
+    assert_response :not_found
+
+    patch "/sign/up/invitations/emails/invite-code?ri=jp", headers: { "Host" => @host }
+
+    assert_response :not_found
+  end
+
+  test "rejects when logged in" do
+    staff = operators(:one)
 
     get new_sign_org_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_redirected_to sign_org_dashboard_url(ri: "jp")
+    assert_response :unauthorized
+    assert_includes response.body, I18n.t("sign.org.registration.email.already_logged_in")
   end
 end

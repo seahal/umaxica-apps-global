@@ -6,10 +6,10 @@ Completed (2026-05-07).
 
 > **Completion notes (2026-05-07):**
 >
-> - The three-database split (`token`, `symbol`, `mark`) is in place: `TokenRecord`, `SymbolRecord`,
->   and `MarkRecord` each declare their own `connects_to` writer/reader pair, and
->   `db/token_migrate`, `db/symbol_migrate`, `db/mark_migrate` plus the matching `*_schema.rb` files
->   exist under `db/`.
+> - The three-database split (`token`, `symbol`, `mark`) is in place: `OrgTicketRecord`,
+>   `ComTicketRecord`, and `AppTicketRecord` each declare their own `connects_to` writer/reader
+>   pair, and `db/token_migrate`, `db/symbol_migrate`, `db/mark_migrate` plus the matching
+>   `*_schema.rb` files exist under `db/`.
 > - The actual implementation expanded beyond this plan's three-database scope. Today
 >   `config/database.yml` defines 13 database families with their replicas: `token`, `symbol`,
 >   `mark`, `guest`, `principal`, `setting`, `search`, `notification`, `cache`, `queue`, `storage`,
@@ -50,14 +50,14 @@ renames it to `config/database.yaml`.
 ## Model Ownership Rules
 
 - Add three abstract base records:
-  - `TokenRecord`, connected to `token`
-  - `SymbolRecord`, connected to `symbol`
-  - `MarkRecord`, connected to `mark`
+  - `OrgTicketRecord`, connected to `token`
+  - `ComTicketRecord`, connected to `symbol`
+  - `AppTicketRecord`, connected to `mark`
 - Keep `ApplicationRecord` on `token` so unclassified models have a deterministic owner.
 - Move model inheritance by name convention first:
-  - `Token*` models inherit from `TokenRecord`
-  - `Symbol*` models inherit from `SymbolRecord`
-  - `Mark*` models inherit from `MarkRecord`
+  - `Token*` models inherit from `OrgTicketRecord`
+  - `Symbol*` models inherit from `ComTicketRecord`
+  - `Mark*` models inherit from `AppTicketRecord`
 - If a model does not match those prefixes, leave it on `ApplicationRecord` unless a later audit
   identifies a stronger owner.
 

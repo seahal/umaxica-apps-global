@@ -4,18 +4,18 @@
 require "test_helper"
 
 class SecretConcernTest < ActiveSupport::TestCase
-  fixtures :users, :user_statuses
+  fixtures :clients, :client_statuses
 
-  class DummySecret < PrincipalRecord
+  class DummySecret < AppPrincipalRecord
     self.table_name = "user_secrets"
     include PublicId
     include Secret
 
-    belongs_to :user
+    belongs_to :user, class_name: "Client"
     alias_attribute :user_secret_status_id, :user_identity_secret_status_id
 
     def self.identity_secret_status_class
-      UserSecretStatus
+      ClientSecretStatus
     end
 
     def self.identity_secret_status_id_column
@@ -34,27 +34,27 @@ class SecretConcernTest < ActiveSupport::TestCase
   end
 
   setup do
-    @user = User.find_by!(public_id: "one_id")
+    @user = Client.find_by!(public_id: "one_id")
     # Ensure statuses exist
-    UserSecretStatus.find_or_create_by!(id: UserSecretStatus::ACTIVE)
-    UserSecretStatus.find_or_create_by!(id: UserSecretStatus::USED)
-    UserSecretStatus.find_or_create_by!(id: UserSecretStatus::EXPIRED)
-    UserSecretStatus.find_or_create_by!(id: UserSecretStatus::REVOKED)
+    ClientSecretStatus.find_or_create_by!(id: ClientSecretStatus::ACTIVE)
+    ClientSecretStatus.find_or_create_by!(id: ClientSecretStatus::USED)
+    ClientSecretStatus.find_or_create_by!(id: ClientSecretStatus::EXPIRED)
+    ClientSecretStatus.find_or_create_by!(id: ClientSecretStatus::REVOKED)
     # Ensure kinds exist
-    UserSecretKind.find_or_create_by!(id: UserSecretKind::LOGIN)
+    ClientSecretKind.find_or_create_by!(id: ClientSecretKind::LOGIN)
   end
 
   test "issue! creates a new record with raw secret" do
-    record, raw = DummySecret.issue!(name: "Test Secret", user: @user, user_secret_kind_id: UserSecretKind::LOGIN)
+    record, raw = DummySecret.issue!(name: "Test Secret", user: @user, user_secret_kind_id: ClientSecretKind::LOGIN)
 
     assert_instance_of DummySecret, record
     assert_predicate record, :persisted?
     assert_equal 32, raw.length
-    assert_equal UserSecretStatus::ACTIVE, record.user_secret_status_id
+    assert_equal ClientSecretStatus::ACTIVE, record.user_secret_status_id
   end
 
   test "verify_and_consume! returns true on valid secret" do
-    record, raw = DummySecret.issue!(name: "One Time", user: @user, uses: 1, user_secret_kind_id: UserSecretKind::LOGIN)
+    record, raw = DummySecret.issue!(name: "One Time", user: @user, uses: 1, user_secret_kind_id: ClientSecretKind::LOGIN)
 
     assert record.verify_and_consume!(raw)
     assert_predicate record.reload, :used?
@@ -62,27 +62,27 @@ class SecretConcernTest < ActiveSupport::TestCase
   end
 
   test "verify_and_consume! returns false on invalid secret" do
-    record, _raw = DummySecret.issue!(name: "One Time", user: @user, user_secret_kind_id: UserSecretKind::LOGIN)
+    record, _raw = DummySecret.issue!(name: "One Time", user: @user, user_secret_kind_id: ClientSecretKind::LOGIN)
 
     assert_not record.verify_and_consume!("wrong_secret")
     assert_predicate record.reload, :active?
   end
 
   test "verify_and_consume! returns false when not active" do
-    record, raw = DummySecret.issue!(name: "Inactive", user: @user, status: :revoked, user_secret_kind_id: UserSecretKind::LOGIN)
+    record, raw = DummySecret.issue!(name: "Inactive", user: @user, status: :revoked, user_secret_kind_id: ClientSecretKind::LOGIN)
 
     assert_not record.verify_and_consume!(raw)
   end
 
   test "verify_and_consume! returns false when expired" do
-    record, raw = DummySecret.issue!(name: "Expired", user: @user, lapses_at: 1.hour.ago, user_secret_kind_id: UserSecretKind::LOGIN)
+    record, raw = DummySecret.issue!(name: "Expired", user: @user, discarded_at: 1.hour.ago, user_secret_kind_id: ClientSecretKind::LOGIN)
 
     assert_not record.verify_and_consume!(raw)
     assert_predicate record.reload, :expired?
   end
 
   test "verify_and_consume! allows multiple uses" do
-    record, raw = DummySecret.issue!(name: "Multi", user: @user, uses: 2, user_secret_kind_id: UserSecretKind::LOGIN)
+    record, raw = DummySecret.issue!(name: "Multi", user: @user, uses: 2, user_secret_kind_id: ClientSecretKind::LOGIN)
 
     assert record.verify_and_consume!(raw)
     assert_predicate record.reload, :active?
@@ -94,29 +94,29 @@ class SecretConcernTest < ActiveSupport::TestCase
   end
 
   test "status predicates" do
-    record = DummySecret.new(user_secret_status_id: UserSecretStatus::ACTIVE)
+    record = DummySecret.new(user_secret_status_id: ClientSecretStatus::ACTIVE)
 
     assert_predicate record, :active?
-    record.user_secret_status_id = UserSecretStatus::USED
+    record.user_secret_status_id = ClientSecretStatus::USED
 
     assert_predicate record, :used?
-    record.user_secret_status_id = UserSecretStatus::REVOKED
+    record.user_secret_status_id = ClientSecretStatus::REVOKED
 
     assert_predicate record, :revoked?
-    record.user_secret_status_id = UserSecretStatus::EXPIRED
+    record.user_secret_status_id = ClientSecretStatus::EXPIRED
 
     assert_predicate record, :expired?
-    record.user_secret_status_id = UserSecretStatus::DELETED
+    record.user_secret_status_id = ClientSecretStatus::DELETED
 
     assert_predicate record, :deleted?
   end
 
   test "expired_by_time? handles Float::INFINITY" do
-    record = DummySecret.new(lapses_at: Float::INFINITY)
+    record = DummySecret.new(discarded_at: Float::INFINITY)
 
     assert_not record.send(:expired_by_time?, Time.current)
 
-    record.lapses_at = -Float::INFINITY
+    record.discarded_at = -Float::INFINITY
 
     assert_not record.send(:expired_by_time?, Time.current)
   end

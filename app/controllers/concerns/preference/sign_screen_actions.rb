@@ -7,6 +7,8 @@ module Preference::SignScreenActions
 
   class_methods do
     def preference_screen(screen)
+      before_action :ensure_preferences_record if respond_to?(:before_action)
+
       case screen
       when :region then define_region_preference_screen
       when :language then define_language_preference_screen

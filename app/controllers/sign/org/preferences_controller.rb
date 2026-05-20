@@ -3,8 +3,7 @@
 
 module Sign
   module Org
-    class PreferencesController < ApplicationController
-      public_strict!
+    class PreferencesController < PreferencesBaseController
       skip_before_action :set_preferences_cookie, only: :show, raise: false
 
       def show

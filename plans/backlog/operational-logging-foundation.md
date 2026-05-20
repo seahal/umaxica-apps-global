@@ -155,23 +155,26 @@ They should not be collapsed into one undifferentiated stream.
 
 - `plans/archive/gh659-pre-consent-event-allowlist.md`
 
-## 2026-05-07 現状差分と改善として残すこと
+## 2026-05-07 What to leave as current differences and improvements
 
-方針自体は有効だが、現行ツリーでは observability / audit 周辺の実装が進んでいる。
+The policy itself is valid, but in the current tree implementation around observability/audit is
+progressing.
 
-確認済み:
+Confirmed:
 
-- `config/initializers/opentelemetry.rb` が存在する。
-- Chronicle 系 schema / model / test が存在する。
-- `Auth::AuditWriter` が存在する。
-- 一部の WebAuthn / Turnstile 周辺では `Rails.event` が使われている。
+- `config/initializers/opentelemetry.rb` exists.
+- Chronicle-based schema / model / test exists.
+- `Auth::AuditWriter` exists.
+- `Rails.event` is used around some WebAuthn / Turnstile.
 
-この文書は「初期導入計画」ではなく、operational logging の改善方針として残す。
+This document is not intended as an "initial implementation plan" but as a guideline for improving
+operational logging.
 
-残す改善:
+Improvements to leave:
 
-- audit logging / product analytics / operational logging の境界を docs に明記する。
-- 高価値イベント（auth failure、external dependency failure、rate limit、job
-  failure）だけから最小イベントセットを決める。
-- `request_id` / job id / trace id の相関ルールを実装済み logging と照合する。
-- 秘密情報を出さない payload shape をテストまたは lint で固定できるか検討する。
+- Specify the boundaries of audit logging / product analytics / operational logging in the docs.
+- High-value events (auth failure, external dependency failure, rate limit, job) Determine the
+  minimum event set from only failure).
+- Match `request_id` / job id / trace id correlation rule with implemented logging.
+- Consider whether it is possible to fix the payload shape by testing or linting so that it does not
+  reveal confidential information.

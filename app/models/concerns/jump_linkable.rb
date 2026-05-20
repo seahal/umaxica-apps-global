@@ -29,7 +29,7 @@ module JumpLinkable
 
   def available_for?(user:)
     active? &&
-      Time.current < lapses_at &&
+      Time.current < discarded_at &&
       (max_uses.zero? || uses_count < max_uses) &&
       allowed_by_policy?(user: user)
   end
@@ -44,7 +44,7 @@ module JumpLinkable
   end
 
   def revoke!
-    update!(status_id: STATUS_REVOKED, lapses_at: Time.current)
+    update!(status_id: STATUS_REVOKED, discarded_at: Time.current)
   end
 
   private

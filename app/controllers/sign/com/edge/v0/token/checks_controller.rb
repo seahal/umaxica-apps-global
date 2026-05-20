@@ -11,7 +11,7 @@ class Sign::Com::Edge::V0::Token::ChecksController < Sign::Com::ApplicationContr
   def show
     response.set_header("Cache-Control", "no-store")
 
-    authenticated = logged_in?
+    authenticated = logged_in? && current_resource.active?
     issue_dbsc_registration_header_for(current_session) if authenticated
     body =
       if authenticated

@@ -209,7 +209,7 @@ bundle exec rails test
 
 All changes follow existing codebase patterns:
 
-- ✅ Using `GuestRecord` base class
+- ✅ Using `ComPrincipalRecord` base class
 - ✅ Using Argon2 for password hashing
 - ✅ Using ActiveRecord encryption with deterministic mode
 - ✅ Using Minitest for testing

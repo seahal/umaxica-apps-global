@@ -20,7 +20,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
 
   test "returns 503 UNHEALTHY when a database writer connection fails" do
     inject_health_method(:check_databases) do |errors|
-      errors << "Database PrincipalRecord(writing) failed: connection refused"
+      errors << "Database AppPrincipalRecord(writing) failed: connection refused"
     end
 
     get(sign_app_edge_v0_health_url(ri: "jp"))
@@ -33,7 +33,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
 
   test "returns 503 UNHEALTHY when a database reader connection fails" do
     inject_health_method(:check_databases) do |errors|
-      errors << "Database PrincipalRecord(reading) failed: replica unavailable"
+      errors << "Database AppPrincipalRecord(reading) failed: replica unavailable"
     end
 
     get(sign_app_edge_v0_health_url(ri: "jp"))
@@ -60,7 +60,7 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   test "returns 503 UNHEALTHY when multiple dependencies fail" do
     inject_health_method(:check_dependencies) do
       [
-        "Database PrincipalRecord(writing) failed: db down",
+        "Database AppPrincipalRecord(writing) failed: db down",
         "Redis connection failed: Redis down",
       ]
     end
@@ -96,12 +96,12 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   private
 
   def inject_health_method(method_name, &)
-    Sign::App::Edge::V0::HealthController.send(:define_method, method_name, &)
+    Sign::App::Edge::V0::HealthsController.send(:define_method, method_name, &)
   end
 
   def remove_health_method(method_name)
-    Sign::App::Edge::V0::HealthController.send(:remove_method, method_name) if Sign::App::Edge::V0::HealthController.private_method_defined?(
+    Sign::App::Edge::V0::HealthsController.send(:remove_method, method_name) if Sign::App::Edge::V0::HealthsController.private_method_defined?(
       method_name, false,
-    ) || Sign::App::Edge::V0::HealthController.method_defined?(method_name, false)
+    ) || Sign::App::Edge::V0::HealthsController.method_defined?(method_name, false)
   end
 end

@@ -8,20 +8,19 @@ module Sign
       #
       # Routes:
       #   POST   /social/auth/:provider/continue -> #continue (default continue entry point)
-      #   POST   /social/auth/:provider/start    -> #start (compatibility alias)
       #   DELETE /social/auth/:provider       -> #destroy (remove linked identity)
       #
       # The actual OmniAuth callbacks are handled by:
       #   Sign::App::Auth::OmniauthCallbacksController
       class AuthenticationsController < Sign::App::ApplicationController
-        include ::Verification::User
+        include ::Verification::Client
         include SocialAuthConcern
 
         SUPPORTED_PROVIDERS = %w(google_app apple).freeze
 
-        # Public access for continue/start (login intent doesn't require auth)
-        # For link/reauth intents, auth is checked in prepare_social_auth_intent!
-        public_strict! only: %i(continue start)
+        # Public access for continue (login intent doesn't require auth)
+        # For link/step-up intents, auth is checked in prepare_social_auth_intent!
+        public_strict! only: :continue
         auth_required! only: %i(destroy)
         before_action -> { require_step_up!(scope: "social_unlink") }, only: :destroy
 
@@ -31,7 +30,7 @@ module Sign
         #
         # Params:
         #   - provider: "google_app" or "apple"
-        #   - intent: "login", "link", or "reauth" (default: "login")
+        #   - intent: "login", "link", or "step_up" (default: "login")
         #     "login" is the internal continue flow: existing identities sign in,
         #     missing identities create a new account.
         #
@@ -58,6 +57,7 @@ module Sign
             entry: social_auth_entry,
             ri: params[:ri].presence,
           )
+          issue_sign_up_cycle!(provider) if social_auth_entry == "sign_up"
 
           safe_redirect_to(
             omniauth_authorize_path(provider, state: state),
@@ -67,12 +67,6 @@ module Sign
           handle_social_auth_error(e)
         end
 
-        # POST /social/auth/:provider/start
-        # Compatibility alias for older templates and tests.
-        def start
-          continue
-        end
-
         # DELETE /social/auth/:provider
         # Removes a linked social identity from current user.
         def destroy
@@ -80,7 +74,7 @@ module Sign
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
 
           ActiveRecord::Base.connected_to(role: :writing) do
-            SocialAuthService.unlink(provider: provider, user: current_resource)
+            SocialAuthService.unlink(provider: provider, client: current_resource)
           end
 
           redirect_to(
@@ -97,7 +91,7 @@ module Sign
         private
 
         def social_auth_entry
-          return "sign_up" if params.expect(:entry).to_s == "sign_up"
+          return "sign_up" if request.parameters["entry"].to_s == "sign_up"
 
           referer_path = URI.parse(request.referer.to_s).path
           return "sign_up" if referer_path == new_sign_app_up_path
@@ -105,6 +99,52 @@ module Sign
           "sign_in"
         rescue URI::InvalidURIError
           "sign_in"
+        end
+
+        def issue_sign_up_cycle!(provider)
+          cycle =
+            AppTicketRecord.connected_to(role: :writing) do
+              ClientSignUpCycleStatus.ensure_defaults!
+              ClientSignUpCycle.create!(
+                principal_id: nil,
+                status_id: ClientSignUpCycleStatus::STARTED,
+                step: "start",
+                nonce_digest: ClientSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+                issued_at: Time.current,
+                expires_at: ClientSignUpCycle.default_ttl.from_now,
+                entry_method: social_entry_method(provider),
+                social_provider: social_entry_method(provider),
+                return_to: safe_decoded_rt(redirect_parameter_value),
+              )
+            end
+          result =
+            AppTicketRecord.connected_to(role: :writing) do
+              SignUp::StateMachine.call(
+                ticket: cycle,
+                event: :start_social_callback,
+                actor_context: Actor.authentication,
+              )
+            end
+          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
+
+          sign_up_cycle_locator.issue!(cycle)
+          session[:sign_app_up_sequence_id] = cycle.public_id
+        end
+
+        def social_entry_method(provider)
+          SocialIdentifiable.normalize_provider(provider)
+        end
+
+        def safe_decoded_rt(encoded_url)
+          return if encoded_url.blank?
+
+          safe_internal_path(Base64.urlsafe_decode64(encoded_url))
+        rescue ArgumentError, URI::InvalidURIError
+          nil
+        end
+
+        def sign_up_cycle_locator
+          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpCycle)
         end
       end
     end

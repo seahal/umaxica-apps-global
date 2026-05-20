@@ -176,7 +176,7 @@ is to land the design into the single-app layout.
 #### A3. OIDC authn hardening implementation decisions
 
 - **Source:** `adr/oidc-authn-hardening-implementation-decisions.md`,
-  `adr/notes/oidc-authn-hardening-handoff.md`, `adr/notes/oidc-callback-integration-tests.md`
+  `notes/oidc-authn-hardening-handoff.md`, `notes/oidc-callback-integration-tests.md`
 - **Goal:** Land the OIDC hardening decisions: PKCE S256 enforcement, `redirect_uri` exact-match,
   nonce / `auth_time` / `acr` / `amr` / `sid` / `subject_type` claim handling.
 - **Key surface:** Authorize endpoint, token endpoint, ID token builder, claim assemblers, callback
@@ -188,8 +188,8 @@ is to land the design into the single-app layout.
 
 #### A4. OIDC claims model
 
-- **Source:** `adr/oidc-claims-decision.md`, `adr/notes/oidc-claims-model.md`,
-  `adr/notes/oidc-session-model.md`
+- **Source:** `adr/oidc-claims-decision.md`, `notes/oidc-claims-model.md`,
+  `notes/oidc-session-model.md`
 - **Goal:** Lock in the claims model (subject_type, sid, sub, scoped claims) and the session model
   that backs it.
 - **Key surface:** Claim assembler service, session model, ID-token JWT builder.
@@ -199,7 +199,7 @@ is to land the design into the single-app layout.
 
 #### A5. OAuth 2.1 compliance gap items
 
-- **Source:** `adr/notes/oauth2-1-compliance-gap.md`
+- **Source:** `notes/oauth2-1-compliance-gap.md`
 - **Goal:** Close the residual OAuth 2.1 gaps listed in the note (PKCE required for confidential
   clients too, removal of implicit flow remnants, redirect_uri exact match, no plaintext code
   challenge, etc.).
@@ -210,7 +210,7 @@ is to land the design into the single-app layout.
 
 #### A6. Token endpoint CSRF / hardening (gh611)
 
-- **Source:** `adr/notes/gh611-harden-token-endpoints-csrf.md`
+- **Source:** `notes/gh611-harden-token-endpoints-csrf.md`
 - **Goal:** Ensure token endpoints have correct CSRF posture (none for `application/json` token
   endpoints invoked by clients; CSRF on browser-driven endpoints), and the hardening described in
   the note (rate limit, locked client auth, etc.).
@@ -221,7 +221,7 @@ is to land the design into the single-app layout.
 
 #### A7. Self-service session revoke (gh634)
 
-- **Source:** `adr/notes/gh634-self-service-revoke-sessions.md`
+- **Source:** `notes/gh634-self-service-revoke-sessions.md`
 - **Goal:** A signed-in user can list their active sessions and revoke any of them (including
   current). Revocation must invalidate refresh tokens and any cached AAL.
 - **Key surface:** A "sessions" view under the account/security area; the session model; session
@@ -363,7 +363,7 @@ several touch tables that auth code reads.
 
 #### E1. Contact::ActorContext shared contract
 
-- **Source:** `adr/notes/contact-auth-shared-contract.md`, `adr/notes/contact-auth-integration.md`
+- **Source:** `notes/contact-auth-shared-contract.md`, `notes/contact-auth-integration.md`
 - **Goal:** A small typed value object representing the authenticated subject as far as Contact
   needs it. Used by Contact services instead of reaching into Auth internals.
 - **Key surface:** New value object; refactor of Contact services to consume it; the auth side
@@ -373,7 +373,7 @@ several touch tables that auth code reads.
 
 #### E2. Contact / auth customer canonicalization
 
-- **Source:** `adr/notes/contact-auth-customer-canonicalization.md`
+- **Source:** `notes/contact-auth-customer-canonicalization.md`
 - **Goal:** Canonicalize how a Contact resolves to a customer / actor record so duplicate paths
   collapse.
 - **Key surface:** Contact resolver service; the controller actions that take user-supplied contact
@@ -405,7 +405,7 @@ several touch tables that auth code reads.
 
 #### F3. i18n inline `default:` literal ban
 
-- **Source:** `adr/notes/i18n-inline-default-literal-rule.md`
+- **Source:** `notes/i18n-inline-default-literal-rule.md`
 - **Goal:** Forbid inline `default:` literal strings on `t(...)` / `I18n.t` calls. Enforce via lint
   rule (custom rubocop cop or equivalent) so missing keys surface in the locale files instead of
   hiding behind defaults.
@@ -444,7 +444,7 @@ several touch tables that auth code reads.
 
 #### G1. Remove `any_instance.stub`
 
-- **Source:** `adr/notes/any-instance-stub-removal.md`
+- **Source:** `notes/any-instance-stub-removal.md`
 - **Goal:** Eliminate `any_instance.stub` (and `Mocha`-style `any_instance` patterns) in favor of
   dependency injection or real fixtures. Keeps test brittleness low and forces honest seams.
 - **Key surface:** `test/` tree-wide. Refactor test setup and the production code seams the tests
@@ -453,7 +453,7 @@ several touch tables that auth code reads.
 
 #### G2. OIDC callback integration tests
 
-- **Source:** `adr/notes/oidc-callback-integration-tests.md`
+- **Source:** `notes/oidc-callback-integration-tests.md`
 - **Goal:** Add the integration test set the note specifies (PKCE positive, PKCE-missing,
   redirect_uri mismatch, replayed code, expired code, AAL acceptance, claim assembly).
 - **Key surface:** `test/integration/oidc/...`.
@@ -468,14 +468,14 @@ any that the audit attributes to engine layout — those are mooted by the repo 
 
 #### H1. `TRUSTED_ORIGINS` for `localhost` (audit Critical)
 
-- **Source:** `adr/audit/audit-findings-2026-03-30.md`, `adr/notes/env-trusted-origins.md`
+- **Source:** `adr/audit/audit-findings-2026-03-30.md`, `notes/env-trusted-origins.md`
 - **Goal:** Dev / test must populate `TRUSTED_ORIGINS` correctly for the new `id.*` and `www.*`
   hosts, and `localhost` is allow-listed only in dev.
 - **Key surface:** Environment loading, `config/initializers/...` that configures `TRUSTED_ORIGINS`,
   dev fixtures, CI env.
 - **Verification:** WebAuthn registration / authentication ceremonies succeed in dev against the new
   hostnames; production rejects an unknown origin.
-- **Adaptation notes:** The note `adr/notes/env-trusted-origins.md` may still describe the 4-engine
+- **Adaptation notes:** The note `notes/env-trusted-origins.md` may still describe the 4-engine
   layout. Re-shape for one app, two hosts (`id.*`, `www.*`).
 
 #### H2. Contact IDOR fix (audit High)
@@ -521,9 +521,9 @@ any that the audit attributes to engine layout — those are mooted by the repo 
 - Regional surfaces (docs, news, help). They are in the other repo.
 - `news-is-timeline.md`, `regional-docs-news-content-model.md`,
   `regional-help-surface-direction.md`. Out-of-scope for this repo.
-- Engine extraction notes (`adr/notes/engine-extraction-phase-1-skeleton.md`,
-  `adr/notes/engine-extraction-prep-phase-4-and-6.md`). Obsolete.
-- `adr/notes/gh661-activity-behavior-db-role-separation-cancelled.md`. Cancelled by its own banner.
+- Engine extraction notes (`notes/engine-extraction-phase-1-skeleton.md`,
+  `notes/engine-extraction-prep-phase-4-and-6.md`). Obsolete.
+- `notes/gh661-activity-behavior-db-role-separation-cancelled.md`. Cancelled by its own banner.
 
 ---
 

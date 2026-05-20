@@ -6,14 +6,14 @@ require "test_helper"
 class Dbsc::RecordAdapterTest < ActiveSupport::TestCase
   test "binding_method_attribute delegates to model metadata" do
     assert_equal :binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(AppPreference.new)
-    assert_equal :user_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(UserToken.new)
+    assert_equal :user_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(ClientToken.new)
     assert_equal :staff_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(OperatorToken.new)
     assert_equal :visitor_token_binding_method_id, Dbsc::RecordAdapter.binding_method_attribute(VisitorToken.new)
   end
 
   test "dbsc_status_attribute delegates to model metadata" do
     assert_equal :dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(AppPreference.new)
-    assert_equal :user_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(UserToken.new)
+    assert_equal :user_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(ClientToken.new)
     assert_equal :staff_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(OperatorToken.new)
     assert_equal :visitor_token_dbsc_status_id, Dbsc::RecordAdapter.dbsc_status_attribute(VisitorToken.new)
   end
@@ -42,12 +42,12 @@ class Dbsc::RecordAdapterTest < ActiveSupport::TestCase
     assert_equal ComPreferenceBindingMethod, result
   end
 
-  test "binding_method_class returns UserTokenBindingMethod" do
-    record = UserToken.new
+  test "binding_method_class returns ClientTokenBindingMethod" do
+    record = ClientToken.new
 
     result = Dbsc::RecordAdapter.binding_method_class(record)
 
-    assert_equal UserTokenBindingMethod, result
+    assert_equal ClientTokenBindingMethod, result
   end
 
   test "binding_method_class returns OperatorTokenBindingMethod" do

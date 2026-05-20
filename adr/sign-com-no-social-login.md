@@ -7,7 +7,7 @@
 The IdP runs three host scopes: `:app` (`id.umaxica.app`, service users), `:com` (`id.umaxica.com`,
 corporate customers), and `:org` (`id.umaxica.org`, staff). Social login (Google, Apple) is offered
 on `:app` and `:org` but is not in scope for `:com`. The corporate flow uses email + passkey +
-telephone + recovery secrets only.
+telephone + passcodes only.
 
 Two specific implementation realities created drift from this intent:
 

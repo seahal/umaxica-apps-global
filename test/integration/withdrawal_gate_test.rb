@@ -4,29 +4,30 @@
 require "test_helper"
 
 class WithdrawalGateTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_token_kinds, :user_token_statuses
+  fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
 
-    @deactivated_user = users(:one)
+    @deactivated_user = clients(:one)
     @deactivated_user.update!(
       withdrawal_started_at: 1.day.ago,
       deactivated_at: Time.current,
-      lapses_at: Time.current,
-      purge_at: 31.days.from_now,
+      discarded_at: Time.current,
+      purged_at: 31.days.from_now,
     )
-    UserToken.where(user: @deactivated_user).delete_all
+    ClientToken.where(user: @deactivated_user).delete_all
 
-    @token = UserToken.create!(
+    @token = ClientToken.create!(
       user: @deactivated_user,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       public_id: "deactivated_#{SecureRandom.hex(4)}",
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
     )
     satisfy_user_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
 
     @headers = {
       "X-TEST-CURRENT-USER" => @deactivated_user.id.to_s,
@@ -61,15 +62,15 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   end
 
   test "normal user can access pages without withdrawal gate" do
-    normal_user = users(:two)
-    normal_user.update!(status_id: UserStatus::NOTHING)
+    normal_user = clients(:two)
+    normal_user.update!(status_id: ClientStatus::NOTHING)
 
-    normal_token = UserToken.create!(
+    normal_token = ClientToken.create!(
       user: normal_user,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       public_id: "normal_#{SecureRandom.hex(4)}",
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
     )
     satisfy_user_verification(normal_token)
 

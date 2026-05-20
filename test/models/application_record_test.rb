@@ -4,13 +4,13 @@
 require "test_helper"
 
 class ApplicationRecordTest < ActiveSupport::TestCase
-  class ApplicationRecordTestModel < OperatorRecord
-    # This model inherits from OperatorRecord, which inherits from ApplicationRecord
+  class ApplicationRecordTestModel < OrgPrincipalRecord
+    # This model inherits from OrgPrincipalRecord, which inherits from ApplicationRecord
   end
 
   def setup
     super
-    @connection = OperatorRecord.connection
+    @connection = OrgPrincipalRecord.connection
     @connection.create_table(:application_record_test_models, force: true) do |t|
       t.timestamps
     end

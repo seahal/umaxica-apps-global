@@ -4,15 +4,15 @@
 require "test_helper"
 
 class Sign::Org::VerificationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_tokens, :staff_passkeys
+  fixtures :operators, :operator_tokens, :operator_passkeys
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @headers = as_staff_headers(@staff, host: @host)
-    @token = staff_tokens(:one)
+    @token = operator_tokens(:one)
     @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
-    @passkey = staff_passkeys(:one)
+    @passkey = operator_passkeys(:one)
   end
 
   test "should get show" do

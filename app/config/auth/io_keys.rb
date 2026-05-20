@@ -25,12 +25,6 @@ module Auth
       DBSC_SESSION_ID = "Sec-Session-Id"
       DBSC_RESPONSE = "Sec-Session-Response"
       STRICT_DEVICE_CHECK = "X-STRICT-DEVICE-CHECK"
-      TEST_BULLETIN = "X-TEST-BULLETIN"
-      TEST_CURRENT_RESOURCE = "X-TEST-CURRENT-RESOURCE"
-      TEST_CURRENT_USER = "X-TEST-CURRENT-USER"
-      TEST_CURRENT_STAFF = "X-TEST-CURRENT-STAFF"
-      TEST_CURRENT_VIEWER = "X-TEST-CURRENT-VIEWER"
-      TEST_SESSION_PUBLIC_ID = "X-TEST-SESSION-PUBLIC-ID"
 
       public_constant :AUTHORIZATION
       public_constant :DEVICE_ID
@@ -39,12 +33,6 @@ module Auth
       public_constant :DBSC_SESSION_ID
       public_constant :DBSC_RESPONSE
       public_constant :STRICT_DEVICE_CHECK
-      public_constant :TEST_BULLETIN
-      public_constant :TEST_CURRENT_RESOURCE
-      public_constant :TEST_CURRENT_USER
-      public_constant :TEST_CURRENT_STAFF
-      public_constant :TEST_CURRENT_VIEWER
-      public_constant :TEST_SESSION_PUBLIC_ID
     end
 
     module Params

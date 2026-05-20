@@ -1,0 +1,25 @@
+# == Schema Information
+#
+# Table name: staff_token_dbsc_statuses
+# Database name: org_ticket
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorTokenDbscStatus
+
+# Table name: staff_token_dbsc_statuses
+# Database name: org_ticket
+#
+#  id :bigint           not null, primary key
+#
+NOTHING:
+  id: 0
+PENDING:
+  id: 1
+ACTIVE:
+  id: 2
+FAILED:
+  id: 3
+REVOKE:
+  id: 4

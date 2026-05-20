@@ -4,8 +4,7 @@
 module Sign
   module App
     module Preference
-      class CookiesController < ApplicationController
-        public_strict!
+      class CookiesController < PreferencesBaseController
         include ::Preference::SignScreenActions
 
         preference_screen :cookie

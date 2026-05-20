@@ -5,7 +5,7 @@ module Sign
   module App
     module In
       module Challenge
-        class TotpsController < ApplicationController
+        class TotpsController < Sign::App::In::GuestController
           include SessionLimitGate
           include ::CloudflareTurnstile
 
@@ -21,7 +21,6 @@ module Sign
             end
           end
 
-          before_action :reject_logged_in_session
           before_action :ensure_pending_mfa!
 
           def new
@@ -67,8 +66,8 @@ module Sign
           end
 
           def verify_totp_for(user, token)
-            user.user_one_time_passwords
-              .where(user_identity_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE)
+            user.client_one_time_passwords
+              .where(user_identity_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
               .order(created_at: :desc)
               .each do |totp|
               last_otp_at = ROTP::TOTP.new(totp.private_key).verify(token.to_s)

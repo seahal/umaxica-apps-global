@@ -4,14 +4,17 @@
 # == Schema Information
 #
 # Table name: visitor_secret_kinds
-# Database name: guest
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
-class VisitorSecretKind < GuestRecord
+class VisitorSecretKind < ComPrincipalRecord
+  include ReferenceRecord
+
   LOGIN = 1
   RECOVERY = 3
   API = 4
+  DEFAULTS = [LOGIN, RECOVERY, API].freeze
   PERMANENT = LOGIN
   ONE_TIME = RECOVERY
   ALLOWED_FOR_SECRET_SIGN_IN = [PERMANENT, ONE_TIME].freeze

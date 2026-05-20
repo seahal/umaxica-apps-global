@@ -4,13 +4,13 @@
 module Sign
   module App
     module Preference
-      class EmailsController < ApplicationController
+      class EmailsController < Sign::App::BareController
         include Sign::PromotionalEmailUnsubscribeActions
 
         private
 
         def promotional_email_model
-          UserEmail
+          ClientEmail
         end
 
         def promotional_email_scope

@@ -45,6 +45,14 @@ Controllers MUST NOT:
 - Policies: authorization
 - Concerns: cross-cutting behavior
 
+## Working Notes
+
+- Use `notes/implementation/` for implementation decisions, plan deviations, compromises, and
+  handoff context discovered while carrying out a plan.
+- Use `memo/` for exploratory notes, rough analysis, and provisional observations that do not affect
+  implementation.
+- Keep notes and memo content out of stable docs, plans, and ADRs until it is ready to be promoted.
+
 ---
 
 ## Non-Negotiable Rules

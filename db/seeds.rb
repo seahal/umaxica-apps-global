@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 return if Rails.env.production?
@@ -17,13 +18,21 @@ end
 ensure_reference_rows(UserVisibility, UserVisibility::DEFAULTS)
 ensure_reference_rows(UserStatus, UserStatus::DEFAULTS)
 ensure_reference_rows(UserMultiFactor, UserMultiFactor::DEFAULTS)
+ensure_reference_rows(UserMultiFactorStatus, UserMultiFactorStatus::DEFAULTS)
 ensure_reference_rows(UserEmailStatus, UserEmailStatus::DEFAULTS)
+ensure_reference_rows(UserTelephoneStatus, UserTelephoneStatus::DEFAULTS)
 ensure_reference_rows(UserOneTimePasswordStatus, UserOneTimePasswordStatus::DEFAULTS)
 ensure_reference_rows(UserSecretStatus, [UserSecretStatus::ACTIVE, UserSecretStatus::USED])
 ensure_reference_rows(UserSecretKind, [UserSecretKind::PERMANENT])
+ensure_reference_rows(VisitorStatus, VisitorStatus::DEFAULTS)
+ensure_reference_rows(VisitorVisibility, VisitorVisibility::DEFAULTS)
+ensure_reference_rows(VisitorMultiFactor, VisitorMultiFactor::DEFAULTS)
+ensure_reference_rows(VisitorMultiFactorStatus, VisitorMultiFactorStatus::DEFAULTS)
 
 ensure_reference_rows(OperatorVisibility, [OperatorVisibility::STAFF])
 ensure_reference_rows(StaffStatus, [StaffStatus::ACTIVE])
+ensure_reference_rows(OperatorMultiFactor, OperatorMultiFactor::DEFAULTS)
+ensure_reference_rows(OperatorMultiFactorStatus, OperatorMultiFactorStatus::DEFAULTS)
 ensure_reference_rows(StaffEmailStatus, [StaffEmailStatus::VERIFIED])
 ensure_reference_rows(
   StaffSecretStatus,
@@ -36,13 +45,22 @@ ensure_reference_rows(StaffSecretKind, [StaffSecretKind::PERMANENT])
 UserVisibility.ensure_defaults!
 UserStatus.ensure_defaults!
 UserMultiFactor.ensure_defaults!
+UserMultiFactorStatus.ensure_defaults!
 UserEmailStatus.ensure_defaults!
+UserTelephoneStatus.ensure_defaults!
 UserOneTimePasswordStatus.ensure_defaults!
 UserSecretStatus.ensure_defaults!
 UserSecretKind.ensure_defaults!
 
+VisitorStatus.ensure_defaults!
+VisitorVisibility.ensure_defaults!
+VisitorMultiFactor.ensure_defaults!
+VisitorMultiFactorStatus.ensure_defaults!
+
 OperatorVisibility.ensure_defaults!
 StaffStatus.ensure_defaults!
+OperatorMultiFactor.ensure_defaults!
+OperatorMultiFactorStatus.ensure_defaults!
 StaffEmailStatus.ensure_defaults!
 StaffSecretStatus.ensure_defaults!
 StaffSecretKind.ensure_defaults!

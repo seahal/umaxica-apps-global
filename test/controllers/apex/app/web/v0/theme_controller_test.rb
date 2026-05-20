@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/preference_jwt_helper"
 
 class Apex::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
@@ -77,7 +76,7 @@ class Apex::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     cookies[Preference::CookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
-      patch apex_app_web_v0_theme_path, params: { ct: "li" }, as: :json
+      patch apex_app_web_v0_theme_path(ct: "li"), as: :json
     end
 
     assert_response :ok

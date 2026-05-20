@@ -4,10 +4,8 @@
 module Sign
   module Org
     module Configuration
-      class GooglesController < ApplicationController
+      class GooglesController < PrivateController
         include SocialAuthConcern
-
-        auth_required!
 
         before_action :authenticate_operator!
 

@@ -34,6 +34,7 @@ module Sign
 
       case result[:status]
       when :rotated
+        touch_oidc_connection!(result[:token])
         { token: result[:token],
           refresh_token: result[:refresh_token],
           previous_token: result[:previous_token], }
@@ -47,28 +48,34 @@ module Sign
 
     private
 
+    def touch_oidc_connection!(token)
+      return unless token.respond_to?(:oidc_connection)
+
+      token.oidc_connection&.update!(last_used_at: Time.current)
+    end
+
     def parse_refresh_token!
-      parsed = UserToken.parse_refresh_token(@refresh_token)
+      parsed = ClientToken.parse_refresh_token(@refresh_token)
       raise InvalidRefreshToken, "invalid_format" unless parsed
 
       parsed
     end
 
     def find_token(public_id)
-      UserToken.find_by(public_id: public_id) ||
+      ClientToken.find_by(public_id: public_id) ||
         OperatorToken.find_by(public_id: public_id) ||
         VisitorToken.find_by(public_id: public_id)
     end
 
     # When reuse is observed (a valid token that no longer matches the
-    # stored digest), we treat the event as a compromise and revoke all
-    # tokens belonging to the same actor. This is logged
-    # without the raw refresh verifier to avoid exposing secrets.
+    # stored digest), we treat the event as a family compromise and revoke
+    # every token in the same refresh token family. This is logged without
+    # the raw refresh verifier to avoid exposing secrets.
     def handle_refresh_token_reuse(token)
-      actor_scope = actor_tokens_scope(token)
+      family_scope = refresh_token_family_scope(token)
       now = Time.current
-      actor_scope.find_each do |actor|
-        attrs = { lapses_at: now }
+      family_scope.find_each do |actor|
+        attrs = { discarded_at: now }
         actor.update!(attrs)
       end
 
@@ -88,11 +95,11 @@ module Sign
       )
     end
 
-    def actor_tokens_scope(token)
-      column = actor_identifier_column(token)
-      return token.class.where(id: token.id) unless column
+    def refresh_token_family_scope(token)
+      family_id = token.refresh_token_family_id.to_s
+      return token.class.where(id: token.id) if family_id.blank?
 
-      token.class.where(column => token.public_send(column))
+      token.class.where(refresh_token_family_id: family_id)
     end
 
     def actor_identifier_column(token)

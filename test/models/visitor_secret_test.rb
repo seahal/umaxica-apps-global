@@ -4,14 +4,14 @@
 # == Schema Information
 #
 # Table name: visitor_secrets
-# Database name: guest
+# Database name: com_principal
 #
 #  id                       :bigint           not null, primary key
-#  lapses_at                :datetime         default(Infinity), not null
+#  discarded_at             :datetime         default(Infinity), not null
 #  last_used_at             :datetime
 #  name                     :string           default(""), not null
 #  password_digest          :string           default(""), not null
-#  purge_at                 :datetime         default(Infinity), not null
+#  purged_at                :datetime         default(Infinity), not null
 #  uses_remaining           :integer          default(1), not null
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
@@ -45,7 +45,7 @@ class VisitorSecretTest < ActiveSupport::TestCase
       name: "My Secret",
       visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
       visitor_secret_kind_id: VisitorSecretKind::LOGIN,
-      lapses_at: 1.year.from_now,
+      discarded_at: 1.year.from_now,
       uses_remaining: 1,
     }.freeze
   end
@@ -65,8 +65,10 @@ class VisitorSecretTest < ActiveSupport::TestCase
   end
 
   test "enforces secret limit" do
-    10.times do |i|
-      VisitorSecret.issue!(name: "Secret #{i}", visitor: @visitor)
+    Prosopite.pause do
+      10.times do |i|
+        VisitorSecret.issue!(name: "Secret #{i}", visitor: @visitor)
+      end
     end
 
     extra = VisitorSecret.new(@valid_params.merge(name: "Extra"))
@@ -129,7 +131,7 @@ class VisitorSecretTest < ActiveSupport::TestCase
   end
 
   test "expired_for_secret_sign_in?" do
-    secret, _ = VisitorSecret.issue!(name: "Expired", visitor: @visitor, lapses_at: 1.second.ago)
+    secret, _ = VisitorSecret.issue!(name: "Expired", visitor: @visitor, discarded_at: 1.second.ago)
 
     assert_not secret.usable_for_secret_sign_in?
   end
@@ -179,7 +181,7 @@ class VisitorSecretTest < ActiveSupport::TestCase
       visitor: @visitor,
       visitor_secret_kind_id: VisitorSecretKind::API,
     )
-    expired, expired_raw = VisitorSecret.issue!(name: "Expired Secret", visitor: @visitor, lapses_at: 1.second.ago)
+    expired, expired_raw = VisitorSecret.issue!(name: "Expired Secret", visitor: @visitor, discarded_at: 1.second.ago)
     exhausted, exhausted_raw = VisitorSecret.issue!(
       name: "Exhausted",
       visitor: @visitor,

@@ -18,8 +18,8 @@ redirect_to(start_sign_org_social_authentication_path(provider: "google_org", ri
 
 The browser follows the 302 with a GET, but the route at `config/routes/sign.rb:382` is
 `post :start, on: :member`. The result is `ActionController::RoutingError`, which the user described
-as "nil となっている". The previous helper `new_sign_org_social_session_path` was removed in commits
-`df95e1c8b` / `5716a1e2c`. The same anti-pattern likely exists for the `app` surface.
+as "nil". The previous helper `new_sign_org_social_session_path` was removed in commits `df95e1c8b`
+/ `5716a1e2c`. The same anti-pattern likely exists for the `app` surface.
 
 **Outcome:** clicking the staff Google button reliably initiates OmniAuth with valid CSRF/state in
 session, completes the round-trip, and returns the user to `sign_org_configuration_path` with a

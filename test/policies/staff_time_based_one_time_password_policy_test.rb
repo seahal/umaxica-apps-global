@@ -4,6 +4,8 @@
 require "test_helper"
 
 class OperatorTimeBasedOneTimePasswordPolicyTest < ActiveSupport::TestCase
+  fixtures_none!
+
   def setup
     @user = nil
     @record = nil

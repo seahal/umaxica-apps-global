@@ -5,9 +5,7 @@ module Sign
   module Org
     module Configuration
       module Telephones
-        class RegistrationsController < ::Sign::Org::ApplicationController
-          auth_required!
-
+        class RegistrationsController < ::Sign::Org::PrivateController
           include CloudflareTurnstile
           include Sign::OperatorTelephoneRegistrable
           include ::Verification::Operator
@@ -39,7 +37,7 @@ module Sign
               return
             end
 
-            tel_params = params.expect(staff_telephone: [:raw_number, :number])
+            tel_params = params(staff_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
 
             unless initiate_staff_telephone_verification(current_operator, number)
@@ -85,6 +83,12 @@ module Sign
                 staff_telephone.save!
               end
 
+            handle_registration_update_result(result)
+          end
+
+          private
+
+          def handle_registration_update_result(result)
             case result
             when :success
               reset_registration_session!
@@ -108,8 +112,6 @@ module Sign
               render :edit, status: :unprocessable_content
             end
           end
-
-          private
 
           def current_registration_telephone
             current_operator.staff_telephones.find_by(id: session[registration_session_key])

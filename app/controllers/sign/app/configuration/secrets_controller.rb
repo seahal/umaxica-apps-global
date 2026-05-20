@@ -4,12 +4,10 @@
 module Sign
   module App
     module Configuration
-      class SecretsController < ApplicationController
-        auth_required!
+      class SecretsController < PrivateController
+        include ::Verification::Client
 
-        include ::Verification::User
-
-        before_action :authenticate_user!
+        before_action :authenticate_client!
         before_action only: %i(new create) do
           require_step_up!(scope: verification_scope)
         end
@@ -17,15 +15,15 @@ module Sign
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
 
         def index
-          @secrets = current_user.user_secrets.order(created_at: :desc)
+          @secrets = current_client.client_secrets.order(created_at: :desc)
         end
 
         def show
         end
 
         def new
-          @secret = current_user.user_secrets.new
-          @raw_secret = UserSecret.generate_raw_secret
+          @secret = current_client.client_secrets.new
+          @raw_secret = ClientSecret.generate_raw_secret
           session[:user_secret_raw] = @raw_secret
           @secret.name = @raw_secret.first(4)
         end
@@ -35,9 +33,9 @@ module Sign
 
         def create
           raw_secret = session.delete(:user_secret_raw)
-          UserSecrets::Create.call(
-            actor: current_user,
-            user: current_user,
+          ClientSecrets::Create.call(
+            actor: current_client,
+            user: current_client,
             params: secret_params,
             raw_secret: raw_secret,
           )
@@ -50,12 +48,12 @@ module Sign
         end
 
         def destroy
-          if AuthMethodGuard.last_method?(current_user, excluding: @secret)
+          if AuthMethodGuard.last_method?(current_client, excluding: @secret)
             flash[:alert] = t(".last_method")
             return redirect_to(sign_app_configuration_secrets_path)
           end
 
-          UserSecrets::Destroy.call(actor: current_user, secret: @secret)
+          ClientSecrets::Destroy.call(actor: current_client, secret: @secret)
           flash[:notice] = t(".destroyed")
           redirect_to(sign_app_configuration_secrets_path, status: :see_other)
         end
@@ -72,7 +70,7 @@ module Sign
         private
 
         def set_secret
-          @secret = current_user.user_secrets.find_by!(public_id: params.expect(:id))
+          @secret = current_client.client_secrets.find_by!(public_id: params(:id))
         end
 
         def secret_params
@@ -80,9 +78,9 @@ module Sign
         end
 
         def ensure_verified_recovery_identity_for_registration!
-          return if current_user.has_verified_recovery_identity?
+          return if current_client.has_verified_recovery_identity?
 
-          render plain: User::RECOVERY_IDENTITY_REQUIRED_MESSAGE, status: :forbidden
+          render plain: Client::RECOVERY_IDENTITY_REQUIRED_MESSAGE, status: :forbidden
         end
 
         def record_secret_registration_step_up!

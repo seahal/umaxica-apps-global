@@ -435,22 +435,24 @@ The first version should prefer:
 
 Detailed tamper resistance can be added later.
 
-## 2026-05-07 現状差分と改善として残すこと
+## 2026-05-07 What to leave as current differences and improvements
 
-この文書の設計方針は有効だが、backlog の個別実装計画というより docs / ADR 向き。
+The design principles in this document are valid, but are more suited to docs / ADR than to
+individual backlog implementation plans.
 
-確認済み:
+Confirmed:
 
-- Chronicle DB / schema が存在する。
-- `Auth::AuditWriter` が存在する。
-- OpenTelemetry initializer が存在する。
+- Chronicle DB/schema exists.
+- `Auth::AuditWriter` exists.
+- OpenTelemetry initializer exists.
 
-この文書は、audit write point と OTEL の分離方針を残す改善メモとして扱う。
+This document is treated as an improvement memo that describes the separation policy between audit
+write point and OTEL.
 
-残す改善:
+Improvements to leave:
 
-- 既存 audit write point を棚卸しし、controller / service / model
-  callback のどこで書いているか一覧化する。
-- business outcome が確定する場所で audit を書く、というルールを docs / ADR に昇格する。
-- OTEL event name と audit event id を無理に統一しない方針を維持する。
-- `request_id` と、必要になった場合の `trace_id` 連携だけを共通 correlation として扱う。
+- Inventory the existing audit write points and check the controller / service / model List where
+  callback is written.
+- Promote the rule to write audits where the business outcome is established to docs / ADR.
+- OTEL Maintain a policy of not forcing event name and audit event id to be unified.
+- Only `request_id` and, if necessary, `trace_id` are treated as common correlations.

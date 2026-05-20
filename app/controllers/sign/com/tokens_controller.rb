@@ -5,10 +5,9 @@ module Sign
   module Com
     class TokensController < ApplicationController
       public_strict!
-      protect_from_forgery with: :null_session
 
       def create
-        result = Oidc::TokenExchangeService.call(
+        result = ::Oidc::TokenExchangeService.call(
           grant_type: params[:grant_type],
           code: params[:code],
           redirect_uri: params[:redirect_uri],

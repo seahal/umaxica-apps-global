@@ -3,9 +3,7 @@
 
 module Apex
   module App
-    class RootsController < ApplicationController
-      public_strict!
-
+    class RootsController < OpenController
       def index
       end
     end

@@ -4,11 +4,15 @@
 # == Schema Information
 #
 # Table name: visitor_preference_timezone_options
-# Database name: setting
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
-class VisitorPreferenceTimezoneOption < SettingRecord
+# Indexes
+#
+#  index_visitor_preference_timezone_options_on_id  (id) UNIQUE
+#
+class VisitorPreferenceTimezoneOption < ComPrincipalRecord
   ETC_UTC = 1
   ASIA_TOKYO = 2
 

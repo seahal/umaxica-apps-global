@@ -1,0 +1,259 @@
+# typed: false
+# frozen_string_literal: true
+
+module ActorSupport
+  extend ActiveSupport::Concern
+
+  private
+
+  def with_actor_lifecycle
+    yield
+  ensure
+    Actor.clear
+  end
+
+  def set_current_context
+    context = resolved_current_context
+    Actor.tld = context.surface
+    Actor.account = context.account
+    Actor.tenant = context.tenant
+    Actor.actor = Unauthenticated.instance
+    Actor.actor_type = :unauthenticated
+    Actor.session = nil
+    Actor.token = nil
+    Actor.authentication = Actor::Authentication::NULL
+    Actor.configuration = Actor::Configuration::NULL
+    Actor.preference = Actor::Preference::NULL
+    Actor.trace_id = nil
+    Actor.span_id = nil
+  end
+
+  def set_current_actor
+    set_current_context if Actor.tld.blank?
+    resource = safe_current_resource
+    actor = resource.presence || Unauthenticated.instance
+    actor_type = resolved_current_actor_type(resource)
+    Actor.actor = actor
+    Actor.actor_type = actor_type
+    Actor.session = resolved_current_session
+    Actor.token = resolved_current_token
+    Actor.authentication = resolved_current_authentication
+    Actor.configuration = resolved_current_configuration(resource)
+    Actor.preference = resolved_current_preference(resource)
+  end
+
+  alias set_current set_current_actor
+
+  def _reset_current_state
+    Actor.clear
+  end
+
+  def resolved_current_context
+    if Actor.tld.present?
+      return HostContextResolver::Context.new(
+        surface: Actor.tld,
+        account: Actor.account,
+        tenant: Actor.tenant,
+      )
+    end
+    unless respond_to?(:request, true) && request.present?
+      return HostContextResolver::Context.new(
+        surface: nil,
+        account: Actor.account,
+        tenant: Actor.tenant,
+      )
+    end
+
+    HostContextResolver.call(request)
+  end
+
+  def resolved_current_tld
+    resolved_current_context.surface
+  end
+
+  def safe_current_resource
+    current_actor = Actor.actor
+    if current_actor.present?
+      return current_actor unless current_actor.equal?(Unauthenticated.instance)
+    end
+    return unless respond_to?(:current_resource, true)
+
+    current_resource
+  rescue StandardError
+    nil
+  end
+
+  def resolved_current_actor_type(resource)
+    actor_type = Actor.actor_type
+    return actor_type if actor_type.present? && actor_type != :unauthenticated
+    return :unauthenticated if resource.blank?
+
+    if resource.respond_to?(:operator?) && resource.operator?
+      :operator
+    elsif resource.respond_to?(:visitor?) && resource.visitor?
+      :visitor
+    else
+      :client
+    end
+  end
+
+  def resolved_current_session
+    return @current_session_public_id if defined?(@current_session_public_id) && @current_session_public_id.present?
+
+    resolved_current_token&.dig("sid")
+  end
+
+  def resolved_current_token
+    payload = nil
+    payload = access_token_payload if respond_to?(:access_token_payload, true)
+    payload ||= load_access_token_payload if respond_to?(:load_access_token_payload, true)
+    payload if payload.is_a?(Hash)
+  rescue StandardError
+    nil
+  end
+
+  def resolved_current_authentication
+    token = resolved_current_token
+    resource = safe_current_resource
+    session_id = resolved_current_session
+    return Actor::Authentication::NULL if token.blank? && session_id.blank? && resource.blank?
+
+    Actor::Authentication.new(
+      login_public_id: session_id,
+      access_claims: token,
+      acr: token&.dig("acr"),
+      amr: token&.dig("amr"),
+      actor_type: resolved_current_actor_type(resource),
+      actor_id: resource&.id,
+      restricted: resolved_current_restricted_session?,
+      active_sign_sequence_id: resolved_active_sign_sequence_id,
+    )
+  end
+
+  def resolved_current_restricted_session?
+    return current_session_restricted? if respond_to?(:current_session_restricted?, true)
+
+    false
+  rescue StandardError
+    false
+  end
+
+  def resolved_active_sign_sequence_id
+    return unless respond_to?(:session, true)
+    return unless defined?(SignIn::SequenceCarrier)
+
+    sequence = SignIn::SequenceCarrier.new(session, surface: Actor.tld).current
+    return if sequence.blank?
+    return if sequence.expired? || sequence.terminal?
+
+    sequence.id
+  rescue StandardError
+    nil
+  end
+
+  def resolved_current_configuration(_resource)
+    Actor::Configuration::NULL
+  end
+
+  def resolved_current_preference(resource)
+    preference_record = resolved_resource_preference(resource)
+    cookie = resolved_current_cookie(resource, preference_record: preference_record)
+    return preference_from_record(preference_record, cookie: cookie) if preference_record.present?
+
+    prf_claim = resolved_current_token&.dig("prf")
+    return Actor::Preference.from_jwt(prf_claim, cookie: cookie) if prf_claim.is_a?(Hash)
+
+    Actor::Preference::NULL.with_cookie(cookie)
+  end
+
+  def resolved_current_cookie(resource, preference_record: :__resolve__)
+    preference_record = resolved_resource_preference(resource) if preference_record == :__resolve__
+    if preference_record.present?
+      return Actor::Preference.cookie_from(
+        consented: preference_record.consented,
+        functional: preference_record.functional,
+        performant: preference_record.performant,
+        targetable: preference_record.targetable,
+        consent_version: preference_record.try(:consent_version),
+        consented_at: preference_record.consented_at,
+      )
+    end
+
+    if respond_to?(:preference_payload_preferences, true)
+      payload_preferences = preference_payload_preferences
+      if payload_preferences.is_a?(Hash)
+        return Actor::Preference.cookie_from(
+          consented: payload_preferences["consented"],
+          functional: payload_preferences["functional"],
+          performant: payload_preferences["performant"],
+          targetable: payload_preferences["targetable"],
+          consent_version: payload_preferences["consent_version"],
+          consented_at: payload_preferences["consented_at"],
+        )
+      end
+    end
+
+    Actor::Preference::NULL_COOKIE
+  end
+
+  def resolved_resource_preference(resource)
+    association_name = resource_preference_association_name(resource)
+    return if association_name.blank? || !resource.respond_to?(association_name)
+
+    reset_resource_preference_association(resource, association_name)
+    resource.public_send(association_name)
+  end
+
+  def resource_preference_association_name(resource)
+    return if resource.blank?
+
+    if resource.respond_to?(:operator?) && resource.operator?
+      :staff_preference
+    elsif resource.respond_to?(:visitor?) && resource.visitor?
+      :visitor_preference
+    else
+      :user_preference
+    end
+  end
+
+  def reset_resource_preference_association(resource, association_name)
+    return unless resource.respond_to?(:association)
+
+    resource.association(association_name).reset
+  rescue ActiveRecord::AssociationNotFoundError
+    nil
+  end
+
+  def preference_from_record(preference_record, cookie:)
+    Actor::Preference.new(
+      language: preference_record_value(preference_record, :language),
+      region: preference_record_value(preference_record, :region),
+      timezone: preference_record_value(preference_record, :timezone),
+      theme: preference_record_value(preference_record, :theme),
+      currency: preference_record_value(preference_record, :currency),
+      date_format: preference_record_value(preference_record, :date_format),
+      time_format: preference_record_value(preference_record, :time_format),
+      motion: preference_record_value(preference_record, :motion),
+      density: preference_record_value(preference_record, :density),
+      items_per_page: preference_record_value(preference_record, :items_per_page),
+      cookie: cookie,
+    )
+  end
+
+  def preference_record_value(preference_record, name)
+    value = preference_record.public_send(name) if preference_record.respond_to?(name)
+    value.presence || Actor::Preference::DEFAULTS.fetch(name)
+  end
+
+  def set_current_observability
+    return unless defined?(OpenTelemetry::Trace)
+    return unless Actor.preference.cookie.performant?
+
+    span = OpenTelemetry::Trace.current_span
+    context = span.context
+    return unless context.valid?
+
+    Actor.trace_id = context.hex_trace_id
+    Actor.span_id = context.hex_span_id
+  end
+end

@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staff_statuses, :staff_secret_statuses, :staff_secret_kinds
+  fixtures :operator_identity_statuses, :operator_secret_statuses, :operator_secret_kinds
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -22,6 +22,7 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     )
     @token = OperatorToken.create!(staff: @staff)
     satisfy_staff_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret")
     @staff_secret = OperatorSecret.create!(
       staff: @staff,
       name: "Test Secret",
@@ -72,7 +73,6 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "should create secret and redirect to index" do
-    satisfy_staff_verification(@token)
     assert_difference("OperatorSecret.count", 1) do
       post sign_org_configuration_secrets_url(ri: "jp"),
            params: { staff_secret: { name: "New Secret", enabled: true } },
@@ -85,7 +85,6 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "should update secret and redirect to index" do
-    satisfy_staff_verification(@token)
     patch sign_org_configuration_secret_url(@staff_secret, ri: "jp"),
           params: { staff_secret: { name: "Updated Secret", enabled: false } },
           headers: authenticated_headers
@@ -98,7 +97,6 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "should get destroy" do
-    satisfy_staff_verification(@token)
     delete sign_org_configuration_secret_url(@staff_secret, ri: "jp"), headers: authenticated_headers
 
     assert_response :see_other

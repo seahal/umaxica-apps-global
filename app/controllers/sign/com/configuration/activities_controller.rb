@@ -4,13 +4,11 @@
 module Sign
   module Com
     module Configuration
-      class ActivitiesController < ApplicationController
-        auth_required!
-
-        LOGIN_EVENT_IDS = [UserChronicleEvent::LOGGED_IN, UserChronicleEvent::LOGIN_SUCCESS].freeze
+      class ActivitiesController < PrivateController
+        LOGIN_EVENT_IDS = [ClientChronicleEvent::LOGGED_IN, ClientChronicleEvent::LOGIN_SUCCESS].freeze
         EVENT_LABELS = {
-          UserChronicleEvent::LOGGED_IN => "logged_in",
-          UserChronicleEvent::LOGIN_SUCCESS => "login_success",
+          ClientChronicleEvent::LOGGED_IN => "logged_in",
+          ClientChronicleEvent::LOGIN_SUCCESS => "login_success",
         }.freeze
         SENSITIVE_CONTEXT_PATTERNS = %w(
           user_agent
@@ -32,7 +30,7 @@ module Sign
         def index
           @activities = current_visitor_activities.limit(100)
         rescue StandardError
-          @activities = UserChronicle.none
+          @activities = ClientChronicle.none
         end
 
         def show
@@ -43,8 +41,8 @@ module Sign
         private
 
         def current_visitor_activities
-          UserChronicle
-            .where(subject_type: "User", subject_id: current_visitor.id, event_id: LOGIN_EVENT_IDS)
+          ClientChronicle
+            .where(subject_type: "Visitor", subject_id: current_visitor.id, event_id: LOGIN_EVENT_IDS)
             .order(Arel.sql("COALESCE(occurred_at, created_at) DESC"))
         end
 

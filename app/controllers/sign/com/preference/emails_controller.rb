@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Preference
-      class EmailsController < ApplicationController
+      class EmailsController < Sign::Com::BareController
         include Sign::PromotionalEmailUnsubscribeActions
 
         private

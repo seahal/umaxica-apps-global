@@ -141,7 +141,7 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
 - **TC-SIGN-202** Expired OTP: set `expires_at` in session to past time; `#update` returns 422 with
   error.
 - **TC-SIGN-203** Telephone registration: invalid E.164 rejected; valid number triggers
-  `AwsSmsService`.
+  `Outbound::Sms`.
 - **TC-SIGN-204** Passkey challenge: POST `/setting/passkeys/challenge`; expect JSON options with
   challenge stored in session. Replay fails once challenge consumed.
 - **TC-SIGN-205** TOTP creation: GET `/setting/totps/new` returns QR data; POST with valid token
@@ -167,8 +167,8 @@ must be synthetic. Contact forms require Turnstile test keys or bypass for autom
   Base64 email; expect JSON body with `valid`.
 - **TC-API-402** Telephone validation: POST JSON to `/api/app/v1/inquiry/valid_telephone_numbers`;
   expects `valid` key and proper status codes.
-- **TC-API-403** Health JSON: `/api/*/v1/health` returns `{ status: "OK" }`.
-  query params normalized by the preference concerns.
+- **TC-API-403** Health JSON: `/api/*/v1/health` returns `{ status: "OK" }`. query params normalized
+  by the preference concerns.
 
 ### 7.6 Docs/News/Help health
 

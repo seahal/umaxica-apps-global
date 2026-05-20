@@ -15,6 +15,7 @@ class ScavengerGlobalChronicleStatus < ChronicleRecord
   STARTED = 1
   OK = 2
   ERROR = 3
+  DEFAULTS = [NOTHING, STARTED, OK, ERROR].freeze
 
   has_many :scavenger_global_chronicles,
            class_name: "ScavengerGlobalChronicle",

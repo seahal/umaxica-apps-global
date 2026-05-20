@@ -5,26 +5,26 @@ require "test_helper"
 
 class IdentifierEncryptionReencryptTest < ActiveSupport::TestCase
   setup do
-    @user = users(:one)
-    @staff = staffs(:one)
+    @user = clients(:one)
+    @staff = operators(:one)
     @visitor = create_verified_visitor_with_email(
       email_address: "reencrypt-visitor-#{SecureRandom.hex(4)}@example.com",
     )
   end
 
   test "rewrites encrypted identifier columns across user staff and visitor records" do
-    user_email = UserEmail.create!(
+    user_email = ClientEmail.create!(
       user: @user,
       address: "reencrypt-user-email-#{SecureRandom.hex(4)}@example.com",
       confirm_policy: true,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
-    user_telephone = UserTelephone.create!(
+    user_telephone = ClientTelephone.create!(
       user: @user,
       raw_number: "+1 (555) #{rand(100..999)}-#{rand(1000..9999)}",
       confirm_policy: true,
       confirm_using_mfa: true,
-      user_telephone_status_id: UserTelephoneStatus::VERIFIED,
+      user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
     staff_email = OperatorEmail.create!(
       staff: @staff,

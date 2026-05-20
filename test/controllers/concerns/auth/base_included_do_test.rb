@@ -10,11 +10,11 @@ module Auth
 
       def resource_type = "user"
 
-      def resource_class = User
+      def resource_class = Client
 
-      def token_class = UserToken
+      def token_class = ClientToken
 
-      def audit_class = UserChronicle
+      def audit_class = ClientChronicle
 
       def resource_foreign_key = :user_id
 

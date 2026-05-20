@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: org_preference_timezone_options
-# Database name: operator
+# Database name: org_setting
 #
 #  id :bigint           not null, primary key
 #

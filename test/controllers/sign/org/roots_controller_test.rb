@@ -5,7 +5,7 @@ require "test_helper"
 require "support/root_theme_cookie_helper"
 
 class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses
+  fixtures :operators, :operator_identity_statuses
 
   include RootThemeCookieHelper
 
@@ -57,7 +57,7 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET / redirects to dashboard when logged in" do
-    staff = staffs(:one)
+    staff = operators(:one)
 
     get sign_org_root_url(ri: "jp"), headers: as_staff_headers(staff, host: "id.org.localhost")
 

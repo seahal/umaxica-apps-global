@@ -13,7 +13,7 @@ class SocialAuthConcernIncludedDoTest < ActiveSupport::TestCase
   end
 
   test "VALID_INTENTS constant is defined" do
-    assert_equal %w(login link reauth), SocialAuthConcern::VALID_INTENTS
+    assert_equal %w(login link step_up), SocialAuthConcern::VALID_INTENTS
   end
 
   test "prepare_social_auth_intent! method exists (private)" do

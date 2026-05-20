@@ -62,7 +62,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - **Caching & session adjuncts**: Valkey (Redis-compatible) powers request rate limiting, `Memorize`
   ephemeral storage, signed preference cookies, and Rack session backing for Action Cable.
 - **Security & identity**: JWT auth cookies (ES256) via the `Authn` concern, WebAuthn passkeys,
-  HOTP/TOTP (ROTP), `AwsSmsService`, and Cloudflare Turnstile for bot defense.
+  HOTP/TOTP (ROTP), `Outbound::Sms`, and Cloudflare Turnstile for bot defense.
 - **Observability**: OpenTelemetry instrumentation exports to Tempo via OTLP; logs/metrics land in
   Loki/Grafana (docker/observability stack).
 - **Storage & CDN**: Active Storage/Shrine configured for Google Cloud Storage or MinIO (dev).
@@ -114,7 +114,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   Cloudflare Turnstile verification, HOTP issuance (ROTP), and `UserIdentityEmail` persistence using
   encrypted attributes.
 - **FR-09**: Telephone registration controllers mirror email flow but dispatch OTP codes through
-  `AwsSmsService`.
+  `Outbound::Sms`.
 - **FR-10**: Authentication controllers (`Sign::App::Authentication::*`) must issue short-lived
   access tokens (JWT ES384) and refresh tokens using `Auth::Base#log_in`. Refresh now requires
   `device_id` (`jit_auth_device_id` cookie or `X-Device-Id` header). If both are present they must
@@ -138,8 +138,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - **FR-15**: Help center contact forms (`Help::Com::ContactsController`) shall validate input via
   `ServiceSiteContact`, requiring either email or telephone, policy acceptance, and OTP
   confirmation. IP addresses must be logged (`ip_address` column) and PII encrypted at rest.
-- **FR-16**: Successful contact submissions must trigger notifications via
-  `Email::App::ContactMailer` and remain observable through application logs and traces.
+- **FR-16**: Successful contact submissions must trigger surface-scoped email notifications and
+  remain observable through application logs and traces.
 - **FR-17**: News and Docs namespaces must redirect to content-specific roots and expose health
   status; they are placeholders for static/dynamic content served through Rails/Turbo (React slots
   defined in `app/javascript/views`).
@@ -161,8 +161,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 ### 4.6 Data protection and compliance
 
 - **FR-21**: Personally identifiable records must reside in their designated database clusters
-  (`IdentitiesRecord`, `GuestRecord`, `OccurrenceRecord`, etc.) with `connects_to` wiring honoring
-  read replicas for reporting workloads.
+  (`IdentitiesRecord`, `ComPrincipalRecord`, `OccurrenceRecord`, etc.) with `connects_to` wiring
+  honoring read replicas for reporting workloads.
 - **FR-22**: Sensitive columns (emails, telephone numbers, OTP secrets) must use Active Record
   encryption with deterministic mode for lookups where required.
 - **FR-23**: Preference cookies (`__Secure-root_app_preferences`) must be signed/HTTP-only/Lax by
@@ -228,7 +228,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 ### 6.3 External services & integrations
 
 - Email providers: AWS SES, ActionMailer + SMTP credentials.
-- SMS: `AwsSmsService`.
+- SMS: `Outbound::Sms` with `SMS_PROVIDER` selecting the concrete provider; queued message bodies
+  are encrypted before enqueueing.
 - Cloud providers: Google Cloud (Cloud Run/Build/Storage/Artifact Registry) for deployment,
   Cloudflare (R2, Turnstile, DNS), Fastly (asset CDN).
 - Observability: Tempo/Loki/Grafana stack via Docker; production may forward to managed Grafana

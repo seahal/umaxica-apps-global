@@ -4,10 +4,8 @@
 module Sign
   module Com
     module Configuration
-      class SecretsController < ApplicationController
-        auth_required!
-
-        include ::Verification::User
+      class SecretsController < PrivateController
+        include ::Verification::Visitor
 
         before_action :authenticate_visitor!
         before_action :set_secret, only: %i(show edit destroy regenerate)
@@ -67,7 +65,7 @@ module Sign
         private
 
         def set_secret
-          @secret = current_visitor.visitor_secrets.find_by!(public_id: params.expect(:id))
+          @secret = current_visitor.visitor_secrets.find_by!(public_id: params(:id))
         end
 
         def secret_params

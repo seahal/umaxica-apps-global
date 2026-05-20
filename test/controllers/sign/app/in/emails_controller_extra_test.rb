@@ -14,8 +14,8 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
     ensure_visitor_reference_records!
-    # User status might be different from Visitor status
-    UserStatus.find_or_create_by!(id: 1)
+    # Client status might be different from Visitor status
+    ClientStatus.find_or_create_by!(id: 1)
   end
 
   test "post create with Turnstile failure" do
@@ -48,8 +48,8 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
   end
 
   test "patch update success with JSON" do
-    user = User.create!(status_id: 1)
-    email = UserEmail.create!(
+    user = Client.create!(status_id: 1)
+    email = ClientEmail.create!(
       user: user,
       address: "app-json-success@example.com",
       user_email_status_id: 1,
@@ -74,8 +74,8 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
   end
 
   test "patch update failure with JSON" do
-    user = User.create!(status_id: 1)
-    email = UserEmail.create!(
+    user = Client.create!(status_id: 1)
+    email = ClientEmail.create!(
       user: user,
       address: "app-json-fail@example.com",
       user_email_status_id: 1,
@@ -102,9 +102,9 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
          params: { user_email: { address: "unknown@example.com" }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
-    # We need to make the dummy UserEmail valid.
-    # But UserEmail requires a user.
-    # The controller does UserEmail.new(address: ...) which is invalid.
+    # We need to make the dummy ClientEmail valid.
+    # But ClientEmail requires a user.
+    # The controller does ClientEmail.new(address: ...) which is invalid.
     # So it will render :edit with errors.
 
     patch sign_app_in_email_url,

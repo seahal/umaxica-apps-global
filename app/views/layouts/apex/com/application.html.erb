@@ -22,6 +22,12 @@
   <nav>
     <%= render "layouts/shared/flash_messages" %>
     <%= render "layouts/shared/current_banner", tld: :com, domain: :apex, region: :global %>
+    <% unless logged_in? %>
+      <%= link_to "#{t('sign.app.layout.nav.sign_up')} / #{t('sign.app.layout.nav.log_in')}", apex_com_sso_authorization_path %>
+    <% else %>
+      <%= link_to t("sign.app.layout.nav.configuration"), sign_com_configuration_url(host: ENV.fetch('ID_CORPORATE_URL', 'id.com.localhost')) %>
+      <%= button_to t("sign.app.layout.nav.logout"), apex_com_sso_logout_path, method: :post %>
+    <% end %>
   </nav>
   <div>
     <span>APEX</span>

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-# Tests for ApplicationPolicy JWT integration via Actor.token
+# Tests for ApplicationPolicy JWT integration via Actor.authentication.access_claims
 class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   setup do
     Actor.reset
@@ -21,7 +21,7 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
     end
   end
 
-  # JWT scopes from Actor.token
+  # JWT scopes from Actor.authentication.access_claims
   def test_jwt_scopes_returns_empty_array_when_no_token
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
@@ -29,16 +29,16 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   end
 
   def test_jwt_scopes_extracts_scopes_from_current_token
-    Actor.token = {
-      "scp" => ["authenticated", "domain:user", "read:self"],
-    }
+    set_current_claims(
+      "scp" => ["authenticated", "domain:client", "read:self"],
+    )
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
-    assert_equal ["authenticated", "domain:user", "read:self"], policy.send(:jwt_scopes)
+    assert_equal ["authenticated", "domain:client", "read:self"], policy.send(:jwt_scopes)
   end
 
   def test_jwt_scopes_returns_empty_when_scp_missing
-    Actor.token = { "sub" => 123 }
+    set_current_claims("sub" => 123)
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert_empty policy.send(:jwt_scopes)
@@ -46,7 +46,7 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
 
   # has_scope? checks
   def test_has_scope_returns_true_when_scope_present
-    Actor.token = { "scp" => ["authenticated", "read:self"] }
+    set_current_claims("scp" => ["authenticated", "read:self"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert policy.send(:has_scope?, "authenticated")
@@ -54,14 +54,14 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   end
 
   def test_has_scope_returns_false_when_scope_missing
-    Actor.token = { "scp" => ["authenticated"] }
+    set_current_claims("scp" => ["authenticated"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert_not policy.send(:has_scope?, "admin")
   end
 
   def test_has_scope_handles_symbol_arguments
-    Actor.token = { "scp" => ["read:self"] }
+    set_current_claims("scp" => ["read:self"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert policy.send(:has_scope?, :"read:self")
@@ -75,14 +75,14 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   end
 
   def test_extract_domain_from_audience_extracts_domain
-    Actor.token = { "aud" => ["app.api.example.com"] }
+    set_current_claims("aud" => ["app.api.example.com"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert_equal "app", policy.send(:extract_domain_from_audience)
   end
 
   def test_extract_domain_from_audience_extracts_org_domain
-    Actor.token = { "aud" => ["org.example.com", "api.example.com"] }
+    set_current_claims("aud" => ["org.example.com", "api.example.com"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert_equal "org", policy.send(:extract_domain_from_audience)
@@ -90,7 +90,7 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
 
   # Domain check helpers
   def test_domain_app_returns_true_for_app_domain
-    Actor.token = { "aud" => ["app.example.com"] }
+    set_current_claims("aud" => ["app.example.com"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert policy.send(:domain_app?)
@@ -99,7 +99,7 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   end
 
   def test_domain_org_returns_true_for_org_domain
-    Actor.token = { "aud" => ["org.example.com"] }
+    set_current_claims("aud" => ["org.example.com"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert policy.send(:domain_org?)
@@ -116,7 +116,7 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
 
   # domain_permitted? checks
   def test_domain_permitted_returns_true_when_allowed
-    Actor.token = { "aud" => ["app.example.com"] }
+    set_current_claims("aud" => ["app.example.com"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert policy.send(:domain_permitted?, "app")
@@ -124,14 +124,14 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   end
 
   def test_domain_permitted_returns_false_when_not_allowed
-    Actor.token = { "aud" => ["app.example.com"] }
+    set_current_claims("aud" => ["app.example.com"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert_not policy.send(:domain_permitted?, "org")
   end
 
   def test_domain_permitted_returns_true_when_no_domains_specified
-    Actor.token = { "aud" => ["app.example.com"] }
+    set_current_claims("aud" => ["app.example.com"])
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert policy.send(:domain_permitted?) # no restrictions
@@ -139,7 +139,7 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
 
   def test_domain_permitted_returns_true_when_domain_nil
     # If token has no audience or malformed, allow by default
-    Actor.token = {}
+    set_current_claims({})
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert policy.send(:domain_permitted?, "app")
@@ -153,7 +153,7 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   end
 
   def test_jwt_subject_extracts_subject
-    Actor.token = { "sub" => 42 }
+    set_current_claims("sub" => 42)
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
     assert_equal 42, policy.send(:jwt_subject)
@@ -161,16 +161,16 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
 
   # Integration example: combining JWT + DB check
   def test_combining_jwt_and_db_check_example
-    user = users(:one) # from fixtures
-    Actor.token = {
+    user = clients(:one) # from fixtures
+    set_current_claims(
       "sub" => user.id,
-      "scp" => ["authenticated", "read:self", "domain:user"],
+      "scp" => ["authenticated", "read:self", "domain:client"],
       "aud" => ["app.api.example.com"],
-    }
+    )
 
     # Example: Policy that checks JWT scope AND DB ownership
     # Use a record that has user_id attribute for owner? check
-    Struct.new(:user_id).new(user.id)
+    Struct.new(:client_id).new(user.id)
     policy = ApplicationPolicy.new(user: user)
 
     # Has correct scope?
@@ -181,5 +181,11 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
 
     # Is owner? (DB check - record.user_id == actor.id)
     assert policy.send(:owner?)
+  end
+
+  private
+
+  def set_current_claims(claims)
+    Actor.authentication = Actor::Authentication.new(access_claims: claims)
   end
 end

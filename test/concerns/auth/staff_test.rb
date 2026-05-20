@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Authentication::OperatorTest < ActiveSupport::TestCase
-  fixtures :staffs, :staff_statuses, :staff_tokens, :staff_token_kinds, :staff_token_statuses
+  fixtures :operators, :operator_identity_statuses, :operator_tokens, :operator_token_kinds, :operator_token_statuses
   class FormatMock
     attr_accessor :format_type
 
@@ -84,7 +84,7 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
 
   setup do
     @obj = DummyClass.new
-    @staff = staffs(:one)
+    @staff = operators(:one)
     OperatorToken.where(staff_id: @staff.id).delete_all
   end
 
@@ -129,11 +129,14 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
     assert_nil @obj.current_operator
   end
 
-  test "log_out removes refresh token and cookies" do
+  test "log_out revokes refresh token and removes cookies" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
     @obj.send(:log_in, @staff)
 
-    assert_difference("OperatorToken.count", -1) { @obj.send(:log_out) }
+    token = @obj.send(:current_session)
+
+    assert_no_difference("OperatorToken.count") { @obj.send(:log_out) }
+    assert_predicate token.reload, :revoked?
     assert_nil @obj.cookies[::Authentication::Operator::ACCESS_COOKIE_KEY]
     assert_nil @obj.cookies.encrypted[::Authentication::Operator::REFRESH_COOKIE_KEY]
     assert_nil @obj.cookies[::Authentication::Base::DEVICE_COOKIE_KEY]
@@ -172,8 +175,8 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
       @obj.send(:log_in, @staff)
       token = OperatorToken.where(staff_id: @staff.id).order(created_at: :desc).first
 
-      assert_in_delta 12.hours.from_now.to_i, token.lapses_at.to_i, 1
-      assert_in_delta 36.hours.from_now.to_i, token.purge_at.to_i, 1
+      assert_in_delta 12.hours.from_now.to_i, token.discarded_at.to_i, 1
+      assert_in_delta 36.hours.from_now.to_i, token.purged_at.to_i, 1
     end
   end
 
@@ -181,7 +184,7 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
 
     token_record =
-      TokenRecord.connected_to(role: :writing) do
+      OrgTicketRecord.connected_to(role: :writing) do
         OperatorToken.create!(staff: @staff)
       end
 

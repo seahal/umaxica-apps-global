@@ -4,7 +4,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/notes/gh634-self-service-revoke-sessions.md`
+- `notes/gh634-self-service-revoke-sessions.md`
 - GitHub: #634
 
 ## Goal

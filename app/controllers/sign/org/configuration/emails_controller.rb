@@ -4,9 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class EmailsController < ApplicationController
-        auth_required!
-
+      class EmailsController < PrivateController
         include CloudflareTurnstile
         include ::Verification::Operator
 
@@ -22,11 +20,11 @@ module Sign
         end
 
         def edit
-          @staff_email = current_operator.staff_emails.find_by!(public_id: params.expect(:id))
+          @staff_email = current_operator.staff_emails.find_by!(public_id: params(:id))
         end
 
         def update
-          @staff_email = current_operator.staff_emails.find_by!(public_id: params.expect(:id))
+          @staff_email = current_operator.staff_emails.find_by!(public_id: params(:id))
 
           unless cloudflare_turnstile_stealth_validation["success"]
             @staff_email.errors.add(:base, t("turnstile_error"))
@@ -48,7 +46,7 @@ module Sign
         end
 
         def destroy
-          @staff_email = current_operator.staff_emails.find_by!(public_id: params.expect(:id))
+          @staff_email = current_operator.staff_emails.find_by!(public_id: params(:id))
 
           if @staff_email.undeletable?
             redirect_to(
@@ -77,10 +75,7 @@ module Sign
         private
 
         def removable_email?(staff_email)
-          current_operator.staff_emails
-            .where(staff_identity_email_status_id: VERIFIED_EMAIL_STATUSES)
-            .where.not(id: staff_email.id)
-            .exists?
+          AuthMethodGuard.can_remove_email?(current_operator, staff_email)
         end
 
         def email_preference_params

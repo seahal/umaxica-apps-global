@@ -116,19 +116,19 @@ All `*_application_controller.rb` files across acme/core/docs/help/news/sign con
 | --- | ----------------------------------------- | ------------------- |
 | 50  | `app/models/user_token.rb:106`            | UserToken           |
 | 51  | `app/models/customer_token.rb:99`         | CustomerToken       |
-| 52  | `app/models/staff_token.rb:107`           | OperatorToken          |
+| 52  | `app/models/staff_token.rb:107`           | OperatorToken       |
 | 53  | `app/models/user_email.rb:133`            | UserEmail           |
 | 54  | `app/models/customer_email.rb:120`        | CustomerEmail       |
-| 55  | `app/models/staff_email.rb:86`            | OperatorEmail          |
+| 55  | `app/models/staff_email.rb:86`            | OperatorEmail       |
 | 56  | `app/models/user_telephone.rb:99`         | UserTelephone       |
 | 57  | `app/models/customer_telephone.rb:89`     | CustomerTelephone   |
 | 58  | `app/models/user_secret.rb:153`           | UserSecret          |
 | 59  | `app/models/customer_secret.rb:146`       | CustomerSecret      |
-| 60  | `app/models/staff_secret.rb:129`          | OperatorSecret         |
+| 60  | `app/models/staff_secret.rb:129`          | OperatorSecret      |
 | 61  | `app/models/user_passkey.rb:66`           | UserPasskey         |
 | 62  | `app/models/customer_passkey.rb:66`       | CustomerPasskey     |
-| 63  | `app/models/staff_passkey.rb:63`          | OperatorPasskey        |
-| 64  | `app/models/staff_telephone.rb:67`        | OperatorTelephone      |
+| 63  | `app/models/staff_passkey.rb:63`          | OperatorPasskey     |
+| 64  | `app/models/staff_telephone.rb:67`        | OperatorTelephone   |
 | 65  | `app/models/user_one_time_password.rb:65` | UserOneTimePassword |
 
 ### N+1 — `.count` in Controllers (9)
@@ -137,7 +137,7 @@ All `*_application_controller.rb` files across acme/core/docs/help/news/sign con
 | --- | --------------------------------------------------------------- | ------------------------------ |
 | 66  | `app/controllers/sign/app/configuration/totps_controller.rb:20` | MAX_TOTPS check always hits DB |
 | 67  | `app/controllers/concerns/authentication/base.rb:2115`          | UserToken session count        |
-| 68  | `app/controllers/concerns/authentication/base.rb:2117`          | OperatorToken session count       |
+| 68  | `app/controllers/concerns/authentication/base.rb:2117`          | OperatorToken session count    |
 | 69  | `app/controllers/concerns/authentication/base.rb:2119`          | CustomerToken session count    |
 | 70  | `app/controllers/sign/app/in/sessions_controller.rb:164`        | Active session count           |
 | 71  | `app/controllers/sign/com/in/sessions_controller.rb:117`        | Same                           |
@@ -201,7 +201,7 @@ All `*_application_controller.rb` files across acme/core/docs/help/news/sign con
 | 104 | `contacts_controller.rb` (app vs org)    | `canonical_*_email` pattern duplicated         |
 | 105 | `contacts_controller.rb` (app vs org)    | `core_*_host` URI parsing duplicated           |
 | 106 | `withdrawals_controller.rb` (app vs com) | Withdrawal flow duplicated                     |
-| 107 | `secrets_controller.rb` (app vs com)     | Secret verification logic duplicated           |
+| 107 | `secrets_controller.rb` (app vs com)     | Passcode verification logic duplicated         |
 | 108 | `activities_controller.rb` (app/com/org) | Triply duplicated                              |
 
 ### Hardcoded Japanese Messages — Should Use i18n (8)
@@ -240,12 +240,12 @@ All `*_application_controller.rb` files across acme/core/docs/help/news/sign con
 
 ### Business Logic in Controllers (4)
 
-| #   | Location                                                    | Description                               |
-| --- | ----------------------------------------------------------- | ----------------------------------------- |
-| 128 | `app/controllers/core/app/contacts_controller.rb:42-55`     | Multi-model transaction in controller     |
-| 129 | `app/controllers/core/org/contacts_controller.rb:42-55`     | Same                                      |
-| 130 | `app/controllers/sign/com/in/secrets_controller.rb:108-140` | 33-line secret verification in controller |
-| 131 | `app/controllers/concerns/authentication/base.rb:565-692`   | `log_in` method is 128 lines              |
+| #   | Location                                                    | Description                                 |
+| --- | ----------------------------------------------------------- | ------------------------------------------- |
+| 128 | `app/controllers/core/app/contacts_controller.rb:42-55`     | Multi-model transaction in controller       |
+| 129 | `app/controllers/core/org/contacts_controller.rb:42-55`     | Same                                        |
+| 130 | `app/controllers/sign/com/in/secrets_controller.rb:108-140` | 33-line passcode verification in controller |
+| 131 | `app/controllers/concerns/authentication/base.rb:565-692`   | `log_in` method is 128 lines                |
 
 ### Test Gaps (16)
 

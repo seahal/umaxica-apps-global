@@ -18,11 +18,11 @@ module Secret
   end
 
   class_methods do
-    def issue!(name:, length: SECRET_PASSWORD_LENGTH, lapses_at: nil, uses: 1, status: :active, **attributes)
+    def issue!(name:, length: SECRET_PASSWORD_LENGTH, discarded_at: nil, uses: 1, status: :active, **attributes)
       raw_secret = SecureRandom.base58(length)
       record_attributes = attributes.merge(name: name)
       record_attributes[:uses_remaining] = uses if supports_uses_remaining?
-      record_attributes[:lapses_at] = lapses_at if lapses_at && supports_expiration?
+      record_attributes[:discarded_at] = discarded_at if discarded_at && supports_expiration?
       record = new(record_attributes)
       record[identity_secret_status_id_column] = status_id_for(status)
       record.password = raw_secret
@@ -41,14 +41,14 @@ module Secret
     def status_id_for(status)
       status_key = status.to_s.upcase
       case identity_secret_status_class.name
-      when "UserSecretStatus"
+      when "ClientSecretStatus"
         {
-          "ACTIVE" => UserSecretStatus::ACTIVE,
-          "EXPIRED" => UserSecretStatus::EXPIRED,
-          "REVOKED" => UserSecretStatus::REVOKED,
-          "USED" => UserSecretStatus::USED,
-          "DELETED" => UserSecretStatus::DELETED,
-          "NOTHING" => UserSecretStatus::NOTHING,
+          "ACTIVE" => ClientSecretStatus::ACTIVE,
+          "EXPIRED" => ClientSecretStatus::EXPIRED,
+          "REVOKED" => ClientSecretStatus::REVOKED,
+          "USED" => ClientSecretStatus::USED,
+          "DELETED" => ClientSecretStatus::DELETED,
+          "NOTHING" => ClientSecretStatus::NOTHING,
         }.fetch(status_key)
       when "OperatorSecretStatus"
         {
@@ -84,9 +84,9 @@ module Secret
 
     def supports_expiration?
       if respond_to?(:column_names)
-        column_names.include?("lapses_at")
+        column_names.include?("discarded_at")
       elsif respond_to?(:attribute_types)
-        attribute_types.key?("lapses_at")
+        attribute_types.key?("discarded_at")
       else
         false
       end
@@ -166,13 +166,13 @@ module Secret
   end
 
   def expired_by_time?(now)
-    return false unless respond_to?(:lapses_at)
-    return false if lapses_at.nil?
+    return false unless respond_to?(:discarded_at)
+    return false if discarded_at.nil?
 
     # PostgreSQL infinity/-infinity are used as sentinels for "never expires"
     # When read from DB, they may be converted to Float::INFINITY/-Float::INFINITY
-    return false if lapses_at.respond_to?(:infinite?) && lapses_at.infinite?
+    return false if discarded_at.respond_to?(:infinite?) && discarded_at.infinite?
 
-    lapses_at <= now
+    discarded_at <= now
   end
 end

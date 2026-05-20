@@ -4,7 +4,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/notes/any-instance-stub-removal.md`
+- `notes/any-instance-stub-removal.md`
 
 ## Goal
 

@@ -110,9 +110,9 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
 
   test "valid registration email session checks presence expiry and status" do
     harness = Harness.new
-    valid_email = Struct.new(:otp_expired?, :user_email_status_id).new(false, UserEmailStatus::UNVERIFIED_WITH_SIGN_UP)
-    expired_email = Struct.new(:otp_expired?, :user_email_status_id).new(true, UserEmailStatus::UNVERIFIED_WITH_SIGN_UP)
-    verified_email = Struct.new(:otp_expired?, :user_email_status_id).new(false, UserEmailStatus::VERIFIED)
+    valid_email = Struct.new(:otp_expired?, :user_email_status_id).new(false, ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP)
+    expired_email = Struct.new(:otp_expired?, :user_email_status_id).new(true, ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP)
+    verified_email = Struct.new(:otp_expired?, :user_email_status_id).new(false, ClientEmailStatus::VERIFIED)
 
     assert_not harness.send(:valid_registration_email_session?)
 
@@ -134,7 +134,7 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
 
     harness.new
 
-    assert_instance_of UserEmail, harness.instance_variable_get(:@user_email)
+    assert_instance_of ClientEmail, harness.instance_variable_get(:@user_email)
     assert_nil harness.send(:current_registration_email)
     assert_nil harness.send(:on_email_registration_verified!)
   end

@@ -4,7 +4,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/notes/gh611-harden-token-endpoints-csrf.md`
+- `notes/gh611-harden-token-endpoints-csrf.md`
 - GitHub: #611
 
 ## Goal

@@ -5,7 +5,7 @@ require "test_helper"
 require "base64"
 
 class Sign::Org::Verification::SetupsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_token_statuses, :staff_token_kinds
+  fixtures :operators, :operator_identity_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")

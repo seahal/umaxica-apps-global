@@ -4,9 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class ChallengesController < ApplicationController
-        auth_required!
-
+      class ChallengesController < PrivateController
         include ::Verification::Operator
 
         before_action :authenticate_operator!

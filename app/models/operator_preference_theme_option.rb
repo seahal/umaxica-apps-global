@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: staff_preference_theme_options
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class OperatorPreferenceThemeOption < OperatorRecord
+class OperatorPreferenceThemeOption < OrgPrincipalRecord
   self.table_name = "staff_preference_theme_options"
   include ReferenceRecord
 
@@ -19,6 +19,11 @@ class OperatorPreferenceThemeOption < OperatorRecord
   SYSTEM = 3
 
   has_many :staff_preference_themes,
+           class_name: "OperatorPreferenceTheme",
+           foreign_key: :option_id,
+           inverse_of: :option,
+           dependent: :restrict_with_error
+  has_many :operator_preference_themes,
            class_name: "OperatorPreferenceTheme",
            foreign_key: :option_id,
            inverse_of: :option,

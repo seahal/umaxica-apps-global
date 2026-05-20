@@ -14,7 +14,7 @@ module Sign
     end
 
     def new
-      @user_email = UserEmail.new
+      @user_email = ClientEmail.new
     end
 
     def edit
@@ -28,8 +28,8 @@ module Sign
 
     def create
       preference_keys = email_registration_preference_keys
-      email_params = params.fetch(:user_email, {}).permit(:raw_address, :address, *preference_keys)
-      confirm_policy = params.dig(:user_email, :confirm_policy)
+      email_params = email_registration_params(:raw_address, :address, :confirm_policy, *preference_keys)
+      confirm_policy = email_params[:confirm_policy]
       email_address = email_params[:raw_address] || email_params[:address]
 
       unless initiate_email_verification!(
@@ -69,6 +69,7 @@ module Sign
       end
 
       submitted_code = params.dig(:user_email, :pass_code)
+      submitted_code ||= params.dig(:client_email, :pass_code)
       if submitted_code.blank?
         @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.code_required"))
         render :edit, status: :unprocessable_content
@@ -78,7 +79,7 @@ module Sign
       result =
         complete_email_verification!(
           @user_email.public_id, submitted_code,
-          params.dig(:user_email, :token),
+          email_registration_verification_token,
         ) do |user_email|
           finalize_registered_email!(user_email)
         end
@@ -132,6 +133,17 @@ module Sign
       @user_email.user = target_user if target_user
     end
 
+    def email_registration_params(*permitted_keys)
+      raw_params = params[:user_email].presence || params[:client_email].presence || {}
+      return raw_params.permit(*permitted_keys) if raw_params.respond_to?(:permit)
+
+      ActionController::Parameters.new(raw_params).permit(*permitted_keys)
+    end
+
+    def email_registration_verification_token
+      params.dig(:user_email, :token) || params.dig(:client_email, :token)
+    end
+
     def email_registration_preference_keys
       %i(promotional notifiable)
     end
@@ -144,7 +156,7 @@ module Sign
     end
 
     def current_registration_email
-      user_email = UserEmail.find_by(public_id: session[registration_email_session_key])
+      user_email = ClientEmail.find_by(public_id: session[registration_email_session_key])
       return user_email if user_email.present?
 
       target_user = email_registration_target_user
@@ -152,7 +164,7 @@ module Sign
 
       user_email =
         target_user
-          .user_emails
+          .client_emails
           .where(user_email_status_id: pending_email_status_ids)
           .order(created_at: :desc)
           .first
@@ -244,8 +256,8 @@ module Sign
       user_email.user = target_user
       user_email.save!
 
-      if target_user.status_id == UserStatus::UNVERIFIED_WITH_SIGN_UP
-        target_user.update!(status_id: UserStatus::VERIFIED_WITH_SIGN_UP)
+      if target_user.status_id == ClientStatus::UNVERIFIED_WITH_SIGN_UP
+        target_user.update!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
       end
 
       on_email_registration_verified!(user_email:, target_user:)

@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: visitor_verifications
-# Database name: symbol
+# Database name: com_ticket
 #
 #  id               :bigint           not null, primary key
-#  lapses_at        :datetime         default(Infinity), not null
+#  discarded_at     :datetime         default(Infinity), not null
 #  last_used_at     :datetime
-#  purge_at         :datetime         default(Infinity), not null
+#  purged_at        :datetime         default(Infinity), not null
 #  token_digest     :string           not null
 #  created_at       :datetime         not null
 #  updated_at       :datetime         not null
@@ -40,14 +40,14 @@ class VisitorVerificationTest < ActiveSupport::TestCase
         VisitorVerification.create!(
           visitor_token: @token,
           token_digest: VisitorVerification.digest_token("raw"),
-          lapses_at: 1.hour.from_now,
+          discarded_at: 1.hour.from_now,
           last_used_at: Time.current,
         )
       end
 
     assert_predicate verification, :active?
 
-    verification.update_columns(lapses_at: 1.minute.ago)
+    verification.update_columns(discarded_at: 1.minute.ago)
 
     assert_not verification.active?
   end
@@ -59,7 +59,7 @@ class VisitorVerificationTest < ActiveSupport::TestCase
 
     assert_predicate raw_token, :present?
     assert_predicate replacement, :active?
-    assert_predicate previous.reload.lapses_at, :present?
+    assert_predicate previous.reload.discarded_at, :present?
   end
 
   private

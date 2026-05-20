@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: staff_token_statuses
-# Database name: token
+# Database name: org_ticket
 #
 #  id :bigint           not null, primary key
 #
 
-class OperatorTokenStatus < TokenRecord
+class OperatorTokenStatus < OrgTicketRecord
   self.table_name = "staff_token_statuses"
   include ReferenceRecord
 

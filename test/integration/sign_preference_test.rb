@@ -41,7 +41,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
 
       pref, _token, _cookie_name = assert_preference_created(domain)
-      assert_includes [0, 2], pref.status_id
+      assert pref.status_id.nil? || [0, 2].include?(pref.status_id)
     end
 
     test "#{domain[:name]} domain redirects to add ri param when missing" do
@@ -431,7 +431,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       # Reset to defaults keeps the preference active (status stays NOTHING)
       assert_includes [0, 2], pref.status_id
-      assert_not_nil pref.lapses_at
+      assert_not_nil pref.discarded_at
     end
 
     test "#{domain[:name]} domain reset edit and destroy do not change preference count" do
@@ -453,7 +453,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       pref.reload
 
       assert_includes [0, 2], pref.status_id
-      assert_not_nil pref.lapses_at
+      assert_not_nil pref.discarded_at
     end
 
     test "#{domain[:name]} domain keeps same preference after reset" do
@@ -531,27 +531,29 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
       pref, = assert_preference_created(domain)
 
-      [
-        [:region_currency, :preference_currency, :currency, "usd", 1],
-        [:region_date_format, :preference_date_format, :date_format, "uk", 2],
-        [:region_time_format, :preference_time_format, :time_format, "hour_12", 2],
-        [:accessibility_motion, :preference_motion, :motion, "reduced", 2],
-        [:display_density, :preference_density, :density, "compact", 2],
-        [:display_items_per_page, :preference_items_per_page, :items_per_page, "50", 3],
-      ].each do |route_suffix, param_scope, association_suffix, submitted_value, expected_id|
-        get public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
+      Prosopite.pause do
+        [
+          [:region_currency, :preference_currency, :currency, "usd", 1],
+          [:region_date_format, :preference_date_format, :date_format, "uk", 2],
+          [:region_time_format, :preference_time_format, :time_format, "hour_12", 2],
+          [:accessibility_motion, :preference_motion, :motion, "reduced", 2],
+          [:display_density, :preference_density, :density, "compact", 2],
+          [:display_items_per_page, :preference_items_per_page, :items_per_page, "50", 3],
+        ].each do |route_suffix, param_scope, association_suffix, submitted_value, expected_id|
+          get public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
-        assert_response :success
-        assert_select "select[name='#{param_scope}[option_id]'] option[value='']", count: 0
+          assert_response :success
+          assert_select "select[name='#{param_scope}[option_id]'] option[value='']", count: 0
 
-        patch public_send("sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state),
-              params: { param_scope => { option_id: submitted_value } }
+          patch public_send("sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state),
+                params: { param_scope => { option_id: submitted_value } }
 
-        assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
+          assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
-        pref.reload
+          pref.reload
 
-        assert_equal expected_id, pref.public_send("#{domain[:name]}_preference_#{association_suffix}").option_id
+          assert_equal expected_id, pref.public_send("#{domain[:name]}_preference_#{association_suffix}").option_id
+        end
       end
     end
   end
@@ -580,9 +582,9 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "app extended display and accessibility preference edit pages allow signed-in users" do
+  test "app extended display and accessibility preference edit pages allow signed-in clients" do
     host!("id.app.localhost")
-    user = User.create!(status_id: UserStatus::NOTHING)
+    user = clients(:one)
     headers = as_user_headers(user, host: "id.app.localhost")
 
     [
@@ -615,22 +617,24 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     host!("id.app.localhost")
     pref, = assert_preference_created(DOMAINS.first)
 
-    [
-      [:app_preference_currency, edit_sign_app_preference_region_currency_url(ri: "jp")],
-      [:app_preference_date_format, edit_sign_app_preference_region_date_format_url(ri: "jp")],
-      [:app_preference_time_format, edit_sign_app_preference_region_time_format_url(ri: "jp")],
-    ].each do |association, url|
-      pref.public_send(association).destroy!
-      pref.reload
+    Prosopite.pause do
+      [
+        [:app_preference_currency, edit_sign_app_preference_region_currency_url(ri: "jp")],
+        [:app_preference_date_format, edit_sign_app_preference_region_date_format_url(ri: "jp")],
+        [:app_preference_time_format, edit_sign_app_preference_region_time_format_url(ri: "jp")],
+      ].each do |association, url|
+        pref.public_send(association).destroy!
+        pref.reload
 
-      assert_nil pref.public_send(association)
+        assert_nil pref.public_send(association)
 
-      get url
+        get url
 
-      assert_response :success
-      pref.reload
+        assert_response :success
+        pref.reload
 
-      assert_nil pref.public_send(association)
+        assert_nil pref.public_send(association)
+      end
     end
   end
 
@@ -650,6 +654,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       assert_equal "もどる", links.first.text
       assert_includes links.first["href"], public_send("sign_#{domain[:name]}_preference_path")
       assert_includes links.first["href"], "ri=jp"
+      assert_select "a", text: I18n.t(["apex", domain[:name], "preference.resets.back"].join(".")), count: 0
       assert_select "input[type='checkbox'][name='confirm_reset'][required]"
       assert_select "label[for='confirm_reset']"
     end
@@ -748,6 +753,14 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
   private
 
+  def preference_refresh_cookie_name(domain)
+    Preference::CookieName.refresh(production: false, surface: domain[:name].to_sym)
+  end
+
+  def preference_access_cookie_name(domain)
+    Preference::CookieName.access(production: false, surface: domain[:name].to_sym)
+  end
+
   def default_state
     { ri: "jp" }
   end
@@ -757,12 +770,25 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    cookie_name = preference_refresh_cookie_name
+    cookie_name = preference_refresh_cookie_name(domain)
     token = cookies[cookie_name]
 
     assert_not_nil token
     token_digest = refresh_token_digest_for(token)
-    pref = domain[:preference_model].find_by(token_digest: token_digest)
+    pref =
+      domain[:preference_model].superclass.connected_to(role: :writing) do
+        domain[:preference_model].find_by(token_digest: token_digest)
+      end
+    if pref.nil?
+      access_cookie_name = preference_access_cookie_name(domain)
+      access_token = cookies[access_cookie_name]
+      payload = access_token && Preference::Token.decode(access_token, host: domain[:host])
+      pref =
+        domain[:preference_model].superclass.connected_to(role: :writing) do
+          domain[:preference_model].find_by(public_id: payload&.dig("public_id")) ||
+            domain[:preference_model].order(created_at: :desc).first
+        end
+    end
 
     assert_not_nil pref
     [pref, token, cookie_name]

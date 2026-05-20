@@ -8,11 +8,11 @@
 #  actor_type     :text             default(""), not null
 #  context        :jsonb            not null
 #  current_value  :text             default(""), not null
+#  discarded_at   :datetime         default(Infinity), not null
 #  ip_address     :inet             default(#<IPAddr: IPv4:0.0.0.0/255.255.255.255>), not null
-#  lapses_at      :datetime         default(Infinity), not null
 #  occurred_at    :datetime         not null
 #  previous_value :text             default(""), not null
-#  purge_at       :datetime         not null
+#  purged_at      :datetime         not null
 #  subject_type   :text             not null
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
@@ -28,7 +28,7 @@
 #  index_com_preference_chronicles_on_event_id                  (event_id)
 #  index_com_preference_chronicles_on_level_id                  (level_id)
 #  index_com_preference_chronicles_on_occurred_at               (occurred_at)
-#  index_com_preference_chronicles_on_purge_at                  (purge_at)
+#  index_com_preference_chronicles_on_purged_at                 (purged_at)
 #  index_com_preference_chronicles_on_subject_id                (subject_id)
 #
 # Foreign Keys

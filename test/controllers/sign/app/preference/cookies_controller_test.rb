@@ -10,13 +10,13 @@ module Sign
       class CookiesControllerTest < ActionDispatch::IntegrationTest
         include PreferenceJwtHelper
 
-        fixtures :users, :user_preferences,
+        fixtures :clients, :client_preferences,
                  :app_preference_theme_options, :app_preferences,
                  :app_preference_cookies
 
         setup do
           @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-          @user = users(:one)
+          @user = clients(:one)
           host! @host
         end
 

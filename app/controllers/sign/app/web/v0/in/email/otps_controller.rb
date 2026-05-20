@@ -7,7 +7,7 @@ module Sign
       module V0
         module In
           module Email
-            class OtpsController < ApplicationController
+            class OtpsController < Sign::App::In::GuestController
               def create
                 result = Sign::In::OtpResendService.new(kind: :email, state: otp_params[:state]).call
                 render_result(result)

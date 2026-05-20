@@ -1,0 +1,57 @@
+# == Schema Information
+#
+# Table name: visitors
+# Database name: com_principal
+#
+#  id                     :bigint           not null, primary key
+#  birthdate              :text
+#  deactivated_at         :datetime
+#  discarded_at           :datetime         default(Infinity), not null
+#  lock_version           :integer          default(0), not null
+#  multi_factor_enabled   :boolean          default(FALSE), not null
+#  purged_at              :datetime         default(Infinity), not null
+#  terminated_at          :datetime
+#  withdrawal_started_at  :datetime
+#  withdrawn_at           :datetime         default(Infinity)
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  multi_factor_id        :bigint           default(0), not null
+#  multi_factor_status_id :bigint           default(5), not null
+#  public_id              :string           default(""), not null
+#  status_id              :bigint           default(2), not null
+#  visibility_id          :bigint           default(1), not null
+#
+# Indexes
+#
+#  index_visitors_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_visitors_on_discarded_at            (discarded_at)
+#  index_visitors_on_multi_factor_id         (multi_factor_id)
+#  index_visitors_on_multi_factor_status_id  (multi_factor_status_id)
+#  index_visitors_on_public_id               (public_id) UNIQUE
+#  index_visitors_on_purged_at               (purged_at)
+#  index_visitors_on_status_id               (status_id)
+#  index_visitors_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_visitors_on_visibility_id           (visibility_id)
+#  index_visitors_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_visitors_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (multi_factor_id => visitor_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => visitor_multi_factor_statuses.id)
+#  fk_rails_...  (status_id => visitor_statuses.id)
+#  fk_rails_...  (visibility_id => visitor_visibilities.id)
+#
+_fixture:
+  model_class: Visitor
+
+reserved_visitor:
+  status_id: <%= VisitorStatus::ACTIVE %>
+  visibility_id: <%= VisitorVisibility::VISITOR %>
+  multi_factor_id: <%= VisitorMultiFactor::NOTHING %>
+  multi_factor_status_id: <%= VisitorMultiFactorStatus::UNCONFIGURED %>
+  public_id: "reserved_visitor"
+  discarded_at: <%= 20.years.from_now %>
+  purged_at: <%= 20.years.from_now %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

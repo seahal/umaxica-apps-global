@@ -5,9 +5,7 @@ module Sign
   module Org
     module Configuration
       module Emails
-        class RegistrationsController < ::Sign::Org::ApplicationController
-          auth_required!
-
+        class RegistrationsController < ::Sign::Org::PrivateController
           include ::CloudflareTurnstile
           include ::Common::Otp
           include ::Verification::Operator
@@ -30,7 +28,7 @@ module Sign
           end
 
           def create
-            email_params = params.expect(staff_email: %i(raw_address address notifiable))
+            email_params = params(staff_email: %i(raw_address address notifiable))
             email_address = email_params[:raw_address] || email_params[:address]
             email_preferences = email_params.slice(:notifiable)
             @staff_email = current_operator.staff_emails.build(
@@ -50,8 +48,8 @@ module Sign
               return
             end
 
-            Email::App::RegistrationMailer.with(
-              hotp_token: otp_code,
+            Email::Org::OtpMailer.with(
+              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),
               email_address: @staff_email.address,
               verification_token: nil,
               public_id: @staff_email.public_id,

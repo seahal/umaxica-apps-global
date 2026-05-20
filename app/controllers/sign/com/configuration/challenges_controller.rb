@@ -4,10 +4,8 @@
 module Sign
   module Com
     module Configuration
-      class ChallengesController < ApplicationController
-        auth_required!
-
-        include ::Verification::User
+      class ChallengesController < PrivateController
+        include ::Verification::Visitor
 
         before_action :authenticate_visitor!
 
@@ -22,9 +20,10 @@ module Sign
 
         def update
           multi_factor_id = requested_multi_factor_id
-          current_visitor.multi_factor_id = multi_factor_id
-          current_visitor.multi_factor_enabled = multi_factor_id != VisitorMultiFactor::NOTHING
-          current_visitor.save!
+          visitor = Visitor.find(current_visitor.id)
+          visitor.multi_factor_id = multi_factor_id
+          visitor.multi_factor_enabled = multi_factor_id != VisitorMultiFactor::NOTHING
+          visitor.save!
 
           redirect_to(
             sign_com_configuration_challenge_path(ri: params[:ri]),
@@ -47,7 +46,8 @@ module Sign
         end
 
         def requested_multi_factor_id
-          multi_factor_id = Integer(params.dig(:user, :multi_factor_id).to_s, 10)
+          user_params = params.fetch(:user, {})
+          multi_factor_id = Integer(user_params[:multi_factor_id].to_s, 10)
           return multi_factor_id if [VisitorMultiFactor::NOTHING, VisitorMultiFactor::FULL].include?(multi_factor_id)
 
           raise ArgumentError, "unsupported multi factor level"

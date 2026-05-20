@@ -51,12 +51,12 @@ module Preference
     }.freeze
 
     PREFIXES = {
-      "App" => { base: "PrincipalRecord", parent: "AppPreference" },
-      "User" => { base: "PrincipalRecord", parent: "UserPreference" },
-      "Org" => { base: "OperatorRecord", parent: "OrgPreference" },
-      "Operator" => { base: "OperatorRecord", parent: "OperatorPreference", table_prefix: "staff" },
-      "Com" => { base: "SettingRecord", parent: "ComPreference" },
-      "Visitor" => { base: "SettingRecord", parent: "VisitorPreference" },
+      "App" => { base: AppSettingRecord, parent: AppPreference },
+      "Client" => { base: AppPrincipalRecord, parent: ClientPreference, table_prefix: "user" },
+      "Org" => { base: OrgSettingRecord, parent: OrgPreference },
+      "Operator" => { base: OrgPrincipalRecord, parent: OperatorPreference, table_prefix: "staff" },
+      "Com" => { base: ComSettingRecord, parent: ComPreference },
+      "Visitor" => { base: ComPrincipalRecord, parent: VisitorPreference },
     }.freeze
 
     def install!
@@ -73,7 +73,7 @@ module Preference
       class_name = "#{prefix}Preference#{metadata.fetch(:suffix)}Option"
       return if Object.const_defined?(class_name)
 
-      base_class = Object.const_get(config.fetch(:base))
+      base_class = config.fetch(:base)
       child_class_name = "#{prefix}Preference#{metadata.fetch(:suffix)}"
       child_association = "#{prefix.underscore}_preference_#{metadata.fetch(:plural)}"
       table_prefix = config.fetch(:table_prefix, prefix.underscore)
@@ -102,7 +102,7 @@ module Preference
           const_set(:DEFAULTS, constants.values.freeze)
 
           define_singleton_method(:ensure_defaults!) do
-            insert_missing_fixed_ids!(const_get(:DEFAULTS))
+            insert_missing_fixed_ids!(constants.values)
           end
         end
 
@@ -113,33 +113,31 @@ module Preference
       class_name = "#{prefix}Preference#{metadata.fetch(:suffix)}"
       return if Object.const_defined?(class_name)
 
-      base_class = Object.const_get(config.fetch(:base))
-      parent_class_name = config.fetch(:parent)
+      base_class = config.fetch(:base)
+      parent_class = config.fetch(:parent)
       option_class_name = "#{prefix}Preference#{metadata.fetch(:suffix)}Option"
+      default_option_id = metadata.fetch(:constants).fetch(metadata.fetch(:default))
       child_association = "#{prefix.underscore}_preference_#{type}"
       option_association = "#{prefix.underscore}_preference_#{metadata.fetch(:plural)}"
       table_prefix = config.fetch(:table_prefix, prefix.underscore)
       table_name = "#{table_prefix}_preference_#{metadata.fetch(:plural)}"
-      default_constant = metadata.fetch(:default)
 
       record_class =
         Class.new(base_class) do
           self.table_name = table_name
 
           belongs_to :preference,
-                     class_name: parent_class_name,
+                     class_name: parent_class.name,
                      inverse_of: child_association.to_sym
           belongs_to :option,
                      class_name: option_class_name,
-                     inverse_of: option_association.to_sym,
-                     optional: true
+                     inverse_of: option_association.to_sym
 
           validates :preference_id, uniqueness: true
-          validates :option_id, presence: true
           before_validation :set_option_id
 
           define_method(:set_option_id) do
-            self.option_id ||= Object.const_get(option_class_name).const_get(default_constant)
+            self.option_id ||= default_option_id
           end
 
           private :set_option_id
@@ -149,7 +147,7 @@ module Preference
     end
 
     def define_parent_association(prefix, config, type, metadata)
-      parent_class = Object.const_get(config.fetch(:parent))
+      parent_class = config.fetch(:parent)
       association = :"#{prefix.underscore}_preference_#{type}"
       return if parent_class.reflect_on_association(association)
 

@@ -1,9 +1,32 @@
+# Auto-generated minimal fixture
 # == Schema Information
 #
-# Table name: client_statuses
-# Database name: principal
+# Table name: user_statuses
+# Database name: app_principal
 #
 #  id :bigint           not null, primary key
 #
-default:
+nothing:
+  id: 11
+active:
   id: 1
+deleted:
+  id: 4
+ghost:
+  id: 12
+reserved:
+  id: 13
+inactive:
+  id: 2
+pending:
+  id: 3
+pending_deletion:
+  id: 6
+pre_withdrawal_condition:
+  id: 7
+unverified_with_sign_up:
+  id: 9
+verified_with_sign_up:
+  id: 10
+withdrawn:
+  id: 5

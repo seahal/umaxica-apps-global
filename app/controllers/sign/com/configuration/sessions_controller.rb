@@ -4,54 +4,27 @@
 module Sign
   module Com
     module Configuration
-      class SessionsController < ApplicationController
-        auth_required!
+      class SessionsController < PrivateController
+        include Sign::Configuration::SessionManagement
 
         before_action :authenticate_visitor!
-        before_action :set_session, only: %i(destroy)
-
-        def index
-          @sessions = visible_sessions.order(created_at: :desc)
-
-          respond_to do |format|
-            format.html
-            format.json do
-              render json: { sessions: @sessions.map { |s| { public_id: s.public_id, created_at: s.created_at } } }
-            end
-          end
-        end
-
-        def destroy
-          return render_current_session_error if @session.public_id == current_session_public_id
-
-          revoke_sessions!([@session])
-          render_revoke_success
-        end
-
-        def others
-          revoke_sessions!(other_active_sessions)
-          render_revoke_success
-        end
-
-        def revoke_all
-          return if require_step_up!(scope: "session_revoke_all") == false
-
-          sessions = visible_sessions.to_a
-          revoke_sessions!(sessions)
-          Rails.event.notify(
-            "security.session_revoke_all",
-            actor_type: current_resource.class.name,
-            actor_id: current_resource.id,
-            session_count: sessions.length,
-          )
-          log_out
-          render_revoke_all_success
-        end
 
         private
 
         def visible_sessions
           current_visitor.visitor_tokens.session_inventory
+        end
+
+        def session_owner
+          current_visitor
+        end
+
+        def revoke_all_reason
+          "com_visitor_logout_all_sessions"
+        end
+
+        def session_status_association
+          :visitor_token_status
         end
 
         def render_revoke_success
@@ -70,34 +43,11 @@ module Sign
           )
         end
 
-        def other_active_sessions
-          sessions = visible_sessions
-          return sessions if current_session_public_id.blank?
-
-          sessions.where.not(public_id: current_session_public_id)
-        end
-
-        def revoke_sessions!(sessions)
-          if sessions.respond_to?(:find_each)
-            sessions.find_each(&:revoke!)
-          else
-            sessions.each(&:revoke!)
-          end
-        end
-
         def render_current_session_error
           redirect_to(
             sign_com_configuration_sessions_path(ri: params[:ri]),
             alert: t("sign.app.configuration.sessions.revoke.failure"),
           )
-        end
-
-        def set_session
-          @session = visible_sessions.find_by(public_id: params[:id])
-          return if @session
-
-          head :not_found
-          nil
         end
       end
     end

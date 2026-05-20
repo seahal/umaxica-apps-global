@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_emails
-# Database name: guest
+# Database name: com_principal
 #
 #  id                        :bigint           not null, primary key
 #  address                   :string           default(""), not null
@@ -29,7 +29,6 @@
 # Indexes
 #
 #  index_visitor_emails_on_address_digest           (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
-#  index_visitor_emails_on_lower_address            (lower((address)::text)) UNIQUE
 #  index_visitor_emails_on_otp_last_sent_at         (otp_last_sent_at)
 #  index_visitor_emails_on_public_id                (public_id) UNIQUE
 #  index_visitor_emails_on_visitor_email_status_id  (visitor_email_status_id)
@@ -40,7 +39,7 @@
 #  fk_rails_...  (visitor_email_status_id => visitor_email_statuses.id)
 #  fk_rails_...  (visitor_id => visitors.id)
 #
-class VisitorEmail < GuestRecord
+class VisitorEmail < ComPrincipalRecord
   include PublicId
   include Email
   include MultiFactorStatusCredential
@@ -54,7 +53,7 @@ class VisitorEmail < GuestRecord
 
   belongs_to :visitor, inverse_of: :visitor_emails
   multi_factor_status_owner :visitor
-  belongs_to :visitor_email_status, optional: true, inverse_of: :visitor_emails
+  belongs_to :visitor_email_status, inverse_of: :visitor_emails
 
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
@@ -99,7 +98,9 @@ class VisitorEmail < GuestRecord
 
   def ensure_unique_address_digest
     return if address_digest.blank?
-    return unless self.class.where(address_digest: address_digest).where.not(id: id).exists?
+
+    operation = -> { self.class.where(address_digest: address_digest).where.not(id: id).exists? }
+    return unless defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
 
     errors.add(:address, :taken)
   end
@@ -107,7 +108,13 @@ class VisitorEmail < GuestRecord
   def enforce_visitor_email_limit
     return unless visitor_id
 
-    count = self.class.where(visitor_id: visitor_id).count
+    count =
+      if visitor&.visitor_emails&.loaded?
+        visitor.visitor_emails.count { |email| email != self }
+      else
+        operation = -> { self.class.where(visitor_id: visitor_id).count }
+        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
+      end
     return if count < MAX_EMAILS_PER_VISITOR
 
     errors.add(:base, :too_many, message: "exceeds maximum emails per visitor (#{MAX_EMAILS_PER_VISITOR})")

@@ -16,6 +16,7 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
     )
     @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_telephone")
   end
 
   def request_headers
@@ -51,7 +52,7 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
   end
 
   test "create registers telephone" do
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("VisitorTelephone.count", 1) do
         post sign_com_configuration_telephones_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000028" } },
@@ -71,7 +72,7 @@ class Sign::Com::Configuration::TelephonesControllerTest < ActionDispatch::Integ
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_no_difference("VisitorTelephone.count") do
         post sign_com_configuration_telephones_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000029" } },

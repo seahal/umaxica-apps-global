@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: visitor_email_statuses
-# Database name: guest
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
-class VisitorEmailStatus < GuestRecord
+class VisitorEmailStatus < ComPrincipalRecord
   include ReferenceRecord
 
   UNVERIFIED = 1

@@ -115,12 +115,14 @@ end
 # ---------------------------------------------------------------------------
 
 class RateLimitConcernTest < ActionDispatch::IntegrationTest
+  self.fixture_table_names = []
+
   setup do
-    RateLimit.store.clear
+    clear_rate_limit_stores
   end
 
   teardown do
-    RateLimit.store.clear
+    clear_rate_limit_stores
   end
 
   test "rails rate limiter returns 429 with layer headers and i18n message" do
@@ -289,5 +291,10 @@ class RateLimitConcernTest < ActionDispatch::IntegrationTest
 
       yield
     end
+  end
+
+  def clear_rate_limit_stores
+    registry = RateLimit.const_get(:STORE_REGISTRY) # rubocop:disable Sorbet/ConstantsFromStrings
+    ([RateLimit.store] + registry.values).uniq.each(&:clear)
   end
 end

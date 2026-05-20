@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: org_preference_statuses
-# Database name: operator
+# Database name: org_setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class OrgPreferenceStatus < OperatorRecord
+class OrgPreferenceStatus < OrgSettingRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

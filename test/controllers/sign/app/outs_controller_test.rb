@@ -1,0 +1,240 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :clients, :client_statuses, :client_chronicle_events, :client_chronicle_levels
+
+  setup do
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @user = clients(:one)
+    @host = ENV["ID_SERVICE_URL"] || "id.app.localhost"
+
+    ChronicleRecord.connected_to(role: :writing) do
+      ClientChronicle.delete_all
+    end
+  end
+
+  test "should get edit raises error without session" do
+    get edit_sign_app_out_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :redirect
+
+    rt = Base64.urlsafe_encode64(edit_sign_app_out_url(ri: "jp", host: @host))
+
+    assert_redirected_to new_sign_app_in_url(rt: rt, host: @host)
+  end
+
+  test "should show up link on edit page" do
+    get edit_sign_app_out_url(ri: "jp"),
+        headers: { "Host" => @host, "X-TEST-CURRENT-USER" => @user.id }
+
+    assert_response :success
+    assert_select "a[href=?]", sign_app_configuration_path(ri: "jp")
+  end
+
+  test "edit page renders a direct logout form" do
+    get edit_sign_app_out_url(ri: "jp"),
+        headers: { "Host" => @host, "X-TEST-CURRENT-USER" => @user.id }
+
+    assert_response :success
+    assert_select "form[action=?][method=?][data-turbo=?]", sign_app_out_path(ri: "jp"), "post", "false" do
+      assert_select "input[name=?][value=?]", "_method", "delete", count: 0
+      assert_select "input[type=?][name=?][value=?]", "hidden", "confirm", "1", count: 1
+      assert_select "button[type=?]", "submit", text: /#{Regexp.escape(I18n.t("sign.shared.sign_out.button"))}/
+    end
+  end
+
+  test "uses shared logout concern" do
+    assert_includes Sign::App::OutsController.included_modules, Authentication::Logoutable
+  end
+
+  test "create without confirmation redirects back to logout confirmation" do
+    post sign_app_out_url(ri: "jp"),
+         headers: { "Host" => @host, "X-TEST-CURRENT-USER" => @user.id },
+         params: { confirm: "0" }
+
+    assert_redirected_to edit_sign_app_out_path(ri: "jp")
+    assert_equal I18n.t("views.sign.app.configuration.outs.edit.confirm_label"), flash[:alert]
+  end
+
+  test "create logs out with confirmed user session" do
+    token = ClientToken.create!(user: @user)
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    post sign_app_out_url(ri: "jp"),
+         headers: { "Host" => @host,
+                    "X-TEST-CURRENT-USER" => @user.id,
+                    "X-TEST-SESSION-PUBLIC-ID" => token.public_id, },
+         params: { confirm: "1" }
+
+    assert_response :see_other
+    assert_redirected_to sign_app_signed_out_path(ri: "jp")
+    assert_equal I18n.t("sign.shared.sign_out.success"), flash[:notice]
+    assert_predicate token.reload, :revoked?
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+  end
+
+  test "signed out page requires a fresh logout notice" do
+    get sign_app_signed_out_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_redirected_to sign_app_root_path(ri: "jp")
+  end
+
+  test "signed out page rejects an expired logout notice" do
+    get sign_app_root_url(ri: "jp"), headers: { "Host" => @host }
+    session[:sign_out_notice] = {
+      "expires_at" => 1.minute.ago.iso8601,
+      "remaining_views" => 1,
+    }
+
+    get sign_app_signed_out_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_redirected_to sign_app_root_path(ri: "jp")
+  end
+
+  test "should destroy raises error without session" do
+    delete sign_app_out_url(ri: "jp"), headers: { "Host" => @host }
+
+    rt = Base64.urlsafe_encode64(sign_app_out_url(ri: "jp", host: @host))
+
+    assert_redirected_to new_sign_app_in_url(rt: rt, host: @host)
+  end
+
+  test "should destroy with user session even without step-up verification" do
+    token = ClientToken.create!(user: @user)
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    delete sign_app_out_url(ri: "jp"),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-USER" => @user.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+
+    assert_response :see_other
+    assert_redirected_to sign_app_signed_out_path(ri: "jp")
+    assert_equal I18n.t("sign.shared.sign_out.success"), flash[:notice]
+    assert_predicate token.reload, :revoked?
+  end
+
+  test "signed out page is shown only once after destroy" do
+    token = ClientToken.create!(user: @user)
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    delete sign_app_out_url(ri: "jp"),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-USER" => @user.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+
+    get sign_app_signed_out_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_redirected_to sign_app_root_path(ri: "jp")
+  end
+
+  test "destroy resets rails session id to prevent session fixation" do
+    token = ClientToken.create!(user: @user)
+    token.rotate_refresh_token!
+
+    get edit_sign_app_out_url(ri: "jp"),
+        headers: { "Host" => @host,
+                   "X-TEST-CURRENT-USER" => @user.id,
+                   "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+    session[:sign_out_fixation_probe] = "attacker-controlled"
+    old_session_id = session.id
+
+    delete sign_app_out_url(ri: "jp"),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-USER" => @user.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+
+    assert_redirected_to sign_app_signed_out_path(ri: "jp")
+    assert_not_nil old_session_id
+    assert_not_nil session.id
+    assert_not_equal old_session_id, session.id
+    assert_nil session[:sign_out_fixation_probe]
+    assert_predicate token.reload, :revoked?
+  end
+
+  test "destroy records logout activity" do
+    token = ClientToken.create!(user: @user)
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::LOGGED_OUT).count }, 1 do
+      assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::LOGOUT).count } do
+        delete sign_app_out_url(ri: "jp"),
+               headers: { "Host" => @host,
+                          "X-TEST-CURRENT-USER" => @user.id,
+                          "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+      end
+    end
+
+    audit = ClientChronicle.find_by!(
+      event_id: ClientChronicleEvent::LOGGED_OUT,
+      subject_id: @user.id,
+      subject_type: "Client",
+    )
+
+    assert_equal @user.id, audit.actor_id
+    assert_equal "Client", audit.actor_type
+  end
+
+  # Regression: ordinary logout must revoke ONLY the current session's
+  # token. A previous refactor accidentally routed logout through
+  # Oidc::SingleLogoutService, which revokes every active token for the
+  # user (i.e. every device). Sign-out on one browser must not sign the
+  # user out on every other device.
+  test "destroy revokes only the current session token and leaves other devices signed in" do
+    current_token = ClientToken.create!(user: @user)
+    other_token = ClientToken.create!(user: @user)
+    refresh_plain = current_token.rotate_refresh_token!
+    other_token.rotate_refresh_token!
+
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    delete sign_app_out_url(ri: "jp"),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-USER" => @user.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => current_token.public_id, }
+
+    assert_response :see_other
+    assert_redirected_to sign_app_signed_out_path(ri: "jp")
+    assert_predicate current_token.reload, :revoked?,
+                     "current session token must be revoked"
+    assert_not other_token.reload.revoked?,
+               "another device's token must remain active after a single-browser logout"
+  end
+
+  test "logout clears all auth cookies" do
+    token = ClientToken.create!(user: @user)
+    refresh_plain = token.rotate_refresh_token!
+
+    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "test_access_token"
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[Authentication::Base::DBSC_COOKIE_KEY] = "test_dbsc_value"
+
+    delete sign_app_out_url(ri: "jp"),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-USER" => @user.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+
+    assert_redirected_to sign_app_signed_out_path(ri: "jp")
+
+    # All auth cookies must be cleared after logout
+    assert_empty cookies[Authentication::Base::ACCESS_COOKIE_KEY].to_s
+    assert_empty cookies[Authentication::Base::REFRESH_COOKIE_KEY].to_s
+    assert_empty cookies[Authentication::Base::DBSC_COOKIE_KEY].to_s
+  end
+end

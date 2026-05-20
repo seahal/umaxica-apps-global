@@ -22,7 +22,6 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
 
   # This controller handles session management for both authenticated staff
   # and staff who are in the process of logging in (with a pending gate).
-  # Override the default guest_only! policy to allow access.
   public_strict!
 
   # For show/update/destroy, staff must be logged in (even if restricted)
@@ -57,6 +56,15 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
 
     # Check if we can promote restricted session to active
     if current_session_restricted? && can_promote_session?(@current_operator)
+      if promote_current_session_limit_cycle!(@current_operator)
+        consume_session_limit_gate!
+        session.delete(:pending_login_staff_id)
+        return redirect_to_sign_in_sequence!(
+          rt: retrieve_redirect_parameter.presence || session_limit_return_to,
+          notice: I18n.t("session_limit.promoted"),
+        )
+      end
+
       promote_current_session!
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
@@ -154,7 +162,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   def can_promote_session?(staff)
     # Can promote if active session count is below limit
     active_count =
-      TokenRecord.connected_to(role: :writing) do
+      OrgTicketRecord.connected_to(role: :writing) do
         OperatorToken.active_status.where(staff_id: staff.id).count
       end
     active_count < OperatorToken::MAX_SESSIONS_PER_STAFF
@@ -163,7 +171,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   def promote_current_session!
     return unless current_session&.restricted?
 
-    TokenRecord.connected_to(role: :writing) do
+    OrgTicketRecord.connected_to(role: :writing) do
       current_session.promote_to_active!
     end
     @current_session = nil # Clear cached session
@@ -182,7 +190,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
       return
     end
 
-    TokenRecord.connected_to(role: :writing) do
+    OrgTicketRecord.connected_to(role: :writing) do
       token.revoke!
     end
 
@@ -192,7 +200,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   def revoke_sessions_by_refs(staff, refs)
     revoked_count = 0
 
-    TokenRecord.connected_to(role: :writing) do
+    OrgTicketRecord.connected_to(role: :writing) do
       OperatorToken.transaction do
         OperatorToken.find_from_signed_refs(refs).each do |token|
           next unless token && token.staff_id == staff.id

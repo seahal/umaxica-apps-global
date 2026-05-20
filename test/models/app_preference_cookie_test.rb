@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: app_preference_cookies
-# Database name: principal
+# Database name: app_setting
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid

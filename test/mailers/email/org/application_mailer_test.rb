@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable Rails/I18nLocaleTexts
+
 require "test_helper"
 
 class Email::Org::ApplicationMailerTest < ActionMailer::TestCase
@@ -38,7 +40,7 @@ class Email::Org::ApplicationMailerTest < ActionMailer::TestCase
   end
 
   test "sets promotional unsubscribe headers when requested" do
-    operator = staffs(:one)
+    operator = operators(:one)
     email_record = OperatorEmail.create!(
       staff: operator,
       address: "mailer-operator-#{SecureRandom.hex(4)}@example.com",
@@ -67,3 +69,5 @@ class Email::Org::ApplicationMailerTest < ActionMailer::TestCase
     assert_equal "List-Unsubscribe=One-Click", email["List-Unsubscribe-Post"].value
   end
 end
+
+# rubocop:enable Rails/I18nLocaleTexts

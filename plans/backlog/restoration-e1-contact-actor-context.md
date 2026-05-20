@@ -4,8 +4,8 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/notes/contact-auth-shared-contract.md`
-- `adr/notes/contact-auth-integration.md`
+- `notes/contact-auth-shared-contract.md`
+- `notes/contact-auth-integration.md`
 
 ## Goal
 

@@ -4,34 +4,37 @@
 module CloudflareTurnstile
   extend ActiveSupport::Concern
 
-  # Test helper for mocking Turnstile responses in tests
+  VALIDATION_OVERRIDE_ENABLED = Concurrent::AtomicReference.new(false)
+  VALIDATION_OVERRIDE_RESPONSE = Concurrent::AtomicReference.new
 
   class << self
-    def test_mode
-      Thread.current[:cloudflare_turnstile_test_mode]
+    def validation_override_enabled
+      VALIDATION_OVERRIDE_ENABLED.value
     end
 
-    def test_mode=(value)
-      Thread.current[:cloudflare_turnstile_test_mode] = value
+    def validation_override_enabled=(value)
+      VALIDATION_OVERRIDE_ENABLED.value = value
     end
 
-    def test_validation_response
-      Thread.current[:cloudflare_turnstile_test_validation_response]
+    def validation_override_response
+      VALIDATION_OVERRIDE_RESPONSE.value
     end
 
-    def test_validation_response=(value)
-      Thread.current[:cloudflare_turnstile_test_validation_response] = value
+    def validation_override_response=(value)
+      VALIDATION_OVERRIDE_RESPONSE.value = value
     end
+
+    alias_method :test_mode, :validation_override_enabled
+    alias_method :test_mode=, :validation_override_enabled=
+    alias_method :test_validation_response, :validation_override_response
+    alias_method :test_validation_response=, :validation_override_response=
   end
 
   private
 
   def cloudflare_turnstile_validation
-    # In test mode, return the mock response
-    if CloudflareTurnstile.test_mode
-      Jit::Security::TurnstileVerifier.test_mode = true
-      Jit::Security::TurnstileVerifier.test_response = CloudflareTurnstile.test_validation_response
-      return CloudflareTurnstile.test_validation_response || { "success" => true }
+    if CloudflareTurnstile.validation_override_enabled
+      return CloudflareTurnstile.validation_override_response || { "success" => true }
     end
 
     Jit::Security::TurnstileVerifier.verify(
@@ -42,11 +45,8 @@ module CloudflareTurnstile
   end
 
   def cloudflare_turnstile_stealth_validation
-    # In test mode, return the mock response
-    if CloudflareTurnstile.test_mode
-      Jit::Security::TurnstileVerifier.test_mode = true
-      Jit::Security::TurnstileVerifier.test_response = CloudflareTurnstile.test_validation_response
-      return CloudflareTurnstile.test_validation_response || { "success" => true }
+    if CloudflareTurnstile.validation_override_enabled
+      return CloudflareTurnstile.validation_override_response || { "success" => true }
     end
 
     Jit::Security::TurnstileVerifier.verify(

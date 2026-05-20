@@ -3,9 +3,7 @@
 
 module Sign
   module App
-    class UpsController < ApplicationController
-      guest_only! status: :unauthorized
-
+    class UpsController < Up::GuestController
       def new
       end
     end

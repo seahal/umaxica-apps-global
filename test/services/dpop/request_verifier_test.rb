@@ -12,7 +12,7 @@ module Dpop
     end
 
     def build_proof(private_key, jwk, method:, uri:)
-      payload = { "htm" => method, "htu" => uri, "iat" => Time.current.to_i }
+      payload = { "htm" => method, "htu" => uri, "iat" => Time.current.to_i, "jti" => SecureRandom.uuid }
       JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
     end
 

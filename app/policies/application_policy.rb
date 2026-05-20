@@ -56,7 +56,7 @@ class ApplicationPolicy < ActionPolicy::Base
   def jwt_scopes
     return [] if current_token.blank?
 
-    Auth::TokenClaims.scopes(current_token)
+    Authorization::TokenClaims.scopes(current_token)
   end
 
   # Check if the user has a specific scope
@@ -92,7 +92,7 @@ class ApplicationPolicy < ActionPolicy::Base
   def jwt_subject
     return nil if current_token.blank?
 
-    Auth::TokenClaims.subject(current_token)
+    Authorization::TokenClaims.subject(current_token)
   end
 
   # Check if current token is for specific domain
@@ -115,7 +115,7 @@ class ApplicationPolicy < ActionPolicy::Base
     return jwt_subject.to_s == user.id.to_s if record.blank?
     return true if same_user_record?
 
-    if user.is_a?(User) && record.respond_to?(:user_id)
+    if user.is_a?(Client) && record.respond_to?(:user_id)
       record.user_id == user.id
     elsif user.is_a?(Operator) && record.respond_to?(:staff_id)
       record.staff_id == user.id
@@ -131,7 +131,7 @@ class ApplicationPolicy < ActionPolicy::Base
   end
 
   def same_user_record_type?
-    (user.is_a?(User) && record.is_a?(User)) ||
+    (user.is_a?(Client) && record.is_a?(Client)) ||
       (user.is_a?(Operator) && record.is_a?(Operator)) ||
       (defined?(Visitor) && user.is_a?(Visitor) && record.is_a?(Visitor))
   end
@@ -175,6 +175,6 @@ class ApplicationPolicy < ActionPolicy::Base
   end
 
   def current_token
-    Actor.token
+    Actor.authentication.access_claims
   end
 end

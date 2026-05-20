@@ -4,8 +4,7 @@
 module Sign
   module Org
     module Preference
-      class ThemesController < ApplicationController
-        public_strict!
+      class ThemesController < PreferencesBaseController
         include ::Preference::SignScreenActions
 
         preference_screen :theme

@@ -10,32 +10,31 @@ module Jit
   module Security
     class TurnstileVerifier
       VERIFY_URI = URI("https://challenges.cloudflare.com/turnstile/v0/siteverify").freeze
-
-      # Configuration for testing
+      TEST_MODE = Concurrent::AtomicReference.new(false)
+      TEST_RESPONSE = Concurrent::AtomicReference.new
 
       class << self
         def test_mode
-          Thread.current[:turnstile_verifier_test_mode]
+          TEST_MODE.value
         end
 
         def test_mode=(value)
-          Thread.current[:turnstile_verifier_test_mode] = value
+          TEST_MODE.value = value
         end
 
         def test_response
-          Thread.current[:turnstile_verifier_test_response]
+          TEST_RESPONSE.value
         end
 
         def test_response=(value)
-          Thread.current[:turnstile_verifier_test_response] = value
-        end
-
-        def test_mode?
-          test_mode == true
+          TEST_RESPONSE.value = value
         end
       end
 
       def self.verify(token:, remote_ip:, secret_key: nil, mode: nil)
+        return test_response if test_response.present?
+        return { "success" => true } if test_mode
+
         new(token: token, remote_ip: remote_ip, secret_key: secret_key, mode: mode).verify
       end
 
@@ -47,11 +46,6 @@ module Jit
       end
 
       def verify
-        # Check test mode
-        if self.class.test_mode? || self.class.test_response
-          return self.class.test_response || { "success" => true }
-        end
-
         return failure("missing cf-turnstile-response") if @token.blank?
 
         if @secret_key.blank?

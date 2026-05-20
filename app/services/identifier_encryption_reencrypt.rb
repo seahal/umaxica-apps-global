@@ -12,8 +12,8 @@ class IdentifierEncryptionReencrypt
   )
 
   MODELS = [
-    UserEmail,
-    UserTelephone,
+    ClientEmail,
+    ClientTelephone,
     OperatorEmail,
     OperatorTelephone,
     VisitorEmail,
@@ -32,8 +32,8 @@ class IdentifierEncryptionReencrypt
     end
 
     Result.new(
-      user_emails_reencrypted: counts["UserEmail"],
-      user_telephones_reencrypted: counts["UserTelephone"],
+      user_emails_reencrypted: counts["ClientEmail"],
+      user_telephones_reencrypted: counts["ClientTelephone"],
       staff_emails_reencrypted: counts["OperatorEmail"],
       staff_telephones_reencrypted: counts["OperatorTelephone"],
       visitor_emails_reencrypted: counts["VisitorEmail"],
@@ -60,7 +60,7 @@ class IdentifierEncryptionReencrypt
 
           record.save!
           updated += 1
-        rescue ActiveRecord::Encryption::Errors::Decryption, OpenSSL::Cipher::CipherError, OpenSSL::Cipher::AuthTagError
+        rescue ActiveRecord::Encryption::Errors::Decryption, OpenSSL::Cipher::CipherError
           next
         end
       end

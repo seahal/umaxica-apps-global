@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: department_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 
-class DepartmentStatus < OperatorRecord
+class DepartmentStatus < OrgPrincipalRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values
@@ -17,6 +17,7 @@ class DepartmentStatus < OperatorRecord
   ACTIVE = 2
   INACTIVE = 3
   DELETED = 4
+  DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
   has_many :departments,
            inverse_of: :department_status,

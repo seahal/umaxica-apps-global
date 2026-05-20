@@ -6,7 +6,7 @@ require "test_helper"
 class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
+    @user = clients(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
       Digest::SHA256.digest(@code_verifier),
@@ -17,7 +17,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "redirects to login when not authenticated" do
-    get sign_app_authorize_url(
+    get sign_app_oauth_authorization_url(
       host: @host,
       params: authorize_params,
     ), headers: browser_headers
@@ -25,8 +25,22 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
+  test "redirects to sign up when not authenticated and screen_hint is signup" do
+    get sign_app_oauth_authorization_url(
+      host: @host,
+      params: authorize_params.merge(screen_hint: "signup"),
+    ), headers: browser_headers
+
+    assert_response :redirect
+    uri = URI.parse(response.location)
+    query = Rack::Utils.parse_nested_query(uri.query)
+
+    assert_equal "/sign/up/new", uri.path
+    assert_predicate query["rt"], :present?
+  end
+
   test "redirects to callback with code when authenticated" do
-    get sign_app_authorize_url(
+    get sign_app_oauth_authorization_url(
       host: @host,
       params: authorize_params,
     ), headers: as_user_headers(@user, host: @host)
@@ -41,7 +55,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns error for missing client_id" do
-    get sign_app_authorize_url(
+    get sign_app_oauth_authorization_url(
       host: @host,
       params: authorize_params.except(:client_id),
     ), headers: as_user_headers(@user, host: @host)
@@ -53,7 +67,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns error for unknown client_id" do
-    get sign_app_authorize_url(
+    get sign_app_oauth_authorization_url(
       host: @host,
       params: authorize_params.merge(client_id: "unknown"),
     ), headers: as_user_headers(@user, host: @host)
@@ -65,7 +79,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns error for invalid redirect_uri" do
-    get sign_app_authorize_url(
+    get sign_app_oauth_authorization_url(
       host: @host,
       params: authorize_params.merge(redirect_uri: "https://evil.com/cb"),
     ), headers: as_user_headers(@user, host: @host)
@@ -74,7 +88,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns error without code_challenge" do
-    get sign_app_authorize_url(
+    get sign_app_oauth_authorization_url(
       host: @host,
       params: authorize_params.except(:code_challenge),
     ), headers: as_user_headers(@user, host: @host)
@@ -83,7 +97,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns error for non-S256 code_challenge_method" do
-    get sign_app_authorize_url(
+    get sign_app_oauth_authorization_url(
       host: @host,
       params: authorize_params.merge(code_challenge_method: "plain"),
     ), headers: as_user_headers(@user, host: @host)
@@ -92,8 +106,8 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates authorization code record" do
-    assert_difference "UserAuthorizationCode.count", 1 do
-      get sign_app_authorize_url(
+    assert_difference "ClientAuthorizationCode.count", 1 do
+      get sign_app_oauth_authorization_url(
         host: @host,
         params: authorize_params,
       ), headers: as_user_headers(@user, host: @host)
@@ -112,6 +126,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       state: "test_state",
+      nonce: "test_nonce",
       ri: "jp",
     }
   end

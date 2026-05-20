@@ -4,10 +4,10 @@
 require "test_helper"
 
 class SocialIdentifiableTest < ActiveSupport::TestCase
-  fixtures :users, :user_statuses
+  fixtures :clients, :client_statuses
 
   class DummySocial < ApplicationRecord
-    self.table_name = "users"
+    self.table_name = "clients"
     include SocialIdentifiable
   end
 
@@ -22,8 +22,8 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
   end
 
   test "model_for_provider returns model class" do
-    assert_equal UserSocialGoogle, SocialIdentifiable.model_for_provider("google")
-    assert_equal UserSocialApple, SocialIdentifiable.model_for_provider("apple")
+    assert_equal ClientSocialGoogle, SocialIdentifiable.model_for_provider("google")
+    assert_equal ClientSocialApple, SocialIdentifiable.model_for_provider("apple")
   end
 
   test "model_for_provider raises on unknown provider" do
@@ -32,14 +32,14 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
   end
 
   test "find_by_uid_with_lock supports lock option" do
-    identity = UserSocialApple.create!(
-      user: users(:one),
+    identity = ClientSocialApple.create!(
+      user: clients(:one),
       uid: "lock-uid",
       token: "token",
       expires_at: 123,
     )
 
-    found = UserSocialApple.find_by_uid_with_lock("lock-uid", lock: true)
+    found = ClientSocialApple.find_by_uid_with_lock("lock-uid", lock: true)
 
     assert_equal identity.id, found.id
   end

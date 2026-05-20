@@ -4,11 +4,15 @@
 # == Schema Information
 #
 # Table name: visitor_preference_language_options
-# Database name: setting
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
-class VisitorPreferenceLanguageOption < SettingRecord
+# Indexes
+#
+#  index_visitor_preference_language_options_on_id  (id) UNIQUE
+#
+class VisitorPreferenceLanguageOption < ComPrincipalRecord
   include ReferenceRecord
 
   NOTHING = 0

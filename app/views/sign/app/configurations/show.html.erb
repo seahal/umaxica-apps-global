@@ -8,7 +8,8 @@
     <li><%= link_to t("controller.sign.app.setting.index.totp"), sign_app_configuration_totps_path %></li>
     <li><%= link_to t("controller.sign.app.setting.index.passkey"), sign_app_configuration_passkeys_path %></li>
     <li><%= link_to t("controller.sign.app.setting.index.secret"), sign_app_configuration_secrets_path %></li>
-    <li><%= link_to t("sign.app.configuration.show.mfa"), sign_app_configuration_challenge_path %></li>
+    <li><%= link_to t("sign.app.configuration.show.mfa"), sign_app_configuration_mfa_challenge_path %></li>
+    <li><%= link_to t("sign.app.configuration.show.mfa_reset"), sign_app_mfa_reset_path(ri: params[:ri]) %></li>
   </ul>
 </section>
 <br />
@@ -17,7 +18,9 @@
   <ul>
     <li><%= link_to t("controller.sign.app.setting.index.email"), sign_app_configuration_emails_path %></li>
     <li><%= link_to t("controller.sign.app.setting.index.telephone"), sign_app_configuration_telephones_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.birthdate"), sign_app_configuration_birthdate_path(ri: params[:ri]) %></li>
     <li><%= link_to t("controller.sign.app.setting.index.session"), sign_app_configuration_sessions_path %></li>
+    <li><%= link_to t("sign.configuration.connections.index.page_title"), sign_app_configuration_connections_path(ri: params[:ri]) %></li>
     <li><%= link_to t("controller.sign.app.setting.index.activity"), sign_app_configuration_activities_path %></li>
   </ul>
 </section>

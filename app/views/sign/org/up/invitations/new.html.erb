@@ -1,0 +1,20 @@
+<% content_for :page_title, t("sign.org.up.invitations.new.title") %>
+
+<h1><%= t("sign.org.up.invitations.new.title") %></h1>
+
+<p><%= t("sign.org.up.invitations.new.description") %></p>
+
+<%= form_with url: sign_org_up_invitations_path do |form| %>
+  <div>
+    <%= form.label :invitation_code, t("sign.org.up.invitations.form.invitation_code") %>
+    <%= form.text_field :invitation_code,
+                        value: @invitation_code,
+                        required: true,
+                        autocomplete: "one-time-code" %>
+  </div>
+  <%= form.submit t("sign.org.up.invitations.form.submit") %>
+<% end %>
+
+<p>
+  <%= link_to t("sign.org.in.back"), new_sign_org_in_path %>
+</p>

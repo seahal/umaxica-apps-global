@@ -7,41 +7,41 @@ require "ostruct"
 
 module Sign::App::In
   class MfaPasskeysControllerTest < ActionDispatch::IntegrationTest
-    fixtures :user_statuses, :user_passkey_statuses, :user_secret_kinds, :user_secret_statuses, :user_email_statuses,
-             :user_one_time_password_statuses
+    fixtures :client_statuses, :client_passkey_statuses, :client_secret_kinds,
+             :client_secret_statuses, :client_email_statuses, :client_one_time_password_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
 
-      @user = User.create!(multi_factor_enabled: true)
+      @user = Client.create!(multi_factor_enabled: true)
       @email = "mfa_passkey_#{SecureRandom.hex(4)}@example.com".freeze
-      @user.user_emails.create!(address: @email, user_email_status_id: UserEmailStatus::VERIFIED)
-      UserOneTimePassword.create!(
+      @user.client_emails.create!(address: @email, user_email_status_id: ClientEmailStatus::VERIFIED)
+      ClientOneTimePassword.create!(
         user: @user,
         private_key: ROTP::Base32.random_base32,
-        user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+        user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
         title: "totp",
       )
 
-      _secret, @raw_secret = UserSecret.issue!(
+      _secret, @raw_secret = ClientSecret.issue!(
         name: "Passkey MFA secret",
         user_id: @user.id,
-        user_secret_kind_id: UserSecretKind::PERMANENT,
+        user_secret_kind_id: ClientSecretKind::PERMANENT,
         uses: 10,
         status: :active,
       )
 
       @raw_credential_id = "mfa-credential-123"
-      @passkey = UserPasskey.create!(
+      @passkey = ClientPasskey.create!(
         user: @user,
         webauthn_id: Base64.urlsafe_encode64(@raw_credential_id, padding: false),
         external_id: SecureRandom.uuid,
         public_key: "dummy-public-key",
         sign_count: 10,
         description: "MFA passkey",
-        status_id: UserPasskeyStatus::ACTIVE,
+        status_id: ClientPasskeyStatus::ACTIVE,
       )
 
       @original_trusted_origins = Webauthn.method(:trusted_origins)

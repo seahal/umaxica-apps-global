@@ -65,7 +65,7 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       visitor_token_status_id: VisitorTokenStatus::RESTRICTED,
       device_id: @device_id,
     )
-    refresh_plain = token_record.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
+    refresh_plain = token_record.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     cookies["csrf_token"] = @csrf_token
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain

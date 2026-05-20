@@ -7,7 +7,7 @@ module Sign
       # Controller for handling Google OAuth callbacks for operators sign-in.
       #
       # Routes:
-      #   GET /auth/:provider/callback -> #omniauth
+      #   GET /auth/google_org/callback -> #omniauth
       #   GET /auth/failure            -> #failure
       #
       # Operator continue signs in existing staff only:
@@ -18,24 +18,14 @@ module Sign
         include SocialAuthConcern
         include SocialCallbackGuard
         include SessionLimitGate
+        include SocialOmniauthCallbackFlow
 
         public_strict! only: %i(omniauth failure)
 
         skip_before_action :apply_localization_preferences, only: %i(omniauth failure)
         skip_before_action :set_region, only: %i(omniauth failure)
 
-        # GET/POST /auth/:provider/callback
-        def omniauth
-          auth = request.env["omniauth.auth"] || mock_auth_from_test_mode
-          Rails.event.debug(
-            "sign.social.org.omniauth.callback_received",
-            provider: auth&.provider,
-          )
-
-          unless auth
-            return handle_missing_auth
-          end
-
+        def handle_omniauth_callback(auth)
           validate_social_auth_state!
           staff = find_staff_from_auth(auth)
           return redirect_staff_not_found(auth) unless staff
@@ -44,10 +34,6 @@ module Sign
           return redirect_login_not_allowed(staff) unless staff.login_allowed?
 
           login_and_redirect(staff, auth)
-        rescue SocialAuth::BaseError => e
-          handle_social_auth_error(e)
-        rescue StandardError => e
-          handle_unexpected_error(e, auth)
         end
 
         # GET /auth/failure
@@ -63,29 +49,20 @@ module Sign
 
         private
 
-        def verified_request?
-          super || (action_name == "omniauth" && verified_social_callback_request?)
+        def social_omniauth_callback_received_event
+          "sign.social.org.omniauth.callback_received"
         end
 
-        def handle_unverified_request
-          if action_name == "omniauth"
-            rejection = request.env["social_callback_guard.rejection"] || {
-              reason: "csrf_unverified",
-              provider: params.expect(:provider).to_s,
-              details: {},
-            }
-            reject_social_callback!(**rejection)
-          else
-            super
-          end
+        def social_omniauth_missing_auth_event
+          "sign.social.org.omniauth.missing_auth_hash"
         end
 
-        def handle_missing_auth
-          Rails.event.error("sign.social.org.omniauth.missing_auth_hash")
-          redirect_to(
-            new_sign_org_in_path,
-            alert: I18n.t("sign.org.social.sessions.create.failure"),
-          )
+        def social_omniauth_unexpected_error_event
+          "sign.social.org.omniauth.unexpected_error"
+        end
+
+        def social_omniauth_failure_i18n_key
+          "sign.org.social.sessions.create.failure"
         end
 
         def find_staff_from_auth(auth)
@@ -143,12 +120,13 @@ module Sign
         end
 
         def find_active_staff_by_google_email(email, intent: "login")
-          return nil if email.blank?
+          normalized_email = Jit::Utils::EmailValidator.normalize(email)
+          return nil if normalized_email.blank?
 
           staff_email = nil
-          OperatorRecord.connected_to(role: :writing) do
-            staff_email = OperatorEmail.find_by(address: email)
-            if intent.to_s == "link" && staff_email && staff_email.staff_id == social_auth_user&.id && !staff_email.undeletable?
+          OrgPrincipalRecord.connected_to(role: :writing) do
+            staff_email = OperatorEmail.find_by(address_digest: IdentifierBlindIndex.bidx_for_email(normalized_email))
+            if linkable_social_staff_email?(intent, staff_email)
               staff_email.update!(undeletable: true)
             end
           end
@@ -159,19 +137,30 @@ module Sign
           staff if staff&.status_id == OperatorIdentityStatus::ACTIVE
         end
 
-        # rubocop:disable Metrics/MethodLength
+        def linkable_social_staff_email?(intent, staff_email)
+          intent.to_s == "link" &&
+            staff_email &&
+            staff_email.staff_id == social_auth_user&.id &&
+            !staff_email.undeletable?
+        end
+
         def handle_login_result(result, provider_name)
-          if result.is_a?(Hash) && result[:status] != :success
-            case result[:status]
+          if result.is_a?(Hash)
+            sign_in_result = sign_in_result_from_session_result(result)
+            case sign_in_result.status
             when :session_limit_hard_reject
               render_session_limit_hard_reject(
-                message: result[:message],
-                http_status: result[:http_status],
+                message: sign_in_result.message,
+                http_status: sign_in_result.response_status,
               )
-            when :session_limit_exceeded
+            when :session_limit_pending
               redirect_to(
-                sign_org_in_session_path,
+                sign_in_result.redirect_to,
                 notice: I18n.t("session_limit.restricted_notice"),
+              )
+            when :success
+              redirect_to_sign_in_sequence!(
+                notice: I18n.t("sign.org.social.sessions.create.success", provider: provider_name),
               )
             else
               redirect_to(
@@ -179,19 +168,12 @@ module Sign
                 alert: I18n.t("sign.org.social.sessions.create.failure"),
               )
             end
-          elsif result.is_a?(Hash) && result[:restricted]
-            redirect_to(
-              sign_org_in_session_path,
-              notice: I18n.t("session_limit.restricted_notice"),
-            )
           else
             redirect_to_sign_in_sequence!(
               notice: I18n.t("sign.org.social.sessions.create.success", provider: provider_name),
             )
           end
         end
-
-        # rubocop:enable Metrics/MethodLength
 
         def handle_unexpected_error(error, auth)
           Rails.event.error(
@@ -206,15 +188,6 @@ module Sign
             new_sign_org_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),
           )
-        end
-
-        def mock_auth_from_test_mode
-          return unless Rails.env.test?
-
-          provider = params[:provider]
-          return unless provider
-
-          OmniAuth.config.mock_auth[provider.to_sym] || OmniAuth.config.mock_auth[provider.to_s]
         end
 
         def social_auth_failure_redirect_path

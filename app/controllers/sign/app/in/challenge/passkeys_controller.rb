@@ -7,12 +7,11 @@ module Sign
   module App
     module In
       module Challenge
-        class PasskeysController < ApplicationController
+        class PasskeysController < Sign::App::In::GuestController
           include Sign::Webauthn
           include SessionLimitGate
           include ::CloudflareTurnstile
 
-          before_action :reject_logged_in_session
           before_action :ensure_pending_mfa!
 
           def new
@@ -87,7 +86,7 @@ module Sign
           end
 
           def active_passkeys_for(user)
-            user.user_passkeys.where(status_id: UserPasskeyStatus::ACTIVE)
+            user.client_passkeys.where(status_id: ClientPasskeyStatus::ACTIVE)
           end
 
           def passkey_params
@@ -100,7 +99,7 @@ module Sign
               credential_payload,
               relying_party: webauthn_relying_party,
             )
-            passkey = UserPasskey.find_by(webauthn_id: credential.id)
+            passkey = ClientPasskey.find_by(webauthn_id: credential.id)
 
             user = pending_mfa_user
             unless passkey && user && passkey.user_id == user.id

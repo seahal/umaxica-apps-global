@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class SignTestCsrfController < Sign::PublicController
+class SignAppTestCsrfController < Sign::App::PublicController
   def show
     render plain: form_authenticity_token
   end
@@ -14,6 +14,14 @@ class SignTestCsrfController < Sign::PublicController
 end
 
 class SignPublicControllerTest < ActionDispatch::IntegrationTest
+  self.fixture_table_names = []
+
+  test "surface public bases inherit from surface bare bases" do
+    assert_operator Sign::App::PublicController, :<, Sign::App::BareController
+    assert_operator Sign::Com::PublicController, :<, Sign::Com::BareController
+    assert_operator Sign::Org::PublicController, :<, Sign::Org::BareController
+  end
+
   test "health endpoint returns successfully" do
     host! ENV["SIGN_SERVICE_URL"]
     get "/health"
@@ -69,8 +77,8 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "POST without CSRF token returns 422" do
     Rails.application.routes.draw do
-      get("/test_csrf", to: "sign_test_csrf#show")
-      post("/test_csrf", to: "sign_test_csrf#create")
+      get("/test_csrf", to: "sign_app_test_csrf#show")
+      post("/test_csrf", to: "sign_app_test_csrf#create")
     end
     host!(ENV["SIGN_SERVICE_URL"])
     with_forgery_protection do
@@ -84,8 +92,8 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "POST with CSRF token returns successfully" do
     Rails.application.routes.draw do
-      get("/test_csrf", to: "sign_test_csrf#show")
-      post("/test_csrf", to: "sign_test_csrf#create")
+      get("/test_csrf", to: "sign_app_test_csrf#show")
+      post("/test_csrf", to: "sign_app_test_csrf#create")
     end
     host!(ENV["SIGN_SERVICE_URL"])
     with_forgery_protection do

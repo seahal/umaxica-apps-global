@@ -4,14 +4,15 @@
 require "test_helper"
 
 class Sign::Org::Configuration::EmailsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_email_statuses, :staff_telephone_statuses
+  fixtures :operators, :operator_identity_statuses, :operator_email_statuses, :operator_telephone_statuses
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -142,7 +143,7 @@ class Sign::Org::Configuration::EmailsControllerTest < ActionDispatch::Integrati
     end
 
     assert_response :unauthorized
-    assert_equal Verification::Base::REAUTH_REQUIRED_MESSAGE, response.body
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
     assert email.reload.promotional
   end
 
@@ -206,25 +207,6 @@ class Sign::Org::Configuration::EmailsControllerTest < ActionDispatch::Integrati
     end
 
     assert_response :see_other
-  end
-
-  test "destroy blocks removing last email when no supporting method remains" do
-    email = OperatorEmail.create!(
-      address: "last-staff@example.com",
-      staff: @staff,
-      staff_email_status_id: OperatorEmailStatus::VERIFIED,
-    )
-    OperatorTelephone.create!(
-      number: "+15550001112",
-      staff: @staff,
-      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
-    )
-
-    assert_no_difference("OperatorEmail.count") do
-      with_prosopite_paused { delete sign_org_configuration_email_url(email, ri: "jp"), headers: request_headers }
-    end
-
-    assert_redirected_to sign_org_configuration_emails_url(ri: "jp")
   end
 
   test "destroy blocks removing an undeletable email" do

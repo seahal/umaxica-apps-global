@@ -1,31 +1,31 @@
 # typed: false
 # frozen_string_literal: true
 
+require "rqrcode"
+
 module Sign
   module App
     module Configuration
-      class TotpsController < ApplicationController
-        auth_required!
-
+      class TotpsController < PrivateController
         include ::CloudflareTurnstile
-        include ::Verification::User
+        include ::Verification::Client
 
         MAX_TOTPS = 2
-        before_action :authenticate_user!
+        before_action :authenticate_client!
         before_action only: %i(new create) do
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
 
         def index
-          @totps = current_user.user_one_time_passwords
+          @totps = current_client.client_one_time_passwords
         end
 
         def new
-          if current_user.user_one_time_passwords.count >= MAX_TOTPS
+          if current_client.client_one_time_passwords.count >= MAX_TOTPS
             return render plain: t("session_limit.totp_limit_reached", count: MAX_TOTPS)
           end
 
-          @totp = UserOneTimePassword.new
+          @totp = ClientOneTimePassword.new
           generate_totp_session
         end
 
@@ -61,10 +61,10 @@ module Sign
         end
 
         def initialize_totp
-          @totp = UserOneTimePassword.new(totp_params)
+          @totp = ClientOneTimePassword.new(totp_params)
           @totp.private_key = session[:private_key]
-          @totp.user = current_user
-          @totp.user_one_time_password_status_id = UserOneTimePasswordStatus::ACTIVE
+          @totp.user = current_client
+          @totp.user_one_time_password_status_id = ClientOneTimePasswordStatus::ACTIVE
         end
 
         def handle_success(last_otp_at)
@@ -99,6 +99,14 @@ module Sign
 
         def destroy
           @totp = find_totp
+          unless AuthMethodGuard.can_remove_totp?(current_client, @totp)
+            redirect_to(
+              sign_app_configuration_totps_path,
+              alert: t(".last_method"),
+            )
+            return
+          end
+
           @totp.destroy!
           redirect_to(
             sign_app_configuration_totps_path,
@@ -109,7 +117,7 @@ module Sign
         private
 
         def find_totp
-          current_user.user_one_time_passwords.find_by!(public_id: params.expect(:id))
+          current_client.client_one_time_passwords.find_by!(public_id: params(:id))
         end
 
         def generate_totp_session
@@ -131,15 +139,15 @@ module Sign
         end
 
         def account_id
-          current_user.user_emails.first&.address || current_user.public_id
+          current_client.client_emails.first&.address || current_client.public_id
         end
 
         def totp_params
-          params.expect(user_one_time_password: [:first_token, :title])
+          params(user_one_time_password: [:first_token, :title])
         end
 
         def update_params
-          params.expect(user_one_time_password: [:title])
+          params(user_one_time_password: [:title])
         end
 
         def record_totp_registration_step_up!
@@ -147,21 +155,21 @@ module Sign
             last_step_up_at: Time.current,
             last_step_up_scope: verification_scope,
           )
-          create_audit_event!(UserChronicleEvent::TOTP_ENABLED)
+          create_audit_event!(ClientChronicleEvent::TOTP_ENABLED)
         end
 
         def create_audit_event!(event_id)
           ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+            ClientChronicleEvent.find_or_create_by!(id: event_id)
+            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
           end
 
-          UserChronicle.create!(
-            actor_type: "User",
-            actor_id: current_user.id,
+          ClientChronicle.create!(
+            actor_type: "Client",
+            actor_id: current_client.id,
             event_id: event_id,
-            subject_id: current_user.id.to_s,
-            subject_type: "User",
+            subject_id: current_client.id.to_s,
+            subject_type: "Client",
             occurred_at: Time.current,
           )
         end

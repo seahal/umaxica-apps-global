@@ -19,9 +19,13 @@ class OperatorOccurrenceStatus < OccurrenceRecord
   ACTIVE = 2
   INACTIVE = 3
   DELETED = 4
+  DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
   include OccurrenceStatus
 
-  has_many :staff_occurrences, class_name: "OperatorOccurrence", foreign_key: :status_id, dependent: :restrict_with_error,
-                               inverse_of: :staff_occurrence_status
+  has_many :staff_occurrences,
+           class_name: "OperatorOccurrence",
+           foreign_key: :status_id,
+           dependent: :restrict_with_error,
+           inverse_of: :staff_occurrence_status
 end

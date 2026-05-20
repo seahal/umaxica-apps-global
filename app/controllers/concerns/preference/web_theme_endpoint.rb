@@ -5,12 +5,13 @@ module Preference
   module WebThemeEndpoint
     extend ActiveSupport::Concern
     include Preference::Base
+    include Preference::ResourceSync
 
     private
 
     def current_color_theme
-      theme = normalize_colortheme(cookies[Preference::Base::THEME_COOKIE_KEY])
-      theme ||= theme_from_preference_payload
+      theme = theme_from_preference_payload
+      theme ||= normalize_colortheme(cookies[Preference::Base::THEME_COOKIE_KEY])
       theme || "sy"
     end
 
@@ -34,14 +35,10 @@ module Preference
     end
 
     def requested_theme_value
-      raw_value =
-        if params.expect(:theme).is_a?(String)
-          params[:theme]
-        elsif params.key?(:ct)
-          params[:ct]
-        else
-          return nil
-        end
+      request_params = params.to_unsafe_h
+      raw_value = request_params["theme"].presence || request_params["ct"].presence
+      return nil if raw_value.blank?
+
       normalize_colortheme(raw_value.to_s)
     end
 
@@ -76,6 +73,10 @@ module Preference
           )
           return unless option_id
 
+          resource_pref = preference_write_resource_preference!
+          authorize_resource_preference_write!(resource_pref)
+          write_resource_preference_option!(resource_pref, :theme, option_id) if resource_pref
+
           @preferences = preference
           colortheme.update!(option_id: option_id)
           create_audit_log(
@@ -95,10 +96,10 @@ module Preference
     end
 
     def decode_theme_jwt
-      jwt = cookies[Preference::CookieName.access]
+      jwt = matching_access_token_value
       return nil if jwt.blank?
 
-      Preference::Token.decode(jwt, host: request.host)
+      decode_matching_access_token(jwt)
     end
 
     def load_or_create_colortheme_child(preference)

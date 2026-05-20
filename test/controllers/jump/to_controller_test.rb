@@ -4,7 +4,9 @@
 require "test_helper"
 
 class JumpToControllerTest < ActionDispatch::IntegrationTest
-  MODERN_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  MODERN_UA =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) " \
+    "Chrome/120.0.0.0 Safari/537.36"
 
   setup do
     [AppJumpLink, ComJumpLink, OrgJumpLink].each(&:delete_all)
@@ -15,7 +17,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
     link = AppJumpLink.create!(destination_url: "https://outside.example/app")
 
     host! ENV["JUMP_SERVICE_URL"]
-    get "/", params: { to: link.public_id }, headers: { "User-Agent" => MODERN_UA }
+    get "/", params: { to: link.public_id }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :redirect
 
@@ -31,7 +33,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
     com_link = ComJumpLink.create!(public_id: "A" * 21, destination_url: "https://outside.example/com")
 
     host! ENV["JUMP_CORPORATE_URL"]
-    get "/", params: { to: app_link.public_id }, headers: { "User-Agent" => MODERN_UA }
+    get "/", params: { to: app_link.public_id }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :redirect
 
@@ -45,7 +47,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
     org_link = OrgJumpLink.create!(public_id: "B" * 21, destination_url: "https://outside.example/org")
 
     host! ENV["JUMP_STAFF_URL"]
-    get "/", params: { to: org_link.public_id }, headers: { "User-Agent" => MODERN_UA }
+    get "/", params: { to: org_link.public_id }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :redirect
 
@@ -56,7 +58,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
 
   test "missing to param renders landing page" do
     host! ENV["JUMP_SERVICE_URL"]
-    get "/", headers: { "User-Agent" => MODERN_UA }
+    get "/", headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :success
     assert_select "title", "UMAXICA (app) | Jump"
@@ -65,7 +67,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
 
   test "empty to param renders landing page" do
     host! ENV["JUMP_SERVICE_URL"]
-    get "/", params: { to: "" }, headers: { "User-Agent" => MODERN_UA }
+    get "/", params: { to: "" }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :success
     assert_select "title", "UMAXICA (app) | Jump"
@@ -74,7 +76,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
 
   test "missing or unavailable public id returns not found with plain text body" do
     host! ENV["JUMP_SERVICE_URL"]
-    get "/", params: { to: "missing" }, headers: { "User-Agent" => MODERN_UA }
+    get "/", params: { to: "missing" }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :not_found
     assert_match %r{\Atext/plain}, response.content_type

@@ -6,15 +6,16 @@ require "test_helper"
 class CurrentBannerPartialTest < ActionView::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :user_banners, :staff_banners, :client_banners, :users, :user_statuses, :staffs, :staff_statuses,
-           :clients, :client_statuses
+  fixtures :client_banners, :operator_banners, :visitor_banners, :clients, :client_statuses, :operators,
+           :operator_identity_statuses, :visitors, :visitor_statuses, :visitor_visibilities, :visitor_multi_factors,
+           :visitor_multi_factor_statuses
 
   test "renders the current banner for a surface" do
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
       render partial: "layouts/shared/current_banner", locals: { tld: :app, region: :jp, domain: :news }
 
-      assert_includes rendered, "User newer banner"
-      assert_includes rendered, "User newer banner body"
+      assert_includes rendered, "Client newer banner"
+      assert_includes rendered, "Client newer banner body"
     end
   end
 
@@ -40,8 +41,8 @@ class CurrentBannerPartialTest < ActionView::TestCase
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
       render partial: "layouts/shared/current_banner", locals: { tld: :com, region: :jp, domain: :help }
 
-      assert_includes rendered, "VisitorAccount current banner"
-      assert_includes rendered, "VisitorAccount current banner body"
+      assert_includes rendered, "Visitor current banner"
+      assert_includes rendered, "Visitor current banner body"
     end
   end
 
@@ -92,7 +93,7 @@ class CurrentBannerPartialTest < ActionView::TestCase
   end
 
   test "renders nothing when the current banner is missing" do
-    VisitorAccountBanner.stub(:current, VisitorAccountBanner.none) do
+    VisitorBanner.stub(:current, VisitorBanner.none) do
       render partial: "layouts/shared/current_banner", locals: { tld: :com, region: :jp, domain: :news }
 
       assert_empty rendered.strip

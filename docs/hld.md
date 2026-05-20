@@ -19,7 +19,7 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 - Rails application located at `/home/mslo/ghq/github.com/seahal/umaxica-app-jit`
 - Namespaced controllers for `Top`, `Sign`, `Help`, `Docs`, `News`, `Bff`, and `Api` surfaces
 - Turbo/React front-end with pnpm-managed tooling (`app/javascript/**`)
-- Multi-database Active Record setup (identity, guest, universal, token, etc.)
+- Multi-database Active Record setup (`app_principal`, `org_ticket`, `com_setting`, etc.)
 - Supporting infrastructure: PostgreSQL primary/replica pairs, Valkey, MinIO, Grafana/Loki/Tempo
 - CI/CD automation (GitHub Actions, Lefthook) and local workflows (Foreman + Docker Compose)
 
@@ -79,9 +79,9 @@ Browsers / Mobile Apps
     │ HTTPS via Fastly / Cloudflare
     ▼
 Rails 8 Monolith (Top / Sign / Help / Docs / News / API / BFF)
-    │ ├─ Postgres clusters (identity, guest, universal, profile, token, etc.)
+    │ ├─ Postgres clusters (`app_principal`, `org_ticket`, `com_setting`, etc.)
     │ ├─ Valkey (sessions, rate limiting, Memorize cache)
-    │ ├─ ActionMailer + SMTP / AwsSmsService
+    │ ├─ ActionMailer + SMTP / Outbound::Sms
     │ └─ OpenTelemetry exporter (Tempo) + Loki logging
 Downstream: Google Cloud (Run/Build/Storage), Cloudflare R2, Fastly CDN
 ```
@@ -108,8 +108,8 @@ concerns scoped.
    `app/assets/builds`.
 2. **Domain Logic**: Concerns handle cross-cutting rules (auth, region, theme, cookie consent,
    Turnstile, rate limiting, redirect sanitization). Models inherit from base records
-   (`IdentitiesRecord`, `GuestRecord`, etc.) to target specific DB clusters. Services (e.g.,
-   `AwsSmsService`, `AccountService`) encapsulate integration logic.
+   (`IdentitiesRecord`, `ComPrincipalRecord`, etc.) to target specific DB clusters. Services (e.g.,
+   `Outbound::Sms`, `AccountService`) encapsulate integration logic.
 3. **Integration**: ActionMailer namespaces, Sms providers, Active Storage/Shrine, OpenTelemetry
    instrumentation, Redis/Valkey caching, external CDNs/cloud providers.
 
@@ -133,8 +133,8 @@ concerns scoped.
 
 - Registration flow (`Sign::App::Registration::EmailsController`) resets session, validates
   Turnstile, issues HOTP tokens (ROTP), stores metadata in `session[:user_email_registration]`, and
-  sends OTP with `Email::App::RegistrationMailer`.
-- Telephone registration mirrors email and uses `AwsSmsService`.
+  sends OTP with the surface-specific `Email::*::OtpMailer`.
+- Telephone registration mirrors email and uses `Outbound::Sms`.
 - Authentication controllers set up JWT access/refresh cookies using the `Authn` concern
   (`generate_access_token`, `log_in`, `log_out`, `logged_in?`).
 - Passkey endpoints (`Sign::App::Setting::PasskeysController`) expose `/setting/passkeys/challenge`
@@ -147,13 +147,13 @@ concerns scoped.
 
 ### 4.3 Help (contact center)
 
-- `Help::Com::ContactsController` builds `ServiceSiteContact` records (inherits from `GuestRecord`).
-  The model encrypts email/phone/title/description, enforces validation, and guarantees either email
-  or phone exists.
+- `Help::Com::ContactsController` builds `ServiceSiteContact` records (inherits from
+  `ComPrincipalRecord`). The model encrypts email/phone/title/description, enforces validation, and
+  guarantees either email or phone exists.
 - Turnstile result is logged; failures add model errors and re-render the form.
 - On success, controller redirects to `new` after immediate email notification handling.
-- VisitorAccount-side guard (`app/javascript/views/www/app/inquiry/before_submit.js`) prevents submission
-  when policy checkbox unchecked.
+- VisitorAccount-side guard (`app/javascript/views/www/app/inquiry/before_submit.js`) prevents
+  submission when policy checkbox unchecked.
 
 ### 4.4 Docs & News
 
@@ -169,11 +169,14 @@ concerns scoped.
 - BFF controllers rely on the preference concerns to normalize query params and set locale/timezone
   before rendering preference views.
 - All API/BFF routes use `ActionController::API` base classes for lean responses.
-- 認証モデルは責務を分離する。BFF経由の通常WebはCSRF対策と運用容易性を優先してCookieセッションを採用し、iOSなどネイティブはBearer(JWT)を採用する。両方式の同居は可能だが、同一クライアントで二重管理しない。
+- The authentication model separates responsibilities. Normal web via BFF uses cookie sessions,
+  giving priority to CSRF countermeasures and ease of operation, and native devices such as iOS use
+  Bearer (JWT). Although both types of coexistence are possible, dual management by the same client
+  is not allowed.
 
 ### 4.6 Background services
 
-- `AwsSmsService` handles SMS dispatch for OTP-related flows.
+- `Outbound::Sms` handles SMS dispatch for OTP-related flows.
 - `Memorize` concern wraps a Redis pool with per-session prefixes and encryption for ephemeral
   key/value storage.
 
@@ -183,14 +186,23 @@ concerns scoped.
 
 ### 5.1 Multi-database layout
 
-| Base class                                                   | Databases                                              | Representative tables                                       |
-| ------------------------------------------------------------ | ------------------------------------------------------ | ----------------------------------------------------------- |
-| `IdentitiesRecord`                                           | `identity`, `identity_replica`                         | `users`, `staffs`, `user_passkeys`, `user_sessions`         |
-| `GuestRecord`                                                | `guest`, `guest_replica`                               | `service_site_contacts`, `corporate_site_contacts`          |
-| `VisitorRecord`                                              | `visitor`, `visitor_replica`                           | `com_banners`                                               |
-| `OccurrenceRecord`                                           | `occurrence`, `occurrence_replica`                     | `time_based_one_time_passwords`, `occurrence_*_identifiers` |
-| `TokensRecord`                                               | `token`, `token_replica`                               | `user_tokens`, `staff_tokens`, `user_sessions`              |
-| `BusinessesRecord`, `ProfilesRecord`, `StoragesRecord`, etc. | `business`, `profile`, `storage`, `notification`, etc. | Owners/customers/timeline data (future modules)             |
+| Base class           | Databases                                | Representative tables                                             |
+| -------------------- | ---------------------------------------- | ----------------------------------------------------------------- |
+| `AppPrincipalRecord` | `app_principal`, `app_principal_replica` | `users`, `clients`, app identity and local preference tables      |
+| `AppSettingRecord`   | `app_setting`, `app_setting_replica`     | `app_preferences`, `app_preference_*`                             |
+| `AppTicketRecord`    | `app_ticket`, `app_ticket_replica`       | `user_tokens`, `user_step_up_sessions`, app OIDC tickets          |
+| `AppRpRecord`        | `app_zenith`, `app_zenith_replica`       | `client_identities`, `client_accounts`, `client_profiles`         |
+| `AppSignalRecord`    | `app_signal`, `app_signal_replica`       | `user_notifications`, `member_notifications`                      |
+| `OrgPrincipalRecord` | `org_principal`, `org_principal_replica` | `staffs`, `operators`, org identity and local preference tables   |
+| `OrgSettingRecord`   | `org_setting`, `org_setting_replica`     | `org_preferences`, `org_preference_*`                             |
+| `OrgTicketRecord`    | `org_ticket`, `org_ticket_replica`       | `staff_tokens`, `staff_step_up_sessions`, org OIDC tickets        |
+| `OrgRpRecord`        | `org_zenith`, `org_zenith_replica`       | `operator_identities`, `operator_accounts`, workspace projections |
+| `OrgSignalRecord`    | `org_signal`, `org_signal_replica`       | `staff_notifications`, `operator_notifications`                   |
+| `ComPrincipalRecord` | `com_principal`, `com_principal_replica` | `visitors`, visitor credentials, public contact state             |
+| `ComTicketRecord`    | `com_ticket`, `com_ticket_replica`       | `visitor_tokens`, `visitor_step_up_sessions`, com OIDC tickets    |
+| `ComRpRecord`        | `com_zenith`, `com_zenith_replica`       | `visitor_identities`, `visitor_accounts`                          |
+| `ComSignalRecord`    | `com_signal`, `com_signal_replica`       | `visitor_notifications`                                           |
+| `ComSettingRecord`   | `com_setting`, `com_setting_replica`     | `com_preferences`, `com_preference_*`                             |
 
 Migrations are split into `db/<context>_migrate`. UUID v7 IDs are generated (`SetId` concern).
 Sensitive columns leverage Active Record encryption.
@@ -243,8 +255,9 @@ Sensitive columns leverage Active Record encryption.
 - **Data protection**: Active Record encryption (deterministic where needed) shields
   email/phone/title/description fields; OTP secrets stored encrypted; preference cookies
   signed/HTTP-only.
-- **Multi-factor methods**: WebAuthn (passkeys) and ROTP (TOTP/HOTP) available; `AwsSmsService` +
-  email OTP support fallback.
+- **Multi-factor methods**: WebAuthn (passkeys) and ROTP (TOTP/HOTP) available; `Outbound::Sms` +
+  email OTP support fallback. OTP payloads are encrypted before they are placed in background job
+  arguments.
 - **Redirect safety**: `Redirect::ALLOWED_HOSTS` enumerates permitted targets; Base64-encoded jump
   tokens validated before allowing cross-host redirects.
 - **Secrets**: Rails credentials store JWT keys, Cloudflare Turnstile secrets, Redis URLs, AWS keys,
@@ -259,8 +272,8 @@ Sensitive columns leverage Active Record encryption.
 | Interface      | Type          | Description                                                                                                                                 |
 | -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | HTTP           | REST          | Host-scoped routes for top/sign/help/docs/news/api/bff, including `/health`, `/v1/health`, `/sign/...`, `/help/...`, `/api/v1/inquiry/...`. |
-| Mail           | SMTP / API    | `Email::App/Com/Org::*Mailer` deliver OTPs, contact confirmations, receipts (SES/Twilio SendGrid as configured).                            |
-| SMS            | HTTPS         | `AwsSmsService` sends OTP codes.                                                                                                            |
+| Mail           | SMTP / API    | `Email::App/Com/Org::{Otp,Alert,Promotional}Mailer` deliver surface-scoped mail. OTP job arguments carry encrypted OTP payloads.            |
+| SMS            | HTTPS         | `Outbound::Sms` sends OTP codes through the configured provider. SMS job arguments carry encrypted message bodies.                          |
 | Redis/Valkey   | RESP          | Sessions, rate limiting, Memorize store.                                                                                                    |
 | OTLP           | HTTP/gRPC     | OpenTelemetry exporter pushes spans to Tempo (`http://tempo:4318/v1/traces`).                                                               |
 | Object storage | S3-compatible | MinIO (dev) / Google Cloud Storage (prod) for uploads.                                                                                      |

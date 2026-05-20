@@ -1,29 +1,35 @@
-# Retainable Concern と Retention Purge の設計
+# Retainable Concern and Retention Purge Design
 
-## 状態
+## situation
 
 Accepted
 
-## コンテキスト
+## context
 
-アプリケーションには多くのモデルでretention（保持期間）管理が必要ですが、現在は以下のような問題があります：
+Applications require retention management in many models, but the current challenges include:
 
-1. 物理削除時刻を表すカラムが `deletable_at`、`shreddable_at`、`scheduled_purge_at`
-   など複数存在し、統一されていない
-2. 論理削除時刻を表すカラムも `revoked_at`、`expires_at`、`refresh_expires_at`、`compromised_at`
-   など複数存在
-3. 各モデルで異なる方法でこれらのカラムを管理しており、一貫性がない
+1. The columns representing physical deletion time are `deletable_at`, `shreddable_at`,
+   `scheduled_purge_at` etc., and are not unified.
+2. Columns representing logical deletion time also include `revoked_at`, `expires_at`,
+   `refresh_expires_at`, `compromised_at` There are multiple such as
+3. Each model manages these columns differently and is inconsistent
 
-## 決定
+## decision
 
-### カラムの統一
+### Column unification
 
-1. **`lapses_at`** - 論理削除時刻（アクセス不可となる時刻）
-2. **`purge_at`** - 物理削除候補時刻（実際にデータを削除できる時刻）
+1. **`discarded_at`** - Logical deletion time (time when access becomes impossible)
+2. **`purged_at`** - Physical deletion candidate time (time when data can actually be deleted)
 
-### Retainable Concern の導入
+`discarded_at` is the standard column name for the `discard` gem, so `self.discard_column = ...` for
+each model. Not set. In this migration, in order to maintain the time window semantics of the
+existing Retainable, `discarded_at = Float::INFINITY` equivalent to unrevoked sentinel,
+`discarded_at <= Time.current` be treated as inaccessible. discard gem `NULL = kept` Switching to
+semantics is a separate task after the time window usage has been separated into separate columns.
 
-すべてのモデルで共通の `Retainable` concern を使用して、上記2つのカラムを一元管理します。
+### Introducing Retainable Concern
+
+Use `Retainable` concern, which is common to all models, to centrally manage the above two columns.
 
 ```ruby
 module Retainable
@@ -32,67 +38,67 @@ module Retainable
   SENTINEL = ::Float::INFINITY
 
   included do
-    attribute :lapses_at, :datetime, default: -> { SENTINEL }
-    attribute :purge_at, :datetime, default: -> { SENTINEL }
+    attribute :discarded_at, :datetime, default: -> { SENTINEL }
+    attribute :purged_at, :datetime, default: -> { SENTINEL }
 
-    validates :lapses_at, presence: true
-    validates :purge_at, presence: true
-    validate :lapses_at_not_after_purge_at
+    validates :discarded_at, presence: true
+    validates :purged_at, presence: true
+    validate :discarded_at_not_after_purged_at
     validate :retention_times_not_before_created_at, on: :update
   end
 
   def accessible?
-    lapses_at > Time.current
+    discarded_at > Time.current
   end
 
   def lapsed?
-    lapses_at <= Time.current
+    discarded_at <= Time.current
   end
 
   def purgeable?
-    purge_at <= Time.current
+    purged_at <= Time.current
   end
 
-  def schedule_retention!(lapses_at:, purge_at:)
-    raise ArgumentError, 'lapses_at must be in the future' if lapses_at <= Time.current
-    raise ArgumentError, 'purge_at must be in the future' if purge_at <= Time.current
-    raise ArgumentError, 'lapses_at must be <= purge_at' if lapses_at > purge_at
-    update!(lapses_at: lapses_at, purge_at: purge_at)
+  def schedule_retention!(discarded_at:, purged_at:)
+    raise ArgumentError, 'discarded_at must be in the future' if discarded_at <= Time.current
+    raise ArgumentError, 'purged_at must be in the future' if purged_at <= Time.current
+    raise ArgumentError, 'discarded_at must be <= purged_at' if discarded_at > purged_at
+    update!(discarded_at: discarded_at, purged_at: purged_at)
   end
 end
 ```
 
-### カラムの統合マップ
+### Consolidated map of columns
 
-#### `lapses_at` に統合するカラム
+#### Columns to be integrated into `discarded_at`
 
 - `revoked_at`
 - `expires_at` (credential variant)
 - `refresh_expires_at`
 - `compromised_at`
 
-#### `purge_at` に統合するカラム
+#### Columns to be integrated into `purged_at`
 
 - `deletable_at`
 - `shreddable_at`
 - `scheduled_purge_at`
 - `expires_at` (audit/chronicle variant)
 
-#### 削除するカラム
+#### Column to delete
 
 - `expired_at` (user_token, customer_token)
 
-#### 据え置きするカラム（sub-state column）
+#### Column to be deferred (sub-state column)
 
 - `token_expires_at`
 - `verifier_expires_at` / `otp_expires_at`
-- `expires_at` (token のみ: user/staff/customer_token)
+- `expires_at` (token only: user/staff/customer_token)
 - `consumed_at`
 - `used_at`
 
 ### Solid Queue retention job
 
-RetentionPurgeJob を作成し、`purge_at` 経過したレコードを定期的に削除します。
+Create a RetentionPurgeJob to periodically delete records that are `purged_at` old.
 
 ```ruby
 class RetentionPurgeJob < ApplicationJob
@@ -103,7 +109,7 @@ class RetentionPurgeJob < ApplicationJob
     UserToken, OperatorToken, CustomerToken,
     UserVerification, OperatorVerification, CustomerVerification,
     UserAuthorizationCode, OperatorAuthorizationCode, CustomerAuthorizationCode,
-    UserReauthSession, OperatorReauthSession, CustomerReauthSession,
+    ClientStepUpSession, OperatorStepUpSession, VisitorStepUpSession,
     AreaOccurrence, UserOccurrence, OperatorOccurrence, ZipOccurrence,
     DomainOccurrence, IpOccurrence, EmailOccurrence, JwtOccurrence, TelephoneOccurrence,
     AppJumpLink, ComJumpLink, OrgJumpLink
@@ -112,22 +118,26 @@ class RetentionPurgeJob < ApplicationJob
   def perform(batch_size: 500)
     now = Time.current
     RETAINABLE_MODELS.each do |klass|
-      klass.where('purge_at <= ?', now).in_batches(of: batch_size).delete_all
+      klass.where('purged_at <= ?', now).in_batches(of: batch_size).delete_all
     end
   end
 end
 ```
 
-## 理由
+## reason
 
-1. カラムを統一することで、retention管理の複雑さを大幅に削減
-2. `Retainable` concernにより、すべてのモデルで一貫したインターフェースを提供
-3. Solid Queue jobにより、物理削除処理を効率的に実行
-4. `Float::INFINITY` をsentinel値として使用することで、NULLチェックを不要にし、クエリの簡素化を実現
+1. By unifying columns, the complexity of retention management is significantly reduced.
+2. `discarded_at` is a standard column name for the `discard` gem, making
+   `self.discard_column = ...` unnecessary
+3. `Retainable` concern provides consistent interface across all models
+4. Efficiently perform physical deletion processing with Solid Queue job
+5. `discarded_at` / `purged_at` is `Float::INFINITY` can be used as the sentinel value to simplify
+   the query while preserving the existing time window semantics.
 
-## 影響
+## influence
 
-- 24以上のモデルでカラム名の変更とデータ移行が必要
-- 既存のcontrollerやserviceでの参照箇所を新しいカラム名に変更
-- テストコードも新しいカラム名に対応させる必要がある
-- migration戦略として、既存カラムの値を新しいカラムにコピーした後、既存カラムを削除する
+- Column name change and data migration required for models with 24 or more
+- Change references in existing controllers and services to new column names
+- The test code also needs to be adapted to the new column names.
+- The existing implementation `lapses_at` will be migrated to `discarded_at`
+- As a migration strategy, rename existing columns to `discarded_at` / `purged_at`

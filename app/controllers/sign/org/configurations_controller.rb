@@ -3,8 +3,7 @@
 
 module Sign
   module Org
-    class ConfigurationsController < ApplicationController
-      auth_required!
+    class ConfigurationsController < PrivateController
       before_action :authenticate_operator!
 
       def show

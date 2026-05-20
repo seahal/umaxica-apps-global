@@ -2,24 +2,24 @@
 
 ## Overview
 
-このアプリケーションは、**Pundit**ベースの認可システムを実装しています。 **RBAC（Role-Based Access
-Control）**と**リソースベース認可**を組み合わせたハイブリッドアプローチを採用しています。
+This application implements a **Pundit** based authorization system. \*\*RBAC (Role-Based Access We
+use a hybrid approach that combines control) and resource-based authorization.
 
-## ロール定義
+## role definition
 
-5段階のロールヒエラルキー：
+5-level role hierarchy:
 
-| Role        | Key           | 権限                                             |
-| ----------- | ------------- | ------------------------------------------------ |
-| Operator    | `admin`       | 全権限（ユーザー管理、削除権限含む）             |
-| Manager     | `manager`     | コンテンツ管理、他ユーザーの投稿編集・削除       |
-| Editor      | `editor`      | 全コンテンツの作成・編集、自分の投稿のみ削除可能 |
-| Contributor | `contributor` | コンテンツ作成、自分の投稿のみ編集可能           |
-| Viewer      | `viewer`      | 閲覧のみ                                         |
+| Role        | Key           | Permission                                                          |
+| ----------- | ------------- | ------------------------------------------------------------------- |
+| Operator    | `admin`       | Full privileges (including user management and deletion privileges) |
+| Manager     | `manager`     | Content management, editing/deleting other users' posts             |
+| Editor      | `editor`      | You can create and edit all content, and only delete your own posts |
+| Contributor | `contributor` | Content creation, you can only edit your own posts                  |
+| Viewer      | `viewer`      | View only                                                           |
 
-## コントローラーでの使用
+## Use with controller
 
-### 基本的な認可チェック
+### Basic authorization check
 
 ```ruby
 class DocumentsController < ApplicationController
@@ -27,7 +27,7 @@ class DocumentsController < ApplicationController
   before_action :set_document, only: [:show, :edit, :update, :destroy]
 
   def show
-    authorize @document  # ポリシーで権限チェック
+    authorize @document # Check permissions with policy
   end
 
   def create
@@ -68,36 +68,36 @@ class DocumentsController < ApplicationController
 end
 ```
 
-### スコープを使ったフィルタリング
+### Filtering using scopes
 
 ```ruby
 def index
-  # ポリシースコープで自動的にフィルタリング
-  # - Operator/Manager: 全ドキュメント表示
-  # - その他: 自分のドキュメントのみ表示
+  # Automatically filter by policy scope
+  # - Operator/Manager: View all documents
+  # - Other: Show only your own documents
   @documents = policy_scope(Document)
 end
 ```
 
-### 条件付き認可
+### conditional authorization
 
 ```ruby
 def some_action
   @document = Document.find(params[:id])
 
   if policy(@document).update?
-    # 更新権限がある場合の処理
+    # Processing when you have update authority
   else
-    # 権限がない場合の処理
+    # What to do if you don't have permission
   end
 end
 ```
 
-## ビューでの使用
+## Use in views
 
-### AuthorizationHelper メソッド
+### AuthorizationHelper method
 
-#### 1. `authorized?` - アクション権限チェック
+#### 1. `authorized?` - Action permission check
 
 ```erb
 <% if authorized?(@document, :edit?) %>
@@ -110,7 +110,7 @@ end
 <% end %>
 ```
 
-#### 2. `has_role?` - ロールチェック
+#### 2. `has_role?` - Roll check
 
 ```erb
 <% if has_role?('operator') %>
@@ -125,7 +125,7 @@ end
 <% end %>
 ```
 
-#### 3. `has_any_role?` - 複数ロールチェック
+#### 3. `has_any_role?` - Multiple role check
 
 ```erb
 <% if has_any_role?('operator', 'manager') %>
@@ -133,7 +133,7 @@ end
 <% end %>
 ```
 
-#### 4. 便利なショートカットメソッド
+#### 4. Useful shortcut methods
 
 ```erb
 <!-- Operator check -->
@@ -157,7 +157,7 @@ end
 <% end %>
 ```
 
-#### 5. ブロック構文
+#### 5. block syntax
 
 ```erb
 <%= if_authorized @document, :edit? do %>
@@ -171,9 +171,9 @@ end
 <% end %>
 ```
 
-## ポリシークラスの作成
+## Creating a policy class
 
-### 基本構造
+### Basic structure
 
 ```ruby
 # app/policies/document_policy.rb
@@ -217,84 +217,84 @@ class DocumentPolicy < ApplicationPolicy
 end
 ```
 
-### ApplicationPolicy の便利メソッド
+### ApplicationPolicy convenience methods
 
-ポリシー内で使用可能なヘルパーメソッド：
+Helper methods available within policies:
 
-| メソッド            | 説明                                         |
-| ------------------- | -------------------------------------------- |
-| `actor`             | 現在のUser/Staff                             |
-| `record`            | 認可対象のレコード                           |
-| `organization`      | recordから自動取得されたWorkspace（互換名）  |
-| `owner?`            | アクターがレコードの所有者か                 |
-| `admin?`            | adminロールを持つか                          |
-| `manager?`          | managerロールを持つか                        |
-| `editor?`           | editorロールを持つか                         |
-| `contributor?`      | contributorロールを持つか                    |
-| `viewer?`           | viewerロールを持つか                         |
-| `admin_or_manager?` | admin または manager                         |
-| `can_edit?`         | 編集権限（admin/manager/editor）             |
-| `can_view?`         | 閲覧権限（全ロール）                         |
-| `can_contribute?`   | 作成権限（admin/manager/editor/contributor） |
+| Method              | Description                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| `actor`             | Current User/Staff                                             |
+| `record`            | Records to be authorized                                       |
+| `organization`      | Workspace (compatible name) automatically obtained from record |
+| `owner?`            | Is the actor the owner of the record                           |
+| `admin?`            | Have admin role                                                |
+| `manager?`          | Have manager role                                              |
+| `editor?`           | Have editor role                                               |
+| `contributor?`      | Have contributor role                                          |
+| `viewer?`           | Does it have viewer role                                       |
+| `admin_or_manager?` | admin or manager                                               |
+| `can_edit?`         | Editing authority (admin/manager/editor)                       |
+| `can_view?`         | Viewing permissions (all roles)                                |
+| `can_contribute?`   | Creation authority (admin/manager/editor/contributor)          |
 
-## ロール管理
+## role management
 
-### ロールの割り当て
+### Role assignment
 
 ```ruby
-# 組織とロールを取得
+# Get organization and role
 organization = Workspace.find_by(name: "My Organization")
 admin_role = Role.find_by(key: 'operator', organization: organization)
 
-# ユーザーにロールを割り当て
+# Assign roles to users
 RoleAssignment.create!(user: user, role: admin_role)
 ```
 
-### ロールのチェック
+### Checking the role
 
 ```ruby
 user = User.find(params[:id])
 organization = Workspace.first
 
-# 特定のロールを持つか
+# Does it have a specific role?
 user.has_role?('operator', organization: organization)
 
-# いずれかのロールを持つか
+# Do you have any role?
 user.has_any_role?('operator', 'manager', organization: organization)
 
-# 編集権限があるか
+# Do you have editing privileges?
 user.can_edit?(organization: organization)
 
-# 組織内の全ロールを取得
+# Get all roles in an organization
 user.roles_in(organization)
 ```
 
-## 監査ログ
+## audit log
 
-認可失敗時には自動的に監査ログが記録されます：
+Audit logs are automatically logged when authorization fails:
 
 ```ruby
-# ログには以下の情報が含まれます：
-# - actor_type: User または Staff
-# - actor_id: アクターのID
-# - action: アクション名（show, edit, etc）
-# - controller: コントローラー名
-# - policy: ポリシークラス名
-# - query: チェックしたメソッド名
-# - record_type: レコードの型
-# - record_id: レコードのID
-# - ip_address: リクエスト元IPアドレス
-# - timestamp: タイムスタンプ
+# The log contains the following information:
+# - actor_type: User or Staff
+# - actor_id: Actor's ID
+# - action: Action name (show, edit, etc)
+# - controller: Controller name
+# - policy: Policy class name
+# - query: Checked method name
+# - record_type: record type
+# - record_id: record ID
+# - ip_address: Request source IP address
+# - timestamp: timestamp
 ```
 
-監査ログは：
+The audit log is:
 
-1. **Rails.logger** に警告として記録
-2. **UserIdentityAudit** または **StaffIdentityAudit** テーブルに保存
+1. Log as a warning in **Rails.logger**
+2. Saved in **UserIdentityAudit** or **StaffIdentityAudit** table
 
-## テスト
+## test
 
-### ポリシーのテスト
+### Testing the policy
 
 ```ruby
 require 'test_helper'
@@ -326,55 +326,56 @@ class DocumentPolicyTest < ActiveSupport::TestCase
 end
 ```
 
-## ベストプラクティス
+## best practices
 
-1. **常にホワイトリスト方式**: ApplicationPolicyはデフォルトで全て拒否
-2. **明示的な権限チェック**: コントローラーで`authorize`を忘れずに呼ぶ
-3. **スコープの活用**: `policy_scope`で自動フィルタリング
-4. **テストの作成**: 各ポリシーに対してテストを書く
-5. **組織スコープの考慮**: マルチテナント環境では組織を意識する
-6. **監査ログの確認**: 不正アクセス試行を定期的にチェック
+1. **Always whitelist method**: ApplicationPolicy denies everything by default
+2. **Explicit permission check**: Remember to call `authorize` in your controller
+3. **Using scope**: Automatic filtering with `policy_scope`
+4. **Create tests**: Write tests for each policy
+5. **Consideration of organizational scope**: Be aware of the organization in a multi-tenant
+   environment
+6. **Check Audit Log**: Regularly check for unauthorized access attempts
 
-## トラブルシューティング
+## troubleshooting
 
-### `ActionPolicy::Unauthorized`が発生する
+### `ActionPolicy::Unauthorized` occurs
 
-コントローラーに`authorize`を追加し忘れていないか確認：
+Check if you forgot to add `authorize` to your controller:
 
 ```ruby
 def show
   @document = Document.find(params[:id])
-  authorize @document  # <- これを追加
+  authorize @document # <- add this
 end
 ```
 
-### ポリシーが見つからない
+### Policy not found
 
-ポリシーファイルが存在し、正しい命名規則になっているか確認：
+Check that the policy file exists and has the correct naming convention:
 
-- モデル: `Document`
-- ポリシー: `DocumentPolicy`（`app/policies/document_policy.rb`）
+- Model: `Document`
+- Policy: `DocumentPolicy` (`app/policies/document_policy.rb`)
 
-### ロールが機能しない
+### role doesn't work
 
-1. ロールが正しくシードされているか確認
-2. RoleAssignmentが作成されているか確認
-3. 組織スコープが正しいか確認
+1. Check if role is seeded correctly
+2. Check if RoleAssignment has been created
+3. Check if the organization scope is correct
 
 ```ruby
-# デバッグ用コード
+# Debugging code
 user.roles.pluck(:key)  # => ["operator", "editor"]
 user.has_role?('operator', organization: org)  # => true/false
 ```
 
-## まとめ
+## summary
 
-このAuthZ実装により：
+With this AuthZ implementation:
 
-- ✅ 柔軟なロールベース権限管理
-- ✅ リソースレベルの細かい制御
-- ✅ 認可失敗の自動監査ログ
-- ✅ ビューでの簡単な権限チェック
-- ✅ テスト可能な設計
+- ✅ Flexible role-based permission management
+- ✅ Fine-grained resource-level control
+- ✅ Automatic audit log of authorization failures
+- ✅ Easy permission check in view
+- ✅ Testable design
 
-詳細は各ポリシーファイルとApplicationPolicyを参照してください。
+Please refer to each policy file and ApplicationPolicy for details.

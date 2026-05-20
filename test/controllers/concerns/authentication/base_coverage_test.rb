@@ -27,7 +27,8 @@ class AuthenticationBaseTestController < ApplicationController
          :refresh_dbsc_source, :refresh_binding_source, :token_kind_model,
          :set_pending_mfa!, :pending_mfa, :pending_mfa_valid?, :clear_pending_mfa!,
          :session_limit_gate_return_to, :session_limit_gate_flow, :build_auth_preference_snapshot,
-         :reissue_access_token!, :log_in
+         :reissue_access_token!, :log_in, :populate_current_attributes!,
+         :safe_path_from_encoded_rt, :safe_encoded_rt
 
   def index; render plain: "ok"; end
 end
@@ -53,7 +54,7 @@ end
 class AuthenticationBaseFakeTokenWithLapsesAt
   def self.name = "AuthenticationBaseFakeTokenWithLapsesAt"
 
-  def self.column_names = %w(lapses_at)
+  def self.column_names = %w(discarded_at)
 end
 
 class AuthenticationBaseFakeTokenWithoutExpiry
@@ -65,7 +66,7 @@ end
 class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   setup do
     @controller = AuthenticationBaseTestController.new
-    @user = users(:one)
+    @user = clients(:one)
 
     # Mock request
     @request = ActionDispatch::TestRequest.create
@@ -98,6 +99,19 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal 0, @controller.epoch_seconds(nil)
   end
 
+  test "populate_current_attributes clears stale Actor token when payload is nil" do
+    Actor.token = { "sid" => "stale" }
+    @controller.define_singleton_method(:resource_type) { "client" }
+
+    @controller.populate_current_attributes!(@user, nil)
+
+    assert_nil Actor.token
+    assert_equal @user, Actor.actor
+    assert_equal :client, Actor.actor_type
+  ensure
+    Actor.reset
+  end
+
   test "issue_bulletin! hits branches" do
     @controller.stub(:current_resource, @user) do
       @controller.issue_bulletin!
@@ -111,7 +125,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     token = Authentication::Base::Token.encode(
       @user,
       host: host,
-      resource_type: "user",
+      resource_type: "client",
       session_public_id: "sid",
       acr: "aal1",
       amr: ["email"],
@@ -215,13 +229,13 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.set_device_id_cookie!("device-1", expires_at: expires_at)
 
     assert_equal "device-1", @controller.read_device_id_cookie
-    assert_equal @controller.device_cookie_key, Auth::CookieName.device(refresh_cookie_key: Authentication::Base::REFRESH_COOKIE_KEY)
+    assert_equal @controller.device_cookie_key, Authentication::CookieName.device(refresh_cookie_key: Authentication::Base::REFRESH_COOKIE_KEY)
     assert_equal expires_at.to_i, @controller.device_cookie_options(expires_at: expires_at)[:expires].to_i
 
     @controller.clear_device_id_cookie!
     @request.headers[Auth::IoKeys::Headers::DEVICE_ID] = "header-device"
 
-    assert_equal "header-device", @controller.read_device_id_cookie
+    assert_nil @controller.read_device_id_cookie
 
     @controller.send(:cookies)[Authentication::Base::ACCESS_COOKIE_KEY] = "access"
     @controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh"
@@ -256,9 +270,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     Rails.stub(:env, env) do
       options = @controller.cookie_deletion_options
 
-      assert_equal "auth_access", Auth::CookieName.access
-      assert_equal "auth_refresh", Auth::CookieName.refresh
-      assert_equal "auth_dbsc", Auth::CookieName.dbsc
+      assert_equal "auth_access", Authentication::CookieName.access
+      assert_equal "auth_refresh", Authentication::CookieName.refresh
+      assert_equal "auth_dbsc", Authentication::CookieName.dbsc
       assert_equal "/", options[:path]
       assert_equal :lax, options[:same_site]
       assert_not options[:secure]
@@ -275,9 +289,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     Rails.stub(:env, env) do
       options = @controller.cookie_deletion_options
 
-      assert_equal "auth_access", Auth::CookieName.access
-      assert_equal "auth_refresh", Auth::CookieName.refresh
-      assert_equal "auth_dbsc", Auth::CookieName.dbsc
+      assert_equal "auth_access", Authentication::CookieName.access
+      assert_equal "auth_refresh", Authentication::CookieName.refresh
+      assert_equal "auth_dbsc", Authentication::CookieName.dbsc
       assert_equal "/", options[:path]
       assert_equal :lax, options[:same_site]
       assert_not options[:secure]
@@ -289,9 +303,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "occurrence model and amr helpers" do
-    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:resource_type) { "client" }
 
-    assert_equal UserOccurrence, @controller.occurrence_model_class
+    assert_equal ClientOccurrence, @controller.occurrence_model_class
 
     @controller.define_singleton_method(:resource_type) { "operator" }
 
@@ -305,22 +319,22 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal ["passkey"], @controller.normalize_amr("passkey")
     assert_equal ["google"], @controller.normalize_amr("google")
     assert_equal ["apple"], @controller.normalize_amr("apple")
-    assert_equal ["recovery_code"], @controller.normalize_amr("secret")
+    assert_equal ["passcode"], @controller.normalize_amr("secret")
     assert_equal [], @controller.normalize_amr("unknown")
   end
 
   test "path and token expiry helpers" do
-    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:resource_type) { "client" }
 
     assert_equal "/sign/in/session", @controller.session_management_path
     assert_equal "/", @controller.after_login_path
     assert_equal "/", @controller.default_after_login_path
 
-    assert_equal :lapses_at, @controller.token_expiry_column(AuthenticationBaseFakeTokenWithLapsesAt)
+    assert_equal :discarded_at, @controller.token_expiry_column(AuthenticationBaseFakeTokenWithLapsesAt)
     assert_raises(ArgumentError) { @controller.token_expiry_column(AuthenticationBaseFakeTokenWithoutExpiry) }
 
     now = Time.current
-    token = Struct.new(:lapses_at, :refresh_expires_at).new(now + 30.minutes, now + 2.hours)
+    token = Struct.new(:discarded_at, :refresh_expires_at).new(now + 30.minutes, now + 2.hours)
 
     assert_equal (now + 30.minutes).to_i, @controller.access_token_expires_at_for(token, now: now).to_i
     assert_equal (now + 30.minutes).to_i, @controller.refresh_cookie_expires_at_for(token).to_i
@@ -371,13 +385,45 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal 4, redirected.size
   end
 
+  test "guest only no redirect renders plain text for signed in entry attempts" do
+    @request.set_header("REQUEST_METHOD", "GET")
+    rendered = []
+    redirected = []
+    @controller.define_singleton_method(:render) { |*args, **kwargs| rendered << [args, kwargs] }
+    @controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirected << [args, kwargs] }
+
+    @controller.handle_guest_only_with_status_checks(
+      status: :unauthorized,
+      message: "already signed in",
+      no_redirect: true,
+    )
+
+    assert_empty redirected
+    assert_equal "already signed in", rendered.last.last[:plain]
+    assert_equal :unauthorized, rendered.last.last[:status]
+  end
+
+  test "reject logged in session renders plain text without redirect" do
+    rendered = []
+    redirected = []
+    @controller.define_singleton_method(:logged_in?) { true }
+    @controller.define_singleton_method(:render) { |*args, **kwargs| rendered << [args, kwargs] }
+    @controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirected << [args, kwargs] }
+
+    @controller.reject_logged_in_session
+
+    assert_empty redirected
+    assert_equal I18n.t("errors.messages.already_authenticated"), rendered.last.last[:plain]
+    assert_equal :unauthorized, rendered.last.last[:status]
+  end
+
   test "resource session helpers handle supported and fallback resources" do
-    staff = staffs(:one)
+    staff = operators(:one)
     VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
-    assert_equal UserToken::MAX_SESSIONS_PER_USER, @controller.max_sessions_for_resource(@user)
+    assert_equal ClientToken::MAX_SESSIONS_PER_USER, @controller.max_sessions_for_resource(@user)
     assert_equal OperatorToken::MAX_SESSIONS_PER_STAFF, @controller.max_sessions_for_resource(staff)
     assert_equal VisitorToken::MAX_SESSIONS_PER_VISITOR, @controller.max_sessions_for_resource(visitor)
     assert_equal 2, @controller.max_sessions_for_resource(Object.new)
@@ -393,7 +439,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "current account bulletin and welcome helpers cover user and staff branches" do
-    staff = staffs(:one)
+    staff = operators(:one)
 
     @controller.define_singleton_method(:current_resource) { @current_resource_for_test }
     @controller.instance_variable_set(:@current_resource_for_test, @user)
@@ -432,7 +478,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "withdrawal and refresh error helpers cover status branches" do
-    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:resource_type) { "client" }
     @controller.define_singleton_method(:request_ip_address) { "127.0.0.1" }
     @controller.define_singleton_method(:risk_actor_payload) { |_| {} }
     @controller.request.request_id = "request-1"
@@ -547,7 +593,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "mfa pending helpers and gate helpers cover expiry branches" do
-    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:resource_type) { "client" }
     @controller.define_singleton_method(:controller_path) { "sign/app/in" }
 
     @controller.set_pending_mfa!(
@@ -609,40 +655,40 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "ensure_token_kind_exists creates missing fixed id" do
-    UserToken.where(user_token_kind_id: UserTokenKind::BROWSER_WEB).delete_all
-    UserTokenKind.where(id: UserTokenKind::BROWSER_WEB).delete_all
+    ClientToken.where(user_token_kind_id: ClientTokenKind::BROWSER_WEB).delete_all
+    ClientTokenKind.where(id: ClientTokenKind::BROWSER_WEB).delete_all
 
-    @controller.define_singleton_method(:resource_type) { "user" }
-    @controller.define_singleton_method(:token_kind_model) { UserTokenKind }
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:token_kind_model) { ClientTokenKind }
 
-    assert_difference -> { UserTokenKind.where(id: UserTokenKind::BROWSER_WEB).count }, 1 do
-      @controller.send(:ensure_token_kind_exists!, UserTokenKind::BROWSER_WEB)
+    assert_difference -> { ClientTokenKind.where(id: ClientTokenKind::BROWSER_WEB).count }, 1 do
+      @controller.send(:ensure_token_kind_exists!, ClientTokenKind::BROWSER_WEB)
     end
   end
 
   test "ensure_login_token_reference_data creates missing user token references" do
-    UserToken.delete_all
-    UserTokenKind.where(id: UserTokenKind::BROWSER_WEB).delete_all
-    UserTokenBindingMethod.where(id: UserTokenBindingMethod::LEGACY).delete_all
-    UserTokenDbscStatus.where(id: UserTokenDbscStatus::NOTHING).delete_all
-    UserTokenStatus.where(id: UserTokenStatus::NOTHING).delete_all
+    ClientToken.delete_all
+    ClientTokenKind.where(id: ClientTokenKind::BROWSER_WEB).delete_all
+    ClientTokenBindingMethod.where(id: ClientTokenBindingMethod::LEGACY).delete_all
+    ClientTokenDbscStatus.where(id: ClientTokenDbscStatus::NOTHING).delete_all
+    ClientTokenStatus.where(id: ClientTokenStatus::NOTHING).delete_all
 
-    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:resource_type) { "client" }
 
     @controller.send(
       :ensure_login_token_reference_data!,
       {
-        user_token_kind_id: UserTokenKind::BROWSER_WEB,
-        user_token_binding_method_id: UserTokenBindingMethod::LEGACY,
-        user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
-        user_token_status_id: UserTokenStatus::NOTHING,
+        user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+        user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+        user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+        user_token_status_id: ClientTokenStatus::NOTHING,
       },
     )
 
-    assert UserTokenKind.exists?(id: UserTokenKind::BROWSER_WEB)
-    assert UserTokenBindingMethod.exists?(id: UserTokenBindingMethod::LEGACY)
-    assert UserTokenDbscStatus.exists?(id: UserTokenDbscStatus::NOTHING)
-    assert UserTokenStatus.exists?(id: UserTokenStatus::NOTHING)
+    assert ClientTokenKind.exists?(id: ClientTokenKind::BROWSER_WEB)
+    assert ClientTokenBindingMethod.exists?(id: ClientTokenBindingMethod::LEGACY)
+    assert ClientTokenDbscStatus.exists?(id: ClientTokenDbscStatus::NOTHING)
+    assert ClientTokenStatus.exists?(id: ClientTokenStatus::NOTHING)
   end
 
   test "preference snapshot and reissue access token cover early returns and success" do
@@ -650,7 +696,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     Actor.preference = pref
 
     assert_equal(
-      { "lx" => "ja", "ri" => "jp", "tz" => "Asia/Tokyo", "ct" => "sy" },
+      { "ver" => Actor::Preference::SCHEMA_VERSION, "lx" => "ja", "ri" => "jp", "tz" => "Asia/Tokyo", "ct" => "sy" },
       @controller.build_auth_preference_snapshot(@user),
     )
 
@@ -661,7 +707,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     session_record = Struct.new(:public_id, :revoked_at).new("session-public", 10.minutes.from_now)
     @controller.define_singleton_method(:current_resource) { @user }
     @controller.define_singleton_method(:current_session) { session_record }
-    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:resource_type) { "client" }
     @controller.define_singleton_method(:resolved_current_preference) { |_| pref }
 
     assert_nil @controller.reissue_access_token!
@@ -678,27 +724,33 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
       method: "GET",
       uri: "http://id.app.localhost/",
     )
-    @controller.define_singleton_method(:resource_type) { "user" }
+    @controller.define_singleton_method(:resource_type) { "client" }
     @controller.define_singleton_method(:resource_foreign_key) { :user_id }
-    @controller.define_singleton_method(:resource_class) { User }
-    @controller.define_singleton_method(:token_class) { UserToken }
-    @controller.define_singleton_method(:token_kind_model) { UserTokenKind }
+    @controller.define_singleton_method(:resource_class) { Client }
+    @controller.define_singleton_method(:token_class) { ClientToken }
+    @controller.define_singleton_method(:token_kind_model) { ClientTokenKind }
     @controller.define_singleton_method(:session_limit_state_for) { |_| :within_limit }
     @controller.define_singleton_method(:record_audit) { |*| nil }
 
     result = @controller.log_in(@user, record_login_audit: false, require_totp_check: false)
 
     assert_equal :success, result[:status]
+    assert_equal "DPoP", result[:token_type]
 
     payload = Authentication::Base::Token.decode(
       result[:access_token],
       host: "id.app.localhost",
-      resource_type: "user",
+      resource_type: "client",
     )
     expected_jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    token = ClientToken.order(created_at: :desc).first
+    device_session = token.device_session
 
     assert_equal expected_jkt, payload.dig("cnf", "jkt")
-    assert_equal expected_jkt, UserToken.find_by!(public_id: payload["sid"]).dpop_jkt
+    assert_equal device_session.public_id, payload["sid"]
+    assert_not_equal token.public_id, payload["sid"]
+    assert_equal expected_jkt, token.dpop_jkt
+    assert_equal expected_jkt, device_session.dpop_jkt
   end
 
   test "log_in sets visitor token status reference ids" do
@@ -721,6 +773,151 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     token = VisitorToken.order(created_at: :desc).first
 
     assert_equal VisitorTokenStatus::ACTIVE, token.visitor_token_status_id
+  end
+
+  # Regression: log_in must NOT rotate the Rails session id when MFA is
+  # still pending. The privilege transition (= access-token issuance)
+  # happens at MFA completion, which re-enters log_in via
+  # finalize_mfa_login! with require_totp_check: false and triggers
+  # reset_session there. Resetting too early disposes pre-login session
+  # state for no security benefit (the post-MFA log_in will reset again).
+  test "log_in does not reset session or clear cookies when MFA is required" do
+    reset_count = 0
+    clear_count = 0
+
+    @controller.define_singleton_method(:reset_session) { reset_count += 1 }
+    @controller.define_singleton_method(:clear_previous_login_cookies!) { clear_count += 1 }
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:resource_foreign_key) { :user_id }
+    @controller.define_singleton_method(:resource_class) { Client }
+    @controller.define_singleton_method(:token_class) { ClientToken }
+    # Force the MFA branch: report MFA required for this resource.
+    @controller.define_singleton_method(:mfa_required_for?) { |_| true }
+
+    result = @controller.log_in(@user, record_login_audit: false, require_totp_check: true)
+
+    assert_equal :mfa_required, result[:status]
+    assert_equal 0, reset_count,
+                 "reset_session must NOT run while MFA is still pending; " \
+                 "it runs at MFA completion via finalize_mfa_login!"
+    assert_equal 0, clear_count,
+                 "clear_previous_login_cookies! must NOT run while MFA " \
+                 "is still pending; it runs at the actual session-issuance step"
+  end
+
+  # Regression: when no MFA is required (or already satisfied), log_in
+  # *must* rotate the Rails session id and clear the prior auth cookies
+  # before it issues the new session. This is the canonical
+  # session-fixation defense chokepoint.
+  test "log_in resets session and clears cookies once when MFA check is bypassed" do
+    reset_count = 0
+    clear_count = 0
+
+    @controller.define_singleton_method(:reset_session) { reset_count += 1 }
+    @controller.define_singleton_method(:clear_previous_login_cookies!) { clear_count += 1 }
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:resource_foreign_key) { :user_id }
+    @controller.define_singleton_method(:resource_class) { Client }
+    @controller.define_singleton_method(:token_class) { ClientToken }
+    @controller.define_singleton_method(:token_kind_model) { ClientTokenKind }
+    @controller.define_singleton_method(:session_limit_state_for) { |_| :within_limit }
+    @controller.define_singleton_method(:record_audit) { |*| nil }
+
+    result = @controller.log_in(@user, record_login_audit: false, require_totp_check: false)
+
+    assert_equal :success, result[:status]
+    assert_equal 1, reset_count,
+                 "reset_session must run exactly once at the privilege transition"
+    assert_equal 1, clear_count,
+                 "clear_previous_login_cookies! must run exactly once at the privilege transition"
+  end
+
+  # Regression: ordering invariant — when log_in is called with MFA
+  # *not* required (or `require_totp_check: false`), reset_session must
+  # happen BEFORE create_login_token_record, so the new token is issued
+  # against the rotated session. Currently we observe this indirectly by
+  # ensuring reset_session ran exactly once on the success path; if a
+  # future refactor calls reset_session zero times on success, S-1
+  # silently regresses.
+  test "log_in reset_session happens before token issuance on success path" do
+    order = []
+
+    @controller.define_singleton_method(:reset_session) { order << :reset_session }
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:resource_foreign_key) { :user_id }
+    @controller.define_singleton_method(:resource_class) { Client }
+    @controller.define_singleton_method(:token_class) { ClientToken }
+    @controller.define_singleton_method(:token_kind_model) { ClientTokenKind }
+    @controller.define_singleton_method(:session_limit_state_for) { |_| :within_limit }
+    @controller.define_singleton_method(:record_audit) { |*| nil }
+    @controller.define_singleton_method(:create_login_token_record) do |*args, **kwargs|
+      order << :create_login_token_record
+      # Delegate back to the real implementation by calling super through
+      # a small bound trick: invoke the method body via UnboundMethod.
+      Authentication::Base.instance_method(:create_login_token_record).bind_call(self, *args, **kwargs)
+    end
+
+    @controller.log_in(@user, record_login_audit: false, require_totp_check: false)
+
+    assert_equal %i(reset_session create_login_token_record), order,
+                 "reset_session must precede create_login_token_record"
+  end
+
+  # ---------------------------------------------------------------
+  # safe_path_from_encoded_rt regression coverage (S-7)
+  # ---------------------------------------------------------------
+  # The `rt` parameter must be Base64-url-encoded. A previous
+  # implementation evaluated the *undecoded* raw value as a fallback
+  # branch, which was ambiguous and surface-area-prone. These tests
+  # lock in the single-branch contract.
+
+  test "safe_path_from_encoded_rt accepts a Base64-encoded internal path" do
+    encoded = Base64.urlsafe_encode64("/dashboard?x=1")
+
+    assert_equal "/dashboard?x=1",
+                 @controller.safe_path_from_encoded_rt(encoded, fallback: "/")
+  end
+
+  test "safe_path_from_encoded_rt rejects an unencoded external URL and falls back" do
+    # Not Base64-encoded; an attacker tries to pass a raw external URL.
+    raw_external = "https://evil.example.test/pwn"
+
+    assert_equal "/",
+                 @controller.safe_path_from_encoded_rt(raw_external, fallback: "/")
+  end
+
+  test "safe_path_from_encoded_rt rejects encoded external URL targeting an unallowed host" do
+    encoded_external = Base64.urlsafe_encode64("https://evil.example.test/pwn")
+
+    assert_equal "/",
+                 @controller.safe_path_from_encoded_rt(encoded_external, fallback: "/")
+  end
+
+  test "safe_path_from_encoded_rt rejects an encoded payload with control characters" do
+    encoded_bad = Base64.urlsafe_encode64("/dashboard\nx")
+
+    assert_equal "/",
+                 @controller.safe_path_from_encoded_rt(encoded_bad, fallback: "/")
+  end
+
+  test "safe_path_from_encoded_rt returns fallback for blank rt" do
+    assert_equal "/", @controller.safe_path_from_encoded_rt(nil, fallback: "/")
+    assert_equal "/", @controller.safe_path_from_encoded_rt("", fallback: "/")
+  end
+
+  test "safe_path_from_encoded_rt returns fallback for malformed base64" do
+    # Random bytes that don't urlsafe-decode cleanly.
+    assert_equal "/",
+                 @controller.safe_path_from_encoded_rt("!!!not-base64!!!", fallback: "/")
+  end
+
+  test "safe_encoded_rt returns original encoded value only when decode passes safety check" do
+    safe_encoded = Base64.urlsafe_encode64("/dashboard?x=1")
+
+    assert_equal safe_encoded, @controller.safe_encoded_rt(safe_encoded)
+    assert_nil @controller.safe_encoded_rt(Base64.urlsafe_encode64("https://evil.example.test"))
+    assert_nil @controller.safe_encoded_rt("not-base64-and-not-internal")
+    assert_nil @controller.safe_encoded_rt(nil)
   end
 
   private

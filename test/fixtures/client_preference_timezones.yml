@@ -1,0 +1,29 @@
+# == Schema Information
+#
+# Table name: user_preference_timezones
+# Database name: app_principal
+#
+#  id            :bigint           not null, primary key
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  option_id     :bigint           not null
+#  preference_id :bigint           not null
+#
+# Indexes
+#
+#  index_user_preference_timezones_on_option_id      (option_id)
+#  index_user_preference_timezones_on_preference_id  (preference_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_user_preference_timezones_on_option_id      (option_id => user_preference_timezone_options.id)
+#  fk_user_preference_timezones_on_preference_id  (preference_id => user_preferences.id)
+#
+one:
+  id: 1
+  preference_id: 1
+  option_id: 2
+two:
+  id: 2
+  preference_id: 2
+  option_id: 2

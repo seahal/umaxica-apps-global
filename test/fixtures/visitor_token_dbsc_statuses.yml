@@ -1,0 +1,21 @@
+# == Schema Information
+#
+# Table name: visitor_token_dbsc_statuses
+# Database name: com_ticket
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: <%= VisitorTokenDbscStatus::NOTHING %>
+
+active:
+  id: <%= VisitorTokenDbscStatus::ACTIVE %>
+
+pending:
+  id: <%= VisitorTokenDbscStatus::PENDING %>
+
+failed:
+  id: <%= VisitorTokenDbscStatus::FAILED %>
+
+revoke:
+  id: <%= VisitorTokenDbscStatus::REVOKE %>

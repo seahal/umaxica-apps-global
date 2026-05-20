@@ -4,15 +4,12 @@
 module Sign
   module Com
     module In
-      class EmailsController < ApplicationController
+      class EmailsController < EmailGuestController
         include ::CloudflareTurnstile
         include EmailValidation
         include Common::Redirect
         include Common::Otp
         include SessionLimitGate
-
-        guest_only! status: :bad_request,
-                    message: I18n.t("sign.app.authentication.email.new.you_have_already_logged_in")
 
         before_action :load_user_email, only: %i(edit update)
 
@@ -184,8 +181,8 @@ module Sign
 
             otp_code = generate_otp_for(existing_email)
 
-            Email::App::RegistrationMailer.with(
-              hotp_token: otp_code,
+            Email::Com::OtpMailer.with(
+              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),
               email_address: existing_email.address,
             ).create.deliver_later
           else
@@ -218,16 +215,20 @@ module Sign
             clear_otp(user_email)
             session[:user_email_authentication_id] = nil
             rt = peek_redirect_parameter
-            result = complete_sign_in_or_start_mfa!(visitor, rt: rt, ri: params[:ri], auth_method: "email")
+            result = establish_signed_in_session!(visitor, rt: rt, ri: params[:ri], auth_method: "email")
+            sign_in_result = sign_in_result_from_session_result(result, actor: visitor)
 
-            if result[:status] == :mfa_required
-              { success: true, redirect_path: result[:redirect_path] }
-            elsif result[:status] == :session_limit_hard_reject
-              { success: false, error: result[:message], hard_reject: true, http_status: result[:http_status] }
-            elsif result[:restricted]
-              { success: true, restricted: true, redirect_path: sign_com_in_session_path(ri: params[:ri]) }
-            elsif result[:status] == :success
-              { success: true, tokens: result }
+            if sign_in_result.mfa_required?
+              { success: true, redirect_path: sign_in_result.redirect_to }
+            elsif sign_in_result.status == :session_limit_hard_reject
+              { success: false,
+                error: sign_in_result.message,
+                hard_reject: true,
+                http_status: sign_in_result.response_status, }
+            elsif sign_in_result.session_limit_pending?
+              { success: true, restricted: true, redirect_path: sign_in_result.redirect_to }
+            elsif sign_in_result.success?
+              { success: true, tokens: sign_in_result.token }
             else
               { success: false, error: t("sign.app.authentication.email.update.invalid_code") }
             end
@@ -256,11 +257,18 @@ module Sign
         end
 
         def visitor_from_visitor_email(visitor_email)
-          visitor_email&.visitor
+          return unless visitor_email
+          return visitor_email.visitor if visitor_email.association(:visitor).loaded?
+
+          if defined?(Prosopite)
+            Prosopite.pause { visitor_email.visitor }
+          else
+            visitor_email.visitor
+          end
         end
 
         def update_pass_code_params
-          params.expect(user_email: [:pass_code])
+          params(user_email: [:pass_code])
         rescue ActionController::ParameterMissing
           {}
         end

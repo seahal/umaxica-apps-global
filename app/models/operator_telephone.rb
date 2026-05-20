@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_telephones
-# Database name: operator
+# Database name: org_principal
 #
 #  id                                 :bigint           not null, primary key
 #  locked_at                          :datetime
@@ -21,7 +21,6 @@
 #
 # Indexes
 #
-#  index_staff_telephones_on_lower_number                        (lower((number)::text)) UNIQUE
 #  index_staff_telephones_on_number_digest                       (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
 #  index_staff_telephones_on_staff_id                            (staff_id)
 #  index_staff_telephones_on_staff_identity_telephone_status_id  (staff_identity_telephone_status_id)
@@ -32,7 +31,7 @@
 #  fk_rails_...  (staff_identity_telephone_status_id => staff_telephone_statuses.id)
 #
 
-class OperatorTelephone < OperatorRecord
+class OperatorTelephone < OrgPrincipalRecord
   self.table_name = "staff_telephones"
   alias_attribute :staff_telephone_status_id, :staff_identity_telephone_status_id
   include Telephone
@@ -55,9 +54,6 @@ class OperatorTelephone < OperatorRecord
   validates :staff_identity_telephone_status_id, numericality: { only_integer: true }
   validate :ensure_unique_number_digest
   validate :enforce_staff_telephone_limit, on: :create
-  before_validation do
-    self.staff_id ||= "00000000-0000-0000-0000-000000000000"
-  end
 
   after_initialize do
     self.number ||= ""
@@ -69,7 +65,16 @@ class OperatorTelephone < OperatorRecord
 
   def ensure_unique_number_digest
     return if number_digest.blank?
-    return unless self.class.where(number_digest: number_digest).where.not(id: id).exists?
+
+    duplicate =
+      if defined?(Prosopite)
+        Prosopite.pause do
+          self.class.where(number_digest: number_digest).where.not(id: id).exists?
+        end
+      else
+        self.class.where(number_digest: number_digest).where.not(id: id).exists?
+      end
+    return unless duplicate
 
     errors.add(:number, :taken)
   end
@@ -77,7 +82,14 @@ class OperatorTelephone < OperatorRecord
   def enforce_staff_telephone_limit
     return unless staff_id
 
-    count = self.class.where(staff_id: staff_id).count
+    count =
+      if staff&.staff_telephones&.loaded?
+        staff.staff_telephones.count { |telephone| telephone != self }
+      elsif defined?(Prosopite)
+        Prosopite.pause { self.class.where(staff_id: staff_id).count }
+      else
+        self.class.where(staff_id: staff_id).count
+      end
     return if count < MAX_TELEPHONES_PER_STAFF
 
     errors.add(:base, :too_many, message: "exceeds maximum telephones per staff (#{MAX_TELEPHONES_PER_STAFF})")

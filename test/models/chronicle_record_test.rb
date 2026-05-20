@@ -14,13 +14,13 @@ class ChronicleRecordTest < ActiveSupport::TestCase
 
   test "can perform basic write and read via chronicle model" do
     temp_id = 99_991
-    UserChronicleLevel.where(id: temp_id).delete_all
+    ClientChronicleLevel.where(id: temp_id).delete_all
 
-    record = UserChronicleLevel.create!(id: temp_id)
+    record = ClientChronicleLevel.create!(id: temp_id)
 
     assert_equal temp_id, record.id
-    assert_equal record, UserChronicleLevel.find(temp_id)
+    assert_equal record, ClientChronicleLevel.find(temp_id)
   ensure
-    UserChronicleLevel.where(id: temp_id).delete_all
+    ClientChronicleLevel.where(id: temp_id).delete_all
   end
 end

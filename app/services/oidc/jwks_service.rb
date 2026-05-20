@@ -14,7 +14,7 @@ module Oidc
         jwk = JWT::JWK.new(public_key, kid: kid)
         exported = jwk.export
         exported[:use] = "sig"
-        exported[:alg] = Auth::TokenService::JWT_ALGORITHM
+        exported[:alg] = Authentication::TokenService::JWT_ALGORITHM
 
         { keys: [exported] }
       end

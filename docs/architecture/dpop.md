@@ -18,7 +18,7 @@ of the private key by signing a DPoP proof JWT on each request.
 
 - **JTI replay detection is not applied at the access token level.** DPoP proof validation on API
   requests is stateless (signature + htm + htu + iat + ath + cnf.jkt). No Redis lookup per request.
-- **JTI replay detection is applied to refresh token and re-auth operations.** These are
+- **JTI replay detection is applied to refresh token and step-up operations.** These are
   low-frequency and security-critical.
 - **This conforms to RFC 9449** where JTI checking is SHOULD, not MUST.
 - **Supported algorithms:** ES256 and ES384 only (no RSA).
@@ -32,7 +32,7 @@ Server-side DPoP support lives in `app/services/dpop/`:
 | ----------------------------------------------- | --------------------------------------------------------- |
 | `app/services/dpop/proof_validator.rb`          | Core DPoP proof JWT validation (RFC 9449 Section 4.3)     |
 | `app/services/dpop/request_verifier.rb`         | Per-request DPoP verification orchestrator                |
-| `app/services/dpop/jti_replay_guard.rb`         | Redis-backed JTI deduplication (refresh and re-auth only) |
+| `app/services/dpop/jti_replay_guard.rb`         | Redis-backed JTI deduplication (refresh and step-up only) |
 | `lib/jit/security/jwt/thumbprint_calculator.rb` | RFC 7638 JWK Thumbprint and `ath` computation             |
 
 Token issuance controllers (`Sign::App::TokensController`, `Sign::Org::TokensController`,
@@ -44,11 +44,11 @@ Primary login issuance also accepts an optional `DPoP` proof header. When presen
 `Authentication::Base#log_in` stores the proof key thumbprint on the token row and embeds the same
 value in the issued JWT `cnf.jkt` claim.
 
-Resource enforcement runs through `Auth::CurrentResourceResolver` for Authorization-header access. A
-token with `cnf.jkt` must be presented as `Authorization: DPoP <token>` with a matching proof
-header. Presenting a DPoP-bound token as Bearer, omitting the proof, or sending a proof whose `ath`
-does not match the access token fails authentication and returns a fresh `DPoP-Nonce` header where
-the authentication pipeline can set one.
+Resource enforcement runs through `Authentication::CurrentResourceResolver` for Authorization-header
+access. A token with `cnf.jkt` must be presented as `Authorization: DPoP <token>` with a matching
+proof header. Presenting a DPoP-bound token as Bearer, omitting the proof, or sending a proof whose
+`ath` does not match the access token fails authentication and returns a fresh `DPoP-Nonce` header
+where the authentication pipeline can set one.
 
 Token tables (`user_tokens`, `staff_tokens`, `customer_tokens`) store:
 
@@ -86,11 +86,11 @@ Next.js and API client token usage.
 Each client type uses a different combination of token transport and proof-of-possession mechanism,
 based on its threat model:
 
-| VisitorAccount        | Access Token                        | Refresh Token                | Proof-of-Possession |
-| ------------- | ----------------------------------- | ---------------------------- | ------------------- |
-| Rails HTML    | HttpOnly cookie                     | HttpOnly cookie              | DBSC                |
-| Next.js       | DPoP JWT Bearer (Authorization hdr) | HttpOnly cookie              | DPoP                |
-| iOS / Android | In-memory bearer                    | Secure storage (Keychain/KS) | DPoP (optional)     |
+| VisitorAccount | Access Token                        | Refresh Token                | Proof-of-Possession |
+| -------------- | ----------------------------------- | ---------------------------- | ------------------- |
+| Rails HTML     | HttpOnly cookie                     | HttpOnly cookie              | DBSC                |
+| Next.js        | DPoP JWT Bearer (Authorization hdr) | HttpOnly cookie              | DPoP                |
+| iOS / Android  | In-memory bearer                    | Secure storage (Keychain/KS) | DPoP (optional)     |
 
 **Notes:**
 
@@ -107,7 +107,7 @@ The primary defense against refresh token theft is **rotation family management*
 - Each refresh token use issues a new refresh token and invalidates the previous one.
 - All tokens in a family share a `token_family` identifier.
 - If a previously invalidated refresh token is presented (replay), the server revokes the entire
-  family and forces re-authentication.
+  family and forces step-up authentication.
 - This detects token theft regardless of client type or transport mechanism.
 
 Rotation family management is the core security invariant. DBSC and DPoP add defense-in-depth but

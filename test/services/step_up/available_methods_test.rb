@@ -4,10 +4,12 @@
 require "test_helper"
 
 class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
-  fixtures :users, :staffs
+  fixtures :clients, :operators
 
   setup do
-    @user = User.create!(status_id: UserStatus::NOTHING)
+    @previous_cache_store = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    @user = Client.create!(status_id: ClientStatus::NOTHING)
     @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
   end
 
@@ -17,38 +19,39 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
         Rails.cache.delete(StepUp::Cooldowns.key(actor, method))
       end
     end
+    Rails.cache = @previous_cache_store
   end
 
   test "includes email_otp for verified user email status" do
-    @user.user_emails.create!(
+    @user.client_emails.create!(
       address: "verified-stepup@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     assert_includes StepUp::AvailableMethods.call(@user), :email_otp
   end
 
   test "matches configured methods without cooldown or lockout" do
-    @user.user_emails.create!(
+    @user.client_emails.create!(
       address: "available-baseline@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     assert_equal StepUp::ConfiguredMethods.call(@user), StepUp::AvailableMethods.call(@user)
   end
 
   test "cooldown hides only the cooled down method" do
-    @user.user_emails.create!(
+    @user.client_emails.create!(
       address: "available-cooldown@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
-    passkey = @user.user_passkeys.new(
+    passkey = @user.client_passkeys.new(
       webauthn_id: "available_cooldown_passkey_#{SecureRandom.hex(4)}",
       external_id: SecureRandom.uuid,
       public_key: "public_key",
       sign_count: 0,
       description: "cooldown passkey",
-      status_id: UserPasskeyStatus::ACTIVE,
+      status_id: ClientPasskeyStatus::ACTIVE,
     )
     passkey.save!(validate: false)
 
@@ -67,9 +70,9 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
   end
 
   test "ticket lockout returns no methods" do
-    @user.user_emails.create!(
+    @user.client_emails.create!(
       address: "available-lockout@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
     ticket = Struct.new(:attempt_count).new(5)
 
@@ -77,9 +80,9 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
   end
 
   test "does not include email_otp for unverified user email status" do
-    @user.user_emails.create!(
+    @user.client_emails.create!(
       address: "unverified-stepup@example.com",
-      user_email_status_id: UserEmailStatus::UNVERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
     assert_not_includes StepUp::AvailableMethods.call(@user), :email_otp
@@ -87,13 +90,13 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
 
   test "includes passkey for active passkey status" do
     passkey =
-      @user.user_passkeys.new(
+      @user.client_passkeys.new(
         webauthn_id: "stepup_passkey_#{SecureRandom.hex(4)}",
         external_id: SecureRandom.uuid,
         public_key: "public_key",
         sign_count: 0,
         description: "stepup passkey",
-        status_id: UserPasskeyStatus::ACTIVE,
+        status_id: ClientPasskeyStatus::ACTIVE,
       )
     passkey.save!(validate: false)
 
@@ -101,15 +104,15 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
   end
 
   test "does not include passkey for inactive passkey status" do
-    user = User.create!
+    user = Client.create!
     passkey =
-      user.user_passkeys.new(
+      user.client_passkeys.new(
         webauthn_id: "stepup_inactive_passkey_#{SecureRandom.hex(4)}",
         external_id: SecureRandom.uuid,
         public_key: "public_key",
         sign_count: 0,
         description: "inactive passkey",
-        status_id: UserPasskeyStatus::DISABLED,
+        status_id: ClientPasskeyStatus::DISABLED,
       )
     passkey.save!(validate: false)
 
@@ -117,9 +120,9 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
   end
 
   test "includes totp for active totp status" do
-    @user.user_one_time_passwords.create!(
+    @user.client_one_time_passwords.create!(
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -127,25 +130,25 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
   end
 
   test "does not include totp for inactive totp status" do
-    user = User.create!
-    user.user_one_time_passwords.create!(
+    user = Client.create!
+    user.client_one_time_passwords.create!(
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::INACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::INACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
     assert_not_includes StepUp::AvailableMethods.call(user), :totp
   end
 
-  test "includes email_otp for active staff email status" do
-    @staff.staff_emails.create!(
+  test "does not include email_otp for active staff email status" do
+    @staff.operator_emails.create!(
       address: "staff-active-stepup@example.com",
       staff_identity_email_status_id: OperatorEmailStatus::ACTIVE,
       otp_counter: "0",
       otp_private_key: "private_key",
     )
 
-    assert_includes StepUp::AvailableMethods.call(@staff), :email_otp
+    assert_not_includes StepUp::AvailableMethods.call(@staff), :email_otp
   end
 
   test "available methods apply cooldown for visitor actors" do
@@ -167,19 +170,22 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
   end
 
   test "available methods apply lockout for staff actors" do
-    @staff.staff_emails.create!(
-      address: "staff-lockout-stepup@example.com",
-      staff_identity_email_status_id: OperatorEmailStatus::ACTIVE,
-      otp_counter: "0",
-      otp_private_key: "private_key",
+    passkey = @staff.operator_passkeys.new(
+      webauthn_id: "staff_lockout_passkey_#{SecureRandom.hex(4)}",
+      external_id: SecureRandom.uuid,
+      public_key: "public_key",
+      sign_count: 0,
+      name: "staff lockout passkey",
+      status_id: OperatorPasskeyStatus::ACTIVE,
     )
+    passkey.save!(validate: false)
     ticket = Struct.new(:attempt_count).new(5)
 
     assert_equal [], StepUp::AvailableMethods.call(@staff, ticket: ticket)
   end
 
   test "does not include email_otp for inactive staff email status" do
-    @staff.staff_emails.create!(
+    @staff.operator_emails.create!(
       address: "staff-inactive-stepup@example.com",
       staff_identity_email_status_id: OperatorEmailStatus::INACTIVE,
       otp_counter: "0",

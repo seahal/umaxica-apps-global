@@ -19,11 +19,11 @@ Use three database connections named `token`, `symbol`, and `mark`.
 - `token` is the default owner and holds token models plus unclassified models.
 - `symbol` holds symbol model families.
 - `mark` holds mark model families.
-- Model ownership is expressed through three abstract base records: `TokenRecord`, `SymbolRecord`,
-  and `MarkRecord`.
-- `TokenRecord`, `SymbolRecord`, and `MarkRecord` inherit directly from `ApplicationRecord`; they do
-  not inherit from each other. Shared behavior belongs in concerns, not in another database base
-  record.
+- Model ownership is expressed through three abstract base records: `OrgTicketRecord`,
+  `ComTicketRecord`, and `AppTicketRecord`.
+- `OrgTicketRecord`, `ComTicketRecord`, and `AppTicketRecord` inherit directly from
+  `ApplicationRecord`; they do not inherit from each other. Shared behavior belongs in concerns, not
+  in another database base record.
 - Each base record declares a stable writer/reader pair, including test: for example
   `connects_to database: { writing: :token, reading: :token_replica }`. Test code should use test
   database configuration aliases for replicas instead of changing the model inheritance or
@@ -56,7 +56,7 @@ to reset the database boundary, not preserve the old single-database runtime con
 - Cross-database foreign keys should be avoided; relationships that cross `token`, `symbol`, and
   `mark` need application-level coordination or explicit service boundaries.
 - Connection-sensitive shared code must resolve the concrete model's connection owner instead of
-  wrapping all token-like models in `TokenRecord.connected_to`.
+  wrapping all token-like models in `OrgTicketRecord.connected_to`.
 - Operational tasks must create, migrate, reset, and back up three databases instead of one.
 
 ## Alternatives Considered

@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: app_preference_theme_options
-# Database name: principal
+# Database name: app_setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class AppPreferenceThemeOption < PrincipalRecord
+class AppPreferenceThemeOption < AppSettingRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

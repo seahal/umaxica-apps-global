@@ -6,8 +6,9 @@ require "test_helper"
 class ApplicationHelperTest < ActionView::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :user_banners, :staff_banners, :client_banners, :users, :user_statuses, :staffs, :staff_statuses,
-           :clients, :client_statuses
+  fixtures :client_banners, :operator_banners, :visitor_banners, :clients, :client_statuses, :operators,
+           :operator_identity_statuses, :visitors, :visitor_statuses, :visitor_visibilities, :visitor_multi_factors,
+           :visitor_multi_factor_statuses
 
   setup do
     extend ApplicationHelper
@@ -111,9 +112,10 @@ class ApplicationHelperTest < ActionView::TestCase
 
   test "current_banner_for returns current banner for each surface" do
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
-      assert_equal user_banners(:newer_current_user_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
-      assert_equal staff_banners(:current_staff_banner), current_banner_for(tld: :org, region: :jp, domain: :news)
-      assert_equal client_banners(:current_client_banner), current_banner_for(tld: :com, region: :jp, domain: :news)
+      assert_equal client_banners(:newer_current_user_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
+      assert_equal operator_banners(:current_staff_banner), current_banner_for(tld: :org, region: :jp, domain: :news)
+      assert_equal visitor_banners(:current_visitor_banner),
+                   current_banner_for(tld: :com, region: :jp, domain: :news)
     end
   end
 
@@ -121,13 +123,14 @@ class ApplicationHelperTest < ActionView::TestCase
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
       roles = []
 
-      PrincipalRecord.stub(
+      AppPrincipalRecord.stub(
         :connected_to, ->(role:, &block) do
                          roles << role
                          block.call
                        end,
       ) do
-        assert_equal user_banners(:newer_current_user_banner), current_banner_for(tld: :app, region: :jp, domain: :news)
+        assert_equal client_banners(:newer_current_user_banner),
+                     current_banner_for(tld: :app, region: :jp, domain: :news)
       end
 
       assert_equal [:writing], roles

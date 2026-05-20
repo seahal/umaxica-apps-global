@@ -22,6 +22,14 @@ class OidcSsoInitiatorTestController < ApplicationController
   def oidc_client_id
     "test-client-id"
   end
+
+  def oidc_sign_host
+    "id.app.localhost"
+  end
+
+  def oidc_callback_url
+    "http://www.example.com/auth/callback"
+  end
 end
 
 class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
@@ -39,7 +47,7 @@ class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
     get "/oidc/sso"
 
     assert_response :redirect
-    assert_match %r{\Ahttp://id\.app\.localhost/authorize\?}, response.location
+    assert_match %r{\Ahttp://id\.app\.localhost/oauth/authorize\?}, response.location
     assert_match %r{/auth/callback\z}, CGI.unescape(response.location[/redirect_uri=([^&]+)/, 1])
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?
@@ -53,7 +61,7 @@ class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_equal({ "error" => "Unauthorized" }, response.parsed_body)
   end
 
-  test "authenticate! calls risk enforcer for logged in users" do
+  test "authenticate! calls risk enforcer for logged in clients" do
     called = false
 
     Sign::Risk::Enforcer.stub(:call, ->(_resource) { called = true }) do

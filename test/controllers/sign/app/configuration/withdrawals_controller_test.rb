@@ -7,21 +7,21 @@ require "base64"
 class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :users, :user_statuses, :user_token_kinds, :user_token_statuses
+  fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
     @user = create_verified_user_with_email(email_address: "withdrawal-#{SecureRandom.hex(4)}@example.com")
     @user.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)
-    @token = UserToken.create!(
+    @token = ClientToken.create!(
       user: @user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      lapses_at: 1.day.from_now,
-      purge_at: 2.days.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
     )
     perform_withdrawal_step_up!
-    @headers = as_user_headers(@user, host: @host).merge("X-TEST-SESSION-PUBLIC-ID" => @token.public_id)
+    @headers = withdrawal_headers
   end
 
   test "new requires schedule confirmation to proceed" do
@@ -49,6 +49,55 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     assert_nil @user.reload.deactivated_at
   end
 
+  test "update rejects fresh aal1 session without withdrawal step-up" do
+    clear_withdrawal_step_up!
+
+    patch sign_app_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_deactivate_today: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_nil @user.reload.withdrawal_started_at
+    assert_nil @user.deactivated_at
+  end
+
+  test "update rejects generic verification step-up scope" do
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "verification")
+
+    patch sign_app_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_deactivate_today: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_nil @user.reload.withdrawal_started_at
+    assert_nil @user.deactivated_at
+  end
+
+  test "update rejects unrelated step-up scope" do
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
+
+    patch sign_app_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_deactivate_today: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_nil @user.reload.withdrawal_started_at
+    assert_nil @user.deactivated_at
+  end
+
+  test "update rejects expired withdrawal step-up" do
+    @token.update!(last_step_up_at: 16.minutes.ago, last_step_up_scope: "withdrawal")
+
+    patch sign_app_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_deactivate_today: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_nil @user.reload.withdrawal_started_at
+    assert_nil @user.deactivated_at
+  end
+
   test "update sets deactivation timestamps" do
     Prosopite.pause do
       travel_to Time.zone.parse("2026-02-09 10:00:00") do
@@ -59,20 +108,72 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     end
 
     assert_response :see_other
-    assert_redirected_to edit_sign_app_configuration_path(ri: "jp")
+    assert_redirected_to edit_sign_app_configuration_withdrawal_path(ri: "jp")
+    assert_equal I18n.t("sign.app.configuration.withdrawal.deactivate.success"), flash[:notice]
 
     @user.reload
 
     assert_not_nil @user.withdrawal_started_at
     assert_not_nil @user.deactivated_at
-    assert_equal @user.deactivated_at + 31.days, @user.purge_at
+    assert_equal @user.deactivated_at.to_i, @user.discarded_at.to_i
+    assert_equal @user.deactivated_at + 31.days, @user.purged_at
+    assert ClientToken.exists?(id: @token.id)
+
+    cycle = @user.client_withdrawal_cycles.recent_first.first
+
+    assert_predicate cycle, :withdrawal_discarded?
+    assert_equal 3, cycle.client_withdrawal_cycle_events.count
+  end
+
+  test "fresh sign-in token cannot schedule withdrawal" do
+    @token.update!(last_step_up_at: nil, last_step_up_scope: nil)
+
+    patch sign_app_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_schedule_purge: "1" },
+          headers: @headers
+
+    assert_response :unauthorized
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_nil @user.reload.withdrawal_started_at
+  end
+
+  test "wrong step-up scope cannot recover withdrawal" do
+    @user.update!(
+      deactivated_at: 10.days.ago,
+      withdrawal_started_at: 10.days.ago,
+      discarded_at: 1.day.from_now,
+      purged_at: 21.days.from_now,
+    )
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
+
+    post sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+
+    assert_response :unauthorized
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_not_nil @user.reload.deactivated_at
+  end
+
+  test "expired withdrawal step-up cannot terminate withdrawal early" do
+    @user.update!(
+      deactivated_at: 8.days.ago,
+      withdrawal_started_at: 8.days.ago,
+      discarded_at: 1.day.from_now,
+      purged_at: 23.days.from_now,
+    )
+    @token.update!(last_step_up_at: 16.minutes.ago, last_step_up_scope: "withdrawal")
+
+    delete sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+
+    assert_response :unauthorized
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_nil @user.reload.terminated_at
   end
 
   test "edit shows recoverable state within 31 days" do
     @user.update!(
       deactivated_at: 10.days.ago, withdrawal_started_at: 10.days.ago,
-      lapses_at: 1.day.from_now,
-      purge_at: 21.days.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 21.days.from_now,
     )
 
     get edit_sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -84,8 +185,8 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   test "create recovers account within 31 days" do
     @user.update!(
       deactivated_at: 10.days.ago, withdrawal_started_at: 10.days.ago,
-      lapses_at: 1.day.from_now,
-      purge_at: 21.days.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 21.days.from_now,
     )
 
     post sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
@@ -96,27 +197,71 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
 
     assert_nil @user.deactivated_at
     assert_nil @user.withdrawal_started_at
-    assert_equal Float::INFINITY, @user.purge_at
+    assert_equal Float::INFINITY, @user.purged_at
+  end
+
+  test "create rejects recovery without withdrawal step-up" do
+    clear_withdrawal_step_up!
+    @user.update!(
+      deactivated_at: 10.days.ago, withdrawal_started_at: 10.days.ago,
+      discarded_at: 1.day.from_now,
+      purged_at: 21.days.from_now,
+    )
+
+    post sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+
+    assert_response :unauthorized
+    assert_not_nil @user.reload.deactivated_at
+    assert_not_nil @user.withdrawal_started_at
   end
 
   test "create does not recover account after 31 days" do
     @user.update!(
       deactivated_at: 31.days.ago, withdrawal_started_at: 31.days.ago,
-      lapses_at: 2.days.ago,
-      purge_at: 1.day.ago,
+      discarded_at: 2.days.ago,
+      purged_at: 1.day.ago,
     )
 
     post sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
 
-    assert_response :see_other
+    assert_response :redirect
+    assert_redirected_to edit_sign_app_configuration_withdrawal_path(ri: "jp")
     @user.reload
 
     assert_not_nil @user.deactivated_at
+  end
+
+  test "destroy rejects early termination without withdrawal step-up" do
+    clear_withdrawal_step_up!
+    @user.update!(
+      deactivated_at: 8.days.ago,
+      withdrawal_started_at: 8.days.ago,
+      discarded_at: 8.days.ago,
+      purged_at: 23.days.from_now,
+      terminated_at: nil,
+    )
+
+    delete sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+
+    assert_response :unauthorized
+    assert_nil @user.reload.terminated_at
   end
 
   private
 
   def perform_withdrawal_step_up!
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
+  end
+
+  def clear_withdrawal_step_up!
+    @token.update!(last_step_up_at: nil, last_step_up_scope: nil)
+  end
+
+  def withdrawal_headers
+    browser_headers.merge(
+      "Host" => @host,
+      "X-TEST-CURRENT-USER" => @user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    )
   end
 end

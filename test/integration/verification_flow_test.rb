@@ -10,27 +10,27 @@ require "base64"
 # - High-risk operations require verification (step-up auth)
 # - After successful verification, user is redirected to return_to
 class VerificationFlowTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_tokens
+  fixtures :clients, :client_statuses, :client_tokens
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
-    UserEmail.create!(user: @user, address: "vf_#{SecureRandom.hex(4)}@example.com", user_email_status_id: UserEmailStatus::VERIFIED)
-    @token = UserToken.create!(
+    @user = clients(:one)
+    ClientEmail.create!(user: @user, address: "vf_#{SecureRandom.hex(4)}@example.com", user_email_status_id: ClientEmailStatus::VERIFIED)
+    @token = ClientToken.create!(
       user: @user,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       public_id: "vf#{SecureRandom.hex(4)}",
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
     )
     @headers = as_user_headers(@user, host: @host)
     @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
-    @user.user_passkeys.create!(
+    @user.client_passkeys.create!(
       description: "Test passkey",
       webauthn_id: "test",
       public_key: "public_key",
       sign_count: 0,
-      status_id: UserPasskeyStatus::ACTIVE,
+      status_id: ClientPasskeyStatus::ACTIVE,
     )
   end
 

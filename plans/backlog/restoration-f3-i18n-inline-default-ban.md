@@ -4,7 +4,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/notes/i18n-inline-default-literal-rule.md`
+- `notes/i18n-inline-default-literal-rule.md`
 
 ## Goal
 

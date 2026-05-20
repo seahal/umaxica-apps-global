@@ -11,18 +11,19 @@ require "base64"
 # - Email OTP is NOT available for Org (passkey only)
 # - High-risk operations require verification
 class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_passkeys, :staff_passkey_statuses
+  fixtures :operators, :operator_identity_statuses, :operator_passkeys, :operator_passkey_statuses
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @token = OperatorToken.create!(
       staff: @staff,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       public_id: "ovf#{SecureRandom.hex(4)}",
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
     )
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_passkey")
     @headers = as_staff_headers(@staff, host: @host)
     @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
   end
@@ -64,8 +65,7 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
                headers: @headers
 
           assert_response :redirect
-          # Redirects to return_to decoded value
-          assert_redirected_to sign_org_configuration_passkeys_url(ri: "jp")
+          assert_redirected_to sign_org_configuration_url(ri: "jp")
         end
       end
     end

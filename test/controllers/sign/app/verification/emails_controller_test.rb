@@ -5,20 +5,20 @@ require "test_helper"
 require "base64"
 
 class Sign::App::Verification::EmailsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users
+  fixtures :clients
 
   setup do
     @previous_cache_store = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = users(:one)
+    @user = clients(:one)
     @headers = as_user_headers(@user, host: @host)
-    @token = UserToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
     @active_token = @token
-    UserEmail.create!(
+    ClientEmail.create!(
       user: @user,
       address: "verified-#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       otp_private_key: "otp_private_key",
       otp_counter: "0",
     )
@@ -32,7 +32,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
-      Email::App::RegistrationMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
+      Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
@@ -54,7 +54,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "email selection from verification page reaches otp entry page" do
     return_to = Base64.urlsafe_encode64(
       edit_sign_app_configuration_email_path(
-        @user.user_emails.last.public_id,
+        @user.client_emails.last.public_id,
         ri: "jp",
       ),
     )
@@ -91,7 +91,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     ActiveJob::Base.queue_adapter = :solid_queue
     return_to = Base64.urlsafe_encode64(
       edit_sign_app_configuration_email_path(
-        @user.user_emails.last.public_id,
+        @user.client_emails.last.public_id,
         ri: "jp",
       ),
     )
@@ -116,7 +116,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new sends otp for email verified during signup" do
-    @user.user_emails.update_all(user_email_status_id: UserEmailStatus::VERIFIED_WITH_SIGN_UP)
+    @user.client_emails.update_all(user_email_status_id: ClientEmailStatus::VERIFIED_WITH_SIGN_UP)
     return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
@@ -149,7 +149,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
   end
 
-  test "new restores reauth session from scope and rt query parameters" do
+  test "new restores step_up session from scope and rt query parameters" do
     return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
@@ -236,7 +236,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
-      Email::App::RegistrationMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
+      Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
@@ -256,15 +256,15 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
             assert_response :redirect
             assert_redirected_to sign_app_configuration_emails_url(ri: "jp")
-            assert_nil @token.reload.reauth_session
-            assert_nil Rails.cache.read(email_otp_cache_key_for_id(@reauth_session_id))
+            assert_nil @token.reload.step_up_session
+            assert_nil Rails.cache.read(email_otp_cache_key_for_id(@step_up_session_id))
           end
         end
       end
     end
   end
 
-  test "invalid otp keeps back link from reauth session when request params are missing" do
+  test "invalid otp keeps back link from step_up session when request params are missing" do
     return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
 
     get sign_app_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
@@ -346,10 +346,10 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "step up flow from configuration emails returns to original page" do
-    stale_token = UserToken.create!(user_id: @user.id, created_at: 20.minutes.ago, updated_at: 20.minutes.ago)
+    stale_token = ClientToken.create!(user_id: @user.id, created_at: 20.minutes.ago, updated_at: 20.minutes.ago)
     stale_headers = @headers.merge("X-TEST-SESSION-PUBLIC-ID" => stale_token.public_id)
     @active_token = stale_token
-    email = @user.user_emails.where(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES).first
+    email = @user.client_emails.where(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES).first
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       get edit_sign_app_configuration_email_url(email.public_id, ri: "jp"), headers: stale_headers
@@ -367,7 +367,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
       assert_response :success
 
-      Email::App::RegistrationMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
+      Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         post sign_app_verification_emails_url(ri: "jp"),
              params: { verification: { scope: scope, rt: return_to } },
              headers: stale_headers
@@ -392,9 +392,9 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
   end
 
-  test "create restores reauth session only when scope and return_to are present" do
+  test "create restores step_up session only when scope and return_to are present" do
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
-      Email::App::RegistrationMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
+      Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         post sign_app_verification_emails_url(ri: "jp"),
              params: { verification: { scope: "", return_to: "" } },
              headers: @headers
@@ -432,29 +432,29 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   def cache_email_nonce!(nonce)
-    rs = current_reauth_session
-    Rails.cache.write("reauth_session:#{rs.id}:email_nonce", nonce, expires_in: 15.minutes)
+    rs = current_step_up_session
+    Rails.cache.write("step_up_session:#{rs.id}:email_nonce", nonce, expires_in: 15.minutes)
   end
 
   def cache_email_otp!
-    rs = current_reauth_session
+    rs = current_step_up_session
     Rails.cache.write(
-      "reauth_session:#{rs.id}:email_otp",
+      "step_up_session:#{rs.id}:email_otp",
       { "secret" => "secret", "counter" => 0 },
       expires_in: 15.minutes,
     )
   end
 
   def email_otp_cache_key
-    rs = current_reauth_session
-    "reauth_session:#{rs.id}:email_otp"
+    rs = current_step_up_session
+    "step_up_session:#{rs.id}:email_otp"
   end
 
   def email_otp_cache_key_for_id(id)
-    "reauth_session:#{id}:email_otp"
+    "step_up_session:#{id}:email_otp"
   end
 
-  def current_reauth_session
-    UserReauthSession.find_by!(user_token: @active_token).tap { |rs| @reauth_session_id = rs.id }
+  def current_step_up_session
+    ClientStepUpSession.find_by!(user_token: @active_token).tap { |rs| @step_up_session_id = rs.id }
   end
 end

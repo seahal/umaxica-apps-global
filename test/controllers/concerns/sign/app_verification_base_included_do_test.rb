@@ -16,8 +16,8 @@ class SignAppVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_includes Harness.included_modules, Common::Otp
   end
 
-  test "included do includes Verification::User module" do
-    assert_includes Harness.included_modules, Verification::User
+  test "included do includes Verification::Client module" do
+    assert_includes Harness.included_modules, Verification::Client
   end
 
   test "included do includes Sign::Webauthn module" do
@@ -36,12 +36,12 @@ class SignAppVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_includes Harness.included_modules, Sign::VerificationAuditAndCookie
   end
 
-  test "included do includes Sign::VerificationReauthSessionStore module" do
-    assert_includes Harness.included_modules, Sign::VerificationReauthSessionStore
+  test "included do includes Sign::VerificationStepUpSessionStore module" do
+    assert_includes Harness.included_modules, Sign::VerificationStepUpSessionStore
   end
 
-  test "included do includes Sign::VerificationReauthLifecycle module" do
-    assert_includes Harness.included_modules, Sign::VerificationReauthLifecycle
+  test "included do includes Sign::VerificationStepUpLifecycle module" do
+    assert_includes Harness.included_modules, Sign::VerificationStepUpLifecycle
   end
 
   test "included do includes Sign::VerificationPasskeyChecks module" do
@@ -52,16 +52,16 @@ class SignAppVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_includes Harness.included_modules, Sign::VerificationTotpChecks
   end
 
-  test "REAUTH_TTL constant is defined" do
-    assert_equal 15.minutes, Sign::AppVerificationBase::REAUTH_TTL
+  test "STEP_UP_TTL constant is defined" do
+    assert_equal 15.minutes, Sign::AppVerificationBase::STEP_UP_TTL
   end
 
-  test "REAUTH_SESSION_KEY constant is defined" do
-    assert_equal :reauth, Sign::AppVerificationBase::REAUTH_SESSION_KEY
+  test "STEP_UP_SESSION_KEY constant is defined" do
+    assert_equal :step_up, Sign::AppVerificationBase::STEP_UP_SESSION_KEY
   end
 
   test "EMAIL_OTP_SESSION_KEY constant is defined" do
-    assert_equal :reauth_email_otp, Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY
+    assert_equal :step_up_email_otp, Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY
   end
 
   test "ALLOWED_SCOPES constant is defined" do

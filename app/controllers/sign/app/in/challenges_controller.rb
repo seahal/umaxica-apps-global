@@ -4,14 +4,13 @@
 module Sign
   module App
     module In
-      class ChallengesController < ApplicationController
-        before_action :reject_logged_in_session
+      class ChallengesController < GuestController
         before_action :ensure_pending_mfa!
 
         def show
           @mfa_user = pending_mfa_user
           @can_use_totp = @mfa_user&.totp_enabled?
-          @can_use_passkey = @mfa_user&.user_passkeys&.exists?(status_id: UserPasskeyStatus::ACTIVE)
+          @can_use_passkey = @mfa_user&.client_passkeys&.exists?(status_id: ClientPasskeyStatus::ACTIVE)
         end
 
         private

@@ -64,10 +64,12 @@ module Sign
     def resolve_verification_challenge_id(challenge_id)
       return challenge_id unless respond_to?(:peek_challenge, true)
       return challenge_id if peek_challenge(challenge_id).present?
-      return challenge_id unless Rails.env.test?
 
       challenges = session[Sign::Webauthn::CHALLENGE_SESSION_KEY] || {}
-      challenges.one? ? challenges.keys.first : challenge_id
+      authentication_challenges = challenges.select { |_, data| data["purpose"] == "authentication" }
+      return authentication_challenges.keys.first if authentication_challenges.one?
+
+      challenge_id
     end
 
     def verification_passkeys_scope

@@ -1,0 +1,48 @@
+# Empty fixture to prevent FK violations when staff_tokens are destroyed in tests.
+# == Schema Information
+#
+# Table name: staff_verifications
+# Database name: org_ticket
+#
+#  id             :bigint           not null, primary key
+#  discarded_at   :datetime         default(Infinity), not null
+#  last_used_at   :datetime
+#  purged_at      :datetime         default(Infinity), not null
+#  token_digest   :string           not null
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#  staff_token_id :bigint           not null
+#
+# Indexes
+#
+#  index_staff_verifications_on_staff_token_id  (staff_token_id)
+#  index_staff_verifications_on_token_digest    (token_digest) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (staff_token_id => staff_tokens.id) ON DELETE => cascade
+#
+_fixture:
+  model_class: OperatorVerification
+
+# Table name: staff_verifications
+# Database name: org_ticket
+#
+#  id             :bigint           not null, primary key
+#  discarded_at      :datetime         default(Infinity), not null
+#  last_used_at   :datetime
+#  purged_at       :datetime         default(Infinity), not null
+#  token_digest   :string           not null
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#  staff_token_id :bigint           not null
+#
+# Indexes
+#
+#  index_staff_verifications_on_staff_token_id  (staff_token_id)
+#  index_staff_verifications_on_token_digest    (token_digest) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (staff_token_id => staff_tokens.id) ON DELETE => cascade
+#

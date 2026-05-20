@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: org_preference_timezones
-# Database name: operator
+# Database name: org_setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
@@ -23,17 +23,15 @@
 
 # frozen_string_literal: true
 
-class OrgPreferenceTimezone < OperatorRecord
+class OrgPreferenceTimezone < OrgSettingRecord
   belongs_to :preference, class_name: "OrgPreference", inverse_of: :org_preference_timezone
   belongs_to :option,
              class_name: "OrgPreferenceTimezoneOption",
-             inverse_of: :org_preference_timezones,
-             optional: true
+             inverse_of: :org_preference_timezones
 
   before_validation :set_option_id
 
   validates :preference_id, uniqueness: true
-  validates :option_id, presence: true
 
   private
 

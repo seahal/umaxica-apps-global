@@ -7,8 +7,9 @@ module Sign
       # Controller for handling OmniAuth callbacks (standard paths)
       #
       # Routes:
-      #   GET/POST /auth/:provider/callback -> #omniauth
-      #   GET/POST /auth/failure            -> #failure
+      #   GET  /auth/google_app/callback -> #omniauth
+      #   POST /auth/apple/callback      -> #omniauth
+      #   GET  /auth/failure             -> #failure
       #
       # This controller handles the OmniAuth callback, validates state,
       # and delegates to SocialAuthService for user creation/linking.
@@ -20,78 +21,44 @@ module Sign
         include SocialAuthConcern
         include SocialCallbackGuard
         include SessionLimitGate
+        include SocialOmniauthCallbackFlow
 
         # Allow unauthenticated access for login intent
-        # For link/reauth, auth is checked in prepare_social_auth_intent!
+        # For link intent, auth is checked in prepare_social_auth_intent!
         public_strict! only: %i(omniauth failure)
 
         # Skip preference before_actions that may interfere with OmniAuth callback
         skip_before_action :apply_localization_preferences, only: %i(omniauth failure)
         skip_before_action :set_region, only: %i(omniauth failure)
 
-        # GET/POST /auth/:provider/callback
-        # Handles successful OmniAuth authentication
-        def omniauth
-          auth = request.env["omniauth.auth"] || mock_auth_from_test_mode
+        def handle_omniauth_callback(auth)
+          Rails.event.debug("sign.social.omniauth.validating_state")
+          validate_social_auth_state!
+
+          intent = current_social_auth_intent
+          Rails.event.debug("sign.social.omniauth.processing_callback", intent: intent)
+          result = process_social_auth_callback
+          user = result[:user]
+
           Rails.event.debug(
-            "sign.social.omniauth.callback_received",
-            provider: auth&.provider,
-            uid: auth&.uid&.first(8),
-            logged_in: logged_in?,
+            "sign.social.omniauth.callback_processed",
+            user_id: user&.id,
+            intent: intent,
+            existing_account: result[:existing_account],
           )
 
-          unless auth
-            Rails.event.error("sign.social.omniauth.missing_auth_hash", message: "No auth hash found in request")
-            return redirect_to(
-              new_sign_app_in_path,
-              alert: I18n.t("sign.app.social.sessions.create.failure"),
-            )
-          end
-
-          ActiveRecord::Base.connected_to(role: :writing) do
-            # Validate state parameter (applies to ALL providers)
-            # Note: validation is skipped if session[SOCIAL_INTENT_SESSION_KEY] is blank
-            Rails.event.debug("sign.social.omniauth.validating_state")
-            validate_social_auth_state!
-
-            intent = current_social_auth_intent
-
-            # Process the callback through service
-            # IMPORTANT: Auto-link behavior is handled by overriding current_social_auth_intent
-            Rails.event.debug("sign.social.omniauth.processing_callback", intent: intent)
-            result = process_social_auth_callback
-            user = result[:user]
-            existing_account = result[:existing_account]
-            rt = result[:rt]
-
-            Rails.event.debug(
-              "sign.social.omniauth.callback_processed",
-              user_id: user&.id,
-              intent: intent,
-              existing_account: existing_account,
-            )
-
-            provider_name = SocialIdentifiable.normalize_provider(auth.provider).humanize
-            intent = intent.presence || "login"
-
-            handle_successful_auth(
-              user, intent, provider_name, result[:identity],
-              existing_account: existing_account,
-              rt: rt,
-            )
-          end
-        rescue SocialAuth::BaseError => e
-          Rails.event.debug(
-            "sign.social.omniauth.social_auth_error",
-            error_class: e.class.name,
-            error_message: e.message,
+          handle_successful_auth(
+            user,
+            intent.presence || "login",
+            SocialIdentifiable.normalize_provider(auth.provider).humanize,
+            result[:identity],
+            existing_account: result[:existing_account],
+            rt: result[:rt],
+            entry: result[:entry],
           )
-          handle_social_auth_error(e)
-        rescue StandardError => e
-          handle_unexpected_error(e, auth)
         end
 
-        # GET/POST /auth/failure
+        # GET /auth/failure
         # Handles OmniAuth failure (provider error, user cancellation, etc.)
         def failure
           message = params[:message] || "unknown_error"
@@ -135,24 +102,18 @@ module Sign
 
         private
 
-        def verified_request?
-          super || (action_name == "omniauth" && verified_social_callback_request?)
+        def social_omniauth_callback_requires_writing_role?
+          true
         end
 
-        def handle_unverified_request
-          if action_name == "omniauth"
-            rejection = request.env["social_callback_guard.rejection"] || {
-              reason: "csrf_unverified",
-              provider: params.expect(:provider).to_s,
-              details: {},
-            }
-            reject_social_callback!(**rejection)
-          else
-            super
-          end
+        def social_omniauth_callback_received_payload(auth)
+          super.merge(
+            uid: auth&.uid&.first(8),
+            logged_in: logged_in?,
+          )
         end
 
-        def handle_successful_auth(user, intent, provider_name, _identity, existing_account: nil, rt: nil)
+        def handle_successful_auth(user, intent, provider_name, _identity, existing_account: nil, rt: nil, entry: nil)
           Rails.event.debug(
             "sign.social.omniauth.handle_successful_auth",
             intent: intent,
@@ -162,11 +123,34 @@ module Sign
           case intent
           when "link"
             handle_link_intent(provider_name)
-          when "reauth"
-            handle_reauth_intent(user, provider_name)
+          when "login"
+            if entry == "sign_up" && !existing_account
+              handle_social_sign_up_intent(user, provider_name, rt: rt)
+            else
+              handle_login_intent(user, provider_name, existing_account, rt: rt)
+            end
           else
             handle_login_intent(user, provider_name, existing_account, rt: rt)
           end
+        end
+
+        def handle_social_sign_up_intent(user, provider_name, rt: nil)
+          cycle = sign_up_cycle_locator.current
+          unless cycle
+            return redirect_to(
+              new_sign_app_up_path(ri: params[:ri].presence || current_social_auth_ri),
+              alert: I18n.t("sign.app.social.sessions.create.failure"),
+            )
+          end
+
+          bind_social_sign_up_cycle!(cycle, user)
+          redirect_to(
+            sign_app_up_guardrail_path(
+              ri: params[:ri].presence || current_social_auth_ri,
+              rt: rt.presence,
+            ),
+            notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
+          )
         end
 
         def handle_link_intent(provider_name)
@@ -186,38 +170,14 @@ module Sign
           )
         end
 
-        def handle_reauth_intent(user, provider_name)
-          Rails.event.debug("sign.social.omniauth.reauth_intent", message: "Signing in with reauth")
-          return redirect_to(
-            new_sign_app_in_path,
-            alert: I18n.t("sign.app.social.sessions.create.failure"),
-          ) unless user&.login_allowed?
-
-          login_result = sign_in_with_reauth(user)
-
-          if login_result.is_a?(Hash) && login_result[:status] != :success
-            return handle_login_failure(login_result, provider_name, user)
-          end
-
-          if login_result.is_a?(Hash) && login_result[:restricted]
-            return redirect_to(
-              sign_app_in_session_path,
-              notice: I18n.t("sign.app.in.session.restricted_notice"),
-            )
-          end
-
-          redirect_to(
-            social_auth_success_redirect_path,
-            notice: I18n.t("sign.app.social.sessions.reauth.success", provider: provider_name),
-          )
-        end
-
         def handle_login_intent(user, provider_name, existing_account, rt: nil)
           Rails.event.debug("sign.social.omniauth.login_intent", message: "Signing in user")
-          return redirect_to(
-            new_sign_app_in_path,
-            alert: I18n.t("sign.app.social.sessions.create.failure"),
-          ) unless user&.login_allowed?
+          unless user&.login_allowed?
+            return redirect_to(
+              new_sign_app_in_path,
+              alert: I18n.t("sign.app.social.sessions.create.failure"),
+            )
+          end
 
           login_result = sign_in(user, rt: rt)
 
@@ -266,22 +226,8 @@ module Sign
           )
         end
 
-        def handle_unexpected_error(error, auth)
-          Rails.event.error(
-            "sign.social.omniauth.unexpected_error",
-            error_class: error.class.name,
-            error_message: error.message,
-            provider: auth&.provider,
-            exception: error,
-          )
-
-          failure_redirect_path = social_auth_failure_redirect_path
-          clear_social_auth_intent!
-          redirect_to(failure_redirect_path, alert: I18n.t("sign.app.social.sessions.create.failure"))
-        end
-
         def sign_in(user, rt: nil)
-          result = complete_sign_in_or_start_mfa!(
+          result = establish_signed_in_session!(
             user, rt: rt, ri: params[:ri], auth_method: "social",
                   audit_context: social_login_audit_context,
           )
@@ -289,22 +235,54 @@ module Sign
           result
         end
 
-        def sign_in_with_reauth(user)
-          # Reauth flow - last_reauth_at is already updated by SocialAuthService
-          result = complete_sign_in_or_start_mfa!(
-            user, rt: nil, ri: params[:ri], auth_method: "social",
-                  audit_context: social_login_audit_context,
-          )
-          Rails.event.debug("sign.social.omniauth.sign_in_reauth_result", result: result.inspect)
-          result
-        end
-
         def social_login_audit_context
-          auth = request.env["omniauth.auth"] || mock_auth_from_test_mode
+          auth = request.env["omniauth.auth"]
           provider = SocialIdentifiable.normalize_provider(auth&.provider)
           context = { auth_method: "social" }
           context[:provider] = provider if provider.present?
           context
+        end
+
+        def bind_social_sign_up_cycle!(cycle, user)
+          auth = request.env["omniauth.auth"]
+          identity = social_identity_for(user, auth&.provider)
+          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless identity
+
+          AppTicketRecord.connected_to(role: :writing) do
+            cycle.update!(
+              principal_id: user.id,
+              pending_contact_type: "social_identity",
+              pending_contact_id: identity&.id,
+              social_provider: SocialIdentifiable.normalize_provider(auth&.provider),
+            )
+            SignUp::StateMachine.call(
+              ticket: cycle,
+              event: :complete_social_callback,
+              actor_context: Actor.authentication,
+            ).tap do |result|
+              raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
+            end
+          end
+          store_social_sign_up_sequence_id(cycle)
+        end
+
+        def store_social_sign_up_sequence_id(cycle)
+          session[:sign_app_up_sequence_id] = cycle.public_id
+        rescue ActionDispatch::Request::Session::DisabledSessionError
+          nil
+        end
+
+        def social_identity_for(user, provider)
+          case SocialIdentifiable.normalize_provider(provider)
+          when "google"
+            user.user_social_google
+          when "apple"
+            user.user_social_apple
+          end
+        end
+
+        def sign_up_cycle_locator
+          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpCycle)
         end
 
         # Handle login failures (session limit, MFA required, etc.)
@@ -313,24 +291,25 @@ module Sign
             "auth_failed", user_id: user&.id, ip: request.remote_ip,
                            reason: "social_login_failed",
           ) if user
-          status = login_result[:status]
+          sign_in_result = sign_in_result_from_session_result(login_result, actor: user)
+          status = sign_in_result.status
 
           case status
           when :session_limit_hard_reject
             render_session_limit_hard_reject(
-              message: login_result[:message],
-              http_status: login_result[:http_status],
+              message: sign_in_result.message,
+              http_status: sign_in_result.response_status,
             )
-          when :session_limit_exceeded
+          when :session_limit_pending
             Rails.event.debug("sign.social.omniauth.session_limit_exceeded")
             redirect_to(
-              sign_app_in_session_path,
+              sign_in_result.redirect_to,
               notice: I18n.t("sign.app.in.session.restricted_notice"),
             )
           when :mfa_required
             Rails.event.debug("sign.social.omniauth.mfa_required")
             safe_redirect_to(
-              login_result[:redirect_path],
+              sign_in_result.redirect_to,
               fallback: new_sign_app_in_path,
               notice: I18n.t("sign.app.in.mfa.required"),
             )
@@ -341,16 +320,6 @@ module Sign
               alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
-        end
-
-        # For test mode, get mock auth hash from OmniAuth config
-        def mock_auth_from_test_mode
-          return unless Rails.env.test?
-
-          provider = params[:provider]
-          return unless provider
-
-          OmniAuth.config.mock_auth[provider.to_sym] || OmniAuth.config.mock_auth[provider.to_s]
         end
 
         def social_auth_failure_redirect_path
@@ -375,9 +344,9 @@ module Sign
 
         def validate_social_auth_state!
           intent = current_social_auth_intent
-          if intent == "link" && auto_link_allowed? && (logged_in? || test_user_from_header.present?)
+          if intent == "link" && auto_link_allowed? && logged_in?
             session[SOCIAL_FLOW_ID_SESSION_KEY] ||= SecureRandom.hex(16)
-            session[SOCIAL_USER_ID_SESSION_KEY] ||= (current_resource || test_user_from_header)&.id
+            session[SOCIAL_USER_ID_SESSION_KEY] ||= current_resource&.id
             session[SOCIAL_STARTED_AT_SESSION_KEY] ||= Time.current.to_i
             session[SOCIAL_PROVIDER_SESSION_KEY] ||= params[:provider]
           end
@@ -386,21 +355,20 @@ module Sign
         end
 
         # Override to support auto-link when user is already logged in
-        # IMPORTANT: This ensures UserSocialApple/UserSocialGoogle is created and linked to current_user
+        # IMPORTANT: This ensures ClientSocialApple/ClientSocialGoogle is created and linked to current_client
         # Without this, callback defaults to "login" intent and creates a NEW user instead
         def current_social_auth_intent
           explicit_intent = session[SOCIAL_INTENT_SESSION_KEY]
 
-          # If explicit intent is set (via /social/start), use it
+          # If explicit intent is set (via /social/auth/:provider/continue), use it
           return explicit_intent if explicit_intent.present?
 
           # Auto-link: if user is logged in and no explicit intent, default to "link"
           # This handles the case where user clicks Apple Sign In while already logged in
-          test_user = test_user_from_header
-          if logged_in? || test_user.present?
+          if logged_in?
             session[SOCIAL_INTENT_SESSION_KEY] = "link"
             if auto_link_allowed?
-              session[SOCIAL_USER_ID_SESSION_KEY] = (current_resource || test_user)&.id
+              session[SOCIAL_USER_ID_SESSION_KEY] = current_resource&.id
               session[SOCIAL_STARTED_AT_SESSION_KEY] ||= Time.current.to_i
               session[SOCIAL_FLOW_ID_SESSION_KEY] ||= SecureRandom.hex(16)
               session[SOCIAL_PROVIDER_SESSION_KEY] ||= params[:provider]
@@ -410,19 +378,6 @@ module Sign
 
           # Default: login flow for non-logged-in users
           "login"
-        end
-
-        def social_auth_user
-          super || test_user_from_header
-        end
-
-        def test_user_from_header
-          return nil unless Rails.env.test?
-
-          test_id = request.headers["X-TEST-CURRENT-USER"]
-          return nil if test_id.blank?
-
-          User.find_by(id: test_id)
         end
 
         def auto_link_allowed?

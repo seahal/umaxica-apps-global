@@ -1,6 +1,5 @@
 # typed: false
 # frozen_string_literal: true
-# rubocop:disable Layout/LineLength
 
 # == Schema Information
 #
@@ -45,13 +44,11 @@ class HandleAssignment < AvatarRecord
 
   belongs_to :handle, inverse_of: :handle_assignments
   belongs_to :avatar, inverse_of: :handle_assignments
-  belongs_to :assigned_by_actor, class_name: "Avatar", inverse_of: :assignments_created, optional: true
-  belongs_to :handle_assignment_status, optional: true
+  belongs_to :assigned_by_actor, class_name: "Avatar", inverse_of: :assignments_created
+  belongs_to :handle_assignment_status
 
   validates :handle_id, uniqueness: { conditions: -> { current } }
   validates :avatar_id, uniqueness: { conditions: -> { current } }
 
   delegate :name, to: :handle
 end
-
-# rubocop:enable Layout/LineLength

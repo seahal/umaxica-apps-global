@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: visitor_token_kinds
-# Database name: symbol
+# Database name: com_ticket
 #
 #  id :bigint           not null, primary key
 #
-class VisitorTokenKind < SymbolRecord
+class VisitorTokenKind < ComTicketRecord
   include ReferenceRecord
 
   self.primary_key = :id

@@ -18,7 +18,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
     result = Result.new(success: true, token_response: { access_token: "access", refresh_token: "refresh" })
 
     Oidc::TokenExchangeService.stub(:call, result) do
-      post sign_com_token_url,
+      post sign_com_oauth_token_url,
            params: {
              grant_type: "authorization_code",
              code: "abc",
@@ -40,7 +40,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
     result = Result.new(success: false, token_response: nil, error: "bad", error_description: "bad")
 
     Oidc::TokenExchangeService.stub(:call, result) do
-      post sign_com_token_url,
+      post sign_com_oauth_token_url,
            params: {
              grant_type: "authorization_code",
              code: "abc",
@@ -67,7 +67,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
         result
       end,
     ) do
-      post sign_com_token_url,
+      post sign_com_oauth_token_url,
            params: {
              grant_type: "authorization_code",
              code: "abc",

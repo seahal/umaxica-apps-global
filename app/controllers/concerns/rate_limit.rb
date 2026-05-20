@@ -14,8 +14,6 @@ module RateLimit
   extend ActiveSupport::Concern
 
   # Lazy-initialised per-process store.
-  # In test mode each forked parallel worker gets its own MemoryStore
-  # so that concurrent workers do not interfere with each other's counters.
   STORE_REGISTRY = {}
   private_constant :STORE_REGISTRY
 
@@ -27,12 +25,12 @@ module RateLimit
   end
 
   def self.build_store
-    if Rails.env.test?
-      ActiveSupport::Cache::MemoryStore.new
-    else
-      url = ENV.fetch("RATE_LIMIT_REDIS_URL", "redis://localhost:6379/0")
-      ActiveSupport::Cache::RedisCacheStore.new(url: url, namespace: "rate_limit")
-    end
+    configured_store = Rails.configuration.x.rate_limit[:store]
+    return configured_store.call if configured_store.respond_to?(:call)
+    return configured_store if configured_store
+
+    url = ENV.fetch("RATE_LIMIT_REDIS_URL", "redis://localhost:6379/0")
+    ActiveSupport::Cache::RedisCacheStore.new(url: url, namespace: "rate_limit")
   end
 
   DEFAULT_RETRY_AFTER = 60

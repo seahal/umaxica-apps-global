@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_bulletins
-# Database name: operator
+# Database name: org_principal
 #
 #  id         :bigint           not null, primary key
 #  body       :text
@@ -24,7 +24,7 @@
 #
 #  fk_rails_...  (staff_id => operators.id)
 #
-class OperatorBulletin < OperatorRecord
+class OperatorBulletin < OrgPrincipalRecord
   self.table_name = "staff_bulletins"
   include PublicId
 

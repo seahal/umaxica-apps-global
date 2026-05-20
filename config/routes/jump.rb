@@ -1,11 +1,14 @@
 # typed: false
 # frozen_string_literal: true
 
+# FIXME: What's the point of this?
 jump_hosts =
   lambda do |env_key, fallback, *local_aliases|
     hosts = [ENV.fetch(env_key, fallback)]
     hosts.concat(local_aliases) unless Rails.env.production?
-    hosts.compact.uniq
+    hosts.compact!
+    hosts.uniq!
+    hosts
   end
 
 scope module: :jump, as: :jump do
@@ -13,7 +16,7 @@ scope module: :jump, as: :jump do
     scope module: :com, as: :com do
       root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -23,7 +26,7 @@ scope module: :jump, as: :jump do
     scope module: :app, as: :app do
       root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -33,7 +36,7 @@ scope module: :jump, as: :jump do
     scope module: :org, as: :org do
       root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end

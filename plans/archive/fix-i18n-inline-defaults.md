@@ -27,6 +27,6 @@ The underlying rule remains valid:
 
 Use current repository search results plus the accepted rule note:
 
-- `adr/notes/i18n-inline-default-literal-rule.md`
+- `notes/i18n-inline-default-literal-rule.md`
 
 Do not use the old example file list in this retired plan as an implementation checklist.

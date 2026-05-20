@@ -30,6 +30,18 @@ class CoreSurfaceTest < ActiveSupport::TestCase
     assert_equal :org, Core::Surface.detect(request)
   end
 
+  test "detect returns net for net subdomain" do
+    request = MockRequest.new("net.example.com")
+
+    assert_equal :net, Core::Surface.detect(request)
+  end
+
+  test "detect returns dev for dev subdomain" do
+    request = MockRequest.new("dev.example.com")
+
+    assert_equal :dev, Core::Surface.detect(request)
+  end
+
   test "detect returns DEFAULT for unknown host" do
     request = MockRequest.new("unknown.example.com")
 

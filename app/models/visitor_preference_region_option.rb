@@ -4,11 +4,15 @@
 # == Schema Information
 #
 # Table name: visitor_preference_region_options
-# Database name: setting
+# Database name: com_principal
 #
 #  id :bigint           not null, primary key
 #
-class VisitorPreferenceRegionOption < SettingRecord
+# Indexes
+#
+#  index_visitor_preference_region_options_on_id  (id) UNIQUE
+#
+class VisitorPreferenceRegionOption < ComPrincipalRecord
   include ReferenceRecord
 
   NOTHING = 0

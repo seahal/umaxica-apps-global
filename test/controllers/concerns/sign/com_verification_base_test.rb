@@ -9,13 +9,13 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
   VisitorStruct = Struct.new(:id, :public_id, :visitor_emails, :visitor_passkeys)
 
   class Harness
-    include Sign::VerificationReauthSessionStore
+    include Sign::VerificationStepUpSessionStore
     include Sign::ComVerificationBase::Overrides
 
-    ALLOWED_SCOPES = Sign::AppVerificationBase::ALLOWED_SCOPES
-    REAUTH_SESSION_KEY = Sign::AppVerificationBase::REAUTH_SESSION_KEY
+    ALLOWED_SCOPES = Sign::ComVerificationBase::ALLOWED_SCOPES
+    STEP_UP_SESSION_KEY = Sign::AppVerificationBase::STEP_UP_SESSION_KEY
     EMAIL_OTP_SESSION_KEY = Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY
-    REAUTH_TTL = Sign::AppVerificationBase::REAUTH_TTL
+    STEP_UP_TTL = Sign::AppVerificationBase::STEP_UP_TTL
 
     attr_accessor :visitor, :visitor_token, :params_hash, :redirect_args, :restore_result, :generated_hotp
 
@@ -39,11 +39,11 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
       (path.to_s.start_with?("/") && !path.to_s.start_with?("//")) ? path : nil
     end
 
-    def current_reauth_session
-      visitor_token&.reauth_session
+    def current_step_up_session
+      visitor_token&.step_up_session
     end
 
-    def restore_reauth_session_from_params!
+    def restore_step_up_session_from_params!
       restore_result
     end
 
@@ -64,7 +64,7 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     end
 
     def email_otp_cache_key
-      "reauth_session:#{current_reauth_session.id}:email_otp"
+      "step_up_session:#{current_step_up_session.id}:email_otp"
     end
   end
 
@@ -77,77 +77,77 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     Rails.cache = @previous_cache_store
   end
 
-  test "start_reauth_session stores a valid visitor session" do
+  test "start_step_up_session stores a valid visitor session" do
     visitor = create_verified_visitor_with_email(email_address: "com-start-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor)
     harness = Harness.new(visitor: visitor, visitor_token: token)
     return_to = Base64.urlsafe_encode64("/configuration/emails/new")
 
     travel_to Time.zone.local(2026, 1, 1, 12, 0, 0) do
-      harness.send(:start_reauth_session!, scope: "configuration_email", return_to_param: return_to)
+      harness.send(:start_step_up_session!, scope: "configuration_email", return_to_param: return_to)
 
-      session = token.reload.reauth_session
+      session = token.reload.step_up_session
 
       assert_equal token.id, session.visitor_token_id
       assert_equal "configuration_email", session.scope
       assert_equal "/configuration/emails/new", session.return_to
-      assert_in_delta 15.minutes.from_now, session.lapses_at, 1.second
+      assert_in_delta 15.minutes.from_now, session.discarded_at, 1.second
     end
   end
 
-  test "start_reauth_session rejects invalid return path and scope mismatch" do
+  test "start_step_up_session rejects invalid return path and scope mismatch" do
     visitor = create_verified_visitor_with_email(email_address: "com-reject-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor)
     harness = Harness.new(visitor: visitor, visitor_token: token)
 
     assert_raises(ActionController::BadRequest) do
-      harness.send(:start_reauth_session!, scope: "configuration_email", return_to_param: Base64.urlsafe_encode64("https://evil.example"))
+      harness.send(:start_step_up_session!, scope: "configuration_email", return_to_param: Base64.urlsafe_encode64("https://evil.example"))
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
-        :start_reauth_session!, scope: "unknown",
-                                return_to_param: Base64.urlsafe_encode64("/configuration/emails"),
+        :start_step_up_session!, scope: "unknown",
+                                 return_to_param: Base64.urlsafe_encode64("/configuration/emails"),
       )
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
-        :start_reauth_session!, scope: "configuration_email",
-                                return_to_param: Base64.urlsafe_encode64("/configuration/secrets"),
+        :start_step_up_session!, scope: "configuration_email",
+                                 return_to_param: Base64.urlsafe_encode64("/configuration/secrets"),
       )
     end
   end
 
-  test "valid_reauth_session checks expiry actor scope and return path" do
+  test "valid_step_up_session checks expiry actor scope and return path" do
     visitor = create_verified_visitor_with_email(email_address: "com-valid-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor)
     other_token = VisitorToken.create!(visitor: visitor)
     harness = Harness.new(visitor: visitor, visitor_token: token)
 
-    valid_session = create_visitor_reauth_session(visitor_token: token)
+    valid_session = create_visitor_step_up_session(visitor_token: token)
 
-    assert harness.send(:valid_reauth_session?, valid_session)
-    assert_not harness.send(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.lapses_at = 1.minute.ago })
+    assert harness.send(:valid_step_up_session?, valid_session)
+    assert_not harness.send(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.discarded_at = 1.minute.ago })
     assert_not harness.send(
-      :valid_reauth_session?, valid_session.dup.tap { |rs|
-                                rs.visitor_token_id = other_token.id
-                              },
+      :valid_step_up_session?, valid_session.dup.tap { |rs|
+                                 rs.visitor_token_id = other_token.id
+                               },
     )
-    assert_not harness.send(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.scope = "" })
-    assert_not harness.send(:valid_reauth_session?, valid_session.dup.tap { |rs| rs.return_to = "" })
+    assert_not harness.send(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.scope = "" })
+    assert_not harness.send(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.return_to = "" })
   end
 
-  test "handle_invalid_reauth_session clears cache and redirects when restore fails" do
+  test "handle_invalid_step_up_session clears cache and redirects when restore fails" do
     visitor = create_verified_visitor_with_email(email_address: "com-invalid-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor)
     harness = Harness.new(visitor: visitor, visitor_token: token)
     harness.params_hash = { ri: "jp" }
-    reauth_session = create_visitor_reauth_session(visitor_token: token)
-    Rails.cache.write("reauth_session:#{reauth_session.id}:email_otp", { "secret" => "old" })
+    step_up_session = create_visitor_step_up_session(visitor_token: token)
+    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret" => "old" })
 
-    assert_not harness.send(:handle_invalid_reauth_session!)
-    assert_nil Rails.cache.read("reauth_session:#{reauth_session.id}:email_otp")
+    assert_not harness.send(:handle_invalid_step_up_session!)
+    assert_nil Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp")
     assert_match "/verification?", harness.redirect_args.first.first
   end
 
@@ -157,16 +157,16 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     harness = Harness.new(visitor: visitor)
     harness.params_hash = { ri: "jp" }
 
-    assert_equal :visitor_token_id, harness.send(:reauth_session_token_foreign_key)
+    assert_equal :visitor_token_id, harness.send(:step_up_session_token_foreign_key)
     assert_equal "/verification?ri=jp", harness.send(:verification_unavailable_redirect_path)
     assert_equal VisitorVerification, harness.send(:verification_model)
-    assert_equal UserChronicleEvent::STEP_UP_VERIFIED, harness.send(:verification_success_event_id)
+    assert_equal ClientChronicleEvent::STEP_UP_VERIFIED, harness.send(:verification_success_event_id)
     assert_equal "sign.app.verification.success.complete", harness.send(:verification_success_notice_key)
     assert_equal "/verification?ri=jp", harness.send(:verification_success_fallback_path)
-    assert_equal UserChronicleEvent, harness.send(:verification_audit_event_class)
-    assert_equal UserChronicleLevel, harness.send(:verification_audit_level_class)
-    assert_equal UserChronicleLevel::NOTHING, harness.send(:verification_default_activity_level_id)
-    assert_equal UserChronicle, harness.send(:verification_activity_model)
+    assert_equal ClientChronicleEvent, harness.send(:verification_audit_event_class)
+    assert_equal ClientChronicleLevel, harness.send(:verification_audit_level_class)
+    assert_equal ClientChronicleLevel::NOTHING, harness.send(:verification_default_activity_level_id)
+    assert_equal ClientChronicle, harness.send(:verification_activity_model)
     assert_equal visitor, harness.send(:current_verification_actor)
     assert_equal "Visitor", harness.send(:verification_actor_type)
     assert_equal :visitor_token_id, harness.send(:verification_token_foreign_key)
@@ -198,28 +198,28 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
       confirm_policy: "1",
       visitor_email_status_id: VisitorEmailStatus::VERIFIED,
     )
-    reauth_session = create_visitor_reauth_session(visitor_token: token)
+    step_up_session = create_visitor_step_up_session(visitor_token: token)
 
     assert harness.send(:send_email_otp!)
     assert_equal(
       { "secret" => "secret",
         "counter" => 1, },
-      Rails.cache.read("reauth_session:#{reauth_session.id}:email_otp"),
+      Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp"),
     )
   end
 
   private
 
-  def create_visitor_reauth_session(visitor_token:, scope: "configuration_email", return_to: "/configuration/emails")
-    VisitorReauthSession.create!(
+  def create_visitor_step_up_session(visitor_token:, scope: "configuration_email", return_to: "/configuration/emails")
+    VisitorStepUpSession.create!(
       visitor_token: visitor_token,
       scope: scope,
       return_to: return_to,
       method: nil,
       status: "PENDING",
       attempt_count: 0,
-      lapses_at: 5.minutes.from_now,
-      purge_at: 5.minutes.from_now,
+      discarded_at: 5.minutes.from_now,
+      purged_at: 5.minutes.from_now,
     )
   end
 end

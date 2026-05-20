@@ -4,15 +4,16 @@
 require "test_helper"
 
 class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_telephone_statuses
+  fixtures :operators, :operator_identity_statuses, :operator_telephone_statuses
   include ActiveJob::TestHelper
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_telephone")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -32,7 +33,7 @@ class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < Action
   end
 
   test "create registers telephone for current staff" do
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("OperatorTelephone.count", 1) do
         post sign_org_configuration_telephones_registration_url(ri: "jp"),
              params: { staff_telephone: { raw_number: "+10000000009" } },

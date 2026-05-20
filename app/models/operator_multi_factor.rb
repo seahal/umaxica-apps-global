@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: staff_multi_factors
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class OperatorMultiFactor < OperatorRecord
+class OperatorMultiFactor < OrgPrincipalRecord
   self.table_name = "staff_multi_factors"
   include ReferenceRecord
 

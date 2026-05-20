@@ -1,0 +1,172 @@
+# typed: false
+# frozen_string_literal: true
+
+module SocialAuth
+  # Handles account-linking for an authenticated client.
+  class LinkHandler
+    Result = Data.define(:user, :identity, :jwt_payload, :step_up_authenticated, :existing_account)
+
+    def self.call(...)
+      new(...).call
+    end
+
+    def initialize(auth_hash:, current_client:, identity_class:, provider:, uid:)
+      @auth_hash = auth_hash
+      @current_client = current_client
+      @identity_class = identity_class
+      @provider = provider
+      @uid = uid
+    end
+
+    def call
+      raise UnauthorizedError.new("errors.social_auth.not_logged_in") unless current_client
+
+      Rails.logger.debug { "[SocialAuth] handle_link - current_client_id: #{current_client_id}" }
+
+      existing_for_user = identity_for_current_user
+      return handle_existing_for_current_user(existing_for_user) if existing_for_user
+
+      identity = identity_class.lock.find_by(uid: uid, provider: provider)
+      Rails.logger.debug do
+        "[SocialAuth] Identity with uid exists: #{identity.present?}, " \
+          "belongs_to_current_user: #{identity&.user_id == current_client_id}"
+      end
+
+      identity ? handle_existing_uid_identity(identity) : link_new_identity
+    rescue ActiveRecord::RecordNotUnique => e
+      Rails.event.notify(
+        "social_auth.link_race_condition",
+        user_id: current_client_id,
+        provider: provider,
+        uid: uid,
+        error: e.message,
+      )
+      raise ConflictError.new("errors.social_auth.identity_conflict")
+    end
+
+    private
+
+    attr_reader :auth_hash, :current_client, :identity_class, :provider, :uid
+
+    def current_client_id
+      current_client.id
+    end
+
+    def handle_existing_for_current_user(identity)
+      unless same_social_identity?(identity)
+        Rails.logger.debug do
+          "[SocialAuth] Conflict - user already has #{provider} linked to a different uid"
+        end
+        raise ConflictError.new("errors.social_auth.identity_conflict")
+      end
+
+      reactivate_current_identity(identity)
+      build_result(identity)
+    end
+
+    def reactivate_current_identity(identity)
+      was_active = identity.active?
+      identity.update_from_auth_hash!(auth_hash)
+      identity.update!(identity_class.status_column => active_status_id)
+      create_social_link_audit(identity) unless was_active
+      Rails.logger.debug { "[SocialAuth] Reactivated existing identity" }
+    end
+
+    def handle_existing_uid_identity(identity)
+      if identity.user_id != current_client_id
+        Rails.logger.debug do
+          "[SocialAuth] Conflict - identity belongs to another user: #{identity.user_id}"
+        end
+        raise ConflictError.new(
+          "errors.social_auth.linked_to_another_user",
+          provider: SocialIdentifiable.normalize_provider(provider),
+        )
+      end
+
+      Rails.logger.debug { "[SocialAuth] Identity already belongs to current user, updating" }
+      was_active = identity.active?
+      identity.update_from_auth_hash!(auth_hash)
+      create_social_link_audit(identity) unless was_active
+      build_result(identity)
+    end
+
+    def link_new_identity
+      Rails.logger.debug { "[SocialAuth] Creating new identity for current user" }
+      identity = build_identity_for_current_user
+      identity.save!
+      identity.touch_authenticated!
+      create_social_link_audit(identity)
+
+      Rails.event.notify(
+        "social_auth.linked",
+        user_id: current_client_id,
+        provider: provider,
+      )
+
+      Rails.logger.debug { "[SocialAuth] Successfully linked new identity" }
+      build_result(identity)
+    end
+
+    def identity_for_current_user
+      case identity_class.name
+      when "ClientSocialGoogle"
+        current_client.user_social_google
+      when "ClientSocialApple"
+        current_client.user_social_apple
+      end
+    end
+
+    def same_social_identity?(identity)
+      identity.uid.to_s == uid.to_s &&
+        SocialIdentifiable.normalize_provider(identity.provider) == SocialIdentifiable.normalize_provider(provider)
+    end
+
+    def build_identity_for_current_user
+      identity_class.new(
+        uid: uid,
+        provider: provider,
+        token: auth_hash.dig("credentials", "token") || auth_hash.dig(:credentials, :token) || "",
+        refresh_token: auth_hash.dig("credentials", "refresh_token") ||
+          auth_hash.dig(:credentials, :refresh_token) || "",
+        expires_at: auth_hash.dig("credentials", "expires_at") || auth_hash.dig(:credentials, :expires_at) || 0,
+        user: current_client,
+      )
+    end
+
+    def active_status_id
+      identity_class.status_class::ACTIVE
+    end
+
+    def create_social_link_audit(identity)
+      ChronicleRecord.connected_to(role: :writing) do
+        ClientChronicleEvent.find_or_create_by!(id: ClientChronicleEvent::SOCIAL_LINKED)
+        ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
+      end
+
+      ClientChronicle.create!(
+        actor_type: "Client",
+        actor_id: current_client_id,
+        event_id: ClientChronicleEvent::SOCIAL_LINKED,
+        level_id: ClientChronicleLevel::NOTHING,
+        subject_id: current_client_id.to_s,
+        subject_type: "Client",
+        occurred_at: Time.current,
+        context: {
+          auth_method: "social",
+          provider: SocialIdentifiable.normalize_provider(provider),
+          social_identity_type: identity.class.name,
+        },
+      )
+    end
+
+    def build_result(identity)
+      {
+        user: current_client,
+        identity: identity,
+        jwt_payload: { user_id: current_client_id },
+        step_up_authenticated: false,
+        existing_account: nil,
+      }
+    end
+  end
+end

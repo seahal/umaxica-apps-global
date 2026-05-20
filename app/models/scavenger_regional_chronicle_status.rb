@@ -15,6 +15,7 @@ class ScavengerRegionalChronicleStatus < ChronicleRecord
   STARTED = 1
   OK = 2
   ERROR = 3
+  DEFAULTS = [NOTHING, STARTED, OK, ERROR].freeze
 
   has_many :scavenger_regional_chronicles,
            class_name: "ScavengerRegionalChronicle",

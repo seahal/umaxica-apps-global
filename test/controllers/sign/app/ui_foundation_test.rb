@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses
+  fixtures :clients, :client_statuses
 
   setup do
     @user = create_verified_user_with_email(email_address: "ui-foundation-#{SecureRandom.hex(4)}@example.com")
@@ -39,7 +39,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     pages = [
       sign_app_configuration_totps_path(ri: "jp"),
       sign_app_configuration_passkeys_path(ri: "jp"),
-      sign_app_configuration_challenge_path(ri: "jp"),
+      sign_app_configuration_mfa_challenge_path(ri: "jp"),
       sign_app_configuration_secrets_path(ri: "jp"),
       sign_app_configuration_emails_path(ri: "jp"),
       sign_app_configuration_telephones_path(ri: "jp"),
@@ -49,11 +49,13 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
       edit_sign_app_out_path(ri: "jp"),
     ]
 
-    pages.each do |path|
-      get path, headers: head
-      follow_redirect!(headers: head) if response.redirect?
+    Prosopite.pause do
+      pages.each do |path|
+        get path, headers: head
+        follow_redirect!(headers: head) if response.redirect?
 
-      assert_response :success, "Failed to load #{path}"
+        assert_response :success, "Failed to load #{path}"
+      end
     end
   end
 

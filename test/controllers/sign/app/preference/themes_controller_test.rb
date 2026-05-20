@@ -7,11 +7,11 @@ module Sign
   module App
     module Preference
       class ThemesControllerTest < ActionDispatch::IntegrationTest
-        fixtures :users, :user_preferences
+        fixtures :clients, :client_preferences
 
         setup do
           @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-          @user = users(:one)
+          @user = clients(:one)
           host! @host
         end
 

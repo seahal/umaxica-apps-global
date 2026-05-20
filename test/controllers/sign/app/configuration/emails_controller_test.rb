@@ -4,17 +4,18 @@
 require "test_helper"
 
 class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_token_statuses, :user_token_kinds, :user_email_statuses,
-           :user_telephone_statuses, :user_passkey_statuses, :user_chronicle_events, :user_chronicle_levels
+  fixtures :clients, :client_statuses, :client_token_statuses, :client_token_kinds, :client_email_statuses,
+           :client_telephone_statuses, :client_passkey_statuses, :client_chronicle_events, :client_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @user = User.create!(status_id: UserStatus::NOTHING)
-    @token = UserToken.create!(
+    @user = Client.create!(status_id: ClientStatus::NOTHING)
+    @token = ClientToken.create!(
       user_id: @user.id,
     )
     satisfy_user_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -38,10 +39,10 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "should get index" do
-    UserEmail.create!(
+    ClientEmail.create!(
       address: "index-email@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     with_prosopite_paused { get sign_app_configuration_emails_url(ri: "jp"), headers: request_headers }
@@ -50,12 +51,12 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "index requires step up when verified email exists" do
-    user = User.create!
-    token = UserToken.create!(user_id: user.id)
-    UserEmail.create!(
+    user = Client.create!
+    token = ClientToken.create!(user_id: user.id)
+    ClientEmail.create!(
       address: "verified-no-step-up@example.com",
       user: user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
     headers = {
       "Host" => @host,
@@ -75,12 +76,12 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "edit requires step up when verified email exists" do
-    user = User.create!
-    token = UserToken.create!(user_id: user.id)
-    email = UserEmail.create!(
+    user = Client.create!
+    token = ClientToken.create!(user_id: user.id)
+    email = ClientEmail.create!(
       address: "verified-edit-step-up@example.com",
       user: user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
     headers = {
       "Host" => @host,
@@ -100,12 +101,12 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "index shows empty state and registration link when verified email does not exist" do
-    user = User.create!
-    token = UserToken.create!(user_id: user.id)
-    UserEmail.create!(
+    user = Client.create!
+    token = ClientToken.create!(user_id: user.id)
+    ClientEmail.create!(
       address: "unverified-step-up@example.com",
       user: user,
-      user_email_status_id: UserEmailStatus::UNVERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
     headers = {
       "Host" => @host,
@@ -120,8 +121,8 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "index shows empty state and registration link when no email exists" do
-    user = User.create!
-    token = UserToken.create!(user_id: user.id)
+    user = Client.create!
+    token = ClientToken.create!(user_id: user.id)
     headers = {
       "Host" => @host,
       "X-TEST-CURRENT-USER" => user.id,
@@ -135,10 +136,10 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "index displays verified status" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "verified@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     with_prosopite_paused { get sign_app_configuration_emails_url(ri: "jp"), headers: request_headers }
@@ -149,10 +150,10 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "edit renders delete form with region parameter" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "delete-form@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     with_prosopite_paused {
@@ -170,10 +171,10 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "edit renders email preference toggles with current values" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "preference-form@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       promotional: false,
       notifiable: true,
     )
@@ -198,10 +199,10 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "edit disables email preference toggles when email is unverified" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "locked-preference-form@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::UNVERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
       promotional: false,
       notifiable: true,
     )
@@ -216,10 +217,10 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "update changes optional email preferences only" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "preference-update@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       promotional: true,
       notifiable: true,
       subscribable: true,
@@ -248,10 +249,10 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "update keeps email preferences unchanged when email is unverified" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "locked-preference-update@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::UNVERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
       promotional: true,
       notifiable: true,
       subscribable: true,
@@ -280,10 +281,10 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "update rejects when turnstile fails" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "turnstile-failure@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       promotional: true,
       notifiable: true,
     )
@@ -302,12 +303,12 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "update requires step up when verified email exists" do
-    user = User.create!
-    token = UserToken.create!(user_id: user.id)
-    email = UserEmail.create!(
+    user = Client.create!
+    token = ClientToken.create!(user_id: user.id)
+    email = ClientEmail.create!(
       address: "verified-update-step-up@example.com",
       user: user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       promotional: true,
     )
     headers = {
@@ -323,16 +324,16 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
     end
 
     assert_response :unauthorized
-    assert_equal Verification::Base::REAUTH_REQUIRED_MESSAGE, response.body
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
     assert email.reload.promotional
   end
 
   test "update does not change another user's email" do
-    other_user = User.create!
-    email = UserEmail.create!(
+    other_user = Client.create!
+    email = ClientEmail.create!(
       address: "other-user-preference@example.com",
       user: other_user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       promotional: true,
       notifiable: true,
     )
@@ -349,26 +350,26 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "destroy removes email when not last method" do
-    email1 = UserEmail.create!(
+    email1 = ClientEmail.create!(
       address: "delete1@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
-    UserEmail.create!(
+    ClientEmail.create!(
       address: "delete2@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    assert_difference("UserEmail.count", -1) do
+    assert_difference("ClientEmail.count", -1) do
       assert_difference(
         -> {
-          UserChronicle.where(
-            actor_type: "User",
+          ClientChronicle.where(
+            actor_type: "Client",
             actor_id: @user.id,
-            subject_type: "UserEmail",
+            subject_type: "ClientEmail",
             subject_id: email1.id,
-            event_id: UserChronicleEvent::EMAIL_REMOVED,
+            event_id: ClientChronicleEvent::EMAIL_REMOVED,
           ).count
         },
         1,
@@ -382,13 +383,13 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "destroy removes unverified email even when it is not an auth method" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "delete-unverified@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::UNVERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
-    assert_difference("UserEmail.count", -1) do
+    assert_difference("ClientEmail.count", -1) do
       with_prosopite_paused { delete sign_app_configuration_email_url(email, ri: "jp"), headers: request_headers }
     end
 
@@ -396,89 +397,20 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
     assert_redirected_to sign_app_configuration_emails_url(ri: "jp")
   end
 
-  test "destroy allows removing last email when telephone and passkey are present" do
-    user = User.create!(status_id: UserStatus::NOTHING, public_id: "ero_#{SecureRandom.hex(4)}")
-    token = UserToken.create!(
-      user_id: user.id,
-    )
-    satisfy_user_verification(token)
-    email = UserEmail.create!(
-      address: "email_rule_ok@example.com",
-      user: user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
-    )
-    UserTelephone.create!(
-      number: "+15550001111",
-      user: user,
-      user_telephone_status_id: UserTelephoneStatus::VERIFIED,
-    )
-    UserPasskey.create!(
-      user: user,
-      webauthn_id: "email_rule_ok_pk_#{SecureRandom.hex(6)}",
-      public_key: "pk_#{SecureRandom.hex(6)}",
-      sign_count: 0,
-      description: "pk",
-      status_id: UserPasskeyStatus::ACTIVE,
-    )
-
-    headers = {
-      "Host" => @host,
-      "X-TEST-CURRENT-USER" => user.id,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
-
-    assert_difference("UserEmail.count", -1) do
-      with_prosopite_paused { delete sign_app_configuration_email_url(email, ri: "jp"), headers: headers }
-    end
-
-    assert_response :see_other
-  end
-
-  test "destroy blocks removing last email when telephone exists but no passkey or social" do
-    user = User.create!(status_id: UserStatus::NOTHING, public_id: "ern_#{SecureRandom.hex(4)}")
-    token = UserToken.create!(
-      user_id: user.id,
-    )
-    satisfy_user_verification(token)
-    email = UserEmail.create!(
-      address: "email_rule_ng@example.com",
-      user: user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
-    )
-    UserTelephone.create!(
-      number: "+15550001112",
-      user: user,
-      user_telephone_status_id: UserTelephoneStatus::VERIFIED,
-    )
-
-    headers = {
-      "Host" => @host,
-      "X-TEST-CURRENT-USER" => user.id,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
-
-    assert_no_difference("UserEmail.count") do
-      with_prosopite_paused { delete sign_app_configuration_email_url(email, ri: "jp"), headers: headers }
-    end
-
-    assert_redirected_to sign_app_configuration_emails_url(ri: "jp")
-    assert_equal I18n.t("sign.app.configuration.email.destroy.last_method"), flash[:alert]
-  end
-
   test "destroy blocks removing an undeletable email" do
-    email = UserEmail.create!(
+    email = ClientEmail.create!(
       address: "protected@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
       undeletable: true,
     )
-    UserEmail.create!(
+    ClientEmail.create!(
       address: "other@example.com",
       user: @user,
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    assert_no_difference("UserEmail.count") do
+    assert_no_difference("ClientEmail.count") do
       with_prosopite_paused { delete sign_app_configuration_email_url(email, ri: "jp"), headers: request_headers }
     end
 

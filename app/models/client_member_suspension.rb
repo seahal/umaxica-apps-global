@@ -1,0 +1,32 @@
+# typed: false
+# == Schema Information
+#
+# Table name: user_member_suspensions
+# Database name: app_principal
+#
+#  id         :bigint           not null, primary key
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  member_id  :bigint           not null
+#  user_id    :bigint           not null
+#
+# Indexes
+#
+#  index_user_member_suspensions_on_member_id              (member_id)
+#  index_user_member_suspensions_on_user_id_and_member_id  (user_id,member_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (member_id => members.id)
+#  fk_rails_...  (user_id => users.id)
+#
+
+# frozen_string_literal: true
+
+class ClientMemberSuspension < AppPrincipalRecord
+  self.table_name = "user_member_suspensions"
+  belongs_to :user, class_name: "Client", inverse_of: :client_member_suspensions
+  belongs_to :member, inverse_of: :client_member_suspensions
+
+  validates :member_id, uniqueness: { scope: :user_id }
+end

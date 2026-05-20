@@ -48,6 +48,16 @@ Theme edit/update flows exist on `app`, `org`, and `com`, and the shared UI expo
 - Any future migration to a longer name would require an explicit compatibility plan because the
   short key is now relied on across UI, cookies, links, and tests.
 
+## Current Operational Clarification
+
+`ct` may appear as optional request-local context and may be propagated in URLs when explicitly
+present and valid. It is not a preference write path. Persistent theme changes must go through the
+dedicated preference write endpoints, which update the database and reissue the preference access
+token.
+
+Rails may write the `ct` cookie as a browser/UI compatibility mirror, but Rails request code must
+not trust JS-readable preference cookies as preference input.
+
 ## Related
 
 - Former plan: `plans/backlog/gh632-color-theme-ui-cookie-contract.md`

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module ApplicationHelper
-  # Authentication helpers are provided by Authentication::User and Authentication::Operator concerns
+  # Authentication helpers are provided by Authentication::Client and Authentication::Operator concerns
   # No need to define them here - they're already available via helper_method
 
   EDGE_HOST_ENV_KEYS = {
@@ -21,7 +21,7 @@ module ApplicationHelper
 
   def theme_cookie_value
     # Support both symbol and string access, and handle nil
-    # Fallback to request.cookies for integration tests where helper cookies might be empty
+    # Fallback to request.cookies when helper cookies are empty.
     raw = (
       cookies[:ct] ||
         cookies["ct"] ||
@@ -44,7 +44,7 @@ module ApplicationHelper
     classes.join(" ")
   end
 
-  # Backward-compatible name used by some layouts/tests.
+  # Backward-compatible name used by some layouts.
   def theme_class
     theme_html_class
   end
@@ -59,9 +59,13 @@ module ApplicationHelper
     connection_owner = banner_connection_owner_for(banner_model)
     return banner_model.current.first if connection_owner.blank?
 
-    connection_owner.connected_to(role: :writing) do
-      banner_model.current.first
-    end
+    operation =
+      lambda do
+        connection_owner.connected_to(role: :writing) do
+          banner_model.current.first
+        end
+      end
+    defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
   rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::DatabaseConnectionError
     nil
   end
@@ -95,11 +99,11 @@ module ApplicationHelper
   def banner_model_for(tld)
     case tld.to_sym
     when :app
-      UserBanner
+      ClientBanner
     when :org
       OperatorBanner
     when :com
-      VisitorAccountBanner
+      VisitorBanner
     end
   end
 

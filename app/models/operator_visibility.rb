@@ -4,11 +4,11 @@
 # == Schema Information
 #
 # Table name: staff_visibilities
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class OperatorVisibility < OperatorRecord
+class OperatorVisibility < OrgPrincipalRecord
   self.table_name = "staff_visibilities"
   include ReferenceRecord
 
@@ -20,6 +20,11 @@ class OperatorVisibility < OperatorRecord
   DEFAULTS = [NOBODY, USER, STAFF, BOTH].freeze
 
   has_many :staffs,
+           class_name: "Operator",
+           foreign_key: :visibility_id,
+           dependent: :restrict_with_error,
+           inverse_of: :visibility
+  has_many :operators,
            class_name: "Operator",
            foreign_key: :visibility_id,
            dependent: :restrict_with_error,

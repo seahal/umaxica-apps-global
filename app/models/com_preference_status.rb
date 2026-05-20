@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: com_preference_statuses
-# Database name: setting
+# Database name: com_setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class ComPreferenceStatus < SettingRecord
+class ComPreferenceStatus < ComSettingRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

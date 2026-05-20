@@ -8,11 +8,11 @@
 #  actor_type     :text             default(""), not null
 #  context        :jsonb            not null
 #  current_value  :text             default(""), not null
+#  discarded_at   :datetime         default(Infinity), not null
 #  ip_address     :inet             default(#<IPAddr: IPv4:0.0.0.0/255.255.255.255>), not null
-#  lapses_at      :datetime         default(Infinity), not null
 #  occurred_at    :datetime         not null
 #  previous_value :text             default(""), not null
-#  purge_at       :datetime         not null
+#  purged_at      :datetime         not null
 #  subject_type   :text             not null
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
@@ -28,7 +28,7 @@
 #  index_org_preference_chronicles_on_event_id                  (event_id)
 #  index_org_preference_chronicles_on_level_id                  (level_id)
 #  index_org_preference_chronicles_on_occurred_at               (occurred_at)
-#  index_org_preference_chronicles_on_purge_at                  (purge_at)
+#  index_org_preference_chronicles_on_purged_at                 (purged_at)
 #  index_org_preference_chronicles_on_subject_id                (subject_id)
 #
 # Foreign Keys
@@ -47,9 +47,8 @@ class OrgPreferenceChronicle < ChronicleRecord
              class_name: "OrgPreference",
              foreign_key: :subject_id,
              primary_key: :id,
-             optional: true,
              inverse_of: :org_preference_chronicles
-  belongs_to :actor, polymorphic: true, optional: true # Helper methods for compatibility
+  belongs_to :actor, polymorphic: true # Helper methods for compatibility
   belongs_to :org_preference_chronicle_level, foreign_key: :level_id, inverse_of: :org_preference_chronicles
   # event_id references OrgPreferenceChronicleEvent.id (string)
   belongs_to :org_preference_chronicle_event,
@@ -63,13 +62,23 @@ class OrgPreferenceChronicle < ChronicleRecord
 
   validates :event_id, length: { maximum: 255 }
   validates :level_id, length: { maximum: 255 }
+  before_validation :default_actor_to_preference
 
   def org_preference
+    return if subject_id.blank?
+
     OrgPreference.find(subject_id) if subject_type == "OrgPreference"
   end
 
   def org_preference=(pref)
     self.subject_id = pref.id.to_s
     self.subject_type = "OrgPreference"
+  end
+
+  def default_actor_to_preference
+    return if actor_id.present? && actor_type.present?
+    return unless subject_id.present? && subject_type == "OrgPreference"
+
+    self.actor = org_preference
   end
 end

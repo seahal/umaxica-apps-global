@@ -6,7 +6,7 @@ require "test_helper"
 class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
   test "sets user token to active dbsc state" do
     user = create_verified_user_with_email(email_address: "dbsc-registration-#{SecureRandom.hex(4)}@example.com")
-    token = UserToken.create!(user: user, lapses_at: 1.day.from_now, purge_at: 2.days.from_now)
+    token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
     token.update!(dbsc_challenge: "challenge-1", dbsc_challenge_issued_at: Time.current)
     private_key = OpenSSL::PKey::EC.generate("prime256v1")
     public_jwk = JWT::JWK.new(private_key).export
@@ -22,8 +22,8 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
 
     token.reload
 
-    assert_equal UserTokenBindingMethod::DBSC, token.user_token_binding_method_id
-    assert_equal UserTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
+    assert_equal ClientTokenBindingMethod::DBSC, token.user_token_binding_method_id
+    assert_equal ClientTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
     assert_equal "dbsc-session-1", token.dbsc_session_id
     assert_equal public_jwk.stringify_keys, token.dbsc_public_key
     assert_nil token.dbsc_challenge
@@ -35,8 +35,8 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
       binding_method_id: AppPreferenceBindingMethod::NOTHING,
       dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
       status_id: AppPreferenceStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 2.days.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
       created_at: 1.day.ago,
       updated_at: 1.day.ago,
     )
@@ -64,7 +64,7 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
 
   test "returns challenge_expired when dbsc_challenge_issued_at is too old" do
     user = create_verified_user_with_email(email_address: "dbsc-registration-old-#{SecureRandom.hex(4)}@example.com")
-    token = UserToken.create!(user: user, lapses_at: 1.day.from_now, purge_at: 2.days.from_now)
+    token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
     token.update!(dbsc_challenge: "old-challenge", dbsc_challenge_issued_at: 10.minutes.ago)
     private_key = OpenSSL::PKey::EC.generate("prime256v1")
     public_jwk = JWT::JWK.new(private_key).export
@@ -82,7 +82,7 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
 
   test "returns challenge_expired when dbsc_challenge_issued_at is blank" do
     user = create_verified_user_with_email(email_address: "dbsc-registration-blank-#{SecureRandom.hex(4)}@example.com")
-    token = UserToken.create!(user: user, lapses_at: 1.day.from_now, purge_at: 2.days.from_now)
+    token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
     token.update!(dbsc_challenge: "stale-challenge", dbsc_challenge_issued_at: nil)
     private_key = OpenSSL::PKey::EC.generate("prime256v1")
     public_jwk = JWT::JWK.new(private_key).export
@@ -96,5 +96,28 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
 
     assert_not result[:ok]
     assert_equal "challenge_expired", result[:error_code]
+  end
+
+  test "rejects registration proof with mismatched audience" do
+    user = create_verified_user_with_email(email_address: "dbsc-registration-aud-#{SecureRandom.hex(4)}@example.com")
+    token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
+    token.update!(dbsc_challenge: "aud-challenge", dbsc_challenge_issued_at: Time.current)
+    private_key = OpenSSL::PKey::EC.generate("prime256v1")
+    public_jwk = JWT::JWK.new(private_key).export
+
+    proof = JWT.encode(
+      { "jti" => "aud-challenge", "aud" => "https://wrong.host/registration", "iat" => Time.current.to_i },
+      private_key, "ES256", { typ: "dbsc+jwt", jwk: public_jwk },
+    )
+
+    result = Dbsc::RegistrationService.call(
+      record: token,
+      proof: proof,
+      expected_audience: "https://test.host/registration",
+    )
+
+    assert_not result[:ok]
+    assert_equal "audience_mismatch", result[:error_code]
+    assert_nil token.reload.dbsc_session_id
   end
 end

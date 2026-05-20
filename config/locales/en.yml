@@ -1,5 +1,7 @@
 ---
 en:
+  defaults:
+    never: Never
   actions:
     edit: Edit
     destroy: Delete
@@ -14,8 +16,6 @@ en:
       key: Test Error
   tasks:
     preference_migration:
-      migrating_user_app_preference: Migrating UserAppPreference to UserPreference...
-      migrating_staff_org_preference: Migrating OperatorOrgPreference to OperatorPreference...
       warn_user: "  WARN: Failed to migrate user_id=%{user_id}: %{message}"
       warn_staff: "  WARN: Failed to migrate staff_id=%{staff_id}: %{message}"
       done_user: "  Done: %{migrated} migrated, %{skipped} skipped"
@@ -61,6 +61,40 @@ en:
   sign:
     common:
       cancel: Cancel
+    configuration:
+      connections:
+        index:
+          page_title: Connected RPs
+          description: Manage relying parties connected through this IdP.
+          empty: No relying parties are connected.
+        table:
+          rp_name: RP
+          domain: Domain
+          status: Status
+          last_used_at: Last used
+          scope: Scope
+          actions: Actions
+        statuses:
+          active: Active
+          revoked: Revoked
+        actions:
+          detail: Details
+          revoke: Revoke
+          revoke_confirm: Revoke this RP connection?
+          back: Back to connected RPs
+        destroy:
+          success: RP connection revoked.
+        detail:
+          client_id: Client ID
+          status: Status
+          domains: Domains
+          scope: Scope
+          last_used_at: Last used
+          connected_at: Connected
+          active_tokens: Active tokens
+          resource_type: Resource type
+          audience: Audience
+          redirect_uris: Redirect URIs
     default_passkey_description: My Passkey
     com:
       registration:
@@ -99,6 +133,17 @@ en:
           mfa: Multi-Factor Authentication
           logout: Logout
           withdrawal: Withdrawal
+        birthdate:
+          show:
+            page_title: Birthdate
+            description: This birthdate is used for age-gated features.
+            birthdate_label: Birthdate
+            not_set: Not set
+            change_unavailable: Contact support if this value needs to be changed.
+        email:
+          update:
+            success: Email preferences updated.
+            failure: Failed to update email preferences.
     app:
       authentication:
         new:
@@ -175,6 +220,7 @@ en:
           totp_desc: Configure 2FA
           passkey_desc: Manage passkeys
           secret_desc: Manage secret keys
+          mfa_reset: Request an MFA reset
           account_settings: Account Settings
           email_desc: Manage contact emails
           telephone_desc: Manage contact phone numbers
@@ -191,6 +237,13 @@ en:
           logout_desc: Sign out of your account
           mfa: MFA settings
           mfa_desc: Enable and manage multi-factor authentication
+        birthdate:
+          show:
+            page_title: Birthdate
+            description: This birthdate is used for age-gated features.
+            birthdate_label: Birthdate
+            not_set: Not set
+            change_unavailable: Contact support if this value needs to be changed.
         edit:
           page_title: Account Status
           deactivated_notice: Withdrawal is in progress. Settings cannot be changed.
@@ -218,6 +271,11 @@ en:
             ack_label: I understand my account will be deactivated today.
             submit: Deactivate account
             confirm: Deactivate your account today?
+            success: Your account has been suspended. You can recover it until the deletion date.
+          terminate:
+            submit: Permanently terminate account
+            confirm: This cannot be undone. Permanently terminate this account?
+            available_at: 'Permanent termination is available from %{date}.'
         passkey:
           index:
             title: Passkey Management
@@ -228,6 +286,8 @@ en:
             description: Manage time-based one-time passwords linked to your account.
         totps:
           limit_reached: You cannot register more than %{count} TOTP credentials.
+          destroy:
+            last_method: This authenticator app cannot be deleted.
         passkeys:
           new:
             page_title: Register Passkey
@@ -302,6 +362,7 @@ en:
             totps_desc: "%{count} registered"
             secrets: Secrets
             secrets_desc: "%{count} active"
+            reset_request: Request an MFA reset
           update:
             success: MFA settings updated.
             failure: Failed to update MFA settings.
@@ -363,9 +424,11 @@ en:
             failure: Cannot revoke current session.
             others_button: Revoke all other sessions
             others_confirm: Delete all other sessions?
-      reauth:
+            all_button: Clear all sessions
+            all_confirm: Clear every session on every device?
+      step_up:
         index:
-          title: Re-authentication Sessions
+          title: Step-up authentication Sessions
           new: New
           empty: No sessions found
           table:
@@ -374,8 +437,8 @@ en:
             status: Status
             expires: Expires
         new:
-          title: Re-authentication
-          description: Re-authentication is required to continue. Please select a method.
+          title: Step-up authentication
+          description: Step-up authentication is required to continue. Please select a method.
           method_legend: Authentication Method
           methods:
             passkey: Passkey
@@ -383,13 +446,13 @@ en:
           submit: Continue
           back: Back
         show:
-          title: Re-authentication Session
+          title: Step-up authentication Session
           list: List
           to_edit: To input screen
           cancel: Cancel
           confirm_cancel: Are you sure?
         edit:
-          title: Re-authentication
+          title: Step-up authentication
           description: Please enter the code or use passkey authentication for identity verification.
           authenticate_with_passkey: Authenticate with Passkey
           code_label: Verification Code
@@ -398,10 +461,14 @@ en:
           cancel: Cancel
           confirm_cancel: Are you sure?
         success:
-          complete: Re-authentication completed.
+          complete: Step-up authentication completed.
       verification:
         errors:
           email_not_verified: Email address is not verified.
+          invalid_code: Verification code is invalid.
+          resend_required: Please resend the verification code.
+          code_expired: Verification code has expired.
+          incorrect_code: Verification code is incorrect.
         index:
           title: Verification Sessions
           new: New
@@ -505,6 +572,7 @@ en:
           update:
             success: Phone number has been verified.
             passkey_required: Phone verified. Please register a passkey to continue.
+            failed: Registration could not be completed. Please start over.
             code_required: Verification code is required.
             invalid_code: Invalid verification code.
             attempts_exceeded: Maximum verification attempts exceeded. Please start over.
@@ -517,9 +585,10 @@ en:
       preferences:
         title: Preference settings
         footer:
-          home: home
-          preference: Preferences
-          configuration: Settings
+          home: HOME
+          dashboard: DASHBOARD
+          preference: PREFERENCES
+          configuration: CONFIGURATION
       root:
         title: Welcome to Sign
         description: Choose an action to get started
@@ -541,8 +610,8 @@ en:
           success: Successfully linked %{provider} account
         unlink:
           success: Successfully unlinked %{provider} account
-        reauth:
-          success: Successfully re-authenticated with %{provider}
+        step_up:
+          success: Successfully step-upenticated with %{provider}
         failure:
           unknown_error: An unknown error occurred
           invalid_credentials: Invalid credentials
@@ -590,9 +659,9 @@ en:
             failure: Failed to sign in. Please try again.
             not_found: No staff account found for this Google account. Please contact your administrator.
             session_limit: Too many active sessions. Please sign out of another device first.
-      reauth:
+      step_up:
         index:
-          title: Re-authentication Sessions
+          title: Step-up authentication Sessions
           new: New
           empty: No sessions found
           table:
@@ -601,8 +670,8 @@ en:
             status: Status
             expires: Expires
         new:
-          title: Re-authentication
-          description: Re-authentication is required to continue. Please select a method.
+          title: Step-up authentication
+          description: Step-up authentication is required to continue. Please select a method.
           method_legend: Authentication Method
           methods:
             passkey: Passkey
@@ -613,6 +682,10 @@ en:
       verification:
         errors:
           email_not_verified: Email address is not verified.
+          invalid_code: Verification code is invalid.
+          resend_required: Please resend the verification code.
+          code_expired: Verification code has expired.
+          incorrect_code: Verification code is incorrect.
           no_passkey: No passkey is registered.
         index:
           title: Verification Sessions
@@ -683,6 +756,14 @@ en:
           description: Manage advanced security controls for your account.
           back: Back
           withdrawal: Withdrawal
+          operator_lifecycle_requests: Join and withdrawal requests
+        birthdate:
+          show:
+            page_title: Birthdate
+            description: This birthdate is recorded for the signed-in operator account.
+            birthdate_label: Birthdate
+            not_set: Not set
+            change_unavailable: Contact an operator if this value needs to be changed.
         email:
           index:
             new_link: Add email address
@@ -743,6 +824,7 @@ en:
             signed_up_with_telephone: Signed up with telephone
             social_linked: Social account linked
             social_unlinked: Social account unlinked
+            session_revoked: Session revoked
             email_registered: Email address registered
             email_removed: Email address removed
             telephone_registered: Telephone number registered
@@ -756,6 +838,8 @@ en:
           revoke:
             others_button: Revoke all other sessions
             others_confirm: Revoke all other sessions?
+            all_button: Clear all sessions
+            all_confirm: Clear every session on every device?
         passkeys:
           new:
             page_title: Register Passkey
@@ -785,7 +869,60 @@ en:
         withdrawal:
           show:
             title: Withdrawal
-            description: Review your withdrawal status.
+            description: Org withdrawal is not self-service. Another operator must review and execute it.
+            direct_message_unavailable: Direct message is not implemented yet, so this is recorded as an operational lifecycle request.
+            request_link: Create withdrawal request
+        operator_lifecycle_requests:
+          actions:
+            join: Join
+            withdraw: Withdraw
+            suspend: Suspend
+            terminate: Terminate
+            restore: Restore
+          index:
+            title: Join and withdrawal requests
+            description: Review operational requests for operator join, withdrawal, suspension, termination, and restoration.
+            new: Create request
+          new:
+            title: Create lifecycle request
+            description: After submission, another operator approves or executes it after MFA.
+          show:
+            title: Lifecycle request
+            status: Status
+            invitation_link: Open invitation acceptance
+          form:
+            action: Action
+            target_operator_public_id: Target operator ID
+            target_email: Invitation email
+            organization_id: Organization ID
+            role_id: Role ID
+            reason: Reason
+            submit: Submit request
+          create:
+            success: Lifecycle request created.
+          approve:
+            submit: Approve
+            confirm: Approve this request?
+            success: Lifecycle request approved.
+          reject:
+            reason: Rejection reason
+            submit: Reject
+            success: Lifecycle request rejected.
+          execute:
+            submit: Execute
+            confirm: Execute this request?
+            success: Lifecycle request executed.
+      up:
+        invitations:
+          new:
+            title: Accept operator invitation
+            description: Enter the invitation code provided by an existing operator.
+          form:
+            invitation_code: Invitation code
+            submit: Accept invitation
+          create:
+            success: Invitation accepted. Your operator ID is %{public_id}. Use Google sign-in with the invited email address, or ask an operator to help configure another sign-in method.
+            turnstile_failed: Verification failed. Please try again later.
       registration:
         email:
           create:
@@ -800,6 +937,7 @@ en:
             invalid_code: The verification code is invalid.
             attempts_exceeded: Too many attempts. Please start over.
             success: Email address verified.
+            failed: Registration could not be completed. Please start over.
           destroy:
             cancelled: Registration cancelled.
           flow:
@@ -826,9 +964,10 @@ en:
       preferences:
         title: Preferences
         footer:
-          home: Home
-          preference: Preference
-          configuration: Settings
+          home: HOME
+          dashboard: DASHBOARD
+          preference: PREFERENCES
+          configuration: CONFIGURATION
       root:
         title: Welcome
         description: Choose an action below
@@ -871,10 +1010,13 @@ en:
         title: Do you want to sign out?
         button: Sign out
         success: You have been signed out.
+        completed_title: Signed out
+        completed_description: This sign-out confirmation is shown once.
+        home_link: Go to home
   auth:
     unauthorized: You are not authorized to access this page.
     step_up:
-      required: Re-authentication is required to continue.
+      required: Step-up authentication is required to continue.
       session_expired: Verification required.
       invalid_request: Invalid verification request.
       method_unavailable: Selected verification method is unavailable.
@@ -884,6 +1026,7 @@ en:
     attributes:
       user_email:
         address: Email address
+        user: Client
         confirm_policy: Terms of service
         raw_address: Email address
       user_passkey:
@@ -897,16 +1040,16 @@ en:
         sign_count: Usage count
       user_token:
         refresh_expires_at: Refresh expires at
-        lapses_at: Lapses at
-        purge_at: Purge at
+        discarded_at: Lapses at
+        purged_at: Purge at
       staff_token:
         refresh_expires_at: Refresh expires at
-        lapses_at: Lapses at
-        purge_at: Purge at
+        discarded_at: Lapses at
+        purged_at: Purge at
       visitor_token:
         refresh_expires_at: Refresh expires at
-        lapses_at: Lapses at
-        purge_at: Purge at
+        discarded_at: Lapses at
+        purged_at: Purge at
       user_identity_email:
         address: Email address
     errors:
@@ -1036,7 +1179,7 @@ en:
       state_missing: Security state parameter missing. Please try again.
       state_mismatch: Security verification failed. Please try again.
       state_expired: Session expired. Please try again.
-      reauth_required: This action requires recent re-authentication. Please authenticate again.
+      step_up_required: This action requires recent step-up authentication. Please authenticate again.
       user_changed: User session changed during authentication
       invalid_intent: Invalid authentication intent
       not_logged_in: Please log in first
@@ -1048,7 +1191,7 @@ en:
       identity_not_found: No %{provider} account linked
       last_identity: Cannot remove your last login method
       insufficient_login_methods: Please add another login method (email, passkey with verified phone, or another social account) before unlinking
-      reauth_identity_mismatch: Please use the same %{provider} account that is linked to your profile
+      step_up_identity_mismatch: Please use the same %{provider} account that is linked to your profile
       provider_error: Error communicating with provider
     invalid_authenticity_token: Your session has expired. Please reload the page.
     preference:
@@ -1063,14 +1206,34 @@ en:
   mail:
     common:
       greeting: Hello,
+      cta: Learn more
       footer_note: This is an automated message. Please do not reply.
     email:
       app:
-        registration_mailer:
+        otp_mailer:
           create:
             subject: Your verification code
             title: Verify your email address
             instruction: 'Please use the following verification code to complete your registration:'
+            verify_link: Verify email
+            expiration_note: This code will expire in 10 minutes.
+            ignore_instruction: If you did not request this, please ignore this email.
+      com:
+        otp_mailer:
+          create:
+            subject: Your verification code
+            title: Verify your email address
+            instruction: 'Please use the following verification code to continue:'
+            verify_link: Verify email
+            expiration_note: This code will expire in 10 minutes.
+            ignore_instruction: If you did not request this, please ignore this email.
+      org:
+        otp_mailer:
+          create:
+            subject: Your verification code
+            title: Verify your staff email address
+            instruction: 'Please use the following verification code to continue:'
+            verify_link: Verify email
             expiration_note: This code will expire in 10 minutes.
             ignore_instruction: If you did not request this, please ignore this email.
   sequential_flow:
@@ -1408,7 +1571,9 @@ en:
             accept_consent_cookies: Allow consent cookies
         language:
           edit:
-            language_label: Language Select
+            heading: Language Settings
+            description: Change the display language for the corporate site.
+            language_label: Language
             h1: Language Select
         resets:
           title: Reset Preferences
@@ -1628,6 +1793,7 @@ en:
             apple: Apple
             email: Email
             telephone: Telephone
+            birthdate: Birthdate
             session: Session
             activity: Activity
         registration:

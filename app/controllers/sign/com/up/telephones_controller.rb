@@ -1,24 +1,24 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+
 module Sign
   module Com
     module Up
-      class TelephonesController < ApplicationController
+      class TelephonesController < GuestController
         include CloudflareTurnstile
         include Common::Redirect
         include Common::Otp
 
-        guest_only! status: :unauthorized
-        prepend_before_action :reject_logged_in_session, only: %i(new create)
-
         def new
           @visitor_telephone = VisitorTelephone.new
           session[:visitor_telephone_registration] = nil
+          sign_up_cycle_locator.clear!
         end
 
         def edit
-          @visitor_telephone = VisitorTelephone.find_by(public_id: params["id"])
+          @visitor_telephone = current_registration_telephone
           return if valid_telephone_session?
 
           redirect_to(
@@ -27,7 +27,6 @@ module Sign
           )
         end
 
-        # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
         def create
           telephone_params = params.fetch(:visitor_telephone, {}).permit(
             :raw_number, :number, :confirm_policy, :confirm_using_mfa,
@@ -66,8 +65,7 @@ module Sign
           if existing_telephone &&
               existing_telephone.visitor_telephone_status_id != VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
             if existing_telephone.locked?
-              render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
-              return
+              return render_otp_resend_too_soon
             end
 
             dispatch_existing_telephone_verification!(existing_telephone)
@@ -75,69 +73,41 @@ module Sign
           end
 
           if existing_telephone&.locked?
-            render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
-            return
+            return render_otp_resend_too_soon
           end
 
           if existing_telephone&.visitor_telephone_status_id == VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP &&
               existing_telephone.reregistration_window_active?
-            render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
-            return
+            return render_otp_resend_too_soon
           end
 
-          VisitorTelephone.transaction do
-            cleanup_pending_visitor_signup!
+          result = Sign::Com::Up::TelephoneSignupCreator.call(
+            telephone: @visitor_telephone,
+            existing_telephone: existing_telephone,
+            pending_public_id: session_public_id_from_registration,
+          )
 
-            locked_existing = VisitorTelephone.lock.find_by(id: existing_telephone.id) if existing_telephone
-            if locked_existing&.visitor_telephone_status_id == VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP &&
-                locked_existing.reregistration_window_active?
-              render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
-              raise ActiveRecord::Rollback
-            end
-
-            if locked_existing&.locked?
-              render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
-              raise ActiveRecord::Rollback
-            end
-
-            remove_existing_unverified_telephones!
-
-            pending_visitor =
-              Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
-            @visitor_telephone.visitor = pending_visitor
-            @visitor_telephone.visitor_telephone_status_id = VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
-
-            otp_number = generate_otp_attributes(@visitor_telephone)
-            @visitor_telephone.otp_last_sent_at = Time.current if @visitor_telephone.respond_to?(:otp_last_sent_at=)
-            @visitor_telephone.save!
-
-            session[:visitor_telephone_registration] = @visitor_telephone.public_id
-
-            SmsDeliveryJob.perform_later(
-              to: @visitor_telephone.number,
-              message: "PassCode => #{otp_number}",
-              subject: "PassCode => #{otp_number}",
-            )
-
-            redirect_to(
-              edit_sign_com_up_telephone_path(
-                id: @visitor_telephone.public_id,
-                ri: params[:ri],
-              ),
-            )
+          if result.status == :rate_limited
+            return render_otp_resend_too_soon
           end
+
+          @visitor_telephone = result.telephone
+          session[:visitor_telephone_registration] = result.session_payload
+          bind_sign_up_cycle_to_telephone!(@visitor_telephone)
+          redirect_to(
+            edit_sign_com_up_telephone_path(ri: params[:ri]),
+          )
         rescue ActiveRecord::RecordInvalid
           render :new, status: :unprocessable_content
         end
-        # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
 
         def update
-          @visitor_telephone = VisitorTelephone.find_by(public_id: params["id"])
-          unless @visitor_telephone
-            return redirect_to(new_sign_com_up_telephone_path)
-          end
+          @visitor_telephone = current_registration_telephone
+          return redirect_to(new_sign_com_up_telephone_path) unless @visitor_telephone
 
-          return redirect_to(new_sign_com_up_telephone_path) unless valid_telephone_session?
+          registration_session = session[:visitor_telephone_registration]
+          return redirect_to(new_sign_com_up_telephone_path) unless valid_registration_session?(registration_session)
+          return redirect_to(new_sign_com_up_telephone_path) if otp_session_expired?(registration_session)
 
           submitted_code = params.dig("visitor_telephone", "pass_code")
           if submitted_code.blank?
@@ -163,44 +133,76 @@ module Sign
             return
           end
 
-          visitor = @visitor_telephone.visitor
-          clear_otp(@visitor_telephone)
-          @visitor_telephone.update!(visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP)
-          visitor.create_client_account! unless visitor&.client_account
-          create_signup_audit!(visitor) if visitor
-          log_in(
-            visitor,
-            record_login_audit: true,
-            audit_context: { auth_method: "telephone" },
-          ) if visitor
-          redirect_to(root_path, notice: t("sign.com.registration.telephone.success"))
+          if existing_signup_telephone_flow?(registration_session)
+            clear_otp(@visitor_telephone)
+            session[:visitor_telephone_registration] = nil
+            redirect_to(
+              new_sign_com_in_path(ri: params[:ri]),
+              notice: t("sign.app.registration.telephone.update.sign_in_required"),
+            )
+            return
+          end
+
+          sequence_advanced = false
+          VisitorTelephone.transaction do
+            verify_telephone_ownership!
+            sequence_advanced = advance_sign_up_cycle_after_telephone_otp!
+            raise ActiveRecord::Rollback unless sequence_advanced
+          end
+          unless sequence_advanced
+            session[:visitor_telephone_registration] = nil
+            redirect_to(
+              new_sign_com_up_telephone_path(ri: params[:ri]),
+              notice: t("sign.com.registration.telephone.edit.session_expired"),
+            )
+            return
+          end
+
+          redirect_to(
+            sign_com_up_guardrail_path(ri: params[:ri]),
+            notice: t("sign.com.registration.telephone.success"),
+          )
         end
 
         private
 
         def valid_telephone_session?
-          session[:visitor_telephone_registration] == @visitor_telephone.public_id
+          return false unless @visitor_telephone.present? && !@visitor_telephone.otp_expired?
+
+          if existing_signup_telephone_flow?(session[:visitor_telephone_registration])
+            session_public_id_from_registration.to_s == @visitor_telephone.public_id.to_s
+          else
+            @visitor_telephone.visitor_telephone_status_id == VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
+          end
         end
 
-        def cleanup_pending_visitor_signup!
-          pending_public_id = session[:visitor_telephone_registration]
-          return if pending_public_id.blank?
-
-          pending_telephone = VisitorTelephone.find_by(public_id: pending_public_id)
-          return unless pending_telephone
-
-          pending_visitor = pending_telephone.visitor
-          pending_telephone.destroy!
-          pending_visitor.destroy! if pending_visitor&.status_id == VisitorStatus::ACTIVE
+        def valid_registration_session?(registration_session)
+          session_public_id = session_public_id_from_registration(registration_session)
+          registration_session.present? &&
+            session_public_id.to_s == @visitor_telephone.public_id.to_s
         end
 
-        def remove_existing_unverified_telephones!
-          return if @visitor_telephone.number_digest.blank?
+        def session_public_id_from_registration(registration_session = session[:visitor_telephone_registration])
+          if registration_session.is_a?(Hash)
+            registration_session["public_id"] || registration_session[:public_id]
+          else
+            registration_session
+          end
+        end
 
-          VisitorTelephone.where(
-            number_digest: @visitor_telephone.number_digest,
-            visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP,
-          ).find_each(&:destroy!)
+        def otp_session_expired?(registration_session)
+          return @visitor_telephone.otp_expired? unless registration_session.is_a?(Hash)
+
+          @visitor_telephone.otp_expired? ||
+            registration_session["expires_at"].to_i <= Time.current.to_i
+        end
+
+        def existing_signup_telephone_flow?(registration_session)
+          registration_session&.dig(:existing) == true || registration_session&.dig("existing") == true
+        end
+
+        def render_otp_resend_too_soon
+          render plain: t("sign.app.registration.email.create.otp_resend_too_soon"), status: :too_many_requests
         end
 
         def telephone_uniqueness_only_error?(visitor_telephone)
@@ -223,42 +225,103 @@ module Sign
         end
 
         def dispatch_existing_telephone_verification!(existing_telephone)
+          sign_up_cycle_locator.clear!
           @visitor_telephone = existing_telephone
           otp_number = generate_otp_for(@visitor_telephone)
-          @visitor_telephone.update!(otp_last_sent_at: Time.current) if @visitor_telephone.respond_to?(:otp_last_sent_at=)
+          if @visitor_telephone.respond_to?(:otp_last_sent_at=)
+            @visitor_telephone.update!(otp_last_sent_at: Time.current)
+          end
 
-          session[:visitor_telephone_registration] = @visitor_telephone.public_id
+          session[:visitor_telephone_registration] = {
+            public_id: @visitor_telephone.public_id,
+            confirm_policy: boolean_value(@visitor_telephone.confirm_policy),
+            confirm_using_mfa: boolean_value(@visitor_telephone.confirm_using_mfa),
+            expires_at: @visitor_telephone.otp_expires_at.to_i,
+            existing: true,
+          }
 
-          SmsDeliveryJob.perform_later(
+          Outbound::Sms.deliver_later(
             to: @visitor_telephone.number,
-            message: "PassCode => #{otp_number}",
-            subject: "PassCode => #{otp_number}",
+            title: "PassCode => #{otp_number}",
+            body: "PassCode => #{otp_number}",
           )
 
           redirect_to(
-            edit_sign_com_up_telephone_path(
-              id: @visitor_telephone.public_id,
-              ri: params[:ri],
+            edit_sign_com_up_telephone_path(ri: params[:ri]),
+          )
+        end
+
+        def current_registration_telephone
+          public_id = session_public_id_from_registration
+          return if public_id.blank?
+
+          VisitorTelephone.find_by(public_id: public_id)
+        end
+
+        def boolean_value(value)
+          ActiveModel::Type::Boolean.new.cast(value)
+        end
+
+        def verify_telephone_ownership!
+          @visitor_telephone.confirm_policy = "1"
+          @visitor_telephone.confirm_using_mfa = "1"
+          clear_otp(@visitor_telephone)
+          @visitor_telephone.save! if @visitor_telephone.changed?
+
+          registration = (session[:visitor_telephone_registration] || {}).dup
+          registration["otp_verified"] = true
+          registration["public_id"] ||= @visitor_telephone.public_id
+          session[:visitor_telephone_registration] = registration
+        end
+
+        def issue_sign_up_cycle!
+          ComTicketRecord.connected_to(role: :writing) do
+            VisitorSignUpCycleStatus.ensure_defaults!
+          end
+
+          sign_up_cycle_locator.issue!(
+            VisitorSignUpCycle.create!(
+              principal_id: nil,
+              status_id: VisitorSignUpCycleStatus::STARTED,
+              step: "start",
+              nonce_digest: VisitorSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+              issued_at: Time.current,
+              expires_at: VisitorSignUpCycle.default_ttl.from_now,
+              entry_method: "telephone",
             ),
           )
         end
 
-        def create_signup_audit!(visitor)
-          event_id = UserChronicleEvent::SIGNED_UP_WITH_TELEPHONE
+        def current_sign_up_cycle
+          sign_up_cycle_locator.current || issue_sign_up_cycle!
+        end
 
-          ChronicleRecord.connected_to(role: :writing) do
-            UserChronicleEvent.find_or_create_by!(id: event_id)
-            UserChronicleLevel.find_or_create_by!(id: UserChronicleLevel::NOTHING)
+        def bind_sign_up_cycle_to_telephone!(telephone)
+          cycle = current_sign_up_cycle
+          ComTicketRecord.connected_to(role: :writing) do
+            cycle.update!(
+              principal_id: telephone.visitor_id,
+              pending_contact_type: "telephone",
+              pending_contact_id: telephone.id,
+            )
+            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authentication)
           end
+          session[:sign_com_up_sequence_id] = cycle.public_id
+        end
 
-          UserChronicle.create!(
-            actor_type: "Visitor",
-            actor_id: visitor.id,
-            event_id: event_id,
-            level_id: UserChronicleLevel::NOTHING,
-            subject_id: visitor.id.to_s,
-            subject_type: "Visitor",
-          )
+        def advance_sign_up_cycle_after_telephone_otp!
+          cycle = sign_up_cycle_locator.current
+          return false unless cycle
+
+          result =
+            ComTicketRecord.connected_to(role: :writing) do
+              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authentication)
+            end
+          result.status == :advanced
+        end
+
+        def sign_up_cycle_locator
+          SignUp::CycleLocator.new(session, surface: :com, cycle_class: VisitorSignUpCycle)
         end
       end
     end

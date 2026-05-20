@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_preferences
-# Database name: setting
+# Database name: com_principal
 #
 #  id              :bigint           not null, primary key
 #  consent_version :uuid
@@ -33,7 +33,11 @@
 #  index_visitor_preferences_on_public_id   (public_id) UNIQUE
 #  index_visitor_preferences_on_visitor_id  (visitor_id) UNIQUE
 #
-class VisitorPreference < SettingRecord
+# Foreign Keys
+#
+#  fk_rails_...  (visitor_id => visitors.id)
+#
+class VisitorPreference < ComPrincipalRecord
   belongs_to :visitor, inverse_of: :visitor_preference
 
   has_one :visitor_preference_language,

@@ -7,7 +7,7 @@ require "base64"
 class Sign::App::Verification::SetupsControllerTest < ActionDispatch::IntegrationTest
   test "new shows a back link above registration methods when rt is present" do
     host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    user = User.create!
+    user = Client.create!
     headers = as_user_headers(user, host: host)
     rt = Base64.urlsafe_encode64(sign_app_configuration_telephones_path(ri: "jp"))
 

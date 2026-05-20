@@ -52,7 +52,7 @@ services:
       otel-collector:
         condition: service_started
   primary:
-    image: postgres:18.1-alpine
+    image: postgres:17.7-alpine
     command:
     - "-c"
     - config_file=/etc/postgresql/postgresql.conf
@@ -68,8 +68,11 @@ services:
       POSTGRES_INITDB_WAL_LEVEL: replica
       POSTGRES_INITDB_MAX_WAL_SENDERS: 10
       POSTGRES_INITDB_MAX_REPLICATION_SLOTS: 10
+    # Explicit tmpfs cap: 19 shards × up to 32 parallel-test workers create
+    # per-worker DB copies (dbname_<n>) in RAM. Without size= the mount can grow
+    # to ~50% of host RAM; bounding it keeps primary+replica from exhausting RAM.
     tmpfs:
-    - "/var/lib/postgresql/18"
+    - "/var/lib/postgresql/data:size=32g"
     volumes:
     - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
     - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro"
@@ -86,7 +89,7 @@ services:
       retries: 20
       start_period: 5s
   replica:
-    image: postgres:18.1-alpine
+    image: postgres:17.7-alpine
     entrypoint: "/entrypoint.sh"
     environment:
       POSTGRES_USER: "${POSTGRESQL_USER:-root}"
@@ -95,8 +98,9 @@ services:
       POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
       POSTGRES_REPLICATION_PASSWORD: "${POSTGRESQL_REPLICATION_PASSWORD:-development_replication_password}"
       TZ: UTC
+    # Replica holds read-replica + solid_cache/queue copies only; smaller cap.
     tmpfs:
-    - "/var/lib/postgresql/18"
+    - "/var/lib/postgresql/data:size=16g"
     volumes:
     - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro"
     - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
@@ -163,8 +167,9 @@ services:
     - observability
     restart: unless-stopped
   tempo:
-    image: grafana/tempo:latest
-    command: "-config.file=/etc/tempo.yaml"
+    image: grafana/tempo:2.10.5
+    command:
+    - "-config.file=/etc/tempo.yaml"
     ports:
     - "3200:3200"
     - "4317:4317"
@@ -172,7 +177,7 @@ services:
     - "9411:9411"
     volumes:
     - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro"
-    - tempo-volume:/var/tempo/traces
+    - tempo-volume:/var/tempo
     networks:
     - observability
     restart: unless-stopped
@@ -220,6 +225,47 @@ services:
     depends_on:
     - loki
     restart: unless-stopped
+  pgadmin:
+    image: dpage/pgadmin4
+    # Run as root only so the entrypoint can fix the bind-mounted pgpass
+    # permissions to 0600; pgAdmin de-escalates to the pgadmin user itself.
+    user: root
+    entrypoint:
+    - "/bin/sh"
+    - "-c"
+    - "chmod 600 /pgpass && /entrypoint.sh"
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@example.com
+      PGADMIN_DEFAULT_PASSWORD: password
+      # Auto-import the pub/sub server definitions on first launch.
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    volumes:
+    - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro"
+    - "./docker/pgadmin/pgpass:/pgpass"
+    networks:
+    - backend
+    depends_on:
+      primary:
+        condition: service_healthy
+      replica:
+        condition: service_started
+  tinyrdm:
+    image: ghcr.io/tiny-craft/tiny-rdm:latest
+    ports:
+    - "8086:8086"
+    environment:
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: change-me
+    volumes:
+    - tinyrdm-volume:/app/tinyrdm
+    networks:
+    - backend
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
     depends_on:
@@ -245,3 +291,4 @@ volumes:
   tempo-volume: {}
   grafana-volume: {}
   prometheus-volume: {}
+  tinyrdm-volume: {}

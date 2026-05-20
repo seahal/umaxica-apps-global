@@ -5,8 +5,7 @@ module Sign
   module App
     module Preference
       module Region
-        class TimezonesController < ApplicationController
-          public_strict!
+        class TimezonesController < PreferencesBaseController
           include ::Preference::SignScreenActions
 
           preference_screen :timezone

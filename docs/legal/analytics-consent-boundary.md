@@ -187,7 +187,7 @@ notification. These events answer "is the service healthy?"
 
 **Product analytics and marketing analytics are DISABLED before `performant` consent is granted.**
 The server-side guard drops any `Rails.event` emission that is not in the pre-consent allowlist when
-`Current.preference.cookie.performant?` is false.
+`Actor.preference.cookie.performant?` is false.
 
 This means:
 

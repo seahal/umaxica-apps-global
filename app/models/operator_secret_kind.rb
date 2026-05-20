@@ -4,18 +4,19 @@
 # == Schema Information
 #
 # Table name: staff_secret_kinds
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 
-class OperatorSecretKind < OperatorRecord
+class OperatorSecretKind < OrgPrincipalRecord
   self.table_name = "staff_secret_kinds"
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values
   NOTHING = 1
   LOGIN = 2
+  DEFAULTS = [NOTHING, LOGIN].freeze
   PERMANENT = LOGIN
   ONE_TIME = NOTHING
 

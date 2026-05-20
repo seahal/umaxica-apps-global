@@ -4,25 +4,25 @@
 require "test_helper"
 
 class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
-  fixtures :users
+  fixtures :clients
 
   setup do
-    @user = users(:one)
+    @user = clients(:one)
   end
 
   test "does not include email_otp for unverified email" do
-    @user.user_emails.create!(
+    @user.client_emails.create!(
       address: "configured-unverified@example.com",
-      user_email_status_id: UserEmailStatus::UNVERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
     assert_not_includes StepUp::ConfiguredMethods.call(@user), :email_otp
   end
 
   test "includes email_otp for verified email" do
-    @user.user_emails.create!(
+    @user.client_emails.create!(
       address: "configured-verified@example.com",
-      user_email_status_id: UserEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
     assert_includes StepUp::ConfiguredMethods.call(@user), :email_otp
@@ -50,20 +50,20 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
 
     result = StepUp::ConfiguredMethods.call(visitor)
 
-    assert_includes result, :email_otp
     assert_includes result, :passkey
+    assert_includes result, :email_otp
     assert_not_includes result, :totp
   end
 
   test "returns credential-backed staff methods" do
     staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
-    staff.staff_emails.create!(
+    staff.operator_emails.create!(
       address: "configured-staff@example.com",
       staff_identity_email_status_id: OperatorEmailStatus::ACTIVE,
       otp_counter: "0",
       otp_private_key: "private_key",
     )
-    passkey = staff.staff_passkeys.new(
+    passkey = staff.operator_passkeys.new(
       webauthn_id: "configured_staff_passkey_#{SecureRandom.hex(4)}",
       external_id: SecureRandom.uuid,
       public_key: "public_key",
@@ -75,16 +75,16 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
 
     result = StepUp::ConfiguredMethods.call(staff)
 
-    assert_includes result, :email_otp
+    assert_not_includes result, :email_otp
     assert_includes result, :passkey
     assert_not_includes result, :totp
   end
 
   test "does not include inactive totp" do
-    user = User.create!
-    user.user_one_time_passwords.create!(
+    user = Client.create!
+    user.client_one_time_passwords.create!(
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: UserOneTimePasswordStatus::INACTIVE,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::INACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -92,15 +92,15 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
   end
 
   test "does not include inactive passkey" do
-    user = User.create!
+    user = Client.create!
     passkey =
-      user.user_passkeys.new(
+      user.client_passkeys.new(
         webauthn_id: "configured_inactive_passkey_#{SecureRandom.hex(4)}",
         external_id: SecureRandom.uuid,
         public_key: "public_key",
         sign_count: 0,
         description: "inactive passkey",
-        status_id: UserPasskeyStatus::DISABLED,
+        status_id: ClientPasskeyStatus::DISABLED,
       )
     passkey.save!(validate: false)
 

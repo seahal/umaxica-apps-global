@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::App::LayoutTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses
+  fixtures :clients, :client_statuses
 
   def default_headers
     { "Host" => ENV["ID_SERVICE_URL"] || "id.app.localhost" }

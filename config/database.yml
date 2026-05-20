@@ -22,72 +22,96 @@ test_default: &test_default
   lock_timeout: 2s
   statement_timeout: 10s
 development:
-  guest:
+  com_principal:
     !!merge <<: *default
-    database: development_guest_db
-    host: <%= ENV["POSTGRESQL_GUEST_PUB"] || default_host %>
-    migrations_paths: db/guests_migrate
-  guest_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_guest_db
-    host: <%= ENV["POSTGRESQL_GUEST_SUB"] || default_host %>
-    migrations_paths: db/guests_migrate
-  visitor:
-    !!merge <<: *default
-    database: development_visitor_db
-    host: <%= ENV["POSTGRESQL_VISITOR_PUB"] || default_host %>
-    migrations_paths: db/visitors_migrate
-  visitor_replica:
+    database: development_com_principal_db
+    host: <%= ENV["POSTGRESQL_COM_PRINCIPAL_PUB"] || default_host %>
+    migrations_paths: db/com_principals_migrate
+    schema_dump: com_principal_schema.rb
+  com_principal_replica:
     !!merge <<: *default
     replica: true
-    database: development_visitor_db
-    host: <%= ENV["POSTGRESQL_VISITOR_SUB"] || default_host %>
-    migrations_paths: db/visitors_migrate
-  resident:
+    database: development_com_principal_db
+    host: <%= ENV["POSTGRESQL_COM_PRINCIPAL_SUB"] || default_host %>
+    migrations_paths: db/com_principals_migrate
+    schema_dump: com_principal_schema.rb
+  com_zenith:
     !!merge <<: *default
-    database: development_resident_db
-    host: <%= ENV["POSTGRESQL_RESIDENT_PUB"] || default_host %>
-    migrations_paths: db/residents_migrate
-  resident_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_resident_db
-    host: <%= ENV["POSTGRESQL_RESIDENT_SUB"] || default_host %>
-    migrations_paths: db/residents_migrate
-  personnel:
-    !!merge <<: *default
-    database: development_personnel_db
-    host: <%= ENV["POSTGRESQL_PERSONNEL_PUB"] || default_host %>
-    migrations_paths: db/personnel_migrate
-  personnel_replica:
+    database: development_com_zenith_db
+    host: <%= ENV["POSTGRESQL_COM_ZENITH_PUB"] || default_host %>
+    migrations_paths: db/com_zenith_migrate
+  com_zenith_replica:
     !!merge <<: *default
     replica: true
-    database: development_personnel_db
-    host: <%= ENV["POSTGRESQL_PERSONNEL_SUB"] || default_host %>
-    migrations_paths: db/personnel_migrate
-  principal:
+    database: development_com_zenith_db
+    host: <%= ENV["POSTGRESQL_COM_ZENITH_SUB"] || default_host %>
+    migrations_paths: db/com_zenith_migrate
+  app_zenith:
     !!merge <<: *default
-    database: development_principal_db
-    host: <%= ENV["POSTGRESQL_PRINCIPAL_PUB"] || default_host %>
-    migrations_paths: db/principals_migrate
-  principal_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_principal_db
-    host: <%= ENV["POSTGRESQL_PRINCIPAL_SUB"] || default_host %>
-    migrations_paths: db/principals_migrate
-  setting:
-    !!merge <<: *default
-    database: development_setting_db
-    host: <%= ENV["POSTGRESQL_SETTING_PUB"] || default_host %>
-    migrations_paths: db/settings_migrate
-  setting_replica:
+    database: development_app_zenith_db
+    host: <%= ENV["POSTGRESQL_APP_ZENITH_PUB"] || default_host %>
+    migrations_paths: db/app_zenith_migrate
+  app_zenith_replica:
     !!merge <<: *default
     replica: true
-    database: development_setting_db
-    host: <%= ENV["POSTGRESQL_SETTING_SUB"] || default_host %>
-    migrations_paths: db/settings_migrate
+    database: development_app_zenith_db
+    host: <%= ENV["POSTGRESQL_APP_ZENITH_SUB"] || default_host %>
+    migrations_paths: db/app_zenith_migrate
+  org_zenith:
+    !!merge <<: *default
+    database: development_org_zenith_db
+    host: <%= ENV["POSTGRESQL_ORG_ZENITH_PUB"] || default_host %>
+    migrations_paths: db/org_zenith_migrate
+  org_zenith_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_org_zenith_db
+    host: <%= ENV["POSTGRESQL_ORG_ZENITH_SUB"] || default_host %>
+    migrations_paths: db/org_zenith_migrate
+  app_principal:
+    !!merge <<: *default
+    database: development_app_principal_db
+    host: <%= ENV["POSTGRESQL_APP_PRINCIPAL_PUB"] || default_host %>
+    migrations_paths: db/app_principals_migrate
+  app_principal_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_app_principal_db
+    host: <%= ENV["POSTGRESQL_APP_PRINCIPAL_SUB"] || default_host %>
+    migrations_paths: db/app_principals_migrate
+  app_setting:
+    !!merge <<: *default
+    database: development_app_setting_db
+    host: <%= ENV["POSTGRESQL_APP_SETTING_PUB"] || default_host %>
+    migrations_paths: db/app_settings_migrate
+  app_setting_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_app_setting_db
+    host: <%= ENV["POSTGRESQL_APP_SETTING_SUB"] || default_host %>
+    migrations_paths: db/app_settings_migrate
+  org_setting:
+    !!merge <<: *default
+    database: development_org_setting_db
+    host: <%= ENV["POSTGRESQL_ORG_SETTING_PUB"] || default_host %>
+    migrations_paths: db/org_settings_migrate
+  org_setting_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_org_setting_db
+    host: <%= ENV["POSTGRESQL_ORG_SETTING_SUB"] || default_host %>
+    migrations_paths: db/org_settings_migrate
+  com_setting:
+    !!merge <<: *default
+    database: development_com_setting_db
+    host: <%= ENV["POSTGRESQL_COM_SETTING_PUB"] || default_host %>
+    migrations_paths: db/com_settings_migrate
+  com_setting_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_com_setting_db
+    host: <%= ENV["POSTGRESQL_COM_SETTING_SUB"] || default_host %>
+    migrations_paths: db/com_settings_migrate
   search:
     !!merge <<: *default
     database: development_search_db
@@ -99,50 +123,72 @@ development:
     database: development_search_db
     host: <%= ENV["POSTGRESQL_SEARCH_SUB"] || default_host %>
     migrations_paths: db/searches_migrate
-  token:
+  org_ticket:
     !!merge <<: *default
-    database: development_token_db
-    host: <%= ENV["POSTGRESQL_TOKEN_PUB"] || default_host %>
-    migrations_paths: db/token_migrate
-  token_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_token_db
-    host: <%= ENV["POSTGRESQL_TOKEN_SUB"] || default_host %>
-    migrations_paths: db/token_migrate
-  symbol:
-    !!merge <<: *default
-    database: development_symbol_db
-    host: <%= ENV["POSTGRESQL_SYMBOL_PUB"] || default_host %>
-    migrations_paths: db/symbol_migrate
-  symbol_replica:
+    database: development_org_ticket_db
+    host: <%= ENV["POSTGRESQL_ORG_TICKET_PUB"] || default_host %>
+    migrations_paths: db/org_tickets_migrate
+  org_ticket_replica:
     !!merge <<: *default
     replica: true
-    database: development_symbol_db
-    host: <%= ENV["POSTGRESQL_SYMBOL_SUB"] || default_host %>
-    migrations_paths: db/symbol_migrate
-  mark:
+    database: development_org_ticket_db
+    host: <%= ENV["POSTGRESQL_ORG_TICKET_SUB"] || default_host %>
+    migrations_paths: db/org_tickets_migrate
+  com_ticket:
     !!merge <<: *default
-    database: development_mark_db
-    host: <%= ENV["POSTGRESQL_MARK_PUB"] || default_host %>
-    migrations_paths: db/mark_migrate
-  mark_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_mark_db
-    host: <%= ENV["POSTGRESQL_MARK_SUB"] || default_host %>
-    migrations_paths: db/mark_migrate
-  notification:
-    !!merge <<: *default
-    database: development_notification_db
-    host: <%= ENV["POSTGRESQL_NOTIFICATION_PUB"] || default_host %>
-    migrations_paths: db/notifications_migrate
-  notification_replica:
+    database: development_com_ticket_db
+    host: <%= ENV["POSTGRESQL_COM_TICKET_PUB"] || default_host %>
+    migrations_paths: db/com_tickets_migrate
+  com_ticket_replica:
     !!merge <<: *default
     replica: true
-    database: development_notification_db
-    host: <%= ENV["POSTGRESQL_NOTIFICATION_SUB"] || default_host %>
-    migrations_paths: db/notifications_migrate
+    database: development_com_ticket_db
+    host: <%= ENV["POSTGRESQL_COM_TICKET_SUB"] || default_host %>
+    migrations_paths: db/com_tickets_migrate
+  app_ticket:
+    !!merge <<: *default
+    database: development_app_ticket_db
+    host: <%= ENV["POSTGRESQL_APP_TICKET_PUB"] || default_host %>
+    migrations_paths: db/app_tickets_migrate
+  app_ticket_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_app_ticket_db
+    host: <%= ENV["POSTGRESQL_APP_TICKET_SUB"] || default_host %>
+    migrations_paths: db/app_tickets_migrate
+  app_signal:
+    !!merge <<: *default
+    database: development_app_signal_db
+    host: <%= ENV["POSTGRESQL_APP_SIGNAL_PUB"] || default_host %>
+    migrations_paths: db/app_signals_migrate
+  app_signal_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_app_signal_db
+    host: <%= ENV["POSTGRESQL_APP_SIGNAL_SUB"] || default_host %>
+    migrations_paths: db/app_signals_migrate
+  org_signal:
+    !!merge <<: *default
+    database: development_org_signal_db
+    host: <%= ENV["POSTGRESQL_ORG_SIGNAL_PUB"] || default_host %>
+    migrations_paths: db/org_signals_migrate
+  org_signal_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_org_signal_db
+    host: <%= ENV["POSTGRESQL_ORG_SIGNAL_SUB"] || default_host %>
+    migrations_paths: db/org_signals_migrate
+  com_signal:
+    !!merge <<: *default
+    database: development_com_signal_db
+    host: <%= ENV["POSTGRESQL_COM_SIGNAL_PUB"] || default_host %>
+    migrations_paths: db/com_signals_migrate
+  com_signal_replica:
+    !!merge <<: *default
+    replica: true
+    database: development_com_signal_db
+    host: <%= ENV["POSTGRESQL_COM_SIGNAL_SUB"] || default_host %>
+    migrations_paths: db/com_signals_migrate
   cache:
     !!merge <<: *default
     database: development_cache_db
@@ -198,17 +244,17 @@ development:
     database: development_chronicle_db
     host: <%= ENV["POSTGRESQL_CHRONICLE_SUB"] || default_host %>
     migrations_paths: db/chronicle_migrate
-  operator:
+  org_principal:
     !!merge <<: *default
-    database: development_operator_db
-    host: <%= ENV["POSTGRESQL_OPERATOR_PUB"] || default_host %>
-    migrations_paths: db/operators_migrate
-  operator_replica:
+    database: development_org_principal_db
+    host: <%= ENV["POSTGRESQL_ORG_PRINCIPAL_PUB"] || default_host %>
+    migrations_paths: db/org_principals_migrate
+  org_principal_replica:
     !!merge <<: *default
     replica: true
-    database: development_operator_db
-    host: <%= ENV["POSTGRESQL_OPERATOR_SUB"] || default_host %>
-    migrations_paths: db/operators_migrate
+    database: development_org_principal_db
+    host: <%= ENV["POSTGRESQL_ORG_PRINCIPAL_SUB"] || default_host %>
+    migrations_paths: db/org_principals_migrate
   avatar:
     !!merge <<: *default
     database: development_avatar_db
@@ -225,12 +271,14 @@ development:
     database: development_redirector_db
     host: <%= ENV["POSTGRESQL_REDIRECTOR_PUB"] || default_host %>
     migrations_paths: db/redirector_migrate
+    schema_dump: redirector_schema.rb
   redirector_replica:
     !!merge <<: *default
     replica: true
     database: development_redirector_db
     host: <%= ENV["POSTGRESQL_REDIRECTOR_SUB"] || default_host %>
     migrations_paths: db/redirector_migrate
+    schema_dump: redirector_schema.rb
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
@@ -238,72 +286,96 @@ development:
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
-  guest:
+  com_principal:
     !!merge <<: *test_default
-    database: test_guest_db
+    database: test_com_principal_db
     host: <%= test_host %>
-    migrations_paths: db/guests_migrate
-  guest_replica:
+    migrations_paths: db/com_principals_migrate
+    schema_dump: com_principal_schema.rb
+  com_principal_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_guest_db
+    database: test_com_principal_db
     host: <%= test_host %>
-    migrations_paths: db/guests_migrate
-  visitor:
+    migrations_paths: db/com_principals_migrate
+    schema_dump: com_principal_schema.rb
+  com_zenith:
     !!merge <<: *test_default
-    database: test_visitor_db
+    database: test_com_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/visitors_migrate
-  visitor_replica:
+    migrations_paths: db/com_zenith_migrate
+  com_zenith_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_visitor_db
+    database: test_com_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/visitors_migrate
-  resident:
+    migrations_paths: db/com_zenith_migrate
+  app_zenith:
     !!merge <<: *test_default
-    database: test_resident_db
+    database: test_app_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/residents_migrate
-  resident_replica:
+    migrations_paths: db/app_zenith_migrate
+  app_zenith_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_resident_db
+    database: test_app_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/residents_migrate
-  personnel:
+    migrations_paths: db/app_zenith_migrate
+  org_zenith:
     !!merge <<: *test_default
-    database: test_personnel_db
+    database: test_org_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/personnel_migrate
-  personnel_replica:
+    migrations_paths: db/org_zenith_migrate
+  org_zenith_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_personnel_db
+    database: test_org_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/personnel_migrate
-  principal:
+    migrations_paths: db/org_zenith_migrate
+  app_principal:
     !!merge <<: *test_default
-    database: test_principal_db
+    database: test_app_principal_db
     host: <%= test_host %>
-    migrations_paths: db/principals_migrate
-  principal_replica:
+    migrations_paths: db/app_principals_migrate
+  app_principal_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_principal_db
+    database: test_app_principal_db
     host: <%= test_host %>
-    migrations_paths: db/principals_migrate
-  setting:
+    migrations_paths: db/app_principals_migrate
+  app_setting:
     !!merge <<: *test_default
-    database: test_setting_db
-    host: <%= ENV["POSTGRESQL_SETTING_PUB"] || test_host %>
-    migrations_paths: db/settings_migrate
-  setting_replica:
+    database: test_app_setting_db
+    host: <%= test_host %>
+    migrations_paths: db/app_settings_migrate
+  app_setting_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_setting_db
-    host: <%= ENV["POSTGRESQL_SETTING_SUB"] || test_host %>
-    migrations_paths: db/settings_migrate
+    database: test_app_setting_db
+    host: <%= test_host %>
+    migrations_paths: db/app_settings_migrate
+  org_setting:
+    !!merge <<: *test_default
+    database: test_org_setting_db
+    host: <%= test_host %>
+    migrations_paths: db/org_settings_migrate
+  org_setting_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_org_setting_db
+    host: <%= test_host %>
+    migrations_paths: db/org_settings_migrate
+  com_setting:
+    !!merge <<: *test_default
+    database: test_com_setting_db
+    host: <%= ENV["POSTGRESQL_COM_SETTING_PUB"] || test_host %>
+    migrations_paths: db/com_settings_migrate
+  com_setting_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_com_setting_db
+    host: <%= ENV["POSTGRESQL_COM_SETTING_SUB"] || test_host %>
+    migrations_paths: db/com_settings_migrate
   search:
     !!merge <<: *test_default
     database: test_search_db
@@ -315,50 +387,72 @@ test:
     database: test_search_db
     host: <%= test_host %>
     migrations_paths: db/searches_migrate
-  token:
+  org_ticket:
     !!merge <<: *test_default
-    database: test_token_db
+    database: test_org_ticket_db
     host: <%= test_host %>
-    migrations_paths: db/token_migrate
-  token_replica:
-    !!merge <<: *test_default
-    replica: true
-    database: test_token_db
-    host: <%= test_host %>
-    migrations_paths: db/token_migrate
-  symbol:
-    !!merge <<: *test_default
-    database: test_symbol_db
-    host: <%= test_host %>
-    migrations_paths: db/symbol_migrate
-  symbol_replica:
+    migrations_paths: db/org_tickets_migrate
+  org_ticket_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_symbol_db
+    database: test_org_ticket_db
     host: <%= test_host %>
-    migrations_paths: db/symbol_migrate
-  mark:
+    migrations_paths: db/org_tickets_migrate
+  com_ticket:
     !!merge <<: *test_default
-    database: test_mark_db
+    database: test_com_ticket_db
     host: <%= test_host %>
-    migrations_paths: db/mark_migrate
-  mark_replica:
-    !!merge <<: *test_default
-    replica: true
-    database: test_mark_db
-    host: <%= test_host %>
-    migrations_paths: db/mark_migrate
-  notification:
-    !!merge <<: *test_default
-    database: test_notification_db
-    host: <%= test_host %>
-    migrations_paths: db/notifications_migrate
-  notification_replica:
+    migrations_paths: db/com_tickets_migrate
+  com_ticket_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_notification_db
+    database: test_com_ticket_db
     host: <%= test_host %>
-    migrations_paths: db/notifications_migrate
+    migrations_paths: db/com_tickets_migrate
+  app_ticket:
+    !!merge <<: *test_default
+    database: test_app_ticket_db
+    host: <%= test_host %>
+    migrations_paths: db/app_tickets_migrate
+  app_ticket_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_app_ticket_db
+    host: <%= test_host %>
+    migrations_paths: db/app_tickets_migrate
+  app_signal:
+    !!merge <<: *test_default
+    database: test_app_signal_db
+    host: <%= test_host %>
+    migrations_paths: db/app_signals_migrate
+  app_signal_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_app_signal_db
+    host: <%= test_host %>
+    migrations_paths: db/app_signals_migrate
+  org_signal:
+    !!merge <<: *test_default
+    database: test_org_signal_db
+    host: <%= test_host %>
+    migrations_paths: db/org_signals_migrate
+  org_signal_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_org_signal_db
+    host: <%= test_host %>
+    migrations_paths: db/org_signals_migrate
+  com_signal:
+    !!merge <<: *test_default
+    database: test_com_signal_db
+    host: <%= test_host %>
+    migrations_paths: db/com_signals_migrate
+  com_signal_replica:
+    !!merge <<: *test_default
+    replica: true
+    database: test_com_signal_db
+    host: <%= test_host %>
+    migrations_paths: db/com_signals_migrate
   cache:
     !!merge <<: *test_default
     database: test_cache_db
@@ -414,17 +508,17 @@ test:
     database: test_chronicle_db
     host: <%= test_host %>
     migrations_paths: db/chronicle_migrate
-  operator:
+  org_principal:
     !!merge <<: *test_default
-    database: test_operator_db
+    database: test_org_principal_db
     host: <%= test_host %>
-    migrations_paths: db/operators_migrate
-  operator_replica:
+    migrations_paths: db/org_principals_migrate
+  org_principal_replica:
     !!merge <<: *test_default
     replica: true
-    database: test_operator_db
+    database: test_org_principal_db
     host: <%= test_host %>
-    migrations_paths: db/operators_migrate
+    migrations_paths: db/org_principals_migrate
   avatar:
     !!merge <<: *test_default
     database: test_avatar_db
@@ -441,115 +535,153 @@ test:
     database: test_redirector_db
     host: <%= test_host %>
     migrations_paths: db/redirector_migrate
+    schema_dump: redirector_schema.rb
   redirector_replica:
     !!merge <<: *test_default
     replica: true
     database: test_redirector_db
     host: <%= test_host %>
     migrations_paths: db/redirector_migrate
+    schema_dump: redirector_schema.rb
 production:
-  guest:
+  com_principal:
     !!merge <<: *default
-    database: production_guest_db
+    database: production_com_principal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.GUEST&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.GUEST&.PASSWORD %>
-    migrations_paths: db/guests_migrate
-  guest_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_guest_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.GUEST_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.GUEST_REPLICA&.PASSWORD %>
-    migrations_paths: db/guests_migrate
-  visitor:
-    !!merge <<: *default
-    database: production_visitor_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.VISITOR&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.VISITOR&.PASSWORD %>
-    migrations_paths: db/visitors_migrate
-  visitor_replica:
+    password: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL&.PASSWORD %>
+    migrations_paths: db/com_principals_migrate
+    schema_dump: com_principal_schema.rb
+  com_principal_replica:
     !!merge <<: *default
     replica: true
-    database: production_visitor_db
+    database: production_com_principal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.VISITOR_REPLICA&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.VISITOR_REPLICA&.PASSWORD %>
-    migrations_paths: db/visitors_migrate
-  resident:
+    password: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL_REPLICA&.PASSWORD %>
+    migrations_paths: db/com_principals_migrate
+    schema_dump: com_principal_schema.rb
+  com_zenith:
     !!merge <<: *default
-    database: production_resident_db
+    database: production_com_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.RESIDENT&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.RESIDENT&.PASSWORD %>
-    migrations_paths: db/residents_migrate
-  resident_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_resident_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.RESIDENT_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.RESIDENT_REPLICA&.PASSWORD %>
-    migrations_paths: db/residents_migrate
-  personnel:
-    !!merge <<: *default
-    database: production_personnel_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.PERSONNEL&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.PERSONNEL&.PASSWORD %>
-    migrations_paths: db/personnel_migrate
-  personnel_replica:
+    password: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH&.PASSWORD %>
+    migrations_paths: db/com_zenith_migrate
+  com_zenith_replica:
     !!merge <<: *default
     replica: true
-    database: production_personnel_db
+    database: production_com_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.PERSONNEL_REPLICA&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.PERSONNEL_REPLICA&.PASSWORD %>
-    migrations_paths: db/personnel_migrate
-  principal:
+    password: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH_REPLICA&.PASSWORD %>
+    migrations_paths: db/com_zenith_migrate
+  app_zenith:
     !!merge <<: *default
-    database: production_principal_db
+    database: production_app_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.PRINCIPAL&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.PRINCIPAL&.PASSWORD %>
-    migrations_paths: db/principals_migrate
-  principal_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_principal_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.PRINCIPAL_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.PRINCIPAL_REPLICA&.PASSWORD %>
-    migrations_paths: db/principals_migrate
-  setting:
-    !!merge <<: *default
-    database: production_setting_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.SETTING&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.SETTING&.PASSWORD %>
-    migrations_paths: db/settings_migrate
-  setting_replica:
+    password: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH&.PASSWORD %>
+    migrations_paths: db/app_zenith_migrate
+  app_zenith_replica:
     !!merge <<: *default
     replica: true
-    database: production_setting_db
+    database: production_app_zenith_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.SETTING_REPLICA&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.SETTING_REPLICA&.PASSWORD %>
-    migrations_paths: db/settings_migrate
+    password: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH_REPLICA&.PASSWORD %>
+    migrations_paths: db/app_zenith_migrate
+  org_zenith:
+    !!merge <<: *default
+    database: production_org_zenith_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH&.PASSWORD %>
+    migrations_paths: db/org_zenith_migrate
+  org_zenith_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_org_zenith_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH_REPLICA&.PASSWORD %>
+    migrations_paths: db/org_zenith_migrate
+  app_principal:
+    !!merge <<: *default
+    database: production_app_principal_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL&.PASSWORD %>
+    migrations_paths: db/app_principals_migrate
+  app_principal_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_app_principal_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL_REPLICA&.PASSWORD %>
+    migrations_paths: db/app_principals_migrate
+  app_setting:
+    !!merge <<: *default
+    database: production_app_setting_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_SETTING&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.APP_SETTING&.PASSWORD %>
+    migrations_paths: db/app_settings_migrate
+  app_setting_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_app_setting_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_SETTING_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.APP_SETTING_REPLICA&.PASSWORD %>
+    migrations_paths: db/app_settings_migrate
+  org_setting:
+    !!merge <<: *default
+    database: production_org_setting_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING&.PASSWORD %>
+    migrations_paths: db/org_settings_migrate
+  org_setting_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_org_setting_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING_REPLICA&.PASSWORD %>
+    migrations_paths: db/org_settings_migrate
+  com_setting:
+    !!merge <<: *default
+    database: production_com_setting_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_SETTING&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.COM_SETTING&.PASSWORD %>
+    migrations_paths: db/com_settings_migrate
+  com_setting_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_com_setting_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_SETTING_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.COM_SETTING_REPLICA&.PASSWORD %>
+    migrations_paths: db/com_settings_migrate
   search:
     !!merge <<: *default
     database: production_search_db
@@ -584,74 +716,108 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.CHRONICLE_REPLICA&.PASSWORD %>
     migrations_paths: db/chronicle_migrate
-  token:
+  org_ticket:
     !!merge <<: *default
-    database: production_token_db
+    database: production_org_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.TOKEN&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_TICKET&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.TOKEN&.PASSWORD %>
-    migrations_paths: db/token_migrate
-  token_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_token_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.TOKEN_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.TOKEN_REPLICA&.PASSWORD %>
-    migrations_paths: db/token_migrate
-  symbol:
-    !!merge <<: *default
-    database: production_symbol_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.SYMBOL&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.SYMBOL&.PASSWORD %>
-    migrations_paths: db/symbol_migrate
-  symbol_replica:
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_TICKET&.PASSWORD %>
+    migrations_paths: db/org_tickets_migrate
+  org_ticket_replica:
     !!merge <<: *default
     replica: true
-    database: production_symbol_db
+    database: production_org_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.SYMBOL_REPLICA&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_TICKET_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.SYMBOL_REPLICA&.PASSWORD %>
-    migrations_paths: db/symbol_migrate
-  mark:
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_TICKET_REPLICA&.PASSWORD %>
+    migrations_paths: db/org_tickets_migrate
+  com_ticket:
     !!merge <<: *default
-    database: production_mark_db
+    database: production_com_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.MARK&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_TICKET&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.MARK&.PASSWORD %>
-    migrations_paths: db/mark_migrate
-  mark_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_mark_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.MARK_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.MARK_REPLICA&.PASSWORD %>
-    migrations_paths: db/mark_migrate
-  notification:
-    !!merge <<: *default
-    database: production_notification_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.NOTIFICATION&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.NOTIFICATION&.PASSWORD %>
-    migrations_paths: db/notifications_migrate
-  notification_replica:
+    password: <%= Rails.application.credentials&.DATABASE&.COM_TICKET&.PASSWORD %>
+    migrations_paths: db/com_tickets_migrate
+  com_ticket_replica:
     !!merge <<: *default
     replica: true
-    database: production_notification_db
+    database: production_com_ticket_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.NOTIFICATION_REPLICA&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_TICKET_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.NOTIFICATION_REPLICA&.PASSWORD %>
-    migrations_paths: db/notifications_migrate
+    password: <%= Rails.application.credentials&.DATABASE&.COM_TICKET_REPLICA&.PASSWORD %>
+    migrations_paths: db/com_tickets_migrate
+  app_ticket:
+    !!merge <<: *default
+    database: production_app_ticket_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_TICKET&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.APP_TICKET&.PASSWORD %>
+    migrations_paths: db/app_tickets_migrate
+  app_ticket_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_app_ticket_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_TICKET_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.APP_TICKET_REPLICA&.PASSWORD %>
+    migrations_paths: db/app_tickets_migrate
+  app_signal:
+    !!merge <<: *default
+    database: production_app_signal_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_SIGNAL&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.APP_SIGNAL&.PASSWORD %>
+    migrations_paths: db/app_signals_migrate
+  app_signal_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_app_signal_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.APP_SIGNAL_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.APP_SIGNAL_REPLICA&.PASSWORD %>
+    migrations_paths: db/app_signals_migrate
+  org_signal:
+    !!merge <<: *default
+    database: production_org_signal_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_SIGNAL&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_SIGNAL&.PASSWORD %>
+    migrations_paths: db/org_signals_migrate
+  org_signal_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_org_signal_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_SIGNAL_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_SIGNAL_REPLICA&.PASSWORD %>
+    migrations_paths: db/org_signals_migrate
+  com_signal:
+    !!merge <<: *default
+    database: production_com_signal_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_SIGNAL&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.COM_SIGNAL&.PASSWORD %>
+    migrations_paths: db/com_signals_migrate
+  com_signal_replica:
+    !!merge <<: *default
+    replica: true
+    database: production_com_signal_db
+    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
+    host: <%= Rails.application.credentials&.DATABASE&.COM_SIGNAL_REPLICA&.HOST %>
+    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
+    password: <%= Rails.application.credentials&.DATABASE&.COM_SIGNAL_REPLICA&.PASSWORD %>
+    migrations_paths: db/com_signals_migrate
   cache:
     !!merge <<: *default
     database: production_cache_db
@@ -720,23 +886,23 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.OCCURRENCE_REPLICA&.PASSWORD %>
     migrations_paths: db/occurrences_migrate
-  operator:
+  org_principal:
     !!merge <<: *default
-    database: production_operator_db
+    database: production_org_principal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.OPERATOR&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.OPERATOR&.PASSWORD %>
-    migrations_paths: db/operators_migrate
-  operator_replica:
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL&.PASSWORD %>
+    migrations_paths: db/org_principals_migrate
+  org_principal_replica:
     !!merge <<: *default
     replica: true
-    database: production_operator_db
+    database: production_org_principal_db
     port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.OPERATOR_REPLICA&.HOST %>
+    host: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.OPERATOR_REPLICA&.PASSWORD %>
-    migrations_paths: db/operators_migrate
+    password: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL_REPLICA&.PASSWORD %>
+    migrations_paths: db/org_principals_migrate
   avatar:
     !!merge <<: *default
     database: production_avatar_db
@@ -762,6 +928,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.REDIRECTOR&.PASSWORD %>
     migrations_paths: db/redirector_migrate
+    schema_dump: redirector_schema.rb
   redirector_replica:
     !!merge <<: *default
     replica: true
@@ -771,3 +938,4 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.REDIRECTOR_REPLICA&.PASSWORD %>
     migrations_paths: db/redirector_migrate
+    schema_dump: redirector_schema.rb

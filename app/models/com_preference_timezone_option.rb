@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: com_preference_timezone_options
-# Database name: setting
+# Database name: com_setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class ComPreferenceTimezoneOption < SettingRecord
+class ComPreferenceTimezoneOption < ComSettingRecord
   self.primary_key = :id
   # Fixed IDs - do not modify these values
   ETC_UTC = 1

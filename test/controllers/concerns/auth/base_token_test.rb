@@ -12,20 +12,20 @@ module Auth
     end
 
     test "Token.encode returns nil for blank host" do
-      user = users(:one)
+      user = clients(:one)
       result = Authentication::Base::Token.encode(user, host: "")
 
       assert_nil result
     end
 
     test "Token.decode returns nil for blank token" do
-      result = Authentication::Base::Token.decode("", host: "example.com", resource_type: "user")
+      result = Authentication::Base::Token.decode("", host: "example.com", resource_type: "client")
 
       assert_nil result
     end
 
     test "Token.decode returns nil for blank host" do
-      result = Authentication::Base::Token.decode("some_token", host: "", resource_type: "user")
+      result = Authentication::Base::Token.decode("some_token", host: "", resource_type: "client")
 
       assert_nil result
     end
@@ -37,9 +37,9 @@ module Auth
     end
 
     test "Token.extract_type returns act from payload (backward compat alias)" do
-      payload = { "act" => "user" }
+      payload = { "act" => "client" }
 
-      assert_equal "user", Authentication::Base::Token.extract_type(payload)
+      assert_equal "client", Authentication::Base::Token.extract_type(payload)
     end
 
     test "Token.extract_act returns act from payload" do
@@ -59,9 +59,9 @@ module Auth
     end
 
     test "Token.validate_actor_claim! returns true for matching user" do
-      payload = { "act" => "user" }
+      payload = { "act" => "client" }
 
-      assert Authentication::Base::Token.validate_actor_claim!(payload, "user")
+      assert Authentication::Base::Token.validate_actor_claim!(payload, "client")
     end
 
     test "Token.validate_actor_claim! returns true for matching operator" do
@@ -71,25 +71,25 @@ module Auth
     end
 
     test "Token.validate_actor_claim! returns false for mismatched actor" do
-      payload = { "act" => "user" }
+      payload = { "act" => "client" }
 
       assert_not Authentication::Base::Token.validate_actor_claim!(payload, "operator")
     end
 
     test "Token.validate_actor_claim! returns false for nil payload" do
-      assert_not Authentication::Base::Token.validate_actor_claim!(nil, "user")
+      assert_not Authentication::Base::Token.validate_actor_claim!(nil, "client")
     end
 
     test "Token.validate_actor_claim! returns false for missing claim" do
       payload = { "sub" => "123" }
 
-      assert_not Authentication::Base::Token.validate_actor_claim!(payload, "user")
+      assert_not Authentication::Base::Token.validate_actor_claim!(payload, "client")
     end
 
     test "Token.validate_actor_claim! returns false for blank claim" do
       payload = { "act" => "" }
 
-      assert_not Authentication::Base::Token.validate_actor_claim!(payload, "user")
+      assert_not Authentication::Base::Token.validate_actor_claim!(payload, "client")
     end
 
     test "Token.validate_actor_claim! returns false for unrecognized value" do
@@ -101,7 +101,7 @@ module Auth
     test "Token.validate_actor_claim! returns false for nil value" do
       payload = { "act" => nil }
 
-      assert_not Authentication::Base::Token.validate_actor_claim!(payload, "user")
+      assert_not Authentication::Base::Token.validate_actor_claim!(payload, "client")
     end
 
     test "Token.extract_session_id returns sid from payload" do
@@ -118,17 +118,17 @@ module Auth
 
     test "Token.encode includes kid header" do
       token = Authentication::Base::Token.encode(
-        users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
+        clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",
       )
       _payload, header = JWT.decode(token, nil, false)
 
       assert_predicate header["kid"], :present?
-      assert_equal "auth-access-token;user", header["typ"]
+      assert_equal "auth-access-token;client", header["typ"]
     end
 
     test "Token.decode rejects unknown kid" do
       token = Authentication::Base::Token.encode(
-        users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
+        clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",
       )
       payload, header = JWT.decode(token, nil, false)
       tampered = JWT.encode(
@@ -136,71 +136,71 @@ module Auth
         { kid: "unknown-kid", typ: header["typ"] },
       )
 
-      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "user")
+      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "client")
     end
 
     test "Token.decode rejects alg mismatch" do
       token = Authentication::Base::Token.encode(
-        users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
+        clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",
       )
       payload, _header = JWT.decode(token, nil, false)
       active_kid = Jit::Security::Jwt::Keyring.active_kid
-      tampered = JWT.encode(payload, "secret", "HS256", { kid: active_kid, typ: "auth-access-token;user" })
+      tampered = JWT.encode(payload, "secret", "HS256", { kid: active_kid, typ: "auth-access-token;client" })
 
-      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "user")
+      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "client")
     end
 
     test "Token.decode rejects alg none" do
       token = Authentication::Base::Token.encode(
-        users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
+        clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",
       )
       payload, _header = JWT.decode(token, nil, false)
       tampered = JWT.encode(
         payload,
         nil,
         "none",
-        { kid: Jit::Security::Jwt::Keyring.active_kid, typ: "auth-access-token;user" },
+        { kid: Jit::Security::Jwt::Keyring.active_kid, typ: "auth-access-token;client" },
       )
 
-      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "user")
+      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "client")
     end
 
     test "Token.decode rejects missing sid claim" do
       token = Authentication::Base::Token.encode(
-        users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
+        clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",
       )
       payload, header = JWT.decode(token, nil, false)
       payload.delete("sid")
       tampered = JWT.encode(payload, Authentication::Base::JwtConfiguration.private_key, "ES384", header)
 
-      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "user")
+      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "client")
     end
 
     test "Token.decode rejects missing sub claim" do
       token = Authentication::Base::Token.encode(
-        users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
+        clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",
       )
       payload, header = JWT.decode(token, nil, false)
       payload.delete("sub")
       tampered = JWT.encode(payload, Authentication::Base::JwtConfiguration.private_key, "ES384", header)
 
-      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "user")
+      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "client")
     end
 
     test "Token.decode rejects missing typ claim" do
       token = Authentication::Base::Token.encode(
-        users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
+        clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",
       )
       payload, header = JWT.decode(token, nil, false)
       payload.delete("typ")
       tampered = JWT.encode(payload, Authentication::Base::JwtConfiguration.private_key, "ES384", header)
 
-      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "user")
+      assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "client")
     end
 
     test "Token.decode rejects user token for operator resource type" do
       token = Authentication::Base::Token.encode(
-        users(:one), host: "example.com", session_public_id: "sid", resource_type: "user",
+        clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",
       )
 
       assert_nil Authentication::Base::Token.decode(token, host: "example.com", resource_type: "operator")

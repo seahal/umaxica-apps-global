@@ -4,15 +4,15 @@
 require "test_helper"
 
 class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
-  fixtures :users
+  fixtures :clients
 
   class TestController < ApplicationController
-    include Authentication::User
+    include Authentication::Client
 
     public_strict!
 
     def create
-      user = User.find(params[:user_id])
+      user = Client.find(params[:user_id])
       result = log_in(user, require_totp_check: false)
 
       if result[:status] == :session_limit_hard_reject
@@ -30,14 +30,14 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
   end
 
   setup do
-    @user = users(:one)
-    UserToken.where(user_id: @user.id).delete_all
+    @user = clients(:one)
+    ClientToken.where(user_id: @user.id).delete_all
     2.times do
-      token = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::ACTIVE)
+      token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
       token.rotate_refresh_token!
     end
-    restricted = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
-    restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
+    restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
+    restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     Rails.application.routes.draw do
       post "/test/hard_reject_login" => "session_limit_hard_reject_test/test#create"
@@ -48,25 +48,25 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
     Rails.application.reload_routes!
   end
 
-  test "hard reject returns 409 for html and does not create new token" do
-    before_count = UserToken.where(user_id: @user.id).count
+  test "hard reject returns 403 for html and does not create new token" do
+    before_count = ClientToken.where(user_id: @user.id).count
 
     post "/test/hard_reject_login", params: { user_id: @user.id }
 
-    assert_response :conflict
+    assert_response :forbidden
     assert_equal Authentication::Base::SESSION_LIMIT_HARD_REJECT_MESSAGE, response.body
-    assert_equal before_count, UserToken.where(user_id: @user.id).count
+    assert_equal before_count, ClientToken.where(user_id: @user.id).count
   end
 
-  test "hard reject returns 409 for json and does not create new token" do
-    before_count = UserToken.where(user_id: @user.id).count
+  test "hard reject returns 403 for json and does not create new token" do
+    before_count = ClientToken.where(user_id: @user.id).count
 
     post "/test/hard_reject_login",
          params: { user_id: @user.id },
          as: :json
 
-    assert_response :conflict
+    assert_response :forbidden
     assert_equal "session_limit_hard_reject", response.parsed_body["error_code"]
-    assert_equal before_count, UserToken.where(user_id: @user.id).count
+    assert_equal before_count, ClientToken.where(user_id: @user.id).count
   end
 end

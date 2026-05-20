@@ -12,8 +12,8 @@ class ProsopiteSmokeTest < ActionDispatch::IntegrationTest
     created_user_ids =
       Prosopite.pause do
         3.times.map do |i|
-          user = User.create!
-          UserEmail.create!(user: user, address: "prosopite-smoke-#{i}-#{SecureRandom.hex(4)}@example.com")
+          user = Client.create!
+          ClientEmail.create!(user: user, address: "prosopite-smoke-#{i}-#{SecureRandom.hex(4)}@example.com")
           user.id
         end
       end
@@ -22,8 +22,8 @@ class ProsopiteSmokeTest < ActionDispatch::IntegrationTest
       Prosopite.pause do
         assert_raises(Prosopite::NPlusOneQueriesError) do
           Prosopite.scan do
-            User.where(id: created_user_ids).order(:id).each do |user|
-              user.user_emails.load
+            Client.where(id: created_user_ids).order(:id).each do |user|
+              user.client_emails.load
             end
           end
         end

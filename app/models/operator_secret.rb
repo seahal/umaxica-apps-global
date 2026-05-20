@@ -4,14 +4,14 @@
 # == Schema Information
 #
 # Table name: staff_secrets
-# Database name: operator
+# Database name: org_principal
 #
 #  id                              :bigint           not null, primary key
-#  lapses_at                       :datetime         default(Infinity), not null
+#  discarded_at                    :datetime         default(Infinity), not null
 #  last_used_at                    :datetime
 #  name                            :string           not null
 #  password_digest                 :string
-#  purge_at                        :datetime         default(Infinity), not null
+#  purged_at                       :datetime         default(Infinity), not null
 #  created_at                      :datetime         not null
 #  updated_at                      :datetime         not null
 #  public_id                       :string(21)       not null
@@ -33,7 +33,7 @@
 #  fk_staff_secrets_on_staff_secret_kind_id  (staff_secret_kind_id => staff_secret_kinds.id)
 #
 
-class OperatorSecret < OperatorRecord
+class OperatorSecret < OrgPrincipalRecord
   self.table_name = "staff_secrets"
   include Retainable
 
@@ -52,7 +52,6 @@ class OperatorSecret < OperatorRecord
 
   belongs_to :staff, class_name: "Operator"
   belongs_to :staff_secret_status, class_name: "OperatorSecretStatus", inverse_of: :staff_secrets,
-                                   optional: true,
                                    foreign_key: :staff_identity_secret_status_id
   belongs_to :staff_secret_kind, class_name: "OperatorSecretKind", inverse_of: :staff_secrets
 
@@ -130,7 +129,14 @@ class OperatorSecret < OperatorRecord
   def enforce_secret_limit
     return unless staff_id
 
-    count = self.class.where(staff_id: staff_id).count
+    count =
+      if staff&.staff_secrets&.loaded?
+        staff.staff_secrets.count { |secret| secret != self }
+      elsif defined?(Prosopite)
+        Prosopite.pause { self.class.where(staff_id: staff_id).count }
+      else
+        self.class.where(staff_id: staff_id).count
+      end
     return if count < MAX_SECRETS_PER_STAFF
 
     errors.add(:base, :too_many, message: "exceeds maximum secrets per staff (#{MAX_SECRETS_PER_STAFF})")

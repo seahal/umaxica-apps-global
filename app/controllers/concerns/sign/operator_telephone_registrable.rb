@@ -82,10 +82,10 @@ module Sign
 
     def send_staff_telephone_verification_sms(staff_telephone, otp_number)
       message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
-      SmsDeliveryJob.perform_later(
+      Outbound::Sms.deliver_later(
         to: staff_telephone.number,
-        message: message,
-        subject: message,
+        title: message,
+        body: message,
       )
     end
 

@@ -148,6 +148,9 @@ en:
         title: Do you want to sign out?
         button: Sign out
         success: You have been signed out.
+        completed_title: Signed out
+        completed_description: This sign-out confirmation is shown once.
+        home_link: Go to home
     app:
       layout:
         nav:
@@ -291,6 +294,7 @@ en:
           logout_desc: Sign out of your account
           mfa: MFA settings
           mfa_desc: Enable and manage multi-factor authentication
+          mfa_reset: Request an MFA reset
         activity:
           index:
             page_title: Activity
@@ -343,6 +347,7 @@ en:
             totps_desc: "%{count} registered"
             secrets: Secrets
             secrets_desc: "%{count} active"
+            reset_request: Request an MFA reset
           update:
             success: MFA settings updated.
             failure: Failed to update MFA settings.
@@ -404,9 +409,9 @@ en:
             failure: Cannot revoke current session.
             others_button: Revoke all other sessions
             others_confirm: Delete all other sessions?
-      reauth:
+      step_up:
         index:
-          title: Re-authentication Sessions
+          title: Step-up authentication Sessions
           new: New
           empty: No sessions found
           table:
@@ -415,8 +420,8 @@ en:
             status: Status
             expires: Expires
         new:
-          title: Re-authentication
-          description: Re-authentication is required to continue. Please select a method.
+          title: Step-up authentication
+          description: Step-up authentication is required to continue. Please select a method.
           method_legend: Authentication Method
           methods:
             passkey: Passkey
@@ -424,13 +429,13 @@ en:
           submit: Continue
           back: Back
         show:
-          title: Re-authentication Session
+          title: Step-up authentication Session
           list: List
           to_edit: To input screen
           cancel: Cancel
           confirm_cancel: Are you sure?
         edit:
-          title: Re-authentication
+          title: Step-up authentication
           description:
             Please enter the code or use passkey authentication for identity verification.
           authenticate_with_passkey: Authenticate with Passkey
@@ -440,7 +445,7 @@ en:
           cancel: Cancel
           confirm_cancel: Are you sure?
         success:
-          complete: Re-authentication completed.
+          complete: Step-up authentication completed.
       verification:
         index:
           title: Verification Sessions
@@ -1366,7 +1371,9 @@ en:
             accept_consent_cookies: Allow consent cookies
         language:
           edit:
-            language_label: Language Select
+            heading: Language Settings
+            description: Change the display language for the corporate site.
+            language_label: Language
             h1: Language Select
         resets:
           title: Reset Preferences
@@ -1422,6 +1429,11 @@ en:
             accept_performance_cookies: Allow performance cookies
             accept_targeting_cookies: Allow targeting cookies
             accept_consent_cookies: Allow consent cookies
+        language:
+          edit:
+            heading: Language Settings
+            description: Change the display language for the organization console.
+            language_label: Language
         resets:
           title: Reset Preferences
           description: Remove saved preference data for this browser.

@@ -5,8 +5,8 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 ## Source
 
 - `adr/oidc-authn-hardening-implementation-decisions.md`
-- `adr/notes/oidc-authn-hardening-handoff.md`
-- `adr/notes/oidc-callback-integration-tests.md`
+- `notes/oidc-authn-hardening-handoff.md`
+- `notes/oidc-callback-integration-tests.md`
 
 ## Goal
 

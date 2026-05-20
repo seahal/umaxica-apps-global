@@ -32,6 +32,7 @@ class Sign::Com::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     get new_sign_com_configuration_emails_registration_url(ri: "jp"), headers: @headers
 
     assert_response :success
+    assert_select "input[type=email][name='visitor_email[address]']", count: 1
     assert_select "input[type=checkbox][name='visitor_email[notifiable]']", count: 1
     assert_select "input[type=checkbox][name='visitor_email[promotional]']", count: 0
   end

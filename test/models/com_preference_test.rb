@@ -2,16 +2,16 @@
 # == Schema Information
 #
 # Table name: com_preferences
-# Database name: setting
+# Database name: com_setting
 #
 #  id                       :bigint           not null, primary key
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  device_id_digest         :string
+#  discarded_at             :datetime         default(Infinity), not null
 #  jti                      :string
-#  lapses_at                :datetime         default(Infinity), not null
-#  purge_at                 :datetime         default(Infinity), not null
+#  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
 #  used_at                  :datetime
 #  created_at               :datetime         not null
@@ -33,7 +33,7 @@
 #  index_com_preferences_on_device_id_digest   (device_id_digest)
 #  index_com_preferences_on_jti                (jti) UNIQUE
 #  index_com_preferences_on_public_id          (public_id) UNIQUE
-#  index_com_preferences_on_purge_at           (purge_at)
+#  index_com_preferences_on_purged_at          (purged_at)
 #  index_com_preferences_on_replaced_by_id     (replaced_by_id)
 #  index_com_preferences_on_status_id          (status_id)
 #  index_com_preferences_on_token_digest       (token_digest)
@@ -169,7 +169,7 @@ class ComPreferenceTest < ActiveSupport::TestCase
     digest = ComPreference.digest_refresh_token("com-consume-once")
     preference = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -187,20 +187,20 @@ class ComPreferenceTest < ActiveSupport::TestCase
     revoked = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
       token_digest: ComPreference.digest_refresh_token("com-revoked"),
-      lapses_at: Time.current,
+      discarded_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     compromised = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
       token_digest: ComPreference.digest_refresh_token("com-compromised"),
-      lapses_at: Time.current,
+      discarded_at: Time.current,
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
     )
     expired = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      lapses_at: 1.minute.ago,
+      discarded_at: 1.minute.ago,
       token_digest: ComPreference.digest_refresh_token("com-expired"),
       jti: SecureRandom.uuid,
       device_id: SecureRandom.uuid,
@@ -215,7 +215,7 @@ class ComPreferenceTest < ActiveSupport::TestCase
     digest = ComPreference.digest_refresh_token("com-rotate")
     original = ComPreference.create!(
       status_id: ComPreferenceStatus::NOTHING,
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
       device_id: "com-device",

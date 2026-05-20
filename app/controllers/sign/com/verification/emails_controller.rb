@@ -4,13 +4,11 @@
 module Sign
   module Com
     module Verification
-      class EmailsController < Sign::Com::ApplicationController
-        include Sign::ComVerificationBase
-
+      class EmailsController < Sign::Com::Verification::BaseController
         before_action :set_verification_navigation_context, only: %i(edit update resend)
 
         def new
-          return unless require_reauth_session!
+          return unless require_step_up_session!
           return if redirect_if_recent_verification_for_get!
           return unless require_method_available!(:email_otp)
 
@@ -20,8 +18,8 @@ module Sign
               edit_sign_com_verification_email_path(
                 nonce,
                 ri: params[:ri],
-                scope: current_reauth_scope,
-                return_to: current_reauth_return_to_param,
+                scope: current_step_up_scope,
+                return_to: current_step_up_return_to_param,
               ),
             )
             return
@@ -37,21 +35,21 @@ module Sign
             edit_sign_com_verification_email_path(
               nonce,
               ri: params[:ri],
-              scope: current_reauth_scope,
-              return_to: current_reauth_return_to_param,
+              scope: current_step_up_scope,
+              return_to: current_step_up_return_to_param,
             ),
           )
         end
 
         def edit
-          return unless require_reauth_session!
+          return unless require_step_up_session!
           return if redirect_if_recent_verification_for_get!
 
           nil unless require_email_nonce!
         end
 
         def create
-          return unless require_reauth_session!
+          return unless require_step_up_session!
           return if redirect_if_recent_verification_for_post!
           return unless require_method_available!(:email_otp)
 
@@ -61,8 +59,8 @@ module Sign
               edit_sign_com_verification_email_path(
                 nonce,
                 ri: params[:ri],
-                scope: current_reauth_scope,
-                return_to: current_reauth_return_to_param,
+                scope: current_step_up_scope,
+                return_to: current_step_up_return_to_param,
               ),
             )
             return
@@ -78,19 +76,19 @@ module Sign
             edit_sign_com_verification_email_path(
               nonce,
               ri: params[:ri],
-              scope: current_reauth_scope,
-              return_to: current_reauth_return_to_param,
+              scope: current_step_up_scope,
+              return_to: current_step_up_return_to_param,
             ),
           )
         end
 
         def update
-          return unless require_reauth_session!
+          return unless require_step_up_session!
           return if redirect_if_recent_verification_for_post!
           return unless require_email_nonce!
 
           if verify_email_otp!
-            consume_reauth_session!
+            consume_step_up_session!
           else
             record_failed_step_up_attempt!(:email_otp)
             render :edit, status: :unprocessable_content
@@ -98,7 +96,7 @@ module Sign
         end
 
         def resend
-          return unless require_reauth_session!
+          return unless require_step_up_session!
           return if redirect_if_recent_verification_for_post!
           return unless require_email_nonce!
 
@@ -127,7 +125,7 @@ module Sign
         private
 
         def require_email_nonce!
-          rs = current_reauth_session
+          rs = current_step_up_session
           expected_nonce =
             if rs.is_a?(Hash)
               rs["email_nonce"]
@@ -147,8 +145,8 @@ module Sign
         end
 
         def set_verification_navigation_context
-          @verification_scope = optional_incoming_scope || current_reauth_scope
-          @verification_return_to = optional_incoming_return_to || current_reauth_return_to_param
+          @verification_scope = incoming_scope || current_step_up_scope
+          @verification_return_to = incoming_return_to || current_step_up_return_to_param
         end
 
         def verification_email_edit_path

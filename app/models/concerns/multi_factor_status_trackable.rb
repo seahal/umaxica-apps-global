@@ -5,16 +5,20 @@ module MultiFactorStatusTrackable
   extend ActiveSupport::Concern
 
   class InvalidMultiFactorStatus < StandardError; end
+  REFERENCE_CLASSES = Concurrent::Map.new
 
   included do
-    class_attribute :multi_factor_status_reference_class, instance_accessor: false
     before_validation :assign_calculated_multi_factor_status, if: :multi_factor_status_placeholder?
     after_create :refresh_multi_factor_status!
   end
 
   class_methods do
     def multi_factor_status_reference(model_class)
-      self.multi_factor_status_reference_class = model_class
+      REFERENCE_CLASSES[self] = model_class
+    end
+
+    def multi_factor_status_reference_class
+      REFERENCE_CLASSES.fetch(self)
     end
   end
 
@@ -24,7 +28,8 @@ module MultiFactorStatusTrackable
     next_status_id = calculated_multi_factor_status_id
     return true if multi_factor_status_id.to_i == next_status_id
 
-    update_columns(multi_factor_status_update_attributes(next_status_id))
+    assign_attributes(multi_factor_status_update_attributes(next_status_id))
+    save!
   end
 
   def multi_factor_status_active?

@@ -5,8 +5,7 @@ module Sign
   module App
     module Preference
       module Region
-        class LanguagesController < ApplicationController
-          public_strict!
+        class LanguagesController < PreferencesBaseController
           include ::Preference::SignScreenActions
 
           preference_screen :language

@@ -1,6 +1,11 @@
 # ADR: PublicController Base for Unauthenticated Endpoints
 
-**Status:** Accepted (2026-05-06)
+**Status:** Superseded by `adr/static-and-guest-controller-boundaries.md` (2026-05-18)
+
+> Current direction: use `BareController` for lightweight endpoints that do not implement
+> application authentication. This ADR remains historical context for why auth-free endpoints were
+> split away from heavy application controllers, but `PublicController` is not the current target
+> name for new or migrated code.
 
 ## Context
 
@@ -76,7 +81,7 @@ The following are intentionally not included, even with skip directives:
 - `Authorization::*`
 - `Verification::*`
 - `Preference::*`
-- `CurrentSupport`
+- `ActorSupport`
 - `Finisher`
 - `ActionPolicy::Controller`
 - `Oidc::SsoInitiator`

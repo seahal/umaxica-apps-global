@@ -2,14 +2,14 @@
 # == Schema Information
 #
 # Table name: com_preference_theme_options
-# Database name: setting
+# Database name: com_setting
 #
 #  id :bigint           not null, primary key
 #
 
 # frozen_string_literal: true
 
-class ComPreferenceThemeOption < SettingRecord
+class ComPreferenceThemeOption < ComSettingRecord
   # Fixed IDs - do not modify these values
   LIGHT = 1
   DARK = 2

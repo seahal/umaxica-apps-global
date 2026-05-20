@@ -3,8 +3,7 @@
 
 module Sign
   module App
-    class RootsController < ApplicationController
-      guest_only! status: :unauthorized
+    class RootsController < GuestController
       skip_before_action :set_preferences_cookie, only: :index, raise: false
 
       def index

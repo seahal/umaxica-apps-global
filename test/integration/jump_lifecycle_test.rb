@@ -19,34 +19,34 @@ class JumpLifecycleTest < ActionDispatch::IntegrationTest
     Actor.reset
   end
 
-  test "app jump host renders landing page without Actor surface state" do
+  test "app jump host renders landing page without Actor tld state" do
     host! ENV.fetch("JUMP_APP_URL", "app.localhost")
 
     get "/"
 
     assert_response :success
     assert_select "title", "UMAXICA (app) | Jump"
-    assert_nil Actor.surface
+    assert_nil Actor.tld
   end
 
-  test "com jump host renders landing page without Actor surface state" do
+  test "com jump host renders landing page without Actor tld state" do
     host! ENV.fetch("JUMP_COM_URL", "com.localhost")
 
     get "/"
 
     assert_response :success
     assert_select "title", "UMAXICA (com) | Jump"
-    assert_nil Actor.surface
+    assert_nil Actor.tld
   end
 
-  test "org jump host renders landing page without Actor surface state" do
+  test "org jump host renders landing page without Actor tld state" do
     host! ENV.fetch("JUMP_ORG_URL", "org.localhost")
 
     get "/"
 
     assert_response :success
     assert_select "title", "UMAXICA (org) | Jump"
-    assert_nil Actor.surface
+    assert_nil Actor.tld
   end
 
   test "Actor remains reset after the response" do
@@ -54,8 +54,7 @@ class JumpLifecycleTest < ActionDispatch::IntegrationTest
 
     get "/"
 
-    assert_nil Actor.surface
-    assert_nil Actor.domain
+    assert_nil Actor.tld
     assert_equal :unauthenticated, Actor.actor_type
   end
 

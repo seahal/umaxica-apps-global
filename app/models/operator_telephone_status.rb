@@ -4,12 +4,12 @@
 # == Schema Information
 #
 # Table name: staff_telephone_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 
-class OperatorTelephoneStatus < OperatorRecord
+class OperatorTelephoneStatus < OrgPrincipalRecord
   self.table_name = "staff_telephone_statuses"
   include ReferenceRecord
 
@@ -21,6 +21,7 @@ class OperatorTelephoneStatus < OperatorRecord
   PENDING = 5
   UNVERIFIED = 6
   VERIFIED = 7
+  DEFAULTS = [ACTIVE, DELETED, INACTIVE, NOTHING, PENDING, UNVERIFIED, VERIFIED].freeze
 
   has_many :staff_telephones, class_name: "OperatorTelephone",
                               foreign_key: :staff_identity_telephone_status_id,

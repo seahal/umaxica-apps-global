@@ -2,21 +2,20 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/social_callback_test_helper"
 
 # Integration tests for social auth login intent
 #
 # These tests verify:
-# - OPTIONAL: Login with existing identity doesn't create new User
+# - OPTIONAL: Login with existing identity doesn't create new Client
 # - New user creation via social login
 # - JWT/session tokens are issued on success
 class SocialAuthLoginTest < ActionDispatch::IntegrationTest
-  fixtures :user_statuses, :user_social_google_statuses, :user_social_apple_statuses
+  fixtures :client_statuses, :client_social_google_statuses, :client_social_apple_statuses
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")
-    @callback_headers = SocialCallbackTestHelper.callback_headers(@host)
+    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    @callback_headers = social_callback_headers(@host)
   end
 
   teardown do
@@ -31,38 +30,35 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     existing_uid = "existing_google_user_#{SecureRandom.hex(4)}"
 
     # Create existing user with Google identity
-    existing_user = User.create!(status_id: UserStatus::NOTHING, public_id: "ex_#{SecureRandom.hex(4)}")
-    UserSocialGoogle.create!(
+    existing_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: "ex_#{SecureRandom.hex(4)}")
+    ClientSocialGoogle.create!(
       user: existing_user,
       uid: existing_uid,
       provider: "google_app",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: user_social_google_statuses(:active),
+      user_social_google_status: client_social_google_statuses(:active),
     )
 
     setup_google_mock_auth(uid: existing_uid)
 
-    user_count_before = User.count
+    user_count_before = Client.count
 
-    # Start login flow
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
-         headers: browser_headers.merge("Host" => @host)
-
-    assert_response :redirect
+    state = start_social_auth_flow(provider: "google_app", intent: "login")
 
     # Callback
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: state },
         headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
 
-    # User count should NOT increase
-    assert_equal user_count_before, User.count, "Existing user login should NOT create new user"
+    # Client count should NOT increase
+    assert_equal user_count_before, Client.count, "Existing user login should NOT create new user"
 
     existing_user.reload
 
-    assert_equal UserStatus::NOTHING, existing_user.status_id
+    assert_equal ClientStatus::NOTHING, existing_user.status_id
 
     follow_redirect!
 
@@ -72,27 +68,27 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   test "Apple login with existing identity does not create new user" do
     existing_uid = "existing_apple_user_#{SecureRandom.hex(4)}"
 
-    existing_user = User.create!(status_id: UserStatus::NOTHING, public_id: "ex_ap_#{SecureRandom.hex(4)}")
-    UserSocialApple.create!(
+    existing_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: "ex_ap_#{SecureRandom.hex(4)}")
+    ClientSocialApple.create!(
       user: existing_user,
       uid: existing_uid,
       provider: "apple",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_apple_status: user_social_apple_statuses(:active),
+      user_social_apple_status: client_social_apple_statuses(:active),
     )
 
     setup_apple_mock_auth(uid: existing_uid)
 
-    user_count_before = User.count
+    user_count_before = Client.count
 
-    post start_sign_app_social_authentication_url(provider: "apple", intent: "login", ri: "jp"),
-         headers: browser_headers.merge("Host" => @host)
+    state = start_social_auth_flow(provider: "apple", intent: "login")
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: browser_headers.merge(@callback_headers)
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+         params: { state: state },
+         headers: browser_headers.merge(@callback_headers)
 
-    assert_equal user_count_before, User.count
+    assert_equal user_count_before, Client.count
   end
 
   # ============================================================================
@@ -102,26 +98,26 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     new_uid = "brand_new_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    user_count_before = User.count
-    identity_count_before = UserSocialGoogle.count
+    user_count_before = Client.count
+    identity_count_before = ClientSocialGoogle.count
 
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
-         headers: browser_headers.merge("Host" => @host)
+    state = start_social_auth_flow(provider: "google_app", intent: "login")
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: state },
         headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
 
     # New user created
-    assert_equal user_count_before + 1, User.count, "New user should be created"
-    assert_equal identity_count_before + 1, UserSocialGoogle.count
+    assert_equal user_count_before + 1, Client.count, "New user should be created"
+    assert_equal identity_count_before + 1, ClientSocialGoogle.count
 
-    identity = UserSocialGoogle.find_by(uid: new_uid)
+    identity = ClientSocialGoogle.find_by(uid: new_uid)
 
     assert_not_nil identity
     assert_not_nil identity.user
-    assert_equal UserStatus::UNVERIFIED_WITH_SIGN_UP, identity.user.status_id
+    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, identity.user.status_id
     assert_not_nil identity.last_authenticated_at
     assert_equal "Googleで登録しました", flash[:notice]
   end
@@ -130,14 +126,14 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     new_uid = "duplicate_callback_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
-         headers: browser_headers.merge("Host" => @host)
+    state = start_social_auth_flow(provider: "google_app", intent: "login")
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: state },
         headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
-    assert UserSocialGoogle.exists?(uid: new_uid)
+    assert ClientSocialGoogle.exists?(uid: new_uid)
 
     get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "google_app"),
         headers: browser_headers.merge("Host" => @host)
@@ -147,10 +143,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   end
 
   test "provider failure returns to sign up when social auth started from sign up" do
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp", entry: "sign_up"),
-         headers: browser_headers.merge("Host" => @host)
-
-    assert_response :redirect
+    start_social_auth_flow(provider: "google_app", intent: "login", entry: "sign_up")
 
     get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "google_app"),
         headers: browser_headers.merge("Host" => @host)
@@ -160,10 +153,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   end
 
   test "provider failure returns to sign in when social auth started from sign in" do
-    post start_sign_app_social_authentication_url(provider: "apple", intent: "login", ri: "jp"),
-         headers: browser_headers.merge("Host" => @host)
-
-    assert_response :redirect
+    start_social_auth_flow(provider: "apple", intent: "login")
 
     get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "apple"),
         headers: browser_headers.merge("Host" => @host)
@@ -176,21 +166,21 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     new_uid = "brand_new_apple_#{SecureRandom.hex(4)}"
     setup_apple_mock_auth(uid: new_uid)
 
-    user_count_before = User.count
-    identity_count_before = UserSocialApple.count
+    user_count_before = Client.count
+    identity_count_before = ClientSocialApple.count
 
-    post start_sign_app_social_authentication_url(provider: "apple", intent: "login", ri: "jp"),
-         headers: browser_headers.merge("Host" => @host)
+    state = start_social_auth_flow(provider: "apple", intent: "login")
 
-    get sign_app_auth_callback_url(provider: "apple", ri: "jp"),
-        headers: browser_headers.merge(@callback_headers)
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+         params: { state: state },
+         headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
 
-    assert_equal user_count_before + 1, User.count
-    assert_equal identity_count_before + 1, UserSocialApple.count
+    assert_equal user_count_before + 1, Client.count
+    assert_equal identity_count_before + 1, ClientSocialApple.count
 
-    identity = UserSocialApple.find_by(uid: new_uid)
+    identity = ClientSocialApple.find_by(uid: new_uid)
 
     assert_not_nil identity
     assert_not_nil identity.user
@@ -203,10 +193,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     new_uid = "cookie_test_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
-         headers: browser_headers.merge("Host" => @host)
+    state = start_social_auth_flow(provider: "google_app", intent: "login")
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: state },
         headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
@@ -226,14 +216,14 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     existing_uid = "update_auth_time_#{SecureRandom.hex(4)}"
     old_auth_time = 1.week.ago
 
-    existing_user = User.create!(status_id: UserStatus::NOTHING, public_id: "at_#{SecureRandom.hex(4)}")
-    identity = UserSocialGoogle.create!(
+    existing_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: "at_#{SecureRandom.hex(4)}")
+    identity = ClientSocialGoogle.create!(
       user: existing_user,
       uid: existing_uid,
       provider: "google_app",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: user_social_google_statuses(:active),
+      user_social_google_status: client_social_google_statuses(:active),
       last_authenticated_at: old_auth_time,
     )
 
@@ -241,10 +231,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     time_before = Time.current
 
-    post start_sign_app_social_authentication_url(provider: "google_app", intent: "login", ri: "jp"),
-         headers: browser_headers.merge("Host" => @host)
+    state = start_social_auth_flow(provider: "google_app", intent: "login")
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: state },
         headers: browser_headers.merge(@callback_headers)
 
     identity.reload
@@ -282,5 +272,19 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         expires_at: 1.week.from_now.to_i,
       },
     )
+  end
+
+  def start_social_auth_flow(provider:, intent:, entry: nil)
+    seed_social_auth_session(provider: provider, intent: intent, entry: entry, ri: "jp")
+  end
+
+  def social_auth_state_from_response
+    session[:social_auth_state].presence ||
+      begin
+        uri = URI.parse(response.location.to_s)
+        Rack::Utils.parse_nested_query(uri.query.to_s)["state"].presence
+      rescue URI::InvalidURIError
+        nil
+      end
   end
 end

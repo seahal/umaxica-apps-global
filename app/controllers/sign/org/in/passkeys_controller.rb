@@ -16,7 +16,7 @@ module Sign
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, identifier is required to look up
       # the operator's registered passkeys.
-      class PasskeysController < ApplicationController
+      class PasskeysController < GuestController
         include Sign::Webauthn
         include Sign::PasskeyAuthentication
         include Sign::PasskeyAuthenticationHelpers
@@ -27,10 +27,6 @@ module Sign
         include MinimumResponseBudget
         include SessionLimitGate
         include CloudflareTurnstile
-
-        before_action :reject_logged_in_session
-
-        guest_only!
 
         # GET /in/passkeys/new
         # Render login page with identifier input and passkey button
@@ -84,7 +80,7 @@ module Sign
         end
 
         def perform_passkey_sign_in(passkey)
-          complete_sign_in_or_start_mfa!(
+          establish_signed_in_session!(
             passkey.staff, rt: retrieve_redirect_parameter_for_checkpoint, ri: params[:ri], auth_method: "passkey",
           )
         end

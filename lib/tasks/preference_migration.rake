@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 namespace :preference do
-  desc "Migrate UserAppPreference/StaffOrgPreference data to UserPreference/StaffPreference"
+  desc "Migrate ClientAppPreference/StaffOrgPreference data to ClientPreference/StaffPreference"
   task migrate_to_user_staff: :environment do
     migrate_user_preferences!
     migrate_staff_preferences!
@@ -14,17 +14,17 @@ namespace :preference do
     migrated = 0
     skipped = 0
 
-    # Find the most recent UserAppPreference for each user
-    UserAppPreference.select("DISTINCT ON (user_id) *")
+    # Find the most recent ClientAppPreference for each user
+    ClientAppPreference.select("DISTINCT ON (user_id) *")
       .order(:user_id, created_at: :desc)
       .find_each do |join_record|
-      next if UserPreference.exists?(user_id: join_record.user_id)
+      next if ClientPreference.exists?(user_id: join_record.user_id)
 
       app_pref = join_record.app_preference
       next if app_pref.blank?
 
       PrincipalRecord.connected_to(role: :writing) do
-        user_pref = UserPreference.create!(user_id: join_record.user_id)
+        user_pref = ClientPreference.create!(user_id: join_record.user_id)
         copy_preference_options!(app_pref, user_pref, "App", "User")
         copy_cookie_consent_to_user_pref!(app_pref, user_pref)
         migrated += 1

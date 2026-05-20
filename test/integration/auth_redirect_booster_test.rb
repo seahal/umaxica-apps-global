@@ -25,6 +25,10 @@ class AuthRedirectTestController < ApplicationController
     render json: redirect_params
   end
 
+  def trigger_safe_rt
+    render plain: safe_path_from_encoded_rt(params[:rt], fallback: "/fallback")
+  end
+
   def trigger_issue_bulletin
     if issue_bulletin!(kind: "test_kind", state: "test_state")
       render plain: "issued"
@@ -44,11 +48,11 @@ class AuthRedirectTestController < ApplicationController
 
   def am_i_owner?; false; end
 
-  def resource_type; "User"; end
+  def resource_type; "Client"; end
 
-  def resource_class; User; end
+  def resource_class; Client; end
 
-  def token_class; UserToken; end
+  def token_class; ClientToken; end
 end
 
 class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
@@ -58,6 +62,7 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
       get "/auth_redirect/notice" => "auth_redirect_test#trigger_redirect_with_notice"
       get "/auth_redirect/alert" => "auth_redirect_test#trigger_redirect_with_alert"
       get "/auth_redirect/params" => "auth_redirect_test#trigger_add_rt_to_params"
+      get "/auth_redirect/safe_rt" => "auth_redirect_test#trigger_safe_rt"
       get "/auth_redirect/bulletin" => "auth_redirect_test#trigger_issue_bulletin"
       get "/auth_redirect/inject" => "auth_redirect_test#trigger_inject_test_bulletin"
       get "/auth_redirect/index" => "auth_redirect_test#trigger_redirect_with_notice" # dummy destination
@@ -98,6 +103,21 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal rt, response.parsed_body["rt"]
+  end
+
+  test "safe_path_from_encoded_rt accepts encoded internal path" do
+    rt = Base64.urlsafe_encode64("/auth_redirect/index?x=1")
+    get "/auth_redirect/safe_rt", params: { rt: rt }
+
+    assert_response :success
+    assert_equal "/auth_redirect/index?x=1", response.body
+  end
+
+  test "safe_path_from_encoded_rt rejects unencoded external URL" do
+    get "/auth_redirect/safe_rt", params: { rt: "https://evil.example/path" }
+
+    assert_response :success
+    assert_equal "/fallback", response.body
   end
 
   test "issue_bulletin returns false when no bulletin" do

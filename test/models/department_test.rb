@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: departments
-# Database name: operator
+# Database name: org_principal
 #
 #  id                   :bigint           not null, primary key
 #  name                 :string           not null

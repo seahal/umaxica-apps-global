@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: organization_invitations
-# Database name: token
+# Database name: org_ticket
 #
 #  id              :bigint           not null, primary key
 #  code            :string(32)       not null

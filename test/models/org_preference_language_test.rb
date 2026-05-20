@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: org_preference_languages
-# Database name: operator
+# Database name: org_setting
 #
 #  id            :bigint           not null, primary key
 #  created_at    :datetime         not null

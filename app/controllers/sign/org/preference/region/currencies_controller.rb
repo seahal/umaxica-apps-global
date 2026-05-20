@@ -1,8 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::Org::Preference::Region::CurrenciesController < Sign::Org::ApplicationController
-  public_strict!
+class Sign::Org::Preference::Region::CurrenciesController < Sign::Org::PreferencesBaseController
   include ::Preference::SignScreenActions
 
   preference_screen :currency

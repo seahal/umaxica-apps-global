@@ -5,37 +5,28 @@ module Sign
   module AppVerificationBase
     extend ActiveSupport::Concern
 
-    REAUTH_TTL = 15.minutes
+    STEP_UP_TTL = 15.minutes
     EMAIL_OTP_RESEND_COOLDOWN = StepUp::Cooldowns::WINDOWS.fetch(:email_otp)
-    REAUTH_SESSION_KEY = :reauth
-    EMAIL_OTP_SESSION_KEY = :reauth_email_otp
+    STEP_UP_SESSION_KEY = :step_up
+    EMAIL_OTP_SESSION_KEY = :step_up_email_otp
 
-    ALLOWED_SCOPES = {
-      "social_unlink" => %r{\A/social/},
-      "session_revoke_all" => %r{\A/configuration/sessions},
-      "withdrawal" => %r{\A/configuration/withdrawal},
-      "configuration_email" => %r{\A/configuration/emails},
-      "configuration_telephone" => %r{\A/configuration/telephones},
-      "configuration_passkey" => %r{\A/configuration/passkeys},
-      "configuration_mfa" => %r{\A/configuration/challenge},
-      "configuration_secret" => %r{\A/configuration/secrets},
-      "configuration_totp" => %r{\A/configuration/totps},
-    }.freeze
+    ALLOWED_SCOPES = StepUp::ScopeCatalog::APP
 
     included do
       include ::Preference::Global
       include Common::Otp
-      include ::Verification::User
+      include ::Verification::Client
       include Sign::Webauthn
       include Sign::VerificationTiming
       include Sign::VerificationCommonBase
       include Sign::VerificationAuditAndCookie
-      include Sign::VerificationReauthSessionStore
-      include Sign::VerificationReauthLifecycle
+      include Sign::VerificationStepUpSessionStore
+      include Sign::VerificationStepUpLifecycle
       include Sign::VerificationPasskeyChecks
       include Sign::VerificationTotpChecks
 
-      before_action :authenticate_user!
+      before_action :apply_localization_preferences
+      before_action :authenticate_client!
       before_action :set_actor_token
       before_action :require_ri!
       before_action :enforce_step_up_prereqs!
@@ -51,21 +42,24 @@ module Sign
     end
 
     def email_otp_session_active?
-      current_reauth_session.present? && Rails.cache.exist?(email_otp_cache_key)
+      current_step_up_session.present? && Rails.cache.exist?(email_otp_cache_key)
     end
 
     def ensure_email_nonce!
-      Rails.cache.fetch(email_nonce_cache_key, expires_in: [current_reauth_session.lapses_at - Time.current, 0].max) do
+      Rails.cache.fetch(
+        email_nonce_cache_key,
+        expires_in: [current_step_up_session.discarded_at - Time.current, 0].max,
+      ) do
         SecureRandom.urlsafe_base64(16)
       end
     end
 
-    def current_reauth_scope
-      current_reauth_session&.scope
+    def current_step_up_scope
+      current_step_up_session&.scope
     end
 
-    def current_reauth_return_to_param
-      return_to = current_reauth_session&.return_to
+    def current_step_up_return_to_param
+      return_to = current_step_up_session&.return_to
       return if return_to.blank?
 
       Base64.urlsafe_encode64(return_to)
@@ -83,46 +77,54 @@ module Sign
       attrs
     end
 
-    def valid_reauth_session?(rs)
+    def valid_step_up_session?(rs)
       rs.present? &&
-        rs.lapses_at > Time.current &&
+        rs.discarded_at > Time.current &&
         rs.user_token_id == actor_token.id &&
         rs.status == "PENDING" &&
         rs.scope.present? &&
         rs.return_to.present?
     end
 
-    def restore_reauth_session_from_params!
+    def restore_step_up_session_from_params!
       scope = incoming_scope
       return_to = incoming_return_to
       return false if scope.blank? || return_to.blank?
 
-      start_reauth_session!(scope: scope, return_to_param: return_to)
+      start_step_up_session!(scope: scope, return_to_param: return_to)
       true
     rescue ActionController::BadRequest
       false
     end
 
     def incoming_scope
-      verification_params[:scope].to_s.presence || params.expect(:scope).to_s.presence
+      verification_params[:scope].to_s.presence ||
+        request_parameters["scope"].to_s.presence
     end
 
     def incoming_return_to
       verification_params[:return_to].to_s.presence ||
         verification_params[:rt].to_s.presence ||
-        params.expect(:return_to).to_s.presence ||
-        params.expect(:rt).to_s.presence
+        request_parameters["return_to"].to_s.presence ||
+        request_parameters["rt"].to_s.presence
     end
 
-    def reauth_session_model = UserReauthSession
+    def request_parameters
+      return request.parameters if respond_to?(:request, true) && request.respond_to?(:parameters)
+      return params if respond_to?(:params, true)
 
-    def reauth_session_token_foreign_key = :user_token_id
+      {}
+    end
 
-    def handle_invalid_reauth_session!
-      clear_reauth_state!
-      destroy_current_reauth_session!
+    def step_up_session_model = ClientStepUpSession
 
-      if restore_reauth_session_from_params! && valid_reauth_session?(current_reauth_session)
+    def step_up_session_token_foreign_key = :user_token_id
+
+    def handle_invalid_step_up_session!
+      clear_step_up_state!
+      destroy_current_step_up_session!
+
+      if restore_step_up_session_from_params! && valid_step_up_session?(current_step_up_session)
         return true
       end
 
@@ -138,16 +140,16 @@ module Sign
       sign_app_verification_path(ri: params[:ri])
     end
 
-    def clear_reauth_state!
-      Rails.cache.delete(email_otp_cache_key) if current_reauth_session.present?
+    def clear_step_up_state!
+      Rails.cache.delete(email_otp_cache_key) if current_step_up_session.present?
     end
 
     def verification_model
-      UserVerification
+      ClientVerification
     end
 
     def verification_success_event_id
-      UserChronicleEvent::STEP_UP_VERIFIED
+      ClientChronicleEvent::STEP_UP_VERIFIED
     end
 
     def verification_success_notice_key
@@ -158,28 +160,28 @@ module Sign
       sign_app_verification_path(ri: params[:ri])
     end
 
-    def verification_audit_event_class = UserChronicleEvent
+    def verification_audit_event_class = ClientChronicleEvent
 
-    def verification_audit_level_class = UserChronicleLevel
+    def verification_audit_level_class = ClientChronicleLevel
 
-    def verification_default_activity_level_id = UserChronicleLevel::NOTHING
+    def verification_default_activity_level_id = ClientChronicleLevel::NOTHING
 
-    def verification_activity_model = UserChronicle
+    def verification_activity_model = ClientChronicle
 
-    def current_verification_actor = current_user
+    def current_verification_actor = current_client
 
-    def verification_actor_type = "User"
+    def verification_actor_type = "Client"
 
     def verification_passkeys_scope
-      current_user.user_passkeys
+      current_client.client_passkeys
     end
 
     def verification_passkey_model
-      UserPasskey
+      ClientPasskey
     end
 
     def passkey_actor_matches?(passkey)
-      passkey.user_id == current_user.id
+      passkey.user_id == current_client.id
     end
 
     def verification_no_passkey_i18n_key
@@ -187,18 +189,18 @@ module Sign
     end
 
     def active_totp_credentials
-      current_user.user_one_time_passwords
-        .where(user_one_time_password_status_id: UserOneTimePasswordStatus::ACTIVE)
+      current_client.client_one_time_passwords
+        .where(user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
         .order(created_at: :desc)
     end
 
     def send_email_otp!
       user_email =
-        current_user.user_emails.where(
+        current_client.client_emails.where(
           user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES,
         ).order(created_at: :desc).first
       unless user_email
-        @verification_errors = ["メールアドレスが未確認です"]
+        @verification_errors = [I18n.t("sign.app.verification.errors.email_not_verified")]
         return false
       end
 
@@ -207,13 +209,13 @@ module Sign
         email_otp_cache_key, {
           "secret" => secret,
           "counter" => counter,
-        }, expires_in: [current_reauth_session.lapses_at - Time.current, 0].max,
+        }, expires_in: [current_step_up_session.discarded_at - Time.current, 0].max,
       )
 
       enqueue_step_up_email_otp!(
         hotp_token: pass_code,
         email_address: user_email.address,
-        public_id: current_user.public_id,
+        public_id: current_client.public_id,
       )
 
       true
@@ -221,8 +223,8 @@ module Sign
 
     def enqueue_step_up_email_otp!(hotp_token:, email_address:, public_id:)
       SolidQueue::Record.connected_to(role: :writing) do
-        Email::App::RegistrationMailer.with(
-          hotp_token: hotp_token,
+        Email::App::OtpMailer.with(
+          encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(hotp_token),
           email_address: email_address,
           public_id: public_id,
           verification_token: nil,
@@ -233,24 +235,24 @@ module Sign
     def verify_email_otp!
       code = verification_params[:code].to_s
       unless code.match?(/\A\d{6}\z/)
-        @verification_errors = ["確認コードが不正です"]
+        @verification_errors = [I18n.t("sign.app.verification.errors.invalid_code")]
         return false
       end
 
       data = Rails.cache.read(email_otp_cache_key)
       unless data
-        @verification_errors = ["確認コードの再送信が必要です"]
+        @verification_errors = [I18n.t("sign.app.verification.errors.resend_required")]
         return false
       end
 
-      if current_reauth_session.lapses_at <= Time.current
-        @verification_errors = ["確認コードの有効期限が切れました"]
+      if current_step_up_session.discarded_at <= Time.current
+        @verification_errors = [I18n.t("sign.app.verification.errors.code_expired")]
         return false
       end
 
       ok = verify_hotp_code(secret: data["secret"], counter: data["counter"], pass_code: code)
       unless ok
-        @verification_errors = ["確認コードが正しくありません"]
+        @verification_errors = [I18n.t("sign.app.verification.errors.incorrect_code")]
         return false
       end
 
@@ -258,17 +260,17 @@ module Sign
     end
 
     def email_otp_cache_key
-      "reauth_session:#{current_reauth_session.id}:email_otp"
+      "step_up_session:#{current_step_up_session.id}:email_otp"
     end
 
     def email_nonce_cache_key
-      rs = current_reauth_session
+      rs = current_step_up_session
       key_id = rs.respond_to?(:id) ? rs.id : rs.hash
-      "reauth_session:#{key_id}:email_nonce"
+      "step_up_session:#{key_id}:email_nonce"
     end
 
     def email_otp_resend_cache_key
-      "reauth_session:#{current_reauth_session.id}:email_otp_resend"
+      "step_up_session:#{current_step_up_session.id}:email_otp_resend"
     end
 
     def email_otp_resend_rate_limited?

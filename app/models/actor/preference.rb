@@ -13,7 +13,8 @@ class Actor
   #   Actor.preference.cookie.consented?  # => false
   #   Actor.preference.null?      # => true (for guests)
   class Preference
-    attr_reader :language, :region, :timezone, :theme, :public_id
+    attr_reader :language, :region, :timezone, :theme,
+                :currency, :date_format, :time_format, :motion, :density, :items_per_page
 
     Cookie =
       Data.define(:consented, :functional, :performant, :targetable, :consent_version, :consented_at) do
@@ -31,7 +32,15 @@ class Actor
       region: "jp",
       timezone: "Asia/Tokyo",
       theme: "sy",
+      currency: "jpy",
+      date_format: "iso",
+      time_format: "hour_24",
+      motion: "standard",
+      density: "standard",
+      items_per_page: "20",
     }.freeze
+
+    SCHEMA_VERSION = 1
 
     NULL_COOKIE = Cookie.new(
       consented: false,
@@ -44,14 +53,22 @@ class Actor
 
     def initialize(language: DEFAULTS[:language], region: DEFAULTS[:region],
                    timezone: DEFAULTS[:timezone], theme: DEFAULTS[:theme],
-                   cookie: NULL_COOKIE, null: false, public_id: nil)
+                   currency: DEFAULTS[:currency], date_format: DEFAULTS[:date_format],
+                   time_format: DEFAULTS[:time_format], motion: DEFAULTS[:motion],
+                   density: DEFAULTS[:density], items_per_page: DEFAULTS[:items_per_page],
+                   cookie: NULL_COOKIE, null: false)
       @language = language.freeze
       @region = region.freeze
       @timezone = timezone.freeze
       @theme = theme.freeze
+      @currency = currency.freeze
+      @date_format = date_format.freeze
+      @time_format = time_format.freeze
+      @motion = motion.freeze
+      @density = density.freeze
+      @items_per_page = items_per_page.freeze
       @cookie = cookie
       @null = null
-      @public_id = public_id&.freeze
       freeze
     end
 
@@ -69,15 +86,23 @@ class Actor
         region == other.region &&
         timezone == other.timezone &&
         theme == other.theme &&
+        currency == other.currency &&
+        date_format == other.date_format &&
+        time_format == other.time_format &&
+        motion == other.motion &&
+        density == other.density &&
+        items_per_page == other.items_per_page &&
         cookie == other.cookie &&
-        null? == other.null? &&
-        public_id == other.public_id
+        null? == other.null?
     end
 
     alias eql? ==
 
     def hash
-      [self.class, language, region, timezone, theme, cookie, null?, public_id].hash
+      [
+        self.class, language, region, timezone, theme, currency, date_format, time_format,
+        motion, density, items_per_page, cookie, null?,
+      ].hash
     end
 
     def locale
@@ -110,6 +135,12 @@ class Actor
         region: @region,
         timezone: @timezone,
         theme: @theme,
+        currency: @currency,
+        date_format: @date_format,
+        time_format: @time_format,
+        motion: @motion,
+        density: @density,
+        items_per_page: @items_per_page,
         consented: @cookie.consented?,
       }
     end
@@ -120,9 +151,14 @@ class Actor
         region: @region,
         timezone: @timezone,
         theme: @theme,
+        currency: @currency,
+        date_format: @date_format,
+        time_format: @time_format,
+        motion: @motion,
+        density: @density,
+        items_per_page: @items_per_page,
         cookie: self.class.cookie_from(cookie),
         null: @null,
-        public_id: @public_id,
       )
     end
 
@@ -131,7 +167,7 @@ class Actor
     NULL = new(null: true).freeze
 
     # Build Preference from JWT prf claim hash
-    # @param prf_claim [Hash] the prf claim from JWT payload with lx, ri, tz, ct keys
+    # @param prf_claim [Hash] the prf claim from JWT payload with lx, ri, tz, ct and extended keys
     # @param cookie [Cookie] optional cookie consent data
     # @return [Preference] the constructed preference, or NULL if claim is invalid
     def self.from_jwt(prf_claim, cookie: NULL_COOKIE)
@@ -142,9 +178,23 @@ class Actor
         region: prf_claim["ri"] || DEFAULTS[:region],
         timezone: prf_claim["tz"] || DEFAULTS[:timezone],
         theme: prf_claim["ct"] || DEFAULTS[:theme],
+        currency: hash_value(prf_claim, "cu", :cu, "currency", :currency) || DEFAULTS[:currency],
+        date_format: hash_value(prf_claim, "df", :df, "date_format", :date_format) || DEFAULTS[:date_format],
+        time_format: hash_value(prf_claim, "tf", :tf, "time_format", :time_format) || DEFAULTS[:time_format],
+        motion: hash_value(prf_claim, "mo", :mo, "motion", :motion) || DEFAULTS[:motion],
+        density: hash_value(prf_claim, "dn", :dn, "density", :density) || DEFAULTS[:density],
+        items_per_page: hash_value(prf_claim, "ipp", :ipp, "items_per_page", :items_per_page) ||
+          DEFAULTS[:items_per_page],
         cookie: cookie,
       )
     end
+
+    def self.hash_value(hash, *keys)
+      key = keys.find { |candidate| hash.key?(candidate) }
+      hash[key] if key
+    end
+
+    private_class_method :hash_value
 
     def self.cookie_from(value)
       case value

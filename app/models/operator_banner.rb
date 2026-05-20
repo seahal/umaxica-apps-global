@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: staff_banners
-# Database name: operator
+# Database name: org_principal
 #
 #  id         :bigint           not null, primary key
 #  body       :text             not null
@@ -24,7 +24,7 @@
 #
 #  fk_rails_...  (staff_id => operators.id)
 #
-class OperatorBanner < OperatorRecord
+class OperatorBanner < OrgPrincipalRecord
   self.table_name = "staff_banners"
   include BannerModel
 

@@ -4,10 +4,10 @@
 require "test_helper"
 
 class OperatorSecrets::CreateTest < ActiveSupport::TestCase
-  fixtures :staff_statuses, :staff_email_statuses, :staffs
+  fixtures :operator_identity_statuses, :operator_email_statuses, :operators
 
   setup do
-    @staff = staffs(:one)
+    @staff = operators(:one)
     OperatorEmail.create!(
       staff: @staff,
       address: "secret-test-#{SecureRandom.hex(4)}@example.com",

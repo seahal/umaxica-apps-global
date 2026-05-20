@@ -37,19 +37,24 @@ module RestrictedSessionGuard
   def allowlisted_for_restricted_session?
     return false if restricted_session_expired?
 
-    controller_path.end_with?("in/sessions")
+    controller_path.end_with?("in/sessions") ||
+      controller_path == "sign/app/configuration/mfa/resets"
   end
 
   def restricted_session_expired?
     session = current_session
     return false unless session&.restricted?
 
-    expired = session.lapses_at.present? && !session.lapses_at.respond_to?(:infinite?) && session.lapses_at <= Time.current
+    expired =
+      session.discarded_at.present? &&
+      !session.discarded_at.respond_to?(:infinite?) &&
+      session.discarded_at <= Time.current
     return false unless expired
 
     return true if session.respond_to?(:revoked?) && session.revoked?
 
-    # Find the nearest abstract base record that defines the database connection (e.g., MarkRecord, TokenRecord)
+    # Find the nearest abstract base record that defines the database
+    # connection (e.g., AppTicketRecord, OrgTicketRecord)
     base_class =
       session.class.ancestors.find { |a|
         a.respond_to?(:abstract_class?) && a.abstract_class? && a < ApplicationRecord

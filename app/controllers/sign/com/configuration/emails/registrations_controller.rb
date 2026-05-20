@@ -5,18 +5,19 @@ module Sign
   module Com
     module Configuration
       module Emails
-        class RegistrationsController < ApplicationController
-          auth_required!
-
+        class RegistrationsController < PrivateController
           include ::CloudflareTurnstile
           include Common::Otp
           include Common::Redirect
-          include ::Verification::User
+          include ::Verification::Visitor
 
           before_action :authenticate_visitor!
           before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update)
-          before_action only: %i(new create edit update) do
+          before_action only: %i(new create) do
             require_step_up_unless_bootstrap!(scope: verification_scope)
+          end
+          before_action only: %i(edit update) do
+            require_step_up!(scope: verification_scope)
           end
 
           def new
@@ -33,7 +34,7 @@ module Sign
           end
 
           def create
-            email_params = params.expect(visitor_email: %i(raw_address address notifiable))
+            email_params = params(visitor_email: %i(raw_address address notifiable))
             email_address = email_params[:raw_address] || email_params[:address]
 
             unless initiate_visitor_email_verification!(
@@ -115,8 +116,8 @@ module Sign
             remove_existing_unverified_visitor_emails!
             @user_email.otp_last_sent_at = Time.current
             @user_email.save!
-            Email::App::RegistrationMailer.with(
-              hotp_token: otp_code,
+            Email::Com::OtpMailer.with(
+              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),
               email_address: @user_email.address,
               verification_token: nil,
               public_id: @user_email.public_id,

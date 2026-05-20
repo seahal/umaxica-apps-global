@@ -5,17 +5,17 @@ require "test_helper"
 require "base64"
 
 class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_chronicle_events, :staff_chronicle_levels,
-           :staff_token_statuses, :staff_token_kinds
+  fixtures :operators, :operator_chronicle_events, :operator_chronicle_levels,
+           :operator_token_statuses, :operator_token_kinds
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @token = OperatorToken.create!(
       staff: @staff,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      lapses_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
       public_id: "stepup_org_#{SecureRandom.hex(4)}",
     )
     @headers = as_staff_headers(@staff, host: @host)
@@ -56,7 +56,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_query(uri.query)
 
-    assert_equal "/verification", uri.path
+    assert_equal "/verification/setup/new", uri.path
     assert_predicate query["rt"], :present?
   end
 
@@ -93,7 +93,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     post options_sign_org_configuration_passkeys_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
-    assert_equal "Re-authentication required", response.body
+    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
   end
 
   test "successful verification enables protected POST and records audit" do

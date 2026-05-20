@@ -81,7 +81,7 @@ module Sign
       end
 
       test "redirects to dashboard when logged in" do
-        user = users(:one)
+        user = clients(:one)
 
         get new_sign_app_in_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 

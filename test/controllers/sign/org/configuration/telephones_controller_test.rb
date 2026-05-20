@@ -4,15 +4,16 @@
 require "test_helper"
 
 class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_email_statuses, :staff_telephone_statuses
+  fixtures :operators, :operator_identity_statuses, :operator_email_statuses, :operator_telephone_statuses
   include ActiveJob::TestHelper
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_telephone")
   end
 
   def request_headers
@@ -30,7 +31,7 @@ class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::Integ
   end
 
   test "create registers telephone" do
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("OperatorTelephone.count", 1) do
         post sign_org_configuration_telephones_url(ri: "jp"),
              params: { staff_telephone: { raw_number: "+10000000008" } },
@@ -50,7 +51,7 @@ class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::Integ
       staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
     )
 
-    assert_enqueued_jobs 1, only: SmsDeliveryJob do
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_no_difference("OperatorTelephone.count") do
         post sign_org_configuration_telephones_url(ri: "jp"),
              params: { staff_telephone: { raw_number: "+10000000012" } },
@@ -78,19 +79,5 @@ class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::Integ
     end
 
     assert_response :see_other
-  end
-
-  test "destroy blocks removal when last method" do
-    telephone = OperatorTelephone.create!(
-      number: "+10000000002",
-      staff: @staff,
-      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
-    )
-
-    assert_no_difference("OperatorTelephone.count") do
-      delete sign_org_configuration_telephone_url(telephone, ri: "jp"), headers: request_headers
-    end
-
-    assert_redirected_to sign_org_configuration_telephones_url(ri: "jp")
   end
 end

@@ -5,13 +5,13 @@ require "test_helper"
 require "base64"
 
 class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_tokens
+  fixtures :operators, :operator_tokens
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @headers = as_staff_headers(@staff, host: @host)
-    @token = staff_tokens(:one)
+    @token = operator_tokens(:one)
     @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
   end
 
@@ -41,8 +41,8 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
           assert_not_nil @token.last_step_up_at
           assert_equal "configuration_passkey", @token.last_step_up_scope
-          assert_nil @token.reauth_session
-          assert_nil session[:reauth]
+          assert_nil @token.step_up_session
+          assert_nil session[:step_up]
         end
       end
     end

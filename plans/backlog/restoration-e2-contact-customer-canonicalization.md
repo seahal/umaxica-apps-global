@@ -4,7 +4,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/notes/contact-auth-customer-canonicalization.md`
+- `notes/contact-auth-customer-canonicalization.md`
 
 ## Goal
 

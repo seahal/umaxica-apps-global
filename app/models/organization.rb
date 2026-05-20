@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: organizations
-# Database name: operator
+# Database name: org_principal
 #
 #  id                  :bigint           not null, primary key
 #  domain              :string           default(""), not null
@@ -30,19 +30,17 @@
 # frozen_string_literal: true
 
 # Organization mirrors Workspace but keeps the legacy name.
-class Organization < OperatorRecord
+class Organization < OrgPrincipalRecord
   belongs_to :organization_status,
              class_name: "OrganizationStatus",
              foreign_key: :workspace_status_id,
              primary_key: :id,
-             optional: true,
              inverse_of: :organizations
 
   has_many :divisions,
-           dependent: :nullify,
+           dependent: :restrict_with_error,
            inverse_of: :organization
   has_many :departments, dependent: :nullify, inverse_of: :workspace
-  has_many :user_memberships, dependent: :destroy, inverse_of: :workspace
 
   validates :domain, uniqueness: true
   validates :workspace_status_id, numericality: { only_integer: true }, allow_nil: true

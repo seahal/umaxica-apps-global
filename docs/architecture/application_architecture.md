@@ -48,7 +48,7 @@ Controllers and Fat Models by separating responsibilities along Rails convention
 **Example:**
 
 ```ruby
-class UserRegistrationForm < ApplicationForm
+class ClientRegistrationForm < ApplicationForm
   attribute :email, :string
   attribute :password, :string
   attribute :profile_name, :string
@@ -59,8 +59,8 @@ class UserRegistrationForm < ApplicationForm
     return false unless valid?
 
     ActiveRecord::Base.transaction do
-      user = User.create!(email: email, password: password)
-      user.create_profile!(name: profile_name)
+      client = Client.create!(email: email, password: password)
+      client.create_profile!(name: profile_name)
     end
     true
   rescue ActiveRecord::RecordInvalid
@@ -91,25 +91,25 @@ end
 
 ```ruby
 class SendWelcomeEmailService < ApplicationService
-  def initialize(user:)
-    @user = user
+  def initialize(client:)
+    @client = client
   end
 
   def call
-    return false unless @user.active?
+    return false unless @client.active?
 
     # Put logic here that does not belong in the model,
     # such as external API calls or complex branching.
-    Mailer.welcome(@user).deliver_now
+    Mailer.welcome(@client).deliver_now
 
     # Record an event on success.
-    Rails.event.record("user.welcomed", user_id: @user.id)
+    Rails.event.record("client.welcomed", client_id: @client.id)
     true
   end
 end
 ```
 
-**Invocation:** `SendWelcomeEmailService.call(user: current_user)`
+**Invocation:** `SendWelcomeEmailService.call(client: current_client)`
 
 ---
 

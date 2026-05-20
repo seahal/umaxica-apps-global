@@ -6,24 +6,24 @@
 # Table name: staff_occurrences
 # Database name: occurrence
 #
-#  id         :bigint           not null, primary key
-#  body       :string           default(""), not null
-#  context    :jsonb            not null
-#  event_type :string           default(""), not null
-#  lapses_at  :datetime         default(Infinity), not null
-#  memo       :string           default(""), not null
-#  purge_at   :datetime         default(Infinity), not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  public_id  :string(21)       default(""), not null
-#  status_id  :bigint           default(1), not null
+#  id           :bigint           not null, primary key
+#  body         :string           default(""), not null
+#  context      :jsonb            not null
+#  discarded_at :datetime         default(Infinity), not null
+#  event_type   :string           default(""), not null
+#  memo         :string           default(""), not null
+#  purged_at    :datetime         default(Infinity), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  public_id    :string(21)       default(""), not null
+#  status_id    :bigint           default(1), not null
 #
 # Indexes
 #
 #  index_staff_occurrences_on_body                       (body) UNIQUE
 #  index_staff_occurrences_on_event_type_and_created_at  (event_type,created_at)
 #  index_staff_occurrences_on_public_id                  (public_id) UNIQUE
-#  index_staff_occurrences_on_purge_at                   (purge_at)
+#  index_staff_occurrences_on_purged_at                  (purged_at)
 #  index_staff_occurrences_on_status_id_and_created_at   (status_id,created_at)
 #
 # Foreign Keys
@@ -42,7 +42,7 @@ class OperatorOccurrence < OccurrenceRecord
 
   attribute :status_id, default: OperatorOccurrenceStatus::NOTHING
 
-  belongs_to :staff_occurrence_status, class_name: "OperatorOccurrenceStatus", foreign_key: :status_id, optional: true,
+  belongs_to :staff_occurrence_status, class_name: "OperatorOccurrenceStatus", foreign_key: :status_id,
                                        inverse_of: :staff_occurrences
   has_many :area_staff_occurrences, class_name: "AreaOperatorOccurrence", dependent: :destroy,
                                     inverse_of: :staff_occurrence
@@ -58,9 +58,9 @@ class OperatorOccurrence < OccurrenceRecord
   has_many :staff_telephone_occurrences, class_name: "OperatorTelephoneOccurrence", dependent: :destroy,
                                          inverse_of: :staff_occurrence
   has_many :telephone_occurrences, through: :staff_telephone_occurrences
-  has_many :staff_user_occurrences, class_name: "OperatorUserOccurrence", dependent: :destroy,
+  has_many :staff_user_occurrences, class_name: "OperatorClientOccurrence", dependent: :destroy,
                                     inverse_of: :staff_occurrence
-  has_many :user_occurrences, through: :staff_user_occurrences
+  has_many :client_occurrences, through: :staff_user_occurrences
   has_many :staff_zip_occurrences, class_name: "OperatorZipOccurrence", dependent: :destroy,
                                    inverse_of: :staff_occurrence
   has_many :zip_occurrences, through: :staff_zip_occurrences

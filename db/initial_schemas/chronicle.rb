@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 ActiveRecord::Schema[8.2].define(version: 20_260_329_155_000) do

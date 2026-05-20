@@ -1,6 +1,11 @@
 # ADR: Three-Tier Controller Base Doctrine
 
-**Status:** Accepted (2026-05-06)
+**Status:** Superseded by `adr/static-and-guest-controller-boundaries.md` (2026-05-18)
+
+> Current direction: use `OpenController`, `BareController`, `PrivateController`, and
+> `GuestController` as the semantic access boundaries. `ApplicationController` remains as a Rails
+> generator compatibility parent, not as one of the semantic boundaries. This ADR remains historical
+> context for why controller bases were split.
 
 ## Context
 

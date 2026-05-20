@@ -14,17 +14,17 @@ class CreateCustomerOccurrences < ActiveRecord::Migration[8.2]
       t.string(:body, default: "", null: false)
       t.jsonb(:context, default: {}, null: false)
       t.string(:event_type, default: "", null: false)
-      t.datetime(:lapses_at, default: -> { "'infinity'" }, null: false)
+      t.datetime(:discarded_at, default: -> { "'infinity'" }, null: false)
       t.string(:memo, default: "", null: false)
       t.string(:public_id, limit: 21, default: "", null: false)
-      t.datetime(:purge_at, default: -> { "'infinity'" }, null: false)
+      t.datetime(:purged_at, default: -> { "'infinity'" }, null: false)
       t.bigint(:status_id, default: 0, null: false)
       t.timestamps
 
       t.index(:body, unique: true)
       t.index(%i[event_type created_at])
       t.index(:public_id, unique: true)
-      t.index(:purge_at)
+      t.index(:purged_at)
       t.index(%i[status_id created_at])
     end
 

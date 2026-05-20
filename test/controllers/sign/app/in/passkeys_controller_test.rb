@@ -7,29 +7,29 @@ require "base64"
 
 module Sign::App::In
   class PasskeysControllerTest < ActionDispatch::IntegrationTest
-    fixtures :users, :user_statuses, :user_email_statuses, :user_telephone_statuses
+    fixtures :clients, :client_statuses, :client_email_statuses, :client_telephone_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       Jit::Security::TurnstileVerifier.test_mode = true
       Jit::Security::TurnstileVerifier.test_response = { "success" => true }
       @user = create_verified_user_with_email(email_address: "passkey_test_user_#{SecureRandom.hex(6)}@example.com")
-      @user_email = @user.user_emails.first # Use the email created by the helper
+      @user_email = @user.client_emails.first # Use the email created by the helper
 
-      @user_telephone = UserTelephone.create!(
+      @user_telephone = ClientTelephone.create!(
         user: @user,
         number: "+819012345678",
-        user_telephone_status_id: UserTelephoneStatus::VERIFIED,
-      ) unless UserTelephone.find_by(user: @user)
+        user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+      ) unless ClientTelephone.find_by(user: @user)
 
       # Setup user passkey for login
-      @passkey = UserPasskey.create!(
+      @passkey = ClientPasskey.create!(
         user: @user,
         webauthn_id: Base64.urlsafe_encode64("login_id_bytes_12345", padding: false),
         external_id: SecureRandom.uuid,
         public_key: "login_key",
         description: "Login Key",
-        status_id: UserPasskeyStatus::ACTIVE,
+        status_id: ClientPasskeyStatus::ACTIVE,
       )
 
       # Mock TRUSTED_ORIGINS
@@ -65,8 +65,8 @@ module Sign::App::In
 
     # Case F-2: Identifier exists but no passkey
     test "options returns error if no passkeys" do
-      user_no_passkey = users(:two)
-      user_no_passkey_email = UserEmail.create!(user: user_no_passkey, address: "nopasskey@example.com")
+      user_no_passkey = clients(:two)
+      user_no_passkey_email = ClientEmail.create!(user: user_no_passkey, address: "nopasskey@example.com")
 
       post options_sign_app_in_passkeys_path(ri: "jp"),
            params: options_params(identifier: user_no_passkey_email.address)
@@ -76,7 +76,7 @@ module Sign::App::In
     end
 
     test "options returns challenge and allowCredentials for email identifier" do
-      email = UserEmail.find_by(user: @user).address
+      email = ClientEmail.find_by(user: @user).address
 
       post options_sign_app_in_passkeys_path(ri: "jp"), params: options_params(identifier: email)
 
@@ -115,7 +115,7 @@ module Sign::App::In
 
     # Case F-3b: JSON response format validation for authentication options (regression test)
     test "options returns valid Base64URL encoded challenge" do
-      email = UserEmail.find_by(user: @user).address
+      email = ClientEmail.find_by(user: @user).address
 
       post options_sign_app_in_passkeys_path(ri: "jp"), params: options_params(identifier: email)
 
@@ -154,7 +154,7 @@ module Sign::App::In
     test "verification logs user in on success" do
       assert_not_nil @passkey, "Passkey must exist"
       # Get challenge
-      email = UserEmail.find_by(user: @user).address
+      email = ClientEmail.find_by(user: @user).address
       post options_sign_app_in_passkeys_path(ri: "jp"), params: options_params(identifier: email)
       explanation = response.parsed_body
       challenge_id = explanation["challenge_id"]
@@ -197,13 +197,13 @@ module Sign::App::In
 
     test "verification with session limit exceeded returns session_restricted" do
       # Create 2 active sessions to hit the limit
-      UserToken.where(user_id: @user.id).delete_all
+      ClientToken.where(user_id: @user.id).delete_all
       2.times do
         create_rotated_active_user_session(@user, rotations: 3)
       end
 
       # Get challenge
-      email = UserEmail.find_by(user: @user).address
+      email = ClientEmail.find_by(user: @user).address
       post options_sign_app_in_passkeys_path(ri: "jp"), params: options_params(identifier: email)
       explanation = response.parsed_body
       challenge_id = explanation["challenge_id"]
@@ -236,7 +236,7 @@ module Sign::App::In
         assert_equal sign_app_in_session_path(ri: "jp"), json["redirect_url"]
 
         # A restricted token should have been created
-        restricted = UserToken.where(user_id: @user.id, user_token_status_id: UserTokenStatus::RESTRICTED)
+        restricted = ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
         assert_equal 1, restricted.count
 
@@ -263,20 +263,20 @@ module Sign::App::In
       mismatch_body = response.body
 
       # PII missing user with valid passkey credential
-      user_without_verified_pii = User.create!(status_id: UserStatus::NOTHING, multi_factor_enabled: false)
-      email = user_without_verified_pii.user_emails.create!(
+      user_without_verified_pii = Client.create!(status_id: ClientStatus::NOTHING, multi_factor_enabled: false)
+      email = user_without_verified_pii.client_emails.create!(
         address: "unverified_passkey_#{SecureRandom.hex(4)}@example.com",
-        user_email_status_id: UserEmailStatus::VERIFIED,
+        user_email_status_id: ClientEmailStatus::VERIFIED,
       )
-      passkey = UserPasskey.create!(
+      passkey = ClientPasskey.create!(
         user: user_without_verified_pii,
         webauthn_id: Base64.urlsafe_encode64("pii_missing_login_id_#{SecureRandom.hex(4)}", padding: false),
         external_id: SecureRandom.uuid,
         public_key: "pii_missing_public_key",
         description: "PII missing key",
-        status_id: UserPasskeyStatus::ACTIVE,
+        status_id: ClientPasskeyStatus::ACTIVE,
       )
-      email.update!(user_email_status_id: UserEmailStatus::UNVERIFIED)
+      email.update!(user_email_status_id: ClientEmailStatus::UNVERIFIED)
 
       post options_sign_app_in_passkeys_path(ri: "jp"), params: options_params(identifier: email.address)
       pii_challenge_id = response.parsed_body["challenge_id"]
@@ -309,13 +309,13 @@ module Sign::App::In
       challenge_id = response.parsed_body["challenge_id"]
 
       other_user = create_verified_user_with_email(email_address: "passkey_other_#{SecureRandom.hex(4)}@example.com")
-      other_passkey = UserPasskey.create!(
+      other_passkey = ClientPasskey.create!(
         user: other_user,
         webauthn_id: Base64.urlsafe_encode64("other_user_key_#{SecureRandom.hex(4)}", padding: false),
         external_id: SecureRandom.uuid,
         public_key: "other_user_key",
-        description: "Other User Key",
-        status_id: UserPasskeyStatus::ACTIVE,
+        description: "Other Client Key",
+        status_id: ClientPasskeyStatus::ACTIVE,
       )
 
       mock_credential = Object.new
@@ -377,7 +377,7 @@ module Sign::App::In
     end
 
     test "verification returns bad request on challenge purpose mismatch" do
-      email = UserEmail.find_by(user: @user).address
+      email = ClientEmail.find_by(user: @user).address
       post options_sign_app_in_passkeys_path(ri: "jp"), params: options_params(identifier: email)
       challenge_id = response.parsed_body["challenge_id"]
       mismatch_error = Sign::Webauthn::ChallengePurposeMismatchError.new("purpose mismatch")
@@ -407,20 +407,20 @@ module Sign::App::In
       assert_includes response.body, I18n.t("errors.webauthn.challenge_invalid")
     end
 
-    test "options returns 409 when user is at session hard_reject limit" do
+    test "options returns 403 when user is at session hard_reject limit" do
       # Create 2 active + 1 restricted to hit the hard limit
-      UserToken.where(user_id: @user.id).delete_all
+      ClientToken.where(user_id: @user.id).delete_all
       2.times do
         create_rotated_active_user_session(@user, rotations: 3)
       end
-      restricted = UserToken.create!(user: @user, user_token_status_id: UserTokenStatus::RESTRICTED)
-      restricted.rotate_refresh_token!(lapses_at: 15.minutes.from_now)
+      restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
+      restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
       post options_sign_app_in_passkeys_path(ri: "jp"),
            params: options_params(identifier: @user_email.address),
            as: :json
 
-      assert_response :conflict
+      assert_response :forbidden
       json = response.parsed_body
 
       assert_equal "session_limit_hard_reject", json["error_code"]
@@ -447,7 +447,7 @@ module Sign::App::In
     end
 
     def create_rotated_active_user_session(user, rotations:)
-      token = UserToken.create!(user: user, user_token_status_id: UserTokenStatus::ACTIVE)
+      token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
       refresh = token.rotate_refresh_token!
 
       rotations.times do

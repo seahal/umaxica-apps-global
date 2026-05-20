@@ -28,15 +28,15 @@ class AuthDeviceValidationTest < ActiveSupport::TestCase
     end
 
     def resource_class
-      User
+      Client
     end
 
     def token_class
-      UserToken
+      ClientToken
     end
 
     def audit_class
-      UserChronicle
+      ClientChronicle
     end
 
     def resource_foreign_key
@@ -110,7 +110,7 @@ class AuthDeviceValidationTest < ActiveSupport::TestCase
 
   test "refresh_device_allowed? returns true when device ID matches via cookie" do
     device_id = "device-123"
-    token_record = UserToken.new(device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
+    token_record = ClientToken.new(device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
     @harness.cookies_hash[Authentication::Base::DEVICE_COOKIE_KEY] = device_id
 
     assert @harness.send(:refresh_device_allowed?, token_record)
@@ -118,7 +118,7 @@ class AuthDeviceValidationTest < ActiveSupport::TestCase
 
   test "refresh_device_allowed? returns false when device ID mismatch" do
     device_id = "device-123"
-    token_record = UserToken.new(device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
+    token_record = ClientToken.new(device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
     @harness.cookies_hash[Authentication::Base::DEVICE_COOKIE_KEY] = "device-456"
 
     assert_not @harness.send(:refresh_device_allowed?, token_record)
@@ -127,7 +127,7 @@ class AuthDeviceValidationTest < ActiveSupport::TestCase
 
   test "refresh_device_allowed? returns false when device ID missing" do
     device_id = "device-123"
-    token_record = UserToken.new(device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
+    token_record = ClientToken.new(device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
     # No device_id cookie set
 
     assert_not @harness.send(:refresh_device_allowed?, token_record)
@@ -137,7 +137,7 @@ class AuthDeviceValidationTest < ActiveSupport::TestCase
   test "refresh_device_allowed? returns true when device_id matches via legacy comparison (no digest)" do
     device_id = "device-123"
     # Simulate legacy token without device_id_digest but with matching device_id
-    token_record = UserToken.new(device_id: device_id, device_id_digest: nil)
+    token_record = ClientToken.new(device_id: device_id, device_id_digest: nil)
     @harness.cookies_hash[Authentication::Base::DEVICE_COOKIE_KEY] = device_id
 
     # Should allow for backward compatibility when device_id_digest is not set
@@ -147,7 +147,7 @@ class AuthDeviceValidationTest < ActiveSupport::TestCase
   test "refresh_device_allowed? returns false when device_id mismatch via legacy comparison (no digest)" do
     device_id = "device-123"
     # Simulate legacy token without device_id_digest
-    token_record = UserToken.new(device_id: device_id, device_id_digest: nil)
+    token_record = ClientToken.new(device_id: device_id, device_id_digest: nil)
     @harness.cookies_hash[Authentication::Base::DEVICE_COOKIE_KEY] = "device-456"
 
     result = @harness.send(:refresh_device_allowed?, token_record)

@@ -5,12 +5,12 @@ require "test_helper"
 require "base64"
 
 class Sign::Org::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses
+  fixtures :operators, :operator_identity_statuses
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @headers = { "X-TEST-CURRENT-STAFF" => @staff.id }.freeze
   end
 
@@ -26,6 +26,7 @@ class Sign::Org::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href=?]", sign_org_configuration_emails_path(ri: "jp")
     assert_select "a[href=?]", sign_org_configuration_telephones_path(ri: "jp")
+    assert_select "a[href=?]", sign_org_configuration_birthdate_path(ri: "jp")
     assert_select "a[href=?]", sign_org_configuration_google_path(ri: "jp")
   end
 

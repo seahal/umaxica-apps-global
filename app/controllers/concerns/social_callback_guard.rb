@@ -19,7 +19,7 @@ module SocialCallbackGuard
   }.freeze
 
   CALLBACK_ALLOWED_METHODS_BY_PROVIDER = {
-    "apple" => %w(POST GET).freeze,
+    "apple" => %w(POST).freeze,
     "google_app" => %w(GET).freeze,
     "google_org" => %w(GET).freeze,
   }.freeze
@@ -107,6 +107,16 @@ module SocialCallbackGuard
             ID_STAFF_URL
             SIGN_STAFF_URL
           ).filter_map { |key| normalize_host_port(ENV[key]) }
+
+        if Rails.env.local?
+          hosts << "sign.app.localhost"
+          hosts << "id.com.localhost"
+          hosts << "sign.org.localhost"
+          hosts << "id.org.localhost"
+          hosts << "sign.com.localhost"
+          hosts << "id.app.localhost"
+        end
+
         hosts.uniq
       end
   end
@@ -116,7 +126,7 @@ module SocialCallbackGuard
       begin
         origins = []
         schemes = %w(https)
-        schemes << "http" if Rails.env.local? || Rails.env.test?
+        schemes << "http" if Rails.env.local?
 
         allowed_hosts.each do |host|
           schemes.each do |scheme|
@@ -181,7 +191,6 @@ module SocialCallbackGuard
 
   def valid_callback_state?(provider)
     state = load_callback_state_data(provider)
-    apply_test_mode_state_bypass!(state, provider)
 
     error = detect_callback_state_error(state, provider)
     if error
@@ -197,27 +206,15 @@ module SocialCallbackGuard
   end
 
   def load_callback_state_data(_provider)
+    callback_params = respond_to?(:params, true) ? params : request.parameters
     {
-      callback: params.expect(:state).to_s.presence,
+      callback: callback_params["state"].to_s.presence,
       expected: session[SOCIAL_STATE_SESSION_KEY].to_s.presence ||
         request.env.dig("omniauth.params", "state").to_s.presence,
       started_at: session[SOCIAL_STATE_STARTED_AT_SESSION_KEY].to_i,
       used_at: session[SOCIAL_STATE_USED_AT_SESSION_KEY],
       stored_provider: session[SOCIAL_STATE_PROVIDER_SESSION_KEY].to_s.presence,
     }
-  end
-
-  def apply_test_mode_state_bypass!(state, provider)
-    return unless state[:callback].blank? || state[:expected].blank?
-    return unless allow_test_mode_state_bypass?
-
-    synthetic = state[:callback] || state[:expected] || SecureRandom.hex(16)
-    session[SOCIAL_STATE_SESSION_KEY] = synthetic
-    session[SOCIAL_STATE_PROVIDER_SESSION_KEY] ||= provider
-    session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
-    state[:callback] ||= synthetic
-    state[:expected] ||= synthetic
   end
 
   def detect_callback_state_error(state, provider)
@@ -245,22 +242,6 @@ module SocialCallbackGuard
     session[SOCIAL_STATE_USED_AT_SESSION_KEY] = Time.current.to_i
   end
 
-  def allow_test_mode_state_bypass?
-    return false unless Rails.env.test?
-    return false if request.headers["X-STRICT-SOCIAL-STATE"] == "1"
-
-    request.env["omniauth.auth"].present? || test_mode_mock_auth_present?
-  end
-
-  def test_mode_mock_auth_present?
-    return false unless defined?(OmniAuth) && OmniAuth.config.test_mode
-
-    provider = params.expect(:provider).to_s
-    return false if provider.blank?
-
-    OmniAuth.config.mock_auth[provider.to_sym].present? || OmniAuth.config.mock_auth[provider].present?
-  end
-
   def clear_social_state!
     session.delete(SOCIAL_STATE_SESSION_KEY)
     session.delete(SOCIAL_STATE_STARTED_AT_SESSION_KEY)
@@ -269,7 +250,8 @@ module SocialCallbackGuard
   end
 
   def evaluate_social_callback_request
-    provider = params.expect(:provider).to_s
+    callback_params = respond_to?(:params, true) ? params : request.parameters
+    provider = callback_params["provider"].to_s
     method = request.request_method.to_s.upcase
 
     unless SocialCallbackGuard.allowed_callback_method?(provider, method)
@@ -304,9 +286,10 @@ module SocialCallbackGuard
   end
 
   def default_social_callback_rejection
+    callback_params = respond_to?(:params, true) ? params : request.parameters
     {
       reason: "bad_state",
-      provider: params.expect(:provider).to_s,
+      provider: callback_params["provider"].to_s,
       details: {},
     }
   end

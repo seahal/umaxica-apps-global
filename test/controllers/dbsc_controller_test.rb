@@ -4,10 +4,10 @@
 require "test_helper"
 
 class DbscControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users, :user_statuses, :user_tokens, :user_token_kinds, :user_token_statuses,
-           :user_token_binding_methods, :user_token_dbsc_statuses,
-           :staffs, :staff_statuses, :staff_tokens, :staff_token_kinds, :staff_token_statuses,
-           :staff_token_binding_methods, :staff_token_dbsc_statuses
+  fixtures_only :clients, :client_statuses, :client_tokens, :client_token_kinds,
+                :client_token_statuses, :client_token_binding_methods, :client_token_dbsc_statuses,
+                :operators, :operator_identity_statuses, :operator_tokens, :operator_token_kinds,
+                :operator_token_statuses, :operator_token_binding_methods, :operator_token_dbsc_statuses
 
   setup do
     @ec_key = OpenSSL::PKey::EC.generate("prime256v1")
@@ -26,15 +26,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::App: handles registration with valid proof" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    user = users(:one)
-    token = UserToken.create!(
+    user = clients(:one)
+    token = ClientToken.create!(
       user: user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::NOTHING,
-      user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::NOTHING,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_challenge: SecureRandom.hex(16),
       dbsc_challenge_issued_at: Time.current,
     )
@@ -57,8 +57,8 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
 
     token.reload
 
-    assert_equal UserTokenBindingMethod::DBSC, token.user_token_binding_method_id
-    assert_equal UserTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
+    assert_equal ClientTokenBindingMethod::DBSC, token.user_token_binding_method_id
+    assert_equal ClientTokenDbscStatus::ACTIVE, token.user_token_dbsc_status_id
     assert_equal response_body["session_identifier"], token.dbsc_session_id
     assert_predicate token.dbsc_public_key, :present?
     assert_nil token.dbsc_challenge
@@ -67,15 +67,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::App: handles registration failure with invalid proof" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    user = users(:one)
-    token = UserToken.create!(
+    user = clients(:one)
+    token = ClientToken.create!(
       user: user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::NOTHING,
-      user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::NOTHING,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_challenge: SecureRandom.hex(16),
       dbsc_challenge_issued_at: Time.current,
     )
@@ -94,15 +94,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::App: handles registration failure without challenge" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    user = users(:one)
-    token = UserToken.create!(
+    user = clients(:one)
+    token = ClientToken.create!(
       user: user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::NOTHING,
-      user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::NOTHING,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
     )
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
@@ -123,15 +123,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::App: handles refresh challenge when proof is missing" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    user = users(:one)
-    token = UserToken.create!(
+    user = clients(:one)
+    token = ClientToken.create!(
       user: user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::DBSC,
-      user_token_dbsc_status_id: UserTokenDbscStatus::ACTIVE,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::DBSC,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
       dbsc_public_key: @jwk.export,
     )
@@ -152,15 +152,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::App: handles refresh verification failure" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    user = users(:one)
-    token = UserToken.create!(
+    user = clients(:one)
+    token = ClientToken.create!(
       user: user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::DBSC,
-      user_token_dbsc_status_id: UserTokenDbscStatus::ACTIVE,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::DBSC,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
       dbsc_public_key: @jwk.export,
     )
@@ -180,15 +180,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::App: handles successful refresh verification" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    user = users(:one)
-    token = UserToken.create!(
+    user = clients(:one)
+    token = ClientToken.create!(
       user: user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::DBSC,
-      user_token_dbsc_status_id: UserTokenDbscStatus::ACTIVE,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::DBSC,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::ACTIVE,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
       dbsc_public_key: @jwk.export,
       dbsc_challenge: SecureRandom.hex(16),
@@ -224,15 +224,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::App: returns unauthorized when bound record does not exist" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    user = users(:one)
-    token = UserToken.create!(
+    user = clients(:one)
+    token = ClientToken.create!(
       user: user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::NOTHING,
-      user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::NOTHING,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
     )
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
@@ -257,15 +257,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::Org: handles registration with valid proof" do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
-    staff = staffs(:one)
+    staff = operators(:one)
     token = OperatorToken.create!(
       staff: staff,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_binding_method_id: OperatorTokenBindingMethod::NOTHING,
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_challenge: SecureRandom.hex(16),
       dbsc_challenge_issued_at: Time.current,
     )
@@ -298,15 +298,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::Org: handles registration failure with invalid proof" do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
-    staff = staffs(:one)
+    staff = operators(:one)
     token = OperatorToken.create!(
       staff: staff,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_binding_method_id: OperatorTokenBindingMethod::NOTHING,
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_challenge: SecureRandom.hex(16),
       dbsc_challenge_issued_at: Time.current,
     )
@@ -325,15 +325,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::Org: handles registration failure without challenge" do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
-    staff = staffs(:one)
+    staff = operators(:one)
     token = OperatorToken.create!(
       staff: staff,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_binding_method_id: OperatorTokenBindingMethod::NOTHING,
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
     )
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
@@ -354,15 +354,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::Org: handles refresh challenge when proof is missing" do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
-    staff = staffs(:one)
+    staff = operators(:one)
     token = OperatorToken.create!(
       staff: staff,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_binding_method_id: OperatorTokenBindingMethod::DBSC,
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::ACTIVE,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
       dbsc_public_key: @jwk.export,
     )
@@ -383,15 +383,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::Org: handles refresh verification failure" do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
-    staff = staffs(:one)
+    staff = operators(:one)
     token = OperatorToken.create!(
       staff: staff,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_binding_method_id: OperatorTokenBindingMethod::DBSC,
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::ACTIVE,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
       dbsc_public_key: @jwk.export,
     )
@@ -411,15 +411,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::Org: handles successful refresh verification" do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
-    staff = staffs(:one)
+    staff = operators(:one)
     token = OperatorToken.create!(
       staff: staff,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_binding_method_id: OperatorTokenBindingMethod::DBSC,
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::ACTIVE,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
       dbsc_session_id: "session-abc",
       dbsc_public_key: @jwk.export,
       dbsc_challenge: SecureRandom.hex(16),
@@ -455,15 +455,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::Org: returns unauthorized when bound record does not exist" do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
-    staff = staffs(:one)
+    staff = operators(:one)
     token = OperatorToken.create!(
       staff: staff,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
       staff_token_binding_method_id: OperatorTokenBindingMethod::NOTHING,
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
     )
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
@@ -479,15 +479,15 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   test "Sign::App: token_from_refresh_cookie returns nil when parsing fails" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    user = users(:one)
-    UserToken.create!(
+    user = clients(:one)
+    ClientToken.create!(
       user: user,
-      user_token_kind_id: UserTokenKind::BROWSER_WEB,
-      user_token_status_id: UserTokenStatus::NOTHING,
-      user_token_binding_method_id: UserTokenBindingMethod::NOTHING,
-      user_token_dbsc_status_id: UserTokenDbscStatus::NOTHING,
-      lapses_at: 1.day.from_now,
-      purge_at: 1.day.from_now,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::NOTHING,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
     )
 
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = "invalid-token-format"

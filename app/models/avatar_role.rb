@@ -17,6 +17,7 @@ class AvatarRole < AvatarRecord
   VIEWER = 2
   EDITOR = 3
   ADMIN = 4
+  DEFAULTS = [NOTHING, VIEWER, EDITOR, ADMIN].freeze
 
   has_many :avatar_role_permissions, dependent: :restrict_with_error
   has_many :avatar_permissions, through: :avatar_role_permissions

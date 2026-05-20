@@ -6,8 +6,8 @@ require "base64"
 require "ostruct"
 
 class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :staffs, :staff_statuses, :staff_passkey_statuses, :staff_passkeys, :staff_secrets,
-           :staff_secret_kinds, :staff_secret_statuses, :staff_email_statuses
+  fixtures :operators, :operator_identity_statuses, :operator_passkey_statuses, :operator_passkeys, :operator_secrets,
+           :operator_secret_kinds, :operator_secret_statuses, :operator_email_statuses
 
   setup do
     host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -18,7 +18,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     @original_trusted_origins = Webauthn.method(:trusted_origins)
     Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host}", "http://id.app.localhost"] }
 
-    @staff = staffs(:one)
+    @staff = operators(:one)
     @staff.update!(status_id: OperatorIdentityStatus::ACTIVE, multi_factor_enabled: true)
 
     @passkey = OperatorPasskey.create!(
@@ -39,7 +39,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
       status: :active,
     )
 
-    unless @staff.staff_emails.exists?
+    unless @staff.operator_emails.exists?
       OperatorEmail.create!(
         staff: @staff,
         address: "mfa_org_test_#{@staff.id}@example.com",
@@ -63,7 +63,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
   test "new redirects when no passkeys available" do
     establish_pending_mfa!
-    @staff.staff_passkeys.update_all(status_id: OperatorPasskeyStatus::REVOKED)
+    @staff.operator_passkeys.update_all(status_id: OperatorPasskeyStatus::REVOKED)
 
     get new_sign_org_in_challenge_passkey_path(ri: "jp")
 

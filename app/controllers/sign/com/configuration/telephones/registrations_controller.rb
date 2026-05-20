@@ -5,12 +5,10 @@ module Sign
   module Com
     module Configuration
       module Telephones
-        class RegistrationsController < ApplicationController
-          auth_required!
-
+        class RegistrationsController < PrivateController
           include CloudflareTurnstile
           include Common::Otp
-          include ::Verification::User
+          include ::Verification::Visitor
 
           TELEPHONE_VERIFICATION_RATE_LIMIT = 5
           TELEPHONE_VERIFICATION_RATE_WINDOW = 60
@@ -44,7 +42,7 @@ module Sign
               return
             end
 
-            tel_params = params.expect(user_telephone: [:raw_number, :number])
+            tel_params = params(user_telephone: [:raw_number, :number])
             number = tel_params[:raw_number] || tel_params[:number]
 
             unless initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: true)
@@ -91,6 +89,12 @@ module Sign
                 visitor_telephone.save!
               end
 
+            handle_registration_update_status(status)
+          end
+
+          private
+
+          def handle_registration_update_status(status)
             case status
             when :success
               reset_registration_session!
@@ -114,8 +118,6 @@ module Sign
               render :edit, status: :unprocessable_content
             end
           end
-
-          private
 
           def current_registration_telephone
             VisitorTelephone.find_by(id: session[registration_session_key])
@@ -206,10 +208,10 @@ module Sign
 
           def send_telephone_verification_sms(visitor_telephone, otp_number)
             message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
-            SmsDeliveryJob.perform_later(
+            Outbound::Sms.deliver_later(
               to: visitor_telephone.number,
-              message: message,
-              subject: message,
+              title: message,
+              body: message,
             )
           end
 

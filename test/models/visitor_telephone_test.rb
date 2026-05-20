@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_telephones
-# Database name: guest
+# Database name: com_principal
 #
 #  id                          :bigint           not null, primary key
 #  locked_at                   :datetime         default(-Infinity), not null
@@ -22,7 +22,6 @@
 #
 # Indexes
 #
-#  index_visitor_telephones_on_lower_number                 (lower((number)::text)) UNIQUE
 #  index_visitor_telephones_on_number_digest                (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
 #  index_visitor_telephones_on_public_id                    (public_id) UNIQUE
 #  index_visitor_telephones_on_visitor_id                   (visitor_id)
@@ -54,11 +53,13 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
   end
 
   test "rejects creating more than the maximum telephones per visitor" do
+    status = VisitorTelephoneStatus.find(VisitorTelephoneStatus::UNVERIFIED)
+
     VisitorTelephone::MAX_TELEPHONES_PER_VISITOR.times do |index|
       VisitorTelephone.create!(
         visitor: @visitor,
+        visitor_telephone_status: status,
         number: "090-2222-#{format("%04d", index)}",
-        visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
         otp_counter: "0",
         otp_private_key: "secret",
       )
@@ -66,8 +67,8 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
 
     extra = VisitorTelephone.new(
       visitor: @visitor,
+      visitor_telephone_status: status,
       number: "090-3333-0000",
-      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
       otp_counter: "0",
       otp_private_key: "secret",
     )

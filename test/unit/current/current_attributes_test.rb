@@ -9,11 +9,12 @@ class ActorAttributesTest < ActiveSupport::TestCase
 
   test "reset clears all attributes" do
     Actor.actor = "some_user"
-    Actor.actor_type = :user
+    Actor.actor_type = :client
     Actor.session = "session_123"
     Actor.token = { "sub" => 1 }
-    Actor.surface = :app
-    Actor.domain = :app
+    Actor.authentication = Actor::Authentication.new(login_public_id: "session_123")
+    Actor.configuration = Actor::Configuration.new(foo: "bar")
+    Actor.tld = :app
     Actor.preference = Actor::Preference.new(language: "en")
 
     Actor.reset
@@ -22,8 +23,9 @@ class ActorAttributesTest < ActiveSupport::TestCase
     assert_equal :unauthenticated, Actor.actor_type
     assert_nil Actor.session
     assert_nil Actor.token
-    assert_nil Actor.surface
-    assert_nil Actor.domain
+    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Configuration::NULL, Actor.configuration
+    assert_nil Actor.tld
     assert_predicate Actor.preference, :null?
   end
 
@@ -31,12 +33,12 @@ class ActorAttributesTest < ActiveSupport::TestCase
     Actor.actor_type = :operator
 
     assert_predicate Actor, :operator?
-    assert_not Actor.user?
-    assert_nil Actor.user
+    assert_not Actor.client?
+    assert_nil Actor.client
 
-    Actor.actor_type = :user
+    Actor.actor_type = :client
 
-    assert_predicate Actor, :user?
+    assert_predicate Actor, :client?
     assert_not Actor.operator?
     assert_nil Actor.operator
   end
@@ -46,16 +48,16 @@ class ActorAttributesTest < ActiveSupport::TestCase
     staff = Object.new
 
     Actor.actor = user
-    Actor.actor_type = :user
+    Actor.actor_type = :client
 
-    assert_equal user, Actor.user
+    assert_equal user, Actor.client
     assert_nil Actor.operator
 
     Actor.actor = staff
     Actor.actor_type = :operator
 
     assert_equal staff, Actor.operator
-    assert_nil Actor.user
+    assert_nil Actor.client
   end
 
   test "preference defaults to NULL" do
@@ -64,20 +66,10 @@ class ActorAttributesTest < ActiveSupport::TestCase
     assert_equal "ja", Actor.preference.language # Safe default
   end
 
-  test "domain can be set" do
-    Actor.domain = :app
+  test "tld can be set" do
+    Actor.tld = :net
 
-    assert_equal :app, Actor.domain
-
-    Actor.domain = :org
-
-    assert_equal :org, Actor.domain
-  end
-
-  test "surface can be set" do
-    Actor.surface = :app
-
-    assert_equal :app, Actor.surface
+    assert_equal :net, Actor.tld
   end
 
   test "actor can be set" do
@@ -93,7 +85,7 @@ class ActorAttributesTest < ActiveSupport::TestCase
   end
 
   test "token can be set" do
-    payload = { "sub" => 42, "act" => "user" }
+    payload = { "sub" => 42, "act" => "client" }
     Actor.token = payload
 
     assert_equal payload, Actor.token

@@ -6,7 +6,7 @@ require "test_helper"
 class VerificationCookieableTest < ActiveSupport::TestCase
   test "cookie_name is secure only in production" do
     {
-      UserVerification => "verification",
+      ClientVerification => "verification",
       OperatorVerification => "verification",
       VisitorVerification => "verification",
     }.each do |klass, plain_name|

@@ -35,6 +35,15 @@ module Sign
           end
 
           if current_session_restricted? && can_promote_session?(@current_visitor)
+            if promote_current_session_limit_cycle!(@current_visitor)
+              consume_session_limit_gate!
+              session.delete(:pending_login_visitor_id)
+              return redirect_to_sign_in_sequence!(
+                rt: retrieve_redirect_parameter.presence || session_limit_return_to,
+                notice: I18n.t("sign.app.in.session.promoted"),
+              )
+            end
+
             promote_current_session!
             consume_session_limit_gate!
             session.delete(:pending_login_visitor_id)
@@ -113,7 +122,7 @@ module Sign
 
         def can_promote_session?(visitor)
           active_count =
-            TokenRecord.connected_to(role: :writing) do
+            OrgTicketRecord.connected_to(role: :writing) do
               VisitorToken.active_status.where(visitor_id: visitor.id).count
             end
           active_count < VisitorToken::MAX_SESSIONS_PER_VISITOR
@@ -122,7 +131,7 @@ module Sign
         def promote_current_session!
           return unless current_session&.restricted?
 
-          TokenRecord.connected_to(role: :writing) do
+          OrgTicketRecord.connected_to(role: :writing) do
             current_session.promote_to_active!
           end
           @current_session = nil
@@ -140,7 +149,7 @@ module Sign
             return
           end
 
-          TokenRecord.connected_to(role: :writing) do
+          OrgTicketRecord.connected_to(role: :writing) do
             token.revoke!
           end
 
@@ -148,7 +157,7 @@ module Sign
         end
 
         def revoke_sessions_by_refs(visitor, refs)
-          TokenRecord.connected_to(role: :writing) do
+          OrgTicketRecord.connected_to(role: :writing) do
             VisitorToken.transaction do
               VisitorToken.find_from_signed_refs(refs).each do |token|
                 next unless token && token.visitor_id == visitor.id

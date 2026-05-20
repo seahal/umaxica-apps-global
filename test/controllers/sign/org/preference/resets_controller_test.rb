@@ -7,12 +7,22 @@ module Sign
   module Org
     module Preference
       class ResetsControllerTest < ActionDispatch::IntegrationTest
-        fixtures :staffs, :staff_preferences
+        fixtures :operators, :operator_preferences
 
         setup do
           @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-          @staff = staffs(:one)
+          @staff = operators(:one)
           host! @host
+        end
+
+        test "edit renders only the page-level back link" do
+          get edit_sign_org_preference_reset_path(ri: "jp"),
+              headers: as_staff_headers(@staff, host: @host)
+
+          assert_response :success
+          assert_select "section > div:first-child > a", text: I18n.t("apex.org.preferences.regions.back_link"),
+                                                         count: 1
+          assert_select "a", text: I18n.t("apex.org.preference.resets.back"), count: 0
         end
 
         test "DELETE destroy resets staff preference defaults" do

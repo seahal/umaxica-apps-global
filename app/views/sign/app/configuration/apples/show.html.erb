@@ -23,7 +23,7 @@
             </div>
             <div>
               <h4>Apple</h4>
-              <% if current_user.active_social_provider?("apple") %>
+              <% if current_client.active_social_provider?("apple") %>
                 <p><%= t("views.sign.app.configuration.apples.show.linked") %></p>
               <% else %>
                 <p><%= t("views.sign.app.configuration.apples.show.unlinked") %></p>
@@ -31,8 +31,8 @@
             </div>
           </div>
           <div>
-            <% if current_user.active_social_provider?("apple") %>
-              <% unlink_allowed = current_user.login_methods_remaining?(excluding_provider: "apple") %>
+            <% if current_client.active_social_provider?("apple") %>
+              <% unlink_allowed = current_client.login_methods_remaining?(excluding_provider: "apple") %>
               <%= button_to t('actions.disconnect'),
                             sign_app_social_authentication_path(provider: "apple"),
                             method: :delete,
@@ -43,7 +43,7 @@
               <% end %>
             <% else %>
               <%= button_to t('actions.connect'),
-                            start_sign_app_social_authentication_path(provider: "apple", intent: "link", ri: params[:ri]),
+                            continue_sign_app_social_authentication_path(provider: "apple", intent: "link", ri: params[:ri]),
                             method: :post,
                             data: { turbo: false } %>
             <% end %>

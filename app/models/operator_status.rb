@@ -4,19 +4,20 @@
 # == Schema Information
 #
 # Table name: operator_statuses
-# Database name: operator
+# Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
-class OperatorStatus < OperatorRecord
+class OperatorStatus < OrgPrincipalRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values
   ACTIVE = 1
   NOTHING = 2
-  has_many :operator_accounts,
-           class_name: "OperatorAccount",
+  DEFAULTS = [ACTIVE, NOTHING].freeze
+  has_many :operator_workspace_accounts,
+           class_name: "OperatorWorkspaceAccount",
            foreign_key: :status_id,
-           inverse_of: :operator_status,
+           inverse_of: false,
            dependent: :restrict_with_error
 end

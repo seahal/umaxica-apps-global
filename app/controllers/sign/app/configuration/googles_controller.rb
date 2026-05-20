@@ -4,12 +4,10 @@
 module Sign
   module App
     module Configuration
-      class GooglesController < ApplicationController
-        auth_required!
+      class GooglesController < PrivateController
+        include ::Verification::Client
 
-        include ::Verification::User
-
-        before_action :authenticate_user!
+        before_action :authenticate_client!
 
         def show
         end

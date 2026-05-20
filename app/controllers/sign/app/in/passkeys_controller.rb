@@ -16,7 +16,7 @@ module Sign
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, email is required to look up
       # the user's registered passkeys.
-      class PasskeysController < ApplicationController
+      class PasskeysController < GuestController
         include Sign::Webauthn
         include Sign::PasskeyAuthentication
         include Sign::PasskeyAuthenticationHelpers
@@ -29,8 +29,6 @@ module Sign
         include MinimumResponseBudget
         include SessionLimitGate
         include CloudflareTurnstile
-
-        before_action :reject_logged_in_session
 
         # GET /in/passkeys/new
         # Render login page with email input and passkey button
@@ -62,7 +60,7 @@ module Sign
         end
 
         def active_passkeys_for_actor(user)
-          user.user_passkeys.where(status_id: UserPasskeyStatus::ACTIVE)
+          user.client_passkeys.where(status_id: ClientPasskeyStatus::ACTIVE)
         end
 
         def passkey_challenge_actor_id_key
@@ -70,7 +68,7 @@ module Sign
         end
 
         def passkey_sign_in_model
-          UserPasskey
+          ClientPasskey
         end
 
         def passkey_belongs_to_challenge_actor?(passkey, actor_id)
@@ -96,7 +94,7 @@ module Sign
 
         def perform_passkey_sign_in(passkey)
           rt = retrieve_redirect_parameter_for_checkpoint
-          complete_sign_in_or_start_mfa!(
+          establish_signed_in_session!(
             passkey.user, rt: rt, ri: params[:ri], auth_method: "passkey",
           )
         end

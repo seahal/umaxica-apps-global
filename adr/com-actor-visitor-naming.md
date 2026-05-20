@@ -14,10 +14,10 @@ visitor records, not the authenticated `com` actor.
 
 The authenticated `com` actor is named `Visitor`.
 
-- `Visitor < GuestRecord` owns the former customer account and credential tables.
-- Visitor tokens, verification, reauth, preferences, and occurrences use `visitor_*` names.
-- `VisitorClient < VisitorRecord` remains a separate client-side visitor record backed by the
-  legacy `client_visitors` table.
+- `Visitor < ComPrincipalRecord` owns the former customer account and credential tables.
+- Visitor tokens, verification, step*up, preferences, and occurrences use `visitor*\*` names.
+- `VisitorIdentity < ComRpRecord` remains a separate RP-side visitor identity binding record backed
+  by the `visitor_identities` table.
 - No `Customer` compatibility constants, helpers, params, or policy names are retained.
 
 ## Consequences

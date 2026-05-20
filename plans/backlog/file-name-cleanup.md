@@ -171,15 +171,15 @@ is from an older snapshot and has drifted).
 Create one migration per database using `rename_table`. Check for explicitly named indexes and
 foreign keys that also need renaming. Verified table locations as of 2026-05-07:
 
-| Database  | Migration dir            | Tables to rename                                                                       |
-| --------- | ------------------------ | -------------------------------------------------------------------------------------- |
-| principal | `db/principals_migrate/` | `{app,user}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables)     |
-| operator  | `db/operators_migrate/`  | `{org,staff}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables)    |
-| setting   | `db/settings_migrate/`   | `{com,customer}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables) |
+| Database  | Migration dir                 | Tables to rename                                                                       |
+| --------- | ----------------------------- | -------------------------------------------------------------------------------------- |
+| principal | `db/principals_migrate/`      | `{app,user}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables)     |
+| operator  | `db/operators_migrate/`       | `{org,staff}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables)    |
+| setting   | `db/com_preferences_migrate/` | `{com,customer}_preference_colortheme{s,_options}` -> `*_theme{s,_options}` (4 tables) |
 
 Note: `staff_preference_colortheme*` lives in `operator` (moved per the staff-preference DB
-migration archived 2026-05-07). `com` and `customer` preference tables live in `setting`. There is
-no `commerce` DB and no colortheme tables in `guest`.
+migration archived 2026-05-07). `com` and `customer` preference tables live in `com_preference`.
+There is no `commerce` DB and no colortheme tables in `guest`.
 
 #### Step 2: Rename 12 model files
 

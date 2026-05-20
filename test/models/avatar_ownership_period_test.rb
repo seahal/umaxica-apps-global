@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: avatar_ownership_periods
@@ -59,4 +57,3 @@ class AvatarOwnershipPeriodTest < ActiveSupport::TestCase
     assert_kind_of Integer, record.id
   end
 end
-# rubocop:enable Layout/LineLength

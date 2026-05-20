@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Layout/LineLength
-
 # == Schema Information
 #
 # Table name: avatar_monikers
@@ -39,4 +37,3 @@ class AvatarMonikerTest < ActiveSupport::TestCase
     assert_not moniker.valid?
   end
 end
-# rubocop:enable Layout/LineLength

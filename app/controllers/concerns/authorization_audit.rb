@@ -34,7 +34,7 @@ module AuthorizationAudit
   end
 
   def log_authorization_failure(exception)
-    actor = current_user_or_staff
+    actor = current_client_or_staff
     return unless actor
 
     log_data = build_log_data(actor, exception)
@@ -45,8 +45,7 @@ module AuthorizationAudit
     create_audit_record(actor, log_data)
   rescue StandardError => e
     # Don't let audit logging break the application
-    Rails.logger.error("Authorization audit logging failed: #{e.message}")
-    Rails.event.notify("authorization.failure_log.failed", error_message: e.message)
+    Rails.event.error("authorization.failure_log.failed", error_class: e.class.name, message: e.message)
   end
 
   def build_log_data(actor, exception)
@@ -67,7 +66,7 @@ module AuthorizationAudit
 
   def create_audit_record(actor, log_data)
     # Create audit record if actor is User or Operator
-    if actor.is_a?(User)
+    if actor.is_a?(Client)
       create_user_authorization_audit(actor, log_data)
     elsif actor.is_a?(Operator)
       create_staff_authorization_audit(actor, log_data)
@@ -75,9 +74,9 @@ module AuthorizationAudit
   end
 
   def create_user_authorization_audit(user, log_data)
-    audit = UserChronicle.new(
+    audit = ClientChronicle.new(
       actor: user,
-      event_id: UserChronicleEvent::AUTHORIZATION_FAILED,
+      event_id: ClientChronicleEvent::AUTHORIZATION_FAILED,
       ip_address: log_data[:ip_address],
       occurred_at: log_data[:timestamp],
     )
@@ -102,8 +101,8 @@ module AuthorizationAudit
     Rails.event.notify("authorization.audit.staff_creation_failed", error_message: e.message)
   end
 
-  def current_user_or_staff
-    # Try current_user first (for User controllers)
+  def current_client_or_staff
+    return current_client if respond_to?(:current_client) && current_client
     return current_user if respond_to?(:current_user) && current_user
 
     # Try current_operator (for Operator controllers)
@@ -111,4 +110,6 @@ module AuthorizationAudit
 
     nil
   end
+
+  alias_method :current_user_or_staff, :current_client_or_staff
 end

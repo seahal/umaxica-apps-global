@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: visitor_passkeys
-# Database name: guest
+# Database name: com_principal
 #
 #  id           :bigint           not null, primary key
 #  description  :string           default(""), not null
@@ -64,15 +64,18 @@ class VisitorPasskeyTest < ActiveSupport::TestCase
     duplicate = VisitorPasskey.new(@valid_params)
 
     assert_not duplicate.valid?
-    assert_predicate passkey.errors[:webauthn_id], :any? rescue true
+    assert_predicate duplicate.errors[:webauthn_id], :any?
   end
 
   test "enforces maximum passkeys per visitor" do
+    @visitor.visitor_emails.load
+    status = VisitorPasskeyStatus.find(VisitorPasskeyStatus::ACTIVE)
+
     4.times do |i|
-      VisitorPasskey.create!(@valid_params.merge(webauthn_id: "id-#{i}"))
+      VisitorPasskey.create!(@valid_params.merge(status: status, webauthn_id: "id-#{i}"))
     end
 
-    extra = VisitorPasskey.new(@valid_params.merge(webauthn_id: "id-extra"))
+    extra = VisitorPasskey.new(@valid_params.merge(status: status, webauthn_id: "id-extra"))
 
     assert_not extra.valid?
     assert_includes extra.errors[:base], "exceeds maximum passkeys per visitor (4)"

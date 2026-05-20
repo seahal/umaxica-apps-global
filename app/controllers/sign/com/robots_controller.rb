@@ -3,10 +3,8 @@
 
 module Sign
   module Com
-    class RobotsController < Sign::PublicController
+    class RobotsController < BareController
       include ::Robots
-
-      public_strict!
 
       def show
         show_plain_text

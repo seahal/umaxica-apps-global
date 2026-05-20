@@ -1,0 +1,56 @@
+<% content_for :page_title, t("sign.org.configuration.operator_lifecycle_requests.new.title") %>
+
+<h1><%= t("sign.org.configuration.operator_lifecycle_requests.new.title") %></h1>
+
+<p><%= t("sign.org.configuration.operator_lifecycle_requests.new.description") %></p>
+
+<% if @operator_lifecycle_request.errors.any? %>
+  <ul>
+    <% @operator_lifecycle_request.errors.full_messages.each do |message| %>
+      <li><%= message %></li>
+    <% end %>
+  </ul>
+<% end %>
+
+<%= form_with model: @operator_lifecycle_request,
+              url: sign_org_configuration_operator_lifecycle_requests_path do |form| %>
+  <div>
+    <%= form.label :action, t("sign.org.configuration.operator_lifecycle_requests.form.action") %>
+    <%= form.select :action,
+                    OperatorLifecycleRequest::ACTIONS.map { |action| [t("sign.org.configuration.operator_lifecycle_requests.actions.#{action}"), action] } %>
+  </div>
+
+  <div>
+    <%= form.label :target_operator_public_id,
+                   t("sign.org.configuration.operator_lifecycle_requests.form.target_operator_public_id") %>
+    <%= form.text_field :target_operator_public_id,
+                        value: @operator_lifecycle_request.target_operator&.public_id %>
+  </div>
+
+  <div>
+    <%= form.label :target_email, t("sign.org.configuration.operator_lifecycle_requests.form.target_email") %>
+    <%= form.email_field :target_email %>
+  </div>
+
+  <div>
+    <%= form.label :organization_id, t("sign.org.configuration.operator_lifecycle_requests.form.organization_id") %>
+    <%= form.number_field :organization_id, min: 1 %>
+  </div>
+
+  <div>
+    <%= form.label :role_id, t("sign.org.configuration.operator_lifecycle_requests.form.role_id") %>
+    <%= form.number_field :role_id, min: 0, value: @operator_lifecycle_request.role_id || 0 %>
+  </div>
+
+  <div>
+    <%= form.label :reason, t("sign.org.configuration.operator_lifecycle_requests.form.reason") %>
+    <%= form.text_area :reason, rows: 4 %>
+  </div>
+
+  <%= form.submit t("sign.org.configuration.operator_lifecycle_requests.form.submit") %>
+<% end %>
+
+<p>
+  <%= link_to t("sign.org.configuration.show.back"),
+              sign_org_configuration_operator_lifecycle_requests_path %>
+</p>

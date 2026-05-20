@@ -4,9 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class ActivitiesController < ApplicationController
-        auth_required!
-
+      class ActivitiesController < PrivateController
         VISIBLE_EVENT_IDS = [
           OperatorChronicleEvent::LOGGED_IN,
           OperatorChronicleEvent::LOGIN_SUCCESS,
@@ -49,6 +47,7 @@ module Sign
 
         def current_operator_activities
           OperatorChronicle
+            .includes(:staff_chronicle_event, :staff_chronicle_level)
             .where(subject_type: "Operator", subject_id: current_operator.id, event_id: VISIBLE_EVENT_IDS)
             .order(Arel.sql("COALESCE(occurred_at, created_at) DESC"))
         end
