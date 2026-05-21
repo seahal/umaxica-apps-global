@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: user_email_statuses
+# Table name: client_email_statuses
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key
 #
 class ClientEmailStatus < AppPrincipalRecord
-  self.table_name = "user_email_statuses"
   include ReferenceRecord
 
   UNVERIFIED = 1

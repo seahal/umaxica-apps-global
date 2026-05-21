@@ -35,10 +35,10 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => staff_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => staff_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => staff_statuses.id)
-#  fk_rails_...  (visibility_id => staff_visibilities.id)
+#  fk_rails_...  (multi_factor_id => operator_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => operator_multi_factor_statuses.id)
+#  fk_rails_...  (status_id => operator_identity_statuses.id)
+#  fk_rails_...  (visibility_id => operator_visibilities.id)
 #
 _fixture:
   model_class: Operator

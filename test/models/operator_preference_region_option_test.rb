@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_preference_region_options
+# Table name: operator_preference_region_options
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key

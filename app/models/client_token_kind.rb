@@ -1,7 +1,7 @@
 # typed: false
 # == Schema Information
 #
-# Table name: user_token_kinds
+# Table name: client_token_kinds
 # Database name: app_ticket
 #
 #  id :bigint           not null, primary key
@@ -9,7 +9,6 @@
 # frozen_string_literal: true
 
 class ClientTokenKind < AppTicketRecord
-  self.table_name = "user_token_kinds"
   include ReferenceRecord
 
   self.primary_key = :id

@@ -1,57 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
-# FIXME: What's the point of this?
-apex_hosts =
-  lambda do |env_key, fallback, *local_aliases|
-    hosts = [ENV.fetch(env_key, fallback)]
-    hosts.concat(local_aliases) unless Rails.env.production?
-    hosts.compact!
-    hosts.uniq!
-    hosts
-  end
-
 scope module: :apex, as: :apex do
-  constraints host: apex_hosts.call("APEX_CORPORATE_URL", "www.com.localhost") do
-    scope module: :com, as: :com do
-      root to: "roots#index"
-      # Health
-      resource :health, only: :show
-      # Robots
-      resource :robots, only: :show, path: "robots.txt"
-      # Sitemap
-      resource :sitemap, only: :show, path: "sitemap.xml"
-      # CSP violation reporting
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      # Edge API endpoint (browser/Rails view)
-      namespace :web do
-        namespace :v0 do
-          resource :cookie, only: %i(show update)
-          resource :theme, only: %i(show update)
-        end
-      end
-      # Edge API endpoint (browser/SPA)
-      namespace :edge do
-        namespace :v0 do
-          resource :health, only: :show
-          resource :cookie, only: %i(show update)
-          resource :dbsc, only: :create
-        end
-      end
-      # OIDC callback
-      namespace :auth do
-        resource :callback, only: :show
-      end
-      namespace :sso do
-        resource :authorization, only: :show, path: "authorize"
-        resource :logout, only: :create
-      end
-      # for account page
-      resources :accounts, only: [:index]
-    end
-  end
-
-  constraints host: apex_hosts.call("APEX_SERVICE_URL", "www.app.localhost") do
+  constraints host: ENV["APEX_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
       # Health
@@ -62,14 +13,14 @@ scope module: :apex, as: :apex do
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      # Edge API endpoint (browser/Rails view)
+      # Public web API: cookie consent, theme
       namespace :web do
         namespace :v0 do
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
         end
       end
-      # Edge API endpoint (browser/SPA)
+      # Edge API
       namespace :edge do
         namespace :v0 do
           resource :health, only: :show
@@ -82,7 +33,7 @@ scope module: :apex, as: :apex do
         resource :callback, only: :show
       end
       namespace :sso do
-        resource :authorization, only: :show, path: "authorize"
+        resource :authorization, only: :show
         resource :logout, only: :create
       end
       # for account page
@@ -90,17 +41,9 @@ scope module: :apex, as: :apex do
     end
   end
 
-  constraints host: apex_hosts.call("APEX_STAFF_URL", "www.org.localhost") do
-    scope module: :org, as: :org do
+  constraints host: ENV["APEX_CORPORATE_URL"] do
+    scope module: :com, as: :com do
       root to: "roots#index"
-      # OIDC callback
-      namespace :auth do
-        resource :callback, only: :show
-      end
-      namespace :sso do
-        resource :authorization, only: :show, path: "authorize"
-        resource :logout, only: :create
-      end
       # Health
       resource :health, only: :show
       # Robots
@@ -109,20 +52,67 @@ scope module: :apex, as: :apex do
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      # Edge API endpoint (browser/Rails view)
+      # Public web API: cookie consent, theme
       namespace :web do
         namespace :v0 do
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
         end
       end
-      # Edge API endpoint (browser/SPA)
+      # Edge API
       namespace :edge do
         namespace :v0 do
           resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
         end
+      end
+      # OIDC callback
+      namespace :auth do
+        resource :callback, only: :show
+      end
+      namespace :sso do
+        resource :authorization, only: :show
+        resource :logout, only: :create
+      end
+      # for account page
+      resources :accounts, only: [:index]
+    end
+  end
+
+  constraints host: ENV["APEX_STAFF_URL"] do
+    scope module: :org, as: :org do
+      root to: "roots#index"
+      # Health
+      resource :health, only: :show
+      # Robots
+      resource :robots, only: :show, path: "robots.txt"
+      # Sitemap
+      resource :sitemap, only: :show, path: "sitemap.xml"
+      # CSP violation reporting
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
+      # Public web API: cookie consent, theme
+      namespace :web do
+        namespace :v0 do
+          resource :cookie, only: %i(show update)
+          resource :theme, only: %i(show update)
+        end
+      end
+      # Edge API
+      namespace :edge do
+        namespace :v0 do
+          resource :health, only: :show
+          resource :cookie, only: %i(show update)
+          resource :dbsc, only: :create
+        end
+      end
+      # OIDC callback
+      namespace :auth do
+        resource :callback, only: :show
+      end
+      namespace :sso do
+        resource :authorization, only: :show
+        resource :logout, only: :create
       end
       # for account page
       resources :accounts, only: [:index]
@@ -149,7 +139,7 @@ scope module: :apex, as: :apex do
       # to show the jobs page
       mount MissionControl::Jobs::Engine, at: "/jobs"
       # to show the rails db page
-      mount RailsDb::Engine => "/db", :at => "/db"
+      mount RailsDb::Engine, at: "/db"
     end
   end
 end

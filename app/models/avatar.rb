@@ -42,11 +42,18 @@ class Avatar < AvatarRecord
   include Retainable
   include PublicId
 
+  self.belongs_to_required_by_default = false
+
   belongs_to :member, foreign_key: :client_id, inverse_of: :avatars
   belongs_to :capability, class_name: "AvatarCapability"
   belongs_to :active_handle, class_name: "Handle"
 
   has_many :handle_assignments, dependent: :restrict_with_error
+  has_many :assignments_created,
+           class_name: "HandleAssignment",
+           foreign_key: :assigned_by_actor_id,
+           inverse_of: :assigned_by_actor,
+           dependent: :restrict_with_error
   has_many :handles, through: :handle_assignments
   has_many :avatar_monikers, dependent: :restrict_with_error
   has_many :avatar_memberships, dependent: :restrict_with_error

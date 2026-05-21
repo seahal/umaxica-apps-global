@@ -144,8 +144,7 @@ module TokenStatusManagement
   def update_status_transition!(attrs)
     attrs = attrs.dup
     attrs[:updated_at] = Time.current if has_attribute?(:updated_at)
-    assign_attributes(attrs)
-    operation = -> { save! }
+    operation = -> { update_columns(attrs) }
     defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
   end
 end

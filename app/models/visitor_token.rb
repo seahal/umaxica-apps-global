@@ -67,9 +67,10 @@
 #  fk_customer_tokens_on_customer_token_dbsc_status_id     (visitor_token_dbsc_status_id => visitor_token_dbsc_statuses.id)
 #  fk_customer_tokens_on_customer_token_kind_id            (visitor_token_kind_id => visitor_token_kinds.id)
 #  fk_customer_tokens_on_customer_token_status_id          (visitor_token_status_id => visitor_token_statuses.id)
-#  fk_rails_...                                            (device_session_id => device_sessions.id)
 #
 class VisitorToken < ComTicketRecord
+  self.belongs_to_required_by_default = false
+
   include ::PublicId
   include ::RefreshTokenable
   include ::SignedSessionReference

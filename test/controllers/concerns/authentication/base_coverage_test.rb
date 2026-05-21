@@ -20,8 +20,8 @@ class AuthenticationBaseTestController < ApplicationController
          :mfa_entry_path, :handle_auth_required_html, :handle_guest_only_with_status_checks,
          :handle_guest_only_html, :current_session_restricted?, :current_account,
          :transparent_refresh_access_token, :authenticate!, :bulletin_association_for_resource,
-         :create_welcome_bulletin!, :withdrawal_gate_redirect_path, :handle_missing_refresh_token,
-         :handle_inactive_resource, :handle_refresh_error, :resolve_token_kind_id,
+         :withdrawal_gate_redirect_path, :handle_missing_refresh_token, :handle_inactive_resource,
+         :handle_refresh_error, :resolve_token_kind_id,
          :enforce_public_strict!, :enforce_auth_required!, :enforce_guest_only!,
          :resolve_access_policy_for, :refresh_dbsc_allowed?, :refresh_device_source,
          :refresh_dbsc_source, :refresh_binding_source, :token_kind_model,
@@ -99,13 +99,13 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal 0, @controller.epoch_seconds(nil)
   end
 
-  test "populate_current_attributes clears stale Actor token when payload is nil" do
-    Actor.token = { "sid" => "stale" }
+  test "populate_current_attributes replaces stale Actor authentication when payload is nil" do
+    Actor.authentication = Actor::Authentication.new(access_claims: { "sid" => "stale" })
     @controller.define_singleton_method(:resource_type) { "client" }
 
     @controller.populate_current_attributes!(@user, nil)
 
-    assert_nil Actor.token
+    assert_nil Actor.authentication.access_claims
     assert_equal @user, Actor.actor
     assert_equal :client, Actor.actor_type
   ensure
@@ -438,17 +438,15 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_nil @controller.current_session_restricted?
   end
 
-  test "current account bulletin and welcome helpers cover user and staff branches" do
+  test "current account and bulletin association cover user and empty branches" do
     staff = operators(:one)
 
     @controller.define_singleton_method(:current_resource) { @current_resource_for_test }
     @controller.instance_variable_set(:@current_resource_for_test, @user)
     begin
       assert_equal @user, @controller.current_account
-      @controller.create_welcome_bulletin!(@user)
-
       @controller.instance_variable_set(:@current_resource_for_test, staff)
-      @controller.create_welcome_bulletin!(staff)
+      assert_equal staff.staff_bulletins, @controller.bulletin_association_for_resource
 
       @controller.instance_variable_set(:@current_resource_for_test, nil)
 
@@ -483,7 +481,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:risk_actor_payload) { |_| {} }
     @controller.request.request_id = "request-1"
 
-    assert_equal "/configuration/edit", @controller.withdrawal_gate_redirect_path
+    assert_equal "/configuration/withdrawal", @controller.withdrawal_gate_redirect_path
     assert_nil @controller.handle_missing_refresh_token("missing-public-id")
     assert_equal :unauthorized, @controller.refresh_failure_status
 
@@ -687,6 +685,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert ClientTokenKind.exists?(id: ClientTokenKind::BROWSER_WEB)
     assert ClientTokenBindingMethod.exists?(id: ClientTokenBindingMethod::LEGACY)
+    assert ClientTokenBindingMethod.exists?(id: ClientTokenBindingMethod::DBSC)
     assert ClientTokenDbscStatus.exists?(id: ClientTokenDbscStatus::NOTHING)
     assert ClientTokenStatus.exists?(id: ClientTokenStatus::NOTHING)
   end
@@ -871,11 +870,26 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   # branch, which was ambiguous and surface-area-prone. These tests
   # lock in the single-branch contract.
 
-  test "safe_path_from_encoded_rt accepts a Base64-encoded internal path" do
-    encoded = Base64.urlsafe_encode64("/dashboard?x=1")
+  test "safe_path_from_encoded_rt accepts a Base64-encoded internal non-welcome path" do
+    encoded = Base64.urlsafe_encode64("/configuration?x=1")
 
-    assert_equal "/dashboard?x=1",
+    assert_equal "/configuration?x=1",
                  @controller.safe_path_from_encoded_rt(encoded, fallback: "/")
+  end
+
+  test "safe_path_from_encoded_rt rejects welcome return targets after URI normalization" do
+    @request.host = "id.umaxica.app"
+    encoded_internal = Base64.urlsafe_encode64("/welcomes/post_auth?ri=jp")
+    encoded_absolute = Base64.urlsafe_encode64("https://id.umaxica.app/welcomes/post_auth?ri=jp")
+
+    assert_equal "/dashboard",
+                 @controller.safe_path_from_encoded_rt(encoded_internal, fallback: "/dashboard")
+    assert_equal "/dashboard",
+                 @controller.safe_path_from_encoded_rt(encoded_absolute, fallback: "/dashboard")
+    assert_equal "/dashboard",
+                 @controller.safe_path_from_encoded_rt("/welcomes/post_auth?ri=jp", fallback: "/dashboard")
+    assert_equal "/dashboard?ri=jp",
+                 @controller.safe_path_from_encoded_rt(Base64.urlsafe_encode64("/dashboard?ri=jp"), fallback: "/")
   end
 
   test "safe_path_from_encoded_rt rejects an unencoded external URL and falls back" do
@@ -912,9 +926,12 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "safe_encoded_rt returns original encoded value only when decode passes safety check" do
-    safe_encoded = Base64.urlsafe_encode64("/dashboard?x=1")
+    safe_encoded = Base64.urlsafe_encode64("/configuration?x=1")
 
     assert_equal safe_encoded, @controller.safe_encoded_rt(safe_encoded)
+    assert_nil @controller.safe_encoded_rt(Base64.urlsafe_encode64("/welcomes/post_auth?x=1"))
+    assert_equal Base64.urlsafe_encode64("/dashboard?x=1"),
+                 @controller.safe_encoded_rt(Base64.urlsafe_encode64("/dashboard?x=1"))
     assert_nil @controller.safe_encoded_rt(Base64.urlsafe_encode64("https://evil.example.test"))
     assert_nil @controller.safe_encoded_rt("not-base64-and-not-internal")
     assert_nil @controller.safe_encoded_rt(nil)

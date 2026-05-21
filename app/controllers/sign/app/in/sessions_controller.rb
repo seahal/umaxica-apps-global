@@ -166,7 +166,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
   def can_promote_session?(user)
     # Can promote if active session count is below limit
     active_count =
-      OrgTicketRecord.connected_to(role: :writing) do
+      AppTicketRecord.connected_to(role: :writing) do
         ClientToken.active_status.where(user_id: user.id).count
       end
     active_count < ClientToken::MAX_SESSIONS_PER_USER
@@ -175,7 +175,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
   def promote_current_session!
     return unless current_session&.restricted?
 
-    OrgTicketRecord.connected_to(role: :writing) do
+    AppTicketRecord.connected_to(role: :writing) do
       current_session.promote_to_active!
     end
     @current_session = nil # Clear cached session
@@ -189,12 +189,12 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
     end
 
     # Don't allow revoking the current session via ref (use destroy without ref for that)
-    if token.public_id == current_session_public_id
+    if token.id == current_session&.id || token.public_id == current_session_public_id
       flash[:alert] = I18n.t("sign.app.in.session.cannot_revoke_current")
       return
     end
 
-    OrgTicketRecord.connected_to(role: :writing) do
+    AppTicketRecord.connected_to(role: :writing) do
       token.revoke!
     end
 
@@ -204,11 +204,11 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
   def revoke_sessions_by_refs(user, refs)
     revoked_count = 0
 
-    OrgTicketRecord.connected_to(role: :writing) do
+    AppTicketRecord.connected_to(role: :writing) do
       ClientToken.transaction do
         ClientToken.find_from_signed_refs(refs).each do |token|
           next unless token && token.user_id == user.id
-          next if token.public_id == current_session_public_id # Skip current session
+          next if token.id == current_session&.id || token.public_id == current_session_public_id # Skip current session
 
           token.revoke!
           revoked_count += 1

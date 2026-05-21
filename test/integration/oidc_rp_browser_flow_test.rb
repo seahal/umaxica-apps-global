@@ -111,16 +111,13 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
         error: nil,
       )
 
-      notifications = []
       Oidc::RpTokenClient.stub(:call, token_result) do
-        Rails.event.stub(:notify, ->(*args, **kwargs) { notifications << [args, kwargs] }) do
-          get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
-        end
+        get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
       end
 
       assert_response :redirect
       assert_equal "http://#{surface[:host]}/", response.location
-      assert_response_has_auth_cookie(notifications)
+      assert_response_has_auth_cookie
 
       get "/", headers: browser_headers
 
@@ -170,8 +167,8 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     Visitor.create!
   end
 
-  def assert_response_has_auth_cookie(notifications)
+  def assert_response_has_auth_cookie
     assert_includes response.headers["Set-Cookie"].to_s, "#{COOKIE_NAME}=",
-                    "expected callback response to set #{COOKIE_NAME}; notifications=#{notifications.inspect}"
+                    "expected callback response to set #{COOKIE_NAME}"
   end
 end

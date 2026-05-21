@@ -45,30 +45,31 @@ class HasBirthdateTest < ActiveSupport::TestCase
     assert_birthdate_valid("2000-02-03")
   end
 
-  test "non-zero-padded dates are invalid" do
-    assert_birthdate_invalid("2000-2-3")
-    assert_birthdate_invalid("2000-02-3")
-    assert_birthdate_invalid("2000-2-03")
-  end
-
-  test "compact and slash-separated dates are invalid" do
-    assert_birthdate_invalid("20000203")
-    assert_birthdate_invalid("2000/02/03")
-  end
-
   test "calendar-invalid zero-padded date is valid as input" do
     assert_birthdate_valid("2000-02-30")
+    assert_birthdate_valid("1900-02-29")
+    assert_birthdate_valid("2000-04-31")
   end
 
-  test "future date is invalid after format passes" do
+  test "birthdate validation requires both accepted format and date before today" do
     travel_to Time.zone.local(2024, 5, 18, 12, 0, 0) do
-      assert_birthdate_invalid("2024-05-19")
+      assert_birthdate_invalid("1899-12-31", error: :birthdate_format) # before today but outside format domain
+      assert_birthdate_invalid("2024-05-18", error: :birthdate_before_today) # accepted format but not before today
+      assert_birthdate_invalid("2024-05-19", error: :birthdate_before_today) # accepted format but future
+      assert_birthdate_valid("2024-05-17") # accepted format and before today
     end
   end
 
-  test "today is valid" do
+  test "today and future dates are invalid after format passes" do
     travel_to Time.zone.local(2024, 5, 18, 12, 0, 0) do
-      assert_birthdate_valid("2024-05-18")
+      assert_birthdate_invalid("2024-05-18", error: :birthdate_before_today)
+      assert_birthdate_invalid("2024-05-19", error: :birthdate_before_today)
+    end
+  end
+
+  test "dates before today are valid" do
+    travel_to Time.zone.local(2024, 5, 18, 12, 0, 0) do
+      assert_birthdate_valid("2024-05-17")
     end
   end
 
@@ -162,10 +163,11 @@ class HasBirthdateTest < ActiveSupport::TestCase
     end
   end
 
-  def assert_birthdate_invalid(value)
+  def assert_birthdate_invalid(value, error: nil)
     each_birthdate_record(value) do |record|
       assert_not record.valid?, "#{record.class} should reject #{value.inspect}"
       assert_predicate record.errors[:birthdate], :present?, "#{record.class} should add a birthdate error"
+      assert_includes record.errors.details[:birthdate].map { |detail| detail.fetch(:error) }, error if error
     end
   end
 

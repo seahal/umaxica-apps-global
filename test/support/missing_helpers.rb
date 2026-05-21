@@ -325,18 +325,20 @@ module MissingHelpers
   def satisfy_user_verification(token)
     _verification, raw_token = ClientVerification.issue_for_token!(token: token)
     cookies[ClientVerification.cookie_name] = raw_token
-    token.update!(
+    token.update_columns(
       last_step_up_at: Time.current,
       last_step_up_scope: "verification",
+      updated_at: Time.current,
     )
   end
 
   def satisfy_staff_verification(token)
     _verification, raw_token = OperatorVerification.issue_for_token!(token: token)
     cookies[OperatorVerification.cookie_name] = raw_token
-    token.update!(
+    token.update_columns(
       last_step_up_at: Time.current,
       last_step_up_scope: "verification",
+      updated_at: Time.current,
     )
   end
 
@@ -349,28 +351,33 @@ module MissingHelpers
   private
 
   def create_auth_token_record_for(resource, session_public_id: nil)
-    token_class = auth_token_class_for(resource)
+    operation =
+      lambda do
+        token_class = auth_token_class_for(resource)
 
-    if session_public_id.present?
-      existing = token_class.find_by(public_id: session_public_id)
-      if existing.present? && auth_token_matches_resource?(existing, resource)
-        return existing
+        if session_public_id.present?
+          existing = token_class.find_by(public_id: session_public_id)
+          if existing.present? && auth_token_matches_resource?(existing, resource)
+            return existing
+          end
+        end
+
+        if instance_variable_defined?(:@token)
+          existing = instance_variable_get(:@token)
+          return existing if auth_token_matches_resource?(existing, resource)
+        end
+
+        revoke_existing_auth_tokens_for(resource, token_class)
+        attrs = auth_token_attributes_for(resource)
+        attrs[:public_id] = session_public_id if session_public_id.present?
+        token = token_class.new(attrs)
+        token.skip_session_limit_check = true if token.respond_to?(:skip_session_limit_check=)
+        token.created_at = 2.minutes.ago if token.respond_to?(:created_at=)
+        token.save!
+        token
       end
-    end
 
-    if instance_variable_defined?(:@token)
-      existing = instance_variable_get(:@token)
-      return existing if auth_token_matches_resource?(existing, resource)
-    end
-
-    revoke_existing_auth_tokens_for(resource, token_class)
-    attrs = auth_token_attributes_for(resource)
-    attrs[:public_id] = session_public_id if session_public_id.present?
-    token = token_class.new(attrs)
-    token.skip_session_limit_check = true if token.respond_to?(:skip_session_limit_check=)
-    token.created_at = 2.minutes.ago if token.respond_to?(:created_at=)
-    token.save!
-    token
+    defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
   end
 
   def revoke_existing_auth_tokens_for(resource, token_class)

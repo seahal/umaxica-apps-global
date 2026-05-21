@@ -67,6 +67,21 @@ Use the correct API, JSON, or browser controller boundary instead of disabling p
 
 ## Models
 
+### `belongs_to optional: true` And `required: false`
+
+Do not use `optional: true` or `required: false` on `belongs_to` associations.
+
+Reason:
+
+- It allows Rails validations to pass even when the associated record is absent.
+- It can hide a missing required relationship until a database constraint fails, or worse, until
+  data with a missing relationship is persisted.
+- It weakens the model-layer contract and makes association requirements harder to review.
+
+Model the relationship as required in Rails. If a foreign key is genuinely nullable, handle that
+through explicit domain validation or a separate association shape instead of disabling `belongs_to`
+presence validation locally.
+
 ### `default_scope`
 
 Do not use `default_scope`.

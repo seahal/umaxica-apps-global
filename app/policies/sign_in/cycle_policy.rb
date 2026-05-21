@@ -99,7 +99,8 @@ module SignIn
       current_public_id = Actor.authentication.login_public_id
       return false if current_public_id.blank?
 
-      record.token&.public_id == current_public_id
+      token = record.token
+      token&.public_id == current_public_id || token&.try(:device_session)&.public_id == current_public_id
     end
 
     def actor_class_matches?

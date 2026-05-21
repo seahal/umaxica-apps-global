@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: app_sign_up_cycles
+# Table name: client_sign_up_cycles
 # Database name: app_ticket
 #
 #  id                     :bigint           not null, primary key
@@ -33,24 +33,23 @@
 #
 # Indexes
 #
-#  index_app_sign_up_cycles_on_cleanup_token             (cleanup_token)
-#  index_app_sign_up_cycles_on_discarded_at              (discarded_at)
-#  index_app_sign_up_cycles_on_expires_at                (expires_at)
-#  index_app_sign_up_cycles_on_pending_contact_id        (pending_contact_id)
-#  index_app_sign_up_cycles_on_principal_id              (principal_id)
-#  index_app_sign_up_cycles_on_public_id                 (public_id) UNIQUE
-#  index_app_sign_up_cycles_on_state                     (state)
-#  index_app_sign_up_cycles_on_status_id                 (status_id)
-#  index_app_sign_up_cycles_on_status_id_and_expires_at  (status_id,expires_at)
-#  index_app_sign_up_cycles_on_token_id                  (token_id)
+#  index_client_sign_up_cycles_on_cleanup_token             (cleanup_token)
+#  index_client_sign_up_cycles_on_discarded_at              (discarded_at)
+#  index_client_sign_up_cycles_on_expires_at                (expires_at)
+#  index_client_sign_up_cycles_on_pending_contact_id        (pending_contact_id)
+#  index_client_sign_up_cycles_on_principal_id              (principal_id)
+#  index_client_sign_up_cycles_on_public_id                 (public_id) UNIQUE
+#  index_client_sign_up_cycles_on_state                     (state)
+#  index_client_sign_up_cycles_on_status_id                 (status_id)
+#  index_client_sign_up_cycles_on_status_id_and_expires_at  (status_id,expires_at)
+#  index_client_sign_up_cycles_on_token_id                  (token_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (status_id => client_sign_up_cycle_statuses.id)
-#  fk_rails_...  (token_id => user_tokens.id) ON DELETE => cascade
+#  fk_rails_...  (token_id => client_tokens.id) ON DELETE => cascade
 #
 class ClientSignUpCycle < AppTicketRecord
-  self.table_name = "app_sign_up_cycles"
   include SignCycle
   include Cycle::SignUp
   include SignUpCycleTicket

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_preference_language_options
+# Table name: client_preference_language_options
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key

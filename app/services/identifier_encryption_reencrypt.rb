@@ -27,8 +27,17 @@ class IdentifierEncryptionReencrypt
   def call
     counts = Hash.new(0)
 
-    @models.each do |model|
-      counts[model.name] = reencrypt_records(model)
+    work =
+      lambda do
+        @models.each do |model|
+          counts[model.name] = reencrypt_records(model)
+        end
+      end
+
+    if defined?(Prosopite)
+      Prosopite.pause(&work)
+    else
+      work.call
     end
 
     Result.new(
@@ -47,11 +56,9 @@ class IdentifierEncryptionReencrypt
     return 0 unless model.column_names.any?
 
     updated = 0
-    model.in_batches(of: 1000, load: false) do |relation|
-      relation.pluck(model.primary_key).each do |record_id|
+    model.unscoped.in_batches(of: 1000) do |relation|
+      relation.each do |record|
         begin
-          record = model.unscoped.find(record_id)
-
           model.encrypted_attributes.each do |attr_name|
             value = record.public_send(attr_name)
             record.public_send("#{attr_name}_will_change!")

@@ -131,7 +131,7 @@ module RefreshTokenable
         last_seen_at: Time.current,
       }
       attrs[:dpop_jkt] = replacement.dpop_jkt if replacement.has_attribute?(:dpop_jkt)
-      device_session.update!(attrs)
+      device_session.update_columns(attrs)
     end
 
     def release_unique_dbsc_session_id!(previous_token)

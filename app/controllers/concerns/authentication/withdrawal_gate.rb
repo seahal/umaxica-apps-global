@@ -4,8 +4,7 @@
 module Authentication
   # Enforces the "current actor is in withdrawal lifecycle" gate: actors
   # in `closing` / `suspended` / `terminated` / `deactivated` states are
-  # restricted to the configuration edit page and the withdrawal flow
-  # itself. Anything else gets a redirect (HTML) or a 403 with
+  # restricted to the withdrawal flow itself. Anything else gets a redirect (HTML) or a 403 with
   # `WITHDRAWAL_REQUIRED` (JSON / non-HTML).
   #
   # Lives as its own concern (extracted from the very large
@@ -21,7 +20,7 @@ module Authentication
       return unless current_resource
       return unless withdrawal_restricted_resource?(current_resource)
 
-      # Allowlist: configuration edit and withdrawal flow
+      # Allowlist: withdrawal flow
       return if withdrawal_gate_allowlisted?
 
       # API/JSON: return 403 Forbidden
@@ -30,14 +29,13 @@ module Authentication
         return
       end
 
-      # HTML: redirect to configuration edit page
-      safe_redirect_to(withdrawal_gate_redirect_path, fallback: "/configuration/edit", status: :found)
+      # HTML: redirect to the withdrawal lifecycle surface
+      safe_redirect_to(withdrawal_gate_redirect_path, fallback: "/configuration/withdrawal", status: :found)
     end
 
     def withdrawal_gate_allowlisted?
       return true if controller_path.end_with?("configuration/withdrawals") && %w(show new edit update
                                                                                   create destroy).include?(action_name)
-      return true if controller_path.end_with?("configurations") && %w(edit update).include?(action_name)
 
       # Allowlist: health/assets (rarely needed but safe)
       return true if controller_path == "rails/health"
@@ -54,16 +52,15 @@ module Authentication
     end
 
     def withdrawal_gate_redirect_path
-      if respond_to?(:edit_sign_app_configuration_path, true)
-        edit_sign_app_configuration_path(ri: params[Auth::IoKeys::Params::RI])
-      elsif respond_to?(:edit_sign_org_configuration_path, true)
-        edit_sign_org_configuration_path(ri: params[Auth::IoKeys::Params::RI])
-      else
-        "/configuration/edit"
-      end
+      ri = params[Auth::IoKeys::Params::RI]
+      return edit_sign_app_configuration_withdrawal_path(ri: ri) if controller_path.start_with?("sign/app/")
+      return edit_sign_com_configuration_withdrawal_path(ri: ri) if controller_path.start_with?("sign/com/")
+      return sign_org_configuration_withdrawal_path(ri: ri) if controller_path.start_with?("sign/org/")
+
+      "/configuration/withdrawal"
     rescue StandardError => e
-      Rails.event.error("auth.withdrawal_gate.path_resolution_failed", message: e.message, exception: e)
-      "/configuration/edit"
+      Rails.logger.error(LogEvent.format("auth.withdrawal_gate.path_resolution_failed", message: e.message, exception: e))
+      "/configuration/withdrawal"
     end
   end
 end

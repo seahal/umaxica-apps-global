@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: client_profile_statuses
+# Table name: visitor_account_statuses
 # Database name: app_zenith
 #
 #  id :bigint           not null, primary key

@@ -174,8 +174,15 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
       "X-TEST-CURRENT-USER" => client.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     )
+    csrf_token = cookies["csrf_token"]
     verification_token = cookies[ClientVerification.cookie_name]
-    headers["Cookie"] = "#{headers["Cookie"]}; #{ClientVerification.cookie_name}=#{verification_token}"
+    headers["Cookie"] = [
+      headers["Cookie"],
+      ("csrf_token=#{csrf_token}" if csrf_token.present?),
+      "#{ClientVerification.cookie_name}=#{verification_token}",
+    ]
+      .compact_blank
+      .join("; ")
     headers
   end
 

@@ -9,7 +9,6 @@
 #  id :bigint           not null, primary key
 #
 class OperatorIdentityState < OrgRpRecord
-  self.table_name = "operator_identity_states"
   include ReferenceRecord
 
   NOTHING = 0

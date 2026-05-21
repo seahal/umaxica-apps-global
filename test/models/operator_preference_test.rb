@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_preferences
+# Table name: operator_preferences
 # Database name: org_principal
 #
 #  id              :bigint           not null, primary key
@@ -30,8 +30,8 @@
 #
 # Indexes
 #
-#  index_staff_preferences_on_public_id  (public_id) UNIQUE
-#  index_staff_preferences_on_staff_id   (staff_id) UNIQUE
+#  index_operator_preferences_on_public_id  (public_id) UNIQUE
+#  index_operator_preferences_on_staff_id   (staff_id) UNIQUE
 #
 # Foreign Keys
 #

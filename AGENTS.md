@@ -104,6 +104,10 @@ For database changes, do not use destructive operations such as `drop_table`, `r
 `change_column`, `delete_all`, `destroy_all`, `update_all`, or raw `execute(...)` unless the user
 has explicitly approved the risk and migration plan.
 
+Do not write migration helpers that silently no-op when DB state is unexpected (e.g. `rename_table`
+wrapped in `return unless table_exists?(...)`). Use `rename_table_strict` or raise loudly — silent
+skips hide partial migrations and corrupt schema_dump files over time.
+
 ## Rails Development Conventions
 
 - Keep controllers focused on HTTP concerns.
@@ -161,6 +165,21 @@ Migrations must be reversible, backward-compatible, and safe for production.
 - Do not use application models inside migrations.
 - Check rollback behavior when practical.
 - Consider lock impact before adding indexes or changing large tables.
+
+### Table renames
+
+- Use `rename_table_strict` (provided by `MigrationHelpers::SafeTableRename`) for any rename. It
+  raises if state is inconsistent — never silently skips.
+- Do not define a local `rename_table_if_present` or any other "skip if missing" wrapper around
+  `rename_table`. The silent-skip pattern hides partial-rename failures and produces schema drift
+  that surfaces days later as broken fixtures and unrunnable tests.
+- While a rename migration is in flight on a branch, use `bin/db-reset-all` instead of
+  `bin/rails db:migrate` for dev and test DBs. Incremental migrations against a half-renamed DB
+  silently drift further; reload from the committed schema_dump every time.
+- Before pushing a branch that adds rename migrations, run `bin/rails db:verify_no_schema_drift` to
+  confirm the committed schema_dump files match what migrations produce from a clean DB.
+
+See `docs/operations/db-workflow.md` for the full multi-DB workflow.
 
 ## Before Finishing
 

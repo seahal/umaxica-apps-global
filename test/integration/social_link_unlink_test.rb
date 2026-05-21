@@ -29,6 +29,13 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     # Login as user
     @headers = as_user_headers(@user, host: @host)
     @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
+  end
+
+  teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   test "should unlink apple account when another identity exists" do
@@ -38,8 +45,13 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
     satisfy_user_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "social_unlink")
 
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp"), headers: @headers
+    delete(
+      sign_app_social_authentication_url(provider: "apple", ri: "jp"),
+      headers: @headers,
+      params: { "cf-turnstile-response": "test" },
+    )
 
     assert_redirected_to sign_app_configuration_url(ri: "jp")
     follow_redirect!(headers: @headers)
@@ -58,15 +70,17 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
     satisfy_user_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "social_unlink")
 
     # Try to unlink Apple
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp"), headers: @headers
+    delete(
+      sign_app_social_authentication_url(provider: "apple", ri: "jp"),
+      headers: @headers,
+      params: { "cf-turnstile-response": "test" },
+    )
 
-    assert_response :redirect
-    assert_redirected_to sign_app_configuration_url(ri: "jp")
-    follow_redirect!(headers: @headers)
-
-    assert_equal I18n.t("errors.social_auth.insufficient_login_methods"), flash[:alert]
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("errors.social_auth.insufficient_login_methods")
 
     # Ensure it wasn't destroyed
     assert ClientSocialApple.find_by(uid: "apple_uid_solo")

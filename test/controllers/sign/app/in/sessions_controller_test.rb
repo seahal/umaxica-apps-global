@@ -68,9 +68,10 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_not response.redirect?
+    assert_select "form[data-turbo=false][action=?]", sign_app_in_session_path(ri: "jp")
     assert_select "input[type=radio][name=ref]"
     assert_select "input[type=checkbox][name='revoke_refs[]']", false
-    assert_select "button", text: /キャンセルしてログアウト/
+    assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
   end
 
   test "show counts only usable active sessions" do
@@ -519,14 +520,10 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   test "restricted session expires after 15 minutes and is locked on in/session" do
     token = create_restricted_session(@user, discarded_at: 15.minutes.from_now)
     headers = as_user_headers_with_token(@user, token, host: @host)
-    events = []
+    logs = []
 
     travel 16.minutes do
-      Rails.event.stub(
-        :notify, lambda { |*args|
-                   events << [args.first, args.last.is_a?(Hash) ? args.last : {}]
-                 },
-      ) do
+      Rails.logger.stub(:info, ->(message) { logs << JSON.parse(message, symbolize_names: true) }) do
         get sign_app_in_session_url(ri: "jp"), headers: headers
       end
     end
@@ -534,7 +531,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :locked
     assert_equal "きんそくじこうです", response.body
     assert_not response.redirect?
-    assert_includes events.map(&:first), "session.restricted.expired"
+    assert_includes logs.map { |entry| entry[:event] }, "session.restricted.expired"
   end
 
   # ===================================================================

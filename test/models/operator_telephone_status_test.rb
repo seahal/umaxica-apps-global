@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_telephone_statuses
+# Table name: operator_telephone_statuses
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key

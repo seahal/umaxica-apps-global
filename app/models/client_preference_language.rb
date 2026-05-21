@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_preference_languages
+# Table name: client_preference_languages
 # Database name: app_principal
 #
 #  id            :bigint           not null, primary key
@@ -14,16 +14,15 @@
 #
 # Indexes
 #
-#  index_user_preference_languages_on_option_id      (option_id)
-#  index_user_preference_languages_on_preference_id  (preference_id) UNIQUE
+#  index_client_preference_languages_on_option_id      (option_id)
+#  index_client_preference_languages_on_preference_id  (preference_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_user_preference_languages_on_option_id      (option_id => user_preference_language_options.id)
-#  fk_user_preference_languages_on_preference_id  (preference_id => user_preferences.id)
+#  fk_user_preference_languages_on_option_id      (option_id => client_preference_language_options.id)
+#  fk_user_preference_languages_on_preference_id  (preference_id => client_preferences.id)
 #
 class ClientPreferenceLanguage < AppPrincipalRecord
-  self.table_name = "user_preference_languages"
   belongs_to :preference, class_name: "ClientPreference", inverse_of: :user_preference_language
   belongs_to :option,
              class_name: "ClientPreferenceLanguageOption",

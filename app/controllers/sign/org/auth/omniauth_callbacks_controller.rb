@@ -40,7 +40,7 @@ module Sign
         def failure
           message = params[:message] || "unknown_error"
           clear_social_auth_intent!
-          Rails.event.record("sign.social.org.omniauth_failure", message: message)
+          Rails.logger.info(LogEvent.format("sign.social.org.omniauth_failure", message: message))
           redirect_to(
             new_sign_org_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),
@@ -66,19 +66,17 @@ module Sign
         end
 
         def find_staff_from_auth(auth)
-          email = extract_email_from_auth(auth)
-          staff = find_active_staff_by_google_email(email, intent: current_social_auth_intent)
-          Rails.event.debug("sign.social.org.omniauth.staff_found", staff_id: staff&.id) if staff
+          staff = find_active_staff_by_google_identity(auth, intent: current_social_auth_intent)
+          Rails.logger.debug(LogEvent.format("sign.social.org.omniauth.staff_found", staff_id: staff&.id)) if staff
           staff
         end
 
         def redirect_staff_not_found(auth)
-          email = extract_email_from_auth(auth)
-          Rails.event.notify(
+          Rails.logger.info(LogEvent.format(
             "sign.social.org.omniauth.staff_not_found",
             provider: auth.provider,
-            email_present: email.present?,
-          )
+            uid_present: OperatorSocialGoogle.extract_uid(auth).present?,
+          ))
           clear_social_auth_intent!
           redirect_to(
             new_sign_org_in_path,
@@ -119,29 +117,37 @@ module Sign
           email&.strip&.downcase
         end
 
-        def find_active_staff_by_google_email(email, intent: "login")
-          normalized_email = Jit::Utils::EmailValidator.normalize(email)
-          return nil if normalized_email.blank?
+        def find_active_staff_by_google_identity(auth, intent: "login")
+          uid = OperatorSocialGoogle.extract_uid(auth)
+          provider = OperatorSocialGoogle.provider_from_auth(auth)
+          return nil if uid.blank? || provider.blank?
 
-          staff_email = nil
+          staff = nil
           OrgPrincipalRecord.connected_to(role: :writing) do
-            staff_email = OperatorEmail.find_by(address_digest: IdentifierBlindIndex.bidx_for_email(normalized_email))
-            if linkable_social_staff_email?(intent, staff_email)
-              staff_email.update!(undeletable: true)
+            OrgPrincipalRecord.transaction do
+              identity = OperatorSocialGoogle.lock.find_by(uid: uid, provider: provider)
+              if intent.to_s == "link"
+                staff = link_google_identity!(identity, auth)
+              elsif identity&.active?
+                identity.update_from_auth_hash!(auth)
+                staff = identity.staff
+              end
             end
           end
 
-          return nil if intent.to_s != "link" && !staff_email&.undeletable?
-
-          staff = staff_email&.staff
           staff if staff&.status_id == OperatorIdentityStatus::ACTIVE
         end
 
-        def linkable_social_staff_email?(intent, staff_email)
-          intent.to_s == "link" &&
-            staff_email &&
-            staff_email.staff_id == social_auth_user&.id &&
-            !staff_email.undeletable?
+        def link_google_identity!(identity, auth)
+          staff = social_auth_user
+          return nil unless staff
+          return nil if identity && identity.staff_id != staff.id
+
+          identity ||= OperatorSocialGoogle.find_or_create_from_auth_hash(auth)
+          identity.staff = staff
+          identity.status_id = OperatorSocialGoogleStatus::ACTIVE
+          identity.save!
+          staff
         end
 
         def handle_login_result(result, provider_name)
@@ -176,13 +182,13 @@ module Sign
         end
 
         def handle_unexpected_error(error, auth)
-          Rails.event.error(
+          Rails.logger.error(LogEvent.format(
             "sign.social.org.omniauth.unexpected_error",
             error_class: error.class.name,
             error_message: error.message,
             provider: auth&.provider,
             exception: error,
-          )
+          ))
           clear_social_auth_intent!
           redirect_to(
             new_sign_org_in_path,
@@ -201,7 +207,7 @@ module Sign
         # Override to use org path instead of app path
         def reject_social_callback!(reason:, provider:, details: {})
           clear_social_state!
-          Rails.event.warn(
+          Rails.logger.warn(LogEvent.format(
             "social_callback.rejected",
             source: "SocialCallbackGuard",
             surface: "org",
@@ -209,7 +215,7 @@ module Sign
             provider: provider,
             reason: reason,
             details: details,
-          )
+          ))
           redirect_to(
             new_sign_org_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),

@@ -5,26 +5,25 @@ module Withdrawal
   class Lifecycle
     RECOVERY_PERIOD = Withdrawable::WITHDRAWAL_RECOVERY_PERIOD
 
-    def self.start!(actor:, current_session_public_id: nil, event: nil, request: nil)
-      new(actor:, current_session_public_id:, event:, request:).start!
+    def self.start!(actor:, current_session_public_id: nil, request: nil)
+      new(actor:, current_session_public_id:, request:).start!
     end
 
-    def self.suspend!(actor:, current_session_public_id: nil, event: nil, request: nil)
-      new(actor:, current_session_public_id:, event:, request:).suspend!
+    def self.suspend!(actor:, current_session_public_id: nil, request: nil)
+      new(actor:, current_session_public_id:, request:).suspend!
     end
 
-    def self.recover!(actor:, event: nil, request: nil)
-      new(actor:, event:, request:).recover!
+    def self.recover!(actor:, request: nil)
+      new(actor:, request:).recover!
     end
 
-    def self.terminate!(actor:, event: nil, request: nil)
-      new(actor:, event:, request:).terminate!
+    def self.terminate!(actor:, request: nil)
+      new(actor:, request:).terminate!
     end
 
-    def initialize(actor:, current_session_public_id: nil, event: nil, request: nil)
+    def initialize(actor:, current_session_public_id: nil, request: nil)
       @actor = actor
       @current_session_public_id = current_session_public_id
-      @event = event
       @request = request
     end
 
@@ -104,7 +103,7 @@ module Withdrawal
 
     private
 
-    attr_reader :actor, :current_session_public_id, :event, :request
+    attr_reader :actor, :current_session_public_id, :request
 
     def ensure_withdrawal_cycle_requested!(now:)
       cycle = active_withdrawal_cycle || create_withdrawal_cycle!(status: "REQUESTED", now: now)
@@ -231,14 +230,12 @@ module Withdrawal
     end
 
     def notify(state, payload = {})
-      return unless event
-
-      event.notify(
+      Rails.logger.info(LogEvent.format(
         "#{actor_event_prefix}.withdrawal.#{state}",
         actor_id_key => actor.id,
         :ip_address => request&.remote_ip,
         **payload,
-      )
+      ))
     end
 
     def actor_event_prefix

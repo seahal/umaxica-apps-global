@@ -86,25 +86,25 @@ module Oidc
       rescue StandardError => e
         # Fail closed: if the store is unreachable we treat the token as
         # already consumed rather than risk allowing replay. Operators
-        # see the failure via Rails.event.
-        Rails.event.notify(
+        # see the failure via application logs.
+        Rails.logger.info(LogEvent.format(
           "oidc.logout_request.replay_store_unavailable",
           op: "exist?",
           error_class: e.class.name,
           error_message: e.message,
-        )
+        ))
         true
       end
 
       def consume_jti!(jti)
         replay_store.write(replay_cache_key(jti), true, expires_in: REPLAY_TRACKING_TTL)
       rescue StandardError => e
-        Rails.event.notify(
+        Rails.logger.info(LogEvent.format(
           "oidc.logout_request.replay_store_unavailable",
           op: "write",
           error_class: e.class.name,
           error_message: e.message,
-        )
+        ))
         false
       end
 

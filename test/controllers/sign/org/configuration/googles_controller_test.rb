@@ -6,7 +6,7 @@ require "base64"
 
 class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_identity_statuses, :operator_emails, :operator_email_statuses,
-           :operator_chronicle_events, :operator_chronicle_levels
+           :operator_chronicle_events, :operator_chronicle_levels, :operator_social_google_statuses
 
   setup do
     @host = ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
@@ -38,7 +38,7 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
   end
 
   test "show offers disconnect when google login is linked" do
-    create_staff_email!(undeletable: true)
+    create_google_identity!
 
     get sign_org_configuration_google_url(ri: "jp"), headers: @headers
 
@@ -48,14 +48,14 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
   end
 
   test "destroy disables google login and records activity" do
-    staff_email = create_staff_email!(undeletable: true)
+    identity = create_google_identity!
 
     assert_difference -> { OperatorChronicle.where(event_id: OperatorChronicleEvent::SOCIAL_UNLINKED).count }, 1 do
       delete sign_org_social_authentication_url(provider: "google_org", ri: "jp"), headers: @headers
     end
 
     assert_redirected_to sign_org_configuration_url(ri: "jp")
-    assert_not_predicate staff_email.reload, :undeletable?
+    assert_not OperatorSocialGoogle.exists?(identity.id)
 
     activity = OperatorChronicle.order(created_at: :desc).find_by!(event_id: OperatorChronicleEvent::SOCIAL_UNLINKED)
 
@@ -74,14 +74,15 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
 
   private
 
-  def create_staff_email!(undeletable:)
-    OperatorEmail.create!(
+  def create_google_identity!
+    OperatorSocialGoogle.create!(
       staff: @staff,
-      address: "google-org-#{SecureRandom.hex(4)}@example.test",
-      staff_email_status_id: OperatorEmailStatus::VERIFIED,
-      otp_counter: "0",
-      otp_private_key: "otp-private-key",
-      undeletable: undeletable,
+      uid: "google-org-#{SecureRandom.hex(4)}",
+      provider: "google_org",
+      token: "token",
+      refresh_token: "refresh-token",
+      token_expires_at: 1.week.from_now.to_i,
+      status_id: OperatorSocialGoogleStatus::ACTIVE,
     )
   end
 end

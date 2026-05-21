@@ -36,7 +36,7 @@ Rails.application.configure do
     hsts: { subdomains: true, preload: true, expires: Integer(2.years, 10) },
   }
 
-  # Log to STDOUT as JSON for Cloud Run visibility.
+  # Log application output to STDOUT for Cloud Run visibility.
   STDOUT.sync = true
   STDERR.sync = true
   primary_logger = ActiveSupport::Logger.new($stdout)

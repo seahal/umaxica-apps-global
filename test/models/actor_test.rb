@@ -24,8 +24,10 @@ class ActorTest < ActiveSupport::TestCase
     Actor.account = "account-1"
     Actor.tenant = "tenant-1"
     Actor.tld = :app
-    Actor.session = "session-1"
-    Actor.token = { "sub" => "123" }
+    Actor.authentication = Actor::Authentication.new(
+      login_public_id: "session-1",
+      access_claims: { "sub" => "123" },
+    )
     Actor.preference = preference
     Actor.trace_id = "trace-1"
     Actor.span_id = "span-1"
@@ -33,8 +35,8 @@ class ActorTest < ActiveSupport::TestCase
     assert_equal "account-1", Actor.account
     assert_equal "tenant-1", Actor.tenant
     assert_equal :app, Actor.tld
-    assert_equal "session-1", Actor.session
-    assert_equal({ "sub" => "123" }, Actor.token)
+    assert_equal "session-1", Actor.authentication.login_public_id
+    assert_equal({ "sub" => "123" }, Actor.authentication.access_claims)
     assert_equal preference, Actor.preference
     assert_equal "trace-1", Actor.trace_id
     assert_equal "span-1", Actor.span_id
@@ -67,9 +69,10 @@ class ActorTest < ActiveSupport::TestCase
   test "clear empties current actor context" do
     Actor.actor = Client.new(id: 123)
     Actor.actor_type = :client
-    Actor.session = "session-1"
-    Actor.token = { "sub" => "123" }
-    Actor.authentication = Actor::Authentication.new(login_public_id: "session-1")
+    Actor.authentication = Actor::Authentication.new(
+      login_public_id: "session-1",
+      access_claims: { "sub" => "123" },
+    )
     Actor.configuration = Actor::Configuration.new(foo: "bar")
     Actor.preference = Actor::Preference.new(language: "en")
     Actor.trace_id = "trace-1"
@@ -79,8 +82,6 @@ class ActorTest < ActiveSupport::TestCase
 
     assert_same Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_nil Actor.session
-    assert_nil Actor.token
     assert_equal Actor::Authentication::NULL, Actor.authentication
     assert_equal Actor::Configuration::NULL, Actor.configuration
     assert_equal Actor::Preference::NULL, Actor.preference
@@ -88,11 +89,13 @@ class ActorTest < ActiveSupport::TestCase
     assert_nil Actor.span_id
   end
 
-  test "token context is recursively frozen" do
-    Actor.token = { "scp" => ["read:self"], "prf" => { "lx" => "ja" } }
+  test "authentication access claims are recursively frozen" do
+    Actor.authentication = Actor::Authentication.new(
+      access_claims: { "scp" => ["read:self"], "prf" => { "lx" => "ja" } },
+    )
 
-    assert_predicate Actor.token, :frozen?
-    assert_predicate Actor.token["scp"], :frozen?
-    assert_predicate Actor.token["prf"], :frozen?
+    assert_predicate Actor.authentication.access_claims, :frozen?
+    assert_predicate Actor.authentication.access_claims["scp"], :frozen?
+    assert_predicate Actor.authentication.access_claims["prf"], :frozen?
   end
 end

@@ -122,7 +122,7 @@ module Sign
 
         def can_promote_session?(visitor)
           active_count =
-            OrgTicketRecord.connected_to(role: :writing) do
+            ComTicketRecord.connected_to(role: :writing) do
               VisitorToken.active_status.where(visitor_id: visitor.id).count
             end
           active_count < VisitorToken::MAX_SESSIONS_PER_VISITOR
@@ -131,7 +131,7 @@ module Sign
         def promote_current_session!
           return unless current_session&.restricted?
 
-          OrgTicketRecord.connected_to(role: :writing) do
+          ComTicketRecord.connected_to(role: :writing) do
             current_session.promote_to_active!
           end
           @current_session = nil
@@ -149,7 +149,7 @@ module Sign
             return
           end
 
-          OrgTicketRecord.connected_to(role: :writing) do
+          ComTicketRecord.connected_to(role: :writing) do
             token.revoke!
           end
 
@@ -157,7 +157,7 @@ module Sign
         end
 
         def revoke_sessions_by_refs(visitor, refs)
-          OrgTicketRecord.connected_to(role: :writing) do
+          ComTicketRecord.connected_to(role: :writing) do
             VisitorToken.transaction do
               VisitorToken.find_from_signed_refs(refs).each do |token|
                 next unless token && token.visitor_id == visitor.id

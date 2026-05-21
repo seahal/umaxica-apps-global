@@ -34,7 +34,7 @@
       </thead>
       <tbody>
       <% @sessions.each do |session| %>
-        <% current_session = session.public_id == current_session_public_id %>
+        <% current_session = current_session_record?(session) %>
         <tr class="<%= 'bg-slate-50 font-semibold' if current_session %>">
           <td>
             <div>

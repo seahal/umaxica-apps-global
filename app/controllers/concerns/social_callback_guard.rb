@@ -19,7 +19,7 @@ module SocialCallbackGuard
   }.freeze
 
   CALLBACK_ALLOWED_METHODS_BY_PROVIDER = {
-    "apple" => %w(POST).freeze,
+    "apple" => %w(POST GET).freeze,
     "google_app" => %w(GET).freeze,
     "google_org" => %w(GET).freeze,
   }.freeze

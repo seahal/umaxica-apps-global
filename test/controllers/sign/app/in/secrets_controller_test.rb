@@ -53,8 +53,10 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     # Create 2 active + 1 restricted to hit the hard limit
     ClientToken.where(user_id: @user.id).delete_all
-    2.times do
-      create_rotated_active_user_session(@user, rotations: 3)
+    Prosopite.pause do
+      2.times do
+        create_rotated_active_user_session(@user, rotations: 3)
+      end
     end
     restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
@@ -71,8 +73,10 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     _secret, raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)
 
     ClientToken.where(user_id: @user.id).delete_all
-    2.times do
-      create_rotated_active_user_session(@user, rotations: 4)
+    Prosopite.pause do
+      2.times do
+        create_rotated_active_user_session(@user, rotations: 4)
+      end
     end
 
     post sign_app_in_secret_url(ri: "jp"),
@@ -382,9 +386,11 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     ClientToken.where(user_id: @user.id).delete_all
 
     # Create 2 active sessions to hit the limit
-    2.times do
-      token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
-      token.rotate_refresh_token!
+    Prosopite.pause do
+      2.times do
+        token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
+        token.rotate_refresh_token!
+      end
     end
 
     _secret, raw_secret = issue_secret!(kind: ClientSecretKind::PERMANENT, uses: 10)

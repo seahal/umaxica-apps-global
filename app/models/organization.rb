@@ -29,7 +29,7 @@
 
 # frozen_string_literal: true
 
-# Organization mirrors Workspace but keeps the legacy name.
+# Organization is the current org-principal hierarchy container.
 class Organization < OrgPrincipalRecord
   belongs_to :organization_status,
              class_name: "OrganizationStatus",

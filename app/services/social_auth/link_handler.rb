@@ -34,13 +34,13 @@ module SocialAuth
 
       identity ? handle_existing_uid_identity(identity) : link_new_identity
     rescue ActiveRecord::RecordNotUnique => e
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "social_auth.link_race_condition",
         user_id: current_client_id,
         provider: provider,
         uid: uid,
         error: e.message,
-      )
+      ))
       raise ConflictError.new("errors.social_auth.identity_conflict")
     end
 
@@ -92,19 +92,29 @@ module SocialAuth
 
     def link_new_identity
       Rails.logger.debug { "[SocialAuth] Creating new identity for current user" }
-      identity = build_identity_for_current_user
-      identity.save!
-      identity.touch_authenticated!
-      create_social_link_audit(identity)
+      identity =
+        without_prosopite_noise do
+          build_identity_for_current_user.tap do |new_identity|
+            new_identity.save!
+            new_identity.touch_authenticated!
+            create_social_link_audit(new_identity)
+          end
+        end
 
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "social_auth.linked",
         user_id: current_client_id,
         provider: provider,
-      )
+      ))
 
       Rails.logger.debug { "[SocialAuth] Successfully linked new identity" }
       build_result(identity)
+    end
+
+    def without_prosopite_noise(&)
+      return yield unless defined?(Prosopite)
+
+      Prosopite.pause(&)
     end
 
     def identity_for_current_user

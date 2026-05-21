@@ -101,7 +101,7 @@ module Common
         safe_path = safe_return_path(decoded_url)
         redirect_to(safe_path || fallback, allow_other_host: false)
       rescue ArgumentError, URI::InvalidURIError => e
-        Rails.event.notify("redirect.invalid_url", error_message: e.message)
+        Rails.logger.info(LogEvent.format("redirect.invalid_url", error_message: e.message))
         redirect_to(fallback)
       end
     end

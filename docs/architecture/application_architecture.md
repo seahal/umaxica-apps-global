@@ -103,7 +103,7 @@ class SendWelcomeEmailService < ApplicationService
     Mailer.welcome(@client).deliver_now
 
     # Record an event on success.
-    Rails.event.record("client.welcomed", client_id: @client.id)
+    Rails.logger.info(LogEvent.format("client.welcomed", client_id: @client.id))
     true
   end
 end

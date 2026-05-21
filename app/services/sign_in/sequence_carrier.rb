@@ -78,6 +78,12 @@ module SignIn
       finish!(terminal_state: "COMPLETED")
     end
 
+    def clear!
+      surface = normalize_surface(@surface)
+      @session.delete(key_for(surface)) if surface
+      @session.delete(KEY)
+    end
+
     def finish!(terminal_state:)
       sequence = current
       return sequence if sequence.blank?

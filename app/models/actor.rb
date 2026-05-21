@@ -9,8 +9,6 @@ class Actor < ActiveSupport::CurrentAttributes
       :account,
       :tenant,
       :tld,
-      :session,
-      :token,
       :authentication,
       :configuration,
       :preference,
@@ -24,8 +22,6 @@ class Actor < ActiveSupport::CurrentAttributes
           account: nil,
           tenant: nil,
           tld: nil,
-          session: nil,
-          token: nil,
           authentication: Actor::Authentication::NULL,
           configuration: Actor::Configuration::NULL,
           preference: Actor::Preference::NULL,
@@ -84,18 +80,6 @@ class Actor < ActiveSupport::CurrentAttributes
 
     def tld=(value)
       update(tld: value)
-    end
-
-    delegate :session, to: :context
-
-    def session=(value)
-      update(session: value)
-    end
-
-    delegate :token, to: :context
-
-    def token=(value)
-      update(token: value)
     end
 
     def authentication = context.authentication || Actor::Authentication::NULL
@@ -185,19 +169,6 @@ class Actor < ActiveSupport::CurrentAttributes
         value || Actor::Authentication::NULL
       when :configuration
         value || Actor::Configuration::NULL
-      when :token
-        immutable_token(value)
-      else
-        value
-      end
-    end
-
-    def immutable_token(value)
-      case value
-      when Hash
-        value.transform_values { |entry| immutable_token(entry) }.freeze
-      when Array
-        value.map { |entry| immutable_token(entry) }.freeze
       else
         value
       end

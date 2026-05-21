@@ -258,24 +258,20 @@ class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::Integra
   test "revoke_all records audit event" do
     @current_token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
 
-    events = []
-    subscriber = Object.new
-    subscriber.define_singleton_method(:emit) { |event| events << event }
-    Rails.event.subscribe(subscriber)
-
-    delete(revoke_all_sign_org_configuration_sessions_url(ri: "jp"), headers: @headers)
+    logs = []
+    Rails.logger.stub(:info, ->(message) { logs << JSON.parse(message, symbolize_names: true) }) do
+      delete(revoke_all_sign_org_configuration_sessions_url(ri: "jp"), headers: @headers)
+    end
 
     assert_response :see_other
-    revoke_events = events.select { |e| e[:name] == "security.session_revoke_all" }
+    revoke_events = logs.select { |entry| entry[:event] == "security.session_revoke_all" }
 
     assert_operator revoke_events.length, :>=, 1
     event = revoke_events.last
 
-    assert_equal "security.session_revoke_all", event[:name]
-    assert_equal "Operator", event[:payload][:actor_type]
-    assert_predicate event[:payload][:actor_id], :present?
-  ensure
-    Rails.event.unsubscribe(subscriber) if defined?(subscriber) && subscriber
+    assert_equal "security.session_revoke_all", event[:event]
+    assert_equal "Operator", event[:data][:actor_type]
+    assert_predicate event[:data][:actor_id], :present?
   end
 
   private

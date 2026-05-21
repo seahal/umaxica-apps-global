@@ -1,0 +1,14 @@
+<%= link_to t("sign.org.configuration.show.back"), sign_org_configuration_path(ri: params[:ri]) %>
+
+<% content_for :page_title, t("sign.app.configuration.mfa.show.title") %>
+
+<h1><%= t("sign.app.configuration.mfa.show.title") %></h1>
+
+<p>
+  <%= t("sign.app.configuration.mfa.show.reset_unavailable") %>
+</p>
+
+<div>
+  <span><%= t("sign.app.configuration.mfa.show.toggle_title") %></span>
+  <span><%= @user.multi_factor_enabled? ? t("sign.app.configuration.mfa.show.enabled") : t("sign.app.configuration.mfa.show.disabled") %></span>
+</div>

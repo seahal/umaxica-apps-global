@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_bulletins
+# Table name: operator_bulletins
 # Database name: org_principal
 #
 #  id         :bigint           not null, primary key
@@ -17,8 +17,8 @@
 #
 # Indexes
 #
-#  index_staff_bulletins_on_public_id  (public_id) UNIQUE
-#  index_staff_bulletins_on_staff_id   (staff_id)
+#  index_operator_bulletins_on_public_id  (public_id) UNIQUE
+#  index_operator_bulletins_on_staff_id   (staff_id)
 #
 # Foreign Keys
 #

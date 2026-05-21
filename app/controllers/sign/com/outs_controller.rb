@@ -3,12 +3,19 @@
 
 module Sign
   module Com
-    class OutsController < PrivateController
+    class OutsController < OpenController
       include ::Verification::Visitor
       include ::Authentication::Logoutable
       include ::Sign::OutNotice
 
-      before_action :authenticate!
+      before_action :authenticate!, only: %i(edit create destroy)
+
+      def show
+        @sign_out_notice = consume_sign_out_notice
+        return if @sign_out_notice.present?
+
+        redirect_to(edit_sign_com_out_path(ri: params[:ri]))
+      end
 
       def edit
       end
@@ -26,9 +33,12 @@ module Sign
       end
 
       def destroy
+        rt = params[:rt].presence
+
         logout_current_session!(reason: "com_visitor_logout")
-        issue_sign_out_notice!
-        redirect_to(sign_com_signed_out_path(ri: params[:ri]), status: :see_other)
+        return safe_redirect_to_rt_or_default!(rt, default_path: sign_com_root_path(ri: params[:ri])) if rt.present?
+
+        render :show
       end
     end
   end

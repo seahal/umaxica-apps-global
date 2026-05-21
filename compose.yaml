@@ -35,9 +35,12 @@ services:
       backend: {}
       frontend:
         aliases:
-        - id.app.localhost
-        - id.com.localhost
-        - id.org.localhost
+          - id.app.localhost
+          - id.com.localhost
+          - id.org.localhost
+          - www.app.localhost
+          - www.com.localhost
+          - www.org.localhost
       observability: {}
       outer:
         aliases:

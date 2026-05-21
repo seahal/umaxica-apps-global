@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: staff_preference_language_options
+# Table name: operator_preference_language_options
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 class OperatorPreferenceLanguageOption < OrgPrincipalRecord
-  self.table_name = "staff_preference_language_options"
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

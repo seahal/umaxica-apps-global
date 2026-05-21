@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_oidc_connections
+# Table name: client_oidc_connections
 # Database name: app_ticket
 #
 #  id           :bigint           not null, primary key
@@ -18,13 +18,11 @@
 #
 # Indexes
 #
-#  index_user_oidc_connections_on_public_id              (public_id) UNIQUE
-#  index_user_oidc_connections_on_user_id                (user_id)
-#  index_user_oidc_connections_on_user_id_and_client_id  (user_id,client_id) UNIQUE
+#  index_client_oidc_connections_on_public_id              (public_id) UNIQUE
+#  index_client_oidc_connections_on_user_id                (user_id)
+#  index_client_oidc_connections_on_user_id_and_client_id  (user_id,client_id) UNIQUE
 #
 class ClientOidcConnection < AppTicketRecord
-  self.table_name = "user_oidc_connections"
-
   include OidcConnectionRecord
 
   belongs_to :user, class_name: "Client"

@@ -14,18 +14,18 @@ module ActorSupport
 
   def set_current_context
     context = resolved_current_context
-    Actor.tld = context.surface
-    Actor.account = context.account
-    Actor.tenant = context.tenant
-    Actor.actor = Unauthenticated.instance
-    Actor.actor_type = :unauthenticated
-    Actor.session = nil
-    Actor.token = nil
-    Actor.authentication = Actor::Authentication::NULL
-    Actor.configuration = Actor::Configuration::NULL
-    Actor.preference = Actor::Preference::NULL
-    Actor.trace_id = nil
-    Actor.span_id = nil
+    Actor.update(
+      tld: context.surface,
+      account: context.account,
+      tenant: context.tenant,
+      actor: Unauthenticated.instance,
+      actor_type: :unauthenticated,
+      authentication: Actor::Authentication::NULL,
+      configuration: Actor::Configuration::NULL,
+      preference: Actor::Preference::NULL,
+      trace_id: nil,
+      span_id: nil,
+    )
   end
 
   def set_current_actor
@@ -33,13 +33,13 @@ module ActorSupport
     resource = safe_current_resource
     actor = resource.presence || Unauthenticated.instance
     actor_type = resolved_current_actor_type(resource)
-    Actor.actor = actor
-    Actor.actor_type = actor_type
-    Actor.session = resolved_current_session
-    Actor.token = resolved_current_token
-    Actor.authentication = resolved_current_authentication
-    Actor.configuration = resolved_current_configuration(resource)
-    Actor.preference = resolved_current_preference(resource)
+    Actor.update(
+      actor: actor,
+      actor_type: actor_type,
+      authentication: resolved_current_authentication(resource: resource, actor_type: actor_type),
+      configuration: resolved_current_configuration(resource),
+      preference: resolved_current_preference(resource),
+    )
   end
 
   alias set_current set_current_actor
@@ -112,9 +112,8 @@ module ActorSupport
     nil
   end
 
-  def resolved_current_authentication
+  def resolved_current_authentication(resource: safe_current_resource, actor_type: resolved_current_actor_type(resource))
     token = resolved_current_token
-    resource = safe_current_resource
     session_id = resolved_current_session
     return Actor::Authentication::NULL if token.blank? && session_id.blank? && resource.blank?
 
@@ -123,7 +122,7 @@ module ActorSupport
       access_claims: token,
       acr: token&.dig("acr"),
       amr: token&.dig("amr"),
-      actor_type: resolved_current_actor_type(resource),
+      actor_type: actor_type,
       actor_id: resource&.id,
       restricted: resolved_current_restricted_session?,
       active_sign_sequence_id: resolved_active_sign_sequence_id,

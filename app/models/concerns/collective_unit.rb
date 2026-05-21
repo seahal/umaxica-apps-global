@@ -7,6 +7,8 @@ module CollectiveUnit
   include ::PublicId
 
   included do
+    self.belongs_to_required_by_default = false
+
     after_create :create_closure_rows
 
     validates :name, presence: true

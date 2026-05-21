@@ -18,8 +18,6 @@
 #  index_visitor_accounts_on_visitor_id  (visitor_id) UNIQUE
 #
 class VisitorAccount < ComRpRecord
-  self.table_name = "visitor_accounts"
-
   include ::PublicId
 
   belongs_to :visitor, inverse_of: :rp_account

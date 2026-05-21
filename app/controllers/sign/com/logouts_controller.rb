@@ -9,7 +9,7 @@ module Sign
       private
 
       def oidc_logout_completed_path(ri:)
-        sign_com_signed_out_path(ri: ri)
+        sign_com_out_path(ri: ri)
       end
     end
   end

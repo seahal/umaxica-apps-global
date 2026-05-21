@@ -47,7 +47,12 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:issue_bulletin!) { @issue_bulletin_for_test }
     controller.define_singleton_method(:log_in) { |*| @login_result_for_test }
 
-    auth = { "provider" => "google_org", "info" => { "email" => " STAFF@example.COM " } }
+    auth = {
+      "provider" => "google_org",
+      "uid" => "google-org-uid",
+      "credentials" => { "token" => "token", "expires_at" => 1.week.from_now.to_i },
+      "info" => { "email" => " STAFF@example.COM " },
+    }
     auth.define_singleton_method(:provider) { self["provider"] }
 
     controller.send(:handle_missing_auth)
@@ -55,7 +60,7 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_match "/org/in/new", redirects.last.first.first
 
     assert_equal "staff@example.com", controller.send(:extract_email_from_auth, auth)
-    assert_nil controller.send(:find_active_staff_by_google_email, nil)
+    assert_nil controller.send(:find_active_staff_by_google_identity, { "provider" => "google_org" })
 
     controller.send(:redirect_staff_not_found, auth)
 
@@ -183,58 +188,61 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal "Google", controller.instance_variable_get(:@provider_name_for_test)
   end
 
-  test "find_active_staff_by_google_email returns active staff for linked staff email" do
+  test "find_active_staff_by_google_identity returns active staff for linked identity" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-    staff_email = staff.operator_emails.create!(
-      raw_address: "google-staff@example.test",
-      confirm_policy: true,
-      staff_email_status_id: OperatorEmailStatus::VERIFIED,
-      undeletable: true,
+    OperatorSocialGoogle.create!(
+      staff: staff,
+      uid: "google-staff-uid",
+      provider: "google_org",
+      token: "old-token",
+      token_expires_at: 1.week.from_now.to_i,
     )
+    auth = google_auth(uid: "google-staff-uid", token: "new-token")
 
-    assert_equal staff, controller.send(:find_active_staff_by_google_email, "google-staff@example.test")
-    assert_predicate staff_email.reload, :undeletable?
+    assert_equal staff, controller.send(:find_active_staff_by_google_identity, auth)
+    assert_equal "new-token", staff.reload.operator_social_google.token
   end
 
-  test "find_active_staff_by_google_email links current staff email for link intent" do
+  test "find_active_staff_by_google_identity links current staff by provider uid" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-    staff_email = staff.operator_emails.create!(
-      raw_address: "google-link-staff@example.test",
-      confirm_policy: true,
-      staff_email_status_id: OperatorEmailStatus::VERIFIED,
-    )
     controller.define_singleton_method(:social_auth_user) { staff }
+    auth = google_auth(uid: "google-link-staff-uid")
 
     assert_equal staff,
-                 controller.send(:find_active_staff_by_google_email, "google-link-staff@example.test", intent: "link")
-    assert_predicate staff_email.reload, :undeletable?
+                 controller.send(:find_active_staff_by_google_identity, auth, intent: "link")
+    assert_equal "google-link-staff-uid", staff.reload.operator_social_google.uid
   end
 
-  test "find_active_staff_by_google_email rejects unlinked staff email for login intent" do
+  test "find_active_staff_by_google_identity rejects unlinked provider uid for login intent" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
-    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-    staff.operator_emails.create!(
-      raw_address: "google-unlinked-staff@example.test",
-      confirm_policy: true,
-      staff_email_status_id: OperatorEmailStatus::VERIFIED,
-      undeletable: false,
-    )
 
-    assert_nil controller.send(:find_active_staff_by_google_email, "google-unlinked-staff@example.test")
+    assert_nil controller.send(:find_active_staff_by_google_identity, google_auth(uid: "unlinked-google-uid"))
   end
 
-  test "find_active_staff_by_google_email rejects missing and inactive staff email" do
+  test "find_active_staff_by_google_identity rejects missing and inactive staff identity" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     staff = Operator.create!(status_id: OperatorIdentityStatus::NOTHING, visibility_id: OperatorVisibility::STAFF)
-    staff.operator_emails.create!(
-      raw_address: "inactive-google-staff@example.test",
-      confirm_policy: true,
-      staff_email_status_id: OperatorEmailStatus::VERIFIED,
+    OperatorSocialGoogle.create!(
+      staff: staff,
+      uid: "inactive-google-staff-uid",
+      provider: "google_org",
+      token: "token",
+      token_expires_at: 1.week.from_now.to_i,
     )
 
-    assert_nil controller.send(:find_active_staff_by_google_email, "missing-google-staff@example.test")
-    assert_nil controller.send(:find_active_staff_by_google_email, "inactive-google-staff@example.test")
+    assert_nil controller.send(:find_active_staff_by_google_identity, google_auth(uid: "missing-google-staff-uid"))
+    assert_nil controller.send(:find_active_staff_by_google_identity, google_auth(uid: "inactive-google-staff-uid"))
+  end
+
+  private
+
+  def google_auth(uid:, token: "token")
+    OpenStruct.new(
+      provider: "google_org",
+      uid: uid,
+      credentials: OpenStruct.new(token: token, refresh_token: "refresh-token", expires_at: 1.week.from_now.to_i),
+    )
   end
 end

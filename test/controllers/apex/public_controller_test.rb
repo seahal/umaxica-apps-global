@@ -54,18 +54,13 @@ class ApexPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "no Actor state leaks into response" do
     host! ENV["APEX_SERVICE_URL"]
-    original_session = Actor.session
+    original_authentication = Actor.authentication
 
     get "/health"
 
     assert_response :success
 
-    # Actor.session should remain unchanged
-    if original_session.nil?
-      assert_nil Actor.session
-    else
-      assert_equal original_session, Actor.session
-    end
+    assert_equal original_authentication, Actor.authentication
   end
 
   test "POST without CSRF token returns 422" do

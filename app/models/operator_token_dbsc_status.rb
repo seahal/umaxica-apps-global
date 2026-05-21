@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: staff_token_dbsc_statuses
+# Table name: operator_token_dbsc_statuses
 # Database name: org_ticket
 #
 #  id :bigint           not null, primary key
 #
 class OperatorTokenDbscStatus < OrgTicketRecord
-  self.table_name = "staff_token_dbsc_statuses"
   include ReferenceRecord
 
   NOTHING = 0

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_emails
+# Table name: operator_emails
 # Database name: org_principal
 #
 #  id                             :bigint           not null, primary key
@@ -27,15 +27,15 @@
 #
 # Indexes
 #
-#  index_staff_emails_on_address_digest                  (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
-#  index_staff_emails_on_public_id                       (public_id) UNIQUE
-#  index_staff_emails_on_staff_id                        (staff_id)
-#  index_staff_emails_on_staff_identity_email_status_id  (staff_identity_email_status_id)
+#  index_operator_emails_on_address_digest                  (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
+#  index_operator_emails_on_public_id                       (public_id) UNIQUE
+#  index_operator_emails_on_staff_id                        (staff_id)
+#  index_operator_emails_on_staff_identity_email_status_id  (staff_identity_email_status_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (staff_id => operators.id)
-#  fk_rails_...  (staff_identity_email_status_id => staff_email_statuses.id)
+#  fk_rails_...  (staff_identity_email_status_id => operator_email_statuses.id)
 #
 
 require "test_helper"

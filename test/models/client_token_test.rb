@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_tokens
+# Table name: client_tokens
 # Database name: app_ticket
 #
 #  id                           :bigint           not null, primary key
@@ -40,34 +40,33 @@
 #
 # Indexes
 #
-#  index_user_tokens_on_created_at                    (created_at)
-#  index_user_tokens_on_dbsc_session_id               (dbsc_session_id) UNIQUE
-#  index_user_tokens_on_device_id                     (device_id)
-#  index_user_tokens_on_device_id_digest              (device_id_digest)
-#  index_user_tokens_on_device_session_id             (device_session_id)
-#  index_user_tokens_on_discarded_at                  (discarded_at)
-#  index_user_tokens_on_oidc_connection_id            (oidc_connection_id)
-#  index_user_tokens_on_oidc_jti                      (oidc_jti)
-#  index_user_tokens_on_oidc_sid                      (oidc_sid)
-#  index_user_tokens_on_public_id                     (public_id) UNIQUE
-#  index_user_tokens_on_purged_at                     (purged_at)
-#  index_user_tokens_on_refresh_token_digest          (refresh_token_digest) UNIQUE
-#  index_user_tokens_on_refresh_token_family_id       (refresh_token_family_id)
-#  index_user_tokens_on_rotated_at                    (rotated_at)
-#  index_user_tokens_on_user_id_and_last_step_up_at   (user_id,last_step_up_at)
-#  index_user_tokens_on_user_id_and_oidc_client_id    (user_id,oidc_client_id)
-#  index_user_tokens_on_user_token_binding_method_id  (user_token_binding_method_id)
-#  index_user_tokens_on_user_token_dbsc_status_id     (user_token_dbsc_status_id)
-#  index_user_tokens_on_user_token_kind_id            (user_token_kind_id)
-#  index_user_tokens_on_user_token_status_id          (user_token_status_id)
+#  index_client_tokens_on_created_at                    (created_at)
+#  index_client_tokens_on_dbsc_session_id               (dbsc_session_id) UNIQUE
+#  index_client_tokens_on_device_id                     (device_id)
+#  index_client_tokens_on_device_id_digest              (device_id_digest)
+#  index_client_tokens_on_device_session_id             (device_session_id)
+#  index_client_tokens_on_discarded_at                  (discarded_at)
+#  index_client_tokens_on_oidc_connection_id            (oidc_connection_id)
+#  index_client_tokens_on_oidc_jti                      (oidc_jti)
+#  index_client_tokens_on_oidc_sid                      (oidc_sid)
+#  index_client_tokens_on_public_id                     (public_id) UNIQUE
+#  index_client_tokens_on_purged_at                     (purged_at)
+#  index_client_tokens_on_refresh_token_digest          (refresh_token_digest) UNIQUE
+#  index_client_tokens_on_refresh_token_family_id       (refresh_token_family_id)
+#  index_client_tokens_on_rotated_at                    (rotated_at)
+#  index_client_tokens_on_user_id_and_last_step_up_at   (user_id,last_step_up_at)
+#  index_client_tokens_on_user_id_and_oidc_client_id    (user_id,oidc_client_id)
+#  index_client_tokens_on_user_token_binding_method_id  (user_token_binding_method_id)
+#  index_client_tokens_on_user_token_dbsc_status_id     (user_token_dbsc_status_id)
+#  index_client_tokens_on_user_token_kind_id            (user_token_kind_id)
+#  index_client_tokens_on_user_token_status_id          (user_token_status_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...                                    (device_session_id => device_sessions.id)
-#  fk_user_tokens_on_user_token_binding_method_id  (user_token_binding_method_id => user_token_binding_methods.id)
-#  fk_user_tokens_on_user_token_dbsc_status_id     (user_token_dbsc_status_id => user_token_dbsc_statuses.id)
-#  fk_user_tokens_on_user_token_kind_id            (user_token_kind_id => user_token_kinds.id)
-#  fk_user_tokens_on_user_token_status_id          (user_token_status_id => user_token_statuses.id)
+#  fk_user_tokens_on_user_token_binding_method_id  (user_token_binding_method_id => client_token_binding_methods.id)
+#  fk_user_tokens_on_user_token_dbsc_status_id     (user_token_dbsc_status_id => client_token_dbsc_statuses.id)
+#  fk_user_tokens_on_user_token_kind_id            (user_token_kind_id => client_token_kinds.id)
+#  fk_user_tokens_on_user_token_status_id          (user_token_status_id => client_token_statuses.id)
 #
 require "test_helper"
 

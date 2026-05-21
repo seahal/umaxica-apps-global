@@ -38,7 +38,8 @@ Relevant implementation references:
 - `app/javascript/controllers/cookie_toggle_controller.js`
 - `app/controllers/concerns/preference/web_cookie_actions.rb`
 - `app/models/current/preference.rb`
-- `app/services/analytics_consent_guard.rb` — Server-side guard for Rails.event emissions
+- `app/services/analytics_consent_guard.rb` — Legacy server-side guard retained for future
+  consent-aware analytics design
 - `app/services/analytics_consent_guard/pre_consent_allowlist.rb` — Exact allowlist of pre-consent
   events
 
@@ -54,7 +55,7 @@ provides:
 
 The server-side `AnalyticsConsentGuard` provides:
 
-- Consent checking before `Rails.event.record` / `Rails.event.notify` emissions
+- Consent checking before any future product analytics emission pipeline
 - Silent dropping (with debug logging) of events not in the pre-consent allowlist when `performant`
   consent is missing
 - Security, audit, and incident events bypass the guard via `PreConsentAllowlist`
@@ -186,8 +187,8 @@ notification. These events answer "is the service healthy?"
 ## Explicit Rule: Product and Marketing Analytics Remain Disabled
 
 **Product analytics and marketing analytics are DISABLED before `performant` consent is granted.**
-The server-side guard drops any `Rails.event` emission that is not in the pre-consent allowlist when
-`Actor.preference.cookie.performant?` is false.
+The legacy server-side guard was designed to drop event emissions that are not in the pre-consent
+allowlist when `Actor.preference.cookie.performant?` is false.
 
 This means:
 

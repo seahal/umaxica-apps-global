@@ -5,6 +5,8 @@ module CollectiveMembership
   extend ActiveSupport::Concern
 
   included do
+    self.belongs_to_required_by_default = false
+
     validates :membership_kind, :membership_state, presence: true
     validate :unit_must_belong_to_same_collective
     validate :only_one_active_primary_membership

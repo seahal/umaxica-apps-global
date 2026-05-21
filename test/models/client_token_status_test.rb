@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_token_statuses
+# Table name: client_token_statuses
 # Database name: app_ticket
 #
 #  id :bigint           not null, primary key

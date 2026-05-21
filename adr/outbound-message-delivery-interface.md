@@ -12,18 +12,16 @@ The app also has user-facing notification concepts. External message delivery sh
 preferences, or notification-center UI.
 
 Current email call sites know transport-specific details such as Action Mailer and `deliver_later`.
-SMS call sites use the outbound SMS entry point so provider details stay behind the outbound
-boundary.
+There is no active outbound email service entry point yet. SMS call sites use the outbound SMS entry
+point so provider details stay behind the outbound boundary.
 
 ## Decision
 
 Use the `Outbound` namespace for external message delivery entry points.
 
-Channel services live under `app/services/outbound/` and expose a common class-method service
-interface:
+Channel services live under `app/services/outbound/` and expose a class-method service interface:
 
 ```ruby
-Outbound::Email.call(to:, title:, body:)
 Outbound::Sms.deliver_later(to:, title:, body:)
 ```
 
@@ -50,7 +48,8 @@ background job arguments.
 
 ## Consequences
 
-- Future email, SMS, Web Push, LINE, or WhatsApp delivery can share the same call shape.
+- Future email, Web Push, LINE, or WhatsApp delivery can share the same call shape when their
+  outbound services are introduced.
 - In-app notification concepts remain free to use notification-specific names.
 - Existing mailer call sites are not migrated by this decision.
 - `Outbound::Sms` performs real delivery through the configured provider. `aws_sns` uses Amazon SNS,

@@ -35,11 +35,11 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     }.freeze
   end
 
-  test "deactivated user accessing normal page redirects to configuration edit" do
+  test "deactivated user accessing normal page redirects to withdrawal status" do
     get sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
-    assert_redirected_to edit_sign_app_configuration_path(ri: "jp")
+    assert_redirected_to edit_sign_app_configuration_withdrawal_path(ri: "jp")
   end
 
   test "deactivated user can access allowlisted pages" do
@@ -47,7 +47,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    get edit_sign_app_configuration_url(ri: "jp"), headers: @headers
+    get edit_sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :success
   end
@@ -79,7 +79,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => normal_token.public_id,
     }
 
-    get sign_app_configuration_sessions_url(ri: "jp"), headers: headers
+    get sign_app_configuration_url(ri: "jp"), headers: headers
 
     assert_response :success
   end

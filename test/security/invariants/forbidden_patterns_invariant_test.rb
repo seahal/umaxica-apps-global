@@ -33,8 +33,8 @@ module Security
       # Allowlist entries document existing reviewed exceptions. They are not
       # blanket permission for new uses: the line snippet must still match.
       # Responsibility: owners of the named component must migrate to
-      # Rails.event.notify/error or a sanitized audit sink before removing the
-      # exception.
+      # Rails.logger with LogEvent.format or a sanitized audit sink before
+      # removing the exception.
       ALLOWLIST = [
         {
           pattern: "access policy bypass",
@@ -133,7 +133,7 @@ module Security
         assert_empty offenders, "Forbidden security patterns found:\n#{offenders.join("\n")}"
       end
 
-      test "authentication audit and security code does not add direct Rails logger error calls" do
+      test "authentication audit and security code uses structured logger error calls" do
         offenders =
           production_code_paths.filter_map do |path|
             relative_path = path.relative_path_from(Rails.root).to_s
@@ -142,13 +142,14 @@ module Security
             content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
             content.each_line.with_index(1).filter_map do |line, line_number|
               next unless line.match?(/\bRails\.logger\.error\b/)
+              next if line.include?("LogEvent.format(")
               next if allowlisted?(LOGGER_ALLOWLIST, nil, relative_path, line)
 
               "#{relative_path}:#{line_number}: direct Rails.logger.error: #{line.strip}"
             end
           end.flatten
 
-        assert_empty offenders, "Use Rails.event or a sanitized audit sink instead:\n#{offenders.join("\n")}"
+        assert_empty offenders, "Use Rails.logger.error(LogEvent.format(...)) or a sanitized audit sink instead:\n#{offenders.join("\n")}"
       end
 
       private

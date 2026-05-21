@@ -30,7 +30,6 @@
 #  fk_rails_...  (status_id => operator_identity_states.id)
 #
 class OperatorIdentity < OrgRpRecord
-  self.table_name = "operator_identities"
   include ::PublicId
 
   belongs_to :identity_state, class_name: "OperatorIdentityState", foreign_key: :status_id,

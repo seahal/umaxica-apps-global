@@ -46,9 +46,14 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
         sign_count: 0,
         description: "My Passkey",
       )
+
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
   teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
     @original_webauthn_env.each do |key, value|
       value.nil? ? ENV.delete(key) : ENV[key] = value

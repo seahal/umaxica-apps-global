@@ -19,7 +19,7 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_notification_id => staff_notifications.id) ON DELETE => cascade
+#  fk_rails_...  (staff_notification_id => operator_notification_records.id) ON DELETE => cascade
 #
 
 class OperatorNotification < OrgSignalRecord

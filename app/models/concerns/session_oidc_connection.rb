@@ -22,7 +22,7 @@ module SessionOidcConnection
       lambda do
         attributes = {
           self.class.session_oidc_actor_key => actor.id,
-          client_id: FIRST_PARTY_CLIENT_ID,
+          :client_id => FIRST_PARTY_CLIENT_ID,
         }
 
         self.class.session_oidc_connection_class.find_or_create_by!(

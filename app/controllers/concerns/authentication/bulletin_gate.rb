@@ -85,21 +85,9 @@ module Authentication
       case resource
       when Client then resource.client_bulletins
       when Operator then resource.staff_bulletins
-      end
-    end
-
-    def create_welcome_bulletin!(resource)
-      case resource
-      when Client
-        resource.client_bulletins.create!(
-          title: I18n.t("sign.app.in.bulletins.welcome.title"),
-          body: I18n.t("sign.app.in.bulletins.welcome.body"),
-        )
-      when Operator
-        resource.staff_bulletins.create!(
-          title: I18n.t("sign.org.in.bulletins.welcome.title"),
-          body: I18n.t("sign.org.in.bulletins.welcome.body"),
-        )
+      else
+        return resource.client_bulletins if resource.respond_to?(:client_bulletins)
+        return resource.staff_bulletins if resource.respond_to?(:staff_bulletins)
       end
     end
   end

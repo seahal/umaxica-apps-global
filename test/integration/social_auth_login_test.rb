@@ -108,6 +108,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
 
     # New user created
     assert_equal user_count_before + 1, Client.count, "New user should be created"
@@ -120,9 +121,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, identity.user.status_id
     assert_not_nil identity.last_authenticated_at
     assert_equal "Googleで登録しました", flash[:notice]
+
+    follow_redirect!
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
   end
 
-  test "duplicate Google callback failure after successful login does not return to sign in" do
+  test "duplicate Google callback failure after new-account checkpoint returns to sign in" do
     new_uid = "duplicate_callback_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
@@ -139,7 +143,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_equal sign_app_configuration_url(ri: "jp"), response.location
+    assert_equal new_sign_app_in_url(ri: "jp"), response.location
   end
 
   test "provider failure returns to sign up when social auth started from sign up" do
@@ -176,6 +180,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
          headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
 
     assert_equal user_count_before + 1, Client.count
     assert_equal identity_count_before + 1, ClientSocialApple.count

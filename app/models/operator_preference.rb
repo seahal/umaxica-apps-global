@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_preferences
+# Table name: operator_preferences
 # Database name: org_principal
 #
 #  id              :bigint           not null, primary key
@@ -30,15 +30,14 @@
 #
 # Indexes
 #
-#  index_staff_preferences_on_public_id  (public_id) UNIQUE
-#  index_staff_preferences_on_staff_id   (staff_id) UNIQUE
+#  index_operator_preferences_on_public_id  (public_id) UNIQUE
+#  index_operator_preferences_on_staff_id   (staff_id) UNIQUE
 #
 # Foreign Keys
 #
 #  fk_rails_...  (staff_id => operators.id)
 #
 class OperatorPreference < OrgPrincipalRecord
-  self.table_name = "staff_preferences"
   belongs_to :staff, inverse_of: :staff_preference, class_name: "Operator"
 
   has_one :staff_preference_language, class_name: "OperatorPreferenceLanguage", foreign_key: :preference_id,
@@ -70,6 +69,7 @@ class OperatorPreference < OrgPrincipalRecord
     self.public_id = Nanoid.generate(size: 21) if public_id.blank?
   end
 
+  # FIXME: i want to remove these lines.
   def set_defaults
     return unless new_record?
 

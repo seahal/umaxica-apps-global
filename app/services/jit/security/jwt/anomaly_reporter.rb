@@ -71,7 +71,7 @@ module Jit
         def report(context:, host:, header:, payload:, reason:, error:, extra:)
           return if context.blank? || reason.blank?
 
-          Rails.event.notify(
+          Rails.logger.info(LogEvent.format(
             "jwt.anomaly.detected",
             {
               code: "#{context}_#{reason}",
@@ -86,13 +86,13 @@ module Jit
               error_class: error&.class&.name,
               error_message: error&.message,
             }.merge(extra),
-          )
+          ))
         rescue StandardError => e
-          Rails.event.error(
+          Rails.logger.error(LogEvent.format(
             "jwt.anomaly.reporting_failed",
             error_class: e.class.name,
             message: e.message,
-          )
+          ))
         end
 
         private_class_method :auth_context, :preference_context, :report

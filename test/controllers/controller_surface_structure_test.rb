@@ -39,9 +39,9 @@ class ControllerSurfaceStructureTest < ActiveSupport::TestCase
     end
   end
 
-  test "jump redirect controllers inherit from their surface application controllers" do
-    assert_operator Jump::App::ToController, :<, Jump::App::ApplicationController
-    assert_operator Jump::Com::ToController, :<, Jump::Com::ApplicationController
-    assert_operator Jump::Org::ToController, :<, Jump::Org::ApplicationController
+  test "jump root redirect controllers inherit from their surface application controllers" do
+    assert_operator Jump::App::RootsController, :<, Jump::App::ApplicationController
+    assert_operator Jump::Com::RootsController, :<, Jump::Com::ApplicationController
+    assert_operator Jump::Org::RootsController, :<, Jump::Org::ApplicationController
   end
 end

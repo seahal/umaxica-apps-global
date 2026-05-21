@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_notifications
+# Table name: client_notification_records
 # Database name: app_signal
 #
 #  id         :bigint           not null, primary key
@@ -14,12 +14,11 @@
 #
 # Indexes
 #
-#  index_user_notifications_on_public_id  (public_id) UNIQUE
-#  index_user_notifications_on_user_id    (user_id)
+#  index_client_notification_records_on_public_id  (public_id) UNIQUE
+#  index_client_notification_records_on_user_id    (user_id)
 #
 
 class ClientNotificationRecord < AppSignalRecord
-  self.table_name = "user_notifications"
   include NotificationOwnerRecord
 
   belongs_to :client,

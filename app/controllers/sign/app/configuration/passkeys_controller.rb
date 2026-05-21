@@ -24,12 +24,14 @@ module Sign
       class PasskeysController < PrivateController
         include ::Verification::Client
         include Sign::Webauthn
+        include ::CloudflareTurnstile
 
         before_action :authenticate_client!
         before_action only: %i(new create options verification) do
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
         before_action :set_passkey, only: %i(show edit update destroy)
+        before_action :verify_configuration_passkey_turnstile!, only: %i(options update destroy)
 
         # GET /configuration/passkeys
         def index
@@ -87,10 +89,10 @@ module Sign
             options: creation_options,
           }, status: :ok
         rescue Sign::Webauthn::OriginValidationError => e
-          Rails.event.error("sign.webauthn.registration.origin_validation_failed", message: e.message, exception: e)
+          Rails.logger.error(LogEvent.format("sign.webauthn.registration.origin_validation_failed", message: e.message, exception: e))
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
         rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
-          Rails.event.error("sign.webauthn.registration.options_failed", message: e.message, exception: e)
+          Rails.logger.error(LogEvent.format("sign.webauthn.registration.options_failed", message: e.message, exception: e))
           render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
         end
 
@@ -126,19 +128,19 @@ module Sign
           end
         rescue Sign::Webauthn::ChallengeNotFoundError,
                Sign::Webauthn::ChallengeExpiredError => e
-          Rails.event.warn("sign.webauthn.registration.challenge_error", message: e.message)
+          Rails.logger.warn(LogEvent.format("sign.webauthn.registration.challenge_error", message: e.message))
           render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
         rescue Sign::Webauthn::ChallengePurposeMismatchError => e
-          Rails.event.warn("sign.webauthn.registration.challenge_purpose_mismatch", message: e.message)
+          Rails.logger.warn(LogEvent.format("sign.webauthn.registration.challenge_purpose_mismatch", message: e.message))
           render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
         rescue WebAuthn::Error => e
-          Rails.event.warn("sign.webauthn.registration.failed", message: e.message)
+          Rails.logger.warn(LogEvent.format("sign.webauthn.registration.failed", message: e.message))
           render json: { error: I18n.t("errors.webauthn.verification_failed") },
                  status: :unprocessable_content
         rescue ActiveRecord::RecordNotUnique
           render json: { error: I18n.t("errors.webauthn.credential_already_registered") }, status: :conflict
         rescue ActiveRecord::RecordInvalid => e
-          Rails.event.warn("sign.webauthn.registration.persist_failed", message: e.message)
+          Rails.logger.warn(LogEvent.format("sign.webauthn.registration.persist_failed", message: e.message))
           render plain: e.record.errors.full_messages.join("\n"), status: :unprocessable_content
         end
 
@@ -201,6 +203,21 @@ module Sign
         end
 
         private
+
+        def verify_configuration_passkey_turnstile!
+          return true if cloudflare_turnstile_stealth_validation["success"]
+
+          respond_to do |format|
+            format.html do
+              redirect_back_or_to(
+                sign_app_configuration_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
+                                                                       status: :see_other,
+              )
+            end
+            format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }
+          end
+          false
+        end
 
         def set_passkey
           @passkey = current_client.client_passkeys.find_by!(public_id: params(:id))

@@ -81,6 +81,14 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
     assert_predicate policy, :show_checkpoint?
   end
 
+  test "token-bound post-issuance participants accept matching device session id" do
+    cycle = create_cycle("DASHBOARD_PENDING", principal_id: @client.id, token: @token)
+
+    Actor.authentication = Actor::Authentication.new(login_public_id: @token.device_session.public_id)
+
+    assert_predicate ClientSignInCyclePolicy.new(cycle, user: @client), :show_dashboard?
+  end
+
   test "session limit requires matching restricted token binding" do
     cycle = create_cycle("SESSION_LIMIT_PENDING", principal_id: @client.id, token: @token)
     policy = ClientSignInCyclePolicy.new(cycle, user: @client)

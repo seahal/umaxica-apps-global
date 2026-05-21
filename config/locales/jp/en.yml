@@ -348,6 +348,7 @@ en:
             secrets: Secrets
             secrets_desc: "%{count} active"
             reset_request: Request an MFA reset
+            reset_unavailable: MFA reset is currently unavailable.
           update:
             success: MFA settings updated.
             failure: Failed to update MFA settings.
@@ -892,6 +893,8 @@ en:
             org_document_tag_id:
               already_tagged: is already tagged to this document
       messages:
+        birthdate_format: must be entered in YYYY-MM-DD format
+        birthdate_before_today: must be before today
         record_invalid: "Validation failed: %{errors}"
         restrict_dependent_destroy:
           has_one: Cannot delete record because a dependent %{record} exists

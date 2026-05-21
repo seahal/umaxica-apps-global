@@ -1,7 +1,7 @@
 # typed: false
 # == Schema Information
 #
-# Table name: user_members
+# Table name: client_members
 # Database name: app_principal
 #
 #  id         :bigint           not null, primary key
@@ -12,19 +12,18 @@
 #
 # Indexes
 #
-#  index_user_members_on_member_id              (member_id)
-#  index_user_members_on_user_id_and_member_id  (user_id,member_id) UNIQUE
+#  index_client_members_on_member_id              (member_id)
+#  index_client_members_on_user_id_and_member_id  (user_id,member_id) UNIQUE
 #
 # Foreign Keys
 #
 #  fk_rails_...  (member_id => members.id) ON DELETE => cascade
-#  fk_rails_...  (user_id => users.id) ON DELETE => cascade
+#  fk_rails_...  (user_id => clients.id) ON DELETE => cascade
 #
 
 # frozen_string_literal: true
 
 class ClientMember < AppPrincipalRecord
-  self.table_name = "user_members"
   belongs_to :user, class_name: "Client"
   belongs_to :member
 

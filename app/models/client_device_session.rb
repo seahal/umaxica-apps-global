@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: device_sessions
+# Table name: client_device_sessions
 # Database name: app_ticket
 #
 #  id                         :bigint           not null, primary key
@@ -25,21 +25,15 @@
 #
 # Indexes
 #
-#  index_device_sessions_on_current_refresh_token_id  (current_refresh_token_id)
-#  index_device_sessions_on_dbsc_session_id_digest    (dbsc_session_id_digest)
-#  index_device_sessions_on_device_id_digest          (device_id_digest)
-#  index_device_sessions_on_public_id                 (public_id) UNIQUE
-#  index_device_sessions_on_refresh_token_family_id   (refresh_token_family_id)
-#  index_device_sessions_on_revoked_at                (revoked_at)
-#  index_device_sessions_on_user_id                   (user_id)
-#
-# Foreign Keys
-#
-#  fk_rails_...  (current_refresh_token_id => user_tokens.id)
+#  index_client_device_sessions_on_current_refresh_token_id  (current_refresh_token_id)
+#  index_client_device_sessions_on_dbsc_session_id_digest    (dbsc_session_id_digest)
+#  index_client_device_sessions_on_device_id_digest          (device_id_digest)
+#  index_client_device_sessions_on_public_id                 (public_id) UNIQUE
+#  index_client_device_sessions_on_refresh_token_family_id   (refresh_token_family_id)
+#  index_client_device_sessions_on_revoked_at                (revoked_at)
+#  index_client_device_sessions_on_user_id                   (user_id)
 #
 class ClientDeviceSession < AppTicketRecord
-  self.table_name = "device_sessions"
-
   include DeviceSessionable
 
   belongs_to :user, class_name: "Client", inverse_of: :client_device_sessions

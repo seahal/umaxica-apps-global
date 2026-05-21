@@ -40,7 +40,7 @@ module Health
       [503, "UNHEALTHY", errors, Rails.app.revision.to_s]
     end
   rescue StandardError => e
-    Rails.event.record("health_check.failed", error_class: e.class.name, error_message: e.message)
+    Rails.logger.info(LogEvent.format("health_check.failed", error_class: e.class.name, error_message: e.message))
     [503, "ERROR"]
   end
 
@@ -60,10 +60,10 @@ module Health
         klass.connected_to(role: role) do
           klass.with_connection { |conn| conn.execute("SELECT 1") }
         rescue StandardError => e
-          Rails.event.record(
+          Rails.logger.info(LogEvent.format(
             "health_check.database_failed", database: klass.name, role: role.to_s,
                                             error_class: e.class.name, error_message: e.message,
-          )
+          ))
           errors << "Database #{klass.name}(#{role}) unavailable"
         end
       end
@@ -78,7 +78,7 @@ module Health
       begin
         REDIS_CLIENT.ping
       rescue StandardError => e
-        Rails.event.record("health_check.redis_failed", error_class: e.class.name, error_message: e.message)
+        Rails.logger.info(LogEvent.format("health_check.redis_failed", error_class: e.class.name, error_message: e.message))
         errors << "Redis unavailable"
       end
     end

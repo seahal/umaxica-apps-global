@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_telephones
+# Table name: client_telephones
 # Database name: app_principal
 #
 #  id                                :bigint           not null, primary key
@@ -22,25 +22,23 @@
 #
 # Indexes
 #
-#  index_user_telephones_on_number_digest                      (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
-#  index_user_telephones_on_public_id                          (public_id) UNIQUE
-#  index_user_telephones_on_user_id                            (user_id)
-#  index_user_telephones_on_user_identity_telephone_status_id  (user_identity_telephone_status_id)
+#  index_client_telephones_on_number_digest                      (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
+#  index_client_telephones_on_public_id                          (public_id) UNIQUE
+#  index_client_telephones_on_user_id                            (user_id)
+#  index_client_telephones_on_user_identity_telephone_status_id  (user_identity_telephone_status_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
-#  fk_rails_...  (user_identity_telephone_status_id => user_telephone_statuses.id)
+#  fk_rails_...  (user_id => clients.id)
+#  fk_rails_...  (user_identity_telephone_status_id => client_telephone_statuses.id)
 #
 
 class ClientTelephone < AppPrincipalRecord
-  self.table_name = "user_telephones"
   self.filter_attributes += %w(number)
 
   MAX_TELEPHONES_PER_USER = 4
   alias_attribute :user_telephone_status_id, :user_identity_telephone_status_id
   include Telephone
-  include Turnstile
   include PublicId
 
   def to_param

@@ -5,8 +5,8 @@ class AnalyticsConsentGuard
   # Defines the exact event name patterns that may be emitted before
   # optional `performant` analytics consent is granted.
   #
-  # These patterns are matched with Regexp#match? against the event name
-  # passed to Rails.event.record / Rails.event.notify.
+  # These patterns are retained for future consent-aware analytics work.
+  # Application logging no longer uses Rails.event.
   module PreConsentAllowlist
     # Authentication, authorization, session, and identity events.
     # Rationale: required for service delivery, fraud detection, and audit.

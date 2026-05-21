@@ -60,19 +60,14 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "no Actor state leaks into response" do
-    original_session = Actor.session
+    original_authentication = Actor.authentication
 
     host! ENV["SIGN_SERVICE_URL"]
     get "/health"
 
     assert_response :success
 
-    # Actor.session should remain unchanged
-    if original_session.nil?
-      assert_nil Actor.session
-    else
-      assert_equal original_session, Actor.session
-    end
+    assert_equal original_authentication, Actor.authentication
   end
 
   test "POST without CSRF token returns 422" do

@@ -25,8 +25,6 @@
 #  fk_rails_...  (visitor_id => visitors.id)
 #
 class VisitorBanner < ComPrincipalRecord
-  self.table_name = "visitor_banners"
-
   include BannerModel
 
   belongs_to :visitor, optional: false, inverse_of: :visitor_banners

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_telephone_statuses
+# Table name: client_telephone_statuses
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key

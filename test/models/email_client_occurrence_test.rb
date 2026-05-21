@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: email_user_occurrences
+# Table name: email_client_occurrences
 # Database name: occurrence
 #
 #  id                  :bigint           not null, primary key
@@ -14,13 +14,13 @@
 #
 # Indexes
 #
-#  idx_email_user_occ_on_ids                           (email_occurrence_id,user_occurrence_id) UNIQUE
-#  index_email_user_occurrences_on_user_occurrence_id  (user_occurrence_id)
+#  idx_email_user_occ_on_ids                             (email_occurrence_id,user_occurrence_id) UNIQUE
+#  index_email_client_occurrences_on_user_occurrence_id  (user_occurrence_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (email_occurrence_id => email_occurrences.id)
-#  fk_rails_...  (user_occurrence_id => user_occurrences.id)
+#  fk_rails_...  (user_occurrence_id => client_occurrences.id)
 #
 
 require "test_helper"

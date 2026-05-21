@@ -43,6 +43,13 @@ class RetentionShreddableTest < ActiveSupport::TestCase
     assert_empty ShreddableTestRecord.shreddable
   end
 
+  test "purged_at is required" do
+    record = ShreddableTestRecord.new(name: "missing-purged-at", purged_at: nil)
+
+    assert_not record.valid?
+    assert_includes record.errors[:purged_at], "can't be blank"
+  end
+
   test "shreddable scope selects rows whose purge time has arrived" do
     future = create_record(name: "future", purged_at: 1.hour.from_now)
     due = create_record(name: "due", purged_at: Time.current)

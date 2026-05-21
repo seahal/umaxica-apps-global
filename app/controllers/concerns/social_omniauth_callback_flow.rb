@@ -11,7 +11,7 @@ module SocialOmniauthCallbackFlow
 
   def omniauth
     auth = request.env["omniauth.auth"]
-    Rails.event.debug(social_omniauth_callback_received_event, **social_omniauth_callback_received_payload(auth))
+    Rails.logger.debug(LogEvent.format(social_omniauth_callback_received_event, **social_omniauth_callback_received_payload(auth)))
 
     return redirect_missing_auth_hash unless auth
 
@@ -50,7 +50,7 @@ module SocialOmniauthCallbackFlow
   end
 
   def redirect_missing_auth_hash
-    Rails.event.error(social_omniauth_missing_auth_event)
+    Rails.logger.error(LogEvent.format(social_omniauth_missing_auth_event))
     redirect_to(
       social_auth_failure_redirect_path,
       alert: I18n.t(social_omniauth_failure_i18n_key),
@@ -62,13 +62,13 @@ module SocialOmniauthCallbackFlow
   end
 
   def handle_unexpected_error(error, auth)
-    Rails.event.error(
+    Rails.logger.error(LogEvent.format(
       social_omniauth_unexpected_error_event,
       error_class: error.class.name,
       error_message: error.message,
       provider: auth&.provider,
       exception: error,
-    )
+    ))
     clear_social_auth_intent!
     redirect_to(social_auth_failure_redirect_path, alert: I18n.t(social_omniauth_failure_i18n_key))
   end

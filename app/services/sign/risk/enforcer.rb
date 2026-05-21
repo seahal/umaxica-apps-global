@@ -38,11 +38,11 @@ module Sign
         require_step_up_for_token_set(resource.client_tokens) if resource.respond_to?(:client_tokens)
         require_step_up_for_token_set(resource.staff_tokens) if resource.respond_to?(:staff_tokens)
 
-        Rails.event.info(
+        Rails.logger.info(LogEvent.format(
           "sign.risk.enforcer.step_up_required",
           resource_type: resource.class.name,
           resource_id: resource.id,
-        )
+        ))
       end
 
       def self.require_step_up_for_token_set(tokens)

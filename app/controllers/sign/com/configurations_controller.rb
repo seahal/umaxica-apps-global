@@ -4,18 +4,10 @@
 module Sign
   module Com
     class ConfigurationsController < PrivateController
-      before_action :authenticate_visitor!
+      before_action :authenticate_visitor! # FIXME: I don't think this is needed
+
 
       def show
-      end
-
-      def edit
-        return if current_visitor.deactivated?
-
-        safe_redirect_to(
-          sign_com_configuration_path(ri: params[:ri]),
-          fallback: sign_com_configuration_path,
-        )
       end
     end
   end

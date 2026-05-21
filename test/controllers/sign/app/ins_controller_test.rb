@@ -25,6 +25,25 @@ module Sign
                       I18n.t("sign.app.authentication.new.links.secret")
       end
 
+      test "should get new with existing preference refresh cookie" do
+        token, verifier = AppPreference.generate_refresh_token(public_id: "app-pref-existing")
+        preference = AppPreference.create!(
+          public_id: "app-pref-existing",
+          token_digest: AppPreference.digest_refresh_token(verifier),
+          jti: SecureRandom.uuid,
+          status_id: AppPreferenceStatus::NOTHING,
+          binding_method_id: AppPreferenceBindingMethod::LEGACY,
+          dbsc_status_id: AppPreferenceDbscStatus::NOTHING,
+          expires_at: 20.years.from_now,
+        )
+        AppPreferenceCookie.create!(preference: preference)
+        cookies[::Preference::CookieName.refresh(surface: :app)] = token
+
+        get new_sign_app_in_url(ri: "jp"), headers: { "Host" => @host }
+
+        assert_response :success
+      end
+
       test "authentication links carry rt" do
         rt = Base64.urlsafe_encode64("https://id.umaxica.app/configuration/sessions?ri=jp", padding: false)
 

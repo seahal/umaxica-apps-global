@@ -4,12 +4,16 @@
 module Sign
   module App
     module In
-      class EmailsController < EmailGuestController
+      class EmailsController < GuestController
         include ::CloudflareTurnstile
         include EmailValidation
         include Common::Redirect
         include Common::Otp
         include SessionLimitGate
+
+        guest_only! status: :bad_request,
+                    message: I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"),
+                    no_redirect: true
 
         before_action :load_user_email, only: %i(edit update)
 
@@ -130,6 +134,16 @@ module Sign
             format.html { render :edit, status: :unprocessable_content }
             format.json { render json: { error: result[:error] }, status: :unprocessable_content }
           end
+        end
+
+        def handle_guest_only_with_status_checks(options)
+          if options[:no_redirect]
+            status = options[:status] || :forbidden
+            message = options[:message] || I18n.t("errors.messages.already_authenticated")
+            return render plain: message, status: status
+          end
+
+          super
         end
 
         def load_user_email

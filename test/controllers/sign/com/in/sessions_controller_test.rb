@@ -58,8 +58,9 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_not response.redirect?
+    assert_select "form[data-turbo=false][action=?]", sign_com_in_session_path(ri: "jp")
     assert_select "input[type=radio][name=ref]"
-    assert_select "button", text: /キャンセルしてログアウト/
+    assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
   end
 
   test "update without selections flashes alert and re-renders show" do

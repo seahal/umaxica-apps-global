@@ -1,7 +1,7 @@
 # typed: false
 # == Schema Information
 #
-# Table name: user_secret_kinds
+# Table name: client_secret_kinds
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key

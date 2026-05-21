@@ -9,7 +9,9 @@
   <div
     data-controller="passkey-registration"
     data-passkey-registration-options-url-value="<%= options_sign_org_configuration_passkeys_path %>"
-    data-passkey-registration-verification-url-value="<%= verification_sign_org_configuration_passkeys_path %>">
+    data-passkey-registration-verification-url-value="<%= verification_sign_org_configuration_passkeys_path %>"
+    data-passkey-registration-turnstile-site-key-value="<%= Jit::Security::TurnstileConfig.stealth_site_key.to_s %>"
+    data-passkey-registration-turnstile-error-message-value="<%= t("turnstile_error") %>">
 
     <div>
       <label for="description">
@@ -25,6 +27,7 @@
 
     <p data-passkey-registration-target="error" class="hidden"></p>
     <p data-passkey-registration-target="status" class="hidden"></p>
+    <input type="hidden" data-passkey-registration-target="turnstileResponse" autocomplete="off">
 
     <div>
       <button type="button"

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_chronicle_levels
+# Table name: client_chronicle_levels
 # Database name: chronicle
 #
 #  id :bigint           not null, primary key

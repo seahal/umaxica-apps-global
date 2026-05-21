@@ -30,10 +30,10 @@ module Sign
         options: request_options,
       }, status: :ok
     rescue Sign::Webauthn::OriginValidationError => e
-      Rails.event.error("webauthn.origin_validation_failed", message: e.message)
+      Rails.logger.error(LogEvent.format("webauthn.origin_validation_failed", message: e.message))
       render_error("errors.webauthn.origin_invalid", :forbidden)
     rescue StandardError => e
-      Rails.event.error("webauthn.authentication_options_failed", error_class: e.class.name, message: e.message)
+      Rails.logger.error(LogEvent.format("webauthn.authentication_options_failed", error_class: e.class.name, message: e.message))
       render_error("errors.webauthn.options_failed", :unprocessable_content)
     end
 

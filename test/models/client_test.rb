@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: users
+# Table name: clients
 # Database name: app_principal
 #
 #  id                     :bigint           not null, primary key
@@ -28,25 +28,25 @@
 #
 # Indexes
 #
-#  index_users_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_users_on_deletable_at            (deletable_at)
-#  index_users_on_discarded_at            (discarded_at)
-#  index_users_on_multi_factor_id         (multi_factor_id)
-#  index_users_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_users_on_public_id               (public_id) UNIQUE
-#  index_users_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_users_on_status_id               (status_id)
-#  index_users_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
-#  index_users_on_visibility_id           (visibility_id)
-#  index_users_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_users_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_clients_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_clients_on_deletable_at            (deletable_at)
+#  index_clients_on_discarded_at            (discarded_at)
+#  index_clients_on_multi_factor_id         (multi_factor_id)
+#  index_clients_on_multi_factor_status_id  (multi_factor_status_id)
+#  index_clients_on_public_id               (public_id) UNIQUE
+#  index_clients_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
+#  index_clients_on_status_id               (status_id)
+#  index_clients_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_clients_on_visibility_id           (visibility_id)
+#  index_clients_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_clients_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => user_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => user_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => user_statuses.id)
-#  fk_rails_...  (visibility_id => user_visibilities.id)
+#  fk_rails_...  (multi_factor_id => client_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => client_multi_factor_statuses.id)
+#  fk_rails_...  (status_id => client_statuses.id)
+#  fk_rails_...  (visibility_id => client_visibilities.id)
 #
 
 require "test_helper"
@@ -202,7 +202,8 @@ class ClientTest < ActiveSupport::TestCase
       handle: "owned_handle-#{SecureRandom.hex(4)}",
       cooldown_until: Time.current,
     )
-    avatar = Avatar.create!(capability: capability, active_handle: handle, moniker: "Owned")
+    member = Member.create!(user: @user, public_id: "m_#{SecureRandom.hex(8)}")
+    avatar = Avatar.create!(member: member, capability: capability, active_handle: handle, moniker: "Owned")
     avatar.avatar_assignments.create!(user: @user, role: "owner")
 
     assert_includes @user.owned_avatars, avatar
@@ -452,6 +453,20 @@ class ClientTest < ActiveSupport::TestCase
     assert_includes methods, :email
   end
 
+  test "remaining_social_unlink_methods ignores stale social association cache" do
+    assert_nil @user.user_social_apple
+
+    ClientSocialApple.create!(
+      user: @user,
+      status_id: ClientSocialAppleStatus::ACTIVE,
+      token: "test_token",
+      uid: "cached_apple_uid",
+      token_expires_at: 1.day.from_now,
+    )
+
+    assert_includes @user.remaining_social_unlink_methods(excluding_provider: "google_app"), :apple
+  end
+
   test "withdrawal_in_progress? returns false when not started" do
     assert_not @user.withdrawal_in_progress?
   end
@@ -512,15 +527,5 @@ class ClientTest < ActiveSupport::TestCase
     )
 
     assert_includes @user.remaining_login_methods, :passkey
-  end
-
-  private
-
-  def root_workspace
-    Workspace.find_or_create_by!(id: NIL_UUID) do |workspace|
-      workspace.name = "Root Workspace"
-      workspace.domain = "root.example.com"
-      workspace.parent_organization = NIL_UUID
-    end
   end
 end

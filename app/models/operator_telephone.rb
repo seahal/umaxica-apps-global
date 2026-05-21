@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_telephones
+# Table name: operator_telephones
 # Database name: org_principal
 #
 #  id                                 :bigint           not null, primary key
@@ -21,18 +21,17 @@
 #
 # Indexes
 #
-#  index_staff_telephones_on_number_digest                       (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
-#  index_staff_telephones_on_staff_id                            (staff_id)
-#  index_staff_telephones_on_staff_identity_telephone_status_id  (staff_identity_telephone_status_id)
+#  idx_on_staff_identity_telephone_status_id_6c01767c57  (staff_identity_telephone_status_id)
+#  index_operator_telephones_on_number_digest            (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
+#  index_operator_telephones_on_staff_id                 (staff_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (staff_id => operators.id)
-#  fk_rails_...  (staff_identity_telephone_status_id => staff_telephone_statuses.id)
+#  fk_rails_...  (staff_identity_telephone_status_id => operator_telephone_statuses.id)
 #
 
 class OperatorTelephone < OrgPrincipalRecord
-  self.table_name = "staff_telephones"
   alias_attribute :staff_telephone_status_id, :staff_identity_telephone_status_id
   include Telephone
 

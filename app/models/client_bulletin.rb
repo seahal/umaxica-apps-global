@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_bulletins
+# Table name: client_bulletins
 # Database name: app_principal
 #
 #  id         :bigint           not null, primary key
@@ -17,15 +17,14 @@
 #
 # Indexes
 #
-#  index_user_bulletins_on_public_id  (public_id) UNIQUE
-#  index_user_bulletins_on_user_id    (user_id)
+#  index_client_bulletins_on_public_id  (public_id) UNIQUE
+#  index_client_bulletins_on_user_id    (user_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (user_id => clients.id)
 #
 class ClientBulletin < AppPrincipalRecord
-  self.table_name = "user_bulletins"
   include PublicId
 
   belongs_to :user, class_name: "Client", inverse_of: :client_bulletins

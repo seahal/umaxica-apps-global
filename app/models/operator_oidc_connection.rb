@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_oidc_connections
+# Table name: operator_oidc_connections
 # Database name: org_ticket
 #
 #  id           :bigint           not null, primary key
@@ -18,13 +18,11 @@
 #
 # Indexes
 #
-#  index_staff_oidc_connections_on_public_id               (public_id) UNIQUE
-#  index_staff_oidc_connections_on_staff_id                (staff_id)
-#  index_staff_oidc_connections_on_staff_id_and_client_id  (staff_id,client_id) UNIQUE
+#  index_operator_oidc_connections_on_public_id               (public_id) UNIQUE
+#  index_operator_oidc_connections_on_staff_id                (staff_id)
+#  index_operator_oidc_connections_on_staff_id_and_client_id  (staff_id,client_id) UNIQUE
 #
 class OperatorOidcConnection < OrgTicketRecord
-  self.table_name = "staff_oidc_connections"
-
   include OidcConnectionRecord
 
   belongs_to :staff, class_name: "Operator"

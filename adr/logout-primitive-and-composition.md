@@ -43,7 +43,7 @@ logout) を本当に実装する際の置き場所として温存する。本物
 
 - **`Authentication::LogoutCurrentSession.call(token:, …)`**
   が「セッション 1 件を revoke する」唯一の経路。token の resolve、`revoke!` 呼び出し、narrow
-  rescue、Rails.event 通知をここに集約する。
+  rescue、application log 出力をここに集約する。
 
 ### 3. 「全セッション削除」は primitive の反復として合成する
 

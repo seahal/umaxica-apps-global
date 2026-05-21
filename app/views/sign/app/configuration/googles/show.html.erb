@@ -36,11 +36,12 @@
           </div>
           <div>
             <% if current_client.active_social_provider?("google") %>
-              <% unlink_allowed = current_client.login_methods_remaining?(excluding_provider: "google_app") %>
-              <%= button_to t('actions.disconnect'),
-                            sign_app_social_authentication_path(provider: "google_app"),
-                            method: :delete,
-                            disabled: !unlink_allowed %>
+              <% unlink_allowed = current_client.social_unlink_methods_remaining?(excluding_provider: "google_app") %>
+              <%= form_with url: sign_app_social_authentication_path(provider: "google_app", ri: params[:ri]),
+                            method: :delete do |f| %>
+                <%= render "shared/cloudflare_turnstile_stealth" if unlink_allowed %>
+                <%= f.submit t('actions.disconnect'), disabled: !unlink_allowed %>
+              <% end %>
               <p><%= t("auth.step_up.required") %></p>
               <% unless unlink_allowed %>
                 <p><%= t("errors.social_auth.insufficient_login_methods") %></p>

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_occurrences
+# Table name: operator_occurrences
 # Database name: occurrence
 #
 #  id           :bigint           not null, primary key
@@ -20,15 +20,15 @@
 #
 # Indexes
 #
-#  index_staff_occurrences_on_body                       (body) UNIQUE
-#  index_staff_occurrences_on_event_type_and_created_at  (event_type,created_at)
-#  index_staff_occurrences_on_public_id                  (public_id) UNIQUE
-#  index_staff_occurrences_on_purged_at                  (purged_at)
-#  index_staff_occurrences_on_status_id_and_created_at   (status_id,created_at)
+#  index_operator_occurrences_on_body                       (body) UNIQUE
+#  index_operator_occurrences_on_event_type_and_created_at  (event_type,created_at)
+#  index_operator_occurrences_on_public_id                  (public_id) UNIQUE
+#  index_operator_occurrences_on_purged_at                  (purged_at)
+#  index_operator_occurrences_on_status_id_and_created_at   (status_id,created_at)
 #
 # Foreign Keys
 #
-#  fk_staff_occurrences_on_status_id  (status_id => staff_occurrence_statuses.id)
+#  fk_staff_occurrences_on_status_id  (status_id => operator_occurrence_statuses.id)
 #
 
 require "test_helper"

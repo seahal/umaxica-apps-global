@@ -8,6 +8,8 @@ module SignOutCycle
     include ::PublicId
     include ::Retainable
 
+    self.belongs_to_required_by_default = false
+
     attribute :requested_at, :datetime, default: -> { Time.current }
 
     before_validation :ensure_sign_out_cycle_reference_defaults

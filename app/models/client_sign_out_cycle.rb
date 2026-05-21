@@ -44,7 +44,7 @@
 #
 #  fk_rails_...  (kind_id => client_sign_out_cycle_kinds.id)
 #  fk_rails_...  (status_id => client_sign_out_cycle_statuses.id)
-#  fk_rails_...  (token_id => user_tokens.id) ON DELETE => cascade
+#  fk_rails_...  (token_id => client_tokens.id) ON DELETE => cascade
 #
 class ClientSignOutCycle < AppTicketRecord
   include SignOutCycle

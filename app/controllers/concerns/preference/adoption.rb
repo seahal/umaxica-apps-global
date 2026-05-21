@@ -22,7 +22,7 @@ module Preference
 
       sync_preferences!(resource_pref)
     rescue StandardError => e
-      Rails.event.record("preference.adoption.error", error: e.class.name, message: e.message)
+      Rails.logger.info(LogEvent.format("preference.adoption.error", error: e.class.name, message: e.message))
     end
 
     # Called during preference rotation to keep ClientPreference/OperatorPreference in sync.
@@ -37,7 +37,7 @@ module Preference
 
       copy_preference_values!(@preferences, resource_pref, resource_pref_prefix)
     rescue StandardError => e
-      Rails.event.record("preference.adoption.rotation_error", error: e.class.name, message: e.message)
+      Rails.logger.info(LogEvent.format("preference.adoption.rotation_error", error: e.class.name, message: e.message))
     end
 
     def adoptable_preference_class?
@@ -54,11 +54,13 @@ module Preference
     end
 
     def find_resource_preference(resource)
-      case preference_class.name
-      when "AppPreference"
-        resource.user_preference
-      when "OrgPreference"
-        resource.staff_preference
+      with_preference_writing_connection(resource) do
+        case preference_class.name
+        when "AppPreference"
+          resource.user_preference
+        when "OrgPreference"
+          resource.staff_preference
+        end
       end
     end
 
@@ -67,8 +69,7 @@ module Preference
       return nil unless pref_class
 
       pref = nil
-      connection_class = pref_class.ancestors.find { |ancestor| ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class? }
-      connection_class.connected_to(role: :writing) do
+      with_preference_writing_connection(pref_class) do
         pref = pref_class.create!(fk => resource.id)
         create_resource_preference_options!(pref)
       end
@@ -110,18 +111,21 @@ module Preference
       CHILD_RECORD_TYPES.each do |type|
         next unless source.respond_to?("#{source_assoc}_#{type}")
 
-        source_child = source.public_send("#{source_assoc}_#{type}")
+        source_child = with_preference_writing_connection(source) { source.public_send("#{source_assoc}_#{type}") }
         next unless source_child&.option_id
         next unless target.respond_to?("#{target_assoc}_#{type}") ||
           target.respond_to?("create_#{target_assoc}_#{type}!")
 
-        target_child = target.public_send("#{target_assoc}_#{type}") ||
+        target_child = with_preference_writing_connection(target) { target.public_send("#{target_assoc}_#{type}") } ||
           begin
-            Preference::ClassRegistry.option_class(target_prefix, type).ensure_defaults!
-            target.public_send(
-              "create_#{target_assoc}_#{type}!",
-              option_id: Preference::ClassRegistry.default_option_id(target_prefix, type),
-            )
+            option_class = Preference::ClassRegistry.option_class(target_prefix, type)
+            with_preference_writing_connection(option_class) { option_class.ensure_defaults! }
+            with_preference_writing_connection(target) do
+              target.public_send(
+                "create_#{target_assoc}_#{type}!",
+                option_id: Preference::ClassRegistry.default_option_id(target_prefix, type),
+              )
+            end
           end
 
         if target_child.option_id != source_child.option_id
@@ -145,14 +149,16 @@ module Preference
     end
 
     def resolve_cross_db_option_id(source_child, target_option_class)
-      source_option = source_child.option
+      source_option = with_preference_writing_connection(source_child) { source_child.option }
       return source_child.option_id if source_option.blank?
 
       source_name = source_option.name
       return source_child.option_id if source_name.blank?
 
-      target_option_class.find_each do |opt|
-        return opt.id if opt.name&.downcase == source_name.downcase
+      with_preference_writing_connection(target_option_class) do
+        target_option_class.find_each do |opt|
+          return opt.id if opt.name&.downcase == source_name.downcase
+        end
       end
       nil
     end
@@ -163,7 +169,7 @@ module Preference
         source_consent = COOKIE_CONSENT_FIELDS.index_with { |f| source.public_send(f) }
       else
         source_assoc_name = source.class.name.underscore
-        source_cookie = source.public_send("#{source_assoc_name}_cookie")
+        source_cookie = with_preference_writing_connection(source) { source.public_send("#{source_assoc_name}_cookie") }
         return unless source_cookie
 
         source_consent = COOKIE_CONSENT_FIELDS.index_with { |f| source_cookie.public_send(f) }
@@ -179,8 +185,10 @@ module Preference
         end
       else
         target_assoc_name = target.class.name.underscore
-        target_cookie = target.public_send("#{target_assoc_name}_cookie") ||
-          target.public_send("create_#{target_assoc_name}_cookie!")
+        target_cookie = with_preference_writing_connection(target) {
+          target.public_send("#{target_assoc_name}_cookie")
+        } ||
+          with_preference_writing_connection(target) { target.public_send("create_#{target_assoc_name}_cookie!") }
         connection_class = target.class.ancestors.find { |a| a.is_a?(Class) && a < ActiveRecord::Base && a.abstract_class? }
         if connection_class
           connection_class.connected_to(role: :writing) { target_cookie.update!(source_consent) }
@@ -218,8 +226,11 @@ module Preference
       association_prefix = preference.class.name.underscore
 
       CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
-        child = preference.public_send("#{association_prefix}_#{type}")
-        value = child&.option&.name
+        child =
+          with_preference_writing_connection(preference) {
+            preference.public_send("#{association_prefix}_#{type}")
+          }
+        value = with_preference_writing_connection(child) { child&.option&.name }
         value = value&.downcase if %i(language region currency).include?(type)
         value = preference_theme_short_code(value) if type == :theme
         snapshot[type] = value if value.present?
@@ -245,7 +256,7 @@ module Preference
     end
 
     def touch_target!(target)
-      connection_class = target.class.ancestors.find { |a| a.is_a?(Class) && a < ActiveRecord::Base && a.abstract_class? }
+      connection_class = preference_connection_class(target)
       if connection_class
         connection_class.connected_to(role: :writing) { target.update!(updated_at: Time.current) }
       else
@@ -280,6 +291,20 @@ module Preference
       else
         preference.class.name.underscore
       end
+    end
+
+    def with_preference_writing_connection(record_or_class)
+      return yield if record_or_class.blank?
+
+      connection_class = preference_connection_class(record_or_class)
+      return yield unless connection_class
+
+      connection_class.connected_to(role: :writing) { yield }
+    end
+
+    def preference_connection_class(record_or_class)
+      klass = record_or_class.is_a?(Class) ? record_or_class : record_or_class.class
+      klass.ancestors.find { |ancestor| ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class? }
     end
   end
 end

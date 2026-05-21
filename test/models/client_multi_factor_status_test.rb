@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_multi_factor_statuses
+# Table name: client_multi_factor_statuses
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key

@@ -31,12 +31,12 @@ module Sign
           persist_user_occurrence(event, user_id, context)
         end
       rescue StandardError => e
-        Rails.event.error(
+        Rails.logger.error(LogEvent.format(
           "sign.risk.emitter.persist_failed",
           error_class: e.class.name,
           message: e.message,
           event_name: event.name,
-        )
+        ))
       end
 
       def self.build_context(event)
@@ -52,38 +52,50 @@ module Sign
 
       def self.persist_user_occurrence(event, user_id, context)
         expiry = 1.hour.from_now
-        ClientOccurrence.create!(
-          body: SecureRandom.uuid,
-          event_type: "risk.#{event.name}",
-          context: context.merge(user_id: user_id),
-          status_id: ClientOccurrenceStatus::ACTIVE,
-          discarded_at: expiry,
-          purged_at: expiry,
-        )
+        operation =
+          -> do
+            ClientOccurrence.create!(
+              body: SecureRandom.uuid,
+              event_type: "risk.#{event.name}",
+              context: context.merge(user_id: user_id),
+              status_id: ClientOccurrenceStatus::ACTIVE,
+              discarded_at: expiry,
+              purged_at: expiry,
+            )
+          end
+        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
       end
 
       def self.persist_visitor_occurrence(event, visitor_id, context)
         expiry = 1.hour.from_now
-        VisitorOccurrence.create!(
-          body: SecureRandom.uuid,
-          event_type: "risk.#{event.name}",
-          context: context.merge(visitor_id: visitor_id),
-          status_id: VisitorOccurrenceStatus::ACTIVE,
-          discarded_at: expiry,
-          purged_at: expiry,
-        )
+        operation =
+          -> do
+            VisitorOccurrence.create!(
+              body: SecureRandom.uuid,
+              event_type: "risk.#{event.name}",
+              context: context.merge(visitor_id: visitor_id),
+              status_id: VisitorOccurrenceStatus::ACTIVE,
+              discarded_at: expiry,
+              purged_at: expiry,
+            )
+          end
+        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
       end
 
       def self.persist_staff_occurrence(event, staff_id, context)
         expiry = 1.hour.from_now
-        OperatorOccurrence.create!(
-          body: SecureRandom.uuid,
-          event_type: "risk.#{event.name}",
-          context: context.merge(staff_id: staff_id),
-          status_id: OperatorOccurrenceStatus::ACTIVE,
-          discarded_at: expiry,
-          purged_at: expiry,
-        )
+        operation =
+          -> do
+            OperatorOccurrence.create!(
+              body: SecureRandom.uuid,
+              event_type: "risk.#{event.name}",
+              context: context.merge(staff_id: staff_id),
+              status_id: OperatorOccurrenceStatus::ACTIVE,
+              discarded_at: expiry,
+              purged_at: expiry,
+            )
+          end
+        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
       end
 
       def self.feature_enabled?

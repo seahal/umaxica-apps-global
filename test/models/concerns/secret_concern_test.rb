@@ -7,8 +7,10 @@ class SecretConcernTest < ActiveSupport::TestCase
   fixtures :clients, :client_statuses
 
   class DummySecret < AppPrincipalRecord
-    self.table_name = "user_secrets"
+    self.table_name = "client_secrets"
+    self.belongs_to_required_by_default = false
     include PublicId
+    include Retainable
     include Secret
 
     belongs_to :user, class_name: "Client"
@@ -76,6 +78,7 @@ class SecretConcernTest < ActiveSupport::TestCase
 
   test "verify_and_consume! returns false when expired" do
     record, raw = DummySecret.issue!(name: "Expired", user: @user, discarded_at: 1.hour.ago, user_secret_kind_id: ClientSecretKind::LOGIN)
+    record.update_columns(created_at: 2.hours.ago)
 
     assert_not record.verify_and_consume!(raw)
     assert_predicate record.reload, :expired?

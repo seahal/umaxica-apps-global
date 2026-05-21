@@ -63,10 +63,10 @@ removed and must not be restored as compatibility aliases.
 Authentication state is exposed through `Actor.authentication`. The application-facing identifier
 for the current login/session row is `Actor.authentication.login_public_id`; this corresponds to the
 current entry shown in the user-facing configuration sessions pages, but avoids the ambiguous
-`session` name used by Rails. Direct `Actor.session` reads are deprecated compatibility API.
+`session` name used by Rails. Direct `Actor.session` reads are removed.
 
-Decoded access-token claims are not a general application API. `Actor.token` is deprecated. If a
-low-level auth or policy boundary must inspect raw access-token claims during the migration, use
+Decoded access-token claims are not a general application API. `Actor.token` is removed. If a
+low-level auth or policy boundary must inspect raw access-token claims, use
 `Actor.authentication.access_claims` and prefer adding typed authentication readers such as `acr`,
 `amr`, `restricted?`, or `verified?` instead of spreading raw claim access.
 

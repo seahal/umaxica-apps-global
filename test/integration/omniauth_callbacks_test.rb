@@ -107,6 +107,33 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_not_nil user
   end
 
+  test "should sign in with Apple GET callback" do
+    OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
+      {
+        provider: "apple",
+        uid: "apple_get_callback_uid",
+        info: {},
+        credentials: {
+          token: "apple_token",
+          expires_at: 1.week.from_now.to_i,
+        },
+      },
+    )
+
+    state = start_social_auth_flow(provider: "apple")
+
+    get sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+        params: { state: state },
+        headers: social_callback_headers(@host)
+
+    assert_redirected_to @expected_redirect
+    follow_redirect!
+
+    user = ClientSocialApple.find_by(uid: "apple_get_callback_uid").user
+
+    assert_not_nil user
+  end
+
   test "apple social login with MFA enabled does not require additional MFA challenge" do
     user = Client.create!(multi_factor_enabled: true)
     ClientOneTimePassword.create!(

@@ -9,7 +9,6 @@
 #  id :bigint           not null, primary key
 #
 class ClientIdentityState < AppRpRecord
-  self.table_name = "client_identity_states"
   include ReferenceRecord
 
   NOTHING = 0

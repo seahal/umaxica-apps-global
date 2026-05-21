@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_preference_region_options
+# Table name: client_preference_region_options
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key

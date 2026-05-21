@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: user_preference_timezone_options
+# Table name: client_preference_timezone_options
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key
 #
 class ClientPreferenceTimezoneOption < AppPrincipalRecord
-  self.table_name = "user_preference_timezone_options"
   # Fixed IDs - do not modify these values
   ETC_UTC = 1
   ASIA_TOKYO = 2

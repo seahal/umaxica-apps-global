@@ -16,11 +16,11 @@ module Authentication
   #
   # The `write` entry point preserves the original "do not block
   # authentication on audit failure" contract: it returns true/false and
-  # never raises. The previous implementation only logged once and
-  # emitted a `Rails.event.notify`, with no durable record of the
-  # missing event. The outbox row brings the auth audit guarantee into
-  # line with what `Chronicle::Capture` already provides for higher-level
-  # chronicles. See S-4.
+  # never raises. The previous implementation only wrote a transient
+  # application log, with no durable record of the missing event. The
+  # outbox row brings the auth audit guarantee into
+  # line with what `Chronicle.capture` provides for higher-level chronicles.
+  # See S-4.
   #
   # Usage:
   #   # Raises on failure (use only in critical paths)
@@ -192,7 +192,7 @@ module Authentication
     private_class_method :write_failed_payload
 
     def self.notify_write_failed(payload)
-      Rails.event.notify(WRITE_FAILED_EVENT, payload)
+      Rails.logger.info(LogEvent.format(WRITE_FAILED_EVENT, payload))
     rescue StandardError
       false
     end

@@ -24,7 +24,7 @@ module Sign
       end
 
       def destroy
-        return render_current_session_error if @session.public_id == current_session_public_id
+        return render_current_session_error if current_session_record?(@session)
 
         revoke_sessions!([@session], action: "session.revoke")
         render_revoke_success
@@ -39,12 +39,12 @@ module Sign
         return if require_step_up!(scope: "session_revoke_all") == false
 
         session_count = visible_sessions.count
-        Rails.event.notify(
+        Rails.logger.info(LogEvent.format(
           "security.session_revoke_all",
           actor_type: current_resource.class.name,
           actor_id: current_resource.id,
           session_count: session_count,
-        )
+        ))
         logout_all_sessions_for!(resource: session_owner, reason: revoke_all_reason)
         render_revoke_all_success
       end
@@ -55,7 +55,7 @@ module Sign
         sessions = visible_sessions
         return sessions if current_session_public_id.blank?
 
-        sessions.where.not(public_id: current_session_public_id)
+        sessions.reject { |session| current_session_record?(session) }
       end
 
       def revoke_sessions!(sessions, action:)
@@ -94,6 +94,14 @@ module Sign
 
         head :not_found
         nil
+      end
+
+      def current_session_record?(session)
+        return false unless session
+        return false if current_session_public_id.blank?
+
+        session.public_id == current_session_public_id ||
+          (session.respond_to?(:device_session) && session.device_session&.public_id == current_session_public_id)
       end
     end
   end

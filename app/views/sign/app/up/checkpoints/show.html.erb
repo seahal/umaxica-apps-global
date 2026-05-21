@@ -1,0 +1,46 @@
+<% content_for :page_title, t("sign.app.registration.checkpoint.show.page_title") %>
+
+<h1><%= t("sign.app.registration.checkpoint.show.page_title") %></h1>
+
+<% if @sign_up_missing_requirements.include?(:birthdate) %>
+  <section>
+    <h2><%= t("sign.app.registration.checkpoint.show.birthdate.title") %></h2>
+    <p><%= t("sign.app.registration.checkpoint.show.birthdate.description") %></p>
+
+    <%= form_with url: sign_app_up_checkpoint_birthdate_path(ri: params[:ri]), method: :patch do %>
+      <% if params[:rt].present? %>
+        <%= hidden_field_tag :rt, params[:rt] %>
+      <% end %>
+      <%= hidden_field_tag :requirement, "birthdate" %>
+
+      <div>
+        <%= label_tag :birthdate, t("sign.app.registration.checkpoint.show.birthdate.label") %>
+        <%= date_field_tag :birthdate, @sign_up_pending_actor&.birthdate, required: true %>
+      </div>
+
+      <%= submit_tag t("sign.app.registration.checkpoint.show.birthdate.submit") %>
+    <% end %>
+  </section>
+<% end %>
+
+<% if @sign_up_missing_requirements.include?(:passkey) %>
+  <section>
+    <h2><%= t("sign.app.registration.checkpoint.show.passkey.title") %></h2>
+    <p><%= t("sign.app.registration.checkpoint.show.passkey.description") %></p>
+    <%= link_to t("sign.app.registration.checkpoint.show.passkey.action"),
+                new_sign_app_up_checkpoint_passkey_path(ri: params[:ri], rt: params[:rt].presence) %>
+  </section>
+<% end %>
+
+<% if @sign_up_missing_requirements.include?(:passcode) %>
+  <section>
+    <h2><%= t("sign.app.registration.checkpoint.show.passcode.title") %></h2>
+    <p><%= t("sign.app.registration.checkpoint.show.passcode.description") %></p>
+    <%= link_to t("sign.app.registration.checkpoint.show.passcode.action"),
+                new_sign_app_up_checkpoint_passcode_path(ri: params[:ri], rt: params[:rt].presence) %>
+  </section>
+<% end %>
+
+<% if @sign_up_missing_requirements.empty? %>
+  <p><%= t("sign.app.registration.checkpoint.show.complete") %></p>
+<% end %>

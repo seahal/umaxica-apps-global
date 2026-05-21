@@ -25,8 +25,6 @@
 # frozen_string_literal: true
 
 class OperatorWorkspaceAccount < OrgRpRecord
-  self.table_name = "operator_workspace_accounts"
-
   include Retainable
   include ::Account
 

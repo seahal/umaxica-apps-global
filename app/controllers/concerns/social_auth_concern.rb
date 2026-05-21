@@ -29,7 +29,7 @@ module SocialAuthConcern
   STATE_TTL = 5.minutes
   STEP_UP_TTL = 10.minutes
 
-  VALID_INTENTS = %w(login link).freeze
+  VALID_INTENTS = %w(login link step_up).freeze
 
   included do
     rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
@@ -110,7 +110,7 @@ module SocialAuthConcern
   def validate_intent_presence!(intent, provider)
     return if intent == "link" && session[SOCIAL_FLOW_ID_SESSION_KEY].present?
 
-    Rails.event.notify("social_auth.state_missing", provider: provider)
+    Rails.logger.info(LogEvent.format("social_auth.state_missing", provider: provider))
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.state_missing")
   end
 
@@ -158,12 +158,12 @@ module SocialAuthConcern
     last_step_up = current_resource.last_step_up_at
     return unless last_step_up.blank? || last_step_up < ttl.ago
 
-    Rails.event.notify(
+    Rails.logger.info(LogEvent.format(
       "social_auth.step_up_required",
       user_id: current_resource.id,
       last_step_up_at: last_step_up&.iso8601,
       required_within: Integer(ttl.to_s, 10),
-    )
+    ))
     raise SocialAuth::StepUpRequiredError.new("errors.social_auth.step_up_required")
   end
 
@@ -220,12 +220,12 @@ module SocialAuthConcern
     intent = @social_auth_intent_snapshot || current_social_auth_intent
     provider = @social_auth_provider_snapshot || omniauth_provider
 
-    Rails.event.notify(
+    Rails.logger.info(LogEvent.format(
       "social_auth.error",
       error_class: error.class.name,
       error_message: error.message,
       status_code: error.status_code,
-    )
+    ))
 
     respond_to do |format|
       format.html do
@@ -244,10 +244,10 @@ module SocialAuthConcern
     intent = @social_auth_intent_snapshot || current_social_auth_intent
     provider = @social_auth_provider_snapshot || omniauth_provider
 
-    Rails.event.notify(
+    Rails.logger.info(LogEvent.format(
       "social_auth.record_not_unique",
       error_message: error.message,
-    )
+    ))
 
     respond_to do |format|
       format.html do
@@ -277,11 +277,11 @@ module SocialAuthConcern
     return if started_at.blank?
     return if Time.current <= Time.zone.at(Integer(started_at.to_s, 10)) + STATE_TTL
 
-    Rails.event.notify(
+    Rails.logger.info(LogEvent.format(
       "social_auth.intent_expired",
       provider: provider,
       started_at: started_at,
-    )
+    ))
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.state_expired")
   end
 

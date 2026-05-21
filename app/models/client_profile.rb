@@ -27,12 +27,10 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (client_status_id => client_profile_statuses.id)
-#  fk_rails_...  (status_id => client_profile_statuses.id)
+#  fk_rails_...  (client_status_id => visitor_account_statuses.id)
+#  fk_rails_...  (status_id => visitor_account_statuses.id)
 #
 class ClientProfile < AppRpRecord
-  self.table_name = "client_profiles"
-
   belongs_to :client_status,
              class_name: "VisitorAccountStatus",
              inverse_of: :clients

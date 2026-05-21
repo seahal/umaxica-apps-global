@@ -23,6 +23,7 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
 
   test "model_for_provider returns model class" do
     assert_equal ClientSocialGoogle, SocialIdentifiable.model_for_provider("google")
+    assert_equal OperatorSocialGoogle, SocialIdentifiable.model_for_provider("google_org")
     assert_equal ClientSocialApple, SocialIdentifiable.model_for_provider("apple")
   end
 

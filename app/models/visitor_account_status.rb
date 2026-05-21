@@ -3,14 +3,12 @@
 
 # == Schema Information
 #
-# Table name: client_profile_statuses
+# Table name: visitor_account_statuses
 # Database name: app_zenith
 #
 #  id :bigint           not null, primary key
 #
 class VisitorAccountStatus < AppRpRecord
-  self.table_name = "client_profile_statuses"
-
   has_many :clients,
            class_name: "ClientProfile",
            inverse_of: :client_status,

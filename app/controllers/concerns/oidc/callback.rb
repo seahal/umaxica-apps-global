@@ -31,12 +31,12 @@ module Oidc
     rescue ActionController::InvalidCrossOriginRequest
       raise
     rescue StandardError => e
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "oidc.rp.callback.exception",
         error_class: e.class.name,
         client_id: oidc_client_id,
         host: request.host,
-      )
+      ))
       render_callback_failure("callback_failed")
     end
 
@@ -83,12 +83,12 @@ module Oidc
     end
 
     def render_callback_failure(error)
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "oidc.rp.callback.failed",
         error: error,
         client_id: oidc_client_id,
         host: request.host,
-      )
+      ))
       clear_oidc_session_state!
       redirect_to("/", alert: I18n.t("errors.messages.login_required"), allow_other_host: false)
     end

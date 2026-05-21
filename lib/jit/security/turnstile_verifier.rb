@@ -15,19 +15,39 @@ module Jit
 
       class << self
         def test_mode
+          return false unless test_override_allowed?
+
           TEST_MODE.value
         end
 
         def test_mode=(value)
+          assert_test_override_allowed!
+
           TEST_MODE.value = value
         end
 
         def test_response
+          return nil unless test_override_allowed?
+
           TEST_RESPONSE.value
         end
 
         def test_response=(value)
+          assert_test_override_allowed!
+
           TEST_RESPONSE.value = value
+        end
+
+        private
+
+        def test_override_allowed?
+          defined?(Rails) && Rails.env.test?
+        end
+
+        def assert_test_override_allowed!
+          return if test_override_allowed?
+
+          raise "TurnstileVerifier test override is allowed only in test"
         end
       end
 
@@ -57,7 +77,7 @@ module Jit
       rescue StandardError => e
         # Decoupled notification: only if Rails event system exists
         if defined?(Rails) && Rails.respond_to?(:event)
-          Rails.event.notify("turnstile.verify.failed", error_class: e.class.name, error_message: e.message)
+          Rails.logger.info(LogEvent.format("turnstile.verify.failed", error_class: e.class.name, error_message: e.message))
         end
         failure(e.message)
       end

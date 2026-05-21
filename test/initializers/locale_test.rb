@@ -12,23 +12,8 @@ class LocaleInitializerTest < ActiveSupport::TestCase
 
   INITIALIZER_PATH = Rails.root.join("config/initializers/locale.rb")
 
-  setup do
-    @original_region_code = ENV["REGION_CODE"]
-  end
-
-  teardown do
-    ENV["REGION_CODE"] = @original_region_code
-    reload_locale_initializer if @original_region_code.present?
-  end
-
-  test "REGION_CODE is required - should fail when not set" do
+  test "loads locale files when REGION_CODE is not set" do
     ENV.delete("REGION_CODE")
-
-    assert_raises(KeyError) { reload_locale_initializer }
-  end
-
-  test "REGION_CODE=all should load jp and us locale files" do
-    ENV["REGION_CODE"] = "all"
 
     assert_nothing_raised { reload_locale_initializer }
     assert_includes_locale_path("config/locales/jp")
@@ -39,9 +24,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_equal [:ja, :en], I18n.fallbacks[:ja]
   end
 
-  test "REGION_CODE=jp provides english labels for app configuration links" do
-    ENV["REGION_CODE"] = "jp"
-
+  test "provides english labels for app configuration links" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do
@@ -54,9 +37,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
   end
 
-  test "REGION_CODE=jp provides english labels for app language preference screen" do
-    ENV["REGION_CODE"] = "jp"
-
+  test "provides english labels for app language preference screen" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do
@@ -76,9 +57,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
   end
 
-  test "REGION_CODE=jp provides english labels for app region preference links" do
-    ENV["REGION_CODE"] = "jp"
-
+  test "provides english labels for app region preference links" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do
@@ -96,9 +75,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
   end
 
-  test "REGION_CODE=jp provides localized labels for app date format preference screen" do
-    ENV["REGION_CODE"] = "jp"
-
+  test "provides localized labels for app date format preference screen" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:ja) do
@@ -112,9 +89,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
   end
 
-  test "REGION_CODE=jp provides localized labels for com region preference links" do
-    ENV["REGION_CODE"] = "jp"
-
+  test "provides localized labels for com region preference links" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:ja) do
@@ -132,9 +107,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
   end
 
-  test "REGION_CODE=us provides localized labels for app region preference links" do
-    ENV["REGION_CODE"] = "us"
-
+  test "provides localized labels for app region preference links" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:ja) do
@@ -152,9 +125,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
   end
 
-  test "REGION_CODE=jp provides localized labels for app display and accessibility preferences" do
-    ENV["REGION_CODE"] = "jp"
-
+  test "provides localized labels for app display and accessibility preferences" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do
@@ -178,10 +149,9 @@ class LocaleInitializerTest < ActiveSupport::TestCase
 
   test "region preference screens provide localized top back links" do
     {
-      "jp" => { en: "Back", ja: "もどる" },
-      "us" => { en: "Back", ja: "もどる" },
-    }.each do |region_code, expectations|
-      ENV["REGION_CODE"] = region_code
+      en: "Back",
+      ja: "もどる",
+    }.then do |expectations|
       assert_nothing_raised { reload_locale_initializer }
 
       expectations.each do |locale, expected|
@@ -196,16 +166,9 @@ class LocaleInitializerTest < ActiveSupport::TestCase
 
   test "region preference screens provide org regional option links" do
     {
-      "jp" => {
-        en: ["Timezone Settings", "Language Settings", "Currency", "Date Format", "Time Format"],
-        ja: %w(タイムゾーン設定 言語設定 通貨設定 日付形式 時刻形式),
-      },
-      "us" => {
-        en: ["Timezone Settings", "Language Settings", "Currency", "Date Format", "Time Format"],
-        ja: %w(タイムゾーン設定 言語設定 通貨設定 日付形式 時刻形式),
-      },
-    }.each do |region_code, expectations|
-      ENV["REGION_CODE"] = region_code
+      en: ["Timezone Settings", "Language Settings", "Currency", "Date Format", "Time Format"],
+      ja: %w(タイムゾーン設定 言語設定 通貨設定 日付形式 時刻形式),
+    }.then do |expectations|
       assert_nothing_raised { reload_locale_initializer }
 
       expectations.each do |locale, expected|
@@ -233,25 +196,20 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       },
     }
 
-    %w(jp us).each do |region_code|
-      ENV["REGION_CODE"] = region_code
-      assert_nothing_raised { reload_locale_initializer }
+    assert_nothing_raised { reload_locale_initializer }
 
-      expectations.each do |locale, surfaces|
-        I18n.with_locale(locale) do
-          surfaces.each do |surface, (heading, description, label)|
-            assert_equal heading, I18n.t("apex.#{surface}.preference.language.edit.heading")
-            assert_equal description, I18n.t("apex.#{surface}.preference.language.edit.description")
-            assert_equal label, I18n.t("apex.#{surface}.preference.language.edit.language_label")
-          end
+    expectations.each do |locale, surfaces|
+      I18n.with_locale(locale) do
+        surfaces.each do |surface, (heading, description, label)|
+          assert_equal heading, I18n.t("apex.#{surface}.preference.language.edit.heading")
+          assert_equal description, I18n.t("apex.#{surface}.preference.language.edit.description")
+          assert_equal label, I18n.t("apex.#{surface}.preference.language.edit.language_label")
         end
       end
     end
   end
 
-  test "REGION_CODE=us provides localized labels for org regional option screens" do
-    ENV["REGION_CODE"] = "us"
-
+  test "provides localized labels for org regional option screens" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:ja) do
@@ -276,40 +234,9 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
   end
 
-  # test "REGION_CODE=us should work correctly" do
-  #   result = system(
-  #     { "REGION_CODE" => "us" },
-  #     "bundle exec rails runner 'puts \"OK\"'",
-  #     out: File::NULL,
-  #     err: File::NULL
-  #   )
-  #
-  #   assert result, "Rails should start successfully with REGION_CODE=us"
-  # end
-
-  # test "invalid REGION_CODE should fail with descriptive error" do
-  #   output = `REGION_CODE=invalid bundle exec rails runner 'puts "OK"' 2>&1`
-  #   exit_status = $?.exitstatus
-  #
-  #   assert_not_equal 0, exit_status, "Rails should fail to start with invalid REGION_CODE"
-  #   assert_match(/REGION_CODE='invalid' is invalid/, output, "Error message should mention invalid REGION_CODE")
-  #   assert_match(/Directory not found/, output, "Error message should mention directory not found")
-  # end
-
-  # test "correct locale files are loaded based on REGION_CODE" do
-  #   # Test that jp region loads jp locale files
-  #   output = `REGION_CODE=jp bundle exec rails runner 'puts I18n.load_path.grep(/locales/).first' 2>&1`
-  #   assert_match(/config\/locales\/jp/, output, "Should load locale files from jp directory")
-  #
-  #   # Test that us region loads us locale files
-  #   output = `REGION_CODE=us bundle exec rails runner 'puts I18n.load_path.grep(/locales/).first' 2>&1`
-  #   assert_match(/config\/locales\/us/, output, "Should load locale files from us directory")
-  # end
-
   private
 
   def reload_locale_initializer
-    Object.send(:remove_const, :REGION_COMPOSE) if defined?(REGION_COMPOSE)
     load(INITIALIZER_PATH)
   end
 

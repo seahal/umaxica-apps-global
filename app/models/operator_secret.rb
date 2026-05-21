@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_secrets
+# Table name: operator_secrets
 # Database name: org_principal
 #
 #  id                              :bigint           not null, primary key
@@ -21,20 +21,19 @@
 #
 # Indexes
 #
-#  index_staff_secrets_on_public_id                        (public_id) UNIQUE
-#  index_staff_secrets_on_staff_id                         (staff_id)
-#  index_staff_secrets_on_staff_identity_secret_status_id  (staff_identity_secret_status_id)
-#  index_staff_secrets_on_staff_secret_kind_id             (staff_secret_kind_id)
+#  index_operator_secrets_on_public_id                        (public_id) UNIQUE
+#  index_operator_secrets_on_staff_id                         (staff_id)
+#  index_operator_secrets_on_staff_identity_secret_status_id  (staff_identity_secret_status_id)
+#  index_operator_secrets_on_staff_secret_kind_id             (staff_secret_kind_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...                              (staff_id => operators.id)
-#  fk_rails_...                              (staff_identity_secret_status_id => staff_secret_statuses.id)
-#  fk_staff_secrets_on_staff_secret_kind_id  (staff_secret_kind_id => staff_secret_kinds.id)
+#  fk_rails_...                              (staff_identity_secret_status_id => operator_secret_statuses.id)
+#  fk_staff_secrets_on_staff_secret_kind_id  (staff_secret_kind_id => operator_secret_kinds.id)
 #
 
 class OperatorSecret < OrgPrincipalRecord
-  self.table_name = "staff_secrets"
   include Retainable
 
   alias_attribute :staff_secret_status_id, :staff_identity_secret_status_id
@@ -42,7 +41,7 @@ class OperatorSecret < OrgPrincipalRecord
   include ::Secret
   include OperatorSecret::Kinds
 
-  MAX_SECRETS_PER_STAFF = 10
+  MAX_SECRETS_PER_STAFF = 20
   SIGN_IN_ALLOWED_STATUS_IDS = [OperatorSecretStatus::ACTIVE].freeze
   SIGN_IN_ALLOWED_KIND_IDS = OperatorSecretKind::ALLOWED_FOR_SECRET_SIGN_IN
   attr_accessor :raw_secret

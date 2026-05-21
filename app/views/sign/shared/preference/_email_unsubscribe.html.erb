@@ -10,6 +10,7 @@
 
     <%= form_with url: unsubscribe_path, method: :delete do |f| %>
       <%= hidden_field_tag :token, token %>
+      <%= render "shared/cloudflare_turnstile_visible" %>
       <%= f.submit "Unsubscribe" %>
     <% end %>
   <% else %>

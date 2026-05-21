@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: users
+# Table name: clients
 # Database name: app_principal
 #
 #  id                     :bigint           not null, primary key
@@ -28,30 +28,29 @@
 #
 # Indexes
 #
-#  index_users_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_users_on_deletable_at            (deletable_at)
-#  index_users_on_discarded_at            (discarded_at)
-#  index_users_on_multi_factor_id         (multi_factor_id)
-#  index_users_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_users_on_public_id               (public_id) UNIQUE
-#  index_users_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_users_on_status_id               (status_id)
-#  index_users_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
-#  index_users_on_visibility_id           (visibility_id)
-#  index_users_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_users_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_clients_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_clients_on_deletable_at            (deletable_at)
+#  index_clients_on_discarded_at            (discarded_at)
+#  index_clients_on_multi_factor_id         (multi_factor_id)
+#  index_clients_on_multi_factor_status_id  (multi_factor_status_id)
+#  index_clients_on_public_id               (public_id) UNIQUE
+#  index_clients_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
+#  index_clients_on_status_id               (status_id)
+#  index_clients_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_clients_on_visibility_id           (visibility_id)
+#  index_clients_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_clients_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => user_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => user_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => user_statuses.id)
-#  fk_rails_...  (visibility_id => user_visibilities.id)
+#  fk_rails_...  (multi_factor_id => client_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => client_multi_factor_statuses.id)
+#  fk_rails_...  (status_id => client_statuses.id)
+#  fk_rails_...  (visibility_id => client_visibilities.id)
 #
 
 class Client < AppPrincipalRecord
   # rubocop:disable Rails/HasManyOrHasOneDependent
-  self.table_name = "users"
 
   include Retainable
   include HasBirthdate
@@ -267,6 +266,20 @@ class Client < AppPrincipalRecord
     remaining_login_methods(excluding_provider: excluding_provider).any?
   end
 
+  def social_unlink_methods_remaining?(excluding_provider:)
+    remaining_social_unlink_methods(excluding_provider: excluding_provider).any?
+  end
+
+  def remaining_social_unlink_methods(excluding_provider:)
+    excluded = SocialIdentifiable.normalize_provider(excluding_provider)
+    methods = []
+    methods << :email if client_emails.exists?(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES)
+    methods << :passkey if client_passkeys.exists?(status_id: ClientPasskeyStatus::ACTIVE)
+    methods << :google if excluded != "google" && active_social_google_exists?
+    methods << :apple if excluded != "apple" && active_social_apple_exists?
+    methods
+  end
+
   def remaining_login_methods(excluding_provider: nil)
     excluded = excluding_provider.present? ? SocialIdentifiable.normalize_provider(excluding_provider) : nil
     methods = authentication_credential_inventory.aal1_methods.map { |method| (method == :email_otp) ? :email : method }
@@ -285,6 +298,14 @@ class Client < AppPrincipalRecord
     else
       false
     end
+  end
+
+  def active_social_google_exists?
+    ClientSocialGoogle.exists?(user_id: id, status_id: ClientSocialGoogleStatus::ACTIVE)
+  end
+
+  def active_social_apple_exists?
+    ClientSocialApple.exists?(user_id: id, status_id: ClientSocialAppleStatus::ACTIVE)
   end
 
   def verified_email?

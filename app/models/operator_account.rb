@@ -18,7 +18,6 @@
 #  index_operator_accounts_on_staff_id   (staff_id) UNIQUE
 #
 class OperatorAccount < OrgRpRecord
-  self.table_name = "operator_accounts"
   include ::PublicId
 
   belongs_to :staff, inverse_of: :rp_account, class_name: "Operator"

@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: staff_preference_timezone_options
+# Table name: operator_preference_timezone_options
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 class OperatorPreferenceTimezoneOption < OrgPrincipalRecord
-  self.table_name = "staff_preference_timezone_options"
   # Fixed IDs - do not modify these values
   NOTHING = 0
   ETC_UTC = 1

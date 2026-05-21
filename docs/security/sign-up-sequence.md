@@ -39,8 +39,9 @@ All `app` and target `com` sign-up paths share the same post-finalization routin
 2. Enter the existing sign-in boundary in the same Rails action/request.
 3. The sign-in boundary evaluates `/sign/in/guardrail` before session issuance.
 4. If sign-in guardrail does not block, issue the authenticated session.
-5. Continue to `/sign/in/checkpoint` and `/dashboard`.
-6. If a safe `rt` return path is present, jump there after dashboard sequence handling.
+5. Continue to `/sign/in/checkpoint` and `/welcome`.
+6. If a safe `rt` return path is present, jump there after welcome sequence handling; otherwise
+   continue to `/dashboard`.
 
 The sign-up finalization and sign-in boundaries must not redirect, render, or perform an HTTP reload
 between each other. Route selection belongs to the post-finalization handoff after the sign-in
@@ -55,7 +56,7 @@ The server must reject that request with a status code and a plain-text message.
 redirect to dashboard, continue a return path, create a new registration sequence, or sign the actor
 out on their behalf.
 
-## Guardrail, Checkpoint, And Dashboard
+## Guardrail, Checkpoint, Welcome, And Dashboard
 
 `/sign/up/guardrail` is the sign-up stop point for cases where the current sign-up sequence must not
 continue. It is distinct from `/sign/up/checkpoint`:
@@ -67,7 +68,7 @@ continue. It is distinct from `/sign/up/checkpoint`:
 session issuance. If it blocks after durable sign-up completion, that is a sign-in failure domain;
 it must not delete completed account data.
 
-Guardrail, checkpoint, and dashboard are sequence participants whose required content can grow or
+Guardrail, checkpoint, and welcome are sequence participants whose required content can grow or
 disappear over time. The sign-up state machine decides when the current sequence is allowed to
 evaluate each participant.
 
@@ -81,13 +82,22 @@ Expected participant behavior:
   item, stop the attempt with plain text. No redirect is performed.
 - Checkpoint: if the stack is empty, advance without displaying a page. If the stack has any
   blocking item, keep the actor at checkpoint until all required setup is cleared.
-- Dashboard: if the sequence dashboard stack is empty, continue to the safe `rt` return path or
-  default destination. If the stack has items, display them after sign-in. Reaching dashboard means
-  the actor has completed the normal `AAL1` sign-in boundary and can behave as a signed-in actor.
+- Welcome: if the sequence welcome stack is empty, continue to the safe `rt` return path or
+  `/dashboard`. If the stack has items, display them after sign-in. Reaching welcome means the actor
+  has completed the normal `AAL1` sign-in boundary and can behave as a signed-in actor.
 
-`/dashboard` also remains an ordinary authenticated page. Only the post-finalization sequence
-dashboard participant consumes the preserved `rt` handoff; ordinary direct dashboard access must not
-turn a query parameter into a post-auth continuation.
+`/welcome` is the post-finalization handoff route. It consumes the preserved `rt` only when that
+return path is safe. If `rt` is missing, blank, invalid, unsafe, expired, or points back to
+`/welcome`, the actor is redirected to `/dashboard`.
+
+`/dashboard` remains an ordinary authenticated page. Ordinary direct dashboard access must not turn
+a query parameter into a post-auth continuation.
+
+Before redirecting to `/welcome`, the server clears any previous welcome gate for the surface and
+issues a new session gate with `remaining = 5`, `issued_at`, and `expires_at`. Each `/welcome`
+request decrements `remaining`. Once `remaining <= 0`, or once the current time is at or after
+`expires_at`, the welcome gate is cleared and the actor is redirected to `/dashboard`. The expiry is
+absolute and refresh does not extend it.
 
 For example, telephone sign-up checkpoint can contain separate birthdate, passkey, and passcode
 requirements. The account must not finalize until all three items are cleared. Adding a future
@@ -158,12 +168,13 @@ Expected state-machine path:
   - If sign-in/session issuance fails after durable sign-up completion, treat it as sign-in failure
     handling and do not delete the completed account.
 
-- Dashboard sequence: `GET /dashboard`
-  - Current route helper: `sign_app_dashboard_path`.
-  - This step is also bypassable by `continue_dashboard_sequence_without_content!` when no dashboard
+- Welcome sequence: `GET /welcomes/:id`
+  - Current route helper: `sign_app_welcome_path("post_auth")`.
+  - This step is also bypassable by `continue_welcome_sequence_without_content!` when no welcome
     sequence content is required.
   - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and dashboard handling, continue to the safe `rt` return path when present.
+    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
+    continue to `/dashboard`.
 
 - Post-auth handoff: `complete_update_and_redirect`
   - The controller-level completion hook should hand off into the sequence instead of deciding the
@@ -216,8 +227,8 @@ Current implementation path:
   - Target behavior is that guardrail is evaluated before session issuance.
   - In the current implementation, the actor reaches `/sign/in/checkpoint` if checkpoint content
     exists.
-  - Otherwise, or after checkpoint completion, the actor continues to dashboard and then the safe
-    `rt` return path when present.
+  - Otherwise, or after checkpoint completion, the actor continues to welcome and then the safe `rt`
+    return path when present, falling back to `/dashboard`.
 
 Current missing gate:
 
@@ -283,10 +294,11 @@ Target state-machine path:
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
 
-- Dashboard sequence: `GET /dashboard`
-  - Current route helper: `sign_com_dashboard_path`.
+- Welcome sequence: `GET /welcomes/:id`
+  - Current route helper: `sign_com_welcome_path("post_auth")`.
   - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and dashboard handling, continue to the safe `rt` return path when present.
+    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
+    continue to `/dashboard`.
 
 Current path:
 
@@ -390,12 +402,13 @@ Expected state-machine path:
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
 
-- Dashboard sequence: `GET /dashboard`
-  - Current route helper: `sign_app_dashboard_path`.
-  - This step is bypassable by `continue_dashboard_sequence_without_content!` when no dashboard
-    sequence content is required.
+- Welcome sequence: `GET /welcomes/:id`
+  - Current route helper: `sign_app_welcome_path("post_auth")`.
+  - This step is bypassable by `continue_welcome_sequence_without_content!` when no welcome sequence
+    content is required.
   - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and dashboard handling, continue to the safe `rt` return path when present.
+    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
+    continue to `/dashboard`.
 
 Current path:
 
@@ -485,12 +498,13 @@ Expected state-machine path:
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
 
-- Dashboard sequence: `GET /dashboard`
-  - Current route helper: `sign_app_dashboard_path`.
-  - This step is bypassable by `continue_dashboard_sequence_without_content!` when no dashboard
-    sequence content is required.
+- Welcome sequence: `GET /welcomes/:id`
+  - Current route helper: `sign_app_welcome_path("post_auth")`.
+  - This step is bypassable by `continue_welcome_sequence_without_content!` when no welcome sequence
+    content is required.
   - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and dashboard handling, continue to the safe `rt` return path when present.
+    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
+    continue to `/dashboard`.
 
 ### App Apple
 
@@ -549,12 +563,13 @@ Expected state-machine path:
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
 
-- Dashboard sequence: `GET /dashboard`
-  - Current route helper: `sign_app_dashboard_path`.
-  - This step is bypassable by `continue_dashboard_sequence_without_content!` when no dashboard
-    sequence content is required.
+- Welcome sequence: `GET /welcomes/:id`
+  - Current route helper: `sign_app_welcome_path("post_auth")`.
+  - This step is bypassable by `continue_welcome_sequence_without_content!` when no welcome sequence
+    content is required.
   - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and dashboard handling, continue to the safe `rt` return path when present.
+    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
+    continue to `/dashboard`.
 
 Current path:
 
@@ -569,7 +584,7 @@ Current path:
 8. The client is signed in through the normal social login path.
 9. New and existing accounts both call the sign-in post-authentication sequence.
 10. Target behavior is that guardrail is evaluated before session issuance, then the actor reaches
-    checkpoint/dashboard/`rt` according to the sign-in sequence.
+    checkpoint/welcome/`rt` or dashboard according to the sign-in sequence.
 
 ## Com Telephone
 
@@ -652,10 +667,11 @@ Target state-machine path:
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
 
-- Dashboard sequence: `GET /dashboard`
-  - Current route helper: `sign_com_dashboard_path`.
+- Welcome sequence: `GET /welcomes/:id`
+  - Current route helper: `sign_com_welcome_path("post_auth")`.
   - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and dashboard handling, continue to the safe `rt` return path when present.
+    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
+    continue to `/dashboard`.
 
 Current path:
 

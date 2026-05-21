@@ -31,9 +31,14 @@ class Sign::Com::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       description: "My Passkey",
       status_id: VisitorPasskeyStatus::ACTIVE,
     )
+
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
   teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
   end
 

@@ -51,7 +51,9 @@ module Sign
     def touch_oidc_connection!(token)
       return unless token.respond_to?(:oidc_connection)
 
-      token.oidc_connection&.update!(last_used_at: Time.current)
+      ActiveRecord::Base.connected_to(role: :writing) do
+        token.oidc_connection&.update_columns(last_used_at: Time.current, updated_at: Time.current)
+      end
     end
 
     def parse_refresh_token!
@@ -76,7 +78,7 @@ module Sign
       now = Time.current
       family_scope.find_each do |actor|
         attrs = { discarded_at: now }
-        actor.update!(attrs)
+        actor.update_columns(attrs)
       end
 
       actor_key = actor_identifier_column(token) || :user_id
@@ -86,13 +88,13 @@ module Sign
         :user_token_id => token.public_id,
       )
 
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "authentication.refresh.reuse_detected",
         token_id: token.public_id,
         refresh_token_family_id: token.refresh_token_family_id,
         actor_type: actor_type_label(token),
         actor_id: actor_identifier(token),
-      )
+      ))
     end
 
     def refresh_token_family_scope(token)

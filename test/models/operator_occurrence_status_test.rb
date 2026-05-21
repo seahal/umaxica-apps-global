@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_occurrence_statuses
+# Table name: operator_occurrence_statuses
 # Database name: occurrence
 #
 #  id   :bigint           not null, primary key

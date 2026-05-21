@@ -12,6 +12,7 @@
                         required: true,
                         autocomplete: "one-time-code" %>
   </div>
+  <%= render "shared/cloudflare_turnstile_visible" %>
   <%= form.submit t("sign.org.up.invitations.form.submit") %>
 <% end %>
 

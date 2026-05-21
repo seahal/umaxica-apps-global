@@ -23,7 +23,7 @@
       </div>
     <% end %>
 
-    <%= form_with url: sign_org_in_session_path, method: :patch do |f| %>
+    <%= form_with url: sign_org_in_session_path, method: :patch, data: { turbo: false } do |f| %>
       <div>
         <h2>
           <%= t("session_limit.edit.active_sessions") %>
@@ -35,7 +35,7 @@
               <label data-session-checkbox class="ring-2 ring-transparent checked:ring-amber-500">
                 <input type="radio"
                        name="ref"
-                       value="<%= session.id %>">
+                       value="<%= session.signed_ref %>">
                 <div>
                   <div>
                   <span>
@@ -76,6 +76,11 @@
     <%= button_to t("session_limit.edit.cancel_logout"),
                   sign_org_in_session_path,
                   method: :delete,
-                  form: { data: { turbo_confirm: t("session_limit.edit.cancel_logout_confirm") } } %>
+                  form: {
+                    data: {
+                      turbo: false,
+                      turbo_confirm: t("session_limit.edit.cancel_logout_confirm"),
+                    },
+                  } %>
   </div>
 </section>

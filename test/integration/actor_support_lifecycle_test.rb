@@ -19,14 +19,13 @@ module ActorSupportLifecycle
       signed_in: Actor.signed_in?,
       signed_up: Actor.signed_up?,
       tld: Actor.tld.to_s,
-      session: Actor.session,
-      token_sid: Actor.token&.dig("sid"),
-      token_prf: Actor.token&.dig("prf"),
       authentication: {
         null: Actor.authentication.null?,
         login_public_id: Actor.authentication.login_public_id,
         acr: Actor.authentication.acr,
         amr: Actor.authentication.amr,
+        access_claim_sid: Actor.authentication.access_claims&.dig("sid"),
+        access_claim_prf: Actor.authentication.access_claims&.dig("prf"),
       },
       preference: {
         null: preference.null?,
@@ -155,8 +154,6 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_nil Actor.session
-    assert_nil Actor.token
     assert_equal Actor::Authentication::NULL, Actor.authentication
     assert_equal Actor::Configuration::NULL, Actor.configuration
     assert_equal Actor::Preference::NULL, Actor.preference
@@ -213,8 +210,6 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_nil Actor.session
-    assert_nil Actor.token
     assert_equal Actor::Authentication::NULL, Actor.authentication
     assert_equal Actor::Configuration::NULL, Actor.configuration
     assert_equal Actor::Preference::NULL, Actor.preference
@@ -254,8 +249,6 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_nil Actor.session
-    assert_nil Actor.token
     assert_equal Actor::Authentication::NULL, Actor.authentication
     assert_equal Actor::Configuration::NULL, Actor.configuration
     assert_equal Actor::Preference::NULL, Actor.preference

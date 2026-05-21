@@ -132,7 +132,13 @@ Passkey sign-in requires all three of the following:
 
 ### Social Login (Google / Apple)
 
-- Unlinking is allowed only if at least one other login method remains available
+- Unlinking is allowed only if at least one other social-unlink-safe sign-in method remains
+  available after removal.
+- For `app`, social-unlink-safe sign-in methods are verified email OTP, active passkey, active
+  Google social, and active Apple social.
+- Passcode is not counted for the social unlink no-lockout guard.
+- Unlinking requires recent AAL2 step-up and Cloudflare Turnstile validation before the destructive
+  request is executed.
 - Unlinking physically deletes the linked social identity immediately
 - Each unlink writes a `SOCIAL_UNLINKED` activity entry
 

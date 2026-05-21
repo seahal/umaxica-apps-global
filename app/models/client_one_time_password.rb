@@ -5,7 +5,7 @@
 
 # == Schema Information
 #
-# Table name: user_one_time_passwords
+# Table name: client_one_time_passwords
 # Database name: app_principal
 #
 #  id                                        :bigint           not null, primary key
@@ -20,18 +20,17 @@
 #
 # Indexes
 #
-#  idx_on_user_identity_one_time_password_status_id_c03cdf0b39  (user_identity_one_time_password_status_id)
-#  index_user_one_time_passwords_on_public_id                   (public_id) UNIQUE
-#  index_user_one_time_passwords_on_user_id                     (user_id)
+#  idx_on_user_identity_one_time_password_status_id_45a55f4ebd  (user_identity_one_time_password_status_id)
+#  index_client_one_time_passwords_on_public_id                 (public_id) UNIQUE
+#  index_client_one_time_passwords_on_user_id                   (user_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
-#  fk_rails_...  (user_identity_one_time_password_status_id => user_one_time_password_statuses.id)
+#  fk_rails_...  (user_id => clients.id)
+#  fk_rails_...  (user_identity_one_time_password_status_id => client_one_time_password_statuses.id)
 #
 
 class ClientOneTimePassword < AppPrincipalRecord
-  self.table_name = "user_one_time_passwords"
   include ::PublicId
   include MultiFactorStatusCredential
 

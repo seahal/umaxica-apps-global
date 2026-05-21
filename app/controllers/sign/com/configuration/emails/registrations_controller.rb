@@ -99,7 +99,7 @@ module Sign
           private
 
           def initiate_visitor_email_verification!(email_address, email_preferences: {})
-            turnstile_result = cloudflare_turnstile_validation
+            turnstile_result = cloudflare_turnstile_stealth_validation
             unless turnstile_result["success"]
               @user_email = VisitorEmail.new(raw_address: email_address, confirm_policy: "1")
               @user_email.errors.add(:base, t("sign.app.registration.email.create.turnstile_validation_failed"))

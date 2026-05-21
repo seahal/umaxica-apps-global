@@ -30,6 +30,13 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       last_used_at: Time.zone.now,
       staff_secret_kind_id: OperatorSecret::Kinds::LOGIN,
     )
+    CloudflareTurnstile.validation_override_enabled = true
+    CloudflareTurnstile.validation_override_response = { "success" => true }
+  end
+
+  teardown do
+    CloudflareTurnstile.validation_override_enabled = false
+    CloudflareTurnstile.validation_override_response = nil
   end
 
   def authenticated_headers
@@ -40,9 +47,16 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     # browser_headers sets an explicit 'Cookie' header which overwrites the cookie jar.
     # We must manually append our verification cookie if it exists.
+    csrf_token = cookies["csrf_token"]
     verification_token = cookies[OperatorVerification.cookie_name]
     if verification_token
-      headers["Cookie"] = "#{headers["Cookie"]}; #{OperatorVerification.cookie_name}=#{verification_token}"
+      headers["Cookie"] = [
+        headers["Cookie"],
+        ("csrf_token=#{csrf_token}" if csrf_token.present?),
+        "#{OperatorVerification.cookie_name}=#{verification_token}",
+      ]
+        .compact_blank
+        .join("; ")
     end
 
     headers
@@ -75,7 +89,7 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   test "should create secret and redirect to index" do
     assert_difference("OperatorSecret.count", 1) do
       post sign_org_configuration_secrets_url(ri: "jp"),
-           params: { staff_secret: { name: "New Secret", enabled: true } },
+           params: { staff_secret: { name: "New Secret", enabled: true }, "cf-turnstile-response": "test" },
            headers: authenticated_headers
     end
 
@@ -86,7 +100,7 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
   test "should update secret and redirect to index" do
     patch sign_org_configuration_secret_url(@staff_secret, ri: "jp"),
-          params: { staff_secret: { name: "Updated Secret", enabled: false } },
+          params: { staff_secret: { name: "Updated Secret", enabled: false }, "cf-turnstile-response": "test" },
           headers: authenticated_headers
 
     assert_redirected_to sign_org_configuration_secrets_url(ri: "jp")
@@ -97,7 +111,9 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
   end
 
   test "should get destroy" do
-    delete sign_org_configuration_secret_url(@staff_secret, ri: "jp"), headers: authenticated_headers
+    delete sign_org_configuration_secret_url(@staff_secret, ri: "jp"),
+           params: { "cf-turnstile-response": "test" },
+           headers: authenticated_headers
 
     assert_response :see_other
     assert_redirected_to sign_org_configuration_secrets_url(ri: "jp")
@@ -123,5 +139,43 @@ class Sign::Org::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     get sign_org_configuration_secret_url(@staff_secret.id, ri: "jp"), headers: authenticated_headers
 
     assert_response :not_found
+  end
+
+  test "create requires successful stealth turnstile" do
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    assert_no_difference("OperatorSecret.count") do
+      post sign_org_configuration_secrets_url(ri: "jp"),
+           params: { staff_secret: { name: "Blocked Secret", enabled: true }, "cf-turnstile-response": "bad" },
+           headers: authenticated_headers
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, I18n.t("turnstile_error")
+  end
+
+  test "update requires successful stealth turnstile" do
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    patch sign_org_configuration_secret_url(@staff_secret, ri: "jp"),
+          params: { staff_secret: { name: "Blocked Update", enabled: true }, "cf-turnstile-response": "bad" },
+          headers: authenticated_headers
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, I18n.t("turnstile_error")
+    assert_equal "Test Secret", @staff_secret.reload.name
+  end
+
+  test "destroy requires successful stealth turnstile" do
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    delete sign_org_configuration_secret_url(@staff_secret, ri: "jp"),
+           params: { "cf-turnstile-response": "bad" },
+           headers: authenticated_headers
+
+    assert_response :see_other
+    assert_redirected_to sign_org_configuration_secrets_url(ri: "jp")
+    assert_predicate flash[:alert], :present?
+    assert_not_equal OperatorSecretStatus::DELETED, @staff_secret.reload.staff_secret_status_id
   end
 end

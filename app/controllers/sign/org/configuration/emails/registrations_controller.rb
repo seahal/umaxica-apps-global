@@ -36,7 +36,7 @@ module Sign
             )
             @staff_email.staff_email_status_id = OperatorEmailStatus::UNVERIFIED
 
-            unless cloudflare_turnstile_validation["success"]
+            unless cloudflare_turnstile_stealth_validation["success"]
               @staff_email.errors.add(:base, t("sign.org.registration.email.create.turnstile_validation_failed"))
               render :new, status: :unprocessable_content
               return

@@ -334,8 +334,6 @@ module Verification
       return false unless actor
 
       refresh_actor_multi_factor_status(actor)
-      return actor.multi_factor_status_unconfigured? if actor.respond_to?(:multi_factor_status_unconfigured?)
-
       configured_step_up_methods(actor).empty?
     end
 

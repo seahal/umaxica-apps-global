@@ -68,10 +68,9 @@ Surface databases remain separate. The model layer therefore uses surface-specif
 
 ## Consequences
 
-Future removal of `device_id` is localized. The `device_session` record remains as the login
-session container, while `device_id` cookie issuance, `device_id_digest`, fallback policy, and UI
-display can be removed without changing the core `sid`, refresh family, DBSC, or logout-current
-model.
+Future removal of `device_id` is localized. The `device_session` record remains as the login session
+container, while `device_id` cookie issuance, `device_id_digest`, fallback policy, and UI display
+can be removed without changing the core `sid`, refresh family, DBSC, or logout-current model.
 
 DBSC can mature independently. When browser support is ready, DBSC proof material can become the
 primary binding on `device_session` while non-DBSC sessions remain explicit fallback sessions.

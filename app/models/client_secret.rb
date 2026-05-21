@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_secrets
+# Table name: client_secrets
 # Database name: app_principal
 #
 #  id                             :bigint           not null, primary key
@@ -22,20 +22,19 @@
 #
 # Indexes
 #
-#  index_user_secrets_on_public_id                       (public_id) UNIQUE
-#  index_user_secrets_on_user_id                         (user_id)
-#  index_user_secrets_on_user_identity_secret_status_id  (user_identity_secret_status_id)
-#  index_user_secrets_on_user_secret_kind_id             (user_secret_kind_id)
+#  index_client_secrets_on_public_id                       (public_id) UNIQUE
+#  index_client_secrets_on_user_id                         (user_id)
+#  index_client_secrets_on_user_identity_secret_status_id  (user_identity_secret_status_id)
+#  index_client_secrets_on_user_secret_kind_id             (user_secret_kind_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
-#  fk_rails_...  (user_identity_secret_status_id => user_secret_statuses.id)
-#  fk_rails_...  (user_secret_kind_id => user_secret_kinds.id)
+#  fk_rails_...  (user_id => clients.id)
+#  fk_rails_...  (user_identity_secret_status_id => client_secret_statuses.id)
+#  fk_rails_...  (user_secret_kind_id => client_secret_kinds.id)
 #
 
 class ClientSecret < AppPrincipalRecord
-  self.table_name = "user_secrets"
   include Retainable
 
   alias_attribute :user_secret_status_id, :user_identity_secret_status_id
@@ -43,7 +42,7 @@ class ClientSecret < AppPrincipalRecord
   include ::Secret
   include ClientSecret::Kinds
 
-  MAX_SECRETS_PER_USER = 10
+  MAX_SECRETS_PER_USER = 20
   SIGN_IN_ALLOWED_STATUS_IDS = [ClientSecretStatus::ACTIVE].freeze
   SIGN_IN_ALLOWED_KIND_IDS = ClientSecretKind::ALLOWED_FOR_SECRET_SIGN_IN
   attr_accessor :raw_secret

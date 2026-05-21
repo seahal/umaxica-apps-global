@@ -28,6 +28,8 @@
 #
 
 class Department < OrgPrincipalRecord
+  self.belongs_to_required_by_default = false
+
   belongs_to :parent,
              class_name: "Department",
              inverse_of: :children

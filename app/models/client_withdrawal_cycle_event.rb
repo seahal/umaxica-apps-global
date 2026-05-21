@@ -28,7 +28,7 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (client_id => users.id)
+#  fk_rails_...  (client_id => clients.id)
 #  fk_rails_...  (client_withdrawal_cycle_id => client_withdrawal_cycles.id)
 #  fk_rails_...  (from_status_id => client_withdrawal_cycle_statuses.id)
 #  fk_rails_...  (to_status_id => client_withdrawal_cycle_statuses.id)

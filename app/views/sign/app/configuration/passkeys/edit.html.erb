@@ -33,6 +33,8 @@
                           maxlength: 100 %>
     </div>
 
+    <%= render "shared/cloudflare_turnstile_stealth" %>
+
     <div>
       <%= form.submit t('actions.save') %>
       <%= link_to t('sign.common.cancel'), sign_app_configuration_passkeys_path %>
@@ -40,9 +42,11 @@
   <% end %>
 
   <div>
-    <%= button_to t('actions.delete'),
-                  sign_app_configuration_passkey_path(@passkey),
+    <%= form_with url: sign_app_configuration_passkey_path(@passkey),
                   method: :delete,
-                  form: { data: { turbo_confirm: t('messages.confirm_destroy') } } %>
+                  data: { turbo_confirm: t('messages.confirm_destroy') } do |form| %>
+      <%= render "shared/cloudflare_turnstile_stealth" %>
+      <%= form.submit t('actions.delete') %>
+    <% end %>
   </div>
 </div>

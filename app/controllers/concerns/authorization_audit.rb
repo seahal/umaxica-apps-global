@@ -40,12 +40,12 @@ module AuthorizationAudit
     log_data = build_log_data(actor, exception)
 
     # Log the authorization failure event
-    Rails.event.notify("authorization.failure", log_data)
+    Rails.logger.info(LogEvent.format("authorization.failure", log_data))
 
     create_audit_record(actor, log_data)
   rescue StandardError => e
     # Don't let audit logging break the application
-    Rails.event.error("authorization.failure_log.failed", error_class: e.class.name, message: e.message)
+    Rails.logger.error(LogEvent.format("authorization.failure_log.failed", error_class: e.class.name, message: e.message))
   end
 
   def build_log_data(actor, exception)
@@ -84,7 +84,7 @@ module AuthorizationAudit
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
     # Event ID might not exist in the database yet
-    Rails.event.notify("authorization.audit.user_creation_failed", error_message: e.message)
+    Rails.logger.info(LogEvent.format("authorization.audit.user_creation_failed", error_message: e.message))
   end
 
   def create_staff_authorization_audit(staff, log_data)
@@ -98,7 +98,7 @@ module AuthorizationAudit
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
     # Event ID might not exist in the database yet
-    Rails.event.notify("authorization.audit.staff_creation_failed", error_message: e.message)
+    Rails.logger.info(LogEvent.format("authorization.audit.staff_creation_failed", error_message: e.message))
   end
 
   def current_client_or_staff

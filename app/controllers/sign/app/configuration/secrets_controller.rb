@@ -6,13 +6,15 @@ module Sign
     module Configuration
       class SecretsController < PrivateController
         include ::Verification::Client
+        include ::Sign::Configuration::SecretTurnstileGuard
 
         before_action :authenticate_client!
         before_action only: %i(new create) do
           require_step_up!(scope: verification_scope)
         end
-        before_action :set_secret, only: %i(show edit destroy regenerate)
+        before_action :set_secret, only: %i(show edit update destroy regenerate)
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
+        before_action :verify_secret_turnstile!, only: %i(create update destroy)
 
         def index
           @secrets = current_client.client_secrets.order(created_at: :desc)
@@ -47,6 +49,25 @@ module Sign
           render plain: e.record.errors.full_messages.join("\n"), status: :unprocessable_content
         end
 
+        def update
+          if disabling_secret? && AuthMethodGuard.last_method?(current_client, excluding: @secret)
+            flash[:alert] = t(".last_method")
+            return redirect_to(sign_app_configuration_secrets_path(ri: params[:ri]))
+          end
+
+          ClientSecrets::Update.call(
+            actor: current_client,
+            secret: @secret,
+            params: secret_params,
+          )
+
+          flash[:notice] = t(".updated")
+          redirect_to(sign_app_configuration_secrets_path(ri: params[:ri]))
+        rescue ActiveRecord::RecordInvalid => e
+          @secret = e.record.is_a?(ClientSecret) ? e.record : @secret
+          render :edit, status: :unprocessable_content
+        end
+
         def destroy
           if AuthMethodGuard.last_method?(current_client, excluding: @secret)
             flash[:alert] = t(".last_method")
@@ -77,6 +98,10 @@ module Sign
           params.fetch(:user_secret, {}).permit(:name, :enabled)
         end
 
+        def disabling_secret?
+          secret_params.key?(:enabled) && !ActiveModel::Type::Boolean.new.cast(secret_params[:enabled])
+        end
+
         def ensure_verified_recovery_identity_for_registration!
           return if current_client.has_verified_recovery_identity?
 
@@ -88,6 +113,18 @@ module Sign
             last_step_up_at: Time.current,
             last_step_up_scope: verification_scope,
           )
+        end
+
+        def prepare_secret_turnstile_create_failure
+          @secret = current_client.client_secrets.new(secret_params.except(:enabled))
+          @raw_secret = session[:user_secret_raw].presence || ClientSecret.generate_raw_secret
+          session[:user_secret_raw] = @raw_secret
+          @secret.name = @raw_secret.first(4) if @secret.name.blank?
+          @secret.errors.add(:base, t("turnstile_error"))
+        end
+
+        def secret_turnstile_failure_redirect_path
+          sign_app_configuration_secrets_path(ri: params[:ri])
         end
 
         def verification_required_action?

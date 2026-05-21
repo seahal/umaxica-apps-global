@@ -22,12 +22,14 @@ module Sign
       class PasskeysController < PrivateController
         include ::Verification::Operator
         include Sign::Webauthn
+        include ::CloudflareTurnstile
 
         before_action :authenticate_operator!
         before_action only: %i(new create options verification) do
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
         before_action :set_passkey, only: %i(show edit update destroy)
+        before_action :verify_configuration_passkey_turnstile!, only: %i(options update destroy)
         # GET /configuration/passkeys
         def index
           @passkeys = current_operator.staff_passkeys.order(created_at: :desc)
@@ -87,10 +89,10 @@ module Sign
             options: creation_options,
           }, status: :ok
         rescue Sign::Webauthn::OriginValidationError => e
-          Rails.event.error("webauthn.origin_validation_failed", message: e.message)
+          Rails.logger.error(LogEvent.format("webauthn.origin_validation_failed", message: e.message))
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
         rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
-          Rails.event.error("webauthn.registration_options_failed", error_class: e.class.name, message: e.message)
+          Rails.logger.error(LogEvent.format("webauthn.registration_options_failed", error_class: e.class.name, message: e.message))
           render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
         end
 
@@ -218,6 +220,21 @@ module Sign
         end
 
         private
+
+        def verify_configuration_passkey_turnstile!
+          return true if cloudflare_turnstile_stealth_validation["success"]
+
+          respond_to do |format|
+            format.html do
+              redirect_back_or_to(
+                sign_org_configuration_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
+                                                                       status: :see_other,
+              )
+            end
+            format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }
+          end
+          false
+        end
 
         def set_passkey
           @passkey = current_operator.staff_passkeys.find(params(:id))

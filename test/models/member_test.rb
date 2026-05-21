@@ -26,7 +26,7 @@
 # Foreign Keys
 #
 #  fk_rails_...  (status_id => member_statuses.id)
-#  fk_rails_...  (user_id => users.id) ON DELETE => nullify
+#  fk_rails_...  (user_id => clients.id) ON DELETE => nullify
 #
 
 # frozen_string_literal: true

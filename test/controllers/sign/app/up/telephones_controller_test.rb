@@ -328,6 +328,16 @@ module Sign::App::Up
       assert_redirected_to sign_app_up_guardrail_url(regional_defaults)
       assert_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY].presence
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.reload.status_id
+
+      get sign_app_up_guardrail_url(regional_defaults)
+
+      assert_redirected_to sign_app_up_checkpoint_url(regional_defaults)
+
+      get sign_app_up_checkpoint_url(regional_defaults)
+
+      assert_response :success
+      assert_select "input[type=date][name=birthdate]"
+      assert_select "a[href='#{new_sign_app_up_checkpoint_passkey_path(regional_defaults)}']"
     end
 
     test "abandoned telephone sign up after otp can re-register the same number" do

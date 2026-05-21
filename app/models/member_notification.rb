@@ -19,7 +19,7 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_notification_id => user_notifications.id) ON DELETE => cascade
+#  fk_rails_...  (user_notification_id => client_notification_records.id) ON DELETE => cascade
 #
 
 class MemberNotification < AppSignalRecord

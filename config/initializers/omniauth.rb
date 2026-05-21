@@ -7,11 +7,11 @@
 #
 # Supported providers:
 # - Google OAuth2: Standard OAuth2 flow with state parameter
-# - Apple Sign In: Uses id_token (OIDC), POST callback
+# - Apple Sign In: Uses id_token (OIDC), GET or POST callback depending on response_mode
 #
 # Routing (OmniAuth standard):
 # - Start:    POST /auth/:provider (CSRF protected via omniauth-rails_csrf_protection)
-# - Callback: GET /auth/google_app/callback, POST /auth/apple/callback
+# - Callback: GET /auth/google_app/callback, GET/POST /auth/apple/callback
 # - Failure:  GET /auth/failure
 #
 # Our custom entry point:
@@ -135,7 +135,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
   # ---------------------------------------------------------------------------
   # Apple Sign In
   # ---------------------------------------------------------------------------
-  # Uses OIDC id_token flow. Callback: POST /auth/apple/callback
+  # Uses OIDC id_token flow. Callback: GET/POST /auth/apple/callback
   #
   # Required credentials:
   # - CLIENT_ID: Service ID (e.g., "com.example.app.web")
@@ -157,10 +157,10 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
              # Required: omniauth-apple's client_id method returns nil during callback
              # unless the aud from id_token is listed in authorized_client_ids
              authorized_client_ids: [apple_client_id],
-             # Apple's form_post callback is a cross-site POST from appleid.apple.com.
-             # SameSite=Lax session cookies are NOT sent on cross-site POSTs, so the
-             # OmniAuth state stored in session is lost. Skip OmniAuth's state check
-             # Apple's signed id_token (verified via JWKS) already provides CSRF protection.
+             # Apple can also use form_post, which is a cross-site POST from appleid.apple.com.
+             # SameSite=Lax session cookies are NOT sent on cross-site POSTs, so OmniAuth's
+             # state stored in session is lost. The app validates its own social state in the
+             # callback controller.
              provider_ignores_state: true,
              authorize_params: {
                response_mode: "query",

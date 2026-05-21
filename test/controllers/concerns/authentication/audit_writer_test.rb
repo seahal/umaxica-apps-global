@@ -105,7 +105,7 @@ module Authentication
                  "Failed audit should not be saved to database"
     end
 
-    test "write notifies Rails event on failure for observability" do
+    test "write logs failure for observability" do
       # Create invalid event_id
       invalid_event_id = "NONEXISTENT_#{SecureRandom.hex(16).upcase}"
 
@@ -114,10 +114,9 @@ module Authentication
         ClientChronicleEvent.where(id: invalid_event_id).delete_all
       end
 
-      notifications = []
-      notify = ->(name, payload = {}) { notifications << [name, payload] }
+      logged = []
 
-      Rails.event.stub(:notify, notify) do
+      Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
         result = Authentication::AuditWriter.write(
           ClientChronicle,
           invalid_event_id,
@@ -129,15 +128,16 @@ module Authentication
         assert_not result, "write should return false to indicate failure (observable)"
       end
 
-      notification = notifications.find { |name, _payload| name == Authentication::AuditWriter::WRITE_FAILED_EVENT }
+      notification = logged.find { |entry| entry[:event] == Authentication::AuditWriter::WRITE_FAILED_EVENT }
+      payload = notification&.fetch(:data)
 
-      assert notification, "write should emit authentication audit failure event"
-      assert_equal invalid_event_id, notification.second.fetch(:event_id)
-      assert_equal "Client", notification.second.fetch(:actor_type)
-      assert_equal @user.public_id, notification.second.fetch(:actor_id)
-      assert_equal "Client", notification.second.fetch(:resource_type)
-      assert_equal @user.public_id, notification.second.fetch(:resource_id)
-      assert_predicate notification.second.fetch(:ip_address_digest), :present?
+      assert notification, "write should log authentication audit failure event"
+      assert_equal invalid_event_id, payload.fetch(:event_id)
+      assert_equal "Client", payload.fetch(:actor_type)
+      assert_equal @user.public_id, payload.fetch(:actor_id)
+      assert_equal "Client", payload.fetch(:resource_type)
+      assert_equal @user.public_id, payload.fetch(:resource_id)
+      assert_predicate payload.fetch(:ip_address_digest), :present?
       assert_not_includes notification.second.keys, :error_message
     end
 
@@ -174,8 +174,8 @@ module Authentication
 
     # Regression for S-4: when the primary audit write fails, a
     # ChronicleOutboxEntry must be created so the missed event can be
-    # replayed later. Previously the failure was only Rails.logger +
-    # Rails.event.notify with no durable record.
+    # replayed later. Previously the failure was only an application log
+    # with no durable record.
     test "write persists a ChronicleOutboxEntry on audit failure" do
       invalid_event_id = "NONEXISTENT_OUTBOX_#{SecureRandom.hex(8).upcase}"
       ChronicleRecord.connected_to(role: :writing) do
@@ -262,12 +262,11 @@ module Authentication
                  "raw_ip must be stripped from outbox payload"
     end
 
-    test "write sanitizes secrets out of the Rails event payload" do
+    test "write sanitizes secrets out of the application log payload" do
       invalid_event_id = "NONEXISTENT_EVENT_SECRET_#{SecureRandom.hex(8).upcase}"
-      notifications = []
-      notify = ->(name, payload = {}) { notifications << [name, payload] }
+      logged = []
 
-      Rails.event.stub(:notify, notify) do
+      Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
         Authentication::AuditWriter.write(
           ClientChronicle,
           invalid_event_id,
@@ -286,7 +285,7 @@ module Authentication
         )
       end
 
-      payload = notifications.find { |name, _payload| name == Authentication::AuditWriter::WRITE_FAILED_EVENT }.second
+      payload = logged.find { |entry| entry[:event] == Authentication::AuditWriter::WRITE_FAILED_EVENT }.fetch(:data)
       payload_json = payload.to_json
 
       assert_includes payload_json, "passkey"
@@ -341,29 +340,29 @@ module Authentication
       assert_empty logger_error_calls
     end
 
-    test "structured event subscriber logs authentication events as JSON" do
+    test "log event formats authentication events as JSON" do
       log_io = StringIO.new
       logger = ActiveSupport::Logger.new(log_io)
       logger.formatter = ->(_severity, _datetime, _progname, message) { "#{message}\n" }
 
       Rails.stub(:logger, logger) do
-        Rails.event.notify(
-          Authentication::AuditWriter::WRITE_FAILED_EVENT,
-          event_uuid: SecureRandom.uuid,
-          audit_class: "ClientChronicle",
-          event_id: "LOGGED_IN",
-          actor_type: "Client",
-          actor_id: @user.public_id,
-          severity: "ERROR",
+        Rails.logger.info(
+          LogEvent.format(
+            Authentication::AuditWriter::WRITE_FAILED_EVENT,
+            event_uuid: SecureRandom.uuid,
+            audit_class: "ClientChronicle",
+            event_id: "LOGGED_IN",
+            actor_type: "Client",
+            actor_id: @user.public_id,
+          ),
         )
       end
 
       event_log = log_io.string.lines.find { |line| line.include?(Authentication::AuditWriter::WRITE_FAILED_EVENT) }
 
-      assert event_log, "authentication event should be forwarded to Rails.logger"
+      assert event_log, "authentication event should be written to Rails.logger"
       parsed = JSON.parse(event_log)
 
-      assert_equal "ERROR", parsed.fetch("severity")
       assert_equal Authentication::AuditWriter::WRITE_FAILED_EVENT, parsed.fetch("event")
       assert parsed.fetch("data").key?("actor_id")
     end

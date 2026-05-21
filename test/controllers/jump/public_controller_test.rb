@@ -40,19 +40,14 @@ class JumpPublicControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "no Actor state leaks into response" do
-    original_session = Actor.session
+    original_authentication = Actor.authentication
 
     host! ENV["JUMP_SERVICE_URL"]
     get "/health"
 
     assert_response :success
 
-    # Actor.session should remain unchanged
-    if original_session.nil?
-      assert_nil Actor.session
-    else
-      assert_equal original_session, Actor.session
-    end
+    assert_equal original_authentication, Actor.authentication
   end
 
   test "Actor facade is not populated on public endpoints" do

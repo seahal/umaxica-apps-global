@@ -534,10 +534,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       Prosopite.pause do
         [
           [:region_currency, :preference_currency, :currency, "usd", 1],
-          [:region_date_format, :preference_date_format, :date_format, "uk", 2],
-          [:region_time_format, :preference_time_format, :time_format, "hour_12", 2],
+          [:region_date, :preference_date_format, :date_format, "uk", 2],
+          [:region_time, :preference_time_format, :time_format, "hour_12", 2],
           [:accessibility_motion, :preference_motion, :motion, "reduced", 2],
-          [:display_density, :preference_density, :density, "compact", 2],
+          [:accessibility_density, :preference_density, :density, "compact", 2],
           [:display_items_per_page, :preference_items_per_page, :items_per_page, "50", 3],
         ].each do |route_suffix, param_scope, association_suffix, submitted_value, expected_id|
           get public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
@@ -566,8 +566,8 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
     [
       edit_sign_org_preference_region_currency_url(state),
-      edit_sign_org_preference_region_date_format_url(state),
-      edit_sign_org_preference_region_time_format_url(state),
+      edit_sign_org_preference_region_date_url(state),
+      edit_sign_org_preference_region_time_url(state),
     ].each do |url|
       get url
 
@@ -589,7 +589,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
     [
       edit_sign_app_preference_accessibility_motion_url(ri: "jp"),
-      edit_sign_app_preference_display_density_url(ri: "jp"),
+      edit_sign_app_preference_accessibility_density_url(ri: "jp"),
       edit_sign_app_preference_display_items_per_page_url(ri: "jp"),
     ].each do |url|
       get url, headers: headers
@@ -600,7 +600,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
     [
       edit_sign_app_preference_accessibility_motion_url(ri: "jp"),
-      edit_sign_app_preference_display_density_url(ri: "jp"),
+      edit_sign_app_preference_accessibility_density_url(ri: "jp"),
     ].each do |url|
       get url, headers: headers
 
@@ -620,8 +620,8 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     Prosopite.pause do
       [
         [:app_preference_currency, edit_sign_app_preference_region_currency_url(ri: "jp")],
-        [:app_preference_date_format, edit_sign_app_preference_region_date_format_url(ri: "jp")],
-        [:app_preference_time_format, edit_sign_app_preference_region_time_format_url(ri: "jp")],
+        [:app_preference_date_format, edit_sign_app_preference_region_date_url(ri: "jp")],
+        [:app_preference_time_format, edit_sign_app_preference_region_time_url(ri: "jp")],
       ].each do |association, url|
         pref.public_send(association).destroy!
         pref.reload
@@ -821,6 +821,17 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
   end
 
   def preference_route_suffix(kind)
-    %i(language timezone).include?(kind) ? "region_#{kind}" : kind.to_s
+    case kind
+    when :language, :timezone
+      "region_#{kind}"
+    when :date_format
+      "region_date"
+    when :time_format
+      "region_time"
+    when :density
+      "accessibility_density"
+    else
+      kind.to_s
+    end
   end
 end

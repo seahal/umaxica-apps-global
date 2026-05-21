@@ -144,35 +144,46 @@ module Authentication
       end
     end
 
-    def sign_in_dashboard_path(rt: nil)
+    def sign_in_welcome_path(rt: nil, id: nil)
       attrs = { ri: params[:ri] }
       safe_rt = safe_encoded_rt(rt)
       attrs[Auth::IoKeys::Params::RT] = safe_rt if safe_rt.present?
+      welcome_id = id.presence || params[:id].presence || "post_auth"
+
+      if respond_to?(:sign_app_welcome_path, true)
+        sign_app_welcome_path(welcome_id, **attrs)
+      elsif respond_to?(:sign_org_welcome_path, true)
+        sign_org_welcome_path(welcome_id, **attrs)
+      elsif respond_to?(:sign_com_welcome_path, true)
+        sign_com_welcome_path(welcome_id, **attrs)
+      else
+        path = "/welcomes/#{welcome_id}"
+        query = attrs.compact.to_query
+        query.present? ? "#{path}?#{query}" : path
+      end
+    end
+
+    def sign_in_dashboard_path(rt: nil)
+      _ = rt
 
       if respond_to?(:sign_app_dashboard_path, true)
-        sign_app_dashboard_path(**attrs)
+        sign_app_dashboard_path(ri: params[:ri])
       elsif respond_to?(:sign_org_dashboard_path, true)
-        sign_org_dashboard_path(**attrs)
+        sign_org_dashboard_path(ri: params[:ri])
       elsif respond_to?(:sign_com_dashboard_path, true)
-        sign_com_dashboard_path(**attrs)
+        sign_com_dashboard_path(ri: params[:ri])
       else
         "/dashboard"
       end
     end
 
-    def after_dashboard_path
-      if respond_to?(:sign_app_configuration_path, true)
-        sign_app_configuration_path(ri: params[:ri])
-      elsif respond_to?(:sign_org_configuration_path, true)
-        sign_org_configuration_path(ri: params[:ri])
-      elsif respond_to?(:sign_com_configuration_path, true)
-        sign_com_configuration_path(ri: params[:ri])
-      else
-        default_after_login_path
-      end
+    def after_welcome_path
+      sign_in_dashboard_path
     rescue StandardError
       default_after_login_path
     end
+
+    alias after_dashboard_path after_welcome_path
 
     # Resolve an `rt` redirect target. Accepts two shapes:
     #
@@ -195,11 +206,11 @@ module Authentication
 
       decoded_url = Base64.urlsafe_decode64(rt_param)
       decoded_path = safe_return_path(decoded_url)
-      return decoded_path if decoded_path.present?
+      return safe_non_welcome_return_path(decoded_path, fallback: fallback) if decoded_path.present?
 
-      safe_internal_path(rt_param) || fallback
+      safe_non_welcome_return_path(safe_internal_path(rt_param), fallback: fallback)
     rescue ArgumentError, URI::InvalidURIError
-      safe_internal_path(rt_param) || fallback
+      safe_non_welcome_return_path(safe_internal_path(rt_param), fallback: fallback)
     end
 
     def safe_encoded_rt(rt_param)
@@ -211,5 +222,25 @@ module Authentication
     def redirect_parameter_value
       params[Auth::IoKeys::Params::RT].presence
     end
+
+    def safe_non_welcome_return_path(path, fallback:)
+      safe_path = safe_internal_path(path)
+      return fallback if safe_path.blank?
+      return fallback if welcome_return_path?(safe_path)
+
+      safe_path
+    end
+
+    alias safe_non_dashboard_return_path safe_non_welcome_return_path
+
+    def welcome_return_path?(path)
+      candidate = URI.parse(path.to_s)
+      welcome = URI.parse(sign_in_welcome_path)
+      candidate.path == welcome.path || candidate.path.start_with?("/welcomes/")
+    rescue URI::InvalidURIError
+      false
+    end
+
+    alias dashboard_return_path? welcome_return_path?
   end
 end

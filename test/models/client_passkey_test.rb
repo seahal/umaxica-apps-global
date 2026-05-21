@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_passkeys
+# Table name: client_passkeys
 # Database name: app_principal
 #
 #  id           :bigint           not null, primary key
@@ -21,15 +21,15 @@
 #
 # Indexes
 #
+#  index_client_passkeys_on_public_id       (public_id) UNIQUE
+#  index_client_passkeys_on_status_id       (status_id)
+#  index_client_passkeys_on_webauthn_id     (webauthn_id) UNIQUE
 #  index_user_identity_passkeys_on_user_id  (user_id)
-#  index_user_passkeys_on_public_id         (public_id) UNIQUE
-#  index_user_passkeys_on_status_id         (status_id)
-#  index_user_passkeys_on_webauthn_id       (webauthn_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (status_id => user_passkey_statuses.id)
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (status_id => client_passkey_statuses.id)
+#  fk_rails_...  (user_id => clients.id)
 #
 
 require "test_helper"

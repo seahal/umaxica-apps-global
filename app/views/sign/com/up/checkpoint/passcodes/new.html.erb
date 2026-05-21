@@ -1,0 +1,28 @@
+<% title t("sign.com.registration.checkpoint.show.passcode.title") %>
+
+<h1><%= t("sign.com.registration.checkpoint.show.passcode.title") %></h1>
+<p><%= t("sign.com.registration.checkpoint.show.passcode.description") %></p>
+
+<%= form_with(model: @secret, url: sign_com_up_checkpoint_passcode_path(ri: params[:ri], rt: params[:rt].presence)) do |form| %>
+  <% if @secret.errors.any? %>
+    <ul>
+      <% @secret.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <div>
+    <%= form.label :name %>
+    <%= form.text_field :name %>
+  </div>
+
+  <div>
+    <p>Secret</p>
+    <p><%= @raw_secret %></p>
+    <p><%= t("views.sign.app.configuration.secrets.new.one_time_notice") %></p>
+  </div>
+
+  <%= link_to t("actions.cancel"), sign_com_up_checkpoint_path(ri: params[:ri], rt: params[:rt].presence) %>
+  <%= form.submit t("actions.save") %>
+<% end %>

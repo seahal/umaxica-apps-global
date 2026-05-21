@@ -26,8 +26,10 @@ class Sign::App::Configuration::Mfa::ResetsControllerTest < ActionDispatch::Inte
   test "show is reachable for an authenticated client" do
     get sign_app_mfa_reset_url(ri: "jp"), headers: @headers
 
-    assert_response :not_implemented
+    assert_response :success
     assert_equal "sign/app/configuration/mfa/resets", @controller.controller_path
+    assert_select "h1", I18n.t("sign.app.configuration.show.mfa_reset")
+    assert_select "p", text: I18n.t("sign.app.configuration.mfa.show.reset_unavailable")
   end
 
   test "show is reachable from a restricted MFA session" do
@@ -36,13 +38,15 @@ class Sign::App::Configuration::Mfa::ResetsControllerTest < ActionDispatch::Inte
     get sign_app_mfa_reset_url(ri: "jp"),
         headers: as_user_headers_with_token(@user, token, host: @host)
 
-    assert_response :not_implemented
+    assert_response :success
+    assert_select "p", text: I18n.t("sign.app.configuration.mfa.show.reset_unavailable")
   end
 
   test "create is routed for future reset request submission" do
     post sign_app_mfa_reset_url(ri: "jp"), headers: @headers
 
-    assert_response :not_implemented
+    assert_redirected_to sign_app_mfa_reset_url(ri: "jp")
+    assert_equal I18n.t("sign.app.configuration.mfa.show.reset_unavailable"), flash[:alert]
   end
 
   private

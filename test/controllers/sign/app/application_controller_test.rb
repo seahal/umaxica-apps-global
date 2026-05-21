@@ -77,8 +77,8 @@ module Sign::App
       assert rules.last[:options][:no_redirect]
     end
 
-    test "email sign-in guest controller overrides guest-only response" do
-      rules = In::EmailGuestController.access_policy_rules
+    test "email sign-in controller overrides guest-only response" do
+      rules = In::EmailsController.access_policy_rules
 
       assert_equal :guest_only, rules.last[:policy]
       assert_equal :bad_request, rules.last[:options][:status]

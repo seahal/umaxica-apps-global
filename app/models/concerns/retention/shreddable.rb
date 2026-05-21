@@ -13,6 +13,8 @@ module Retention
       attribute :purged_at, :datetime, default: -> { SHREDDING_SENTINEL }
       define_model_callbacks :shred, only: %i(before after)
 
+      validates :purged_at, presence: true
+
       scope :shreddable, -> { where(arel_table[:purged_at].lteq(Time.current)) }
     end
 

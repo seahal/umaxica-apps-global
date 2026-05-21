@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_visibilities
+# Table name: client_visibilities
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key

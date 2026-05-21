@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_step_up_sessions
+# Table name: client_step_up_sessions
 # Database name: app_ticket
 #
 #  id            :bigint           not null, primary key
@@ -21,14 +21,13 @@
 #
 # Indexes
 #
-#  index_user_step_up_sessions_on_user_token_id  (user_token_id) UNIQUE
+#  index_client_step_up_sessions_on_user_token_id  (user_token_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_token_id => user_tokens.id) ON DELETE => cascade
+#  fk_rails_...  (user_token_id => client_tokens.id) ON DELETE => cascade
 #
 class ClientStepUpSession < AppTicketRecord
-  self.table_name = "user_step_up_sessions"
   include Retainable
 
   STATUSES = %w(PENDING VERIFIED).freeze

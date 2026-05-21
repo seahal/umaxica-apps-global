@@ -17,7 +17,7 @@ class Chronicle
     end
 
     def call
-      Rails.event.error("chronicle.fallback_record", payload: payload)
+      Rails.logger.error(LogEvent.format("chronicle.fallback_record", payload: payload))
     end
 
     private

@@ -3,14 +3,13 @@
 
 # == Schema Information
 #
-# Table name: staff_chronicle_events
+# Table name: operator_chronicle_events
 # Database name: chronicle
 #
 #  id :bigint           not null, primary key
 #
 
 class OperatorChronicleEvent < ChronicleRecord
-  self.table_name = "staff_chronicle_events"
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

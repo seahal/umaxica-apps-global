@@ -21,14 +21,10 @@ module RestrictedSessionGuard
     current_resource if respond_to?(:current_resource, true)
     return unless respond_to?(:current_session_restricted?, true)
 
-    sid = current_session_public_id rescue "N/A"
-    cs = current_session rescue "N/A"
     restricted = current_session_restricted?
-    Rails.logger.warn("DEBUG enforce: sid=#{sid}, cs=#{cs.class.name}, restricted=#{restricted}")
     return unless restricted
 
     allowlisted = allowlisted_for_restricted_session?
-    Rails.logger.warn("DEBUG enforce: allowlisted=#{allowlisted}")
     return if allowlisted
 
     handle_restricted_session_block
@@ -65,23 +61,23 @@ module RestrictedSessionGuard
       session.revoke!
     end
 
-    Rails.event.notify(
+    Rails.logger.info(LogEvent.format(
       "session.restricted.expired",
       user_token_id: session.public_id,
       user_id: session.respond_to?(:user_id) ? session.user_id : nil,
-    )
+    ))
 
     true
   end
 
   def handle_restricted_session_block
-    Rails.event.notify(
+    Rails.logger.info(LogEvent.format(
       "session.restricted.blocked_route",
       path: request.path,
       method: request.request_method,
       user_token_id: current_session&.public_id,
       user_id: current_session.respond_to?(:user_id) ? current_session.user_id : nil,
-    )
+    ))
 
     render plain: BLOCKED_MESSAGE, status: :locked
   end

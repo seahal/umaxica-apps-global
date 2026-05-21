@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_memberships
+# Table name: client_memberships
 # Database name: app_principal
 #
 #  id           :bigint           not null, primary key
@@ -16,16 +16,15 @@
 #
 # Indexes
 #
-#  index_user_memberships_on_user_id_and_workspace_id  (user_id,workspace_id) UNIQUE
-#  index_user_memberships_on_workspace_id              (workspace_id)
+#  index_client_memberships_on_user_id_and_workspace_id  (user_id,workspace_id) UNIQUE
+#  index_client_memberships_on_workspace_id              (workspace_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (user_id => clients.id)
 #
 
 class ClientMembership < AppPrincipalRecord
-  self.table_name = "user_memberships"
   belongs_to :user, class_name: "Client", inverse_of: :client_memberships
 
   validates :user_id, uniqueness: { scope: :workspace_id }

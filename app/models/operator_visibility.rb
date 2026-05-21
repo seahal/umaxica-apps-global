@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: staff_visibilities
+# Table name: operator_visibilities
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 class OperatorVisibility < OrgPrincipalRecord
-  self.table_name = "staff_visibilities"
   include ReferenceRecord
 
   NOBODY = 0

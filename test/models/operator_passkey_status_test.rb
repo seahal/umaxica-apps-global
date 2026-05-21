@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_passkey_statuses
+# Table name: operator_passkey_statuses
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key

@@ -58,20 +58,17 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
                     "X-TEST-SESSION-PUBLIC-ID" => token.public_id, },
          params: { confirm: "1" }
 
-    assert_response :see_other
-    assert_redirected_to sign_org_signed_out_path(ri: "jp")
+    assert_response :success
+    assert_empty flash.to_hash
     assert_predicate token.reload, :revoked?
 
-    follow_redirect!
-
-    assert_response :success
     assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
   end
 
   test "signed out page requires a fresh logout notice" do
-    get sign_org_signed_out_url(ri: "jp"), headers: { "Host" => @host }
+    get sign_org_out_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_redirected_to sign_org_root_path(ri: "jp")
+    assert_redirected_to edit_sign_org_out_path(ri: "jp")
   end
 
   test "should destroy raises error without session" do
@@ -92,12 +89,12 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
                       "X-TEST-CURRENT-STAFF" => @staff.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
 
-    assert_response :see_other
-    assert_redirected_to sign_org_signed_out_path(ri: "jp")
+    assert_response :success
     assert_predicate token.reload, :revoked?
+    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
   end
 
-  test "signed out page is shown only once after destroy" do
+  test "ordinary destroy does not issue a signed out notice" do
     token = OperatorToken.create!(staff: @staff)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
@@ -107,14 +104,42 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
                       "X-TEST-CURRENT-STAFF" => @staff.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
 
-    follow_redirect!
-
     assert_response :success
     assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
 
-    get sign_org_signed_out_url(ri: "jp"), headers: { "Host" => @host }
+    get sign_org_out_url(ri: "jp"), headers: { "Host" => @host }
+
+    assert_redirected_to edit_sign_org_out_path(ri: "jp")
+  end
+
+  test "destroy redirects to safe rt after logout" do
+    token = OperatorToken.create!(staff: @staff)
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    rt = Base64.urlsafe_encode64(sign_org_configuration_path(ri: "jp"), padding: false)
+
+    delete sign_org_out_url(ri: "jp", rt: rt),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-STAFF" => @staff.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+
+    assert_redirected_to sign_org_configuration_path(ri: "jp")
+    assert_predicate token.reload, :revoked?
+  end
+
+  test "destroy with unsafe rt falls back to root after logout" do
+    token = OperatorToken.create!(staff: @staff)
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    rt = Base64.urlsafe_encode64("https://evil.example/after", padding: false)
+
+    delete sign_org_out_url(ri: "jp", rt: rt),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-STAFF" => @staff.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
 
     assert_redirected_to sign_org_root_path(ri: "jp")
+    assert_predicate token.reload, :revoked?
   end
 
   test "destroy resets rails session id to prevent session fixation" do
@@ -133,7 +158,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
                       "X-TEST-CURRENT-STAFF" => @staff.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
 
-    assert_redirected_to sign_org_signed_out_path(ri: "jp")
+    assert_response :success
     assert_not_nil old_session_id
     assert_not_nil session.id
     assert_not_equal old_session_id, session.id
@@ -160,8 +185,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
                       "X-TEST-CURRENT-STAFF" => @staff.id,
                       "X-TEST-SESSION-PUBLIC-ID" => current_token.public_id, }
 
-    assert_response :see_other
-    assert_redirected_to sign_org_signed_out_path(ri: "jp")
+    assert_response :success
     assert_predicate current_token.reload, :revoked?,
                      "current session token must be revoked"
     assert_not other_token.reload.revoked?,
@@ -181,7 +205,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
                       "X-TEST-CURRENT-STAFF" => @staff.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
 
-    assert_redirected_to sign_org_signed_out_path(ri: "jp")
+    assert_response :success
 
     # All auth cookies must be cleared after logout
     assert_empty cookies[Authentication::Base::ACCESS_COOKIE_KEY].to_s

@@ -66,22 +66,31 @@ module Preference::RefreshTokenTransport
     @refresh_presented_digest = refresh_digest
     @refresh_public_id = refresh_public_id
 
-    with_preference_connection(:writing) do
-      relation = preference_class.includes(preference_associations_to_preload)
-      pref =
-        if refresh_public_id.present?
-          relation.find_by(public_id: refresh_public_id)
-        else
-          relation.find_by(token_digest: refresh_digest)
+    lookup =
+      lambda do
+        with_preference_connection(:writing) do
+          relation = preference_class.includes(preference_associations_to_preload)
+          pref =
+            if refresh_public_id.present?
+              relation.find_by(public_id: refresh_public_id)
+            else
+              relation.find_by(token_digest: refresh_digest)
+            end
+
+          digest_mismatch = refresh_digest_mismatch?(pref, refresh_digest)
+          binding_denied = pref.present? && !preference_refresh_binding_allowed?(pref)
+
+          return handle_invalid_refresh_digest(pref, refresh_public_id) if digest_mismatch
+          return handle_denied_refresh_binding(pref, refresh_public_id) if binding_denied
+
+          pref
         end
+      end
 
-      digest_mismatch = refresh_digest_mismatch?(pref, refresh_digest)
-      binding_denied = pref.present? && !preference_refresh_binding_allowed?(pref)
-
-      return handle_invalid_refresh_digest(pref, refresh_public_id) if digest_mismatch
-      return handle_denied_refresh_binding(pref, refresh_public_id) if binding_denied
-
-      pref
+    if defined?(Prosopite)
+      Prosopite.pause(&lookup)
+    else
+      lookup.call
     end
   end
 

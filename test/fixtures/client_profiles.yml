@@ -24,8 +24,8 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (client_status_id => client_profile_statuses.id)
-#  fk_rails_...  (status_id => client_profile_statuses.id)
+#  fk_rails_...  (client_status_id => visitor_account_statuses.id)
+#  fk_rails_...  (status_id => visitor_account_statuses.id)
 #
 _fixture:
   model_class: ClientProfile

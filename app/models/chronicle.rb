@@ -43,6 +43,8 @@
 #  fk_rails_...  (chronicle_retention_policy_id => chronicle_retention_policies.id)
 #
 class Chronicle < ChronicleRecord
+  include Chronicle::Capturable
+
   RESULTS = %w(intent succeeded failed audit_incomplete invalidated manual_recovery_required).freeze
   MAX_ACTION_LENGTH = 128
   MAX_RESULT_LENGTH = 64
@@ -51,8 +53,8 @@ class Chronicle < ChronicleRecord
   MAX_USER_AGENT_LENGTH = 1024
   MAX_JSON_BYTES = 16.kilobytes
 
-  belongs_to :actor, polymorphic: true
-  belongs_to :subject, polymorphic: true
+  belongs_to :actor, polymorphic: true, optional: true
+  belongs_to :subject, polymorphic: true, optional: true
   belongs_to :chronicle_retention_policy
   has_many :chronicle_visibilities, dependent: :restrict_with_error, inverse_of: :chronicle
   has_many :chronicle_visibility_contexts, through: :chronicle_visibilities
@@ -70,10 +72,6 @@ class Chronicle < ChronicleRecord
   validate :erasable_at_matches_retention_policy
 
   before_validation :sanitize_json_payloads
-
-  def self.capture(...)
-    Chronicle::Capture.call(...)
-  end
 
   private
 

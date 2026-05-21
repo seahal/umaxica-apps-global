@@ -98,9 +98,6 @@ module Jit
     # Allow per-model/per-attribute i18n error message format customization
     config.active_model.i18n_customize_full_message = true
 
-    # Enable structured logging in all environments.
-    config.active_support.structured_logging = true
-
     # Ensure default host environment variables are set for route generation and constraints,
     # especially in test environment where they might not be loaded from external env files.
     {

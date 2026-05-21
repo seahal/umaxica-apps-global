@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_email_statuses
+# Table name: client_email_statuses
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key

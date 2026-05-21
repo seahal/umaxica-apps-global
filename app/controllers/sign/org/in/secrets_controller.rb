@@ -59,13 +59,13 @@ module Sign
             render_failed_login(verification.reason || :identifier_not_found)
           end
         rescue StandardError => e
-          Rails.event.error(
+          Rails.logger.error(LogEvent.format(
             "sign.org.authentication.secret.error",
             error_class: e.class.name,
             message: e.message,
             ip: request.remote_ip,
             exception: e,
-          )
+          ))
           render_failed_login(:internal_error)
         end
 
@@ -131,13 +131,13 @@ module Sign
 
           staff = find_staff_by_public_id(@secret_form.identifier)
 
-          Rails.event.info(
+          Rails.logger.info(LogEvent.format(
             "sign.org.authentication.secret.failed",
             reason: reason,
             identifier_present: @secret_form.identifier.present?,
             ip: request.remote_ip,
             errors: @secret_form.errors.full_messages,
-          )
+          ))
 
           Sign::Risk::Emitter.emit("auth_failed", staff_id: staff&.id) if staff
 

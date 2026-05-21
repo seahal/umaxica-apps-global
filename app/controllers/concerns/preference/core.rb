@@ -300,7 +300,7 @@ module Preference::Core
     sync_direct_resource_preference!(resource_pref)
     copy_preference_values!(@preferences, resource_pref, resource_pref_prefix_for_sync)
   rescue StandardError => e
-    Rails.event.record("preference.sync_to_resource.error", error: e.class.name, message: e.message)
+    Rails.logger.info(LogEvent.format("preference.sync_to_resource.error", error: e.class.name, message: e.message))
   end
 
   def resource_pref_prefix_for_sync
@@ -474,7 +474,7 @@ module Preference::Core
   end
 
   def record_preference_write_error(event_name, error, target:)
-    Rails.event.record(
+    Rails.logger.info(LogEvent.format(
       event_name,
       error: error.class.name,
       message: error.message,
@@ -483,7 +483,7 @@ module Preference::Core
       surface: preference_surface_key,
       owner_id: preference_write_owner_id,
       request_id: request.request_id,
-    )
+    ))
   end
 
   def preference_write_owner_id
@@ -666,10 +666,10 @@ module Preference::Core
       when :language then "region_language"
       when :timezone then "region_timezone"
       when :currency then "region_currency"
-      when :date_format then "region_date_format"
-      when :time_format then "region_time_format"
+      when :date_format then "region_date"
+      when :time_format then "region_time"
       when :motion then "accessibility_motion"
-      when :density then "display_density"
+      when :density then "accessibility_density"
       when :items_per_page then "display_items_per_page"
       when :theme then "theme"
       when :cookie then "cookie"

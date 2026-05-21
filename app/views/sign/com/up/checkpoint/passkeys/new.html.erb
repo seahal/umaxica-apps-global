@@ -1,0 +1,6 @@
+<% title t("sign.com.registration.checkpoint.show.passkey.title") %>
+
+<%= render "shared/passkeys/registration",
+           begin_url: begin_sign_com_up_checkpoint_passkey_path(ri: params[:ri], rt: params[:rt].presence),
+           finish_url: sign_com_up_checkpoint_passkey_path(ri: params[:ri], rt: params[:rt].presence),
+           success_redirect_url: @success_redirect_url %>

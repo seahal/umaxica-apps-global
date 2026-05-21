@@ -13,6 +13,8 @@ module Retention
       attribute :discarded_at, :datetime, default: -> { SENTINEL }
       define_model_callbacks :discard, :undiscard, only: %i(before after)
 
+      validates :discarded_at, presence: true
+
       scope :kept, -> { where(arel_table[:discarded_at].gt(Time.current)) }
       scope :discarded, -> { where(discarded_at: ..Time.current) }
       scope :with_discarded, -> { all }

@@ -597,6 +597,7 @@ ja:
             secrets: シークレット
             secrets_desc: 有効 %{count} 件
             reset_request: MFAリセットを申請する
+            reset_unavailable: 現在、MFAをリセットできません。
           update:
             success: MFA設定を更新しました。
             failure: MFA設定の更新に失敗しました。
@@ -1248,6 +1249,8 @@ ja:
             org_document_tag_id:
               already_tagged: このドキュメントにはすでにタグ付けされています
       messages:
+        birthdate_format: はYYYY-MM-DD形式で入力してください
+        birthdate_before_today: は本日より前の日付を入力してください
         record_invalid: "バリデーションに失敗しました: %{errors}"
         restrict_dependent_destroy:
           has_one: "%{record}が存在しているので削除できません"

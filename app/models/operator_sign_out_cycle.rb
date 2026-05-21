@@ -44,7 +44,7 @@
 #
 #  fk_rails_...  (kind_id => operator_sign_out_cycle_kinds.id)
 #  fk_rails_...  (status_id => operator_sign_out_cycle_statuses.id)
-#  fk_rails_...  (token_id => staff_tokens.id) ON DELETE => cascade
+#  fk_rails_...  (token_id => operator_tokens.id) ON DELETE => cascade
 #
 class OperatorSignOutCycle < OrgTicketRecord
   include SignOutCycle

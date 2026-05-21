@@ -38,10 +38,10 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => staff_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => staff_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => staff_statuses.id)
-#  fk_rails_...  (visibility_id => staff_visibilities.id)
+#  fk_rails_...  (multi_factor_id => operator_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => operator_multi_factor_statuses.id)
+#  fk_rails_...  (status_id => operator_identity_statuses.id)
+#  fk_rails_...  (visibility_id => operator_visibilities.id)
 #
 
 require "test_helper"
@@ -517,15 +517,5 @@ class OperatorTest < ActiveSupport::TestCase
     staff = Operator.create!(discarded_at: 2.days.ago, purged_at: 1.day.ago)
 
     assert_includes Operator.where(purged_at: ..Time.current), staff
-  end
-
-  private
-
-  def root_workspace
-    Workspace.find_or_create_by!(id: NIL_UUID) do |workspace|
-      workspace.name = "Root Workspace"
-      workspace.domain = "root.example.com"
-      workspace.parent_organization = NIL_UUID
-    end
   end
 end

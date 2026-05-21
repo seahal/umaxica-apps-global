@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_preference_timezones
+# Table name: operator_preference_timezones
 # Database name: org_principal
 #
 #  id            :bigint           not null, primary key
@@ -14,16 +14,15 @@
 #
 # Indexes
 #
-#  index_staff_preference_timezones_on_option_id      (option_id)
-#  index_staff_preference_timezones_on_preference_id  (preference_id) UNIQUE
+#  index_operator_preference_timezones_on_option_id      (option_id)
+#  index_operator_preference_timezones_on_preference_id  (preference_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_staff_preference_timezones_on_option_id      (option_id => staff_preference_timezone_options.id)
-#  fk_staff_preference_timezones_on_preference_id  (preference_id => staff_preferences.id)
+#  fk_staff_preference_timezones_on_option_id      (option_id => operator_preference_timezone_options.id)
+#  fk_staff_preference_timezones_on_preference_id  (preference_id => operator_preferences.id)
 #
 class OperatorPreferenceTimezone < OrgPrincipalRecord
-  self.table_name = "staff_preference_timezones"
   belongs_to :preference, class_name: "OperatorPreference", inverse_of: :staff_preference_timezone
   belongs_to :option,
              class_name: "OperatorPreferenceTimezoneOption",

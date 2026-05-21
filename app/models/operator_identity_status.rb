@@ -3,14 +3,13 @@
 
 # == Schema Information
 #
-# Table name: staff_statuses
+# Table name: operator_identity_statuses
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 
 class OperatorIdentityStatus < OrgPrincipalRecord
-  self.table_name = "staff_statuses"
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: device_sessions
+# Table name: operator_device_sessions
 # Database name: org_ticket
 #
 #  id                         :bigint           not null, primary key
@@ -25,21 +25,15 @@
 #
 # Indexes
 #
-#  index_device_sessions_on_current_refresh_token_id  (current_refresh_token_id)
-#  index_device_sessions_on_dbsc_session_id_digest    (dbsc_session_id_digest)
-#  index_device_sessions_on_device_id_digest          (device_id_digest)
-#  index_device_sessions_on_public_id                 (public_id) UNIQUE
-#  index_device_sessions_on_refresh_token_family_id   (refresh_token_family_id)
-#  index_device_sessions_on_revoked_at                (revoked_at)
-#  index_device_sessions_on_staff_id                  (staff_id)
-#
-# Foreign Keys
-#
-#  fk_rails_...  (current_refresh_token_id => staff_tokens.id)
+#  index_operator_device_sessions_on_current_refresh_token_id  (current_refresh_token_id)
+#  index_operator_device_sessions_on_dbsc_session_id_digest    (dbsc_session_id_digest)
+#  index_operator_device_sessions_on_device_id_digest          (device_id_digest)
+#  index_operator_device_sessions_on_public_id                 (public_id) UNIQUE
+#  index_operator_device_sessions_on_refresh_token_family_id   (refresh_token_family_id)
+#  index_operator_device_sessions_on_revoked_at                (revoked_at)
+#  index_operator_device_sessions_on_staff_id                  (staff_id)
 #
 class OperatorDeviceSession < OrgTicketRecord
-  self.table_name = "device_sessions"
-
   include DeviceSessionable
 
   belongs_to :staff, class_name: "Operator", inverse_of: :operator_device_sessions

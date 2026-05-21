@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_token_dbsc_statuses
+# Table name: operator_token_dbsc_statuses
 # Database name: org_ticket
 #
 #  id :bigint           not null, primary key

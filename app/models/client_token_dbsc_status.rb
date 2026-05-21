@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: user_token_dbsc_statuses
+# Table name: client_token_dbsc_statuses
 # Database name: app_ticket
 #
 #  id :bigint           not null, primary key
 #
 class ClientTokenDbscStatus < AppTicketRecord
-  self.table_name = "user_token_dbsc_statuses"
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

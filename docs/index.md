@@ -27,6 +27,9 @@ Current content-model references:
 - `docs/architecture/controller-lifecycle.md`
 - `docs/architecture/preference.md`
 - `docs/security/session-limit.md`
+- `docs/security/credential-abuse-rate-limits.md`
+- `docs/security/observability-boundary.md`
+- `docs/security/turnstile.md`
 - `docs/security/authentication-assurance-levels.md`
 - `docs/security/step-up-mfa-status.md`
 - `docs/security/mfa-reset-account-recovery.md`

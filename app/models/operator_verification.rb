@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_verifications
+# Table name: operator_verifications
 # Database name: org_ticket
 #
 #  id             :bigint           not null, primary key
@@ -17,15 +17,14 @@
 #
 # Indexes
 #
-#  index_staff_verifications_on_staff_token_id  (staff_token_id)
-#  index_staff_verifications_on_token_digest    (token_digest) UNIQUE
+#  index_operator_verifications_on_staff_token_id  (staff_token_id)
+#  index_operator_verifications_on_token_digest    (token_digest) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_token_id => staff_tokens.id) ON DELETE => cascade
+#  fk_rails_...  (staff_token_id => operator_tokens.id) ON DELETE => cascade
 #
 class OperatorVerification < OrgTicketRecord
-  self.table_name = "staff_verifications"
   include Retainable
   include RefreshTokenShared
   include VerificationCookieable

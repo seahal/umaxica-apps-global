@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_telephones
+# Table name: client_telephones
 # Database name: app_principal
 #
 #  id                                :bigint           not null, primary key
@@ -22,15 +22,15 @@
 #
 # Indexes
 #
-#  index_user_telephones_on_number_digest                      (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
-#  index_user_telephones_on_public_id                          (public_id) UNIQUE
-#  index_user_telephones_on_user_id                            (user_id)
-#  index_user_telephones_on_user_identity_telephone_status_id  (user_identity_telephone_status_id)
+#  index_client_telephones_on_number_digest                      (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
+#  index_client_telephones_on_public_id                          (public_id) UNIQUE
+#  index_client_telephones_on_user_id                            (user_id)
+#  index_client_telephones_on_user_identity_telephone_status_id  (user_identity_telephone_status_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
-#  fk_rails_...  (user_identity_telephone_status_id => user_telephone_statuses.id)
+#  fk_rails_...  (user_id => clients.id)
+#  fk_rails_...  (user_identity_telephone_status_id => client_telephone_statuses.id)
 #
 
 require "test_helper"
@@ -55,26 +55,6 @@ class ClientTelephoneTest < ActiveSupport::TestCase
 
   test "should include Telephone concern" do
     assert_includes ClientTelephone.included_modules, Telephone
-  end
-
-  test "should include Turnstile concern" do
-    assert_includes ClientTelephone.included_modules, Turnstile
-  end
-
-  test "turnstile validation runs when required and surfaces custom message" do
-    Turnstile.test_response = { "success" => false }
-
-    user_telephone = ClientTelephone.new(@valid_attributes)
-    user_telephone.require_turnstile(
-      response: "test-token",
-      remote_ip: "127.0.0.1",
-      error_message: "Turnstile failed",
-    )
-
-    assert_not user_telephone.valid?
-    assert_includes user_telephone.errors[:base], "Turnstile failed"
-  ensure
-    Turnstile.test_response = nil
   end
 
   # Telephone concern validation tests

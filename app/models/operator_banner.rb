@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_banners
+# Table name: operator_banners
 # Database name: org_principal
 #
 #  id         :bigint           not null, primary key
@@ -18,14 +18,13 @@
 #
 # Indexes
 #
-#  index_staff_banners_on_staff_id  (staff_id)
+#  index_operator_banners_on_staff_id  (staff_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (staff_id => operators.id)
 #
 class OperatorBanner < OrgPrincipalRecord
-  self.table_name = "staff_banners"
   include BannerModel
 
   belongs_to :staff, class_name: "Operator", optional: false

@@ -46,6 +46,13 @@ class RetentionDiscardableTest < ActiveSupport::TestCase
     assert_not record.discarded?
   end
 
+  test "discarded_at is required" do
+    record = DiscardableTestRecord.new(name: "missing-discarded-at", discarded_at: nil)
+
+    assert_not record.valid?
+    assert_includes record.errors[:discarded_at], "can't be blank"
+  end
+
   test "kept discarded and with_discarded scopes filter explicitly" do
     kept_record = create_record(name: "kept")
     discarded_record = create_record(name: "discarded")

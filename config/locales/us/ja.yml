@@ -1009,6 +1009,8 @@ core:
         address: メールアドレス
     errors:
       messages:
+        birthdate_format: はYYYY-MM-DD形式で入力してください
+        birthdate_before_today: は本日より前の日付を入力してください
         record_invalid: "バリデーションに失敗しました: %{errors}"
         restrict_dependent_destroy:
           has_one: "%{record}が存在しているので削除できません"

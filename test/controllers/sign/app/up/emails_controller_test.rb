@@ -849,6 +849,58 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/#{Regexp.escape(::Authentication::Client::ACCESS_COOKIE_KEY.to_s)}=/, set_cookie)
   end
 
+  test "email sign up finalizes and establishes login from checkpoint" do
+    email = "finalize_app_email_#{SecureRandom.hex(4)}@example.com"
+
+    post sign_app_up_email_url(ri: "jp"),
+         params: {
+           user_email: {
+             raw_address: email,
+             confirm_policy: "1",
+           },
+           "cf-turnstile-response": "test",
+         },
+         headers: default_headers
+
+    user_email = ClientEmail.order(:created_at).last
+    otp_data = user_email.get_otp
+    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+    patch sign_app_up_email_url(ri: "jp"),
+          params: { user_email: { pass_code: pass_code } },
+          headers: default_headers
+
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+
+    get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
+
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+
+    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+    assert_response :ok
+    assert_select "input[type=date][name=birthdate]"
+    assert_select "input[type=hidden][name=requirement][value=birthdate]"
+
+    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+    assert_response :ok
+    assert_select "input[type=date][name=birthdate]"
+
+    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+          params: { requirement: "birthdate", birthdate: "2000-01-01" },
+          headers: default_headers
+
+    assert_response :redirect
+
+    cycle = current_sign_up_cycle(user_email)
+    user = user_email.reload.user
+
+    assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.reload.status_id
+    assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
+    assert ClientToken.exists?(user_id: user.id)
+  end
+
   test "OTP data is cleared after successful verification" do
     email = "otp_clear@example.com"
 
@@ -1016,23 +1068,25 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
 
-    assert_response :success
+    assert_redirected_to sign_app_up_checkpoint_path(ri: "jp")
 
     get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
 
     assert_response :success
+    assert_select "input[type=date][name=birthdate]"
 
-    patch sign_app_up_checkpoint_url(ri: "jp"),
+    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
           },
           headers: default_headers
 
-    assert_response :success
-    assert_equal "advanced", response.body
+    assert_response :redirect
     assert_equal "2000-02-03", user_email.user.reload.birthdate
     assert cycle.reload.requirement_cleared?(:birthdate)
+    assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.status_id
+    assert ClientToken.exists?(user_id: user_email.user_id)
   end
 
   test "does not leave zero or null user_id in database" do

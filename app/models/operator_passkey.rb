@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_passkeys
+# Table name: operator_passkeys
 # Database name: org_principal
 #
 #  id           :bigint           not null, primary key
@@ -22,21 +22,20 @@
 #
 # Indexes
 #
-#  index_staff_passkeys_on_external_id  (external_id)
-#  index_staff_passkeys_on_staff_id     (staff_id)
-#  index_staff_passkeys_on_status_id    (status_id)
-#  index_staff_passkeys_on_webauthn_id  (webauthn_id) UNIQUE
+#  index_operator_passkeys_on_external_id  (external_id)
+#  index_operator_passkeys_on_staff_id     (staff_id)
+#  index_operator_passkeys_on_status_id    (status_id)
+#  index_operator_passkeys_on_webauthn_id  (webauthn_id) UNIQUE
 #
 # Foreign Keys
 #
 #  fk_rails_...  (staff_id => operators.id)
-#  fk_rails_...  (status_id => staff_passkey_statuses.id)
+#  fk_rails_...  (status_id => operator_passkey_statuses.id)
 #
 
 class OperatorPasskey < OrgPrincipalRecord
   include MultiFactorStatusCredential
 
-  self.table_name = "staff_passkeys"
   self.ignored_columns += ["webauthn_id_binary"]
   MAX_PASSKEYS_PER_STAFF = 4
   attribute :status_id, default: OperatorPasskeyStatus::ACTIVE

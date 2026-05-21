@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_emails
+# Table name: client_emails
 # Database name: app_principal
 #
 #  id                        :bigint           not null, primary key
@@ -28,20 +28,19 @@
 #
 # Indexes
 #
-#  index_user_emails_on_address_digest        (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
-#  index_user_emails_on_otp_last_sent_at      (otp_last_sent_at)
-#  index_user_emails_on_public_id             (public_id) UNIQUE
-#  index_user_emails_on_user_email_status_id  (user_email_status_id)
-#  index_user_emails_on_user_id               (user_id)
+#  index_client_emails_on_address_digest        (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
+#  index_client_emails_on_otp_last_sent_at      (otp_last_sent_at)
+#  index_client_emails_on_public_id             (public_id) UNIQUE
+#  index_client_emails_on_user_email_status_id  (user_email_status_id)
+#  index_client_emails_on_user_id               (user_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_email_status_id => user_email_statuses.id)
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (user_email_status_id => client_email_statuses.id)
+#  fk_rails_...  (user_id => clients.id)
 #
 
 class ClientEmail < AppPrincipalRecord
-  self.table_name = "user_emails"
   EDITABLE_SUBSCRIPTION_PREFERENCE_STATUS_IDS = [
     ClientEmailStatus::VERIFIED,
     ClientEmailStatus::VERIFIED_WITH_SIGN_UP,
@@ -49,7 +48,6 @@ class ClientEmail < AppPrincipalRecord
 
   include PublicId
   include Email
-  include Turnstile
   include MultiFactorStatusCredential
   include PromotionalEmailUnsubscribable
 

@@ -175,18 +175,10 @@ module Authentication
     end
 
     def active_operator_google?
-      return false unless actor.respond_to?(:staff_emails)
+      return false unless actor.respond_to?(:operator_social_google)
 
-      count_scope(
-        actor.staff_emails.where(
-          undeletable: true,
-          staff_identity_email_status_id: [
-            OperatorEmailStatus::ACTIVE,
-            OperatorEmailStatus::VERIFIED,
-          ],
-        ),
-        "OperatorEmail",
-      ).positive?
+      identity = actor.operator_social_google
+      identity&.status_id == OperatorSocialGoogleStatus::ACTIVE && !excluded?(identity)
     end
 
     def aal1_email_count

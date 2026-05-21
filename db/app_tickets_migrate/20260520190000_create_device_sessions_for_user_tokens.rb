@@ -5,7 +5,7 @@ class CreateDeviceSessionsForUserTokens < ActiveRecord::Migration[8.2]
   disable_ddl_transaction!
 
   def change
-    create_table :device_sessions, if_not_exists: true do |t|
+    create_table :client_device_sessions, if_not_exists: true do |t|
       t.string :public_id, limit: 21, null: false
       t.bigint :user_id, null: false
       t.string :device_id_digest
@@ -23,15 +23,15 @@ class CreateDeviceSessionsForUserTokens < ActiveRecord::Migration[8.2]
       t.datetime :updated_at, null: false
     end
 
-    add_index :device_sessions, :public_id, unique: true, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :user_id, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :device_id_digest, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :dbsc_session_id_digest, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :current_refresh_token_id, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :refresh_token_family_id, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :revoked_at, algorithm: :concurrently, if_not_exists: true
+    add_index :client_device_sessions, :public_id, unique: true, algorithm: :concurrently, if_not_exists: true
+    add_index :client_device_sessions, :user_id, algorithm: :concurrently, if_not_exists: true
+    add_index :client_device_sessions, :device_id_digest, algorithm: :concurrently, if_not_exists: true
+    add_index :client_device_sessions, :dbsc_session_id_digest, algorithm: :concurrently, if_not_exists: true
+    add_index :client_device_sessions, :current_refresh_token_id, algorithm: :concurrently, if_not_exists: true
+    add_index :client_device_sessions, :refresh_token_family_id, algorithm: :concurrently, if_not_exists: true
+    add_index :client_device_sessions, :revoked_at, algorithm: :concurrently, if_not_exists: true
 
-    add_column :user_tokens, :device_session_id, :bigint unless column_exists?(:user_tokens, :device_session_id)
-    add_index :user_tokens, :device_session_id, algorithm: :concurrently, if_not_exists: true
+    add_column :client_tokens, :device_session_id, :bigint unless column_exists?(:client_tokens, :device_session_id)
+    add_index :client_tokens, :device_session_id, algorithm: :concurrently, if_not_exists: true
   end
 end

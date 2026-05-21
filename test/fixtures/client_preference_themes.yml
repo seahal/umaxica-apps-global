@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: user_preference_themes
+# Table name: client_preference_themes
 # Database name: app_principal
 #
 #  id            :bigint           not null, primary key
@@ -11,13 +11,13 @@
 #
 # Indexes
 #
-#  index_user_preference_themes_on_option_id      (option_id)
-#  index_user_preference_themes_on_preference_id  (preference_id) UNIQUE
+#  index_client_preference_themes_on_option_id      (option_id)
+#  index_client_preference_themes_on_preference_id  (preference_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_user_preference_themes_on_option_id      (option_id => user_preference_theme_options.id)
-#  fk_user_preference_themes_on_preference_id  (preference_id => user_preferences.id)
+#  fk_user_preference_themes_on_option_id      (option_id => client_preference_theme_options.id)
+#  fk_user_preference_themes_on_preference_id  (preference_id => client_preferences.id)
 #
 one:
   id: 1

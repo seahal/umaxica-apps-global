@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_multi_factor_statuses
+# Table name: operator_multi_factor_statuses
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key

@@ -4,18 +4,9 @@
 module Sign
   module App
     class ConfigurationsController < PrivateController
-      before_action :authenticate_client!
+      before_action :authenticate_client! # FIXME: I don't think this is needed
 
       def show
-      end
-
-      def edit
-        return if current_client.deactivated?
-
-        safe_redirect_to(
-          sign_app_configuration_path(ri: params[:ri]),
-          fallback: sign_app_configuration_path,
-        )
       end
     end
   end

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_occurrences
+# Table name: client_occurrences
 # Database name: occurrence
 #
 #  id           :bigint           not null, primary key
@@ -20,19 +20,18 @@
 #
 # Indexes
 #
-#  index_user_occurrences_on_body                       (body) UNIQUE
-#  index_user_occurrences_on_event_type_and_created_at  (event_type,created_at)
-#  index_user_occurrences_on_public_id                  (public_id) UNIQUE
-#  index_user_occurrences_on_purged_at                  (purged_at)
-#  index_user_occurrences_on_status_id_and_created_at   (status_id,created_at)
+#  index_client_occurrences_on_body                       (body) UNIQUE
+#  index_client_occurrences_on_event_type_and_created_at  (event_type,created_at)
+#  index_client_occurrences_on_public_id                  (public_id) UNIQUE
+#  index_client_occurrences_on_purged_at                  (purged_at)
+#  index_client_occurrences_on_status_id_and_created_at   (status_id,created_at)
 #
 # Foreign Keys
 #
-#  fk_user_occurrences_on_status_id  (status_id => user_occurrence_statuses.id)
+#  fk_user_occurrences_on_status_id  (status_id => client_occurrence_statuses.id)
 #
 
 class ClientOccurrence < OccurrenceRecord
-  self.table_name = "user_occurrences"
   include Retainable
   include PublicId
   include Occurrence

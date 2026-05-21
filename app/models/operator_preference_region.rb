@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_preference_regions
+# Table name: operator_preference_regions
 # Database name: org_principal
 #
 #  id            :bigint           not null, primary key
@@ -14,16 +14,15 @@
 #
 # Indexes
 #
-#  index_staff_preference_regions_on_option_id      (option_id)
-#  index_staff_preference_regions_on_preference_id  (preference_id) UNIQUE
+#  index_operator_preference_regions_on_option_id      (option_id)
+#  index_operator_preference_regions_on_preference_id  (preference_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_staff_preference_regions_on_option_id      (option_id => staff_preference_region_options.id)
-#  fk_staff_preference_regions_on_preference_id  (preference_id => staff_preferences.id)
+#  fk_staff_preference_regions_on_option_id      (option_id => operator_preference_region_options.id)
+#  fk_staff_preference_regions_on_preference_id  (preference_id => operator_preferences.id)
 #
 class OperatorPreferenceRegion < OrgPrincipalRecord
-  self.table_name = "staff_preference_regions"
   belongs_to :preference, class_name: "OperatorPreference", inverse_of: :staff_preference_region
   belongs_to :option,
              class_name: "OperatorPreferenceRegionOption",

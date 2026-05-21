@@ -21,8 +21,8 @@ class Sign::App::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
 
     assert_response :success
     assert_select "h1", I18n.t("sign.app.configuration.mfa.show.title")
-    assert_select "a[href^=?]", sign_app_mfa_reset_path(ri: "jp"),
-                  text: I18n.t("sign.app.configuration.mfa.show.reset_request")
+    assert_select "p", text: I18n.t("sign.app.configuration.mfa.show.reset_unavailable")
+    assert_select "form", count: 0
     assert_equal "/configuration/mfa/challenge", URI.parse(sign_app_configuration_mfa_challenge_url(ri: "jp")).path
   end
 
@@ -42,27 +42,16 @@ class Sign::App::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
     assert_predicate query["rt"], :present?
   end
 
-  test "update toggles multi_factor_id" do
+  test "update route is not exposed" do
     @user.update!(multi_factor_id: ClientMultiFactor::NOTHING, multi_factor_enabled: false)
 
     patch sign_app_configuration_mfa_challenge_url(ri: "jp"),
           params: { user: { multi_factor_id: ClientMultiFactor::FULL.to_s } },
           headers: authenticated_headers
 
-    assert_redirected_to sign_app_configuration_mfa_challenge_url(ri: "jp")
-    assert_equal ClientMultiFactor::FULL, @user.reload.multi_factor_id
-    assert_predicate @user, :multi_factor_enabled?
-  end
-
-  test "update rejects unsupported multi_factor_id" do
-    @user.update!(multi_factor_id: ClientMultiFactor::NOTHING, multi_factor_enabled: false)
-
-    patch sign_app_configuration_mfa_challenge_url(ri: "jp"),
-          params: { user: { multi_factor_id: ClientMultiFactor::WEAK.to_s } },
-          headers: authenticated_headers
-
-    assert_response :unprocessable_content
+    assert_response :not_found
     assert_equal ClientMultiFactor::NOTHING, @user.reload.multi_factor_id
+    assert_not_predicate @user, :multi_factor_enabled?
   end
 
   private

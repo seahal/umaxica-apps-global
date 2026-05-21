@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_verifications
+# Table name: client_verifications
 # Database name: app_ticket
 #
 #  id            :bigint           not null, primary key
@@ -17,15 +17,14 @@
 #
 # Indexes
 #
-#  index_user_verifications_on_token_digest   (token_digest) UNIQUE
-#  index_user_verifications_on_user_token_id  (user_token_id)
+#  index_client_verifications_on_token_digest   (token_digest) UNIQUE
+#  index_client_verifications_on_user_token_id  (user_token_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_token_id => user_tokens.id) ON DELETE => cascade
+#  fk_rails_...  (user_token_id => client_tokens.id) ON DELETE => cascade
 #
 class ClientVerification < AppTicketRecord
-  self.table_name = "user_verifications"
   include Retainable
   include RefreshTokenShared
   include VerificationCookieable

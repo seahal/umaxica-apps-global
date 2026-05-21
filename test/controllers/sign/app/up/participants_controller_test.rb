@@ -35,7 +35,7 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "checkpoint update rejects direct access without a ticket" do
-    patch sign_app_up_checkpoint_url(ri: "jp"),
+    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
           params: { requirement: "birthdate" },
           headers: default_headers
 

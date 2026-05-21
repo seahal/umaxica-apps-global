@@ -29,7 +29,7 @@ module Sign
         assert_select "a[href^=?]", sign_com_configuration_emails_path(ri: "jp")
         assert_select "a[href^=?]", sign_com_configuration_telephones_path(ri: "jp")
         assert_select "a[href^=?]", sign_com_configuration_birthdate_path(ri: "jp")
-        assert_select "a[href^=?]", sign_com_configuration_challenge_path(ri: "jp")
+        assert_select "a[href^=?]", sign_com_configuration_mfa_challenge_path(ri: "jp")
       end
 
       test "should redirect show when not logged in" do
@@ -37,6 +37,12 @@ module Sign
 
         assert_response :redirect
         assert_redirected_to %r{/sign/in/new\?ri=jp}
+      end
+
+      test "edit route is not available" do
+        get "/configuration/edit", headers: { "Host" => @host }
+
+        assert_response :not_found
       end
     end
   end

@@ -58,6 +58,6 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
 
     get new_sign_org_in_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_redirected_to sign_org_dashboard_url(ri: "jp")
+    assert_response :unauthorized
   end
 end

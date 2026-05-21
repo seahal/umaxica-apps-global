@@ -9,8 +9,6 @@
 #  id :bigint           not null, primary key
 #
 class VisitorIdentityState < ComRpRecord
-  self.table_name = "visitor_identity_states"
-
   include ReferenceRecord
 
   NOTHING = 0

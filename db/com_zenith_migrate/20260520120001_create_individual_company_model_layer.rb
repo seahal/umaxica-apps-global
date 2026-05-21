@@ -7,7 +7,7 @@ class CreateIndividualCompanyModelLayer < ActiveRecord::Migration[8.2]
     create_table(:individual_membership_revoke_reasons, id: :bigserial)
 
     create_table(:individuals, id: :bigserial) do |t|
-      t.references(:visitor_identity, null: false, foreign_key: { validate: false })
+      t.references(:visitor_identity, null: false)
       t.string(:public_id, null: false, default: "")
       t.string(:moniker)
       t.integer(:lock_version, null: false, default: 0)

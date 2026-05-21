@@ -28,8 +28,10 @@ module MultiFactorStatusTrackable
     next_status_id = calculated_multi_factor_status_id
     return true if multi_factor_status_id.to_i == next_status_id
 
-    assign_attributes(multi_factor_status_update_attributes(next_status_id))
-    save!
+    ActiveRecord::Base.connected_to(role: :writing) do
+      assign_attributes(multi_factor_status_update_attributes(next_status_id))
+      save!
+    end
   end
 
   def multi_factor_status_active?

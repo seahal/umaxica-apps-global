@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: staff_multi_factors
+# Table name: operator_multi_factors
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key
 #
 class OperatorMultiFactor < OrgPrincipalRecord
-  self.table_name = "staff_multi_factors"
   include ReferenceRecord
 
   NOTHING = 0

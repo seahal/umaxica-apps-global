@@ -30,10 +30,6 @@ module Sign
           :com
         end
 
-        def legacy_checkpoint_bulletin_satisfies_sequence?(participant, sequence)
-          participant.to_sym == :checkpoint && sequence.blank? && bulletin_state.present?
-        end
-
         def guard_timeout
           return unless bulletin_expired?
 

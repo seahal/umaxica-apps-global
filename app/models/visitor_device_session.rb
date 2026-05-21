@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: device_sessions
+# Table name: visitor_device_sessions
 # Database name: com_ticket
 #
 #  id                         :bigint           not null, primary key
@@ -25,21 +25,15 @@
 #
 # Indexes
 #
-#  index_device_sessions_on_current_refresh_token_id  (current_refresh_token_id)
-#  index_device_sessions_on_dbsc_session_id_digest    (dbsc_session_id_digest)
-#  index_device_sessions_on_device_id_digest          (device_id_digest)
-#  index_device_sessions_on_public_id                 (public_id) UNIQUE
-#  index_device_sessions_on_refresh_token_family_id   (refresh_token_family_id)
-#  index_device_sessions_on_revoked_at                (revoked_at)
-#  index_device_sessions_on_visitor_id                (visitor_id)
-#
-# Foreign Keys
-#
-#  fk_rails_...  (current_refresh_token_id => visitor_tokens.id)
+#  index_visitor_device_sessions_on_current_refresh_token_id  (current_refresh_token_id)
+#  index_visitor_device_sessions_on_dbsc_session_id_digest    (dbsc_session_id_digest)
+#  index_visitor_device_sessions_on_device_id_digest          (device_id_digest)
+#  index_visitor_device_sessions_on_public_id                 (public_id) UNIQUE
+#  index_visitor_device_sessions_on_refresh_token_family_id   (refresh_token_family_id)
+#  index_visitor_device_sessions_on_revoked_at                (revoked_at)
+#  index_visitor_device_sessions_on_visitor_id                (visitor_id)
 #
 class VisitorDeviceSession < ComTicketRecord
-  self.table_name = "device_sessions"
-
   include DeviceSessionable
 
   belongs_to :visitor, inverse_of: :visitor_device_sessions

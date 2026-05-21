@@ -71,13 +71,13 @@ module Sign
             )
           end
         rescue StandardError => e
-          Rails.event.error(
+          Rails.logger.error(LogEvent.format(
             "sign.com.authentication.secret.error",
             error_class: e.class.name,
             message: e.message,
             ip: request.remote_ip,
             exception: e,
-          )
+          ))
           render_failed_login(
             reason: :internal_error,
             identifier: @secret_form&.identifier,
@@ -174,7 +174,7 @@ module Sign
           @secret_form ||= SecretLoginForm.new
           @secret_form.errors.add(:base, invalid_secret_message)
 
-          Rails.event.info(
+          Rails.logger.info(LogEvent.format(
             "sign.com.authentication.secret.failed",
             reason: reason,
             identifier_type: detect_identifier_type(identifier.to_s),
@@ -183,7 +183,7 @@ module Sign
             ip: request.remote_ip,
             errors: @secret_form.errors.full_messages,
             details: details,
-          )
+          ))
 
           Sign::Risk::Emitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
 

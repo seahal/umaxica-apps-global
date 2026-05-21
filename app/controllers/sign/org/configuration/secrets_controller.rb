@@ -6,9 +6,11 @@ module Sign
     module Configuration
       class SecretsController < PrivateController
         include ::Verification::Operator
+        include ::Sign::Configuration::SecretTurnstileGuard
 
         before_action :authenticate_operator!
         before_action :set_secret, only: %i(show edit update destroy)
+        before_action :verify_secret_turnstile!, only: %i(create update destroy)
 
         def index
           @secrets = current_operator.staff_secrets.order(created_at: :desc)
@@ -46,6 +48,11 @@ module Sign
         end
 
         def update
+          if disabling_secret? && AuthMethodGuard.last_method?(current_operator, excluding: @secret)
+            flash[:alert] = t(".last_method")
+            return redirect_to(sign_org_configuration_secrets_path)
+          end
+
           OperatorSecrets::Update.call(
             actor: current_operator,
             secret: @secret,
@@ -78,6 +85,22 @@ module Sign
 
         def secret_params
           params.fetch(:staff_secret, {}).permit(:name, :enabled)
+        end
+
+        def disabling_secret?
+          secret_params.key?(:enabled) && !ActiveModel::Type::Boolean.new.cast(secret_params[:enabled])
+        end
+
+        def prepare_secret_turnstile_create_failure
+          @secret = current_operator.staff_secrets.new(secret_params.except(:enabled))
+          @raw_secret = session[:staff_secret_raw].presence || OperatorSecret.generate_raw_secret
+          session[:staff_secret_raw] = @raw_secret
+          @secret.name = @raw_secret.first(4) if @secret.name.blank?
+          @secret.errors.add(:base, t("turnstile_error"))
+        end
+
+        def secret_turnstile_failure_redirect_path
+          sign_org_configuration_secrets_path(ri: params[:ri])
         end
 
         def verification_required_action?

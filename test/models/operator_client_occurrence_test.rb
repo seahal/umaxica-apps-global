@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_user_occurrences
+# Table name: operator_client_occurrences
 # Database name: occurrence
 #
 #  id                  :bigint           not null, primary key
@@ -14,13 +14,13 @@
 #
 # Indexes
 #
-#  idx_staff_user_occ_on_ids                           (staff_occurrence_id,user_occurrence_id) UNIQUE
-#  index_staff_user_occurrences_on_user_occurrence_id  (user_occurrence_id)
+#  idx_staff_user_occ_on_ids                                (staff_occurrence_id,user_occurrence_id) UNIQUE
+#  index_operator_client_occurrences_on_user_occurrence_id  (user_occurrence_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_occurrence_id => staff_occurrences.id)
-#  fk_rails_...  (user_occurrence_id => user_occurrences.id)
+#  fk_rails_...  (staff_occurrence_id => operator_occurrences.id)
+#  fk_rails_...  (user_occurrence_id => client_occurrences.id)
 #
 
 require "test_helper"

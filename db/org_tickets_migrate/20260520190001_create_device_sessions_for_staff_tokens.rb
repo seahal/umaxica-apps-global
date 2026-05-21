@@ -5,7 +5,7 @@ class CreateDeviceSessionsForStaffTokens < ActiveRecord::Migration[8.2]
   disable_ddl_transaction!
 
   def change
-    create_table :device_sessions, if_not_exists: true do |t|
+    create_table :operator_device_sessions, if_not_exists: true do |t|
       t.string :public_id, limit: 21, null: false
       t.bigint :staff_id, null: false
       t.string :device_id_digest
@@ -23,15 +23,15 @@ class CreateDeviceSessionsForStaffTokens < ActiveRecord::Migration[8.2]
       t.datetime :updated_at, null: false
     end
 
-    add_index :device_sessions, :public_id, unique: true, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :staff_id, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :device_id_digest, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :dbsc_session_id_digest, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :current_refresh_token_id, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :refresh_token_family_id, algorithm: :concurrently, if_not_exists: true
-    add_index :device_sessions, :revoked_at, algorithm: :concurrently, if_not_exists: true
+    add_index :operator_device_sessions, :public_id, unique: true, algorithm: :concurrently, if_not_exists: true
+    add_index :operator_device_sessions, :staff_id, algorithm: :concurrently, if_not_exists: true
+    add_index :operator_device_sessions, :device_id_digest, algorithm: :concurrently, if_not_exists: true
+    add_index :operator_device_sessions, :dbsc_session_id_digest, algorithm: :concurrently, if_not_exists: true
+    add_index :operator_device_sessions, :current_refresh_token_id, algorithm: :concurrently, if_not_exists: true
+    add_index :operator_device_sessions, :refresh_token_family_id, algorithm: :concurrently, if_not_exists: true
+    add_index :operator_device_sessions, :revoked_at, algorithm: :concurrently, if_not_exists: true
 
-    add_column :staff_tokens, :device_session_id, :bigint unless column_exists?(:staff_tokens, :device_session_id)
-    add_index :staff_tokens, :device_session_id, algorithm: :concurrently, if_not_exists: true
+    add_column :operator_tokens, :device_session_id, :bigint unless column_exists?(:operator_tokens, :device_session_id)
+    add_index :operator_tokens, :device_session_id, algorithm: :concurrently, if_not_exists: true
   end
 end

@@ -873,6 +873,8 @@ en:
         address: Email address
     errors:
       messages:
+        birthdate_format: must be entered in YYYY-MM-DD format
+        birthdate_before_today: must be before today
         record_invalid: "Validation failed: %{errors}"
         restrict_dependent_destroy:
           has_one: Cannot delete record because a dependent %{record} exists

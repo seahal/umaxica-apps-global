@@ -29,6 +29,8 @@
 #
 
 class AvatarOwnershipPeriod < AvatarRecord
+  self.belongs_to_required_by_default = false
+
   belongs_to :avatar
   belongs_to :avatar_ownership_status
 

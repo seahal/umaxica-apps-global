@@ -38,10 +38,10 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => staff_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => staff_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => staff_statuses.id)
-#  fk_rails_...  (visibility_id => staff_visibilities.id)
+#  fk_rails_...  (multi_factor_id => operator_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => operator_multi_factor_statuses.id)
+#  fk_rails_...  (status_id => operator_identity_statuses.id)
+#  fk_rails_...  (visibility_id => operator_visibilities.id)
 #
 
 class Operator < OrgPrincipalRecord
@@ -83,6 +83,11 @@ class Operator < OrgPrincipalRecord
                           inverse_of: :staff
   has_many :operator_emails, class_name: "OperatorEmail", foreign_key: :staff_id,
                              inverse_of: :staff
+  has_one :operator_social_google,
+          class_name: "OperatorSocialGoogle",
+          foreign_key: :staff_id,
+          dependent: :destroy,
+          inverse_of: :staff
   has_many :staff_telephones, class_name: "OperatorTelephone", dependent: :restrict_with_error,
                               inverse_of: :staff
   has_many :operator_telephones, class_name: "OperatorTelephone", foreign_key: :staff_id,

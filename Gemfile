@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 source "https://rubygems.org"
-# source "https://gem.coop"
 
-ruby "4.0.4"
+ruby "4.0.5"
 
 # Type signatures for Ruby libraries.
 gem "rbs", require: false
@@ -127,37 +126,57 @@ gem "store_attribute"
 gem "store_model"
 # Stripe API client.
 gem "stripe", require: false
+# dependency
+gem "ruby-vips"
+# log
+gem "lograge"
 
 group :development, :test do
   # Test coverage reporting.
   gem "simplecov", require: false
   # LCOV formatter for SimpleCov.
   gem "simplecov-lcov", require: false
-
   # Minitest mock extraction.
   gem "minitest-mock"
   # Slow test profiling.
   gem "test-prof", require: false
-
-  # N+1 query detector.
-  gem "bullet", require: false
   # N+1 query detector alternative.
   gem "prosopite"
   # SQL query parser.
   gem "pg_query", require: false
-
-  # Active Record schema and model linting.
-  gem "active_record_doctor", github: "gregnavis/active_record_doctor", require: false
   # Database consistency checks.
   gem "database_consistency", require: false
-
   # OpenAPI contract checker.
   gem "committee-rails", require: false
   # Dead code detector.
   gem "debride", require: false
   # RBI generation for Sorbet.
   gem "tapioca", require: false
-  gem "findbug"
+  # gem "findbug"
+  # Static security scanner.
+  gem "brakeman", require: false
+  # Bundler vulnerability scanner.
+  gem "bundler-audit", require: false
+  # RuboCop core linter.
+  gem "rubocop", require: false
+  # RuboCop AST utilities.
+  gem "rubocop-ast", require: false
+  # RuboCop performance rules.
+  gem "rubocop-performance", require: false
+  # RuboCop thread-safety rules.
+  gem "rubocop-thread_safety", require: false
+  # RuboCop Rake rules.
+  gem "rubocop-rake", require: false
+  # RuboCop Minitest rules.
+  gem "rubocop-minitest", require: false
+  # RuboCop Rails omakase rules.
+  gem "rubocop-rails-omakase", require: false
+  # RuboCop i18n rules.
+  gem "rubocop-i18n", require: false
+  # RuboCop RubyCW rules.
+  gem "rubocop-rubycw", require: false
+  # RuboCop Rails rules.
+  gem "rubocop-rails", require: false
 end
 
 group :test do
@@ -184,60 +203,26 @@ end
 group :development do
   # Debugging tools.
   gem "debug", platforms: %i(mri windows)
-  # Sorbet static type checker.
-  gem "sorbet", require: false
   # Procfile process manager.
   gem "foreman", require: false
   # Documentation generator.
   gem "yard", require: false
-
   # Browser email previewer.
   gem "letter_opener", require: false
   # Web UI for email previews.
   gem "letter_opener_web", require: false
-
   # Hotwire live reload helper.
   gem "hotwire-spark"
   # Rails live reload helper.
   gem "rails_live_reload"
   # Rack live reload middleware.
   gem "rack-livereload"
-
   # Request performance profiler.
   gem "rack-mini-profiler"
   # PostgreSQL dashboard.
   gem "pghero", require: false
   # SQL exploration dashboard.
   gem "blazer", require: false
-
-  # Static security scanner.
-  gem "brakeman", require: false
-  # Bundler vulnerability scanner.
-  gem "bundler-audit", require: false
-
-  # RuboCop core linter.
-  gem "rubocop", require: false
-  # RuboCop AST utilities.
-  gem "rubocop-ast", require: false
-  # RuboCop performance rules.
-  gem "rubocop-performance", require: false
-  # RuboCop thread-safety rules.
-  gem "rubocop-thread_safety", require: false
-  # RuboCop Rake rules.
-  gem "rubocop-rake", require: false
-  # RuboCop Minitest rules.
-  gem "rubocop-minitest", require: false
-  # RuboCop Rails omakase rules.
-  gem "rubocop-rails-omakase", require: false
-  # RuboCop i18n rules.
-  gem "rubocop-i18n", require: false
-  # RuboCop RubyCW rules.
-  gem "rubocop-rubycw", require: false
-  # RuboCop Rails rules.
-  gem "rubocop-rails", require: false
-  # RuboCop Sorbet rules.
-  gem "rubocop-sorbet", require: false
-
   # Package boundary enforcement.
   gem "packwerk", require: false
   # ERB linter.
@@ -246,18 +231,10 @@ group :development do
   gem "annotaterb", require: false
   # Ruby language server.
   gem "ruby-lsp", require: false
-
   # ABC complexity analyzer.
   gem "flog", require: false
   # Duplicate code detector.
   gem "flay", require: false
   # Code smell detector.
   gem "reek", require: false
-
-  # Entity relationship diagram generator.
-  gem "rails-erd", require: false
-  # Rails diagram generator.
-  gem "railroady", require: false
-  # Mermaid ERD generator.
-  gem "rails-mermaid_erd", require: false
 end

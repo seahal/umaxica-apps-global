@@ -29,7 +29,7 @@ module Security
 
         assert_predicate user.reload, :closing?
         assert_response :redirect
-        assert_redirected_to edit_sign_app_configuration_path(ri: "jp")
+        assert_redirected_to edit_sign_app_configuration_withdrawal_path(ri: "jp")
       end
 
       test "suspended resource gets withdrawal required on json protected routes" do
@@ -49,7 +49,7 @@ module Security
 
         assert_predicate user.reload, :terminated?
         assert_response :redirect
-        assert_redirected_to edit_sign_app_configuration_path(ri: "jp")
+        assert_redirected_to edit_sign_app_configuration_withdrawal_path(ri: "jp")
       end
 
       test "withdrawal allowlist route remains reachable" do

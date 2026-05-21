@@ -150,4 +150,7 @@ Rails.application.configure do
 
   # SMS Provider Configuration - Use test provider in development
   config.sms_provider = ENV.fetch("SMS_PROVIDER", "test")
+
+  # add to the default host
+  # config.action_controller.default_url_options = { host: "localhost", port: 3001 }
 end

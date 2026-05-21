@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: users
+# Table name: clients
 # Database name: app_principal
 #
 #  id                     :bigint           not null, primary key
@@ -25,25 +25,25 @@
 #
 # Indexes
 #
-#  index_users_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_users_on_deletable_at            (deletable_at)
-#  index_users_on_discarded_at            (discarded_at)
-#  index_users_on_multi_factor_id         (multi_factor_id)
-#  index_users_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_users_on_public_id               (public_id) UNIQUE
-#  index_users_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_users_on_status_id               (status_id)
-#  index_users_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
-#  index_users_on_visibility_id           (visibility_id)
-#  index_users_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_users_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_clients_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_clients_on_deletable_at            (deletable_at)
+#  index_clients_on_discarded_at            (discarded_at)
+#  index_clients_on_multi_factor_id         (multi_factor_id)
+#  index_clients_on_multi_factor_status_id  (multi_factor_status_id)
+#  index_clients_on_public_id               (public_id) UNIQUE
+#  index_clients_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
+#  index_clients_on_status_id               (status_id)
+#  index_clients_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_clients_on_visibility_id           (visibility_id)
+#  index_clients_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_clients_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => user_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => user_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => user_statuses.id)
-#  fk_rails_...  (visibility_id => user_visibilities.id)
+#  fk_rails_...  (multi_factor_id => client_multi_factors.id)
+#  fk_rails_...  (multi_factor_status_id => client_multi_factor_statuses.id)
+#  fk_rails_...  (status_id => client_statuses.id)
+#  fk_rails_...  (visibility_id => client_visibilities.id)
 #
 _fixture:
   model_class: Client

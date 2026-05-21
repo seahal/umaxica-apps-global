@@ -1,7 +1,7 @@
 # typed: false
 # == Schema Information
 #
-# Table name: staff_secret_kinds
+# Table name: operator_secret_kinds
 # Database name: org_principal
 #
 #  id :bigint           not null, primary key

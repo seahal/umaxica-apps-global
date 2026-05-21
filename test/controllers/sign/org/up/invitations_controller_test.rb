@@ -28,6 +28,8 @@ class Sign::Org::Up::InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "input[name=?]", "invitation_code"
+    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
+    assert_includes response.body, "turnstile.render"
   end
 
   test "create accepts invitation and redirects to sign in" do

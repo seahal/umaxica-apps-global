@@ -207,18 +207,17 @@ module Preference
       adoption = build_adoption_context(@preference)
       adoption.define_singleton_method(:adoptable_preference_class?) { raise StandardError, "boom" }
 
-      recorded_events = []
-      mock_record = ->(name, payload = {}) { recorded_events << { name: name, payload: payload } }
+      logged = []
 
-      Rails.event.stub(:record, mock_record) do
+      Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
         assert_nothing_raised do
           adoption.send(:adopt_preference_for!, @user)
         end
       end
 
-      assert_equal 1, recorded_events.size, "Expected adoption error event to be recorded"
-      assert_equal "preference.adoption.error", recorded_events.first[:name]
-      assert_equal "StandardError", recorded_events.first[:payload][:error]
+      assert_equal 1, logged.size, "Expected adoption error event to be logged"
+      assert_equal "preference.adoption.error", logged.first[:event]
+      assert_equal "StandardError", logged.first[:data][:error]
     end
 
     test "adopt_preference_for! is no-op when resource is blank" do
@@ -246,18 +245,17 @@ module Preference
       adoption = build_adoption_context(@preference)
       adoption.define_singleton_method(:adoptable_preference_class?) { raise StandardError, "boom" }
 
-      recorded_events = []
-      mock_record = ->(name, payload = {}) { recorded_events << { name: name, payload: payload } }
+      logged = []
 
-      Rails.event.stub(:record, mock_record) do
+      Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
         assert_nothing_raised do
           adoption.send(:adopt_rotated_preference!, @user, @new_preference)
         end
       end
 
-      assert_equal 1, recorded_events.size, "Expected adoption rotation error event to be recorded"
-      assert_equal "preference.adoption.rotation_error", recorded_events.first[:name]
-      assert_equal "StandardError", recorded_events.first[:payload][:error]
+      assert_equal 1, logged.size, "Expected adoption rotation error event to be logged"
+      assert_equal "preference.adoption.rotation_error", logged.first[:event]
+      assert_equal "StandardError", logged.first[:data][:error]
     end
 
     test "adopt_rotated_preference! is no-op when resource is blank" do

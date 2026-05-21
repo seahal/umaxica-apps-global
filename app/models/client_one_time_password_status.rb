@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: user_one_time_password_statuses
+# Table name: client_one_time_password_statuses
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key
 #
 class ClientOneTimePasswordStatus < AppPrincipalRecord
-  self.table_name = "user_one_time_password_statuses"
   include ReferenceRecord
 
   ACTIVE = 1

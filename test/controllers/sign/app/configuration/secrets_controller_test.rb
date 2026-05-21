@@ -31,6 +31,13 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       last_used_at: Time.zone.now,
       user_secret_kind_id: ClientSecret::Kinds::LOGIN,
     )
+    CloudflareTurnstile.validation_override_enabled = true
+    CloudflareTurnstile.validation_override_response = { "success" => true }
+  end
+
+  teardown do
+    CloudflareTurnstile.validation_override_enabled = false
+    CloudflareTurnstile.validation_override_response = nil
   end
 
   def authenticated_headers
@@ -41,9 +48,17 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     # browser_headers sets an explicit 'Cookie' header which overwrites the cookie jar.
     # We must manually append our verification cookie if it exists.
+    csrf_token = cookies["csrf_token"]
     verification_token = cookies[ClientVerification.cookie_name]
     if verification_token
-      headers["Cookie"] = "#{headers["Cookie"]}; #{ClientVerification.cookie_name}=#{verification_token}"
+      headers["Cookie"] =
+        [
+          headers["Cookie"],
+          ("csrf_token=#{csrf_token}" if csrf_token.present?),
+          "#{ClientVerification.cookie_name}=#{verification_token}",
+        ]
+          .compact_blank
+          .join("; ")
     end
 
     headers
@@ -196,7 +211,7 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       ) do
         with_prosopite_paused do
           post sign_app_configuration_secrets_url(ri: "jp"),
-               params: { user_secret: { name: "New Secret", enabled: true } },
+               params: { user_secret: { name: "New Secret", enabled: true }, "cf-turnstile-response": "test" },
                headers: authenticated_headers
         end
       end
@@ -221,13 +236,18 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     assert_no_difference("ClientSecret.count") do
       with_prosopite_paused do
         post sign_app_configuration_secrets_url(ri: "jp"),
-             params: { user_secret: { name: "Blocked Secret", enabled: true } },
+             params: { user_secret: { name: "Blocked Secret", enabled: true }, "cf-turnstile-response": "test" },
              headers: headers
       end
     end
 
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("auth.step_up.register_methods_required")
+    assert_response :see_other
+    uri = URI.parse(response.location)
+    query = Rack::Utils.parse_query(uri.query)
+
+    assert_equal "/verification/setup/new", uri.path
+    assert_equal "jp", query["ri"]
+    assert_equal Base64.urlsafe_encode64(sign_app_configuration_secrets_path(ri: "jp")), query["rt"]
   end
 
   test "create returns unprocessable entity plain message when user has no verified recovery identity" do
@@ -244,7 +264,7 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     assert_no_difference("ClientSecret.count") do
       with_prosopite_paused do
         post sign_app_configuration_secrets_url(ri: "jp"),
-             params: { user_secret: { name: "Blocked Secret", enabled: true } },
+             params: { user_secret: { name: "Blocked Secret", enabled: true }, "cf-turnstile-response": "test" },
              headers: headers
       end
     end
@@ -253,20 +273,35 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     assert_includes response.body, Client::RECOVERY_IDENTITY_REQUIRED_MESSAGE
   end
 
-  test "update is not routable (secret overwrite is disabled)" do
-    with_prosopite_paused do
-      patch sign_app_configuration_secret_url(@user_secret, ri: "jp"),
-            params: { user_secret: { name: "Updated Secret", enabled: false } },
-            headers: authenticated_headers
+  test "should update secret name and status" do
+    assert_difference(
+      -> {
+        ClientChronicle.where(
+          actor_type: "Client",
+          actor_id: @user.id,
+          event_id: ClientChronicleEvent::USER_SECRET_UPDATED,
+        ).count
+      },
+      1,
+    ) do
+      with_prosopite_paused do
+        patch sign_app_configuration_secret_url(@user_secret, ri: "jp"),
+              params: { user_secret: { name: "Updated Secret", enabled: false } },
+              headers: authenticated_headers
+      end
     end
 
-    assert_response :not_found
-    assert_equal "Test Secret", @user_secret.reload.name
+    assert_redirected_to sign_app_configuration_secrets_url(ri: "jp")
+    @user_secret.reload
+
+    assert_equal "Updated Secret", @user_secret.name
+    assert_equal ClientSecretStatus::REVOKED, @user_secret.user_identity_secret_status_id
   end
 
   test "should get destroy" do
     satisfy_user_verification(@token)
-    assert_difference("ClientSecret.count", -1) do
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret")
+    AuthMethodGuard.stub(:last_method?, false) do
       with_prosopite_paused do
         delete sign_app_configuration_secret_url(@user_secret, ri: "jp"), headers: authenticated_headers
       end
@@ -323,13 +358,14 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     assert_response :not_found
   end
 
-  test "update route stays unavailable even when secret is last method" do
+  test "update does not disable last method" do
     user = create_verified_user_with_email(email_address: "update_block_user@example.com")
     token = ClientToken.create!(
       id: ClientToken.maximum(:id).to_i + 1,
       user_id: user.id,
     )
     satisfy_user_verification(token)
+    token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret")
     secret = ClientSecret.create!(
       user: user,
       name: "Only Secret",
@@ -337,17 +373,65 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       user_secret_kind_id: ClientSecret::Kinds::LOGIN,
     )
 
-    with_prosopite_paused do
-      patch sign_app_configuration_secret_url(secret, ri: "jp"),
-            params: { user_secret: { enabled: false } },
-            headers: {
-              "Host" => ENV["ID_SERVICE_URL"] || "id.app.localhost",
-              "X-TEST-CURRENT-USER" => user.id.to_s,
-              "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-            }
+    AuthMethodGuard.stub(:last_method?, true) do
+      with_prosopite_paused do
+        patch sign_app_configuration_secret_url(secret, ri: "jp"),
+              params: { user_secret: { enabled: false }, "cf-turnstile-response": "test" },
+              headers: {
+                "Host" => ENV["ID_SERVICE_URL"] || "id.app.localhost",
+                "X-TEST-CURRENT-USER" => user.id.to_s,
+                "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+              }
+      end
     end
 
-    assert_response :not_found
+    assert_redirected_to sign_app_configuration_secrets_url(ri: "jp")
+    assert_predicate flash[:alert], :present?
     assert_equal ClientSecretStatus::ACTIVE, secret.reload.user_identity_secret_status_id
+  end
+
+  test "create requires successful stealth turnstile" do
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    assert_no_difference("ClientSecret.count") do
+      with_prosopite_paused do
+        post sign_app_configuration_secrets_url(ri: "jp"),
+             params: { user_secret: { name: "Blocked Secret", enabled: true }, "cf-turnstile-response": "bad" },
+             headers: authenticated_headers
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, I18n.t("turnstile_error")
+  end
+
+  test "update requires successful stealth turnstile" do
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    with_prosopite_paused do
+      patch sign_app_configuration_secret_url(@user_secret, ri: "jp"),
+            params: { user_secret: { name: "Blocked Update", enabled: true }, "cf-turnstile-response": "bad" },
+            headers: authenticated_headers
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, I18n.t("turnstile_error")
+    assert_equal "Test Secret", @user_secret.reload.name
+  end
+
+  test "destroy requires successful stealth turnstile" do
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    assert_no_difference("ClientSecret.where.not(user_identity_secret_status_id: ClientSecretStatus::DELETED).count") do
+      with_prosopite_paused do
+        delete sign_app_configuration_secret_url(@user_secret, ri: "jp"),
+               params: { "cf-turnstile-response": "bad" },
+               headers: authenticated_headers
+      end
+    end
+
+    assert_response :see_other
+    assert_redirected_to sign_app_configuration_secrets_url(ri: "jp")
+    assert_predicate flash[:alert], :present?
   end
 end

@@ -185,7 +185,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
     end
 
     # Don't allow revoking the current session via ref (use destroy without ref for that)
-    if token.public_id == current_session_public_id
+    if token.id == current_session&.id || token.public_id == current_session_public_id
       flash[:alert] = I18n.t("session_limit.cannot_revoke_current")
       return
     end
@@ -204,7 +204,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
       OperatorToken.transaction do
         OperatorToken.find_from_signed_refs(refs).each do |token|
           next unless token && token.staff_id == staff.id
-          next if token.public_id == current_session_public_id # Skip current session
+          next if token.id == current_session&.id || token.public_id == current_session_public_id # Skip current session
 
           token.revoke!
           revoked_count += 1

@@ -4,6 +4,7 @@
 module Sign
   module PromotionalEmailUnsubscribeActions
     extend ActiveSupport::Concern
+    include ::CloudflareTurnstile
 
     included do
       before_action :set_promotional_email
@@ -13,6 +14,8 @@ module Sign
     end
 
     def destroy
+      return unless verified_turnstile_for_destroy?
+
       unsubscribe_promotional_email!
       redirect_to(redirect_after_unsubscribe_path(token: params[:token]))
     end
@@ -23,6 +26,17 @@ module Sign
     end
 
     private
+
+    def verified_turnstile_for_destroy?
+      return true if cloudflare_turnstile_validation["success"]
+
+      redirect_to(
+        redirect_after_unsubscribe_path(token: params[:token]),
+        alert: t("turnstile_error"),
+        status: :see_other,
+      )
+      false
+    end
 
     def verified_request?
       super || promotional_unsubscribe_create_request?

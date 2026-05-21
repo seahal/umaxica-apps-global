@@ -30,8 +30,6 @@
 #  fk_rails_...  (status_id => visitor_identity_states.id)
 #
 class VisitorIdentity < ComRpRecord
-  self.table_name = "visitor_identities"
-
   include ::PublicId
 
   belongs_to :identity_state,

@@ -1,0 +1,80 @@
+en:
+  sign:
+    app:
+      registration:
+        checkpoint:
+          show:
+            page_title: Complete registration
+            complete: Registration requirements are complete.
+            birthdate:
+              title: Confirm your birthdate
+              description: Enter your birthdate to continue registration.
+              label: Birthdate
+              submit: Continue
+            passkey:
+              title: Register a passkey
+              description: Add a passkey before completing registration.
+              action: Register passkey
+            passcode:
+              title: Save your passcode
+              description: Confirm your sign-in passcode before completing registration.
+              action: Save passcode
+    com:
+      registration:
+        checkpoint:
+          show:
+            page_title: Complete registration
+            complete: Registration requirements are complete.
+            birthdate:
+              title: Confirm your birthdate
+              description: Enter your birthdate to continue registration.
+              label: Birthdate
+              submit: Continue
+            passkey:
+              title: Register a passkey
+              description: Add a passkey before completing registration.
+              action: Register passkey
+            passcode:
+              title: Save your passcode
+              description: Confirm your sign-in passcode before completing registration.
+              action: Save passcode
+ja:
+  sign:
+    app:
+      registration:
+        checkpoint:
+          show:
+            page_title: 登録を完了
+            complete: 登録に必要な項目は完了しています。
+            birthdate:
+              title: 生年月日の確認
+              description: 登録を続けるため、生年月日を入力してください。
+              label: 生年月日
+              submit: 続行
+            passkey:
+              title: パスキーの登録
+              description: 登録を完了する前にパスキーを追加してください。
+              action: パスキーを登録
+            passcode:
+              title: パスコードの保存
+              description: 登録を完了する前にサインイン用パスコードを確認してください。
+              action: パスコードを保存
+    com:
+      registration:
+        checkpoint:
+          show:
+            page_title: 登録を完了
+            complete: 登録に必要な項目は完了しています。
+            birthdate:
+              title: 生年月日の確認
+              description: 登録を続けるため、生年月日を入力してください。
+              label: 生年月日
+              submit: 続行
+            passkey:
+              title: パスキーの登録
+              description: 登録を完了する前にパスキーを追加してください。
+              action: パスキーを登録
+            passcode:
+              title: パスコードの保存
+              description: 登録を完了する前にサインイン用パスコードを確認してください。
+              action: パスコードを保存

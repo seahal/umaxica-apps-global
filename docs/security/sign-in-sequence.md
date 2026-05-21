@@ -14,8 +14,8 @@ Successful sign-in proceeds through these gates in order:
 4. Guardrail.
 5. Session issuance.
 6. Checkpoint.
-7. Dashboard.
-8. Final return path or configuration page.
+7. Welcome.
+8. Final return path or dashboard.
 
 The DB-backed sign-in cycle uses these states for the authoritative lifecycle:
 
@@ -27,7 +27,7 @@ The DB-backed sign-in cycle uses these states for the authoritative lifecycle:
 | `GUARDRAIL_PENDING`        | Pre-issuance guardrail checks must stop or clear.                               |
 | `SESSION_ISSUANCE_PENDING` | The sequence is authorized to issue the normal signed-in session.               |
 | `CHECKPOINT_PENDING`       | Post-issuance checkpoint participants must stop or clear.                       |
-| `DASHBOARD_PENDING`        | Dashboard sequence participant may render or advance.                           |
+| `DASHBOARD_PENDING`        | Legacy name for the welcome sequence participant; it may render or advance.     |
 | `RETURN_PENDING`           | Safe return path or default destination is consumed.                            |
 | `COMPLETED`                | The sign-in sequence has completed.                                             |
 | `FAILED`                   | The sign-in sequence failed or was abandoned.                                   |
@@ -61,7 +61,7 @@ Guardrail is different from checkpoint:
 - Checkpoint happens after sign-in/session issuance, when the actor is allowed to continue but must
   pass interstitial content.
 
-`/sign/in/guardrail` returns plain text. It must not redirect to dashboard, checkpoint, or a return
+`/sign/in/guardrail` returns plain text. It must not redirect to welcome, checkpoint, or a return
 path. Direct access without a valid in-sequence guardrail state is rejected with plain text instead
 of being treated as a normal page view.
 
@@ -76,32 +76,44 @@ If the checkpoint stack has items, the actor is routed to the checkpoint page. I
 stack is empty and the current state machine position is the checkpoint participant, the sequence
 advances to the next step instead of returning an error.
 
-## Dashboard
+## Welcome And Dashboard
 
-Dashboard is available only after authentication. It follows checkpoint in the sign-in sequence.
+Welcome is available only after authentication. It follows checkpoint in the sign-in sequence.
 
-Dashboard has two access modes:
+Current sign routes expose these authenticated top-level routes:
 
-- Ordinary dashboard access: a signed-in actor opens dashboard directly and sees the normal
-  authenticated landing page.
-- Sequence dashboard participant: the post-auth sequence reaches dashboard after guardrail, session
-  issuance, and checkpoint handling.
+- `GET /welcome`: post-auth sequence participant for `app`, `com`, and `org`.
+- `GET /dashboard`: ordinary authenticated home for `app`, `com`, and `org`.
 
-Only the sequence dashboard participant consumes the preserved `rt` return path. Ordinary dashboard
-access must not treat a query parameter as a post-auth handoff.
+In `config/routes/sign.rb`, `welcome` belongs beside `dashboard` in every sign surface:
 
-If the sequence dashboard stack is empty, the sequence can advance directly to the preserved return
-path or the surface configuration page. If the stack has items, dashboard may display them, but
-reaching dashboard means the actor has completed the normal `AAL1` sign-in boundary and may behave
-as a signed-in actor.
+```ruby
+root to: "roots#index"
+resource :welcome, only: :show
+resource :dashboard, only: :show
+```
 
-Guardrail, checkpoint, and dashboard are sequence participants whose content can grow or disappear
+Only the welcome participant consumes the preserved `rt` return path. Ordinary dashboard access must
+not treat a query parameter as a post-auth handoff.
+
+If `/welcome` receives a safe `rt`, it consumes that return path and redirects there. If `rt` is
+missing, blank, invalid, unsafe, expired, or points back to `/welcome`, the actor is redirected to
+`/dashboard`. `/dashboard` is a normal authenticated landing page and can be opened directly or
+refreshed repeatedly without consuming `rt`.
+
+`/welcome` is not a permanent page. Before redirecting to `/welcome`, the server clears any previous
+welcome gate for the surface and issues a new session gate with `remaining = 5`, `issued_at`, and
+`expires_at`. Each `/welcome` request decrements `remaining`. When `remaining <= 0`, or when the
+current time is at or after `expires_at`, the welcome gate is cleared and the actor is redirected to
+`/dashboard`. The expiry is absolute and is not extended by refresh.
+
+Guardrail, checkpoint, and welcome are sequence participants whose content can grow or disappear
 over time. The sequence should decide whether each participant has required content before it routes
 the actor forward.
 
 ## Sequence Participants
 
-Guardrail, checkpoint, and dashboard should be implemented as sequence participants, not as fixed
+Guardrail, checkpoint, and welcome should be implemented as sequence participants, not as fixed
 single-purpose pages. Each participant evaluates a list of requirement items for the current actor,
 surface, and flow.
 
@@ -124,9 +136,9 @@ Expected behavior by participant:
 - Checkpoint: if the stack is empty, advance without displaying a page. If the stack has any
   blocking item, render the checkpoint and keep the actor at checkpoint until all blocking items
   clear.
-- Dashboard: if the sequence dashboard stack is empty, continue to the safe return path or default
-  destination. If the stack has items, display them, but do not treat dashboard as an incomplete
-  login state.
+- Welcome: if the sequence welcome stack is empty, continue to the safe return path or dashboard. If
+  the stack has items, display them within the welcome gate, but do not treat welcome as an
+  incomplete login state.
 
 Adding or removing a requirement must not require changing the route order. New behavior should be
 added by registering a new item evaluator for the participant.
@@ -134,8 +146,8 @@ added by registering a new item evaluator for the participant.
 ## Return Path
 
 Return-path values are preserved only when they resolve to safe same-origin paths. Unsafe external
-return targets are discarded before they are carried into guardrail, checkpoint, or dashboard URLs.
-The return path never skips guardrail, checkpoint, or dashboard.
+return targets are discarded before they are carried into guardrail, checkpoint, or welcome URLs.
+The return path never skips guardrail, checkpoint, or welcome.
 
 For DB-backed cycles, return consumption happens only at `RETURN_PENDING`. The return participant
 clears the stored return path and completes the cycle. Ordinary dashboard access must not consume

@@ -7,7 +7,7 @@
   <ul>
     <li><%= link_to t("controller.sign.app.setting.index.passkey"), sign_com_configuration_passkeys_path %></li>
     <li><%= link_to t("controller.sign.app.setting.index.secret"), sign_com_configuration_secrets_path %></li>
-    <li><%= link_to t("sign.app.configuration.show.mfa"), sign_com_configuration_challenge_path %></li>
+    <li><%= link_to t("sign.app.configuration.show.mfa"), sign_com_configuration_mfa_challenge_path(ri: params[:ri]) %></li>
   </ul>
 </section>
 <br />

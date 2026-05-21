@@ -80,6 +80,11 @@ The AAL1 availability state follows the same reference-value shape as AAL2 avail
 Removing an AAL1 credential is a sensitive operation. The normal removal path requires recent AAL2
 even when the actor will still have one or more AAL1 credentials afterward.
 
+Social-login unlink has a narrower no-lockout rule than the general AAL1 inventory. For `app`,
+removing Google or Apple social login must leave at least one verified email OTP, active passkey, or
+active social login provider other than the removed provider. Passcode remains an AAL1 method, but
+it is not counted as the remaining method for Google / Apple unlink.
+
 ## AAL2
 
 AAL2 is the current step-up boundary. It is used for sensitive signed-in actions and is implemented

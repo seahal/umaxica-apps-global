@@ -28,13 +28,28 @@ module Sign
 
           assert_response :success
           assert_match "Unsubscribe", response.body
+          assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
+          assert_includes response.body, "turnstile.render"
         end
 
         test "DELETE destroy turns promotional email off" do
-          delete sign_app_preference_email_path(@email), params: { token: @token }
+          delete sign_app_preference_email_path(@email), params: { token: @token, "cf-turnstile-response": "test" }
 
           assert_redirected_to edit_sign_app_preference_email_path(@email, token: @token)
           assert_not @email.reload.promotional
+        end
+
+        test "DELETE destroy keeps promotional email on when turnstile fails" do
+          CloudflareTurnstile.test_mode = true
+          CloudflareTurnstile.test_validation_response = { "success" => false }
+
+          delete(sign_app_preference_email_path(@email), params: { token: @token, "cf-turnstile-response": "test" })
+
+          assert_redirected_to edit_sign_app_preference_email_path(@email, token: @token)
+          assert_equal I18n.t("turnstile_error"), flash[:alert]
+          assert @email.reload.promotional
+        ensure
+          CloudflareTurnstile.test_validation_response = { "success" => true }
         end
 
         test "POST create supports one-click unsubscribe without csrf token" do
@@ -55,7 +70,7 @@ module Sign
 
         test "DELETE destroy without csrf token is rejected when forgery protection is enabled" do
           with_forgery_protection do
-            delete sign_app_preference_email_path(@email), params: { token: @token }
+            delete sign_app_preference_email_path(@email), params: { token: @token, "cf-turnstile-response": "test" }
 
             assert_response :unprocessable_content
             assert @email.reload.promotional

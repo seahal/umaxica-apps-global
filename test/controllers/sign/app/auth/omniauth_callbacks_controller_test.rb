@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
-  test "callback routes keep google GET and apple POST separate" do
+  test "callback routes keep google GET and apple GET or POST separate" do
     host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     google_route = Rails.application.routes.recognize_path(
       "http://#{host}/auth/google_app/callback",
@@ -14,6 +14,10 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       "http://#{host}/auth/apple/callback",
       method: :post,
     )
+    apple_get_route = Rails.application.routes.recognize_path(
+      "http://#{host}/auth/apple/callback",
+      method: :get,
+    )
 
     assert_equal "sign/app/auth/omniauth_callbacks", google_route[:controller]
     assert_equal "omniauth", google_route[:action]
@@ -21,12 +25,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal "sign/app/auth/omniauth_callbacks", apple_route[:controller]
     assert_equal "omniauth", apple_route[:action]
     assert_equal "apple", apple_route[:provider]
+    assert_equal "sign/app/auth/omniauth_callbacks", apple_get_route[:controller]
+    assert_equal "omniauth", apple_get_route[:action]
+    assert_equal "apple", apple_get_route[:provider]
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{host}/auth/google_app/callback", method: :post)
-    end
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{host}/auth/apple/callback", method: :get)
     end
   end
 
@@ -191,6 +195,35 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal({ auth_method: "social", provider: "google" }, kwargs[:audit_context])
     assert_match "/dashboard", redirects.last.first.first
     assert_match "rt=#{encoded_rt}", redirects.last.first.first
+  end
+
+  test "social login result log payload excludes bearer credentials" do
+    controller = Sign::App::Auth::OmniauthCallbacksController.new
+    payload = controller.send(
+      :social_login_result_log_payload,
+      {
+        status: :success,
+        access_token: "access-secret",
+        refresh_token: "refresh-secret",
+        token_type: "Bearer",
+        expires_in: 3600,
+        dbsc: {
+          binding_method: "legacy",
+          status: "nothing",
+          session_id: "session-secret",
+          registration_url: "/edge/v0/token/dbsc",
+        },
+      },
+    )
+
+    assert_equal :success, payload[:status]
+    assert_equal "Bearer", payload[:token_type]
+    assert_equal 3600, payload[:expires_in]
+    assert_equal({ binding_method: "legacy", status: "nothing", session_id_present: true }, payload[:dbsc])
+    assert_not_includes payload.keys, :access_token
+    assert_not_includes payload.keys, :refresh_token
+    assert_not_includes payload[:dbsc].keys, :session_id
+    assert_not_includes payload[:dbsc].keys, :registration_url
   end
 
   test "social sign up entry routes new identity to sign up guardrail without signing in" do

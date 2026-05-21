@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: org_sign_up_cycles
+# Table name: operator_sign_up_cycles
 # Database name: org_ticket
 #
 #  id           :bigint           not null, primary key
@@ -25,21 +25,20 @@
 #
 # Indexes
 #
-#  index_org_sign_up_cycles_on_discarded_at  (discarded_at)
-#  index_org_sign_up_cycles_on_expires_at    (expires_at)
-#  index_org_sign_up_cycles_on_principal_id  (principal_id)
-#  index_org_sign_up_cycles_on_public_id     (public_id) UNIQUE
-#  index_org_sign_up_cycles_on_state         (state)
-#  index_org_sign_up_cycles_on_status_id     (status_id)
-#  index_org_sign_up_cycles_on_token_id      (token_id)
+#  index_operator_sign_up_cycles_on_discarded_at  (discarded_at)
+#  index_operator_sign_up_cycles_on_expires_at    (expires_at)
+#  index_operator_sign_up_cycles_on_principal_id  (principal_id)
+#  index_operator_sign_up_cycles_on_public_id     (public_id) UNIQUE
+#  index_operator_sign_up_cycles_on_state         (state)
+#  index_operator_sign_up_cycles_on_status_id     (status_id)
+#  index_operator_sign_up_cycles_on_token_id      (token_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (status_id => operator_sign_up_cycle_statuses.id)
-#  fk_rails_...  (token_id => staff_tokens.id) ON DELETE => cascade
+#  fk_rails_...  (token_id => operator_tokens.id) ON DELETE => cascade
 #
 class OperatorSignUpCycle < OrgTicketRecord
-  self.table_name = "org_sign_up_cycles"
   include SignCycle
   include Cycle::SignUp
 

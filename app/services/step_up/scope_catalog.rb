@@ -4,7 +4,7 @@
 module StepUp
   module ScopeCatalog
     APP = {
-      "social_unlink" => %r{\A/social/},
+      "social_unlink" => %r{\A/?(?:social/|configuration/(?:google|apple)(?:\z|[?#]))},
       "session_revoke_all" => %r{\A/configuration/sessions},
       "withdrawal" => %r{\A/configuration/withdrawal},
       "configuration_email" => %r{\A/configuration/emails},
@@ -20,7 +20,7 @@ module StepUp
     COM = APP.except("configuration_totp").freeze
 
     ORG = {
-      "social_unlink" => %r{\A/social/},
+      "social_unlink" => %r{\A/?(?:social/|configuration/google(?:\z|[?#]))},
       "session_revoke_all" => %r{\A/configuration/sessions},
       "withdrawal" => %r{\A/configuration/withdrawal},
       "configuration_email" => %r{\A/configuration/emails},

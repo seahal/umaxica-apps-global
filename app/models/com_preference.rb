@@ -56,6 +56,8 @@ class ComPreference < ComSettingRecord
   include ::Preference::Resettable
   include ::DbscBindable
 
+  self.belongs_to_required_by_default = false
+
   alias_attribute :expires_at, :discarded_at
 
   DBSC_BINDING_METHOD_CLASS = ComPreferenceBindingMethod

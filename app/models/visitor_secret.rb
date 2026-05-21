@@ -39,7 +39,7 @@ class VisitorSecret < ComPrincipalRecord
   include Secret
   include VisitorSecret::Kinds
 
-  MAX_SECRETS_PER_VISITOR = 10
+  MAX_SECRETS_PER_VISITOR = 20
   SIGN_IN_ALLOWED_STATUS_IDS = [VisitorSecretStatus::ACTIVE].freeze
   SIGN_IN_ALLOWED_KIND_IDS = VisitorSecretKind::ALLOWED_FOR_SECRET_SIGN_IN
 

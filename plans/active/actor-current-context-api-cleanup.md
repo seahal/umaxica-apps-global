@@ -22,8 +22,8 @@ This active plan supersedes older CurrentAttribute and compatibility-reader clea
 - Use `Actor.tld` as the only surface label API.
 - Remove `Actor.surface` and `Actor.domain`; do not keep compatibility aliases.
 - Move authentication-facing state toward `Actor.authentication`.
-- Treat `Actor.session` and `Actor.token` as migration-only direct readers until
-  `Actor.authentication.login_public_id` and typed authentication readers are implemented.
+- Remove `Actor.session` and `Actor.token`; use `Actor.authentication.login_public_id` and typed
+  authentication readers instead.
 - Keep Action Policy's authorization context name as `:user`.
 
 ## Superseded Backlog Notes

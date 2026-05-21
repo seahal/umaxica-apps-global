@@ -10,27 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_07_000000) do
+ActiveRecord::Schema[8.2].define(version: 0) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
-  create_table "member_notifications", force: :cascade do |t|
-    t.string "public_id", default: "", null: false
-    t.bigint "user_notification_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["public_id"], name: "index_member_notifications_on_public_id", unique: true
-    t.index ["user_notification_id"], name: "index_member_notifications_on_user_notification_id"
-  end
-
-  create_table "user_notifications", force: :cascade do |t|
-    t.string "public_id", default: "", null: false
-    t.bigint "user_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["public_id"], name: "index_user_notifications_on_public_id", unique: true
-    t.index ["user_id"], name: "index_user_notifications_on_user_id"
-  end
-
-  add_foreign_key "member_notifications", "user_notifications", on_delete: :cascade, validate: false
 end

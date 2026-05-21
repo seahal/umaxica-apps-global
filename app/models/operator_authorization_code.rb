@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_authorization_codes
+# Table name: operator_authorization_codes
 # Database name: org_ticket
 #
 #  id                    :bigint           not null, primary key
@@ -26,11 +26,10 @@
 #
 # Indexes
 #
-#  index_staff_authorization_codes_on_code      (code) UNIQUE
-#  index_staff_authorization_codes_on_staff_id  (staff_id)
+#  index_operator_authorization_codes_on_code      (code) UNIQUE
+#  index_operator_authorization_codes_on_staff_id  (staff_id)
 #
 class OperatorAuthorizationCode < OrgTicketRecord
-  self.table_name = "staff_authorization_codes"
   include Retainable
 
   CODE_TTL = 10.seconds

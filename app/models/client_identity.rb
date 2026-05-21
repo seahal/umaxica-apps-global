@@ -30,7 +30,6 @@
 #  fk_rails_...  (status_id => client_identity_states.id)
 #
 class ClientIdentity < AppRpRecord
-  self.table_name = "client_identities"
   include ::PublicId
 
   belongs_to :identity_state,

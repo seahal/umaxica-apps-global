@@ -52,6 +52,13 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
       last_used_at: Time.current,
     )
+    CloudflareTurnstile.validation_override_enabled = true
+    CloudflareTurnstile.validation_override_response = { "success" => true }
+  end
+
+  teardown do
+    CloudflareTurnstile.validation_override_enabled = false
+    CloudflareTurnstile.validation_override_response = nil
   end
 
   def request_headers
@@ -100,17 +107,46 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     assert_difference("VisitorSecret.count", 1) do
       post sign_com_configuration_secrets_url(ri: "jp"),
-           params: { visitor_secret: { name: "New Secret", enabled: true } },
+           params: { visitor_secret: { name: "New Secret", enabled: true }, "cf-turnstile-response": "test" },
            headers: request_headers
     end
 
+    assert_response :redirect, response.body
     assert_redirected_to sign_com_configuration_secrets_url(ri: "jp")
     assert_predicate flash[:notice], :present?
   end
 
+  test "update changes secret name and status" do
+    AuthMethodGuard.stub(:last_method?, false) do
+      patch sign_com_configuration_secret_url(@secret.public_id, ri: "jp"),
+            params: { visitor_secret: { name: "Updated Secret", enabled: "0" }, "cf-turnstile-response": "test" },
+            headers: request_headers
+    end
+
+    assert_redirected_to sign_com_configuration_secrets_url(ri: "jp")
+    @secret.reload
+
+    assert_equal "Updated Secret", @secret.name
+    assert_equal VisitorSecretStatus::REVOKED, @secret.visitor_secret_status_id
+  end
+
+  test "update does not disable last method" do
+    AuthMethodGuard.stub(:last_method?, true) do
+      patch sign_com_configuration_secret_url(@secret.public_id, ri: "jp"),
+            params: { visitor_secret: { enabled: "0" }, "cf-turnstile-response": "test" },
+            headers: request_headers
+    end
+
+    assert_redirected_to sign_com_configuration_secrets_url(ri: "jp")
+    assert_predicate flash[:alert], :present?
+    assert_equal VisitorSecretStatus::ACTIVE, @secret.reload.visitor_secret_status_id
+  end
+
   test "destroy redirects when last recovery method would be removed" do
     AuthMethodGuard.stub(:last_method?, true) do
-      delete sign_com_configuration_secret_url(@secret.public_id, ri: "jp"), headers: request_headers
+      delete sign_com_configuration_secret_url(@secret.public_id, ri: "jp"),
+             params: { "cf-turnstile-response": "test" },
+             headers: request_headers
     end
 
     assert_redirected_to sign_com_configuration_secrets_url(ri: "jp")
@@ -136,6 +172,7 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     ClientSecrets::Destroy.stub(:call, true) do
       delete sign_com_configuration_secret_url(secret.public_id, ri: "jp"),
+             params: { "cf-turnstile-response": "test" },
              headers: {
                "Host" => @host,
                "X-TEST-CURRENT-RESOURCE" => visitor.id,
@@ -154,5 +191,44 @@ class Sign::Com::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     assert_response :see_other
     assert_equal I18n.t("messages.not_implemented"), flash[:alert]
+  end
+
+  test "create requires successful stealth turnstile" do
+    get new_sign_com_configuration_secret_url(ri: "jp"), headers: request_headers
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    assert_no_difference("VisitorSecret.count") do
+      post sign_com_configuration_secrets_url(ri: "jp"),
+           params: { visitor_secret: { name: "Blocked Secret", enabled: true }, "cf-turnstile-response": "bad" },
+           headers: request_headers
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, I18n.t("turnstile_error")
+  end
+
+  test "update requires successful stealth turnstile" do
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    patch sign_com_configuration_secret_url(@secret.public_id, ri: "jp"),
+          params: { visitor_secret: { name: "Blocked Update", enabled: "1" }, "cf-turnstile-response": "bad" },
+          headers: request_headers
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, I18n.t("turnstile_error")
+    assert_equal "Login Secret", @secret.reload.name
+  end
+
+  test "destroy requires successful stealth turnstile" do
+    CloudflareTurnstile.validation_override_response = { "success" => false }
+
+    delete sign_com_configuration_secret_url(@secret.public_id, ri: "jp"),
+           params: { "cf-turnstile-response": "bad" },
+           headers: request_headers
+
+    assert_response :see_other
+    assert_redirected_to sign_com_configuration_secrets_url(ri: "jp")
+    assert_predicate flash[:alert], :present?
+    assert_equal VisitorSecretStatus::ACTIVE, @secret.reload.visitor_secret_status_id
   end
 end

@@ -79,13 +79,13 @@ module Sign
             subject_type: "Client",
           )
         rescue ActiveRecord::RecordInvalid => e
-          Rails.event.error(
+          Rails.logger.error(LogEvent.format(
             "sign.signup.telephone.audit_save_failed",
             user_id: user&.id,
             event_id: event_id,
             errors: e.record.errors.full_messages,
             exception: e,
-          )
+          ))
           raise
         end
       end

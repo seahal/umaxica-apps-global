@@ -1,0 +1,9 @@
+<%= link_to t("sign.app.configuration.show.back"), sign_app_configuration_path(ri: params[:ri]) %>
+
+<% content_for :page_title, t("sign.app.configuration.show.mfa_reset") %>
+
+<h1><%= t("sign.app.configuration.show.mfa_reset") %></h1>
+
+<p>
+  <%= t("sign.app.configuration.mfa.show.reset_unavailable") %>
+</p>

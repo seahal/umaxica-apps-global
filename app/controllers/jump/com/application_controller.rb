@@ -3,8 +3,7 @@
 
 module Jump
   module Com
-    class ApplicationController < BareController
-      public_strict!
+    class ApplicationController < OpenController
     end
   end
 end

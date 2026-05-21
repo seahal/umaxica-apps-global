@@ -70,10 +70,10 @@ module Concerns
 
     test "all application controllers have cleanup action" do
       pattern = %r{
-        (after_action|append_after_action) :(purge_current|finish_request)
+        (after_action|append_after_action)\s+:(purge_current|finish_request)
         |
-        (prepend_around_action|around_action) :with_actor_lifecycle
-      }x
+        (prepend_around_action|around_action)\s+:with_actor_lifecycle
+    }x
 
       CONTROLLER_FILES.each_value do |controller|
         content = controller[:content]

@@ -114,7 +114,7 @@ module Authentication
       end
       true
     rescue ActiveRecord::RecordNotFound, ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordInvalid => e
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "auth.logout_current_session.failed",
         reason: reason,
         resource_class: resource&.class&.name,
@@ -123,7 +123,7 @@ module Authentication
         token_id: token_record&.try(:public_id),
         error_class: e.class.name,
         error_message: e.message,
-      )
+      ))
       true
     end
 

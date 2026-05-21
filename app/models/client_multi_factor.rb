@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: user_multi_factors
+# Table name: client_multi_factors
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key
 #
 class ClientMultiFactor < AppPrincipalRecord
-  self.table_name = "user_multi_factors"
   include ReferenceRecord
 
   NOTHING = 0

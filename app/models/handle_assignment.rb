@@ -38,13 +38,15 @@ require "forwardable"
 class HandleAssignment < AvatarRecord
   scope :current, -> { where(valid_to: Float::INFINITY) }
 
+  attribute :handle_assignment_status_id, default: HandleAssignmentStatus::NOTHING
+
   def self.current_attributes
     [:handle_id, :avatar_id]
   end
 
   belongs_to :handle, inverse_of: :handle_assignments
   belongs_to :avatar, inverse_of: :handle_assignments
-  belongs_to :assigned_by_actor, class_name: "Avatar", inverse_of: :assignments_created
+  belongs_to :assigned_by_actor, class_name: "Avatar", inverse_of: :assignments_created, optional: true
   belongs_to :handle_assignment_status
 
   validates :handle_id, uniqueness: { conditions: -> { current } }

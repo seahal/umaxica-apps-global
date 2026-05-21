@@ -250,10 +250,10 @@ module Sign
         def log_signup_email_errors
           return unless @user_email&.errors&.any?
 
-          Rails.event.warn(
+          Rails.logger.warn(LogEvent.format(
             "sign.signup.email.validation_failed",
             errors: @user_email.errors.full_messages,
-          )
+          ))
         end
 
         def strip_user_owner_errors!
@@ -323,12 +323,12 @@ module Sign
             end
           return if result.status == :advanced
 
-          Rails.event.warn(
+          Rails.logger.warn(LogEvent.format(
             "sign.signup.email.sequence_advance_failed",
             cycle_id: cycle.public_id,
             result_status: result.status,
             errors: result.errors,
-          )
+          ))
         end
 
         def sign_up_cycle_locator

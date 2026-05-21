@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_notifications
+# Table name: operator_notification_records
 # Database name: org_signal
 #
 #  id         :bigint           not null, primary key
@@ -14,8 +14,8 @@
 #
 # Indexes
 #
-#  index_staff_notifications_on_public_id  (public_id) UNIQUE
-#  index_staff_notifications_on_staff_id   (staff_id)
+#  index_operator_notification_records_on_public_id  (public_id) UNIQUE
+#  index_operator_notification_records_on_staff_id   (staff_id)
 #
 
 require "test_helper"

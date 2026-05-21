@@ -20,10 +20,6 @@
 #  index_personas_on_client_identity_id  (client_identity_id)
 #  index_personas_on_public_id           (public_id) UNIQUE
 #
-# Foreign Keys
-#
-#  fk_rails_...  (client_identity_id => client_identities.id)
-#
 class Persona < AppRpRecord
   include ::Account
 

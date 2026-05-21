@@ -45,7 +45,7 @@ module Sign
             )
           end
 
-          ::Withdrawal::Lifecycle.recover!(actor: current_client, event: Rails.event, request: request)
+          ::Withdrawal::Lifecycle.recover!(actor: current_client, request: request)
 
           safe_redirect_to(
             sign_app_configuration_path(ri: params[:ri]),
@@ -66,7 +66,6 @@ module Sign
           ::Withdrawal::Lifecycle.suspend!(
             actor: current_client,
             current_session_public_id: current_session_public_id,
-            event: Rails.event,
             request: request,
           )
 
@@ -82,7 +81,7 @@ module Sign
 
         def destroy
           ::Withdrawal::Lifecycle.terminate!(
-            actor: current_client, event: Rails.event,
+            actor: current_client,
             request: request,
           ) if current_client.early_terminatable?
 
@@ -113,7 +112,6 @@ module Sign
           ::Withdrawal::Lifecycle.start!(
             actor: current_client,
             current_session_public_id: current_session_public_id,
-            event: Rails.event,
             request: request,
           )
 
@@ -147,12 +145,12 @@ module Sign
         end
 
         def handle_deactivation_failure
-          Rails.event.notify(
+          Rails.logger.info(LogEvent.format(
             "user.withdrawal.suspension_failed",
             user_id: current_client.id,
             errors: current_client.errors.full_messages,
             ip_address: request.remote_ip,
-          )
+          ))
           @schedule_confirmed = true
           render :new, status: :unprocessable_content
         end

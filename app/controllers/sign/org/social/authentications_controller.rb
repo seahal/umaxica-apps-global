@@ -16,10 +16,6 @@ module Sign
         include ::Verification::Operator
 
         SUPPORTED_PROVIDERS = %w(google_org).freeze
-        GOOGLE_LOGIN_STATUSES = [
-          OperatorEmailStatus::ACTIVE,
-          OperatorEmailStatus::VERIFIED,
-        ].freeze
 
         public_strict! only: :continue
         auth_required! only: :destroy
@@ -69,14 +65,12 @@ module Sign
         private
 
         def unlink_google_org!
-          emails = current_operator.staff_emails
-            .where(undeletable: true, staff_identity_email_status_id: GOOGLE_LOGIN_STATUSES)
-            .to_a
+          identity = current_operator.operator_social_google
 
           Operator.transaction do
             current_operator.lock!
-            emails.each { |email| email.update!(undeletable: false) }
-            create_google_unlink_audit! if emails.any?
+            identity&.destroy!
+            create_google_unlink_audit! if identity
           end
         end
 

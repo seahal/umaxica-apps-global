@@ -40,6 +40,56 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/UMAXICA \(sign, app\)/, response.body)
   end
 
+  test "email sign up finalizes and establishes login from checkpoint" do
+    email = "finalize_com_email_#{SecureRandom.hex(4)}@example.com"
+
+    post sign_com_up_email_url(ri: "jp"),
+         params: {
+           visitor_email: {
+             raw_address: email,
+             confirm_policy: "1",
+           },
+           "cf-turnstile-response": "test",
+         },
+         headers: default_headers
+
+    visitor_email = VisitorEmail.order(:created_at).last
+    otp_data = visitor_email.get_otp
+    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+    patch sign_com_up_email_url(ri: "jp"),
+          params: { visitor_email: { pass_code: pass_code } },
+          headers: default_headers
+
+    assert_redirected_to sign_com_up_guardrail_url(ri: "jp")
+
+    get sign_com_up_guardrail_url(ri: "jp"), headers: default_headers
+
+    assert_redirected_to sign_com_up_checkpoint_url(ri: "jp")
+
+    get sign_com_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+    assert_response :ok
+    assert_select "input[type=date][name=birthdate]"
+    assert_select "input[type=hidden][name=requirement][value=birthdate]"
+
+    patch sign_com_up_checkpoint_birthdate_url(ri: "jp"),
+          params: { requirement: "birthdate", birthdate: "2000-01-01" },
+          headers: default_headers
+
+    assert_response :redirect
+
+    cycle = VisitorSignUpCycle.order(:id).find_by!(
+      principal_id: visitor_email.visitor_id,
+      pending_contact_type: "email",
+      pending_contact_id: visitor_email.id,
+    )
+    visitor = visitor_email.reload.visitor
+
+    assert_equal VisitorSignUpCycleStatus::COMPLETED, cycle.reload.status_id
+    assert VisitorToken.exists?(visitor_id: visitor.id)
+  end
+
   test "new rejects when visitor is already logged in" do
     visitor = create_verified_visitor_with_email(email_address: "logged-in-com-up-email@example.com")
     visitor.visitor_telephones.create!(

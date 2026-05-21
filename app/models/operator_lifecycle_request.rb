@@ -39,6 +39,8 @@
 #  index_operator_lifecycle_requests_on_target_operator_id        (target_operator_id)
 #
 class OperatorLifecycleRequest < OrgPrincipalRecord
+  self.belongs_to_required_by_default = false
+
   include PublicId
 
   ACTION_JOIN = "join"

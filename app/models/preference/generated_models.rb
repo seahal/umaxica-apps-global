@@ -52,9 +52,9 @@ module Preference
 
     PREFIXES = {
       "App" => { base: AppSettingRecord, parent: AppPreference },
-      "Client" => { base: AppPrincipalRecord, parent: ClientPreference, table_prefix: "user" },
+      "Client" => { base: AppPrincipalRecord, parent: ClientPreference },
       "Org" => { base: OrgSettingRecord, parent: OrgPreference },
-      "Operator" => { base: OrgPrincipalRecord, parent: OperatorPreference, table_prefix: "staff" },
+      "Operator" => { base: OrgPrincipalRecord, parent: OperatorPreference },
       "Com" => { base: ComSettingRecord, parent: ComPreference },
       "Visitor" => { base: ComPrincipalRecord, parent: VisitorPreference },
     }.freeze
@@ -69,23 +69,19 @@ module Preference
       end
     end
 
-    def define_option_class(prefix, config, type, metadata)
+    def define_option_class(prefix, config, _type, metadata)
       class_name = "#{prefix}Preference#{metadata.fetch(:suffix)}Option"
       return if Object.const_defined?(class_name)
 
       base_class = config.fetch(:base)
       child_class_name = "#{prefix}Preference#{metadata.fetch(:suffix)}"
       child_association = "#{prefix.underscore}_preference_#{metadata.fetch(:plural)}"
-      table_prefix = config.fetch(:table_prefix, prefix.underscore)
-      table_name = "#{table_prefix}_preference_#{type}_options"
       constants = metadata.fetch(:constants)
       names = metadata.fetch(:names)
 
       option_class =
         Class.new(base_class) do
           include ReferenceRecord
-
-          self.table_name = table_name
 
           constants.each { |constant_name, value| const_set(constant_name, value) }
 
@@ -119,13 +115,9 @@ module Preference
       default_option_id = metadata.fetch(:constants).fetch(metadata.fetch(:default))
       child_association = "#{prefix.underscore}_preference_#{type}"
       option_association = "#{prefix.underscore}_preference_#{metadata.fetch(:plural)}"
-      table_prefix = config.fetch(:table_prefix, prefix.underscore)
-      table_name = "#{table_prefix}_preference_#{metadata.fetch(:plural)}"
 
       record_class =
         Class.new(base_class) do
-          self.table_name = table_name
-
           belongs_to :preference,
                      class_name: parent_class.name,
                      inverse_of: child_association.to_sym

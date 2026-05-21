@@ -16,7 +16,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
   test "app host routes to app jump link and redirects off host" do
     link = AppJumpLink.create!(destination_url: "https://outside.example/app")
 
-    host! ENV["JUMP_SERVICE_URL"]
+    host! normalized_jump_host("JUMP_SERVICE_URL", "jump.app.localhost")
     get "/", params: { to: link.public_id }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :redirect
@@ -32,7 +32,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
     app_link = AppJumpLink.create!(public_id: "A" * 21, destination_url: "https://outside.example/app")
     com_link = ComJumpLink.create!(public_id: "A" * 21, destination_url: "https://outside.example/com")
 
-    host! ENV["JUMP_CORPORATE_URL"]
+    host! normalized_jump_host("JUMP_CORPORATE_URL", "jump.com.localhost")
     get "/", params: { to: app_link.public_id }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :redirect
@@ -46,7 +46,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
     com_link = ComJumpLink.create!(public_id: "B" * 21, destination_url: "https://outside.example/com")
     org_link = OrgJumpLink.create!(public_id: "B" * 21, destination_url: "https://outside.example/org")
 
-    host! ENV["JUMP_STAFF_URL"]
+    host! normalized_jump_host("JUMP_STAFF_URL", "jump.org.localhost")
     get "/", params: { to: org_link.public_id }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :redirect
@@ -57,7 +57,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "missing to param renders landing page" do
-    host! ENV["JUMP_SERVICE_URL"]
+    host! normalized_jump_host("JUMP_SERVICE_URL", "jump.app.localhost")
     get "/", headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :success
@@ -66,7 +66,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "empty to param renders landing page" do
-    host! ENV["JUMP_SERVICE_URL"]
+    host! normalized_jump_host("JUMP_SERVICE_URL", "jump.app.localhost")
     get "/", params: { to: "" }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :success
@@ -75,7 +75,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "missing or unavailable public id returns not found with plain text body" do
-    host! ENV["JUMP_SERVICE_URL"]
+    host! normalized_jump_host("JUMP_SERVICE_URL", "jump.app.localhost")
     get "/", params: { to: "missing" }, headers: { "Client-Agent" => MODERN_UA }
 
     assert_response :not_found
@@ -87,9 +87,13 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
     assert_equal "/?to=opaque123", jump_app_root_path(to: "opaque123")
   end
 
-  test "concrete to controllers use the expected jump link models" do
-    assert_equal AppJumpLink, Jump::App::ToController::JUMP_LINK_MODEL
-    assert_equal ComJumpLink, Jump::Com::ToController::JUMP_LINK_MODEL
-    assert_equal OrgJumpLink, Jump::Org::ToController::JUMP_LINK_MODEL
+  test "root controllers use the expected jump link models" do
+    assert_equal AppJumpLink, Jump::App::RootsController::JUMP_LINK_MODEL
+    assert_equal ComJumpLink, Jump::Com::RootsController::JUMP_LINK_MODEL
+    assert_equal OrgJumpLink, Jump::Org::RootsController::JUMP_LINK_MODEL
+  end
+
+  def normalized_jump_host(env_key, fallback)
+    Common::Redirect.normalize_host(ENV.fetch(env_key, fallback))
   end
 end

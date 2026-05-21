@@ -24,8 +24,8 @@ attributes in place.
 
 `Actor` is a resolved request-context snapshot, not a cache source. Lifecycle code must rebuild the
 snapshot from the current authentication, preference, and controller state instead of preferring
-previous `Actor.session`, `Actor.token`, or preference association values. This favors correctness
-over avoiding repeated reads.
+previous `Actor.authentication` or preference association values. This favors correctness over
+avoiding repeated reads.
 
 Application code reads request context through `Actor`, for example:
 
@@ -47,12 +47,11 @@ Do not add direct application reads of older current-context APIs.
 Removed current-context readers:
 
 - `Actor.surface` and `Actor.domain` duplicated the surface label and are removed. Use `Actor.tld`.
-- `Actor.session` means the current login/session token row public id, not Rails session state; it
-  is compatibility-only. New code must use `Actor.authentication.login_public_id`.
-- `Actor.token` exposes decoded access-token claims and should migrate to typed
-  `Actor.authentication` readers. New code must use `Actor.authentication.access_claims` only at
-  low-level auth or policy boundaries that still need raw claims during migration. Lifecycle code
-  must not use an existing `Actor.token` value as a cache when rebuilding context.
+- `Actor.session` is removed. Use `Actor.authentication.login_public_id`.
+- `Actor.token` is removed. Use typed `Actor.authentication` readers. Code that still needs raw
+  claims at a low-level auth or policy boundary may use `Actor.authentication.access_claims`.
+  Lifecycle code must not use an existing `Actor.authentication.access_claims` value as a cache when
+  rebuilding context.
 
 ## Request Lifecycle
 

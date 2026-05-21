@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: user_statuses
+# Table name: client_statuses
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key
 #
 class ClientStatus < AppPrincipalRecord
-  self.table_name = "user_statuses"
   include ReferenceRecord
 
   NOTHING = 11

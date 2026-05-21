@@ -17,16 +17,16 @@ module Authentication
           end
         return sign_in_checkpoint_path(rt: url_rt) if result.blocking?
 
-        return sign_in_dashboard_path(rt: url_rt)
+        return issue_welcome_gate_and_path(rt: url_rt, sequence_id: cycle.public_id)
       end
 
       checkpoint_required = issue_checkpoint!
-      begin_sign_in_sequence!(rt: rt, checkpoint_required: checkpoint_required)
+      sequence = begin_sign_in_sequence!(rt: rt, checkpoint_required: checkpoint_required)
 
       if checkpoint_required
         sign_in_checkpoint_path(rt: rt)
       else
-        after_checkpoint_sequence_path(rt: rt, default_path: default_path)
+        after_checkpoint_sequence_path(rt: rt, default_path: default_path, sequence_id: sequence&.sequence_id)
       end
     end
 
@@ -34,8 +34,8 @@ module Authentication
       redirect_to(sign_in_sequence_redirect_path(rt: rt, default_path: default_path), **redirect_options)
     end
 
-    def after_checkpoint_sequence_path(rt: nil, default_path: after_dashboard_path)
-      return sign_in_dashboard_path(rt: rt) if dashboard_sequence_step_required?
+    def after_checkpoint_sequence_path(rt: nil, default_path: after_dashboard_path, sequence_id: nil)
+      return issue_welcome_gate_and_path(rt: rt, sequence_id: sequence_id) if dashboard_sequence_step_required?
 
       safe_path_from_encoded_rt(rt, fallback: default_path)
     end
@@ -54,7 +54,10 @@ module Authentication
           return redirect_to(sign_in_checkpoint_path(rt: cycle.reload.return_to.presence || rt), **redirect_options)
         end
 
-        return redirect_to(sign_in_dashboard_path(rt: cycle.reload.return_to.presence || rt), **redirect_options)
+        return redirect_to(
+          issue_welcome_gate_and_path(rt: cycle.reload.return_to.presence || rt, sequence_id: cycle.public_id),
+          **redirect_options,
+        )
       end
 
       sign_in_sequence_carrier.advance!(state: "DASHBOARD_PENDING", participant: "dashboard")
@@ -74,7 +77,7 @@ module Authentication
           end
         return if result.blocking?
 
-        redirect_to(sign_in_dashboard_path(rt: cycle.reload.return_to))
+        redirect_to(issue_welcome_gate_and_path(rt: cycle.reload.return_to, sequence_id: cycle.public_id))
         return
       end
 
@@ -90,11 +93,19 @@ module Authentication
       redirect_after_checkpoint_sequence!(rt: redirect_parameter_value)
     end
 
-    def continue_dashboard_sequence_without_content!
+    def continue_welcome_sequence_without_content!
       cycle = current_db_sign_in_cycle_for_sequence
       if cycle
+        if cycle.sign_in_completed?
+          clear_welcome_gate!
+          clear_current_sign_in_cycle_locator!
+          return redirect_to(after_welcome_path)
+        end
+        return redirect_to(sign_in_checkpoint_path(rt: cycle.return_to)) if cycle.sign_in_checkpoint_pending?
         return reject_invalid_sign_in_sequence! unless cycle.sign_in_dashboard_pending?
         return reject_invalid_sign_in_sequence! unless allowed_to?(:show_dashboard?, cycle)
+        return redirect_to(after_welcome_path) unless welcome_gate_available?(sequence_id: cycle.public_id)
+        return redirect_to(after_welcome_path) unless consume_welcome_gate!(sequence_id: cycle.public_id)
 
         with_sign_in_cycle_writing(cycle) do
           sign_in_dashboard_participant(cycle).advance!
@@ -106,18 +117,28 @@ module Authentication
           with_sign_in_cycle_writing(cycle) do
             SignIn::ReturnParticipant.new(
               cycle: cycle,
-              default_path: after_dashboard_path,
+              default_path: after_welcome_path,
             ).consume!
           end
-        redirect_to(destination)
+        clear_welcome_gate!
+        clear_current_sign_in_cycle_locator!
+        fallback_destination = safe_non_welcome_return_path(after_welcome_path, fallback: nil)
+        destination = safe_non_welcome_return_path(destination, fallback: fallback_destination)
+        @welcome_next_path = destination if destination.present?
         return
       end
 
+      return redirect_to(after_welcome_path) unless welcome_gate_available?
       sign_in_sequence_carrier.complete! if sign_in_sequence_carrier.current.participant == "dashboard"
-      return if dashboard_sequence_step_required?
+      return redirect_to(after_welcome_path) unless consume_welcome_gate!
 
-      redirect_to(safe_path_from_encoded_rt(redirect_parameter_value, fallback: after_dashboard_path))
+      destination = safe_path_from_encoded_rt(redirect_parameter_value, fallback: after_welcome_path)
+      clear_welcome_gate!
+      sign_in_sequence_carrier.clear!
+      @welcome_next_path = destination
     end
+
+    alias continue_dashboard_sequence_without_content! continue_welcome_sequence_without_content!
 
     def dashboard_sequence_step_required?
       true
@@ -133,6 +154,64 @@ module Authentication
 
     def sign_in_sequence_surface
       Actor.tld
+    end
+
+    def welcome_gate_key
+      {
+        "app" => :app_sign_in_welcome,
+        "com" => :com_sign_in_welcome,
+        "org" => :org_sign_in_welcome,
+      }[sign_in_sequence_surface.to_s] || :sign_in_welcome
+    end
+
+    def issue_welcome_gate_and_path(rt:, sequence_id: nil)
+      clear_welcome_gate!
+      session[welcome_gate_key] = {
+        "remaining" => 5,
+        "issued_at" => Time.current.to_i,
+        "expires_at" => 10.minutes.from_now.to_i,
+        "sequence_id" => sequence_id.presence,
+      }
+      sign_in_welcome_path(rt: rt)
+    end
+
+    def clear_welcome_gate!
+      session.delete(welcome_gate_key)
+    end
+
+    def consume_welcome_gate!(sequence_id: nil)
+      gate = session[welcome_gate_key]
+      return false unless gate.is_a?(Hash)
+      return clear_welcome_gate! && false if welcome_gate_expired?(gate)
+      return clear_welcome_gate! && false if gate["remaining"].to_i <= 0
+      if sequence_id.present? && gate["sequence_id"].present? && gate["sequence_id"].to_s != sequence_id.to_s
+        return clear_welcome_gate! && false
+      end
+
+      remaining = gate["remaining"].to_i - 1
+      if remaining <= 0
+        clear_welcome_gate!
+      else
+        session[welcome_gate_key] = gate.merge("remaining" => remaining)
+      end
+      true
+    end
+
+    def welcome_gate_available?(sequence_id: nil)
+      gate = session[welcome_gate_key]
+      return false unless gate.is_a?(Hash)
+      return clear_welcome_gate! && false if welcome_gate_expired?(gate)
+      return clear_welcome_gate! && false if gate["remaining"].to_i <= 0
+      if sequence_id.present? && gate["sequence_id"].present? && gate["sequence_id"].to_s != sequence_id.to_s
+        return clear_welcome_gate! && false
+      end
+
+      true
+    end
+
+    def welcome_gate_expired?(gate)
+      expires_at = gate["expires_at"].to_i
+      expires_at <= 0 || Time.current.to_i >= expires_at
     end
 
     def begin_sign_in_sequence!(rt:, checkpoint_required:)
@@ -162,7 +241,6 @@ module Authentication
 
     def require_sign_in_sequence_participant!(participant:, policy_rule:)
       sequence = sign_in_sequence_carrier.current
-      return true if legacy_checkpoint_bulletin_satisfies_sequence?(participant, sequence)
 
       allowed = allowed_to?(policy_rule, sequence, with: SignIn::SequencePolicy)
       return true if allowed
@@ -170,19 +248,15 @@ module Authentication
       sign_in_sequence_carrier.expire! if sequence.present? && sequence.expired?
       sign_in_sequence_carrier.fail! if sequence.present? && !sequence.expired?
 
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "authentication.sign_in_sequence.rejected",
         surface: Actor.tld,
         participant: participant.to_s,
-        state: sequence.state,
-        expired: sequence.expired?,
-        actor_type: sequence.actor_type,
-      )
+        state: sequence&.state,
+        expired: sequence&.expired?,
+        actor_type: sequence&.actor_type,
+      ))
       render plain: I18n.t("errors.messages.not_authorized"), status: :bad_request
-      false
-    end
-
-    def legacy_checkpoint_bulletin_satisfies_sequence?(_participant, _sequence)
       false
     end
 
@@ -211,6 +285,12 @@ module Authentication
 
     def sign_in_dashboard_participant(cycle)
       SignIn::DashboardParticipant.new(cycle: cycle, actor: current_resource)
+    end
+
+    def clear_current_sign_in_cycle_locator!
+      sign_in_cycle_locator_for(actor: current_resource, token: current_session).clear!
+    rescue ArgumentError
+      nil
     end
 
     def reject_invalid_sign_in_sequence!

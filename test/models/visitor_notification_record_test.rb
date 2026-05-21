@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: visitor_notifications
+# Table name: visitor_notification_records
 # Database name: com_signal
 #
 #  id         :bigint           not null, primary key
@@ -14,8 +14,8 @@
 #
 # Indexes
 #
-#  index_visitor_notifications_on_public_id   (public_id) UNIQUE
-#  index_visitor_notifications_on_visitor_id  (visitor_id)
+#  index_visitor_notification_records_on_public_id   (public_id) UNIQUE
+#  index_visitor_notification_records_on_visitor_id  (visitor_id)
 #
 require "test_helper"
 

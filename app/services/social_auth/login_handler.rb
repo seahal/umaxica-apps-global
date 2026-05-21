@@ -22,12 +22,12 @@ module SocialAuth
 
       identity ? login_existing_identity(identity) : login_new_identity
     rescue ActiveRecord::RecordNotUnique => e
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "social_auth.race_condition",
         provider: provider,
         uid: uid,
         error: e.message,
-      )
+      ))
       raise ConflictError.new("errors.social_auth.identity_conflict")
     end
 
@@ -51,10 +51,9 @@ module SocialAuth
     def login_new_identity
       Rails.logger.debug { "[SocialAuth] Creating new user and identity" }
       user = build_login_user
-      identity = build_identity_for_user(user)
 
       persist_user!(user, context: "login_new_identity")
-      assign_identity_to_user(user, identity)
+      identity = build_identity_for_user(user)
       identity.save!
       identity.touch_authenticated!
       # Chronicle write happens AFTER user/identity have been persisted.
@@ -70,10 +69,9 @@ module SocialAuth
     def create_user_for_identity(identity)
       Rails.logger.debug { "[SocialAuth] Creating user for orphaned identity" }
       user = build_login_user
-      assign_identity_to_user(user, identity)
       persist_user!(user, context: "login_orphaned_identity")
       assign_identity_to_user(user, identity)
-      identity.update!(user: user)
+      identity.update!(user_id: user.id)
       user
     end
 
@@ -96,7 +94,7 @@ module SocialAuth
       if status.present?
         user.status_id = status.id
       else
-        Rails.event.error("social_auth.default_reference.missing", reference: "user_status")
+        Rails.logger.error(LogEvent.format("social_auth.default_reference.missing", reference: "user_status"))
       end
     end
 
@@ -113,7 +111,7 @@ module SocialAuth
       if visibility.present?
         user.visibility_id = visibility.id
       else
-        Rails.event.error("social_auth.default_reference.missing", reference: "user_visibility")
+        Rails.logger.error(LogEvent.format("social_auth.default_reference.missing", reference: "user_visibility"))
       end
     end
 
@@ -131,7 +129,7 @@ module SocialAuth
       if multi_factor.present?
         user.multi_factor_id = multi_factor.id
       else
-        Rails.event.error("social_auth.default_reference.missing", reference: "user_multi_factor")
+        Rails.logger.error(LogEvent.format("social_auth.default_reference.missing", reference: "user_multi_factor"))
       end
     end
 
@@ -149,7 +147,7 @@ module SocialAuth
       if status.present?
         user.multi_factor_status_id = status.id
       else
-        Rails.event.error("social_auth.default_reference.missing", reference: "user_multi_factor_status")
+        Rails.logger.error(LogEvent.format("social_auth.default_reference.missing", reference: "user_multi_factor_status"))
       end
     end
 
@@ -210,7 +208,7 @@ module SocialAuth
     def assign_identity_to_user(user, identity)
       case identity_class.name
       when "ClientSocialGoogle", "ClientSocialApple"
-        identity.user = user
+        identity.user_id = user.id
       end
     end
 

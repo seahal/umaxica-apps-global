@@ -59,17 +59,38 @@ module Sign
       def run_sign_up_event(event, payload: {})
         return if performed?
 
-        result =
-          sign_up_ticket_record_class.connected_to(role: :writing) do
-            SignUp::StateMachine.call(
-              ticket: @sign_up_ticket,
-              event: event,
-              actor_context: sign_up_actor_authentication,
-              payload: payload,
-            )
-          end
+        render_sign_up_result(perform_sign_up_event(event, payload: payload))
+      end
+
+      def run_sign_up_requirement_event(payload: {})
+        return if performed?
+
+        result = perform_sign_up_event(:clear_requirement, payload: payload)
+        return finalize_sign_up_from_checkpoint! if result.success? && result.next_event == :finalize
 
         render_sign_up_result(result)
+      end
+
+      def enter_sign_up_checkpoint!
+        return if performed?
+
+        unless @sign_up_ticket.sign_up_checkpoint_pending?
+          result = perform_sign_up_event(:enter_checkpoint)
+          return render_sign_up_result(result) unless result.success?
+        end
+
+        render_sign_up_checkpoint
+      end
+
+      def perform_sign_up_event(event, payload: {})
+        sign_up_ticket_record_class.connected_to(role: :writing) do
+          SignUp::StateMachine.call(
+            ticket: @sign_up_ticket,
+            event: event,
+            actor_context: sign_up_actor_authentication,
+            payload: payload,
+          )
+        end
       end
 
       def render_sign_up_result(result)
@@ -88,6 +109,23 @@ module Sign
         render plain: result.status.to_s, status: status
       end
 
+      def render_sign_up_checkpoint
+        @sign_up_missing_requirements = sign_up_missing_requirements
+        @sign_up_completed_requirements = @sign_up_ticket.completed_requirements
+        @sign_up_pending_actor = sign_up_pending_actor
+
+        render :show, status: :ok
+      end
+
+      def sign_up_missing_requirements
+        SignUp::RequirementRegistry.for_ticket(
+          @sign_up_ticket,
+          surface: sign_up_surface,
+        ).missing_requirements(@sign_up_ticket.completed_requirements)
+      rescue ArgumentError
+        []
+      end
+
       def persist_sign_up_birthdate_requirement
         return true unless sign_up_requirement_param == "birthdate"
 
@@ -104,6 +142,31 @@ module Sign
         end
 
         true
+      end
+
+      def finalize_sign_up_from_checkpoint!(json: false)
+        context = sign_up_finalization_context
+        return render_sign_up_finalization_forbidden(json: json) unless context
+        return render_sign_up_finalization_forbidden(json: json) unless
+          allowed_to?(:finalize?, context, with: SignUp::FinalizationPolicy)
+
+        finalization_result = finalize_sign_up_side_effect!
+        finalized = perform_sign_up_event(:finalize, payload: { finalization_result: finalization_result })
+        return render_sign_up_failure_result(finalized, json: json) unless finalized.success?
+
+        sign_in_result = establish_sign_up_session!(context.pending_actor)
+        handoff = perform_sign_up_event(
+          :handoff_to_sign_in,
+          payload: {
+            sign_in_handoff_status: sign_in_result.success? ? :accepted : :failed,
+            sign_in_handoff: sign_in_result.status,
+          },
+        )
+        return render_sign_up_failure_result(handoff, json: json) unless handoff.success?
+
+        perform_sign_up_event(:complete)
+        sign_up_cycle_locator.clear!
+        redirect_after_sign_up_handoff!(sign_in_result, json: json)
       end
 
       def sign_up_ticket_public_id
@@ -149,6 +212,217 @@ module Sign
         end
       end
 
+      def validate_sign_up_checkpoint_contact!
+        return true unless @sign_up_ticket&.pending_contact_type == "telephone"
+
+        telephone = sign_up_pending_telephone
+        registration = session[sign_up_telephone_registration_session_key] || {}
+        session_public_id = registration[:public_id] || registration["public_id"]
+        otp_verified = registration[:otp_verified] || registration["otp_verified"]
+
+        return true if telephone &&
+          session_public_id.to_s == telephone.public_id.to_s &&
+          otp_verified &&
+          sign_up_pending_telephone_status?(telephone)
+
+        render_invalid_sign_up_checkpoint_contact
+        false
+      end
+
+      def sign_up_pending_telephone
+        case @sign_up_ticket
+        when ClientSignUpCycle
+          ClientTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
+        when VisitorSignUpCycle
+          VisitorTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
+        end
+      end
+
+      def sign_up_pending_telephone_status?(telephone)
+        case telephone
+        when ClientTelephone
+          telephone.user_telephone_status_id == ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
+        when VisitorTelephone
+          telephone.visitor_telephone_status_id == VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
+        else
+          false
+        end
+      end
+
+      def sign_up_telephone_registration_session_key
+        case sign_up_surface
+        when :app
+          :user_telephone_registration
+        when :com
+          :visitor_telephone_registration
+        end
+      end
+
+      def render_invalid_sign_up_checkpoint_contact
+        if request.format.json?
+          render json: {
+            error: I18n.t("sign.#{sign_up_surface}.registration.telephone.update.passkey_required"),
+          }, status: :unprocessable_content
+        else
+          redirect_to(sign_up_telephone_edit_path)
+        end
+      end
+
+      def sign_up_telephone_edit_path
+        case sign_up_surface
+        when :app
+          edit_sign_app_up_telephone_path(ri: params[:ri])
+        when :com
+          edit_sign_com_up_telephone_path(ri: params[:ri])
+        else
+          sign_up_default_sign_in_path
+        end
+      end
+
+      def sign_up_finalization_context
+        SignUp::FinalizationContext.build(
+          surface: sign_up_surface,
+          actor_authentication: sign_up_actor_authentication,
+          ticket: @sign_up_ticket,
+          pending_actor: sign_up_pending_actor,
+        )
+      rescue ArgumentError
+        nil
+      end
+
+      def finalize_sign_up_side_effect!
+        actor = sign_up_pending_actor
+        return :failed unless actor
+
+        case @sign_up_ticket
+        when ClientSignUpCycle
+          finalize_app_sign_up_actor!(actor)
+        when VisitorSignUpCycle
+          finalize_com_sign_up_actor!(actor)
+        else
+          :failed
+        end
+      end
+
+      def finalize_app_sign_up_actor!(actor)
+        case @sign_up_ticket.pending_contact_type
+        when "telephone"
+          telephone = ClientTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
+          return :failed unless telephone
+
+          Sign::App::Up::TelephoneRegistrationFinalizer.call(telephone: telephone)
+        when "email", "social_identity"
+          Client.transaction do
+            actor.update!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP) if
+              actor.status_id == ClientStatus::UNVERIFIED_WITH_SIGN_UP
+            actor.create_rp_account! unless actor.rp_account
+          end
+        else
+          return :failed
+        end
+
+        :accepted
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved,
+             Sign::App::Up::TelephoneRegistrationFinalizer::PasskeyMissingError
+        :failed
+      end
+
+      def finalize_com_sign_up_actor!(actor)
+        case @sign_up_ticket.pending_contact_type
+        when "telephone"
+          telephone = VisitorTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
+          return :failed unless telephone
+
+          VisitorTelephone.transaction do
+            telephone.lock!
+            telephone.clear_otp
+            telephone.visitor_telephone_status_id = VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP
+            telephone.save!
+            actor.create_rp_account! unless actor.rp_account
+          end
+        when "email"
+          Visitor.transaction do
+            actor.create_rp_account! unless actor.rp_account
+          end
+        else
+          return :failed
+        end
+
+        :accepted
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved
+        :failed
+      end
+
+      def establish_sign_up_session!(actor)
+        result = establish_signed_in_session!(
+          actor,
+          rt: params[:rt].presence || @sign_up_ticket.return_to.presence,
+          ri: params[:ri],
+          auth_method: sign_up_auth_method,
+          audit_context: { flow: "sign_up", sign_up_cycle_id: @sign_up_ticket.public_id },
+        )
+        sign_in_result_from_session_result(result, actor: actor)
+      end
+
+      def sign_up_auth_method
+        case @sign_up_ticket.entry_method
+        when "google", "apple"
+          "social"
+        when "telephone"
+          "telephone"
+        else
+          @sign_up_ticket.entry_method.presence || "sign_up"
+        end
+      end
+
+      def redirect_after_sign_up_handoff!(sign_in_result, json: false)
+        if json
+          return render json: {
+            status: "ok",
+            redirect_url: sign_up_handoff_redirect_url(sign_in_result),
+          }, status: :created
+        end
+
+        if sign_in_result.success?
+          redirect_to_sign_in_sequence!(
+            rt: params[:rt].presence || @sign_up_ticket.return_to.presence,
+            notice: I18n.t("sign.app.registration.email.update.success"),
+          )
+        elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
+          redirect_to(sign_in_result.redirect_to)
+        else
+          render plain: sign_in_result.message.presence || sign_in_result.status.to_s,
+                 status: sign_in_result.response_status
+        end
+      end
+
+      def sign_up_handoff_redirect_url(sign_in_result)
+        if sign_in_result.success?
+          sign_in_sequence_redirect_path(rt: params[:rt].presence || @sign_up_ticket.return_to.presence)
+        elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
+          sign_in_result.redirect_to
+        else
+          sign_up_default_sign_in_path
+        end
+      end
+
+      def render_sign_up_finalization_forbidden(json: false)
+        if json
+          render json: { error: I18n.t("errors.messages.not_authorized") }, status: :forbidden
+        else
+          render plain: I18n.t("errors.messages.not_authorized"), status: :forbidden
+        end
+      end
+
+      def render_sign_up_failure_result(result, json: false)
+        if json
+          render json: { error: result.errors.to_sentence.presence || result.status.to_s },
+                 status: :unprocessable_content
+        else
+          render_sign_up_result(result)
+        end
+      end
+
       def sign_up_ticket_record_class
         case @sign_up_ticket
         when ClientSignUpCycle
@@ -157,6 +431,17 @@ module Sign
           ComTicketRecord
         else
           @sign_up_ticket.class
+        end
+      end
+
+      def sign_up_default_sign_in_path
+        case sign_up_surface
+        when :app
+          new_sign_app_in_path(ri: params[:ri])
+        when :com
+          new_sign_com_in_path(ri: params[:ri])
+        else
+          "/"
         end
       end
     end

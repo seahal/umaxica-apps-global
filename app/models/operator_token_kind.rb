@@ -1,7 +1,7 @@
 # typed: false
 # == Schema Information
 #
-# Table name: staff_token_kinds
+# Table name: operator_token_kinds
 # Database name: org_ticket
 #
 #  id :bigint           not null, primary key
@@ -9,7 +9,6 @@
 # frozen_string_literal: true
 
 class OperatorTokenKind < OrgTicketRecord
-  self.table_name = "staff_token_kinds"
   include ReferenceRecord
 
   self.record_timestamps = false

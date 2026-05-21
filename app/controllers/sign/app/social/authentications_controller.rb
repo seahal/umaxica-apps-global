@@ -14,15 +14,18 @@ module Sign
       #   Sign::App::Auth::OmniauthCallbacksController
       class AuthenticationsController < Sign::App::ApplicationController
         include ::Verification::Client
+        include ::CloudflareTurnstile
         include SocialAuthConcern
 
         SUPPORTED_PROVIDERS = %w(google_app apple).freeze
+        SOCIAL_UNLINK_SCOPE = "social_unlink"
 
         # Public access for continue (login intent doesn't require auth)
         # For link/step-up intents, auth is checked in prepare_social_auth_intent!
         public_strict! only: :continue
         auth_required! only: %i(destroy)
-        before_action -> { require_step_up!(scope: "social_unlink") }, only: :destroy
+        before_action :require_social_unlink_step_up!, only: :destroy
+        before_action :require_social_unlink_turnstile!, only: :destroy
 
         # POST /social/auth/:provider/continue
         # Entry point for social auth flow from sign-up and sign-in screens.
@@ -85,7 +88,7 @@ module Sign
             ),
           )
         rescue SocialAuth::BaseError => e
-          redirect_to(sign_app_configuration_path, alert: e.message)
+          render plain: e.message, status: e.status_code
         end
 
         private
@@ -133,6 +136,41 @@ module Sign
 
         def social_entry_method(provider)
           SocialIdentifiable.normalize_provider(provider)
+        end
+
+        def require_social_unlink_step_up!
+          return true if step_up_satisfied?(scope: SOCIAL_UNLINK_SCOPE)
+
+          flash[:alert] = I18n.t("auth.step_up.required")
+          redirect_to(
+            actor_verification_path(
+              scope: SOCIAL_UNLINK_SCOPE,
+              rt: encoded_relative_return_to(social_unlink_configuration_path(params[:provider])),
+              ri: params[:ri],
+            ),
+            status: :see_other,
+          )
+          false
+        end
+
+        def require_social_unlink_turnstile!
+          return true if cloudflare_turnstile_stealth_validation["success"]
+
+          redirect_to(
+            social_unlink_configuration_path(params[:provider]),
+            alert: I18n.t("turnstile_error"),
+            status: :see_other,
+          )
+          false
+        end
+
+        def social_unlink_configuration_path(provider)
+          case SocialIdentifiable.normalize_provider(provider)
+          when "apple"
+            sign_app_configuration_apple_path(ri: params[:ri])
+          else
+            sign_app_configuration_google_path(ri: params[:ri])
+          end
         end
 
         def safe_decoded_rt(encoded_url)

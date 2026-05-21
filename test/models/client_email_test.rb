@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_emails
+# Table name: client_emails
 # Database name: app_principal
 #
 #  id                        :bigint           not null, primary key
@@ -28,16 +28,16 @@
 #
 # Indexes
 #
-#  index_user_emails_on_address_digest        (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
-#  index_user_emails_on_otp_last_sent_at      (otp_last_sent_at)
-#  index_user_emails_on_public_id             (public_id) UNIQUE
-#  index_user_emails_on_user_email_status_id  (user_email_status_id)
-#  index_user_emails_on_user_id               (user_id)
+#  index_client_emails_on_address_digest        (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
+#  index_client_emails_on_otp_last_sent_at      (otp_last_sent_at)
+#  index_client_emails_on_public_id             (public_id) UNIQUE
+#  index_client_emails_on_user_email_status_id  (user_email_status_id)
+#  index_client_emails_on_user_id               (user_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_email_status_id => user_email_statuses.id)
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (user_email_status_id => client_email_statuses.id)
+#  fk_rails_...  (user_id => clients.id)
 #
 require "test_helper"
 
@@ -59,27 +59,6 @@ class ClientEmailTest < ActiveSupport::TestCase
 
   test "should include Email concern" do
     assert_includes ClientEmail.included_modules, Email
-  end
-
-  test "should include Turnstile concern" do
-    assert_includes ClientEmail.included_modules, Turnstile
-  end
-
-  test "turnstile validation runs when required and surface custom message" do
-    Turnstile.test_response = { "success" => false }
-
-    user_email = ClientEmail.new(@valid_attributes)
-    user_email.require_turnstile(
-      response: "test-token",
-      remote_ip: "127.0.0.1",
-      error_message: "Turnstile failed",
-    )
-
-    assert_not user_email.turnstile_valid?
-    assert_not user_email.valid?
-    assert_includes user_email.errors[:base], "Turnstile failed"
-  ensure
-    Turnstile.test_response = nil
   end
 
   test "should be valid with valid email and policy confirmation" do

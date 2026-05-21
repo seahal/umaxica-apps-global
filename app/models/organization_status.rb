@@ -23,6 +23,4 @@ class OrganizationStatus < OrgPrincipalRecord
            class_name: "Department",
            dependent: :restrict_with_error,
            inverse_of: :department_status
-
-  self.primary_key = "id"
 end

@@ -66,7 +66,7 @@ class VisitorSecretTest < ActiveSupport::TestCase
 
   test "enforces secret limit" do
     Prosopite.pause do
-      10.times do |i|
+      VisitorSecret::MAX_SECRETS_PER_VISITOR.times do |i|
         VisitorSecret.issue!(name: "Secret #{i}", visitor: @visitor)
       end
     end
@@ -75,7 +75,8 @@ class VisitorSecretTest < ActiveSupport::TestCase
     extra.password = @password
 
     assert_not extra.valid?
-    assert_includes extra.errors[:base], "exceeds maximum secrets per visitor (10)"
+    assert_includes extra.errors[:base],
+                    "exceeds maximum secrets per visitor (#{VisitorSecret::MAX_SECRETS_PER_VISITOR})"
   end
 
   test "requires verified recovery identity on create" do

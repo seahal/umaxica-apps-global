@@ -22,7 +22,7 @@ module Jump::ToRedirector
 
     # Validate destination URL against allowlist
     unless validate_destination_url!(destination_url)
-      Rails.event.notify("redirect.blocked", host: extract_host(destination_url), public_id: params[:public_id])
+      Rails.logger.info(LogEvent.format("redirect.blocked", host: extract_host(destination_url), public_id: params[:public_id]))
       return render_not_found
     end
 

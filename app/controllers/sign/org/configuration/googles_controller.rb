@@ -27,10 +27,7 @@ module Sign
         private
 
         def google_login_enabled?
-          current_operator.staff_emails.exists?(
-            undeletable: true,
-            staff_identity_email_status_id: [OperatorEmailStatus::ACTIVE, OperatorEmailStatus::VERIFIED],
-          )
+          current_operator.operator_social_google&.active?
         end
       end
     end

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_zip_occurrences
+# Table name: operator_zip_occurrences
 # Database name: occurrence
 #
 #  id                  :bigint           not null, primary key
@@ -14,17 +14,16 @@
 #
 # Indexes
 #
-#  idx_staff_zip_occ_on_ids                          (staff_occurrence_id,zip_occurrence_id) UNIQUE
-#  index_staff_zip_occurrences_on_zip_occurrence_id  (zip_occurrence_id)
+#  idx_staff_zip_occ_on_ids                             (staff_occurrence_id,zip_occurrence_id) UNIQUE
+#  index_operator_zip_occurrences_on_zip_occurrence_id  (zip_occurrence_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_occurrence_id => staff_occurrences.id)
+#  fk_rails_...  (staff_occurrence_id => operator_occurrences.id)
 #  fk_rails_...  (zip_occurrence_id => zip_occurrences.id)
 #
 
 class OperatorZipOccurrence < OccurrenceRecord
-  self.table_name = "staff_zip_occurrences"
   belongs_to :staff_occurrence, class_name: "OperatorOccurrence", inverse_of: :staff_zip_occurrences
   belongs_to :zip_occurrence, inverse_of: :staff_zip_occurrences
 

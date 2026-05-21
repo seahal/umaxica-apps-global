@@ -31,7 +31,7 @@ module Sign
                 user_verification: "discouraged",
               )
           rescue Sign::Webauthn::OriginValidationError => e
-            Rails.event.error("webauthn.origin_validation_failed", message: e.message)
+            Rails.logger.error(LogEvent.format("webauthn.origin_validation_failed", message: e.message))
             redirect_to(
               sign_com_in_challenge_path(ri: params[:ri]),
               alert: I18n.t("errors.webauthn.origin_invalid"),

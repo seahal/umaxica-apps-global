@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_token_binding_methods
+# Table name: client_token_binding_methods
 # Database name: app_ticket
 #
 #  id :bigint           not null, primary key

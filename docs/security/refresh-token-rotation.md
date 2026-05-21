@@ -30,7 +30,7 @@ When replay is detected:
 - the service raises `Sign::InvalidRefreshToken` with `refresh_token_reuse_detected`;
 - all tokens for the same actor are revoked by setting `discarded_at`;
 - `Sign::Risk::Emitter` emits `refresh_reuse_detected`;
-- `Rails.event` emits `authentication.refresh.reuse_detected`;
+- `Rails.logger` emits `authentication.refresh.reuse_detected`;
 - raw refresh verifiers are never logged.
 
 Revoked or expired tokens remain invalid but are not treated as replay compromise by themselves.

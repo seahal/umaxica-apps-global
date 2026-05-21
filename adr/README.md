@@ -35,6 +35,10 @@ Current request-context decisions:
 
 - `adr/actor-current-facade.md`
 
+Current logging / observability decisions:
+
+- `adr/application-logging-boundary.md`
+
 Current controller-boundary decisions:
 
 - `adr/static-and-guest-controller-boundaries.md`
@@ -42,7 +46,10 @@ Current controller-boundary decisions:
 Current sign configuration decisions:
 
 - `adr/authentication-assurance-level-boundaries.md`
+- `adr/finite-nonnegative-rate-limit-counts.md`
 - `adr/sign-up-authentication-handoff-and-social-rt.md`
+- `adr/sign-up-checkpoint-turnstile-boundary.md`
+- `adr/turnstile-visible-placement-policy.md`
 - `adr/sign-withdrawal-and-membership-surface-policy.md`
 - `adr/mfa-reset-account-recovery.md`
 - `adr/identifier-hmac-emergency-rotation.md`

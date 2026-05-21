@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_occurrence_statuses
+# Table name: operator_occurrence_statuses
 # Database name: occurrence
 #
 #  id   :bigint           not null, primary key
@@ -11,7 +11,6 @@
 #
 
 class OperatorOccurrenceStatus < OccurrenceRecord
-  self.table_name = "staff_occurrence_statuses"
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

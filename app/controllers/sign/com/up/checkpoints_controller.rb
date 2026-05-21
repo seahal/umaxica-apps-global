@@ -9,16 +9,9 @@ module Sign
 
         before_action :load_sign_up_ticket
         before_action -> { authorize_sign_up_participant!(:enter_checkpoint?) }, only: :show
-        before_action -> { authorize_sign_up_requirement!(:clear_requirement?) }, only: :update
 
         def show
-          run_sign_up_event(:enter_checkpoint)
-        end
-
-        def update
-          return unless persist_sign_up_birthdate_requirement
-
-          run_sign_up_event(:clear_requirement, payload: { requirement: params[:requirement] })
+          enter_sign_up_checkpoint!
         end
 
         private

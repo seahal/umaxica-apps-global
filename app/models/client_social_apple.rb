@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_social_apples
+# Table name: client_social_apples
 # Database name: app_principal
 #
 #  id                    :bigint           not null, primary key
@@ -20,19 +20,18 @@
 #
 # Indexes
 #
+#  index_client_social_apples_on_status_id              (status_id)
+#  index_client_social_apples_on_token_expires_at       (token_expires_at)
+#  index_client_social_apples_on_uid_and_provider       (uid,provider) UNIQUE
 #  index_user_identity_social_apples_on_user_id_unique  (user_id) UNIQUE WHERE (user_id IS NOT NULL)
-#  index_user_social_apples_on_status_id                (status_id)
-#  index_user_social_apples_on_token_expires_at         (token_expires_at)
-#  index_user_social_apples_on_uid_and_provider         (uid,provider) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (status_id => user_social_apple_statuses.id)
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (status_id => client_social_apple_statuses.id)
+#  fk_rails_...  (user_id => clients.id)
 #
 
 class ClientSocialApple < AppPrincipalRecord
-  self.table_name = "user_social_apples"
   include SocialIdentifiable
 
   alias_attribute :expires_at, :token_expires_at
@@ -55,35 +54,5 @@ class ClientSocialApple < AppPrincipalRecord
 
   def self.status_class
     ClientSocialAppleStatus
-  end
-
-  def self.find_or_create_from_auth_hash(auth)
-    # Find existing identity
-    identity = find_or_initialize_by(uid: auth.uid, provider: auth.provider)
-
-    # Update attributes
-    identity.token = auth.credentials.token
-    identity.refresh_token = auth.credentials.refresh_token if auth.credentials.refresh_token.present?
-    identity.token_expires_at = auth.credentials.expires_at
-
-    identity
-  end
-
-  # Extract uid from auth hash with fallback to extra.raw_info.sub
-  def self.extract_uid(auth)
-    uid = auth.uid
-    uid = auth.extra&.raw_info&.sub if uid.blank?
-    uid.to_s
-  end
-
-  # Update from OmniAuth hash (for link/step-up scenarios)
-  def update_from_auth_hash!(auth)
-    attrs = {
-      token: auth.credentials.token,
-      refresh_token: auth.credentials.refresh_token.presence || refresh_token,
-      token_expires_at: auth.credentials.expires_at,
-      last_authenticated_at: Time.current,
-    }
-    update!(attrs)
   end
 end

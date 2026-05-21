@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_step_up_sessions
+# Table name: operator_step_up_sessions
 # Database name: org_ticket
 #
 #  id             :bigint           not null, primary key
@@ -21,11 +21,11 @@
 #
 # Indexes
 #
-#  index_staff_step_up_sessions_on_staff_token_id  (staff_token_id) UNIQUE
+#  index_operator_step_up_sessions_on_staff_token_id  (staff_token_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (staff_token_id => staff_tokens.id) ON DELETE => cascade
+#  fk_rails_...  (staff_token_id => operator_tokens.id) ON DELETE => cascade
 #
 require "test_helper"
 

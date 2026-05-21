@@ -32,6 +32,11 @@ module Auth
                       "BaseHarness should include Sign::ErrorResponses"
     end
 
+    test "included do includes ActionPolicy controller support" do
+      assert_includes BaseHarness.included_modules, ActionPolicy::Controller,
+                      "BaseHarness should route access policy decisions through Action Policy"
+    end
+
     test "included do includes SessionLimitGate module" do
       assert_includes BaseHarness.included_modules, SessionLimitGate,
                       "BaseHarness should include SessionLimitGate"
@@ -102,6 +107,28 @@ module Auth
       assert_equal :public_strict, rules[0][:policy]
       assert_equal :auth_required, rules[1][:policy]
       assert_equal :guest_only, rules[2][:policy]
+    end
+
+    test "enforce_access_policy delegates declared rules to Authentication::AccessPolicy" do
+      controller = BaseHarness.new
+      controller.define_singleton_method(:action_name) { "index" }
+      controller.define_singleton_method(:logged_in?) { true }
+      controller.define_singleton_method(:current_resource) { nil }
+
+      calls = []
+      controller.define_singleton_method(:access_policy_allows?) do |rule, context|
+        calls << [rule, context]
+        true
+      end
+
+      BaseHarness.auth_required!(only: :index)
+
+      assert controller.send(:enforce_access_policy!)
+      assert_equal :auth_required?, calls.first.first
+      assert_instance_of Authentication::Base::AccessPolicyContext, calls.first.last
+      assert_equal :auth_required, calls.first.last.policy
+    ensure
+      Authentication::Base::ACCESS_POLICY_RULES.delete(BaseHarness)
     end
 
     test "access_policy validates policy name" do

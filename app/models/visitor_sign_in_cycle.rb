@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: com_sign_in_cycles
+# Table name: visitor_sign_in_cycles
 # Database name: com_ticket
 #
 #  id           :bigint           not null, primary key
@@ -25,13 +25,13 @@
 #
 # Indexes
 #
-#  index_com_sign_in_cycles_on_discarded_at  (discarded_at)
-#  index_com_sign_in_cycles_on_expires_at    (expires_at)
-#  index_com_sign_in_cycles_on_principal_id  (principal_id)
-#  index_com_sign_in_cycles_on_public_id     (public_id) UNIQUE
-#  index_com_sign_in_cycles_on_state         (state)
-#  index_com_sign_in_cycles_on_status_id     (status_id)
-#  index_com_sign_in_cycles_on_token_id      (token_id)
+#  index_visitor_sign_in_cycles_on_discarded_at  (discarded_at)
+#  index_visitor_sign_in_cycles_on_expires_at    (expires_at)
+#  index_visitor_sign_in_cycles_on_principal_id  (principal_id)
+#  index_visitor_sign_in_cycles_on_public_id     (public_id) UNIQUE
+#  index_visitor_sign_in_cycles_on_state         (state)
+#  index_visitor_sign_in_cycles_on_status_id     (status_id)
+#  index_visitor_sign_in_cycles_on_token_id      (token_id)
 #
 # Foreign Keys
 #
@@ -39,7 +39,6 @@
 #  fk_rails_...  (token_id => visitor_tokens.id) ON DELETE => cascade
 #
 class VisitorSignInCycle < ComTicketRecord
-  self.table_name = "com_sign_in_cycles"
   include SignCycle
   include Cycle::SignIn
 

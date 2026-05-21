@@ -179,8 +179,8 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       status_id: ClientSocialGoogleStatus::ACTIVE,
       token: "t", token_expires_at: 1.day.from_now.to_i,
     )
-    # Ensure login_methods_remaining? returns false
-    @user.define_singleton_method(:login_methods_remaining?) { |**| false }
+    # Ensure social_unlink_methods_remaining? returns false
+    @user.define_singleton_method(:social_unlink_methods_remaining?) { |**| false }
 
     service = SocialAuthService.new(auth_hash: nil, current_client: @user, intent: nil)
     assert_raises(SocialAuth::LastIdentityError) do

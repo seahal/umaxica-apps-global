@@ -4,8 +4,6 @@
 module HasBirthdate
   extend ActiveSupport::Concern
 
-  BIRTHDATE_FORMAT = /\A\d{4}-\d{2}-\d{2}\z/
-
   included do
     encrypts :birthdate
 
@@ -52,16 +50,16 @@ module HasBirthdate
 
   def birthdate_format
     return if birthdate.blank?
-    return if birthdate.match?(BIRTHDATE_FORMAT)
+    return if birthdate.match?(BirthdateFormat::PATTERN)
 
-    errors.add(:birthdate, "must be in YYYY-MM-DD format")
+    errors.add(:birthdate, :birthdate_format)
   end
 
   def birthdate_not_future
     return if birthdate.blank?
-    return unless birthdate.match?(BIRTHDATE_FORMAT)
+    return unless birthdate.match?(BirthdateFormat::PATTERN)
 
     today = Time.zone.today.strftime("%Y-%m-%d")
-    errors.add(:birthdate, "must not be in the future") if birthdate > today
+    errors.add(:birthdate, :birthdate_before_today) if birthdate >= today
   end
 end

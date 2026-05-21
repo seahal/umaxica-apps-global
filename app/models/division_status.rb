@@ -19,6 +19,4 @@ class DivisionStatus < OrgPrincipalRecord
   DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
   has_many :divisions, dependent: :restrict_with_error
-
-  self.primary_key = "id"
 end

@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: user_preference_theme_options
+# Table name: client_preference_theme_options
 # Database name: app_principal
 #
 #  id :bigint           not null, primary key
 #
 class ClientPreferenceThemeOption < AppPrincipalRecord
-  self.table_name = "user_preference_theme_options"
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values

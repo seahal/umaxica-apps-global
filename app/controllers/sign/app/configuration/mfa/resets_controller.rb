@@ -8,12 +8,10 @@ module Sign
         class ResetsController < PrivateController
           before_action :authenticate_client!
 
-          def show
-            head :not_implemented
-          end
+          def show; end
 
           def create
-            head :not_implemented
+            redirect_to sign_app_mfa_reset_path(ri: params[:ri]), alert: t("sign.app.configuration.mfa.show.reset_unavailable")
           end
         end
       end

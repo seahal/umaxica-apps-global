@@ -65,29 +65,6 @@ class AnalyticsConsentGuardTest < ActiveSupport::TestCase
     assert AnalyticsConsentGuard.permit?("authentication.audit.write_failed", preference: Actor::Preference::NULL)
   end
 
-  test "pipeline integration drops disallowed events when consent is missing" do
-    Actor.preference = Actor::Preference::NULL
-    emitted = []
-    subscriber = Class.new do
-      define_method(:emit) do |event|
-        data = event.respond_to?(:payload) ? event.payload : event
-        emitted << data
-      end
-    end.new
-    Rails.event.subscribe(subscriber)
-
-    Rails.event.record("product.analytics.page_view", path: "/")
-
-    assert_empty emitted, "Disallowed event should be dropped"
-
-    Rails.event.record("auth.login.success", user_id: 1)
-
-    assert_equal 1, emitted.size, "Allowed event should be emitted"
-  ensure
-    Rails.event.unsubscribe(subscriber) if defined?(subscriber)
-    Actor.reset
-  end
-
   test "event reporter patch drops blocked events and forwards allowed events" do
     reporter_class =
       Class.new do

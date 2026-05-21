@@ -23,8 +23,6 @@
 # frozen_string_literal: true
 
 class OperatorWorkspaceAccountMembership < OrgRpRecord
-  self.table_name = "operator_workspace_account_memberships"
-
   belongs_to :staff,
              class_name: "Operator",
              inverse_of: false

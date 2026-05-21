@@ -11,7 +11,10 @@ module Sign
         before_action -> { authorize_sign_up_participant!(:enter_guardrail?) }
 
         def show
-          run_sign_up_event(:enter_guardrail)
+          result = perform_sign_up_event(:enter_guardrail)
+          return render_sign_up_result(result) unless result.status == :advanced
+
+          redirect_to(sign_com_up_checkpoint_path(ri: params[:ri], rt: params[:rt].presence))
         end
 
         private

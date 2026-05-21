@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_banners
+# Table name: client_banners
 # Database name: app_principal
 #
 #  id         :bigint           not null, primary key
@@ -18,14 +18,13 @@
 #
 # Indexes
 #
-#  index_user_banners_on_user_id  (user_id)
+#  index_client_banners_on_user_id  (user_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (user_id => clients.id)
 #
 class ClientBanner < AppPrincipalRecord
-  self.table_name = "user_banners"
   include BannerModel
 
   belongs_to :user, class_name: "Client", optional: false

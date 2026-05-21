@@ -49,11 +49,11 @@ The session-side preference families use the surface setting databases:
 
 The current `notification` connection will split into three surface signal databases:
 
-| Target       | Tables                                          |
-| ------------ | ----------------------------------------------- |
-| `app_signal` | `user_notifications`, `member_notifications`    |
-| `org_signal` | `staff_notifications`, `operator_notifications` |
-| `com_signal` | `visitor_notifications`                         |
+| Target       | Tables                                         |
+| ------------ | ---------------------------------------------- |
+| `app_signal` | `client_notifications`, `member_notifications` |
+| `org_signal` | `operator_notifications`                       |
+| `com_signal` | `visitor_notifications`                        |
 
 ## Unchanged Cross-Cutting Databases
 

@@ -35,6 +35,7 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href^=?]", sign_app_configuration_emails_path(ri: "jp")
     assert_select "a[href^=?]", sign_app_configuration_telephones_path(ri: "jp")
+    assert_select "a[href^=?]", sign_app_configuration_birthdate_path(ri: "jp")
     assert_select "a[href^=?]", sign_app_configuration_mfa_challenge_path(ri: "jp")
     assert_select "a[href^=?]", sign_app_mfa_reset_path(ri: "jp")
     assert_select "a[href^=?]", sign_app_configuration_google_path(ri: "jp")
@@ -53,6 +54,12 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     target_path = new_sign_app_in_path
 
     assert_match %r{#{Regexp.escape(target_path)}\?.*ri=jp}, response.headers["Location"]
+  end
+
+  test "edit route is not available" do
+    get "/configuration/edit"
+
+    assert_response :not_found
   end
 
   test "restricted session is blocked on configuration with locked plain response" do

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_authorization_codes
+# Table name: client_authorization_codes
 # Database name: app_ticket
 #
 #  id                    :bigint           not null, primary key
@@ -26,11 +26,10 @@
 #
 # Indexes
 #
-#  index_user_authorization_codes_on_code     (code) UNIQUE
-#  index_user_authorization_codes_on_user_id  (user_id)
+#  index_client_authorization_codes_on_code     (code) UNIQUE
+#  index_client_authorization_codes_on_user_id  (user_id)
 #
 class ClientAuthorizationCode < AppTicketRecord
-  self.table_name = "user_authorization_codes"
   include Retainable
 
   CODE_TTL = 10.seconds

@@ -11,7 +11,9 @@
     data-controller="passkey-authentication"
     data-passkey-authentication-options-url-value="<%= options_sign_org_in_passkeys_path(rt: return_to) %>"
     data-passkey-authentication-verification-url-value="<%= verification_sign_org_in_passkeys_path(rt: return_to) %>"
-    data-passkey-authentication-identifier-param-value="identifier">
+    data-passkey-authentication-identifier-param-value="identifier"
+    data-passkey-authentication-turnstile-site-key-value="<%= Jit::Security::TurnstileConfig.stealth_site_key.to_s %>"
+    data-passkey-authentication-turnstile-error-message-value="<%= t("turnstile_error") %>">
 
     <div>
       <label for="identifier">
@@ -32,6 +34,7 @@
 
     <p data-passkey-authentication-target="error" class="hidden"></p>
     <p data-passkey-authentication-target="status" class="hidden"></p>
+    <input type="hidden" data-passkey-authentication-target="turnstileResponse" autocomplete="off">
 
     <div>
       <button type="button"

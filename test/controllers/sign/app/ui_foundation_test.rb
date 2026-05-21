@@ -62,9 +62,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "dark mode class is rendered based on cookie" do
     # Testing the theme_html_class helper's effect via integration
     headers = as_user_headers(@user, host: @host)
-    existing_cookie = headers["Cookie"]
-    headers["Cookie"] = [existing_cookie, "ct=dark"].compact.join("; ")
-    get sign_app_configuration_url, headers: headers
+    get sign_app_configuration_url(ct: "dark"), headers: headers
 
     follow_redirect!(headers: headers) if response.redirect?
 
@@ -73,9 +71,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     assert_select "html.dark"
 
     headers = as_user_headers(@user, host: @host)
-    existing_cookie = headers["Cookie"]
-    headers["Cookie"] = [existing_cookie, "ct=light"].compact.join("; ")
-    get sign_app_configuration_url, headers: headers
+    get sign_app_configuration_url(ct: "light"), headers: headers
 
     follow_redirect!(headers: headers) if response.redirect?
 

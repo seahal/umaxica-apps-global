@@ -29,11 +29,15 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     OmniAuth.config.test_mode = true
     @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
     @callback_headers = social_callback_headers(@host)
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
   teardown do
     OmniAuth.config.mock_auth[:google_app] = nil
     OmniAuth.config.mock_auth[:apple] = nil
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   test "Google sign up entry creates one client and one active social identity without email" do
@@ -100,6 +104,48 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_last_social_unlink_rejected(PROVIDERS.fetch(:apple))
   end
 
+  test "Google configuration unlink redirects to verification without social unlink step-up" do
+    user = create_social_client
+    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "step_up_google")
+    create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "step_up_backup_apple")
+    token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+
+    delete(
+      sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+      headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
+      params: { "cf-turnstile-response": "test" },
+    )
+
+    assert_response :see_other
+    assert_match %r{/verification}, response.location
+    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+  end
+
+  test "Google configuration unlink rejects passcode as the only remaining method" do
+    user = create_social_client
+    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "passcode_google")
+    create_login_secret(user)
+
+    delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
+
+    assert_response :unprocessable_content
+    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert_includes response.body, I18n.t("errors.social_auth.insufficient_login_methods")
+  end
+
+  test "Google configuration unlink rejects failed Turnstile before unlinking" do
+    user = create_social_client
+    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "turnstile_google")
+    create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "turnstile_backup_apple")
+    CloudflareTurnstile.test_validation_response = { "success" => false }
+
+    delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
+
+    assert_response :see_other
+    assert_redirected_to sign_app_configuration_google_url(ri: "jp")
+    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+  end
+
   private
 
   def assert_social_signup_contract(config)
@@ -117,11 +163,25 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_dashboard_url(ri: "jp")
     identity = config.fetch(:model).find_by!(uid: uid)
     user = identity.user
 
-    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    follow_redirect!
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    follow_redirect!
+    assert_response :ok
+    assert_select "input[type=date][name=birthdate]"
+
+    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+          params: { requirement: "birthdate", birthdate: "2000-02-03" },
+          headers: browser_headers.merge(@callback_headers)
+
+    assert_response :redirect
+    assert_equal "2000-02-03", user.reload.birthdate
+    assert ClientToken.exists?(user_id: user.id)
+
+    assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
     assert_equal config.fetch(:active_status), identity.status_id
     assert_equal config.fetch(:provider), identity.provider
     assert_equal "new_signup_token", identity.token
@@ -147,6 +207,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
+    assert_redirected_to sign_app_welcome_url("post_auth", ri: "jp")
+    follow_redirect!
     assert_redirected_to sign_app_dashboard_url(ri: "jp")
     identity.reload
 
@@ -211,9 +273,9 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, config)
 
-    assert_redirected_to sign_app_configuration_url(ri: "jp")
+    assert_response :unprocessable_content
     assert config.fetch(:model).exists?(identity.id)
-    assert_predicate flash[:alert], :present?
+    assert_includes response.body, I18n.t("errors.social_auth.insufficient_login_methods")
   end
 
   def perform_social_callback(config, params:, headers:)
@@ -261,10 +323,25 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   def delete_with_verified_session(user, config)
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(token)
+    token.update!(last_step_up_at: Time.current, last_step_up_scope: "social_unlink")
 
     delete(
       sign_app_social_authentication_url(provider: config.fetch(:provider), ri: "jp"),
       headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
+      params: { "cf-turnstile-response": "test" },
     )
+  end
+
+  def create_login_secret(user)
+    ClientSecretKind.find_or_create_by!(id: ClientSecretKind::LOGIN)
+    ClientSecretStatus.find_or_create_by!(id: ClientSecretStatus::ACTIVE)
+    secret = ClientSecret.new(
+      user: user,
+      name: "passcode",
+      password_digest: "digest",
+      user_secret_kind_id: ClientSecretKind::LOGIN,
+      user_identity_secret_status_id: ClientSecretStatus::ACTIVE,
+    )
+    secret.save!(validate: false)
   end
 end

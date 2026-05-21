@@ -420,7 +420,8 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     json = response.parsed_body
 
     assert_not json["refreshed"]
-    assert_predicate json["error_code"], :present?
+    assert_equal I18n.t("sign.token_refresh.errors.withdrawal_required"), json["error"]
+    assert_equal "withdrawal_required", json["error_code"]
   end
 
   test "POST refresh denies when device_id missing and writes occurrence" do

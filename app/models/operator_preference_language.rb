@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: staff_preference_languages
+# Table name: operator_preference_languages
 # Database name: org_principal
 #
 #  id            :bigint           not null, primary key
@@ -14,16 +14,15 @@
 #
 # Indexes
 #
-#  index_staff_preference_languages_on_option_id      (option_id)
-#  index_staff_preference_languages_on_preference_id  (preference_id) UNIQUE
+#  index_operator_preference_languages_on_option_id      (option_id)
+#  index_operator_preference_languages_on_preference_id  (preference_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_staff_preference_languages_on_option_id      (option_id => staff_preference_language_options.id)
-#  fk_staff_preference_languages_on_preference_id  (preference_id => staff_preferences.id)
+#  fk_staff_preference_languages_on_option_id      (option_id => operator_preference_language_options.id)
+#  fk_staff_preference_languages_on_preference_id  (preference_id => operator_preferences.id)
 #
 class OperatorPreferenceLanguage < OrgPrincipalRecord
-  self.table_name = "staff_preference_languages"
   belongs_to :preference, class_name: "OperatorPreference", inverse_of: :staff_preference_language
   belongs_to :option,
              class_name: "OperatorPreferenceLanguageOption",

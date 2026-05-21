@@ -32,12 +32,14 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
   setup do
     @user = clients(:one)
     ClientToken.where(user_id: @user.id).delete_all
-    2.times do
-      token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
-      token.rotate_refresh_token!
+    Prosopite.pause do
+      2.times do
+        token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
+        token.rotate_refresh_token!
+      end
+      restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
+      restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
     end
-    restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
-    restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     Rails.application.routes.draw do
       post "/test/hard_reject_login" => "session_limit_hard_reject_test/test#create"

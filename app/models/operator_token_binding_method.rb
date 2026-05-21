@@ -3,13 +3,12 @@
 
 # == Schema Information
 #
-# Table name: staff_token_binding_methods
+# Table name: operator_token_binding_methods
 # Database name: org_ticket
 #
 #  id :bigint           not null, primary key
 #
 class OperatorTokenBindingMethod < OrgTicketRecord
-  self.table_name = "staff_token_binding_methods"
   include ReferenceRecord
 
   NOTHING = 0

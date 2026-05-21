@@ -90,18 +90,18 @@ class SocialAuthService
       @current_client.lock!
 
       # Check if this is the last authentication method
-      if identity.active? && !@current_client.login_methods_remaining?(excluding_provider: provider)
+      if identity.active? && !@current_client.social_unlink_methods_remaining?(excluding_provider: provider)
         raise SocialAuth::LastIdentityError.new("errors.social_auth.insufficient_login_methods")
       end
 
       create_social_unlink_audit!(identity, provider)
       identity.destroy!
 
-      Rails.event.notify(
+      Rails.logger.info(LogEvent.format(
         "social_auth.unlinked",
         user_id: @current_client.id,
         provider: provider,
-      )
+      ))
     end
 
     { success: true, provider: provider }

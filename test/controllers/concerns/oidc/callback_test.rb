@@ -98,17 +98,17 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
       error: "bad",
       error_description: "bad",
     )
-    notifications = []
+    logged = []
 
     Oidc::RpTokenClient.stub(:call, result) do
-      Rails.event.stub(:notify, ->(*args) { notifications << args }) do
+      Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
         get "/oidc/callback", params: { code: "abc", state: "state" }
       end
     end
 
     assert_response :redirect
     assert_redirected_to "/"
-    assert_equal 1, notifications.count { |args| args.first == "oidc.rp.callback.failed" }
+    assert_equal 1, logged.count { |entry| entry[:event] == "oidc.rp.callback.failed" }
   end
 
   test "show rejects mismatched state before token exchange" do

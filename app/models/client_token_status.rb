@@ -3,14 +3,13 @@
 
 # == Schema Information
 #
-# Table name: user_token_statuses
+# Table name: client_token_statuses
 # Database name: app_ticket
 #
 #  id :bigint           not null, primary key
 #
 
 class ClientTokenStatus < AppTicketRecord
-  self.table_name = "user_token_statuses"
   include ReferenceRecord
 
   NOTHING = 0

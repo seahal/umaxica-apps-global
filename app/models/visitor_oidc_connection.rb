@@ -23,8 +23,6 @@
 #  index_visitor_oidc_connections_on_visitor_id_and_client_id  (visitor_id,client_id) UNIQUE
 #
 class VisitorOidcConnection < ComTicketRecord
-  self.table_name = "visitor_oidc_connections"
-
   include OidcConnectionRecord
 
   belongs_to :visitor

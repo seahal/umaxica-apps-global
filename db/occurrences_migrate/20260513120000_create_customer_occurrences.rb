@@ -87,7 +87,6 @@ class CreateCustomerOccurrences < ActiveRecord::Migration[8.2]
     status_model =
       Class.new(ActiveRecord::Base) do
         self.table_name = "customer_occurrence_statuses"
-        self.primary_key = "id"
       end
 
     status_model.create!([{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }])

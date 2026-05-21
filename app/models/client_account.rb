@@ -18,7 +18,6 @@
 #  index_client_accounts_on_user_id    (user_id) UNIQUE
 #
 class ClientAccount < AppRpRecord
-  self.table_name = "client_accounts"
   include ::PublicId
 
   belongs_to :user, class_name: "Client", inverse_of: :rp_account

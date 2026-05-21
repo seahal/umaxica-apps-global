@@ -34,7 +34,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     assert json["authenticated"], "Operator should be authenticated"
     assert_equal "operator", json["type"]
     assert_equal @staff.id, json["id"]
-    assert_equal token_record.public_id, json["sid"]
+    assert_equal token_record.device_session.public_id, json["sid"]
   end
 
   test "GET check without access token returns 401" do
@@ -157,7 +157,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :ok
     assert response.parsed_body["authenticated"]
-    assert_equal token_record.public_id, response.parsed_body["sid"]
+    assert_equal token_record.device_session.public_id, response.parsed_body["sid"]
   end
 
   test "GET check rejects DPoP-bound staff token presented as Bearer" do

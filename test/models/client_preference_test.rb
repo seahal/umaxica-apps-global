@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: user_preferences
+# Table name: client_preferences
 # Database name: app_principal
 #
 #  id              :bigint           not null, primary key
@@ -30,8 +30,8 @@
 #
 # Indexes
 #
-#  index_user_preferences_on_public_id  (public_id) UNIQUE
-#  index_user_preferences_on_user_id    (user_id) UNIQUE
+#  index_client_preferences_on_public_id  (public_id) UNIQUE
+#  index_client_preferences_on_user_id    (user_id) UNIQUE
 #
 require "test_helper"
 

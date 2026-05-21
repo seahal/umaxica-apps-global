@@ -85,7 +85,8 @@ module WithdrawalCycle
       :metadata => metadata || {},
     }
 
-    self.class::EVENT_MODEL.create!(attrs)
+    operation = -> { self.class::EVENT_MODEL.create!(attrs) }
+    defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
   end
 
   private

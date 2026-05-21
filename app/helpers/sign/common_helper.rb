@@ -21,7 +21,7 @@ module Sign::CommonHelper
   end
 
   def get_language
-    "ja"
+    I18n.locale.to_s.start_with?("en") ? "en" : "ja"
   end
 
   def get_region
