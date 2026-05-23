@@ -1,0 +1,1 @@
+[{"severity":"convention","location":{"begin_pos":0,"end_pos":29},"message":"Sorbet/FalseSigil: No Sorbet sigil found in file. Try a `typed: false` to start (you can also use `rubocop -a` to automatically add this).","cop_name":"Sorbet/FalseSigil","status":"uncorrected"}]

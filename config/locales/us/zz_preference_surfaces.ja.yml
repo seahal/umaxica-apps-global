@@ -1,0 +1,81 @@
+---
+ja:
+  apex:
+    app:
+      preferences:
+        title: 設定
+        description: 言語やテーマなどの設定をまとめて変更できます。
+        cookie_settings: クッキー設定
+        region_settings: 地域と言語の設定
+        language_settings: 言語設定
+        timezone_settings: タイムゾーン設定
+        theme_settings: テーマ設定
+        reset_settings: 設定のリセット
+        update_settings: 設定を更新
+        submitting: 送信中...
+        back_to_settings: 設定一覧に戻る
+        regions: &ja_regions
+          title: 地域・言語の設定
+          back_link: もどる
+          region_section: 地域設定
+          select_region: 地域を選択
+          select_region_prompt: 地域を選択してください…
+        region: &ja_region_links
+          timezone:
+            link: タイムゾーン設定
+          language:
+            link: 言語設定
+          currency:
+            link: 通貨設定
+          date_format:
+            link: 日付形式
+          time_format:
+            link: 時刻形式
+      preference:
+        language:
+          edit:
+            heading: 言語設定
+            description: アプリケーションの表示言語を変更します。
+            language_label: 言語
+    org:
+      preferences:
+        title: 設定
+        description: 言語やテーマなどの設定をまとめて変更できます。
+        cookie_settings: クッキー設定
+        region_settings: 地域と言語の設定
+        language_settings: 言語設定
+        timezone_settings: タイムゾーン設定
+        theme_settings: テーマ設定
+        reset_settings: 設定のリセット
+        update_settings: 設定を更新
+        submitting: 送信中...
+        back_to_settings: 設定一覧に戻る
+        regions: *ja_regions
+        region: *ja_region_links
+      preference:
+        language:
+          edit:
+            heading: 言語設定
+            description: 組織コンソールの表示言語を変更します。
+            language_label: 言語
+    com:
+      preferences:
+        title: 設定
+        description: 言語やテーマなどの設定をまとめて変更できます。
+        cookie_settings: クッキー設定
+        region_settings: 地域と言語の設定
+        language_settings: 言語設定
+        timezone_settings: タイムゾーン設定
+        theme_settings: テーマ設定
+        reset_settings: 設定のリセット
+        update_settings: 設定を更新
+        submitting: 送信中...
+        back_to_settings: 設定一覧に戻る
+        regions: *ja_regions
+        region: *ja_region_links
+      preference:
+        language:
+          edit:
+            heading: 言語設定
+            description: コーポレート画面の表示言語を変更します。
+            language_label: 言語
