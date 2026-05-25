@@ -51,8 +51,15 @@ class OperatorTelephone < OrgPrincipalRecord
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }
   validates :staff_identity_telephone_status_id, numericality: { only_integer: true }
-  validate :ensure_unique_number_digest
-  validate :enforce_staff_telephone_limit, on: :create
+  validates :number_digest, blind_index_uniqueness: { error_attribute: :number }, allow_blank: true
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :staff,
+                 association: :staff_telephones,
+                 foreign_key: :staff_id,
+                 limit: :MAX_TELEPHONES_PER_STAFF,
+                 record_name: "telephones",
+                 owner_name: "staff"
 
   after_initialize do
     self.number ||= ""
@@ -61,36 +68,4 @@ class OperatorTelephone < OrgPrincipalRecord
   # Note: :number encryption is handled by Telephone concern
 
   private
-
-  def ensure_unique_number_digest
-    return if number_digest.blank?
-
-    duplicate =
-      if defined?(Prosopite)
-        Prosopite.pause do
-          self.class.where(number_digest: number_digest).where.not(id: id).exists?
-        end
-      else
-        self.class.where(number_digest: number_digest).where.not(id: id).exists?
-      end
-    return unless duplicate
-
-    errors.add(:number, :taken)
-  end
-
-  def enforce_staff_telephone_limit
-    return unless staff_id
-
-    count =
-      if staff&.staff_telephones&.loaded?
-        staff.staff_telephones.count { |telephone| telephone != self }
-      elsif defined?(Prosopite)
-        Prosopite.pause { self.class.where(staff_id: staff_id).count }
-      else
-        self.class.where(staff_id: staff_id).count
-      end
-    return if count < MAX_TELEPHONES_PER_STAFF
-
-    errors.add(:base, :too_many, message: "exceeds maximum telephones per staff (#{MAX_TELEPHONES_PER_STAFF})")
-  end
 end

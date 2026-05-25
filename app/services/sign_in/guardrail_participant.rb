@@ -20,7 +20,7 @@ module SignIn
       ParticipantResult.new(
         participant: :guardrail,
         stack: stack,
-        next_status: "SESSION_ISSUANCE_PENDING",
+        next_status: "CHECKPOINT_PENDING",
         message: GENERIC_MESSAGE,
       )
     end
@@ -31,7 +31,7 @@ module SignIn
         result = evaluate
         return result if result.blocking?
 
-        cycle.advance_sign_in_to_session_issuance!
+        cycle.advance_sign_in_to_checkpoint!
         result
       end
     end

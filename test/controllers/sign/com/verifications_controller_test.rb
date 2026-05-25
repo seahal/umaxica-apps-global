@@ -43,7 +43,7 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show renders only email and passkey method links" do
-    return_to = ReturnTargetToken.issue(
+    return_to = signed_return_target(
       return_to: sign_com_configuration_emails_path(ri: "jp"),
       flow: "step_up.bootstrap",
       surface: "com",
@@ -64,5 +64,32 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, new_sign_com_verification_email_path(ri: "jp")
     assert_includes response.body, new_sign_com_verification_passkey_path(ri: "jp")
+  end
+
+  private
+
+  def signed_return_target(return_to:, flow:, surface:, session_nonce:, expires_in: 15.minutes)
+    harness = Class.new do
+      include ReturnTargets::SignedTokenSupport
+
+      def issue(return_to:, flow:, surface:, session_nonce:, expires_in:)
+        path = signed_target_internal_path(return_to)
+        claims = signed_target_claims(flow: flow, surface: surface, session_nonce: session_nonce)
+        issue_signed_target_token(
+          payload: claims.merge("return_to" => path),
+          purpose: :return_target,
+          salt: "return_target_token",
+          expires_in: expires_in,
+        )
+      end
+    end.new
+
+    harness.issue(
+      return_to: return_to,
+      flow: flow,
+      surface: surface,
+      session_nonce: session_nonce,
+      expires_in: expires_in,
+    )
   end
 end

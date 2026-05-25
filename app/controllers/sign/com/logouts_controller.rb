@@ -4,6 +4,8 @@
 module Sign
   module Com
     class LogoutsController < OpenController
+      AUTHENTICATION_MODE = :open
+
       include Sign::OidcLogout
 
       private

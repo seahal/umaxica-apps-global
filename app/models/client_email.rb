@@ -9,6 +9,7 @@
 #  id                        :bigint           not null, primary key
 #  address                   :string           default(""), not null
 #  address_digest            :string
+#  discarded_at              :datetime         default(Infinity), not null
 #  locked_at                 :datetime         default(Infinity), not null
 #  notifiable                :boolean          default(TRUE), not null
 #  otp_attempts_count        :integer          default(0), not null
@@ -17,6 +18,7 @@
 #  otp_last_sent_at          :datetime         default(-Infinity), not null
 #  otp_private_key           :string           default(""), not null
 #  promotional               :boolean          default(TRUE), not null
+#  purged_at                 :datetime         default(Infinity), not null
 #  subscribable              :boolean          default(TRUE), not null
 #  undeletable               :boolean          default(FALSE), not null
 #  verification_token_digest :binary
@@ -28,11 +30,13 @@
 #
 # Indexes
 #
-#  index_client_emails_on_address_digest        (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
-#  index_client_emails_on_otp_last_sent_at      (otp_last_sent_at)
-#  index_client_emails_on_public_id             (public_id) UNIQUE
-#  index_client_emails_on_user_email_status_id  (user_email_status_id)
-#  index_client_emails_on_user_id               (user_id)
+#  index_client_emails_on_active_address_digest  (address_digest) UNIQUE WHERE ((address_digest IS NOT NULL) AND (user_email_status_id <> 4))
+#  index_client_emails_on_discarded_at           (discarded_at)
+#  index_client_emails_on_otp_last_sent_at       (otp_last_sent_at)
+#  index_client_emails_on_public_id              (public_id) UNIQUE
+#  index_client_emails_on_purged_at              (purged_at)
+#  index_client_emails_on_user_email_status_id   (user_email_status_id)
+#  index_client_emails_on_user_id                (user_id)
 #
 # Foreign Keys
 #
@@ -47,6 +51,7 @@ class ClientEmail < AppPrincipalRecord
   ].freeze
 
   include PublicId
+  include Retainable
   include Email
   include MultiFactorStatusCredential
   include PromotionalEmailUnsubscribable
@@ -64,8 +69,21 @@ class ClientEmail < AppPrincipalRecord
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }
   validates :user_email_status_id, numericality: { only_integer: true }
-  validate :ensure_unique_address_digest
-  validate :enforce_user_email_limit, on: :create
+  validates :address_digest,
+            blind_index_uniqueness: {
+              error_attribute: :address,
+              status_column: :user_email_status_id,
+              deleted_status_id: ClientEmailStatus::DELETED,
+            },
+            allow_blank: true
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :user,
+                 association: :client_emails,
+                 foreign_key: :user_id,
+                 limit: :MAX_EMAILS_PER_USER,
+                 record_name: "emails",
+                 owner_name: "user"
   before_destroy :prevent_destroy_when_undeletable
 
   def to_param
@@ -110,38 +128,5 @@ class ClientEmail < AppPrincipalRecord
 
     errors.add(:base, :undeletable, message: "cannot delete a protected email address")
     throw(:abort)
-  end
-
-  def ensure_unique_address_digest
-    return if address_digest.blank?
-
-    duplicate =
-      if defined?(Prosopite)
-        Prosopite.pause do
-          self.class.where(address_digest: address_digest).where.not(id: id).exists?
-        end
-      else
-        self.class.where(address_digest: address_digest).where.not(id: id).exists?
-      end
-    return unless duplicate
-
-    errors.add(:address, :taken)
-
-  end
-
-  def enforce_user_email_limit
-    return unless user_id
-
-    count =
-      if user&.client_emails&.loaded?
-        user.client_emails.count { |email| email != self }
-      elsif defined?(Prosopite)
-        Prosopite.pause { self.class.where(user_id: user_id).count }
-      else
-        self.class.where(user_id: user_id).count
-      end
-    return if count < MAX_EMAILS_PER_USER
-
-    errors.add(:base, :too_many, message: "exceeds maximum emails per user (#{MAX_EMAILS_PER_USER})")
   end
 end

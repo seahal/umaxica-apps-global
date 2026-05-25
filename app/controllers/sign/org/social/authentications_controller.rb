@@ -12,13 +12,15 @@ module Sign
       #
       # Operator social continue signs in existing staff only; unknown staff are not created.
       class AuthenticationsController < Sign::Org::ApplicationController
+        AUTHENTICATION_MODE = :deny_all
+
         include SocialAuthConcern
         include ::Verification::Operator
 
         SUPPORTED_PROVIDERS = %w(google_org).freeze
 
-        public_strict! only: :continue
-        auth_required! only: :destroy
+        declare_authentication_mode! :open, only: :continue
+        declare_authentication_mode! :private, only: :destroy
         before_action -> { require_step_up!(scope: "social_unlink") }, only: :destroy
 
         # POST /social/auth/:provider/continue

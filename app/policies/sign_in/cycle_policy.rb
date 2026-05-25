@@ -20,11 +20,11 @@ module SignIn
     end
 
     def manage_session_limit?
-      status_allowed?("SESSION_LIMIT_PENDING", actor_required: true, token_required: true)
+      status_allowed?("SESSION_LIMIT_PENDING")
     end
 
     def run_guardrail?
-      status_allowed?("GUARDRAIL_PENDING", actor_required: true, token_required: token_bound?)
+      status_allowed?("GUARDRAIL_PENDING", actor_required: actor_bound?, token_required: token_bound?)
     end
 
     def issue_session?
@@ -32,11 +32,15 @@ module SignIn
     end
 
     def show_checkpoint?
-      status_allowed?("CHECKPOINT_PENDING", actor_required: true, token_required: true)
+      status_allowed?("CHECKPOINT_PENDING")
     end
 
     def complete_checkpoint?
       show_checkpoint?
+    end
+
+    def show_selector?
+      status_allowed?("SELECTOR_PENDING")
     end
 
     def show_dashboard?

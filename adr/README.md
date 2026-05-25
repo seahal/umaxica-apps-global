@@ -34,10 +34,15 @@ Current hierarchy / collective decisions:
 Current request-context decisions:
 
 - `adr/actor-current-facade.md`
+- `adr/signed-return-targets-only.md`
 
 Current logging / observability decisions:
 
 - `adr/application-logging-boundary.md`
+
+Current localization decisions:
+
+- `adr/i18n-explicit-translation-keys.md`
 
 Current controller-boundary decisions:
 
@@ -51,6 +56,7 @@ Current sign configuration decisions:
 - `adr/finite-nonnegative-rate-limit-counts.md`
 - `adr/sign-up-authentication-handoff-and-social-rt.md`
 - `adr/sign-up-checkpoint-turnstile-boundary.md`
+- `adr/sign-up-cycle-cancellation-retention.md`
 - `adr/turnstile-visible-placement-policy.md`
 - `adr/sign-withdrawal-and-membership-surface-policy.md`
 - `adr/mfa-reset-account-recovery.md`
@@ -73,6 +79,11 @@ Current tooling / code-quality decisions:
 Current outbound delivery decisions:
 
 - `adr/outbound-message-delivery-interface.md`
+
+Current retention / deletion decisions:
+
+- `adr/retainable-concern-and-retention-purge.md`
+- `adr/retention-lifecycle-column-boundary.md`
 
 Current repository / application boundary decisions:
 

@@ -4,7 +4,9 @@
 module Apex
   module Org
     class PrivateController < ApplicationController
-      auth_required!
+      AUTHENTICATION_MODE = :private
+
+      declare_authentication_mode! :private
     end
   end
 end

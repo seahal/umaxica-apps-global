@@ -596,7 +596,6 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "redirects to encoded URL after successful registration when rt parameter is provided" do
     email = "redirect_test_#{SecureRandom.hex(4)}@example.com"
     redirect_url = "/dashboard"
-    encoded_rt = Base64.urlsafe_encode64(redirect_url)
 
     # Create registration record with rt parameter
     post sign_app_up_email_url(ri: "jp"),
@@ -606,13 +605,15 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
              confirm_policy: "1",
            },
            "cf-turnstile-response": "test",
-           rt: encoded_rt,
+           rt: redirect_url,
          },
          headers: default_headers
 
     # Verify rt parameter is preserved in redirect
     assert_response :redirect
-    assert_includes response.location, "rt=#{CGI.escape(encoded_rt)}"
+    signed_rt = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("rt")
+
+    assert_match(/--/, signed_rt)
 
     # Extract email ID from redirect location
     assert_response :redirect, "Expected redirect but got #{response.status}: #{response.body[0..500]}"
@@ -630,12 +631,12 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
             user_email: {
               pass_code: correct_code,
             },
-            rt: encoded_rt,
+            rt: signed_rt,
           },
           headers: default_headers
 
     # Should redirect directly to the decoded rt destination
-    assert_redirected_to sign_app_up_guardrail_path(ri: "jp", rt: encoded_rt)
+    assert_redirected_to sign_app_up_guardrail_path(ri: "jp", rt: signed_rt)
   end
 
   # Transaction Tests for Client Creation
@@ -887,13 +888,18 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_select "input[type=date][name=birthdate]"
 
+    cycle = current_sign_up_cycle(user_email)
+
     patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
-          params: { requirement: "birthdate", birthdate: "2000-01-01" },
+          params: {
+            requirement: "birthdate",
+            birthdate: "2000-01-01",
+            checkpoint_version: cycle.checkpoint_version,
+          },
           headers: default_headers
 
     assert_response :redirect
 
-    cycle = current_sign_up_cycle(user_email)
     user = user_email.reload.user
 
     assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.reload.status_id
@@ -1079,6 +1085,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
+            checkpoint_version: cycle.checkpoint_version,
           },
           headers: default_headers
 

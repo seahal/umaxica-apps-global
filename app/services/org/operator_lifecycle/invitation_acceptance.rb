@@ -74,7 +74,21 @@ module Org
           )
         end
 
-        create_operator_account!(operator)
+        # The OrgPrincipalRecord transaction above is already committed by
+        # the time rp_account creation runs (different DB connection). If
+        # the rp_account write fails, the outer OrganizationInvitation
+        # transaction will roll back without consuming the invitation, but
+        # the operator/email rows we just committed would survive as
+        # orphans and block subsequent retries via the email UNIQUE index.
+        # Run an explicit compensating delete so the invitation stays in a
+        # clean state for retry.
+        begin
+          create_operator_account!(operator)
+        rescue StandardError
+          compensate_operator_creation!(operator)
+          raise
+        end
+
         [operator, email]
       end
 
@@ -82,6 +96,26 @@ module Org
         OrgRpRecord.transaction do
           operator.create_rp_account! unless operator.rp_account
         end
+      end
+
+      def compensate_operator_creation!(operator)
+        return unless operator&.persisted?
+
+        OrgPrincipalRecord.transaction do
+          Operator.where(id: operator.id).find_each(&:destroy!)
+        end
+      rescue StandardError => e
+        Rails.logger.error(
+          LogEvent.format(
+            "org.operator_lifecycle.invitation_acceptance.compensation_failed",
+            operator_id: operator&.id,
+            error_class: e.class.name,
+            error_message: e.message,
+          ),
+        )
+        # Best-effort: re-raise the original rp_account failure even if
+        # compensation itself fails. The orphan is preferable to swallowing
+        # the underlying error.
       end
 
       def failure(invitation: nil, error:)

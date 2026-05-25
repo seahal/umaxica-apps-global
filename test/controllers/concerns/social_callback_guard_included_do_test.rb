@@ -167,15 +167,22 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
                  harness.redirects.last
   end
 
-  test "callback state parse errors and omniauth test mode mocks" do
+  test "callback state resolution errors clear session and raise" do
     harness = GuardHarness.new
+    harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = "state"
     harness.define_singleton_method(:load_callback_state_data) { |_| raise JSON::ParserError }
 
-    assert_equal [false, "state_parse_error"], harness.send(:valid_callback_state?, "apple")
+    assert_raises(JSON::ParserError) do
+      harness.send(:valid_callback_state?, "apple")
+    end
+    assert_empty harness.session_hash
+  end
+
+  test "callback state accepts omniauth test mode mocks" do
+    harness = GuardHarness.new
 
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:apple] = OpenStruct.new(provider: "apple")
-    harness = GuardHarness.new
     harness.params_hash[:provider] = "apple"
 
     assert harness.send(:test_mode_mock_auth_present?)

@@ -6,7 +6,9 @@ module Apex
     module Web
       module V0
         class CookiesController < OpenController
-          public_strict!
+          AUTHENTICATION_MODE = :open
+
+          declare_authentication_mode! :open
           include ::Preference::WebCookieEndpoint
           include ::Preference::WebCookieActions
 

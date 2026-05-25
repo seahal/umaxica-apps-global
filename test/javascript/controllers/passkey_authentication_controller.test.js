@@ -36,7 +36,8 @@ describe("PasskeyAuthenticationController", () => {
     controller.verificationUrlValue = "/sign/in/passkeys/verification";
     controller.identifierParamValue = "email";
     controller.turnstileSiteKeyValue = "sitekey123";
-    controller.turnstileErrorMessageValue = "Security verification failed. Please refresh and try again.";
+    controller.turnstileErrorMessageValue =
+      "Security verification failed. Please refresh and try again.";
 
     vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
     vi.stubGlobal("navigator", { credentials: { get: vi.fn() } });
@@ -159,12 +160,19 @@ describe("PasskeyAuthenticationController", () => {
     controller.identifierTarget.value = "test@example.com";
     controller.turnstileResponseTarget.value = "turnstile-token";
 
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
-    const verificationResponse = { ok: true, json: () => Promise.resolve({ status: "ok", redirect_url: "/dashboard" }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    const verificationResponse = {
+      ok: true,
+      json: () => Promise.resolve({ status: "ok", redirect_url: "/dashboard" }),
+    };
 
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(optionsResponse)
-      .mockResolvedValueOnce(verificationResponse));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
 
     const mockCredential = {
       id: "cred-id",
@@ -190,12 +198,19 @@ describe("PasskeyAuthenticationController", () => {
     controller.identifierTarget.value = "test@example.com";
     controller.turnstileResponseTarget.value = "turnstile-token";
 
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
-    const verificationResponse = { ok: true, json: () => Promise.resolve({ status: "totp_required", redirect_url: "/totp" }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    const verificationResponse = {
+      ok: true,
+      json: () => Promise.resolve({ status: "totp_required", redirect_url: "/totp" }),
+    };
 
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(optionsResponse)
-      .mockResolvedValueOnce(verificationResponse));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
 
     const mockCredential = {
       id: "cred-id",
@@ -241,7 +256,10 @@ describe("PasskeyAuthenticationController", () => {
     controller.turnstileResponseTarget.value = "turnstile-token";
 
     const reloadMock = vi.fn();
-    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost", reload: reloadMock } });
+    vi.stubGlobal("window", {
+      PublicKeyCredential: true,
+      location: { hostname: "localhost", reload: reloadMock },
+    });
 
     const optionsResponse = {
       ok: false,
@@ -261,7 +279,10 @@ describe("PasskeyAuthenticationController", () => {
     controller.identifierTarget.value = "test@example.com";
     controller.turnstileResponseTarget.value = "turnstile-token";
 
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     const verificationResponse = {
       ok: false,
       status: 400,
@@ -269,9 +290,10 @@ describe("PasskeyAuthenticationController", () => {
       json: () => Promise.resolve({ error: "Verification failed" }),
     };
 
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(optionsResponse)
-      .mockResolvedValueOnce(verificationResponse));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
 
     const mockCredential = {
       id: "cred-id",
@@ -297,7 +319,10 @@ describe("PasskeyAuthenticationController", () => {
     controller.identifierTarget.value = "test@example.com";
     controller.turnstileResponseTarget.value = "turnstile-token";
 
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
 
     const error = new Error("Cancelled");
@@ -314,7 +339,10 @@ describe("PasskeyAuthenticationController", () => {
     controller.identifierTarget.value = "test@example.com";
     controller.turnstileResponseTarget.value = "turnstile-token";
 
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
 
     const error = new Error("Security issue");
@@ -331,12 +359,16 @@ describe("PasskeyAuthenticationController", () => {
     controller.identifierTarget.value = "test@example.com";
     controller.turnstileResponseTarget.value = "turnstile-token";
 
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     const verificationResponse = { ok: true, json: () => Promise.resolve({ status: "unknown" }) };
 
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(optionsResponse)
-      .mockResolvedValueOnce(verificationResponse));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
 
     const mockCredential = {
       id: "cred-id",
@@ -375,17 +407,16 @@ describe("PasskeyAuthenticationController", () => {
     };
     vi.stubGlobal("document", {
       querySelector: vi.fn(() => null),
-      createElement: vi.fn(() => script),
+      createElement: vi.fn((tag) => (tag === "script" ? script : { style: {} })),
       head: { appendChild: vi.fn() },
     });
 
+    const promise = controller.ensureTurnstileToken();
     window.turnstile = {
-      render: vi.fn((container, options) => {
+      render: vi.fn((_container, options) => {
         options.callback("new-token");
       }),
     };
-
-    const promise = controller.ensureTurnstileToken();
     script.onload();
     const result = await promise;
     expect(result).toBe("new-token");
@@ -393,7 +424,11 @@ describe("PasskeyAuthenticationController", () => {
   });
 
   test("ensureTurnstileScriptLoaded: 既に window.turnstile があるときすぐ解決する", async () => {
-    vi.stubGlobal("window", { PublicKeyCredential: true, turnstile: true, location: { hostname: "localhost" } });
+    vi.stubGlobal("window", {
+      PublicKeyCredential: true,
+      turnstile: true,
+      location: { hostname: "localhost" },
+    });
     await expect(controller.ensureTurnstileScriptLoaded()).resolves.toBeUndefined();
   });
 
@@ -407,7 +442,9 @@ describe("PasskeyAuthenticationController", () => {
     });
 
     const promise = controller.ensureTurnstileScriptLoaded();
-    const loadCallback = existingScript.addEventListener.mock.calls.find(([event]) => event === "load")[1];
+    const [, loadCallback] = existingScript.addEventListener.mock.calls.find(
+      ([event]) => event === "load",
+    );
     loadCallback();
     await expect(promise).resolves.toBeUndefined();
   });
@@ -459,7 +496,7 @@ describe("PasskeyAuthenticationController", () => {
       createElement: vi.fn(() => ({ style: {}, appendChild: vi.fn() })),
     });
     window.turnstile = {
-      render: vi.fn((container, options) => {
+      render: vi.fn((_container, options) => {
         options["error-callback"]();
       }),
     };
@@ -472,7 +509,7 @@ describe("PasskeyAuthenticationController", () => {
       createElement: vi.fn(() => ({ style: {}, appendChild: vi.fn() })),
     });
     window.turnstile = {
-      render: vi.fn((container, options) => {
+      render: vi.fn((_container, options) => {
         options["expired-callback"]();
       }),
     };

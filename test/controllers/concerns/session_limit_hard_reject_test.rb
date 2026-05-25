@@ -9,7 +9,7 @@ class SessionLimitHardRejectTest < ActionDispatch::IntegrationTest
   class TestController < ApplicationController
     include Authentication::Client
 
-    public_strict!
+    declare_authentication_mode! :open
 
     def create
       user = Client.find(params[:user_id])

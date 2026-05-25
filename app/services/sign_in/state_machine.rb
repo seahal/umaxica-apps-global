@@ -11,14 +11,14 @@ module SignIn
       invalid_request: :bad_request,
     }.freeze
 
-    SESSION_ISSUED_TRANSITIONS = {
+    PRIMARY_VERIFIED_TRANSITIONS = {
       checkpoint: ["CHECKPOINT_PENDING", "checkpoint"],
-      dashboard: ["DASHBOARD_PENDING", "dashboard"],
+      selector: ["SELECTOR_PENDING", "selector"],
     }.freeze
 
     def self.after_session_issued(checkpoint_required:)
-      participant = checkpoint_required ? :checkpoint : :dashboard
-      state, participant_name = SESSION_ISSUED_TRANSITIONS.fetch(participant)
+      participant = checkpoint_required ? :checkpoint : :selector
+      state, participant_name = PRIMARY_VERIFIED_TRANSITIONS.fetch(participant)
 
       { state: state, participant: participant_name }
     end

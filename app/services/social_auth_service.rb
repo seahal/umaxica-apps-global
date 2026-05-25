@@ -151,7 +151,7 @@ class SocialAuthService
       identity_class: identity_class,
       provider: provider,
       uid: uid,
-      sign_up_entry: @sign_up_entry,
+      sign_up_entry: @sign_up_entry || @intent == "login",
     )
   end
 

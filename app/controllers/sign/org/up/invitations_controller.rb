@@ -5,6 +5,8 @@ module Sign
   module Org
     module Up
       class InvitationsController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include CloudflareTurnstile
 
         def new

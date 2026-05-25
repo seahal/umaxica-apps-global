@@ -17,6 +17,8 @@ module Sign
       # planned for a future phase. Currently, email is required to look up
       # the user's registered passkeys.
       class PasskeysController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include Sign::Webauthn
         include Sign::PasskeyAuthentication
         include Sign::PasskeyAuthenticationHelpers

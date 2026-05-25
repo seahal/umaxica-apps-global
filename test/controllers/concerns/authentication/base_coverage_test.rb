@@ -28,7 +28,7 @@ class AuthenticationBaseTestController < ApplicationController
          :set_pending_mfa!, :pending_mfa, :pending_mfa_valid?, :clear_pending_mfa!,
          :session_limit_gate_return_to, :session_limit_gate_flow, :build_auth_preference_snapshot,
          :reissue_access_token!, :log_in, :populate_current_attributes!,
-         :safe_path_from_encoded_rt, :safe_encoded_rt
+         :return_path_from_signed_rt, :safe_encoded_rt, :issue_dbsc_challenge_for!
 
   def index; render plain: "ok"; end
 end
@@ -130,7 +130,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_equal @user, @controller.current_resource
     assert_equal "actor-session", @controller.current_session_public_id
-    assert @controller.current_session_restricted?
+    assert_predicate @controller, :current_session_restricted?
   ensure
     Actor.reset
   end
@@ -139,11 +139,12 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:cookie_deletion_options) { {} }
     @controller.define_singleton_method(:clear_dbsc_cookie!) { nil }
     @controller.define_singleton_method(:clear_device_id_cookie!) { nil }
-    cookie_store = Class.new(Hash) do
-      def delete(key, _options = nil)
-        super(key)
+    cookie_store =
+      Class.new(Hash) do
+        def delete(key, _options = nil)
+          super(key)
+        end
       end
-    end
     @controller.define_singleton_method(:cookies) { @cookies ||= cookie_store.new }
     @controller.cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "access"
     @controller.cookies[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh"
@@ -400,6 +401,47 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal (now + 30.minutes).to_i, @controller.refresh_cookie_expires_at_for(token).to_i
     assert_equal 60, @controller.expires_in_for(now + 60.seconds, now: now)
     assert_equal 0, @controller.expires_in_for(now - 1.second, now: now)
+  end
+
+  test "session management path raises route helper errors" do
+    @controller.define_singleton_method(:sign_app_in_session_path) do
+      raise StandardError, "route missing"
+    end
+
+    error = assert_raises(StandardError) do
+      @controller.session_management_path
+    end
+
+    assert_equal "route missing", error.message
+  end
+
+  test "session limit gate flow raises resource type errors" do
+    original_respond_to = @controller.method(:respond_to?)
+    @controller.define_singleton_method(:respond_to?) do |name, include_private = false|
+      name == :controller_path ? false : original_respond_to.call(name, include_private)
+    end
+    @controller.define_singleton_method(:resource_type) do
+      raise StandardError, "resource type missing"
+    end
+
+    error = assert_raises(StandardError) do
+      @controller.session_limit_gate_flow
+    end
+
+    assert_equal "resource type missing", error.message
+  end
+
+  test "issue_dbsc_challenge_for raises persistence errors" do
+    token = Object.new
+    token.define_singleton_method(:update!) do |**|
+      raise StandardError, "db write failed"
+    end
+
+    error = assert_raises(StandardError) do
+      @controller.issue_dbsc_challenge_for!(token)
+    end
+
+    assert_equal "db write failed", error.message
   end
 
   test "mfa and base64 helpers" do
@@ -924,63 +966,62 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   # ---------------------------------------------------------------
-  # safe_path_from_encoded_rt regression coverage (S-7)
+  # return_path_from_signed_rt regression coverage (S-7)
   # ---------------------------------------------------------------
   # The `rt` parameter must be a signed return-target token. Base64
   # encoding alone is not accepted as redirect authority.
 
-  test "safe_path_from_encoded_rt accepts a signed internal non-welcome path" do
+  test "return_path_from_signed_rt accepts a signed internal non-welcome path" do
     encoded = @controller.safe_encoded_rt("/configuration?x=1")
 
     assert_equal "/configuration?x=1",
-                 @controller.safe_path_from_encoded_rt(encoded, fallback: "/")
+                 @controller.return_path_from_signed_rt(encoded)
   end
 
-  test "safe_path_from_encoded_rt rejects welcome return targets after URI normalization" do
+  test "return_path_from_signed_rt rejects welcome return targets after URI normalization" do
     @request.host = "id.umaxica.app"
     encoded_internal = @controller.safe_encoded_rt("/welcome?ri=jp")
     encoded_absolute = @controller.safe_encoded_rt("https://id.umaxica.app/welcome?ri=jp")
 
-    assert_equal "/dashboard",
-                 @controller.safe_path_from_encoded_rt(encoded_internal, fallback: "/dashboard")
-    assert_equal "/dashboard",
-                 @controller.safe_path_from_encoded_rt(encoded_absolute, fallback: "/dashboard")
-    assert_equal "/dashboard",
-                 @controller.safe_path_from_encoded_rt("/welcome?ri=jp", fallback: "/dashboard")
+    assert_nil @controller.return_path_from_signed_rt(encoded_internal)
+    assert_nil @controller.return_path_from_signed_rt(encoded_absolute)
+    assert_nil @controller.return_path_from_signed_rt("/welcome?ri=jp")
     assert_equal "/dashboard?ri=jp",
-                 @controller.safe_path_from_encoded_rt(@controller.safe_encoded_rt("/dashboard?ri=jp"), fallback: "/")
+                 @controller.return_path_from_signed_rt(@controller.safe_encoded_rt("/dashboard?ri=jp"))
   end
 
-  test "safe_path_from_encoded_rt rejects an unencoded external URL and falls back" do
+  test "return_path_from_signed_rt rejects an unencoded external URL" do
     raw_external = "https://evil.example.test/pwn"
 
-    assert_equal "/",
-                 @controller.safe_path_from_encoded_rt(raw_external, fallback: "/")
+    assert_nil @controller.return_path_from_signed_rt(raw_external)
   end
 
-  test "safe_path_from_encoded_rt rejects a tampered signed token" do
+  test "return_path_from_signed_rt rejects a tampered signed token" do
     encoded_external = @controller.safe_encoded_rt("/configuration?x=1")
     tampered = encoded_external.sub(/.\z/, encoded_external.end_with?("A") ? "B" : "A")
 
-    assert_equal "/",
-                 @controller.safe_path_from_encoded_rt(tampered, fallback: "/")
+    assert_nil @controller.return_path_from_signed_rt(tampered)
   end
 
-  test "safe_path_from_encoded_rt rejects malformed input" do
+  test "return_path_from_signed_rt rejects malformed input" do
     encoded_bad = "!!!not-a-token!!!"
 
-    assert_equal "/",
-                 @controller.safe_path_from_encoded_rt(encoded_bad, fallback: "/")
+    assert_nil @controller.return_path_from_signed_rt(encoded_bad)
   end
 
-  test "safe_path_from_encoded_rt returns fallback for blank rt" do
-    assert_equal "/", @controller.safe_path_from_encoded_rt(nil, fallback: "/")
-    assert_equal "/", @controller.safe_path_from_encoded_rt("", fallback: "/")
+  test "return_path_from_signed_rt returns nil for blank rt" do
+    assert_nil @controller.return_path_from_signed_rt(nil)
+    assert_nil @controller.return_path_from_signed_rt("")
   end
 
-  test "safe_path_from_encoded_rt returns fallback for malformed token" do
-    assert_equal "/",
-                 @controller.safe_path_from_encoded_rt("not-a-token", fallback: "/")
+  test "return_path_from_signed_rt returns nil for malformed token" do
+    assert_nil @controller.return_path_from_signed_rt("not-a-token")
+  end
+
+  test "return_path_from_signed_rt rejects legacy base64 return targets" do
+    legacy = Base64.urlsafe_encode64("/configuration?x=1")
+
+    assert_nil @controller.return_path_from_signed_rt(legacy)
   end
 
   test "safe_encoded_rt returns signed values and refuses unsafe destinations" do
@@ -989,8 +1030,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal safe_encoded, @controller.safe_encoded_rt(safe_encoded)
     assert_nil @controller.safe_encoded_rt("/welcome?x=1")
     assert_equal "/dashboard?x=1",
-                 @controller.safe_path_from_encoded_rt(@controller.safe_encoded_rt("/dashboard?x=1"), fallback: "/")
+                 @controller.return_path_from_signed_rt(@controller.safe_encoded_rt("/dashboard?x=1"))
     assert_nil @controller.safe_encoded_rt("https://evil.example.test")
+    assert_nil @controller.safe_encoded_rt(Base64.urlsafe_encode64("/configuration"))
     assert_nil @controller.safe_encoded_rt("not-base64-and-not-internal")
     assert_nil @controller.safe_encoded_rt(nil)
   end

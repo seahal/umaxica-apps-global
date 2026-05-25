@@ -5,7 +5,9 @@ module Sign
   module Org
     module Up
       class GuestController < Sign::Org::GuestController
-        guest_only! status: :unauthorized,
+        AUTHENTICATION_MODE = :guest
+
+        declare_authentication_mode! :guest, status: :unauthorized,
                     message: I18n.t("sign.org.registration.email.already_logged_in"),
                     no_redirect: true
       end

@@ -175,6 +175,10 @@ class JwtAnomalySubscriberTest < ActiveSupport::TestCase
       end
     end
 
-    assert_includes logged_message, "JwtAnomalySubscriber failed"
+    payload = JSON.parse(logged_message)
+
+    assert_equal "jwt.anomaly.subscriber_failed", payload.fetch("event")
+    assert_equal "StandardError", payload.dig("data", "error_class")
+    assert_equal "explode", payload.dig("data", "message")
   end
 end

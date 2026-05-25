@@ -2,6 +2,8 @@
 # frozen_string_literal: true
 
 class Sign::Org::Preference::Region::TimesController < Sign::Org::PreferencesBaseController
+  AUTHENTICATION_MODE = :open
+
   include ::Preference::SignScreenActions
 
   before_action :ensure_preferences_record

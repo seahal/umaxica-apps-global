@@ -59,4 +59,31 @@ class Sign::In::OtpResendPolicyTest < ActiveSupport::TestCase
       assert_equal 0, result.n5m
     end
   end
+
+  test "issue exactly five minutes ago still counts in cooldown window" do
+    policy = Sign::In::OtpResendPolicy.new(base_seconds: 30, cap_seconds: 15.minutes.to_i)
+
+    travel_to Time.zone.parse("2026-02-12 10:00:00") do
+      result = policy.evaluate(issued_timestamps: [5.minutes.ago])
+
+      assert result.resendable
+      assert_equal 1, result.n5m
+      assert_equal 30, result.cooldown
+      assert_equal 0, result.retry_after
+    end
+  end
+
+  test "resend is blocked just before cooldown and allowed exactly when it elapses" do
+    policy = Sign::In::OtpResendPolicy.new(base_seconds: 30, cap_seconds: 15.minutes.to_i)
+
+    travel_to Time.zone.parse("2026-02-12 10:00:00") do
+      blocked = policy.evaluate(issued_timestamps: [29.seconds.ago])
+      allowed = policy.evaluate(issued_timestamps: [30.seconds.ago])
+
+      assert_not blocked.resendable
+      assert_equal 1, blocked.retry_after
+      assert allowed.resendable
+      assert_equal 0, allowed.retry_after
+    end
+  end
 end

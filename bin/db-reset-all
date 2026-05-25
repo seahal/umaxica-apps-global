@@ -26,6 +26,8 @@ reset_env() {
   local env="$1"
   echo "==> RAILS_ENV=$env db:drop db:create db:schema:load"
   RAILS_ENV="$env" bin/rails db:drop db:create db:schema:load
+  echo "==> RAILS_ENV=$env db:mark_schema_migrations"
+  RAILS_ENV="$env" bin/rails db:mark_schema_migrations
   if [ "$env" = "development" ]; then
     echo "==> RAILS_ENV=$env db:seed"
     RAILS_ENV="$env" bin/rails db:seed

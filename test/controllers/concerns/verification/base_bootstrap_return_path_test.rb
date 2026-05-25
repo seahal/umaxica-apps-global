@@ -62,7 +62,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
   end
 
   test "accepts a signed token whose surface and session match" do
-    token = ReturnTargetToken.issue(
+    token = signed_return_target(
       return_to: "/configuration/passkeys/123",
       flow: "step_up.bootstrap",
       surface: "app",
@@ -76,7 +76,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
   end
 
   test "rejects a signed token whose surface does not match the harness class" do
-    token = ReturnTargetToken.issue(
+    token = signed_return_target(
       return_to: "/configuration/passkeys/123",
       flow: "step_up.bootstrap",
       surface: "com",
@@ -90,7 +90,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
   end
 
   test "rejects a signed token whose session nonce does not match" do
-    token = ReturnTargetToken.issue(
+    token = signed_return_target(
       return_to: "/configuration/passkeys/123",
       flow: "step_up.bootstrap",
       surface: "app",
@@ -130,7 +130,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
   end
 
   test "infers surface = com from the harness class name" do
-    token = ReturnTargetToken.issue(
+    token = signed_return_target(
       return_to: "/configuration/passkeys/com-route",
       flow: "step_up.bootstrap",
       surface: "com",
@@ -144,7 +144,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
   end
 
   test "infers surface = org from the harness class name" do
-    token = ReturnTargetToken.issue(
+    token = signed_return_target(
       return_to: "/configuration/passkeys/org-route",
       flow: "step_up.bootstrap",
       surface: "org",
@@ -158,7 +158,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
   end
 
   test "expired signed token returns default" do
-    token = ReturnTargetToken.issue(
+    token = signed_return_target(
       return_to: "/configuration/passkeys/123",
       flow: "step_up.bootstrap",
       surface: "app",
@@ -172,5 +172,34 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
     travel 5.seconds do
       assert_equal "/default", h.send(:bootstrap_return_path, "/default")
     end
+  end
+
+  private
+
+  def signed_return_target(return_to:, flow:, surface:, session_nonce:, expires_in: 15.minutes)
+    return_target_token_harness.issue(
+      return_to: return_to,
+      flow: flow,
+      surface: surface,
+      session_nonce: session_nonce,
+      expires_in: expires_in,
+    )
+  end
+
+  def return_target_token_harness
+    @return_target_token_harness ||= Class.new do
+      include ReturnTargets::SignedTokenSupport
+
+      def issue(return_to:, flow:, surface:, session_nonce:, expires_in:)
+        path = signed_target_internal_path(return_to)
+        claims = signed_target_claims(flow: flow, surface: surface, session_nonce: session_nonce)
+        issue_signed_target_token(
+          payload: claims.merge("return_to" => path),
+          purpose: :return_target,
+          salt: "return_target_token",
+          expires_in: expires_in,
+        )
+      end
+    end.new
   end
 end

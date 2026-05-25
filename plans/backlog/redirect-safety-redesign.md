@@ -14,8 +14,8 @@ Current redirect behavior is split across controller concerns and endpoint contr
 - Jump redirects use `JUMP_ALLOWED_HOSTS` and then call `redirect_to(..., allow_other_host: true)`.
 - Several SSO/OIDC controllers allow cross-host redirects after constructing provider URLs.
 
-This makes it hard to audit which redirects are same-host, same-surface, provider-owned,
-or externally allowlisted.
+This makes it hard to audit which redirects are same-host, same-surface, provider-owned, or
+externally allowlisted.
 
 ## Proposed Direction
 
@@ -28,8 +28,8 @@ or externally allowlisted.
    - rejected target with reason
 2. Route every `allow_other_host: true` call through that service or through a small wrapper that
    accepts only a typed approved target.
-3. Replace raw ENV parsing in jump redirectors with a normalized host registry that supports
-   default ports, explicit non-default ports, and exact host matching only.
+3. Replace raw ENV parsing in jump redirectors with a normalized host registry that supports default
+   ports, explicit non-default ports, and exact host matching only.
 4. Keep signed return-target tokens for authentication and step-up continuation. Do not replace
    signed internal continuation with ad-hoc params.
 5. Add invariant tests that fail on new `allow_other_host: true` unless the call site is allowlisted

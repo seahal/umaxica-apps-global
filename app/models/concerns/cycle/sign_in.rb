@@ -35,6 +35,13 @@ module Cycle
       cycle_status?(status_id_for("CHECKPOINT_PENDING"))
     end
 
+    def sign_in_selector_pending?
+      cycle_status?(status_id_for("SELECTOR_PENDING"))
+    end
+
+    # Legacy compatibility states from the former post-issuance flow. New
+    # sign-in cycles issue the active session only after selector and complete
+    # from SESSION_ISSUANCE_PENDING.
     def sign_in_dashboard_pending?
       cycle_status?(status_id_for("DASHBOARD_PENDING"))
     end
@@ -77,7 +84,7 @@ module Cycle
       transition_sign_in_to!(
         "SESSION_ISSUANCE_PENDING",
         step: "session_issuance",
-        allowed_from: ["GUARDRAIL_PENDING"],
+        allowed_from: ["SELECTOR_PENDING"],
         now: now,
       )
     end
@@ -86,20 +93,26 @@ module Cycle
       transition_sign_in_to!(
         "CHECKPOINT_PENDING",
         step: "checkpoint",
-        allowed_from: ["SESSION_ISSUANCE_PENDING"],
+        allowed_from: ["GUARDRAIL_PENDING"],
         now: now,
       )
     end
 
-    def advance_sign_in_to_dashboard!(now: Time.current)
+    def advance_sign_in_to_selector!(now: Time.current)
       transition_sign_in_to!(
-        "DASHBOARD_PENDING",
-        step: "dashboard",
+        "SELECTOR_PENDING",
+        step: "selector",
         allowed_from: ["CHECKPOINT_PENDING"],
         now: now,
       )
     end
 
+    def advance_sign_in_to_dashboard!(now: Time.current)
+      complete_sign_in!(step: "dashboard", now: now)
+    end
+
+    # Legacy transition retained for pre-selector cycles and tests that still
+    # exercise the old dashboard/return participant chain.
     def advance_sign_in_to_return!(now: Time.current)
       transition_sign_in_to!(
         "RETURN_PENDING",
@@ -115,7 +128,7 @@ module Cycle
 
       transition_cycle_to!(
         status_id_for("COMPLETED"),
-        allowed_from: status_ids_for("RETURN_PENDING"),
+        allowed_from: status_ids_for("SESSION_ISSUANCE_PENDING", "DASHBOARD_PENDING", "RETURN_PENDING"),
         changes: changes,
         now: now,
       )
@@ -132,6 +145,7 @@ module Cycle
           GUARDRAIL_PENDING
           SESSION_ISSUANCE_PENDING
           CHECKPOINT_PENDING
+          SELECTOR_PENDING
           DASHBOARD_PENDING
           RETURN_PENDING
         ),
@@ -186,6 +200,7 @@ module Cycle
         status_id_for("GUARDRAIL_PENDING") => "guardrail",
         status_id_for("SESSION_ISSUANCE_PENDING") => "session_issuance",
         status_id_for("CHECKPOINT_PENDING") => "checkpoint",
+        status_id_for("SELECTOR_PENDING") => "selector",
         status_id_for("DASHBOARD_PENDING") => "dashboard",
         status_id_for("RETURN_PENDING") => "return_to",
         status_id_for("COMPLETED") => "completed",

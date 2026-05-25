@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "base64"
 
 class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_identity_statuses, :operator_emails, :operator_email_statuses,
@@ -67,9 +66,14 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
 
   test "should redirect show when not logged in" do
     get sign_org_configuration_google_url(ri: "jp")
-    rt = Base64.urlsafe_encode64(sign_org_configuration_google_url(ri: "jp"))
 
-    assert_redirected_to new_sign_org_in_url(rt: rt, host: @host)
+    assert_response :redirect
+    uri = URI.parse(response.location)
+    query = Rack::Utils.parse_nested_query(uri.query)
+
+    assert_equal "/sign/in/new", uri.path
+    assert_equal "jp", query["ri"]
+    assert_predicate query["rt"], :present?
   end
 
   private

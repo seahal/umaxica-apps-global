@@ -5,6 +5,8 @@ module Sign
   module Org
     module Up
       class BaseController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include ::RateLimit
         include ActionPolicy::Controller
         # Note: Authentication::Operator is NOT included here for unauthenticated sign-up
@@ -36,8 +38,6 @@ module Sign
 
         def after_login_path
           sign_org_configuration_path
-        rescue StandardError
-          "/"
         end
       end
     end

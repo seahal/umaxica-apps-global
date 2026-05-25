@@ -5,6 +5,8 @@ module Sign
   module App
     module Preference
       class EmailsController < Sign::App::BareController
+        AUTHENTICATION_MODE = :bare
+
         include Sign::PromotionalEmailUnsubscribeActions
 
         private

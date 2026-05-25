@@ -6,6 +6,8 @@ module Sign
     module In
       module Challenge
         class TotpsController < Sign::App::In::GuestController
+          AUTHENTICATION_MODE = :guest
+
           include SessionLimitGate
           include ::CloudflareTurnstile
 

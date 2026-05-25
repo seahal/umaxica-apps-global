@@ -138,7 +138,7 @@ module Authentication
       assert_equal "Client", payload.fetch(:resource_type)
       assert_equal @user.public_id, payload.fetch(:resource_id)
       assert_predicate payload.fetch(:ip_address_digest), :present?
-      assert_not_includes notification.second.keys, :error_message
+      assert_not_includes notification[:data].keys, :error_message
     end
 
     test "write does not raise exception on failure" do

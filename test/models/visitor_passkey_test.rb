@@ -8,8 +8,10 @@
 #
 #  id           :bigint           not null, primary key
 #  description  :string           default(""), not null
+#  discarded_at :datetime         default(Infinity), not null
 #  last_used_at :datetime
 #  public_key   :text             not null
+#  purged_at    :datetime         default(Infinity), not null
 #  sign_count   :bigint           default(0), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -21,10 +23,12 @@
 #
 # Indexes
 #
-#  index_visitor_passkeys_on_public_id    (public_id) UNIQUE
-#  index_visitor_passkeys_on_status_id    (status_id)
-#  index_visitor_passkeys_on_visitor_id   (visitor_id)
-#  index_visitor_passkeys_on_webauthn_id  (webauthn_id) UNIQUE
+#  index_visitor_passkeys_on_discarded_at  (discarded_at)
+#  index_visitor_passkeys_on_public_id     (public_id) UNIQUE
+#  index_visitor_passkeys_on_purged_at     (purged_at)
+#  index_visitor_passkeys_on_status_id     (status_id)
+#  index_visitor_passkeys_on_visitor_id    (visitor_id)
+#  index_visitor_passkeys_on_webauthn_id   (webauthn_id) UNIQUE
 #
 # Foreign Keys
 #

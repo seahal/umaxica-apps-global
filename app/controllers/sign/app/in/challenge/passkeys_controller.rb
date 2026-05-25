@@ -8,6 +8,8 @@ module Sign
     module In
       module Challenge
         class PasskeysController < Sign::App::In::GuestController
+          AUTHENTICATION_MODE = :guest
+
           include Sign::Webauthn
           include SessionLimitGate
           include ::CloudflareTurnstile

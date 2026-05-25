@@ -6,7 +6,9 @@ module Apex
     module Web
       module V0
         class ThemesController < OpenController
-          public_strict!
+          AUTHENTICATION_MODE = :open
+
+          declare_authentication_mode! :open
           include ::Preference::WebThemeEndpoint
           include ::Preference::WebThemeActions
 

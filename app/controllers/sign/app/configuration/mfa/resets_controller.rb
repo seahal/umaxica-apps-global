@@ -6,6 +6,8 @@ module Sign
     module Configuration
       module Mfa
         class ResetsController < PrivateController
+          AUTHENTICATION_MODE = :private
+
           before_action :authenticate_client!
 
           def show

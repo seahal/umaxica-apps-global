@@ -8,12 +8,15 @@ class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
 
   setup do
     ClientStatus.ensure_defaults!
+    ClientMultiFactor.ensure_defaults!
+    ClientMultiFactorStatus.ensure_defaults!
+    ClientVisibility.ensure_defaults!
     ClientSignUpCycleStatus.ensure_defaults!
     ClientSocialGoogleStatus.ensure_defaults!
     ClientSocialAppleStatus.ensure_defaults!
   end
 
-  test "cancels google sign up and removes pending identity and actor" do
+  test "cancels google sign up and schedules pending identity and actor retention" do
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
     identity = ClientSocialGoogle.create!(
       user: user,
@@ -29,11 +32,15 @@ class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
 
     assert_predicate result, :success?
     assert_equal ClientSignUpCycleStatus::CANCELLED, cycle.reload.status_id
-    assert_not Client.exists?(user.id)
-    assert_not ClientSocialGoogle.exists?(identity.id)
+    assert Client.exists?(user.id)
+    assert ClientSocialGoogle.exists?(identity.id)
+    assert_not user.reload.accessible?
+    assert_equal ClientSocialGoogleStatus::DELETED, identity.reload.status_id
+    assert_not_infinite_time identity.discarded_at
+    assert_operator identity.purged_at, :>, identity.discarded_at
   end
 
-  test "cancels apple sign up and removes pending identity and actor" do
+  test "cancels apple sign up and schedules pending identity and actor retention" do
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
     identity = ClientSocialApple.create!(
       user: user,
@@ -49,8 +56,12 @@ class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
 
     assert_predicate result, :success?
     assert_equal ClientSignUpCycleStatus::CANCELLED, cycle.reload.status_id
-    assert_not Client.exists?(user.id)
-    assert_not ClientSocialApple.exists?(identity.id)
+    assert Client.exists?(user.id)
+    assert ClientSocialApple.exists?(identity.id)
+    assert_not user.reload.accessible?
+    assert_equal ClientSocialAppleStatus::DELETED, identity.reload.status_id
+    assert_not_infinite_time identity.discarded_at
+    assert_operator identity.purged_at, :>, identity.discarded_at
   end
 
   test "does not remove registered actor or identity" do
@@ -96,6 +107,10 @@ class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
   end
 
   private
+
+  def assert_not_infinite_time(value)
+    assert_not(value.respond_to?(:infinite?) && value.infinite?)
+  end
 
   def social_cycle(user, identity, provider:)
     ClientSignUpCycle.create!(

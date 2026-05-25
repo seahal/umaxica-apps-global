@@ -128,7 +128,7 @@ class Sign::Com::Configuration::SessionsControllerTest < ActionDispatch::Integra
     @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
 
     logs = []
-    Rails.logger.stub(:info, ->(message) { logs << JSON.parse(message, symbolize_names: true) }) do
+    Rails.logger.stub(:info, ->(message = nil, &) { logs << JSON.parse(message, symbolize_names: true) if message }) do
       delete(revoke_all_sign_com_configuration_sessions_url(ri: "jp"), headers: request_headers)
     end
 

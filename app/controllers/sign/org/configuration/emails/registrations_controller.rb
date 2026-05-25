@@ -6,6 +6,8 @@ module Sign
     module Configuration
       module Emails
         class RegistrationsController < ::Sign::Org::PrivateController
+          AUTHENTICATION_MODE = :private
+
           include ::CloudflareTurnstile
           include ::Common::Otp
           include ::Verification::Operator

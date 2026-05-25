@@ -25,7 +25,7 @@ class AnalyticsConsentGuard
   # @param event_name [String, Symbol] the event name
   # @param preference [Actor::Preference] the resolved preference (defaults to Actor.preferences)
   # @return [Boolean]
-  def self.permit?(event_name, preference: Actor.preferences)
+  def self.permit?(event_name, preference: Actor.preference)
     return true if PreConsentAllowlist.allowed?(event_name)
 
     preference&.cookie&.performant? || false

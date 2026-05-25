@@ -15,12 +15,14 @@ module Sign
       # - Looks up Operator via OperatorEmail by that email
       # - Signs in the operator if found and active
       class OmniauthCallbacksController < Sign::Org::ApplicationController
+        AUTHENTICATION_MODE = :deny_all
+
         include SocialAuthConcern
         include SocialCallbackGuard
         include SessionLimitGate
         include SocialOmniauthCallbackFlow
 
-        public_strict! only: %i(omniauth failure)
+        declare_authentication_mode! :open, only: %i(omniauth failure)
 
         skip_before_action :apply_localization_preferences, only: %i(omniauth failure)
         skip_before_action :set_region, only: %i(omniauth failure)

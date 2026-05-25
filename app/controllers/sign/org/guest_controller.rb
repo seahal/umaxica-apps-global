@@ -4,7 +4,9 @@
 module Sign
   module Org
     class GuestController < ApplicationController
-      guest_only! status: :unauthorized
+      AUTHENTICATION_MODE = :guest
+
+      declare_authentication_mode! :guest, status: :unauthorized
 
       before_action :reject_logged_in_session
 
@@ -12,8 +14,6 @@ module Sign
 
       def after_login_path
         sign_org_dashboard_path
-      rescue StandardError
-        "/"
       end
     end
   end

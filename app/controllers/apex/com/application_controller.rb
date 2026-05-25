@@ -4,6 +4,8 @@
 module Apex
   module Com
     class ApplicationController < ActionController::Base
+      AUTHENTICATION_MODE = :deny_all
+
       include ::RateLimit
       include ::Session
       include ::Preference::Global
@@ -46,8 +48,6 @@ module Apex
                              ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost"),
                            ),
                            with: :exception
-
-      public_strict!
 
       public
 

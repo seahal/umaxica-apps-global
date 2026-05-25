@@ -6,6 +6,8 @@ module Sign
     module Up
       module Checkpoint
         class PasskeysController < GuestController
+          AUTHENTICATION_MODE = :guest
+
           include Common::Redirect
           include Sign::PasskeyRegistrationFlow
           include Sign::Up::SequenceControllerSupport
@@ -24,9 +26,13 @@ module Sign
           end
 
           def create
+            return unless validate_sign_up_checkpoint_version!(json: true)
             return unless verify_and_create_passkey_registration!
 
-            result = perform_sign_up_event(:clear_requirement, payload: { requirement: :passkey })
+            result = perform_sign_up_event(
+              :clear_requirement,
+              payload: { requirement: :passkey, checkpoint_version: sign_up_checkpoint_version_param },
+            )
             return finalize_sign_up_from_checkpoint!(json: true) if result.success? && result.next_event == :finalize
             return render_sign_up_failure_result(result, json: true) unless result.success?
 
@@ -53,6 +59,8 @@ module Sign
           def save_passkey_registration!(passkey)
             passkey.valid?
             passkey.save!(validate: false)
+            @sign_up_ticket.update!(pending_passkey_registration_id: passkey.id) if
+              @sign_up_ticket.has_attribute?(:pending_passkey_registration_id)
           end
 
           def success_redirect_url

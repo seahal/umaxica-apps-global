@@ -210,7 +210,12 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     get "/test_auth_check"
 
     assert_response :redirect
-    assert_redirected_to "/login?rt=#{Base64.urlsafe_encode64("http://id.com.localhost/test_auth_check")}"
+    uri = URI.parse(response.location)
+    query = Rack::Utils.parse_nested_query(uri.query)
+
+    assert_equal "/login", uri.path
+    assert_predicate query["rt"], :present?
+    assert_match(/--/, query["rt"])
   end
 
   test "check auth allows authenticated" do
@@ -236,8 +241,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
 
     get "/test_auth_reject"
 
-    assert_response :redirect
-    assert_redirected_to "/"
+    assert_response :unauthorized
+    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
   test "ensure not logged in" do

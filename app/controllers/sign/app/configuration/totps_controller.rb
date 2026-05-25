@@ -7,6 +7,8 @@ module Sign
   module App
     module Configuration
       class TotpsController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include ::CloudflareTurnstile
         include ::Verification::Client
 

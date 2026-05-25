@@ -35,7 +35,8 @@ module Sign::App::Up
     end
 
     test "GET show returns 200 with passkey endpoint data attrs" do
-      verify_telephone_via_otp!
+      telephone = verify_telephone_via_otp!
+      cycle = current_sign_up_cycle(telephone)
 
       get new_sign_app_up_checkpoint_passkey_url(ri: "jp")
 
@@ -50,6 +51,7 @@ module Sign::App::Up
       assert_select "[data-passkey-registration-success-redirect-url-value='#{sign_app_up_checkpoint_path(
         ri: "jp",
       )}']"
+      assert_select "[data-passkey-registration-checkpoint-version-value='#{cycle.checkpoint_version}']"
     end
 
     test "POST begin returns challenge and options" do
@@ -135,6 +137,7 @@ module Sign::App::Up
         assert_difference("ClientPasskey.count", 1) do
           post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
+            checkpoint_version: cycle.checkpoint_version,
             credential: {
               id: "new_webauthn_id",
               response: { clientDataJSON: "e30=", attestationObject: "e30=" },
@@ -156,8 +159,10 @@ module Sign::App::Up
 
     test "POST create requires challenge id" do
       verify_telephone_via_otp!
+      cycle = current_sign_up_cycle(registration_telephone)
 
       post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
+        checkpoint_version: cycle.checkpoint_version,
         credential: {
           id: "new_webauthn_id",
           response: { clientDataJSON: "e30=", attestationObject: "e30=" },
@@ -170,6 +175,7 @@ module Sign::App::Up
 
     test "POST create does not establish login session before finalization" do
       telephone = verify_telephone_via_otp!
+      cycle = current_sign_up_cycle(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -183,6 +189,7 @@ module Sign::App::Up
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
           challenge_id: challenge_id,
+          checkpoint_version: cycle.checkpoint_version,
           credential: {
             id: "login_webauthn_id",
             response: { clientDataJSON: "e30=", attestationObject: "e30=" },
@@ -195,12 +202,14 @@ module Sign::App::Up
 
       get sign_app_configuration_url(ri: "jp")
 
-      assert_match %r{\Ahttp://id\.app\.localhost/sign/in/new\?}, response.location
+      assert_match %r{\Ahttp://#{Regexp.escape(ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"))}/sign/in/new\?},
+                   response.location
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 
     test "POST create respects rt parameter for redirect" do
-      verify_telephone_via_otp!
+      telephone = verify_telephone_via_otp!
+      cycle = current_sign_up_cycle(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -217,6 +226,7 @@ module Sign::App::Up
         post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
           rt: rt,
           challenge_id: challenge_id,
+          checkpoint_version: cycle.checkpoint_version,
           credential: {
             id: "rt_webauthn_id",
             response: { clientDataJSON: "e30=", attestationObject: "e30=" },
@@ -231,7 +241,8 @@ module Sign::App::Up
     end
 
     test "POST create does not create signup or login audit before finalization" do
-      verify_telephone_via_otp!
+      telephone = verify_telephone_via_otp!
+      cycle = current_sign_up_cycle(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -246,6 +257,7 @@ module Sign::App::Up
         assert_no_difference("ClientChronicle.count") do
           post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
+            checkpoint_version: cycle.checkpoint_version,
             credential: {
               id: "audit_webauthn_id",
               response: { clientDataJSON: "e30=", attestationObject: "e30=" },
@@ -257,7 +269,8 @@ module Sign::App::Up
     end
 
     test "POST create returns unprocessable on verifier error" do
-      verify_telephone_via_otp!
+      telephone = verify_telephone_via_otp!
+      cycle = current_sign_up_cycle(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -271,6 +284,7 @@ module Sign::App::Up
         assert_no_difference("ClientPasskey.count") do
           post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
+            checkpoint_version: cycle.checkpoint_version,
             credential: {
               id: "new_webauthn_id",
               response: { clientDataJSON: "e30=", attestationObject: "e30=" },
@@ -281,6 +295,36 @@ module Sign::App::Up
 
       assert_response :unprocessable_content
       assert_predicate response.parsed_body["error"], :present?
+    end
+
+    test "POST create rejects stale checkpoint version before creating passkey" do
+      verify_telephone_via_otp!
+
+      post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
+      challenge_id = response.parsed_body["challenge_id"]
+
+      mock_credential = Object.new
+      mock_credential.define_singleton_method(:id) { "stale_webauthn_id" }
+      mock_credential.define_singleton_method(:public_key) { "stale_public_key" }
+      mock_credential.define_singleton_method(:sign_count) { 1 }
+      mock_credential.define_singleton_method(:verify) { |_challenge| true }
+
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        assert_no_difference("ClientPasskey.count") do
+          post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            checkpoint_version: 999,
+            credential: {
+              id: "stale_webauthn_id",
+              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+            },
+            description: "Stale Passkey",
+          }
+        end
+      end
+
+      assert_response :conflict
+      assert_equal "stale_checkpoint", response.parsed_body["error"]
     end
 
     private

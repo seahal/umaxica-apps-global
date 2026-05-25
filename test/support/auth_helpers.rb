@@ -75,7 +75,7 @@ module AuthHelpers
     base
   end
 
-  def as_visitor_headers(visitor, host: nil, headers: {})
+  def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
     VisitorTokenBindingMethod.ensure_defaults!
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
     base = host_headers(host).merge(headers).merge(TEST_RESOURCE_HEADER => visitor.id.to_s)
@@ -86,7 +86,7 @@ module AuthHelpers
         Time.current,
       ).order(created_at: :desc).first
       token ||= VisitorToken.create!(visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-      base["X-TEST-SESSION-PUBLIC-ID"] = token.public_id
+      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     end
 
     base

@@ -20,11 +20,11 @@ module Sign::App
       assert_includes controller.class, ::Preference::Global
     end
 
-    test "application controller declares public strict policy" do
-      rules = ApplicationController.access_policy_rules
+    test "application controller defaults to deny all authentication mode" do
+      assert_equal :deny_all, ApplicationController.authentication_mode_for(:index)
 
-      assert_equal 1, rules.size
-      assert_equal :public_strict, rules.first[:policy]
+      rules = ApplicationController.local_authentication_mode_rules
+      assert_empty rules
     end
 
     test "application controller preserves authentication callback order" do
@@ -55,32 +55,31 @@ module Sign::App
     end
 
     test "guest controller owns guest-only policy" do
-      rules = GuestController.access_policy_rules
+      rules = GuestController.local_authentication_mode_rules
 
-      assert_equal 2, rules.size
-      assert_equal :guest_only, rules.last[:policy]
+      assert_equal :guest, rules.last[:mode]
       assert_equal({ status: :unauthorized }, rules.last[:options])
     end
 
     test "sign-in guest controller inherits guest-only policy" do
-      rules = In::GuestController.access_policy_rules
+      rules = In::GuestController.local_authentication_mode_rules
 
-      assert_equal :guest_only, rules.last[:policy]
+      assert_equal :guest, rules.last[:mode]
       assert rules.last[:options][:no_redirect]
     end
 
     test "sign-up guest controller rejects signed-in actors without redirect" do
-      rules = Up::GuestController.access_policy_rules
+      rules = Up::GuestController.local_authentication_mode_rules
 
-      assert_equal :guest_only, rules.last[:policy]
+      assert_equal :guest, rules.last[:mode]
       assert_equal :unauthorized, rules.last[:options][:status]
       assert rules.last[:options][:no_redirect]
     end
 
     test "email sign-in controller overrides guest-only response" do
-      rules = In::EmailsController.access_policy_rules
+      rules = In::EmailsController.local_authentication_mode_rules
 
-      assert_equal :guest_only, rules.last[:policy]
+      assert_equal :guest, rules.last[:mode]
       assert_equal :bad_request, rules.last[:options][:status]
       assert_equal(
         I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"),

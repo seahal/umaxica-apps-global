@@ -56,8 +56,18 @@ class VisitorSecret < ComPrincipalRecord
   validates :password_digest, presence: true, length: { maximum: 255 }
   validates :visitor_secret_status_id, numericality: { only_integer: true }
   validates :visitor_secret_kind_id, numericality: { only_integer: true }
-  validate :enforce_secret_limit, on: :create
-  validate :require_verified_recovery_identity, on: :create
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :visitor,
+                 association: :visitor_secrets,
+                 foreign_key: :visitor_id,
+                 limit: :MAX_SECRETS_PER_VISITOR,
+                 record_name: "secrets",
+                 owner_name: "visitor"
+  validates_with RecoveryIdentityRequiredValidator,
+                 on: :create,
+                 owner: :visitor,
+                 message: Visitor::RECOVERY_IDENTITY_REQUIRED_MESSAGE
 
   scope :allowed_for_secret_sign_in, lambda {
     where(
@@ -138,26 +148,5 @@ class VisitorSecret < ComPrincipalRecord
     return false if discarded_at.respond_to?(:infinite?) && discarded_at.infinite?
 
     now > discarded_at
-  end
-
-  def enforce_secret_limit
-    return unless visitor_id
-
-    count =
-      if visitor
-        visitor.visitor_secrets.load.count { |secret| secret != self }
-      else
-        operation = -> { self.class.where(visitor_id: visitor_id).count }
-        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
-      end
-    return if count < MAX_SECRETS_PER_VISITOR
-
-    errors.add(:base, :too_many, message: "exceeds maximum secrets per visitor (#{MAX_SECRETS_PER_VISITOR})")
-  end
-
-  def require_verified_recovery_identity
-    return if visitor&.has_verified_recovery_identity?
-
-    errors.add(:base, Visitor::RECOVERY_IDENTITY_REQUIRED_MESSAGE)
   end
 end

@@ -16,8 +16,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     ENV.delete("REGION_CODE")
 
     assert_nothing_raised { reload_locale_initializer }
-    assert_includes_locale_path("config/locales/jp")
-    assert_includes_locale_path("config/locales/us")
+    assert_equal supported_locale_paths, config_locale_load_paths
     assert_equal [:en, :ja], I18n.available_locales.sort
     assert_equal :ja, I18n.default_locale
     assert_equal [:en, :ja], I18n.fallbacks[:en]
@@ -242,11 +241,20 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     load(INITIALIZER_PATH)
   end
 
-  def assert_includes_locale_path(location)
-    matched_paths = I18n.load_path.grep(/#{Regexp.escape(location)}/)
+  def config_locale_load_paths
+    I18n.load_path
+      .map(&:to_s)
+      .select { |path| path.start_with?(Rails.root.join("config/locales").to_s) }
+      .sort
+  end
 
-    assert_predicate matched_paths, :any?,
-                     "Expected I18n.load_path to include #{location}, but got #{I18n.load_path}"
+  def supported_locale_paths
+    %w(
+      config/locales/jp/en.yml
+      config/locales/jp/ja.yml
+      config/locales/us/en.yml
+      config/locales/us/ja.yml
+    ).map { |path| Rails.root.join(path).to_s }.sort
   end
 end
 

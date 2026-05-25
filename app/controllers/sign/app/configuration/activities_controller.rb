@@ -5,6 +5,8 @@ module Sign
   module App
     module Configuration
       class ActivitiesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         VISIBLE_EVENT_IDS = [
           ClientChronicleEvent::LOGGED_IN,
           ClientChronicleEvent::LOGIN_SUCCESS,

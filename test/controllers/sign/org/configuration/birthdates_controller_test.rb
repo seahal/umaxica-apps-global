@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "base64"
 
 module Sign::Org::Configuration
   class BirthdatesControllerTest < ActionDispatch::IntegrationTest
@@ -68,9 +67,14 @@ module Sign::Org::Configuration
 
     test "redirects when not signed in" do
       get sign_org_configuration_birthdate_url(ri: "jp")
-      rt = Base64.urlsafe_encode64(sign_org_configuration_birthdate_url(ri: "jp"))
 
-      assert_redirected_to new_sign_org_in_url(rt: rt, host: @host)
+      assert_response :redirect
+      uri = URI.parse(response.location)
+      query = Rack::Utils.parse_nested_query(uri.query)
+
+      assert_equal "/sign/in/new", uri.path
+      assert_equal "jp", query["ri"]
+      assert_predicate query["rt"], :present?
     end
 
     test "does not route mutation or edit actions" do

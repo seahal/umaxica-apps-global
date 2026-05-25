@@ -5,6 +5,8 @@ module Sign
   module Com
     module Verification
       class PasskeysController < Sign::Com::Verification::BaseController
+        AUTHENTICATION_MODE = :private
+
         include Sign::VerificationPasskeyActions
       end
     end

@@ -6,6 +6,8 @@ module Apex
     module Edge
       module V0
         class CookiesController < OpenController
+          AUTHENTICATION_MODE = :open
+
           include ::Preference::WebCookieEndpoint
 
           skip_before_action :set_preferences_cookie, raise: false

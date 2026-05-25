@@ -45,6 +45,7 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
       "GUARDRAIL_PENDING" => :run_guardrail?,
       "SESSION_ISSUANCE_PENDING" => :issue_session?,
       "CHECKPOINT_PENDING" => :show_checkpoint?,
+      "SELECTOR_PENDING" => :show_selector?,
       "DASHBOARD_PENDING" => :show_dashboard?,
       "RETURN_PENDING" => :consume_return?,
     }
@@ -64,21 +65,29 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
     end
   end
 
-  test "token-bound post-issuance participants require matching Actor authentication token" do
-    cycle = create_cycle("CHECKPOINT_PENDING", principal_id: @client.id, token: @token)
+  test "checkpoint and selector participants are allowed by pending cycle state before token issuance" do
+    checkpoint = create_cycle("CHECKPOINT_PENDING", principal_id: @client.id)
+    selector = create_cycle("SELECTOR_PENDING", principal_id: @client.id)
+
+    assert_predicate ClientSignInCyclePolicy.new(checkpoint, user: nil), :show_checkpoint?
+    assert_predicate ClientSignInCyclePolicy.new(selector, user: nil), :show_selector?
+  end
+
+  test "token-bound post-completion participants require matching Actor authentication token" do
+    cycle = create_cycle("DASHBOARD_PENDING", principal_id: @client.id, token: @token)
     policy = ClientSignInCyclePolicy.new(cycle, user: @client)
 
     Actor.install_context!(authn: Actor::Authentication::NULL)
 
-    assert_not_predicate policy, :show_checkpoint?
+    assert_not_predicate policy, :show_dashboard?
 
     Actor.install_context!(authn: Actor::Authentication.new(login_public_id: "wrong-token"))
 
-    assert_not_predicate policy, :show_checkpoint?
+    assert_not_predicate policy, :show_dashboard?
 
     Actor.install_context!(authn: Actor::Authentication.new(login_public_id: @token.public_id))
 
-    assert_predicate policy, :show_checkpoint?
+    assert_predicate policy, :show_dashboard?
   end
 
   test "token-bound post-issuance participants accept matching device session id" do
@@ -89,17 +98,10 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
     assert_predicate ClientSignInCyclePolicy.new(cycle, user: @client), :show_dashboard?
   end
 
-  test "session limit requires matching restricted token binding" do
-    cycle = create_cycle("SESSION_LIMIT_PENDING", principal_id: @client.id, token: @token)
-    policy = ClientSignInCyclePolicy.new(cycle, user: @client)
+  test "session limit is allowed by pending cycle state before token issuance" do
+    cycle = create_cycle("SESSION_LIMIT_PENDING", principal_id: @client.id)
 
-    Actor.install_context!(authn: Actor::Authentication::NULL)
-
-    assert_not_predicate policy, :manage_session_limit?
-
-    Actor.install_context!(authn: Actor::Authentication.new(login_public_id: @token.public_id))
-
-    assert_predicate policy, :manage_session_limit?
+    assert_predicate ClientSignInCyclePolicy.new(cycle, user: nil), :manage_session_limit?
   end
 
   test "guardrail requires matching actor" do
@@ -181,6 +183,7 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
       "GUARDRAIL_PENDING" => "guardrail",
       "SESSION_ISSUANCE_PENDING" => "session_issuance",
       "CHECKPOINT_PENDING" => "checkpoint",
+      "SELECTOR_PENDING" => "selector",
       "DASHBOARD_PENDING" => "dashboard",
       "RETURN_PENDING" => "return_to",
       "COMPLETED" => "completed",

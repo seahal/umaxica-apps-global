@@ -5,8 +5,8 @@ inheritance as the request access contract.
 
 The current controller inheritance contract is intentionally narrow:
 
-- `BareController` inherits from `ActionController::Base` and owns endpoints that do not use
-  application authentication machinery.
+- `BareController` inherits from its surface-local `ApplicationController` and owns endpoints whose
+  concrete controller/action metadata classifies them as bare.
 - Surface-local `ApplicationController` inherits from `ActionController::Base` and owns the
   authentication-aware request lifecycle.
 
@@ -22,11 +22,9 @@ separated.
 
 ### BareController
 
-`BareController` is for endpoints that do not implement application authentication.
-
-Bare controllers should not read actor, current-context, preference, authorization, verification, or
-authentication pipeline state. They may use minimal Rails behavior such as CSRF protection, browser
-constraints, and narrow rate limiting when needed.
+`BareController` is the named base for endpoints classified as bare. It still stays inside the
+surface-local controller hierarchy, so app, org, and com behavior remains separated without a global
+controller parent.
 
 Common examples:
 

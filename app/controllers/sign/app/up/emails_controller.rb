@@ -5,8 +5,38 @@ module Sign
   module App
     module Up
       class EmailsController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include Sign::EmailRegistrable
         include ::CloudflareTurnstile
+
+        declare_authentication_mode! :guest, status: :unauthorized,
+                    message: I18n.t("errors.messages.already_authenticated"),
+                    no_redirect: true
+
+        # Defence-in-depth for sign-up entry. The default IP limit is 300/min
+        # which is too generous for an OTP-generating endpoint. Tighten to
+        # 5/min per IP and 3/10min per email digest to slow address
+        # enumeration and OTP fanout from a single source.
+        rate_limit(
+          to: 5,
+          within: 1.minute,
+          by: -> { "sign_up_email_ip:#{request.remote_ip}" },
+          with: -> { handle_rate_limit_exceeded!("sign_up_email_ip", 60) },
+          store: RateLimit.store,
+          only: :create,
+        )
+        rate_limit(
+          to: 3,
+          within: 10.minutes,
+          by: -> {
+            digest = sign_up_email_digest_for_rate_limit
+            digest.present? ? "sign_up_email_addr:#{digest}" : "sign_up_email_addr:none"
+          },
+          with: -> { handle_rate_limit_exceeded!("sign_up_email_addr", 600) },
+          store: RateLimit.store,
+          only: :create,
+        )
 
         def new
           @user_email = ClientEmail.new
@@ -270,6 +300,21 @@ module Sign
           )
         end
 
+        # Derives a per-address rate-limit bucket. Uses the same SHA-256
+        # digest the model stores so concurrent normalisations resolve to
+        # the same bucket. Returns nil for blank input — the rate_limit
+        # lambda decides how to handle that case.
+        def sign_up_email_digest_for_rate_limit
+          raw = params.dig(:user_email, :raw_address) ||
+            params.dig(:user_email, :address) ||
+            params.dig(:visitor_email, :raw_address) ||
+            params.dig(:visitor_email, :address)
+          return nil if raw.blank?
+
+          normalized = raw.to_s.strip.downcase
+          Digest::SHA256.hexdigest(normalized)
+        end
+
         def issue_sign_up_cycle!
           AppTicketRecord.connected_to(role: :writing) do
             ClientSignUpCycleStatus.ensure_defaults!
@@ -331,7 +376,7 @@ module Sign
         end
 
         def sanitized_return_to
-          safe_path_from_encoded_rt(params[:rt].presence, fallback: nil)
+          return_path_from_signed_rt(safe_encoded_rt(params[:rt].presence))
         end
       end
     end

@@ -5,6 +5,8 @@ module Sign
   module Com
     module In
       class SecretsController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include ::CloudflareTurnstile
         include EmailValidation
         include IdentifierDetection

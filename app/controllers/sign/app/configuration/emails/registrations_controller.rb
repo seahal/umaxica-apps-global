@@ -6,6 +6,8 @@ module Sign
     module Configuration
       module Emails
         class RegistrationsController < ::Sign::App::PrivateController
+          AUTHENTICATION_MODE = :private
+
           include Sign::EmailRegistrationFlow
           include ::Verification::Client
 

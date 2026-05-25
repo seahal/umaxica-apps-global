@@ -3,7 +3,9 @@
 
 module Apex
   module Org
-    class BareController < ::ApplicationController
+    class BareController < ActionController::Base
+      AUTHENTICATION_MODE = :bare
+
       include ::RateLimit
 
       allow_browser versions: :modern
@@ -11,9 +13,6 @@ module Apex
       before_action :check_default_rate_limit
 
       protect_from_forgery using: :header_or_legacy_token, with: :exception
-
-      def self.public_strict!(*)
-      end
     end
   end
 end

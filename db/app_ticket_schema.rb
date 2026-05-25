@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_20_190000) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_25_233000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -96,10 +96,16 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_190000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "status_id", default: 10, null: false
+    t.bigint "selected_region_id"
+    t.bigint "selected_persona_id"
+    t.datetime "selector_completed_at"
+    t.datetime "session_issued_at"
     t.index ["discarded_at"], name: "index_client_sign_in_cycles_on_discarded_at"
     t.index ["expires_at"], name: "index_client_sign_in_cycles_on_expires_at"
     t.index ["principal_id"], name: "index_client_sign_in_cycles_on_principal_id"
     t.index ["public_id"], name: "index_client_sign_in_cycles_on_public_id", unique: true
+    t.index ["selected_persona_id"], name: "index_client_sign_in_cycles_on_selected_persona_id"
+    t.index ["selected_region_id"], name: "index_client_sign_in_cycles_on_selected_region_id"
     t.index ["state"], name: "index_client_sign_in_cycles_on_state"
     t.index ["status_id"], name: "index_client_sign_in_cycles_on_status_id"
     t.index ["token_id"], name: "index_client_sign_in_cycles_on_token_id"
@@ -150,6 +156,9 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_190000) do
   create_table "client_sign_up_cycle_statuses", force: :cascade do |t|
   end
 
+  create_table "client_sign_up_cycle_cleanup_statuses", force: :cascade do |t|
+  end
+
   create_table "client_sign_up_cycles", force: :cascade do |t|
     t.string "public_id", limit: 21, null: false
     t.bigint "principal_id"
@@ -171,13 +180,19 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_190000) do
     t.bigint "pending_contact_id"
     t.string "social_provider"
     t.jsonb "completed_requirements", default: {}, null: false
-    t.string "cleanup_token", default: "", null: false
     t.datetime "failed_at"
     t.datetime "cancelled_at"
-    t.index ["cleanup_token"], name: "index_client_sign_up_cycles_on_cleanup_token"
+    t.datetime "cleanup_attempted_at"
+    t.datetime "cleanup_completed_at"
+    t.string "cleanup_error_code"
+    t.bigint "pending_passkey_registration_id"
+    t.integer "cleanup_attempts_count", default: 0, null: false
+    t.bigint "cleanup_status_id", default: 10, null: false
+    t.index ["cleanup_status_id", "purged_at"], name: "index_client_sign_up_cycles_on_cleanup_status_id_and_purged_at"
     t.index ["discarded_at"], name: "index_client_sign_up_cycles_on_discarded_at"
     t.index ["expires_at"], name: "index_client_sign_up_cycles_on_expires_at"
     t.index ["pending_contact_id"], name: "index_client_sign_up_cycles_on_pending_contact_id"
+    t.index ["pending_passkey_registration_id"], name: "index_client_sign_up_cycles_on_pending_passkey_registration_id"
     t.index ["principal_id"], name: "index_client_sign_up_cycles_on_principal_id"
     t.index ["public_id"], name: "index_client_sign_up_cycles_on_public_id", unique: true
     t.index ["state"], name: "index_client_sign_up_cycles_on_state"
@@ -291,6 +306,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_190000) do
   add_foreign_key "client_sign_out_cycles", "client_sign_out_cycle_statuses", column: "status_id", validate: false
   add_foreign_key "client_sign_out_cycles", "client_tokens", column: "token_id", on_delete: :cascade, validate: false
   add_foreign_key "client_sign_up_cycles", "client_sign_up_cycle_statuses", column: "status_id", validate: false
+  add_foreign_key "client_sign_up_cycles", "client_sign_up_cycle_cleanup_statuses", column: "cleanup_status_id", validate: false
   add_foreign_key "client_sign_up_cycles", "client_tokens", column: "token_id", on_delete: :cascade, validate: false
   add_foreign_key "client_step_up_sessions", "client_tokens", column: "user_token_id", on_delete: :cascade, validate: false
   add_foreign_key "client_tokens", "client_token_binding_methods", column: "user_token_binding_method_id", name: "fk_user_tokens_on_user_token_binding_method_id", validate: false

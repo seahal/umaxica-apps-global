@@ -6,6 +6,8 @@ module Sign
     module Up
       module Checkpoint
         class PasscodesController < GuestController
+          AUTHENTICATION_MODE = :guest
+
           include Common::Redirect
           include Sign::PasscodeRegistrationFlow
           include Sign::Up::SequenceControllerSupport
@@ -20,9 +22,14 @@ module Sign
           end
 
           def create
+            return unless validate_sign_up_checkpoint_version!
+
             create_passcode_registration!
 
-            result = perform_sign_up_event(:clear_requirement, payload: { requirement: :passcode })
+            result = perform_sign_up_event(
+              :clear_requirement,
+              payload: { requirement: :passcode, checkpoint_version: sign_up_checkpoint_version_param },
+            )
             return finalize_sign_up_from_checkpoint! if result.success? && result.next_event == :finalize
 
             return render_sign_up_result(result) unless result.success?

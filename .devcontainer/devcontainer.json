@@ -7,8 +7,9 @@
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": true,
   "forwardPorts": [3001, 5050],
-  "remoteEnv": { "EDITOR": "code --wait --reuse-window", "DEBUGGER_DISABLE": "1" },
-  "containerEnv": {
+  "remoteEnv": {
+    "EDITOR": "code --wait --reuse-window",
+    "DEBUGGER_DISABLE": "1",
     "PATH": "/home/global/.opencode/bin:${containerEnv:PATH}"
   },
   "customizations": {
@@ -92,9 +93,8 @@
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
-    "ghcr.io/devcontainers-extra/features/lefthook-asdf:1": {},
-    "ghcr.io/jasonthedeveloper/features/trivy:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/devcontainers-extra/features/opencode:1": {}
   },
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",

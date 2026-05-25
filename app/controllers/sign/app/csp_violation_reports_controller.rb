@@ -4,6 +4,8 @@
 module Sign
   module App
     class CspViolationReportsController < BareController
+      AUTHENTICATION_MODE = :bare
+
       include CspViolationReport
 
       def create

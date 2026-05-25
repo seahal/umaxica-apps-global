@@ -13,6 +13,8 @@ module Sign
       # The actual OmniAuth callbacks are handled by:
       #   Sign::App::Auth::OmniauthCallbacksController
       class AuthenticationsController < Sign::App::ApplicationController
+        AUTHENTICATION_MODE = :deny_all
+
         include ::Verification::Client
         include ::CloudflareTurnstile
         include SocialAuthConcern
@@ -22,8 +24,8 @@ module Sign
 
         # Public access for continue (login intent doesn't require auth)
         # For link/step-up intents, auth is checked in prepare_social_auth_intent!
-        public_strict! only: :continue
-        auth_required! only: %i(destroy)
+        declare_authentication_mode! :open, only: :continue
+        declare_authentication_mode! :private, only: %i(destroy)
         before_action :require_social_unlink_step_up!, only: :destroy
         before_action :require_social_unlink_turnstile!, only: :destroy
 
@@ -175,7 +177,7 @@ module Sign
 
         def safe_decoded_rt(encoded_url)
           token = safe_encoded_rt(encoded_url)
-          safe_path_from_encoded_rt(token, fallback: nil)
+          return_path_from_signed_rt(token)
         end
 
         def sign_up_cycle_locator

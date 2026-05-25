@@ -5,6 +5,8 @@ module Sign
   module App
     module Up
       class GuardrailsController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include Sign::Up::SequenceControllerSupport
 
         before_action :load_sign_up_ticket

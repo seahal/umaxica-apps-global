@@ -18,13 +18,17 @@ Rules:
 - Keep stable operational guidance out of `plans/`.
 - Record major accepted design decisions in `adr/`.
 - When a plan is implemented, update `docs/`.
+- Do not document `safe_path_from_encoded_rt` as an approved helper. It is deprecated; if this term
+  appears while updating docs, remove it or replace it with signed `ReturnTargetToken` handling.
 
 Current content-model references:
 
 - `docs/architecture/actor-naming.md`
+- `docs/architecture/current_context.md`
 - `docs/architecture/database-boundaries.md`
 - `docs/architecture/controller-boundaries.md`
 - `docs/architecture/controller-lifecycle.md`
+- `docs/architecture/i18n.md`
 - `docs/architecture/preference.md`
 - `docs/security/session-limit.md`
 - `docs/security/credential-abuse-rate-limits.md`
@@ -35,6 +39,7 @@ Current content-model references:
 - `docs/security/mfa-reset-account-recovery.md`
 - `docs/security/sign-in-sequence.md`
 - `docs/security/sign-up-sequence.md`
+- `docs/security/logout-sequence.md`
 - `docs/security/refresh-token-rotation.md`
 - `docs/security/identifier-hmac-emergency-rotation.md`
 - `docs/security/cookie-domain-scope.md`

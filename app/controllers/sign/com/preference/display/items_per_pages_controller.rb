@@ -2,6 +2,8 @@
 # frozen_string_literal: true
 
 class Sign::Com::Preference::Display::ItemsPerPagesController < Sign::Com::PreferencesBaseController
+  AUTHENTICATION_MODE = :open
+
   include ::Preference::SignScreenActions
 
   before_action :ensure_preferences_record

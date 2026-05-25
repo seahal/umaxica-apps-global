@@ -22,6 +22,8 @@ module Sign
       # - PATCH /configuration/passkeys/:id (update - description only)
       # - DELETE /configuration/passkeys/:id (destroy)
       class PasskeysController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include ::Verification::Client
         include Sign::Webauthn
         include ::CloudflareTurnstile

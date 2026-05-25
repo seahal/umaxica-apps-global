@@ -25,6 +25,9 @@ This active plan supersedes older CurrentAttribute and compatibility-reader clea
 - Remove `Actor.session` and `Actor.token`; use `Actor.authn.login_public_id` and typed
   authentication readers instead.
 - Keep Action Policy's authorization context name as `:user`.
+- Keep Actor reads shallow by default (`Actor.xxx.yyy`), with only
+  `Actor.configuration.<namespace>.<value>` allowed as a four-layer exception for typed
+  configuration namespaces such as `sign`.
 
 ## Superseded Backlog Notes
 
@@ -40,6 +43,9 @@ This active plan supersedes older CurrentAttribute and compatibility-reader clea
 ## Implementation Notes
 
 - Prefer replacing old plan assertions instead of adding compatibility shims.
+- Do not flatten configuration namespace values into awkward third-layer names such as
+  `Actor.configuration.sign_value`; use `Actor.configuration.sign.value` when the namespace carries
+  meaning.
 - If a previous plan expects `Current.*`, `Jumper`, `Apexer`, `Signer`, `Actor.surface`, or
   `Actor.domain`, treat that part of the plan as obsolete.
 - Preserve only ideas that still fit the accepted Actor API, such as lifecycle reset coverage,

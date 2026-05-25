@@ -8,10 +8,11 @@ module Sign
 
       included do
         before_action :set_session, only: %i(destroy)
+        helper_method :current_session_record?
       end
 
       def index
-        @sessions = visible_sessions.order(created_at: :desc)
+        @sessions = preload_device_session(visible_sessions.order(created_at: :desc))
 
         respond_to do |format|
           format.html
@@ -103,7 +104,24 @@ module Sign
         return false if current_session_public_id.blank?
 
         session.public_id == current_session_public_id ||
-          (session.respond_to?(:device_session) && session.device_session&.public_id == current_session_public_id)
+          loaded_device_session_public_id(session) == current_session_public_id
+      end
+
+      def preload_device_session(sessions)
+        return sessions unless sessions.respond_to?(:includes)
+        return sessions unless sessions.respond_to?(:klass)
+        return sessions if sessions.klass.reflect_on_association(:device_session).blank?
+
+        sessions.includes(:device_session)
+      end
+
+      def loaded_device_session_public_id(session)
+        return unless session.respond_to?(:association)
+
+        association = session.association(:device_session)
+        return unless association.loaded?
+
+        association.target&.public_id
       end
     end
   end

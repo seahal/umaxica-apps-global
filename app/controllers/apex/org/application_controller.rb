@@ -4,6 +4,8 @@
 module Apex
   module Org
     class ApplicationController < ActionController::Base
+      AUTHENTICATION_MODE = :deny_all
+
       include ::RateLimit
       include ::Session
       include ::Preference::Global
@@ -45,8 +47,6 @@ module Apex
                              ENV.fetch("APEX_STAFF_URL", "www.org.localhost"),
                            ),
                            with: :exception
-
-      auth_required!
 
       public
 

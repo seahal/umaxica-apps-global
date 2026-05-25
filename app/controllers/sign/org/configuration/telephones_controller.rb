@@ -5,6 +5,8 @@ module Sign
   module Org
     module Configuration
       class TelephonesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include Sign::OperatorTelephoneRegistrable
         include ::Verification::Operator
 

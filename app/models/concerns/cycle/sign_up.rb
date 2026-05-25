@@ -11,6 +11,47 @@ module Cycle
       cycle_status_column :status_id
     end
 
+    class_methods do
+      def sign_up_status_ids_for(*status_names)
+        status_names.filter_map do |status_name|
+          status_id_for(status_name)
+        rescue KeyError
+          nil
+        end
+      end
+
+      def sign_up_in_progress_status_ids
+        sign_up_status_ids_for(
+          "STARTED",
+          "CONTACT_PENDING",
+          "CREDENTIAL_PENDING",
+          "CONTACT_VERIFIED",
+          "SOCIAL_CALLBACK_PENDING",
+          "GUARDRAIL_PENDING",
+          "CHECKPOINT_PENDING",
+          "FINALIZING",
+          "FINALIZED",
+          "SIGN_IN_HANDOFF_PENDING",
+        )
+      end
+
+      def sign_up_cancelable_status_ids
+        sign_up_status_ids_for(
+          "STARTED",
+          "CONTACT_PENDING",
+          "CREDENTIAL_PENDING",
+          "CONTACT_VERIFIED",
+          "SOCIAL_CALLBACK_PENDING",
+          "GUARDRAIL_PENDING",
+          "CHECKPOINT_PENDING",
+        )
+      end
+
+      def sign_up_terminal_status_ids
+        sign_up_status_ids_for("COMPLETED", "FAILED", "EXPIRED", "CANCELLED")
+      end
+    end
+
     def sign_up_started?
       cycle_status?(status_id_for("STARTED"))
     end
@@ -29,6 +70,24 @@ module Cycle
 
     def sign_up_completed?
       cycle_status?(status_id_for("COMPLETED"))
+    end
+
+    def sign_up_cancelled?
+      cycle_status?(status_id_for("CANCELLED"))
+    rescue KeyError
+      false
+    end
+
+    def sign_up_in_progress?
+      self.class.sign_up_in_progress_status_ids.include?(cycle_status_id)
+    end
+
+    def sign_up_cancelable?
+      self.class.sign_up_cancelable_status_ids.include?(cycle_status_id)
+    end
+
+    def sign_up_terminal?
+      self.class.sign_up_terminal_status_ids.include?(cycle_status_id)
     end
 
     def advance_sign_up_to_contact!(now: Time.current)

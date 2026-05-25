@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "base64"
 
 module Sign::App::Configuration
   class GooglesControllerTest < ActionDispatch::IntegrationTest
@@ -31,12 +30,14 @@ module Sign::App::Configuration
       get sign_app_configuration_google_url(ri: "jp")
 
       assert_response :redirect
-      rt = Base64.urlsafe_encode64(sign_app_configuration_google_url(ri: "jp"))
+      uri = URI.parse(response.location)
+      query = Rack::Utils.parse_nested_query(uri.query)
+      expected_host = ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")
 
-      assert_redirected_to new_sign_app_in_url(
-        rt: rt,
-        host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-      )
+      assert_equal expected_host, uri.host
+      assert_equal "/sign/in/new", uri.path
+      assert_equal "jp", query["ri"]
+      assert_predicate query["rt"], :present?
     end
 
     test "show treats revoked google identity as unlinked" do

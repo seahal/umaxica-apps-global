@@ -21,6 +21,7 @@ export default class extends Controller {
     successRedirectUrl: String,
     optionsUrl: String,
     verificationUrl: String,
+    checkpointVersion: String,
     turnstileSiteKey: String,
     turnstileErrorMessage: {
       type: String,
@@ -123,6 +124,9 @@ export default class extends Controller {
           challenge_id: challenge_id,
           credential: this.encodeCredential(credential),
           description: this.descriptionValue,
+          checkpoint_version: this.hasCheckpointVersionValue
+            ? this.checkpointVersionValue
+            : undefined,
         }),
       });
 

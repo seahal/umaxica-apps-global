@@ -9,7 +9,6 @@
 #  id                     :bigint           not null, primary key
 #  birthdate              :text
 #  deactivated_at         :datetime
-#  deletable_at           :datetime         default(Infinity), not null
 #  discarded_at           :datetime         default(Infinity), not null
 #  last_step_up_at        :datetime
 #  lock_version           :integer          default(0), not null
@@ -29,7 +28,6 @@
 # Indexes
 #
 #  index_clients_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_clients_on_deletable_at            (deletable_at)
 #  index_clients_on_discarded_at            (discarded_at)
 #  index_clients_on_multi_factor_id         (multi_factor_id)
 #  index_clients_on_multi_factor_status_id  (multi_factor_status_id)
@@ -49,6 +47,19 @@
 #  fk_rails_...  (visibility_id => client_visibilities.id)
 #
 
+# Lifecycle column reference (see adr/retention-lifecycle-column-boundary.md):
+#
+# * `discarded_at` / `purged_at` — Retainable retention contract. The only
+#   columns the `RetentionPurgeJob` consults for delete eligibility.
+# * `withdrawal_started_at` — Sign-out / withdrawal flow started.
+# * `withdrawn_at` — Withdrawal flow finalized. Retention is independent.
+# * `deactivated_at` — Operator-driven account suspension. Reversible. Not a
+#   deletion signal.
+# * `terminated_at` — Set by `RetentionPurgeJob#anonymize_accounts` AFTER
+#   `Withdrawal::PersonalDataAnonymizer` finishes. Marks "PII has been scrubbed
+#   on this row"; distinct from `discarded_at` (logical hide) and `purged_at`
+#   (physical delete). Anonymized rows are retained for audit linkage with
+#   anonymous PII placeholders.
 class Client < AppPrincipalRecord
   # rubocop:disable Rails/HasManyOrHasOneDependent
 

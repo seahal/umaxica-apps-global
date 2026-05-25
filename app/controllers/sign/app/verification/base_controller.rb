@@ -5,6 +5,8 @@ module Sign
   module App
     module Verification
       class BaseController < Sign::App::PrivateController
+        AUTHENTICATION_MODE = :private
+
         include ::CloudflareTurnstile
         include Sign::AppVerificationBase
 

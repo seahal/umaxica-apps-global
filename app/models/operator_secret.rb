@@ -56,7 +56,14 @@ class OperatorSecret < OrgPrincipalRecord
 
   validates :staff_identity_secret_status_id, numericality: { only_integer: true }
   validates :staff_secret_kind_id, numericality: { only_integer: true }
-  validate :enforce_secret_limit, on: :create
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :staff,
+                 association: :staff_secrets,
+                 foreign_key: :staff_id,
+                 limit: :MAX_SECRETS_PER_STAFF,
+                 record_name: "secrets",
+                 owner_name: "staff"
 
   scope :allowed_for_secret_sign_in, lambda {
     where(
@@ -123,21 +130,5 @@ class OperatorSecret < OrgPrincipalRecord
 
     comparable_time = expires_at.is_a?(Float) ? Time.zone.at(expires_at) : expires_at
     now > comparable_time
-  end
-
-  def enforce_secret_limit
-    return unless staff_id
-
-    count =
-      if staff&.staff_secrets&.loaded?
-        staff.staff_secrets.count { |secret| secret != self }
-      elsif defined?(Prosopite)
-        Prosopite.pause { self.class.where(staff_id: staff_id).count }
-      else
-        self.class.where(staff_id: staff_id).count
-      end
-    return if count < MAX_SECRETS_PER_STAFF
-
-    errors.add(:base, :too_many, message: "exceeds maximum secrets per staff (#{MAX_SECRETS_PER_STAFF})")
   end
 end

@@ -71,6 +71,28 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
     assert_not_predicate SignUp::TicketPolicy.new(policy_context(expired), user: nil), :show?
   end
 
+  test "ticket policy allows cancel only for cancelable or already cancelled tickets" do
+    checkpoint = build_ticket(
+      ClientSignUpCycle,
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+    )
+    finalizing = build_ticket(
+      ClientSignUpCycle,
+      status_id: ClientSignUpCycleStatus::FINALIZING,
+      step: "finalizing",
+    )
+    cancelled = build_ticket(
+      ClientSignUpCycle,
+      status_id: ClientSignUpCycleStatus::CANCELLED,
+      step: "cancelled",
+    )
+
+    assert_predicate SignUp::TicketPolicy.new(policy_context(checkpoint), user: nil), :cancel?
+    assert_not_predicate SignUp::TicketPolicy.new(policy_context(finalizing), user: nil), :cancel?
+    assert_predicate SignUp::TicketPolicy.new(policy_context(cancelled), user: nil), :cancel?
+  end
+
   test "ticket policy rejects cross-surface context" do
     ticket = build_ticket(ClientSignUpCycle, entry_method: "email")
     context = SignUp::PolicyContext.build(
@@ -111,6 +133,20 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
     assert_predicate policy, :clear_requirement?
     assert_predicate policy, :register_passkey?
     assert_not_predicate policy, :confirm_passcode?
+  end
+
+  test "requirement policy rejects stale already-cleared requirement" do
+    ticket = build_ticket(
+      ClientSignUpCycle,
+      entry_method: "email",
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      principal_id: 42,
+      completed_requirements: { "birthdate" => { "cleared" => true } },
+    )
+    context = requirement_context(ticket, requirement: :birthdate, pending_actor: PendingActor.new(id: 42))
+
+    assert_not_predicate SignUp::RequirementPolicy.new(context, user: nil), :clear_requirement?
   end
 
   test "requirement policy rejects wrong pending actor" do

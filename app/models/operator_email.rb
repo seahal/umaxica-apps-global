@@ -57,8 +57,15 @@ class OperatorEmail < OrgPrincipalRecord
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }
   validates :staff_identity_email_status_id, numericality: { only_integer: true }
-  validate :ensure_unique_address_digest
-  validate :enforce_staff_email_limit, on: :create
+  validates :address_digest, blind_index_uniqueness: { error_attribute: :address }, allow_blank: true
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :staff,
+                 association: :staff_emails,
+                 foreign_key: :staff_id,
+                 limit: :MAX_EMAILS_PER_STAFF,
+                 record_name: "emails",
+                 owner_name: "staff"
   before_destroy :prevent_destroy_when_undeletable
   before_validation do
     self.staff_id ||= 0
@@ -83,37 +90,5 @@ class OperatorEmail < OrgPrincipalRecord
 
     errors.add(:base, :undeletable, message: "cannot delete a protected email address")
     throw(:abort)
-  end
-
-  def ensure_unique_address_digest
-    return if address_digest.blank?
-
-    duplicate =
-      if defined?(Prosopite)
-        Prosopite.pause do
-          self.class.where(address_digest: address_digest).where.not(id: id).exists?
-        end
-      else
-        self.class.where(address_digest: address_digest).where.not(id: id).exists?
-      end
-    return unless duplicate
-
-    errors.add(:address, :taken)
-  end
-
-  def enforce_staff_email_limit
-    return unless staff_id
-
-    count =
-      if staff&.staff_emails&.loaded?
-        staff.staff_emails.count { |email| email != self }
-      elsif defined?(Prosopite)
-        Prosopite.pause { self.class.where(staff_id: staff_id).count }
-      else
-        self.class.where(staff_id: staff_id).count
-      end
-    return if count < MAX_EMAILS_PER_STAFF
-
-    errors.add(:base, :too_many, message: "exceeds maximum emails per staff (#{MAX_EMAILS_PER_STAFF})")
   end
 end

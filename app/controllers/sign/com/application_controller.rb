@@ -4,6 +4,8 @@
 module Sign
   module Com
     class ApplicationController < ActionController::Base
+      AUTHENTICATION_MODE = :deny_all
+
       include ::RateLimit
       include ::Session
       include ::Preference::Global
@@ -19,7 +21,6 @@ module Sign
       include ::Finisher
 
       authorize :user, through: :current_visitor
-      public_strict!
 
       helper Sign::Com::ApplicationHelper
 
@@ -42,6 +43,7 @@ module Sign
       before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
       before_action :enforce_restricted_session_guard!
+      before_action :enforce_sign_in_selector_gate!
       before_action :enforce_required_telephone_registration!
       before_action :enforce_verification_if_required
       before_action :enforce_access_policy!
@@ -107,8 +109,6 @@ module Sign
 
       def after_login_path
         sign_com_dashboard_path
-      rescue StandardError
-        "/"
       end
 
       def enforce_required_telephone_registration!

@@ -58,8 +58,18 @@ class ClientSecret < AppPrincipalRecord
   validates :name, length: { maximum: 255 }
   validates :password_digest, presence: true, length: { maximum: 255 }
 
-  validate :enforce_secret_limit, on: :create
-  validate :require_verified_recovery_identity, on: :create
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :user,
+                 association: :client_secrets,
+                 foreign_key: :user_id,
+                 limit: :MAX_SECRETS_PER_USER,
+                 record_name: "secrets",
+                 owner_name: "user"
+  validates_with RecoveryIdentityRequiredValidator,
+                 on: :create,
+                 owner: :user,
+                 message: Client::RECOVERY_IDENTITY_REQUIRED_MESSAGE
 
   scope :allowed_for_secret_sign_in, lambda {
     where(
@@ -146,21 +156,5 @@ class ClientSecret < AppPrincipalRecord
     return false if discarded_at.respond_to?(:infinite?) && discarded_at.infinite?
 
     now > discarded_at
-  end
-
-  def enforce_secret_limit
-    return unless user_id
-
-    operation = -> { self.class.where(user_id: user_id).count }
-    count = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
-    return if count < MAX_SECRETS_PER_USER
-
-    errors.add(:base, :too_many, message: "exceeds maximum secrets per user (#{MAX_SECRETS_PER_USER})")
-  end
-
-  def require_verified_recovery_identity
-    return if user&.has_verified_recovery_identity?
-
-    errors.add(:base, Client::RECOVERY_IDENTITY_REQUIRED_MESSAGE)
   end
 end

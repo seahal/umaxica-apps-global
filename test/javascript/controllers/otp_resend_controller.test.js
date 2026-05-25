@@ -116,7 +116,9 @@ describe("OtpResendController", () => {
   test("resend: 200 だが resendable でないとき失敗メッセージを表示する", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ status: 200, json: () => Promise.resolve({ resendable: false }) }),
+      vi
+        .fn()
+        .mockResolvedValue({ status: 200, json: () => Promise.resolve({ resendable: false }) }),
     );
 
     const event = { preventDefault: vi.fn() };

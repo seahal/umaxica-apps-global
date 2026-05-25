@@ -4,6 +4,8 @@
 module Sign
   module Com
     class PreferencesController < Sign::Com::PreferencesBaseController
+      AUTHENTICATION_MODE = :open
+
       skip_before_action :set_preferences_cookie, only: :show, raise: false
 
       def show

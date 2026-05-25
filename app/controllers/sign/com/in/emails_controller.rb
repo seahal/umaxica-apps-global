@@ -5,13 +5,15 @@ module Sign
   module Com
     module In
       class EmailsController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include ::CloudflareTurnstile
         include EmailValidation
         include Common::Redirect
         include Common::Otp
         include SessionLimitGate
 
-        guest_only! status: :bad_request,
+        declare_authentication_mode! :guest, status: :bad_request,
                     message: I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"),
                     no_redirect: true
 

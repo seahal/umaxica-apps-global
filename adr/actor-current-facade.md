@@ -36,6 +36,7 @@ Actor.authn.aal
 Actor.authz.policy_user
 Actor.step_up.satisfied?
 Actor.preferences.language
+Actor.configuration.sign.value
 Actor.authn.login_public_id
 ```
 
@@ -77,6 +78,19 @@ Authorization keeps the existing Action Policy context key `:user`. `Actor` is t
 facade, but this ADR does not rename Action Policy's authorization context to `:actor`. Policy
 support code should read explicit authorization context such as `Actor.authz.policy_user` and
 `Actor.authz.token_claims`, not reach back into authentication storage.
+
+Actor read paths are shallow by default. The normal maximum shape is `Actor.xxx.yyy`, where the
+second layer names a resolved context area and the third layer names a concrete value or predicate.
+The only accepted four-layer exception is configuration namespacing:
+`Actor.configuration.<namespace>.<value>`. Use it only when the third layer is a clear configuration
+category such as `sign`, `post`, or `security`, and the fourth layer is the actual value or
+predicate-style value such as `value`, `enabled`, or `mode`.
+
+Do not create fifth-layer configuration reads such as `Actor.configuration.sign.value.raw`. Do not
+use deep Actor chains to walk runtime state transitions or unrelated object graphs, such as
+`Actor.authz.policy.user.account.id` or `Actor.step_up.challenge.email.otp.verified_at`.
+Resolver/concern code builds complete value objects and installs them into `Actor`; nested
+configuration readers are not a source of truth for persistence or fallback behavior.
 
 ## Rejected Direction
 

@@ -23,9 +23,9 @@ class ApexGuestControllerTest < ActiveSupport::TestCase
 
   test "guest boundaries declare unauthorized guest only policy" do
     GUEST_CONTROLLERS.each do |controller|
-      rules = controller.access_policy_rules
+      rules = controller.local_authentication_mode_rules
 
-      assert_equal :guest_only, rules.last[:policy]
+      assert_equal :guest, rules.last[:mode]
       assert_equal({ status: :unauthorized }, rules.last[:options])
     end
   end

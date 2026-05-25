@@ -5,6 +5,8 @@ module Sign
   module Org
     module Verification
       class SetupsController < Sign::Org::PrivateController
+        AUTHENTICATION_MODE = :private
+
         before_action :authenticate_operator!
 
         def new

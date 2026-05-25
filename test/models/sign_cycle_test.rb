@@ -121,13 +121,6 @@ class SignCycleTest < ActiveSupport::TestCase
     assert_predicate build_cycle(ClientSignUpCycle, return_to: "/dashboard?tab=home"), :valid?
   end
 
-  test "sign-up cycles generate cleanup token before validation" do
-    cycle = build_cycle(ClientSignUpCycle, cleanup_token: nil)
-
-    assert_predicate cycle, :valid?, cycle.errors.full_messages.join(", ")
-    assert_predicate cycle.cleanup_token, :present?
-  end
-
   test "sign-up cycles expose checkpoint requirement clearance" do
     cycle = build_cycle(
       ClientSignUpCycle,
@@ -140,6 +133,34 @@ class SignCycleTest < ActiveSupport::TestCase
     assert cycle.requirement_cleared?("birthdate")
     assert_not cycle.requirement_cleared?("passkey")
     assert_not cycle.requirement_cleared?("passcode")
+  end
+
+  test "sign-up cycle lifecycle predicates classify cancelable and terminal states" do
+    cancelable = ClientSignUpCycle.create!(
+      cycle_attrs(ClientSignUpCycle).merge(
+        status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+        step: "checkpoint",
+      ),
+    )
+    finalizing = ClientSignUpCycle.create!(
+      cycle_attrs(ClientSignUpCycle).merge(
+        status_id: ClientSignUpCycleStatus::FINALIZING,
+        step: "finalizing",
+      ),
+    )
+    cancelled = ClientSignUpCycle.create!(
+      cycle_attrs(ClientSignUpCycle).merge(
+        status_id: ClientSignUpCycleStatus::CANCELLED,
+        step: "cancelled",
+      ),
+    )
+
+    assert_predicate cancelable, :sign_up_in_progress?
+    assert_predicate cancelable, :sign_up_cancelable?
+    assert_predicate finalizing, :sign_up_in_progress?
+    assert_not finalizing.sign_up_cancelable?
+    assert_predicate cancelled, :sign_up_terminal?
+    assert_not cancelled.sign_up_in_progress?
   end
 
   test "sign-up cycles reject secret material in requirement state" do
@@ -226,25 +247,25 @@ class SignCycleTest < ActiveSupport::TestCase
       assert_predicate cycle, :sign_in_guardrail_pending?, cycle_class.name
       assert_equal "guardrail", cycle.step
 
-      cycle.advance_sign_in_to_session_issuance!
-
-      assert_predicate cycle, :sign_in_session_issuance_pending?, cycle_class.name
-      assert_equal "session_issuance", cycle.step
-
       cycle.advance_sign_in_to_checkpoint!
 
       assert_predicate cycle, :sign_in_checkpoint_pending?, cycle_class.name
       assert_equal "checkpoint", cycle.step
 
-      cycle.advance_sign_in_to_dashboard!
+      cycle.advance_sign_in_to_selector!
 
-      assert_predicate cycle, :sign_in_dashboard_pending?, cycle_class.name
-      assert_equal "dashboard", cycle.step
+      assert_predicate cycle, :sign_in_selector_pending?, cycle_class.name
+      assert_equal "selector", cycle.step
 
-      cycle.advance_sign_in_to_return!
+      cycle.advance_sign_in_to_session_issuance!
 
-      assert_predicate cycle, :sign_in_return_pending?, cycle_class.name
-      assert_equal "return_to", cycle.step
+      assert_predicate cycle, :sign_in_session_issuance_pending?, cycle_class.name
+      assert_equal "session_issuance", cycle.step
+
+      cycle.complete_sign_in!
+
+      assert_predicate cycle, :sign_in_completed?, cycle_class.name
+      assert_equal "completed", cycle.step
     end
   end
 
@@ -270,10 +291,9 @@ class SignCycleTest < ActiveSupport::TestCase
       cycle_attrs(ClientSignInCycle).merge(issued_at: now - 1.minute, expires_at: now + 1.hour),
     )
     cycle.advance_sign_in_to_guardrail!(now: now - 50.seconds)
-    cycle.advance_sign_in_to_session_issuance!(now: now - 40.seconds)
-    cycle.advance_sign_in_to_checkpoint!(now: now - 30.seconds)
-    cycle.advance_sign_in_to_dashboard!(now: now - 20.seconds)
-    cycle.advance_sign_in_to_return!(now: now - 10.seconds)
+    cycle.advance_sign_in_to_checkpoint!(now: now - 40.seconds)
+    cycle.advance_sign_in_to_selector!(now: now - 30.seconds)
+    cycle.advance_sign_in_to_session_issuance!(now: now - 20.seconds)
 
     travel_to now do
       cycle.complete_sign_in!
@@ -434,8 +454,9 @@ class SignCycleTest < ActiveSupport::TestCase
       "MFA_PENDING" => "mfa",
       "SESSION_LIMIT_PENDING" => "session_limit",
       "GUARDRAIL_PENDING" => "guardrail",
-      "SESSION_ISSUANCE_PENDING" => "session_issuance",
       "CHECKPOINT_PENDING" => "checkpoint",
+      "SELECTOR_PENDING" => "selector",
+      "SESSION_ISSUANCE_PENDING" => "session_issuance",
       "DASHBOARD_PENDING" => "dashboard",
       "RETURN_PENDING" => "return_to",
       "COMPLETED" => "completed",

@@ -22,6 +22,7 @@ class ActorSupportTest < ActiveSupport::TestCase
     # Expose private methods for testing.
     public :set_current_observability, :resolved_resource_preference
     public :resolved_current_session, :resolved_current_token, :resolved_current_preference
+    public :resolved_current_restricted_session?, :resolved_current_step_up
   end
 
   setup do
@@ -281,12 +282,56 @@ class ActorSupportTest < ActiveSupport::TestCase
     assert_nil @host.resolved_current_token
   end
 
-  test "resolved_current_token rescues resolution errors" do
+  test "resolved_current_token raises resolution errors" do
     @host.define_singleton_method(:access_token_payload) do
       raise StandardError, "boom"
     end
 
-    assert_nil @host.resolved_current_token
+    error = assert_raises(ActorSupport::ResolutionError) do
+      @host.resolved_current_token
+    end
+
+    assert_match "Actor access_token resolution failed", error.message
+    assert_equal "boom", error.cause.message
+  end
+
+  test "safe_current_resource raises resolution errors" do
+    host_class =
+      Class.new(Host) do
+        define_method(:current_resource) do
+          raise StandardError, "boom"
+        end
+
+        public :safe_current_resource
+      end
+
+    error = assert_raises(ActorSupport::ResolutionError) do
+      host_class.new.safe_current_resource
+    end
+
+    assert_match "Actor current_resource resolution failed", error.message
+  end
+
+  test "resolved_current_restricted_session raises resolution errors" do
+    @host.define_singleton_method(:current_session_restricted?) do
+      raise StandardError, "boom"
+    end
+    error = assert_raises(ActorSupport::ResolutionError) do
+      @host.resolved_current_restricted_session?
+    end
+
+    assert_match "Actor restricted_session resolution failed", error.message
+  end
+
+  test "resolved_current_step_up raises resolution errors" do
+    @host.define_singleton_method(:current_session_token) do
+      raise StandardError, "boom"
+    end
+    error = assert_raises(ActorSupport::ResolutionError) do
+      @host.resolved_current_step_up
+    end
+
+    assert_match "Actor step_up resolution failed", error.message
   end
 
   test "resolved_current_preference ignores database preference record without jwt prf" do

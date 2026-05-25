@@ -12,7 +12,5 @@ module Finisher
 
   def finish_request
     # no-op
-  rescue StandardError => e
-    Rails.logger.warn("[Finisher] #{e.class}: #{e.message}")
   end
 end

@@ -310,6 +310,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     Client.create!(
       status_id: ClientStatus::NOTHING,
       public_id: "soc_#{SecureRandom.hex(6)}",
+      birthdate: "2000-02-03",
       last_step_up_at: 1.minute.ago,
     )
   end

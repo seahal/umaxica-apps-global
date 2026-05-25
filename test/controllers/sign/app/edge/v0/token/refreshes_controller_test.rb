@@ -162,6 +162,28 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_equal "refresh_reuse_detected", ClientOccurrence.order(:id).last&.event_type
   end
 
+  test "POST refresh with invalid verifier returns generic error without reuse occurrence" do
+    token_record = ClientToken.create!(user: @user, device_id: @device_id)
+    refresh_plain = token_record.rotate_refresh_token!
+    public_id, = ClientToken.parse_refresh_token(refresh_plain)
+    forged_refresh = ClientToken.build_refresh_token(public_id, "wrong-verifier")
+
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = forged_refresh
+
+    assert_no_difference("ClientOccurrence.where(event_type: 'refresh_reuse_detected').count") do
+      post "/edge/v0/token/refresh",
+           headers: json_headers(with_csrf: true, device_id: @device_id),
+           as: :json
+    end
+
+    assert_response :unauthorized
+    json = response.parsed_body
+
+    assert_equal "invalid_refresh_token", json["error_code"]
+    assert_nil token_record.reload.rotated_at
+    assert_operator token_record.discarded_at, :>, Time.current
+  end
+
   test "GET check with invalid access token returns 401" do
     # Set an invalid access token
     cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "invalid.jwt.token"

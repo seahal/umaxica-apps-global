@@ -3,7 +3,10 @@
     data-controller="passkey-registration"
     data-passkey-registration-begin-url-value="<%= begin_url %>"
     data-passkey-registration-finish-url-value="<%= finish_url %>"
-    data-passkey-registration-success-redirect-url-value="<%= success_redirect_url %>">
+    data-passkey-registration-success-redirect-url-value="<%= success_redirect_url %>"
+    <% if local_assigns[:checkpoint_version].present? %>
+      data-passkey-registration-checkpoint-version-value="<%= checkpoint_version %>"
+    <% end %>>
 
     <div>
       <label for="description">

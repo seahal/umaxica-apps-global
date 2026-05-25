@@ -8,6 +8,8 @@ module Sign
         module In
           module Email
             class OtpsController < Sign::Com::In::GuestController
+              AUTHENTICATION_MODE = :guest
+
               def create
                 result = Sign::In::OtpResendService.new(kind: :email, state: otp_params[:state]).call
                 render_result(result)

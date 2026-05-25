@@ -27,6 +27,10 @@ module Authentication
         self
       end
 
+      def includes(*)
+        self
+      end
+
       def or(_other)
         self
       end

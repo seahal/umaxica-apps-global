@@ -5,6 +5,8 @@ module Sign
   module Com
     module Configuration
       class ActivitiesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         LOGIN_EVENT_IDS = [ClientChronicleEvent::LOGGED_IN, ClientChronicleEvent::LOGIN_SUCCESS].freeze
         EVENT_LABELS = {
           ClientChronicleEvent::LOGGED_IN => "logged_in",

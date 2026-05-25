@@ -6,9 +6,12 @@ module Verification
     extend ActiveSupport::Concern
 
     include Common::Redirect
+    include ReturnTargets::SignedTokenSupport
 
     STEP_UP_TTL = 15.minutes
     STEP_UP_REQUIRED_MESSAGE = "Step-up authentication required\nYour changes have not been saved"
+    STEP_UP_RETURN_TARGET_TOKEN_SALT = "return_target_token"
+    STEP_UP_RETURN_TARGET_TOKEN_PURPOSE = :return_target
 
     def verification_requirement
       @required_verification
@@ -214,17 +217,22 @@ module Verification
     def issue_step_up_rt(safe_path)
       surface = bootstrap_return_target_surface
       session_nonce = bootstrap_return_target_session_nonce
-      return nil if surface.blank? || session_nonce.blank?
-
-      ReturnTargetToken.issue(
-        return_to: safe_path,
+      claims = signed_target_claims(
         flow: bootstrap_return_target_flow,
         surface: surface,
         session_nonce: session_nonce,
-        request: request,
       )
-    rescue ReturnTargetToken::Invalid
-      nil
+      return nil if claims.blank?
+
+      path = signed_target_internal_path(safe_path)
+      return nil if path.blank?
+
+      issue_signed_target_token(
+        payload: claims.merge("return_to" => path),
+        purpose: STEP_UP_RETURN_TARGET_TOKEN_PURPOSE,
+        salt: STEP_UP_RETURN_TARGET_TOKEN_SALT,
+        expires_in: STEP_UP_TTL,
+      )
     end
 
     def bootstrap_return_path(default_path)
@@ -243,13 +251,17 @@ module Verification
       surface = bootstrap_return_target_surface
       return nil if surface.blank?
 
-      ReturnTargetToken.verified_return_to(
+      payload = verified_signed_target_payload(
         token,
+        purpose: STEP_UP_RETURN_TARGET_TOKEN_PURPOSE,
+        salt: STEP_UP_RETURN_TARGET_TOKEN_SALT,
         expected_flow: bootstrap_return_target_flow,
         expected_surface: surface,
         session_nonce: bootstrap_return_target_session_nonce,
-        request: request,
       )
+      return nil if payload.blank?
+
+      signed_target_internal_path(payload["return_to"])
     end
 
     def bootstrap_return_target_flow
@@ -274,6 +286,7 @@ module Verification
 
     def setup_return_to_path(encoded, root_path:)
       path = decode_return_to_path(encoded)
+      path ||= decode_legacy_setup_return_to_path(encoded)
       return nil if path.blank?
 
       uri = URI.parse(path)
@@ -281,6 +294,13 @@ module Verification
 
       path
     rescue URI::InvalidURIError
+      nil
+    end
+
+    def decode_legacy_setup_return_to_path(encoded)
+      decoded = Base64.urlsafe_decode64(encoded.to_s)
+      safe_internal_path(decoded).presence
+    rescue ArgumentError, URI::InvalidURIError
       nil
     end
 

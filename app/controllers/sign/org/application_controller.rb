@@ -4,6 +4,8 @@
 module Sign
   module Org
     class ApplicationController < ActionController::Base
+      AUTHENTICATION_MODE = :deny_all
+
       include ::RateLimit
       include ::Session
       include ::Preference::Global
@@ -18,7 +20,6 @@ module Sign
       include ::Finisher
 
       authorize :user, through: :current_operator
-      public_strict!
 
       allow_browser versions: :modern
 
@@ -40,6 +41,7 @@ module Sign
       before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
       before_action :enforce_restricted_session_guard!
+      before_action :enforce_sign_in_selector_gate!
       before_action :enforce_verification_if_required
       before_action :enforce_access_policy!
       before_action :set_current_observability
@@ -57,8 +59,6 @@ module Sign
       # Overrides Authentication::Base#after_login_path. ri is added automatically via default_url_options.
       def after_login_path
         sign_org_dashboard_path
-      rescue StandardError
-        "/"
       end
     end
   end

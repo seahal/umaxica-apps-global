@@ -43,8 +43,12 @@ module Common
     end
 
     def safe_internal_path(target)
+      return nil unless target.is_a?(String)
       return nil if target.blank?
-      return nil if target.match?(/[[:cntrl:]]/)
+      return nil if target.match?(/[\x00-\x1F\x7F]/)
+      return nil if target.match?(/%(?:0[0-9a-f]|1[0-9a-f]|7f)/i)
+      return nil if target.match?(/%(?:2f|5c)/i)
+      return nil if target.include?("\\")
 
       begin
         parsed_uri = URI.parse(target)
@@ -53,18 +57,25 @@ module Common
       end
 
       return nil if parsed_uri.scheme.present? || parsed_uri.host.present?
-      return nil if parsed_uri.user.present? || parsed_uri.password.present?
+      return nil if parsed_uri.userinfo.present?
+      return nil if parsed_uri.fragment.present?
 
-      path = parsed_uri.path.presence || "/"
+      path = parsed_uri.path
+      return nil if path.blank?
       return nil unless path.start_with?("/")
+      return nil if path.start_with?("//")
 
       query = parsed_uri.query
       query.present? ? "#{path}?#{query}" : path
     end
 
     def safe_return_path(target, allowed_hosts: nil)
+      return nil unless target.is_a?(String)
       return nil if target.blank?
-      return nil if target.match?(/[[:cntrl:]]/)
+      return nil if target.match?(/[\x00-\x1F\x7F]/)
+      return nil if target.match?(/%(?:0[0-9a-f]|1[0-9a-f]|7f)/i)
+      return nil if target.match?(/%(?:2f|5c)/i)
+      return nil if target.include?("\\")
 
       begin
         parsed_uri = URI.parse(target)
@@ -73,6 +84,7 @@ module Common
       end
 
       return nil if parsed_uri.user.present? || parsed_uri.password.present?
+      return nil if parsed_uri.fragment.present?
 
       return safe_internal_path(target) unless parsed_uri.scheme.present? || parsed_uri.host.present?
       return nil unless %w(http https).include?(parsed_uri.scheme)

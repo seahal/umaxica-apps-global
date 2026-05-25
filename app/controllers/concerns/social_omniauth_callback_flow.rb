@@ -24,7 +24,8 @@ module SocialOmniauthCallbackFlow
   rescue SocialAuth::BaseError => e
     handle_social_auth_error(e)
   rescue StandardError => e
-    handle_unexpected_error(e, auth)
+    clear_social_auth_intent!
+    raise
   end
 
   private
@@ -67,6 +68,7 @@ module SocialOmniauthCallbackFlow
   end
 
   def handle_unexpected_error(error, auth)
+    clear_social_auth_intent!
     Rails.logger.error(
       LogEvent.format(
         social_omniauth_unexpected_error_event,
@@ -76,8 +78,7 @@ module SocialOmniauthCallbackFlow
         exception: error,
       ),
     )
-    clear_social_auth_intent!
-    redirect_to(social_auth_failure_redirect_path, alert: I18n.t(social_omniauth_failure_i18n_key))
+    raise error
   end
 
   def social_omniauth_callback_requires_writing_role?

@@ -2,10 +2,12 @@
 # frozen_string_literal: true
 
 class Sign::App::Edge::V0::Token::RefreshesController < Sign::App::ApplicationController
+  AUTHENTICATION_MODE = :deny_all
+
   include Sign::EdgeV0JsonApi
   include ::Preference::WebCookieEndpoint
 
-  public_strict!
+  declare_authentication_mode! :open
   before_action :ensure_json_request
   skip_before_action :set_region, raise: false
   skip_before_action :set_preferences_cookie

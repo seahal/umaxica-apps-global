@@ -8,26 +8,44 @@ module Authentication
     def sign_in_sequence_redirect_path(rt: nil, default_path: after_dashboard_path)
       cycle = current_db_sign_in_cycle_for_sequence
       if cycle
-        url_rt = safe_encoded_rt(rt)
-        return sign_in_checkpoint_path(rt: url_rt) if issue_checkpoint!
+        url_rt = safe_encoded_rt(rt || cycle.return_to)
+        return sign_in_session_limit_path(rt: url_rt) if cycle.sign_in_session_limit_pending?
+        return sign_in_checkpoint_path(rt: url_rt) if cycle.sign_in_checkpoint_pending?
+        return sign_in_selector_path(rt: url_rt) if cycle.sign_in_selector_pending?
+        return issue_welcome_gate_and_path(rt: url_rt, sequence_id: cycle.public_id) if cycle.sign_in_completed?
+        return reject_invalid_sign_in_sequence_path(default_path) unless cycle.sign_in_guardrail_pending?
 
         result =
           with_sign_in_cycle_writing(cycle) do
-            sign_in_checkpoint_participant(cycle).advance_if_clear!
+            sign_in_guardrail_participant(cycle).advance_if_clear!
           end
-        return sign_in_checkpoint_path(rt: url_rt) if result.blocking?
-
-        return issue_welcome_gate_and_path(rt: url_rt, sequence_id: cycle.public_id)
+        return default_path if result.blocking?
+        return sign_in_checkpoint_path(rt: url_rt)
       end
 
-      checkpoint_required = issue_checkpoint!
-      sequence = begin_sign_in_sequence!(rt: rt, checkpoint_required: checkpoint_required)
+      default_path
+    end
 
-      if checkpoint_required
-        sign_in_checkpoint_path(rt: rt)
+    def sign_in_session_limit_path(rt: nil)
+      attrs = { ri: params[:ri] }
+      safe_rt = safe_encoded_rt(rt)
+      attrs[Auth::IoKeys::Params::RT] = safe_rt if safe_rt.present?
+
+      if respond_to?(:sign_app_in_session_path, true)
+        sign_app_in_session_path(**attrs)
+      elsif respond_to?(:sign_org_in_session_path, true)
+        sign_org_in_session_path(**attrs)
+      elsif respond_to?(:sign_com_in_session_path, true)
+        sign_com_in_session_path(**attrs)
       else
-        after_checkpoint_sequence_path(rt: rt, default_path: default_path, sequence_id: sequence&.sequence_id)
+        path = "/in/session"
+        query = attrs.compact.to_query
+        query.present? ? "#{path}?#{query}" : path
       end
+    end
+
+    def reject_invalid_sign_in_sequence_path(default_path)
+      default_path
     end
 
     def redirect_to_sign_in_sequence!(rt: nil, default_path: after_dashboard_path, **redirect_options)
@@ -37,7 +55,7 @@ module Authentication
     def after_checkpoint_sequence_path(rt: nil, default_path: after_dashboard_path, sequence_id: nil)
       return issue_welcome_gate_and_path(rt: rt, sequence_id: sequence_id) if dashboard_sequence_step_required?
 
-      safe_path_from_encoded_rt(rt, fallback: default_path)
+      return_path_from_signed_rt(safe_encoded_rt(rt)) || default_path
     end
 
     def redirect_after_checkpoint_sequence!(rt: nil, default_path: after_dashboard_path, **redirect_options)
@@ -55,12 +73,11 @@ module Authentication
         end
 
         return redirect_to(
-          issue_welcome_gate_and_path(rt: cycle.reload.return_to.presence || rt, sequence_id: cycle.public_id),
+          sign_in_selector_path(rt: cycle.reload.return_to.presence || rt),
           **redirect_options,
         )
       end
 
-      sign_in_sequence_carrier.advance!(state: "DASHBOARD_PENDING", participant: "dashboard")
       redirect_to(after_checkpoint_sequence_path(rt: rt, default_path: default_path), **redirect_options)
     end
 
@@ -77,7 +94,7 @@ module Authentication
           end
         return if result.blocking?
 
-        redirect_to(issue_welcome_gate_and_path(rt: cycle.reload.return_to, sequence_id: cycle.public_id))
+        redirect_to(sign_in_selector_path(rt: cycle.reload.return_to))
         return
       end
 
@@ -102,29 +119,16 @@ module Authentication
           clear_current_sign_in_cycle_locator!
           return redirect_to(after_welcome_path)
         end
+        return redirect_to(sign_in_session_limit_path(rt: cycle.return_to)) if cycle.sign_in_session_limit_pending?
         return redirect_to(sign_in_checkpoint_path(rt: cycle.return_to)) if cycle.sign_in_checkpoint_pending?
-        return reject_invalid_sign_in_sequence! unless cycle.sign_in_dashboard_pending?
-        return reject_invalid_sign_in_sequence! unless allowed_to?(:show_dashboard?, cycle)
-        return redirect_to(after_welcome_path) unless welcome_gate_available?(sequence_id: cycle.public_id)
+        return redirect_to(sign_in_selector_path(rt: cycle.return_to)) if cycle.sign_in_selector_pending?
+        return reject_invalid_sign_in_sequence! unless cycle.sign_in_completed?
+        return redirect_to(after_welcome_path) unless welcome_gate_available?
         return redirect_to(after_welcome_path) unless consume_welcome_gate!(sequence_id: cycle.public_id)
-
-        with_sign_in_cycle_writing(cycle) do
-          sign_in_dashboard_participant(cycle).advance!
-        end
-        cycle = with_sign_in_cycle_writing(cycle) { cycle.reload }
-        return reject_invalid_sign_in_sequence! unless allowed_to?(:consume_return?, cycle)
-
-        destination =
-          with_sign_in_cycle_writing(cycle) do
-            SignIn::ReturnParticipant.new(
-              cycle: cycle,
-              default_path: after_welcome_path,
-            ).consume!
-          end
         clear_welcome_gate!
         clear_current_sign_in_cycle_locator!
-        fallback_destination = safe_non_welcome_return_path(after_welcome_path, fallback: nil)
-        destination = safe_non_welcome_return_path(destination, fallback: fallback_destination)
+        fallback_destination = safe_non_welcome_return_path(after_welcome_path)
+        destination = safe_non_welcome_return_path(cycle.return_to) || fallback_destination
         @welcome_next_path = destination if destination.present?
         return
       end
@@ -134,7 +138,7 @@ module Authentication
       sign_in_sequence_carrier.complete! if sign_in_sequence_carrier.current.participant == "dashboard"
       return redirect_to(after_welcome_path) unless consume_welcome_gate!
 
-      destination = safe_path_from_encoded_rt(redirect_parameter_value, fallback: after_welcome_path)
+      destination = return_path_from_signed_rt(safe_encoded_rt(redirect_parameter_value)) || after_welcome_path
       clear_welcome_gate!
       sign_in_sequence_carrier.clear!
       @welcome_next_path = destination
@@ -142,6 +146,43 @@ module Authentication
     end
 
     alias continue_dashboard_sequence_without_content! continue_welcome_sequence_without_content!
+
+    def continue_selector_sequence!
+      cycle = current_db_sign_in_cycle_for_sequence
+      return reject_invalid_sign_in_sequence! unless cycle
+      return reject_invalid_sign_in_sequence! unless cycle.sign_in_selector_pending?
+      return reject_invalid_sign_in_sequence! unless allowed_to?(:show_selector?, cycle)
+
+      with_sign_in_cycle_writing(cycle) do
+        SignIn::SelectorParticipant.new(
+          cycle: cycle,
+          actor: sign_in_cycle_actor(cycle),
+          authn_public_id: Actor.authn.login_public_id,
+        ).auto_commit_single!
+      end
+
+      result = issue_active_session_for_selector!(cycle.reload)
+      return reject_invalid_sign_in_sequence! unless result[:status] == :success
+
+      redirect_to(issue_welcome_gate_and_path(rt: cycle.reload.return_to, sequence_id: cycle.public_id))
+    rescue SignIn::SelectorParticipant::Error
+      reject_invalid_sign_in_sequence!
+    end
+
+    def enforce_sign_in_selector_gate!
+      return unless logged_in?
+
+      cycle = current_db_sign_in_cycle_for_sequence
+      return unless cycle&.sign_in_selector_pending?
+      return if sign_in_selector_allowed_request?
+
+      unless request.format.html?
+        render plain: I18n.t("errors.messages.not_authorized"), status: :forbidden
+        return
+      end
+
+      redirect_to(sign_in_selector_path(rt: cycle.return_to))
+    end
 
     def dashboard_sequence_step_required?
       true
@@ -157,6 +198,35 @@ module Authentication
 
     def sign_in_sequence_surface
       Actor.tld
+    end
+
+    def sign_in_selector_path(rt: nil)
+      attrs = { ri: params[:ri] }
+      safe_rt = safe_encoded_rt(rt)
+      attrs[Auth::IoKeys::Params::RT] = safe_rt if safe_rt.present?
+
+      if respond_to?(:sign_app_selector_path, true)
+        sign_app_selector_path(**attrs)
+      elsif respond_to?(:sign_org_selector_path, true)
+        sign_org_selector_path(**attrs)
+      elsif respond_to?(:sign_com_selector_path, true)
+        sign_com_selector_path(**attrs)
+      else
+        path = "/selector"
+        query = attrs.compact.to_query
+        query.present? ? "#{path}?#{query}" : path
+      end
+    end
+
+    def sign_in_selector_allowed_request?
+      allowed_paths = [
+        sign_in_selector_path,
+        sign_in_session_limit_path,
+      ]
+      allowed_paths.map { |path| URI.parse(path).path }.include?(request.path) ||
+        controller_path.end_with?("/outs")
+    rescue URI::InvalidURIError
+      false
     end
 
     def welcome_gate_key
@@ -285,7 +355,11 @@ module Authentication
     end
 
     def sign_in_checkpoint_participant(cycle)
-      SignIn::CheckpointParticipant.new(cycle: cycle, actor: current_resource)
+      SignIn::CheckpointParticipant.new(cycle: cycle, actor: sign_in_cycle_actor(cycle))
+    end
+
+    def sign_in_guardrail_participant(cycle)
+      SignIn::GuardrailParticipant.new(cycle: cycle, actor: sign_in_cycle_actor(cycle))
     end
 
     def sign_in_dashboard_participant(cycle)
@@ -312,7 +386,7 @@ module Authentication
         principal_id: resource.id,
         status_id: cycle_class.status_id_for("PRIMARY_PENDING"),
         step: "primary",
-        return_to: safe_path_from_encoded_rt(rt, fallback: nil),
+        return_to: return_path_from_signed_rt(safe_encoded_rt(rt)),
         nonce_digest: cycle_class.digest_nonce(nonce),
       )
     end
@@ -341,6 +415,30 @@ module Authentication
       result
     end
 
+    def advance_pending_sign_in_cycle_after_primary!(cycle, resource, result)
+      return result unless cycle&.persisted?
+
+      if result[:status] == :session_limit_hard_reject
+        cycle.fail_sign_in!
+        sign_in_cycle_locator_for(actor: resource).issue!(cycle)
+        return result
+      end
+
+      if result[:session_management_required]
+        cycle.advance_sign_in_to_session_limit! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
+        sign_in_cycle_locator_for(actor: resource).issue!(cycle)
+        return result
+      end
+
+      cycle.advance_sign_in_to_guardrail! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
+      if cycle.sign_in_guardrail_pending?
+        guardrail = SignIn::GuardrailParticipant.new(cycle: cycle, actor: resource)
+        guardrail.advance_if_clear!
+      end
+      sign_in_cycle_locator_for(actor: resource).issue!(cycle.reload)
+      result
+    end
+
     def advance_cycle_to_checkpoint_after_active_session!(cycle, resource, token)
       cycle.advance_sign_in_to_guardrail! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
 
@@ -359,17 +457,61 @@ module Authentication
     def promote_current_session_limit_cycle!(actor)
       cycle = current_db_sign_in_cycle_for_sequence
       return false unless cycle&.sign_in_session_limit_pending?
-      return false unless current_session&.restricted?
 
       result = SignIn::SessionLimitManager.new(
         cycle: cycle,
         actor: actor,
         token: current_session,
       ).promote!
-      @current_session = result.token
-      @current_session_public_id = result.token.public_id
-      advance_cycle_to_checkpoint_after_active_session!(cycle.reload, actor, result.token)
+      cycle = result.cycle.reload
+      if cycle.sign_in_guardrail_pending?
+        SignIn::GuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
+      end
       true
+    end
+
+    def issue_active_session_for_selector!(cycle)
+      actor = sign_in_cycle_actor(cycle)
+      return { status: :invalid_request } unless actor
+
+      cycle.class.transaction do
+        cycle.lock!
+        return { status: :success } if cycle.sign_in_completed? && cycle.token_id.present?
+        return { status: :invalid_request } unless cycle.sign_in_session_issuance_pending?
+      end
+
+      result = log_in(
+        actor,
+        record_login_audit: true,
+        token_kind_id: "BROWSER_WEB",
+        require_totp_check: false,
+        audit_context: { auth_method: "selector" },
+        bootstrap_actor: true,
+      )
+      return result unless result[:status] == :success
+
+      token = current_session
+      cycle.class.transaction do
+        cycle.lock!
+        return result if cycle.sign_in_completed? && cycle.token_id == token&.id
+        return { status: :invalid_request } unless cycle.sign_in_session_issuance_pending?
+
+        changes = { token: token }
+        changes[:session_issued_at] = Time.current if cycle.has_attribute?(:session_issued_at)
+        cycle.update!(changes)
+        cycle.complete_sign_in!
+      end
+      result
+    end
+
+    def sign_in_cycle_actor(cycle)
+      return current_resource if current_resource
+
+      case cycle
+      when ClientSignInCycle then Client.find_by(id: cycle.principal_id)
+      when VisitorSignInCycle then Visitor.find_by(id: cycle.principal_id)
+      when OperatorSignInCycle then Operator.find_by(id: cycle.principal_id)
+      end
     end
 
     def pending_mfa_sign_in_cycle_for(resource)

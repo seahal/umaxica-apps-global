@@ -7,16 +7,21 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   COOKIE_NAME = Authentication::Base::ACCESS_COOKIE_KEY
 
   SURFACES = [
-    { host: "www.app.localhost", client_id: "apex_app", sign_host: "id.app.localhost", resource: -> { clients(:one) } },
+    { host: "www.app.localhost",
+      client_id: "apex_app",
+      sign_host: ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"),
+      resource: -> {
+        clients(:one)
+      }, },
     { host: "www.org.localhost",
       client_id: "apex_org",
-      sign_host: "id.org.localhost",
+      sign_host: ENV.fetch("ID_STAFF_URL", "id.umaxica.org"),
       resource: -> {
         operators(:one)
       }, },
     { host: "www.com.localhost",
       client_id: "apex_com",
-      sign_host: "id.com.localhost",
+      sign_host: ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com"),
       resource: -> {
         create_visitor!
       }, },

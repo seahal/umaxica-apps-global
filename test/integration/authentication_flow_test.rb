@@ -57,7 +57,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     end
 
     # The test expects authentication to succeed.
-    # After transparent refresh, guest_only! should redirect logged-in users away.
+    # After transparent refresh, guest authentication mode should redirect logged-in users away.
     # Due to complex redirect chains, we verify the key outcome:
     # 1. First response was a redirect (auth processing happened)
     # 2. Cookies were rotated (refresh worked)

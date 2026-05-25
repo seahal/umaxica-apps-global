@@ -5,6 +5,8 @@ module Sign
   module Org
     module Configuration
       class WithdrawalsController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include ::Verification::Operator
 
         before_action :authenticate_operator!

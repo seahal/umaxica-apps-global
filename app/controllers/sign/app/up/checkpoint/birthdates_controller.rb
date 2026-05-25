@@ -6,15 +6,15 @@ module Sign
     module Up
       module Checkpoint
         class BirthdatesController < GuestController
+          AUTHENTICATION_MODE = :guest
+
           include Sign::Up::SequenceControllerSupport
 
           before_action :load_sign_up_ticket
           before_action -> { authorize_sign_up_requirement!(:clear_requirement?) }
 
           def update
-            return unless persist_sign_up_birthdate_requirement
-
-            run_sign_up_requirement_event(payload: { requirement: :birthdate })
+            clear_sign_up_birthdate_requirement
           end
 
           private

@@ -34,5 +34,34 @@ module StepUp
       assert_not Resolver.call(token: unusable, scope: "profile", now: now).satisfied?
       assert_not Resolver.call(token: mismatched, scope: "profile", now: now).satisfied?
     end
+
+    test "satisfies just before ttl and rejects exactly at ttl" do
+      now = Time.zone.parse("2026-05-25 00:00:00")
+      ttl = 15.minutes
+
+      just_before = Token.new(
+        currently_usable: true, last_step_up_at: now - ttl + 1.second,
+        last_step_up_scope: "profile",
+      )
+      exactly_at = Token.new(
+        currently_usable: true, last_step_up_at: now - ttl,
+        last_step_up_scope: "profile",
+      )
+
+      assert_predicate Resolver.call(token: just_before, scope: "profile", now: now, ttl: ttl), :satisfied?
+      assert_not Resolver.call(token: exactly_at, scope: "profile", now: now, ttl: ttl).satisfied?
+    end
+
+    test "blank requested scope accepts scoped token but nonblank scope must match" do
+      now = Time.zone.parse("2026-05-25 00:00:00")
+      token = Token.new(
+        currently_usable: true, last_step_up_at: now - 1.minute,
+        last_step_up_scope: "configuration_email",
+      )
+
+      assert_predicate Resolver.call(token: token, scope: nil, now: now), :satisfied?
+      assert_predicate Resolver.call(token: token, scope: "", now: now), :satisfied?
+      assert_not Resolver.call(token: token, scope: "configuration_passkey", now: now).satisfied?
+    end
   end
 end

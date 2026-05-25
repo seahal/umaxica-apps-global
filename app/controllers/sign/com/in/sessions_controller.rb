@@ -5,9 +5,11 @@ module Sign
   module Com
     module In
       class SessionsController < ApplicationController
+        AUTHENTICATION_MODE = :deny_all
+
         include SessionLimitGate
 
-        public_strict!
+        declare_authentication_mode! :open
 
         before_action :require_authentication_or_gate
 
@@ -34,7 +36,7 @@ module Sign
             revoke_sessions_by_refs(@current_visitor, refs)
           end
 
-          if current_session_restricted? && can_promote_session?(@current_visitor)
+          if pending_session_limit_cycle? && can_promote_session?(@current_visitor)
             if promote_current_session_limit_cycle!(@current_visitor)
               consume_session_limit_gate!
               session.delete(:pending_login_visitor_id)
@@ -67,6 +69,7 @@ module Sign
             render :show
           else
             current_session.revoke! if current_session&.restricted?
+            current_db_sign_in_cycle_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
             consume_session_limit_gate!
             session.delete(:pending_login_visitor_id)
             log_out
@@ -78,6 +81,7 @@ module Sign
 
         def require_authentication_or_gate
           return if logged_in? && current_session_restricted?
+          return if pending_session_limit_cycle?
           return if session_limit_gate_valid? && session[:pending_login_visitor_id].present?
 
           if logged_in?
@@ -86,6 +90,10 @@ module Sign
           end
 
           redirect_to_login
+        end
+
+        def pending_session_limit_cycle?
+          current_db_sign_in_cycle_for_sequence&.sign_in_session_limit_pending?
         end
 
         def redirect_to_login
@@ -98,7 +106,7 @@ module Sign
 
           if return_path.present?
             flash[:notice] = notice
-            destination = safe_path_from_encoded_rt(return_path, fallback: sign_com_configuration_path)
+            destination = return_path_from_signed_rt(safe_encoded_rt(return_path)) || sign_com_configuration_path
             redirect_to_return_target_destination!(destination)
           else
             redirect_to(sign_com_configuration_path(ri: params[:ri]), notice: notice)

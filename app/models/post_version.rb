@@ -32,14 +32,11 @@
 
 # frozen_string_literal: true
 
-class PostVersion < AvatarRecord
-  include ::Version
-  include ::PublicId
-
-  belongs_to :post, inverse_of: :post_versions
-
-  validates :permalink, presence: true, length: { maximum: 200 }
-  validates :response_mode, presence: true
-  validates :publish_at, presence: true
-  validates :expires_at, presence: true
+class PostVersion < AppPostVersion
+  belongs_to :post, class_name: "Post", inverse_of: :post_versions
+  has_one :latest_post,
+          class_name: "Post",
+          foreign_key: :latest_version_id,
+          dependent: :nullify,
+          inverse_of: :latest_version_record
 end

@@ -5,6 +5,8 @@ module Sign
   module Com
     module Configuration
       class BirthdatesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         before_action :authenticate_visitor!
         before_action :require_birthdate_step_up!, only: :show
 

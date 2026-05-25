@@ -5,6 +5,8 @@ module Sign
   module App
     module Preference
       class EmailController < EmailsController
+        AUTHENTICATION_MODE = :bare
+
       end
     end
   end

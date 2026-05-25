@@ -4,6 +4,8 @@
 module Sign
   module App
     class PublicController < StaticController
+      AUTHENTICATION_MODE = :bare
+
     end
   end
 end

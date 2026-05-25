@@ -140,8 +140,51 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "https://outside.example:8443/app"
   end
 
+  test "app host accepts signed jt and redirects off host" do
+    token = issue_jump_target_token(
+      url: "https://outside.example/app?x=1",
+      path: "/app?x=1",
+      surface: "app",
+    )
+
+    host! normalized_jump_host("JUMP_SERVICE_URL", "jump.app.localhost")
+    get "/", params: { jt: token }, headers: { "Client-Agent" => MODERN_UA }
+
+    assert_response :redirect
+    assert_redirected_to "https://outside.example/app?x=1"
+    assert_equal "no-referrer", response.headers["Referrer-Policy"]
+  end
+
+  test "signed jt is surface bound" do
+    token = issue_jump_target_token(
+      url: "https://outside.example/app",
+      path: "/app",
+      surface: "com",
+    )
+
+    host! normalized_jump_host("JUMP_SERVICE_URL", "jump.app.localhost")
+    get "/", params: { jt: token }, headers: { "Client-Agent" => MODERN_UA }
+
+    assert_response :not_found
+  end
+
+  test "signed jt still enforces current jump allowlist when consumed" do
+    token = issue_jump_target_token(
+      url: "https://outside.example/app",
+      path: "/app",
+      surface: "app",
+    )
+    ENV["JUMP_ALLOWED_HOSTS"] = "other.example"
+
+    host! normalized_jump_host("JUMP_SERVICE_URL", "jump.app.localhost")
+    get "/", params: { jt: token }, headers: { "Client-Agent" => MODERN_UA }
+
+    assert_response :not_found
+  end
+
   test "route generation uses root with query param" do
     assert_equal "/?to=opaque123", jump_app_root_path(to: "opaque123")
+    assert_equal "/?jt=token123", jump_app_root_path(jt: "token123")
   end
 
   test "root controllers use the expected jump link models" do
@@ -152,5 +195,23 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
 
   def normalized_jump_host(env_key, fallback)
     Common::Redirect.normalize_host(ENV.fetch(env_key, fallback))
+  end
+
+  def issue_jump_target_token(url:, path:, surface:)
+    harness = Class.new do
+      include ReturnTargets::SignedTokenSupport
+
+      def issue(url:, path:, surface:)
+        claims = signed_target_claims(flow: "jump", surface: surface, session_nonce: "jump")
+        issue_signed_target_token(
+          payload: claims.merge("url" => url, "path" => path),
+          purpose: :jump_target,
+          salt: "jump_target_token",
+          expires_in: 15.minutes,
+        )
+      end
+    end.new
+
+    harness.issue(url: url, path: path, surface: surface)
   end
 end

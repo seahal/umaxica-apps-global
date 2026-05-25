@@ -8,8 +8,10 @@
 #
 #  id           :bigint           not null, primary key
 #  description  :string           default(""), not null
+#  discarded_at :datetime         default(Infinity), not null
 #  last_used_at :datetime
 #  public_key   :text             not null
+#  purged_at    :datetime         default(Infinity), not null
 #  sign_count   :bigint           default(0), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -21,10 +23,12 @@
 #
 # Indexes
 #
-#  index_visitor_passkeys_on_public_id    (public_id) UNIQUE
-#  index_visitor_passkeys_on_status_id    (status_id)
-#  index_visitor_passkeys_on_visitor_id   (visitor_id)
-#  index_visitor_passkeys_on_webauthn_id  (webauthn_id) UNIQUE
+#  index_visitor_passkeys_on_discarded_at  (discarded_at)
+#  index_visitor_passkeys_on_public_id     (public_id) UNIQUE
+#  index_visitor_passkeys_on_purged_at     (purged_at)
+#  index_visitor_passkeys_on_status_id     (status_id)
+#  index_visitor_passkeys_on_visitor_id    (visitor_id)
+#  index_visitor_passkeys_on_webauthn_id   (webauthn_id) UNIQUE
 #
 # Foreign Keys
 #
@@ -33,6 +37,7 @@
 #
 class VisitorPasskey < ComPrincipalRecord
   include PublicId
+  include Retainable
   include MultiFactorStatusCredential
 
   MAX_PASSKEYS_PER_VISITOR = 4
@@ -51,8 +56,18 @@ class VisitorPasskey < ComPrincipalRecord
   validates :description, presence: true
   validates :status_id, numericality: { only_integer: true }
   validates :sign_count, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  validate :enforce_visitor_passkey_limit, on: :create
-  validate :require_verified_recovery_identity, on: :create
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :visitor,
+                 association: :visitor_passkeys,
+                 foreign_key: :visitor_id,
+                 limit: :MAX_PASSKEYS_PER_VISITOR,
+                 record_name: "passkeys",
+                 owner_name: "visitor"
+  validates_with RecoveryIdentityRequiredValidator,
+                 on: :create,
+                 owner: :visitor,
+                 message: Visitor::RECOVERY_IDENTITY_REQUIRED_MESSAGE
 
   before_validation :set_defaults, on: :create
 
@@ -61,28 +76,6 @@ class VisitorPasskey < ComPrincipalRecord
   end
 
   private
-
-  def enforce_visitor_passkey_limit
-    return unless visitor_id
-
-    count =
-      if visitor&.visitor_passkeys&.loaded?
-        visitor.visitor_passkeys.count { |passkey| passkey != self }
-      else
-        operation = -> { self.class.where(visitor_id: visitor_id).count }
-        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
-      end
-
-    return if count < MAX_PASSKEYS_PER_VISITOR
-
-    errors.add(:base, :too_many, message: "exceeds maximum passkeys per visitor (#{MAX_PASSKEYS_PER_VISITOR})")
-  end
-
-  def require_verified_recovery_identity
-    return if visitor&.has_verified_recovery_identity?
-
-    errors.add(:base, Visitor::RECOVERY_IDENTITY_REQUIRED_MESSAGE)
-  end
 
   def set_defaults
     self.external_id ||= SecureRandom.uuid

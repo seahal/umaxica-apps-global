@@ -90,34 +90,45 @@ module Sign
       @user_email.user_email_status_id = pending_email_status_id
 
       @user_email.validate
-      existing_email =
-        if allow_existing && @user_email.address_digest.present?
-          ClientEmail.find_by(address_digest: @user_email.address_digest)
-        end
-      uniqueness_only = email_uniqueness_only_error?(@user_email)
 
-      has_errors = @user_email.errors.details.except(:user, :user_id).any?
-
-      if has_errors
-        return false unless allow_existing && uniqueness_only &&
-          pending_email_status?(existing_email)
-      end
-
-      if pending_email_status?(existing_email) &&
-          existing_email.reregistration_window_active?
-        return :cooldown
-      end
+      # Serialize all concurrent sign-up attempts for the same address
+      # digest. Without this, two sessions submitting the same address can
+      # both pass the existence check below and race the unique index on
+      # `save!`; only one survives and the loser surfaces a confusing
+      # uniqueness error mid-OTP-flow.
+      return false if @user_email.address_digest.blank?
 
       cooldown_active = false
       otp_number = nil
-      begin
-        ClientEmail.transaction do
-          # 2. Definitive check inside transaction with row lock
+
+      result =
+        SignUp::EmailPendingGuard.with_lock(
+          address_digest: @user_email.address_digest,
+          model_class: ClientEmail,
+        ) do
+          existing_email =
+            allow_existing ?
+                     ClientEmail.find_by(address_digest: @user_email.address_digest) : nil
+          uniqueness_only = email_uniqueness_only_error?(@user_email)
+          has_errors = @user_email.errors.details.except(:user, :user_id).any?
+
+          if has_errors
+            next false unless allow_existing && uniqueness_only &&
+              pending_email_status?(existing_email)
+          end
+
+          if pending_email_status?(existing_email) &&
+              existing_email.reregistration_window_active?
+            next :cooldown
+          end
+
+          # Definitive recheck under the address-level advisory lock with
+          # row lock as a belt-and-suspenders.
           if pending_email_status?(existing_email)
             locked = ClientEmail.lock.find_by(id: existing_email.id)
             if locked&.reregistration_window_active?
               cooldown_active = true
-              raise ActiveRecord::Rollback
+              next nil
             end
           end
 
@@ -128,16 +139,18 @@ module Sign
           otp_number = generate_otp_attributes(@user_email)
           @user_email.otp_last_sent_at = Time.current
           @user_email.save!
+          :ok
         end
-      rescue ActiveRecord::RecordInvalid => e
-        @user_email = e.record
-        return false
-      end
 
       return :cooldown if cooldown_active
+      return result if result == false || result == :cooldown
+      return false unless result == :ok
 
       send_verification_email(otp_number)
       true
+    rescue ActiveRecord::RecordInvalid => e
+      @user_email = e.record if e.record.is_a?(ClientEmail)
+      false
     end
 
     def complete_email_verification!(id, submitted_code, token = nil)

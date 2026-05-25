@@ -5,7 +5,9 @@ module Sign
   module Com
     module In
       class GuestController < Sign::Com::GuestController
-        guest_only! status: :unauthorized, no_redirect: true
+        AUTHENTICATION_MODE = :guest
+
+        declare_authentication_mode! :guest, status: :unauthorized, no_redirect: true
       end
     end
   end

@@ -44,7 +44,11 @@ module SignUp
     end
 
     def cancel?
-      mutable_ticket?
+      surface_matches? &&
+        sequence_bound? &&
+        !signed_in? &&
+        ticket.respond_to?(:sign_up_cancelable?) &&
+        (ticket.sign_up_cancelable? || ticket.sign_up_cancelled?)
     end
   end
 end

@@ -36,14 +36,13 @@ module SignIn
       end
     end
 
-    test "promotes matching restricted token and advances cycle to guardrail" do
+    test "promotes pending cycle without issuing a token and advances cycle to guardrail" do
       actor = create_client
       cycle = create_cycle(ClientSignInCycle, actor)
-      issue_result = SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
 
-      result = SessionLimitManager.new(cycle: cycle.reload, actor: actor, token: issue_result.token).promote!
+      result = SessionLimitManager.new(cycle: cycle.reload, actor: actor).promote!
 
-      assert_equal ClientTokenStatus::ACTIVE, result.token.reload.user_token_status_id
+      assert_nil result.token
       assert_predicate result.cycle, :sign_in_guardrail_pending?
       assert_equal "guardrail", result.cycle.step
     end
@@ -53,40 +52,23 @@ module SignIn
       create_active_client_token(actor)
       create_active_client_token(actor)
       cycle = create_cycle(ClientSignInCycle, actor)
-      issue_result = SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
 
       assert_raises(SessionLimitManager::PromotionBlocked) do
-        SessionLimitManager.new(cycle: cycle.reload, actor: actor, token: issue_result.token).promote!
+        SessionLimitManager.new(cycle: cycle.reload, actor: actor).promote!
       end
 
-      assert_predicate issue_result.token.reload, :restricted?
       assert_predicate cycle.reload, :sign_in_session_limit_pending?
     end
 
-    test "cancel revokes restricted token and fails cycle" do
+    test "cancel fails pending cycle without requiring a restricted token" do
       actor = create_client
       cycle = create_cycle(ClientSignInCycle, actor)
-      issue_result = SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
 
-      result = SessionLimitManager.new(cycle: cycle.reload, actor: actor, token: issue_result.token).cancel!
+      result = SessionLimitManager.new(cycle: cycle.reload, actor: actor).cancel!
 
-      assert_predicate result.token.reload, :revoked?
+      assert_nil result.token
       assert_predicate result.cycle, :sign_in_failed?
       assert_equal "failed", result.cycle.step
-    end
-
-    test "rejects token mismatch without mutating cycle or token" do
-      actor = create_client
-      cycle = create_cycle(ClientSignInCycle, actor)
-      issue_result = SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
-      other_token = ClientToken.create!(user: actor)
-
-      assert_raises(SessionLimitManager::TokenMismatch) do
-        SessionLimitManager.new(cycle: cycle.reload, actor: actor, token: other_token).promote!
-      end
-
-      assert_predicate issue_result.token.reload, :restricted?
-      assert_predicate cycle.reload, :sign_in_session_limit_pending?
     end
 
     test "rejects actor mismatch without issuing restricted token" do
@@ -118,6 +100,32 @@ module SignIn
       assert_nil cycle.token_id
     end
 
+    test "rejects expired session-limit cycle without issuing token" do
+      actor = create_client
+      cycle = create_cycle(ClientSignInCycle, actor, issued_at: 20.minutes.ago, expires_at: 1.second.ago)
+
+      assert_no_difference("ClientToken.count") do
+        assert_raises(SessionLimitManager::InvalidCycle) do
+          SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
+        end
+      end
+
+      assert_predicate cycle.reload, :sign_in_session_limit_pending?
+      assert_nil cycle.token_id
+    end
+
+    test "rejects issuing a second restricted token for an already bound cycle" do
+      actor = create_client
+      cycle = create_cycle(ClientSignInCycle, actor)
+      SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
+
+      assert_no_difference("ClientToken.count") do
+        assert_raises(SessionLimitManager::InvalidCycle) do
+          SessionLimitManager.new(cycle: cycle.reload, actor: actor).issue_restricted!
+        end
+      end
+    end
+
     private
 
     def create_client
@@ -136,15 +144,17 @@ module SignIn
       ClientToken.create!(user: actor)
     end
 
-    def create_cycle(cycle_class, actor, status_name: "SESSION_LIMIT_PENDING")
+    def create_cycle(cycle_class, actor, status_name: "SESSION_LIMIT_PENDING", **overrides)
       cycle_class.create!(
-        principal_id: actor.id,
-        status_id: cycle_class.status_id_for(status_name),
-        step: step_for(status_name),
-        return_to: "/dashboard",
-        nonce_digest: cycle_class.digest_nonce("nonce"),
-        issued_at: Time.current,
-        expires_at: 15.minutes.from_now,
+        {
+          principal_id: actor.id,
+          status_id: cycle_class.status_id_for(status_name),
+          step: step_for(status_name),
+          return_to: "/dashboard",
+          nonce_digest: cycle_class.digest_nonce("nonce"),
+          issued_at: Time.current,
+          expires_at: 15.minutes.from_now,
+        }.merge(overrides),
       )
     end
 

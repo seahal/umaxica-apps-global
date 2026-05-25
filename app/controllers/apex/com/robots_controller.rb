@@ -4,6 +4,8 @@
 module Apex
   module Com
     class RobotsController < BareController
+      AUTHENTICATION_MODE = :bare
+
       include ::Robots
 
       def show

@@ -54,27 +54,18 @@ class OperatorPasskey < OrgPrincipalRecord
   validates :status_id, numericality: { only_integer: true }
   validates :sign_count, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
-  validate :enforce_staff_passkey_limit, on: :create
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :staff,
+                 association: :staff_passkeys,
+                 foreign_key: :staff_id,
+                 limit: :MAX_PASSKEYS_PER_STAFF,
+                 record_name: "passkeys",
+                 owner_name: "staff"
 
   before_validation :set_defaults, on: :create
 
   private
-
-  def enforce_staff_passkey_limit
-    return unless staff_id
-
-    count =
-      if staff&.staff_passkeys&.loaded?
-        staff.staff_passkeys.count { |passkey| passkey != self }
-      elsif defined?(Prosopite)
-        Prosopite.pause { self.class.where(staff_id: staff_id).count }
-      else
-        self.class.where(staff_id: staff_id).count
-      end
-    return if count < MAX_PASSKEYS_PER_STAFF
-
-    errors.add(:base, :too_many, message: "exceeds maximum passkeys per staff (#{MAX_PASSKEYS_PER_STAFF})")
-  end
 
   def set_defaults
     self.external_id ||= SecureRandom.uuid

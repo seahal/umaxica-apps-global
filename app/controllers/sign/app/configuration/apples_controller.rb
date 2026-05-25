@@ -5,6 +5,8 @@ module Sign
   module App
     module Configuration
       class ApplesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include ::Verification::Client
 
         before_action :authenticate_client!

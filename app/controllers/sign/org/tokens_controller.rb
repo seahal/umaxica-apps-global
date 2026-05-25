@@ -4,7 +4,9 @@
 module Sign
   module Org
     class TokensController < ApplicationController
-      public_strict!
+      AUTHENTICATION_MODE = :deny_all
+
+      declare_authentication_mode! :open
 
       def create
         result = ::Oidc::TokenExchangeService.call(

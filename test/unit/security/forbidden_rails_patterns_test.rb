@@ -124,6 +124,10 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
   end
 
   def route_paths
-    [Rails.root.join("config/routes.rb"), *Rails.root.glob("config/routes/**/*.rb")]
+    [
+      Rails.root.join("config/routes.rb"),
+      *Rails.root.glob("config/routes/**/*.rb"),
+      *Rails.root.glob("config/routing/**/*.rb"),
+    ]
   end
 end

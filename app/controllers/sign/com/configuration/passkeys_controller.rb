@@ -5,6 +5,8 @@ module Sign
   module Com
     module Configuration
       class PasskeysController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include ::Verification::Visitor
         include Sign::Webauthn
         include ::CloudflareTurnstile

@@ -5,6 +5,8 @@ module Sign
   module Com
     module In
       class CheckpointsController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         before_action :authenticate_visitor!
         before_action :continue_checkpoint_sequence_without_content!
         before_action :guard_timeout, only: %i(show update)

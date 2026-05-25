@@ -5,6 +5,8 @@ module Sign
   module Com
     module Verification
       class SetupsController < Sign::Com::PrivateController
+        AUTHENTICATION_MODE = :private
+
         before_action :authenticate_visitor!
 
         def new

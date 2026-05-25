@@ -5,20 +5,15 @@
       "resolved": "ghcr.io/anthropics/devcontainer-features/claude-code@sha256:cfc2e7d3e9fd3b9b01f8d5cb158508a884c8c0ede2e23ed10f32dea5d4ffe69a",
       "integrity": "sha256:cfc2e7d3e9fd3b9b01f8d5cb158508a884c8c0ede2e23ed10f32dea5d4ffe69a"
     },
-    "ghcr.io/devcontainers-extra/features/lefthook-asdf:1": {
-      "version": "1.0.3",
-      "resolved": "ghcr.io/devcontainers-extra/features/lefthook-asdf@sha256:7eeba1f61b4eda2004fdced224c39a775c00e248790f35407353252b48f3cc43",
-      "integrity": "sha256:7eeba1f61b4eda2004fdced224c39a775c00e248790f35407353252b48f3cc43"
+    "ghcr.io/devcontainers-extra/features/opencode:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/devcontainers-extra/features/opencode@sha256:7c15617cc9e501bc218097adc4910a00f81ed52fc5a5eef463aa1cc01317f9ba",
+      "integrity": "sha256:7c15617cc9e501bc218097adc4910a00f81ed52fc5a5eef463aa1cc01317f9ba"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {
       "version": "1.1.0",
       "resolved": "ghcr.io/devcontainers/features/github-cli@sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671",
       "integrity": "sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671"
-    },
-    "ghcr.io/jasonthedeveloper/features/trivy:1": {
-      "version": "1.0.0",
-      "resolved": "ghcr.io/jasonthedeveloper/features/trivy@sha256:c2f95d6884821376bec12a7b778fce22dbfc41267bda00c2d09e653eea18345b",
-      "integrity": "sha256:c2f95d6884821376bec12a7b778fce22dbfc41267bda00c2d09e653eea18345b"
     },
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {
       "version": "1.0.0",

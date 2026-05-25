@@ -113,7 +113,9 @@ describe("applyThemeFromCookie", () => {
     const matchMediaResult = {
       matches: false,
       addEventListener: vi.fn((event, cb) => {
-        if (event === "change") changeCallback = cb;
+        if (event === "change") {
+          changeCallback = cb;
+        }
       }),
     };
     windowMock.matchMedia = vi.fn(() => matchMediaResult);

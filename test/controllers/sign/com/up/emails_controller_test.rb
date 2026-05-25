@@ -73,17 +73,22 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=date][name=birthdate]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
 
-    patch sign_com_up_checkpoint_birthdate_url(ri: "jp"),
-          params: { requirement: "birthdate", birthdate: "2000-01-01" },
-          headers: default_headers
-
-    assert_response :redirect
-
     cycle = VisitorSignUpCycle.order(:id).find_by!(
       principal_id: visitor_email.visitor_id,
       pending_contact_type: "email",
       pending_contact_id: visitor_email.id,
     )
+
+    patch sign_com_up_checkpoint_birthdate_url(ri: "jp"),
+          params: {
+            requirement: "birthdate",
+            birthdate: "2000-01-01",
+            checkpoint_version: cycle.checkpoint_version,
+          },
+          headers: default_headers
+
+    assert_response :redirect
+
     visitor = visitor_email.reload.visitor
 
     assert_equal VisitorSignUpCycleStatus::COMPLETED, cycle.reload.status_id
@@ -507,7 +512,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "direct controller private branches for flow and existing verification" do
     controller = Sign::Com::Up::EmailsController.new
     session_hash = {}
-    params_hash = ActionController::Parameters.new(ri: "jp", rt: Base64.urlsafe_encode64("/configuration"))
+    params_hash = ActionController::Parameters.new(ri: "jp", rt: "/configuration")
     redirects = []
     renders = []
 
@@ -574,7 +579,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal [[:edit], { status: :unprocessable_content }], renders.last
 
-    assert_equal Base64.urlsafe_encode64("/configuration"), controller.send(:sanitized_rt_param)
+    assert_match(/--/, controller.send(:sanitized_rt_param))
     params_hash[:rt] = "%%%bad"
 
     assert_nil controller.send(:sanitized_rt_param)

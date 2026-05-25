@@ -5,6 +5,8 @@ module Sign
   module Org
     module In
       class SecretsController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include ::CloudflareTurnstile
         include SessionLimitGate
 

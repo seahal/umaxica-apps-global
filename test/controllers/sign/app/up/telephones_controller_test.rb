@@ -337,7 +337,11 @@ module Sign::App::Up
 
       assert_response :success
       assert_select "input[type=date][name=birthdate]"
-      assert_select "a[href='#{new_sign_app_up_checkpoint_passkey_path(regional_defaults)}']"
+      cycle = ClientSignUpCycle.find_by!(principal_id: user.id)
+
+      assert_select "a[href='#{new_sign_app_up_checkpoint_passkey_path(
+        regional_defaults.merge(checkpoint_version: cycle.checkpoint_version),
+      )}']"
     end
 
     test "abandoned telephone sign up after otp can re-register the same number" do

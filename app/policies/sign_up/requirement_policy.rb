@@ -7,7 +7,8 @@ module SignUp
       mutable_ticket? &&
         at_step?("checkpoint") &&
         pending_actor_matches? &&
-        requirement_belongs_to_ticket?
+        requirement_belongs_to_ticket? &&
+        requirement_still_pending?
     end
 
     def clear_birthdate?
@@ -30,6 +31,13 @@ module SignUp
 
     def requirement_belongs_to_ticket?
       RequirementRegistry.for_ticket(ticket, surface: surface).requirement?(context.requirement)
+    rescue ArgumentError
+      false
+    end
+
+    def requirement_still_pending?
+      registry = RequirementRegistry.for_ticket(ticket, surface: surface)
+      !registry.requirement_cleared?(ticket.completed_requirements, context.requirement)
     rescue ArgumentError
       false
     end

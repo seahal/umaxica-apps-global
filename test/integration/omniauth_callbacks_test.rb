@@ -21,9 +21,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:apple] = nil
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
+    ClientTokenBindingMethod.ensure_defaults!
+    ClientTokenDbscStatus.ensure_defaults!
+    ClientTokenKind.ensure_defaults!
+    ClientTokenStatus.ensure_defaults!
   end
 
-  test "should sign in with Google" do
+  test "unknown Google identity enters sign up checkpoint instead of signing in" do
     # IMPORTANT: Social login uses provider+uid ONLY, NOT email
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
       {
@@ -46,13 +50,19 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    assert_redirected_to @expected_redirect
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
 
     user = ClientSocialGoogle.find_by(uid: "123456789").user
 
     assert_not_nil user
-    assert ClientToken.exists?(user_id: user.id), "ClientToken should be created for Google login"
+    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
+    assert_nil user.birthdate
+    assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before checkpoint"
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    follow_redirect!
+
+    assert_select "input[type=date][name=birthdate]"
   end
 
   test "google callback without region parameter is processed without regional redirect" do
@@ -79,7 +89,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_not_includes response.location, "code="
   end
 
-  test "should sign in with Apple" do
+  test "unknown Apple identity enters sign up checkpoint instead of signing in" do
     # IMPORTANT: Social login uses provider+uid ONLY, NOT email
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
@@ -99,15 +109,22 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
          params: { state: state },
          headers: social_callback_headers(@host)
 
-    assert_redirected_to @expected_redirect
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
 
     user = ClientSocialApple.find_by(uid: "apple_uid_123").user
 
     assert_not_nil user
+    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
+    assert_nil user.birthdate
+    assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before checkpoint"
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    follow_redirect!
+
+    assert_select "input[type=date][name=birthdate]"
   end
 
-  test "should sign in with Apple GET callback" do
+  test "unknown Apple GET callback enters sign up checkpoint instead of signing in" do
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
         provider: "apple",
@@ -126,16 +143,22 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    assert_redirected_to @expected_redirect
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
 
     user = ClientSocialApple.find_by(uid: "apple_get_callback_uid").user
 
     assert_not_nil user
+    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
+    assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before checkpoint"
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    follow_redirect!
+
+    assert_select "input[type=date][name=birthdate]"
   end
 
   test "apple social login with MFA enabled does not require additional MFA challenge" do
-    user = Client.create!(multi_factor_enabled: true)
+    user = Client.create!(birthdate: "2000-02-03", multi_factor_enabled: true)
     ClientOneTimePassword.create!(
       user: user,
       private_key: ROTP::Base32.random_base32,
@@ -175,7 +198,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
   end
 
   test "should sign in with existing Google user" do
-    user = Client.create!
+    user = Client.create!(birthdate: "2000-02-03")
     ClientSocialGoogle.create!(
       user: user,
       uid: "existing_uid",
@@ -215,8 +238,48 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
                  flash[:notice]
   end
 
-  test "social login with MFA enabled does not require additional MFA challenge" do
+  test "existing Google identity without birthdate returns to sign up checkpoint" do
     user = Client.create!
+    ClientSocialGoogle.create!(
+      user: user,
+      uid: "existing_missing_birthdate_uid",
+      provider: "google_app",
+      token: "existing_token",
+      expires_at: 1.week.from_now.to_i,
+      user_social_google_status: client_social_google_statuses(:active),
+    )
+
+    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
+      {
+        provider: "google_app",
+        uid: "existing_missing_birthdate_uid",
+        info: {},
+        credentials: {
+          token: "new_token",
+          refresh_token: "new_refresh_token",
+          expires_at: 1.week.from_now.to_i,
+        },
+      },
+    )
+
+    state = start_social_auth_flow(provider: "google_app")
+
+    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: state },
+        headers: social_callback_headers(@host)
+
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before birthdate checkpoint"
+    follow_redirect!
+
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    follow_redirect!
+
+    assert_select "input[type=date][name=birthdate]"
+  end
+
+  test "social login with MFA enabled does not require additional MFA challenge" do
+    user = Client.create!(birthdate: "2000-02-03")
     user.update!(multi_factor_enabled: true)
     ClientOneTimePassword.create!(
       user: user,
@@ -288,7 +351,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
   test "google login with session limit exceeded redirects to session management" do
     # Create an existing user with Google social identity
-    user = Client.create!
+    user = Client.create!(birthdate: "2000-02-03")
     ClientSocialGoogle.create!(
       user: user,
       uid: "session_limit_uid",

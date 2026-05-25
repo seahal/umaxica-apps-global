@@ -3,6 +3,8 @@
 
 module Sign::Org
   class UpsController < Up::GuestController
+    AUTHENTICATION_MODE = :guest
+
     def new
     end
   end

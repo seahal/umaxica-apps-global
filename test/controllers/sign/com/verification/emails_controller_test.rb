@@ -24,7 +24,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new sends otp and redirects to edit" do
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+    return_to = sign_com_configuration_emails_path(ri: "jp")
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do

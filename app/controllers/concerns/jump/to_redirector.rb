@@ -3,6 +3,11 @@
 
 module Jump::ToRedirector
   extend ActiveSupport::Concern
+  include ReturnTargets::SignedTokenSupport
+
+  JUMP_TARGET_TOKEN_SALT = "jump_target_token"
+  JUMP_TARGET_TOKEN_PURPOSE = :jump_target
+  JUMP_TARGET_TOKEN_EXPIRES_IN = 15.minutes
 
   included do
     skip_before_action :apply_localization_preferences, raise: false
@@ -10,6 +15,16 @@ module Jump::ToRedirector
   end
 
   def show
+    if params[:jt].present?
+      destination = verified_jump_target(params[:jt])
+      return render_not_found if destination.blank?
+
+      response.set_header("Referrer-Policy", "no-referrer")
+      return Rails.logger.silence do
+        redirect_to(destination.fetch("url"), allow_other_host: true)
+      end
+    end
+
     jump_link_model = self.class::JUMP_LINK_MODEL
     jump_link = jump_link_model.find_by(public_id: params[:public_id])
     return render_not_found if jump_link.blank?
@@ -50,16 +65,7 @@ module Jump::ToRedirector
 
   # Validates destination URL scheme and host against allowlist
   def validate_destination_url!(url)
-    uri = URI.parse(url)
-
-    # Reject non-http(s) schemes
-    return false unless uri.scheme&.downcase&.in?(%w(http https))
-    return false if uri.userinfo.present?
-
-    # Validate host against allowlist
-    allowed_jump_host?(uri)
-  rescue URI::InvalidURIError
-    false
+    safe_jump_destination(url).present?
   end
 
   def extract_host(url)
@@ -108,5 +114,97 @@ module Jump::ToRedirector
     return host if uri.port.blank? || uri.port == default_port
 
     "#{host}:#{uri.port}"
+  end
+
+  def issue_jump_target_token(url:, path:)
+    destination = safe_jump_destination(url)
+    signed_path = signed_target_internal_path(path)
+    if destination.blank? || signed_path.blank? || destination.fetch("path") != signed_path
+      log_signed_target_rejection("jump_target.rejected", "blank_jump_target")
+      return nil
+    end
+
+    claims = signed_target_claims(
+      flow: jump_target_flow,
+      surface: jump_target_surface,
+      session_nonce: jump_target_session_nonce,
+    )
+    if claims.blank?
+      log_signed_target_rejection("jump_target.rejected", "blank_common_claim")
+      return nil
+    end
+
+    issue_signed_target_token(
+      payload: claims.merge("url" => destination.fetch("url"), "path" => signed_path),
+      purpose: JUMP_TARGET_TOKEN_PURPOSE,
+      salt: JUMP_TARGET_TOKEN_SALT,
+      expires_in: JUMP_TARGET_TOKEN_EXPIRES_IN,
+    )
+  end
+
+  def verified_jump_target(token)
+    payload = verified_signed_target_payload(
+      token,
+      purpose: JUMP_TARGET_TOKEN_PURPOSE,
+      salt: JUMP_TARGET_TOKEN_SALT,
+      expected_flow: jump_target_flow,
+      expected_surface: jump_target_surface,
+      session_nonce: jump_target_session_nonce,
+    )
+    return nil if payload.blank?
+
+    destination = safe_jump_destination(payload["url"])
+    signed_path = signed_target_internal_path(payload["path"])
+    return nil if destination.blank? || signed_path.blank?
+    return nil unless destination.fetch("path") == signed_path
+
+    destination.slice("url", "path")
+  end
+
+  def safe_jump_destination(url)
+    value = signed_target_clean_string(url)
+    return nil if value.blank?
+
+    uri = URI.parse(value)
+    return nil unless %w(http https).include?(uri.scheme&.downcase)
+    return nil if uri.host.blank?
+    return nil if uri.userinfo.present?
+    return nil if uri.fragment.present?
+    return nil unless allowed_jump_host?(uri)
+
+    path = uri.path.presence || "/"
+    return nil unless path.start_with?("/")
+    return nil if path.start_with?("//")
+
+    query = uri.query.present? ? "?#{uri.query}" : ""
+    port = (uri.port && uri.port != default_port_for(uri.scheme)) ? ":#{uri.port}" : ""
+    {
+      "url" => "#{uri.scheme.downcase}://#{uri.host.downcase}#{port}#{path}#{query}",
+      "path" => "#{path}#{query}",
+    }
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  def jump_target_flow
+    "jump"
+  end
+
+  def jump_target_surface
+    case self.class.name
+    when /::App::/ then "app"
+    when /::Com::/ then "com"
+    when /::Org::/ then "org"
+    else
+      "jump"
+    end
+  end
+
+  def jump_target_session_nonce
+    "jump"
+  end
+
+  def default_port_for(scheme)
+    scheme.to_s.casecmp("https").zero? ? 443 : 80
   end
 end

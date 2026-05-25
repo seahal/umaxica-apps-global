@@ -40,15 +40,51 @@ module SignUp
 
     def call
       return invalid("ticket is required") unless ticket
-      return expired_result if ticket.expired? && event != :expire
-      return invalid("terminal ticket cannot transition") if terminal? && event != :start
 
-      dispatch_event
+      # Serialize the state-machine evaluation under the same row-level lock
+      # the transitions themselves use. Without this, callers can read a
+      # stale `status_id` between policy check and `transition_to!`, leading
+      # to two writers both attempting the same outbound transition. The
+      # transition itself would still raise `InvalidTransition` for the
+      # loser, but only AFTER any side effects the caller already performed
+      # (e.g. actor mutations in finalize). Locking here serializes the
+      # *decision*, not just the write.
+      if ticket.persisted? && ticket.respond_to?(:with_cycle_lock)
+        evaluate_under_lock
+      else
+        evaluate_event
+      end
     rescue ArgumentError, ActiveRecord::RecordInvalid, Cycle::InvalidTransition => e
       invalid(e.message)
     end
 
     private
+
+    def evaluate_under_lock
+      result = nil
+      ticket.with_cycle_lock do
+        ticket.reload
+        result = evaluate_event
+      end
+      result
+    end
+
+    def evaluate_event
+      return ok if event == :cancel && ticket.respond_to?(:sign_up_cancelled?) && ticket.sign_up_cancelled?
+      # Reject events on TTL-expired or logically-discarded tickets. The union
+      # is intentional: discarded rows must not accept transitions any more
+      # than expired ones can, but the two states are surfaced separately
+      # (SignCycle#expired? = TTL only; Retainable#lapsed? = logical deletion).
+      return expired_result if (ticket.expired? || ticket_lapsed?) && event != :expire
+
+      return invalid("terminal ticket cannot transition") if terminal? && !terminal_event_allowed?
+
+      dispatch_event
+    end
+
+    def ticket_lapsed?
+      ticket.respond_to?(:lapsed?) && ticket.lapsed?
+    end
 
     def dispatch_event
       case event
@@ -79,6 +115,8 @@ module SignUp
       when :expire
         terminal_transition!("EXPIRED", step: "expired", status: :expired, cleanup_required: true)
       when :cancel
+        return invalid("ticket is not cancelable") if ticket.respond_to?(:sign_up_cancelable?) && !ticket.sign_up_cancelable?
+
         terminal_transition!(
           "CANCELLED", step: "cancelled", timestamp: :cancelled_at, status: :failed,
                        cleanup_required: true,
@@ -112,17 +150,26 @@ module SignUp
     def clear_requirement
       return invalid("ticket is not at checkpoint") unless status?("CHECKPOINT_PENDING")
 
+      return invalid("checkpoint is stale") unless checkpoint_version_matches?
+
       requirement = payload[:requirement]&.to_sym
       registry = RequirementRegistry.for_ticket(ticket)
       return invalid("requirement is required") if requirement.blank?
       return invalid("requirement does not belong to entry method") unless registry.requirement?(requirement)
+      return invalid("requirement is already clear") if
+        registry.requirement_cleared?(ticket.completed_requirements, requirement)
+
+      before_clear = payload[:before_clear]
+      before_clear.call if before_clear.respond_to?(:call)
 
       requirements = ticket.completed_requirements.deep_dup
       requirements[requirement.to_s] = {
         "cleared" => true,
         "cleared_at" => Time.current.iso8601,
       }
-      ticket.update!(completed_requirements: requirements)
+      attrs = { completed_requirements: requirements }
+      attrs[:checkpoint_version] = ticket.checkpoint_version + 1 if ticket.has_attribute?(:checkpoint_version)
+      ticket.update!(attrs)
 
       missing = registry.missing_requirements(ticket.completed_requirements)
       Result.build(
@@ -197,7 +244,26 @@ module SignUp
     end
 
     def terminal?
-      %w(COMPLETED FAILED EXPIRED CANCELLED).any? { |status_name| status?(status_name) }
+      if ticket.respond_to?(:sign_up_terminal?)
+        ticket.sign_up_terminal?
+      else
+        %w(COMPLETED FAILED EXPIRED CANCELLED).any? { |status_name| status?(status_name) }
+      end
+    end
+
+    def terminal_event_allowed?
+      event == :start || (event == :cancel && ticket.respond_to?(:sign_up_cancelled?) && ticket.sign_up_cancelled?)
+    end
+
+    def checkpoint_version_matches?
+      return true unless ticket.has_attribute?(:checkpoint_version)
+
+      submitted_version = payload[:checkpoint_version]
+      return false if submitted_version.blank?
+
+      Integer(submitted_version.to_s, 10) == ticket.checkpoint_version
+    rescue ArgumentError, TypeError
+      false
     end
 
     def ok(next_event: nil)

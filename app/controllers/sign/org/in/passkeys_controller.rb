@@ -17,6 +17,8 @@ module Sign
       # planned for a future phase. Currently, identifier is required to look up
       # the operator's registered passkeys.
       class PasskeysController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include Sign::Webauthn
         include Sign::PasskeyAuthentication
         include Sign::PasskeyAuthenticationHelpers

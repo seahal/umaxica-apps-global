@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_20_190001) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_25_233000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -96,10 +96,16 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_190001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "status_id", default: 10, null: false
+    t.bigint "selected_region_id"
+    t.bigint "selected_persona_id"
+    t.datetime "selector_completed_at"
+    t.datetime "session_issued_at"
     t.index ["discarded_at"], name: "index_operator_sign_in_cycles_on_discarded_at"
     t.index ["expires_at"], name: "index_operator_sign_in_cycles_on_expires_at"
     t.index ["principal_id"], name: "index_operator_sign_in_cycles_on_principal_id"
     t.index ["public_id"], name: "index_operator_sign_in_cycles_on_public_id", unique: true
+    t.index ["selected_persona_id"], name: "index_operator_sign_in_cycles_on_selected_persona_id"
+    t.index ["selected_region_id"], name: "index_operator_sign_in_cycles_on_selected_region_id"
     t.index ["state"], name: "index_operator_sign_in_cycles_on_state"
     t.index ["status_id"], name: "index_operator_sign_in_cycles_on_status_id"
     t.index ["token_id"], name: "index_operator_sign_in_cycles_on_token_id"

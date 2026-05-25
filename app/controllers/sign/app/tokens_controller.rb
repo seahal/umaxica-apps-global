@@ -4,9 +4,11 @@
 module Sign
   module App
     class TokensController < ApplicationController
+      AUTHENTICATION_MODE = :deny_all
+
       include ::RateLimit
 
-      public_strict!
+      declare_authentication_mode! :open
 
       # Limit token exchange attempts to prevent brute-force/DoS
       rate_limit to: 10, within: 1.minute, only: :create

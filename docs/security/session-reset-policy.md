@@ -27,6 +27,12 @@ point into a single choke point that must be passed.
 Sign-up completion goes through a dedicated sign-in method (`establish_signed_in_session!`), so it
 is covered by the same chokepoint.
 
+For stale sign-out submissions after another tab has already completed logout, the browser no longer
+has the access/refresh cookie state required for an authenticated logout request. The sign-out
+controller lets `authenticate!` reject the request and redirect to sign-in without calling the token
+revoke primitive, resetting the Rails session again, or writing a logout audit event. See
+`docs/security/logout-sequence.md`.
+
 ## Ordering constraints
 
 The placement order of `reset_session` upon completion of step-up is a safety requirement.

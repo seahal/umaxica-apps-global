@@ -65,7 +65,10 @@ module Sign
       def run_sign_up_requirement_event(payload: {})
         return if performed?
 
-        result = perform_sign_up_event(:clear_requirement, payload: payload)
+        result = perform_sign_up_event(
+          :clear_requirement,
+          payload: payload.merge(checkpoint_version: sign_up_checkpoint_version_param),
+        )
         return finalize_sign_up_from_checkpoint! if result.success? && result.next_event == :finalize
 
         render_sign_up_result(result)
@@ -128,6 +131,7 @@ module Sign
 
       def persist_sign_up_birthdate_requirement
         return true unless sign_up_requirement_param == "birthdate"
+        return false unless validate_sign_up_checkpoint_version!
 
         actor = sign_up_pending_actor
         unless actor
@@ -144,33 +148,95 @@ module Sign
         true
       end
 
+      def clear_sign_up_birthdate_requirement
+        return if performed?
+
+        actor = sign_up_pending_actor
+        unless actor
+          render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+          return
+        end
+
+        result = perform_sign_up_event(
+          :clear_requirement,
+          payload: {
+            requirement: :birthdate,
+            checkpoint_version: sign_up_checkpoint_version_param,
+            before_clear: -> {
+              actor.birthdate = sign_up_birthdate_param
+              actor.save!
+            },
+          },
+        )
+        return finalize_sign_up_from_checkpoint! if result.success? && result.next_event == :finalize
+
+        render_sign_up_result(result)
+      end
+
       def finalize_sign_up_from_checkpoint!(json: false)
         context = sign_up_finalization_context
         return render_sign_up_finalization_forbidden(json: json) unless context
         return render_sign_up_finalization_forbidden(json: json) unless
           allowed_to?(:finalize?, context, with: SignUp::FinalizationPolicy)
 
-        finalization_result = finalize_sign_up_side_effect!
-        finalized = perform_sign_up_event(:finalize, payload: { finalization_result: finalization_result })
-        return render_sign_up_failure_result(finalized, json: json) unless finalized.success?
+        finalized = nil
+        handoff = nil
+        sign_in_result = nil
 
-        sign_in_result = establish_sign_up_session!(context.pending_actor)
-        handoff = perform_sign_up_event(
-          :handoff_to_sign_in,
-          payload: {
-            sign_in_handoff_status: sign_in_result.success? ? :accepted : :failed,
-            sign_in_handoff: sign_in_result.status,
-          },
-        )
-        return render_sign_up_failure_result(handoff, json: json) unless handoff.success?
+        # Serialize the entire finalize/handoff/complete sequence under the
+        # cycle's row-level lock. Without this, two concurrent finalize
+        # requests for the same cycle each see CHECKPOINT_PENDING, both
+        # mutate the actor (one fails on rp_account uniqueness, leaving a
+        # half-built state), and only afterwards the StateMachine catches
+        # the duplicate transition. Holding the lock from the policy
+        # re-check through `:complete` keeps the actor mutation and the
+        # cycle transition atomic with respect to peers.
+        sign_up_ticket_record_class.connected_to(role: :writing) do
+          @sign_up_ticket.with_cycle_lock do
+            @sign_up_ticket.reload
 
-        perform_sign_up_event(:complete)
-        sign_up_cycle_locator.clear!
+            unless @sign_up_ticket.sign_up_checkpoint_pending?
+              finalized = SignUp::Result.build(
+                status: :invalid_transition,
+                ticket: @sign_up_ticket,
+                errors: ["ticket is not at checkpoint"],
+              )
+              next
+            end
+
+            finalization_result = finalize_sign_up_side_effect!
+            finalized = perform_sign_up_event(
+              :finalize, payload: { finalization_result: finalization_result },
+            )
+            next unless finalized.success?
+
+            sign_in_result = handoff_to_sign_in_cycle!(context.pending_actor)
+            handoff = perform_sign_up_event(
+              :handoff_to_sign_in,
+              payload: {
+                sign_in_handoff_status: sign_in_result.success? ? :accepted : :failed,
+                sign_in_handoff: sign_in_result.status,
+              },
+            )
+            next unless handoff.success?
+
+            perform_sign_up_event(:complete)
+          end
+        end
+
+        return render_sign_up_failure_result(finalized, json: json) unless finalized&.success?
+        return render_sign_up_failure_result(handoff, json: json) unless handoff&.success?
+
+        sign_up_session_state.clear_all!
         redirect_after_sign_up_handoff!(sign_in_result, json: json)
       end
 
+      def sign_up_session_state
+        SignUp::SessionState.for(session, surface: sign_up_surface)
+      end
+
       def sign_up_ticket_public_id
-        params[:sid].presence || session[sign_up_sequence_session_key].presence
+        session[sign_up_sequence_session_key].presence
       end
 
       def sign_up_requirement_param
@@ -182,6 +248,35 @@ module Sign
           params.dig(:sign_up, :birthdate).presence ||
           params.dig(:client, :birthdate).presence ||
           params.dig(:visitor, :birthdate).presence
+      end
+
+      def sign_up_checkpoint_version_param
+        params[:checkpoint_version].presence || params.dig(:sign_up, :checkpoint_version).presence
+      end
+
+      def validate_sign_up_checkpoint_version!(json: false)
+        return true unless @sign_up_ticket&.has_attribute?(:checkpoint_version)
+
+        submitted_version = sign_up_checkpoint_version_param
+        valid =
+          submitted_version.present? &&
+          Integer(submitted_version.to_s, 10) == @sign_up_ticket.checkpoint_version
+
+        return true if valid
+
+        if json
+          render json: { error: "stale_checkpoint" }, status: :conflict
+        else
+          render plain: "stale_checkpoint", status: :conflict
+        end
+        false
+      rescue ArgumentError, TypeError
+        if json
+          render json: { error: "stale_checkpoint" }, status: :conflict
+        else
+          render plain: "stale_checkpoint", status: :conflict
+        end
+        false
       end
 
       def sign_up_actor_authentication
@@ -333,13 +428,7 @@ module Sign
           telephone = VisitorTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
           return :failed unless telephone
 
-          VisitorTelephone.transaction do
-            telephone.lock!
-            telephone.clear_otp
-            telephone.visitor_telephone_status_id = VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP
-            telephone.save!
-            actor.create_rp_account! unless actor.rp_account
-          end
+          Sign::Com::Up::TelephoneRegistrationFinalizer.call(telephone: telephone)
         when "email"
           Visitor.transaction do
             actor.create_rp_account! unless actor.rp_account
@@ -353,13 +442,17 @@ module Sign
         :failed
       end
 
-      def establish_sign_up_session!(actor)
+      def handoff_to_sign_in_cycle!(actor)
+        # bootstrap_actor: true marks this as a fresh registration handoff.
+        # The sign-in boundary creates or advances a pending cycle; active
+        # session issuance remains delayed until checkpoint and selector pass.
         result = establish_signed_in_session!(
           actor,
           rt: params[:rt].presence || @sign_up_ticket.return_to.presence,
           ri: params[:ri],
           auth_method: sign_up_auth_method,
           audit_context: { flow: "sign_up", sign_up_cycle_id: @sign_up_ticket.public_id },
+          bootstrap_actor: true,
         )
         sign_in_result_from_session_result(result, actor: actor)
       end

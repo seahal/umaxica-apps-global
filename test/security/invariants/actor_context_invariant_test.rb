@@ -57,12 +57,65 @@ module Security
         assert_empty offenders, "Use Actor.authn and Actor.preferences instead:\n#{offenders.join("\n")}"
       end
 
+      test "Actor read paths stay shallow except configuration namespaces" do
+        offenders =
+          normal_application_paths.flat_map do |path|
+            relative_path = path.relative_path_from(Rails.root).to_s
+            content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
+
+            actor_context_depth_offenses_in_content(relative_path, content)
+          end
+
+        assert_empty offenders, "Actor reads must stay shallow:\n#{offenders.join("\n")}"
+      end
+
+      test "Actor read path depth rule permits only configuration namespace values" do
+        content = <<~RUBY
+          Actor.authn.login_public_id
+          Actor.configuration.sign.value
+          Actor.configuration.sign.value.raw
+          Actor.authz.policy.user.account.id
+          Actor.step_up.challenge.email.otp.verified_at
+        RUBY
+
+        offenders = actor_context_depth_offenses_in_content("sample.rb", content)
+
+        assert_equal(
+          [
+            "sample.rb:3: Actor.configuration.sign.value.raw",
+            "sample.rb:4: Actor.authz.policy.user.account.id",
+            "sample.rb:5: Actor.step_up.challenge.email.otp.verified_at",
+          ],
+          offenders,
+        )
+      end
+
       private
 
       def normal_application_paths
         Rails.root.glob("{app/controllers,app/services,app/policies,app/views}/**/*").select do |path|
           File.file?(path) && path.extname.in?(%w(.rb .erb))
         end
+      end
+
+      def actor_context_depth_offenses_in_content(relative_path, content)
+        content.each_line.with_index(1).flat_map do |line, line_number|
+          line.scan(/\bActor((?:\.[a-zA-Z_]\w*[!?]?)+)/).filter_map do |match|
+            chain = match.first
+            segments = chain.scan(/\.([a-zA-Z_]\w*[!?]?)/).flatten
+            next if allowed_actor_read_path?(segments)
+
+            " #{line.strip}".match(/\s(Actor#{Regexp.escape(chain)})/)[1].then do |read_path|
+              "#{relative_path}:#{line_number}: #{read_path}"
+            end
+          end
+        end
+      end
+
+      def allowed_actor_read_path?(segments)
+        return true if segments.length <= 2
+
+        segments.length == 3 && segments.first == "configuration"
       end
     end
   end

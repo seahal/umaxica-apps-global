@@ -73,10 +73,25 @@ module Jit
     config.sms_provider = ENV.fetch("SMS_PROVIDER", "aws_sns")
     config.aws_region = ENV.fetch("AWS_REGION", "ap-northeast-1")
 
-    # Load translations from nested locale directories.
-    config.i18n.load_path += Rails.root.glob("config/locales/**/*.{rb,yml}")
-    config.i18n.load_path.push(Rails.root.join("config/locales/en.yml").to_s)
-    config.i18n.load_path.push(Rails.root.join("config/locales/ja.yml").to_s)
+    locale_files =
+      %w(
+        config/locales/jp/en.yml
+        config/locales/jp/ja.yml
+        config/locales/us/en.yml
+        config/locales/us/ja.yml
+      ).map { |path| Rails.root.join(path).to_s }
+
+    locale_roots = [
+      Rails.root.join("config/locales").to_s,
+      Rails.root.join("lib/locale").to_s,
+    ]
+
+    # Load only supported region/language locale bundles.
+    config.i18n.load_path =
+      config.i18n.load_path.reject do |path|
+        locale_roots.any? { |root| path.to_s.start_with?(root) }
+      end
+    config.i18n.load_path += locale_files
     config.i18n.default_locale = :ja
 
     # Set bigserial as default primary key for new tables

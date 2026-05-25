@@ -18,11 +18,13 @@
 # The restricted session approach avoids blocking login while ensuring users
 # can manage their sessions. Invariant: max 1 restricted session per user.
 class Sign::App::In::SessionsController < Sign::App::ApplicationController
+  AUTHENTICATION_MODE = :deny_all
+
   include SessionLimitGate
 
   # This controller handles session management for both authenticated users
   # and users who are in the process of logging in (with a pending gate).
-  public_strict!
+  declare_authentication_mode! :open
 
   # For show/update/destroy, user must be logged in (even if restricted)
   before_action :require_authentication_or_gate
@@ -55,7 +57,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
     end
 
     # Check if we can promote restricted session to active
-    if current_session_restricted? && can_promote_session?(@current_client)
+    if pending_session_limit_cycle? && can_promote_session?(@current_client)
       if promote_current_session_limit_cycle!(@current_client)
         consume_session_limit_gate!
         session.delete(:pending_login_user_id)
@@ -91,9 +93,10 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
       render :show
     else
       # Cancel: revoke current restricted session and logout
-      if current_session&.restricted?
-        current_session.revoke!
-      end
+    if current_session&.restricted?
+      current_session.revoke!
+    end
+    current_db_sign_in_cycle_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
       consume_session_limit_gate!
       session.delete(:pending_login_user_id)
       log_out
@@ -105,6 +108,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
 
   def require_authentication_or_gate
     return if current_session_restricted? || restricted_session_expired?
+    return if pending_session_limit_cycle?
 
     # If logged in with a restricted session, allow access (this is the intended user)
     # If has a valid gate + pending user, allow access.
@@ -126,6 +130,10 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
     redirect_to_login
   end
 
+  def pending_session_limit_cycle?
+    current_db_sign_in_cycle_for_sequence&.sign_in_session_limit_pending?
+  end
+
   def redirect_to_login
     redirect_to(
       new_sign_app_in_path,
@@ -139,7 +147,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
 
     if return_path.present?
       flash[:notice] = notice
-      destination = safe_path_from_encoded_rt(return_path, fallback: sign_app_configuration_path)
+      destination = return_path_from_signed_rt(safe_encoded_rt(return_path)) || sign_app_configuration_path
       redirect_to_return_target_destination!(destination)
     else
       redirect_to(sign_app_configuration_path, notice: notice)

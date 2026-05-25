@@ -94,6 +94,11 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "direct controller session management branches" do
     controller = Sign::Com::In::SessionsController.new
+    controller.request = ActionDispatch::TestRequest.create(
+      "REQUEST_METHOD" => "GET",
+      "HTTP_HOST" => ENV.fetch("COM_SERVICE_URL", "com.app.localhost"),
+    )
+    controller.response = ActionDispatch::TestResponse.new
     session_hash = {}
     flash_hash = Class.new(Hash) {
       define_method(:now) do
@@ -162,7 +167,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.instance_variable_set(:@return_to_for_test, "/after")
     controller.send(:redirect_to_return_path, notice: "promoted")
 
-    assert_equal [["/after"], { fallback: "/configuration?ri=" }], jumps.last
+    assert_equal [["/after"], { allow_other_host: false }], redirects.last
     assert_equal "promoted", flash_hash[:notice]
 
     controller.instance_variable_set(:@return_to_for_test, nil)

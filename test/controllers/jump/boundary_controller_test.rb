@@ -25,19 +25,13 @@ class JumpBoundaryControllerTest < ActionDispatch::IntegrationTest
     Actor.reset
   end
 
-  test "jump bare controllers stay free of auth current and policy machinery" do
+  test "jump bare controllers inherit from their surface application controllers" do
     [
       Jump::App::BareController,
       Jump::Com::BareController,
       Jump::Org::BareController,
     ].each do |controller|
-      assert_not_includes controller.ancestors, ActorSupport
-      assert_not_includes controller.ancestors, Authentication::Client
-      assert_not_includes controller.ancestors, Authentication::Visitor
-      assert_not_includes controller.ancestors, Authentication::Operator
-      assert_empty controller.access_policy_rules if controller.respond_to?(:access_policy_rules)
-
-      assert_not_includes before_filters_for(controller), :enforce_access_policy!
+      assert_equal controller.module_parent::ApplicationController, controller.superclass
     end
   end
 
@@ -47,7 +41,7 @@ class JumpBoundaryControllerTest < ActionDispatch::IntegrationTest
       Jump::Com::OpenController,
       Jump::Org::OpenController,
     ].each do |controller|
-      assert_equal ActionController::Base, controller.superclass
+      assert_equal controller.module_parent::ApplicationController, controller.superclass
       assert_includes controller.ancestors, ActorSupport
       assert_includes controller.ancestors, RateLimit
       assert_not_includes controller.ancestors, Authentication::Client

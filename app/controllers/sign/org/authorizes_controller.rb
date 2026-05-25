@@ -4,6 +4,8 @@
 module Sign
   module Org
     class AuthorizesController < PrivateController
+      AUTHENTICATION_MODE = :private
+
       before_action :authenticate!
 
       def show

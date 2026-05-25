@@ -10,7 +10,7 @@ module Preference
     def sync_to_resource_preference!
       return unless respond_to?(:current_resource, true)
 
-      resource = begin; current_resource; rescue StandardError; nil; end
+      resource = preference_current_resource
       return if resource.blank?
 
       resource_pref = preference_write_resource_preference!(resource)
@@ -18,12 +18,14 @@ module Preference
 
       authorize!(resource_pref, to: :update?) if respond_to?(:authorize!, true)
       sync_direct_resource_preference!(resource_pref)
+    rescue Preference::ResolutionError
+      raise
     rescue StandardError => e
       Rails.logger.info(LogEvent.format("preference.sync_to_resource.error", error: e.class.name, message: e.message))
     end
 
     def preference_write_resource_preference!(resource = nil)
-      resource ||= begin; current_resource; rescue StandardError; nil; end if respond_to?(:current_resource, true)
+      resource ||= preference_current_resource if respond_to?(:current_resource, true)
       return if resource.blank?
 
       case preference_class.name

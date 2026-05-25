@@ -4,6 +4,8 @@
 module ActorSupport
   extend ActiveSupport::Concern
 
+  class ResolutionError < StandardError; end
+
   private
 
   def with_actor_lifecycle
@@ -80,8 +82,8 @@ module ActorSupport
     return unless respond_to?(:current_resource, true)
 
     current_resource
-  rescue StandardError
-    nil
+  rescue StandardError => e
+    raise_actor_resolution_error!(:current_resource, e)
   end
 
   def resolved_current_actor_type(resource)
@@ -109,8 +111,8 @@ module ActorSupport
     payload = access_token_payload if respond_to?(:access_token_payload, true)
     payload ||= load_access_token_payload if respond_to?(:load_access_token_payload, true)
     payload if payload.is_a?(Hash)
-  rescue StandardError
-    nil
+  rescue StandardError => e
+    raise_actor_resolution_error!(:access_token, e)
   end
 
   def resolved_current_authentication(resource: safe_current_resource,
@@ -135,8 +137,8 @@ module ActorSupport
     return current_session_restricted? if respond_to?(:current_session_restricted?, true)
 
     false
-  rescue StandardError
-    false
+  rescue StandardError => e
+    raise_actor_resolution_error!(:restricted_session, e)
   end
 
   def resolved_active_sign_sequence_id
@@ -148,8 +150,8 @@ module ActorSupport
     return if sequence.expired? || sequence.terminal?
 
     sequence.id
-  rescue StandardError
-    nil
+  rescue StandardError => e
+    raise_actor_resolution_error!(:sign_sequence, e)
   end
 
   def resolved_current_configuration(_resource)
@@ -169,8 +171,20 @@ module ActorSupport
     return Actor::StepUp::NULL unless respond_to?(:current_session_token, true)
 
     StepUp::Resolver.call(token: current_session_token, scope: nil)
-  rescue StandardError
-    Actor::StepUp::NULL
+  rescue StandardError => e
+    raise_actor_resolution_error!(:step_up, e)
+  end
+
+  def raise_actor_resolution_error!(component, exception)
+    Rails.logger.warn(
+      LogEvent.format(
+        "actor.resolution.failed",
+        component: component,
+        error_class: exception.class.name,
+      ),
+    )
+
+    raise ResolutionError.new("Actor #{component} resolution failed"), cause: exception
   end
 
   def resolved_current_preference(resource)
@@ -287,7 +301,9 @@ module ActorSupport
 
   def set_current_observability
     return unless defined?(OpenTelemetry::Trace)
-    return unless Actor.preferences.cookie.performant?
+
+    preference_cookie = Actor.preferences.cookie
+    return unless preference_cookie.performant?
 
     span = OpenTelemetry::Trace.current_span
     context = span.context

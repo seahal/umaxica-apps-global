@@ -70,8 +70,11 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
       assert_includes before_filters,
                       :enforce_access_policy!,
                       "#{controller_class.name} must run access policy enforcement"
-      assert_not_empty controller_class.access_policy_rules,
-                       "#{controller_class.name} must declare an access policy"
+      assert(
+        controller_class.const_defined?(:AUTHENTICATION_MODE, false) ||
+          controller_class.local_authentication_mode_rules.present?,
+        "#{controller_class.name} must declare an authentication mode",
+      )
     end
   end
 

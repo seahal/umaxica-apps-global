@@ -4,6 +4,8 @@
 module Sign
   module Org
     class OutsController < OpenController
+      AUTHENTICATION_MODE = :open
+
       include ::Verification::Operator
       include ::Authentication::Logoutable
       include ::Sign::OutNotice
@@ -34,7 +36,7 @@ module Sign
 
       def destroy
         rt = params[:rt].presence
-        destination = safe_path_from_encoded_rt(rt, fallback: nil) if rt.present?
+        destination = return_path_from_signed_rt(rt) if rt.present?
 
         logout_current_session!(reason: "org_operator_logout")
         return render_invalid_return_target! if rt.present? && destination.blank?

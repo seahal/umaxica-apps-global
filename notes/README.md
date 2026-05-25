@@ -28,6 +28,12 @@ Implementation notes belong under `notes/implementation/` and should record only
 Do not record chain-of-thought, raw command history, secrets, tokens, cookies, authorization
 headers, full request parameters, or other sensitive payloads.
 
+Return-target note hygiene:
+
+- `safe_path_from_encoded_rt` is deprecated. If this term appears while updating notes, do not treat
+  it as current guidance; remove it or annotate it as stale compatibility that must be replaced with
+  signed `ReturnTargetToken` handling.
+
 When a note becomes stable or actionable, promote it:
 
 - `adr/` for accepted decisions

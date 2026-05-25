@@ -39,19 +39,7 @@ module Sign
             identity, actor,
           )
 
-          AppPrincipalRecord.transaction do
-            identity.destroy!
-            actor.destroy!
-          end
-
-          result = SignUp::StateMachine.call(
-            ticket: cycle,
-            event: :cancel,
-            actor_context: Actor.authn,
-          )
-          return result unless cycle.reload.status_id == ClientSignUpCycleStatus::CANCELLED
-
-          SignUp::Result.build(status: :ok, ticket: cycle)
+          SignUp::Cancellation.call(cycle: cycle, actor_context: Actor.authn)
         end
 
         private

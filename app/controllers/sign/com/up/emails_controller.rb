@@ -7,6 +7,8 @@ module Sign
   module Com
     module Up
       class EmailsController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include ::CloudflareTurnstile
         include Common::Redirect
         include Common::Otp
@@ -17,6 +19,30 @@ module Sign
         PENDING_VISITOR_ID_SESSION_KEY = :sign_com_up_pending_visitor_id
 
         before_action :enforce_email_flow!
+
+        # Defence-in-depth for sign-up entry. The default IP limit is 300/min
+        # which is too generous for an OTP-generating endpoint. Tighten to
+        # 5/min per IP and 3/10min per email digest to slow address
+        # enumeration and OTP fanout from a single source.
+        rate_limit(
+          to: 5,
+          within: 1.minute,
+          by: -> { "sign_up_email_ip:#{request.remote_ip}" },
+          with: -> { handle_rate_limit_exceeded!("sign_up_email_ip", 60) },
+          store: RateLimit.store,
+          only: :create,
+        )
+        rate_limit(
+          to: 3,
+          within: 10.minutes,
+          by: -> {
+            digest = sign_up_email_digest_for_rate_limit
+            digest.present? ? "sign_up_email_addr:#{digest}" : "sign_up_email_addr:none"
+          },
+          with: -> { handle_rate_limit_exceeded!("sign_up_email_addr", 600) },
+          store: RateLimit.store,
+          only: :create,
+        )
 
         def new
           @user_email = VisitorEmail.new
@@ -198,26 +224,37 @@ module Sign
           @user_email.visitor_email_status_id = VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP
           @user_email.validate
 
-          existing_email =
-            @user_email.address_digest.present? ?
-              VisitorEmail.find_by(address_digest: @user_email.address_digest) : nil
-          uniqueness_only = visitor_email_uniqueness_only_error?(@user_email)
+          # Without a deterministic lock keyed on the address digest, two
+          # sessions submitting the same address can both pass the existence
+          # check below and race the unique index on `save!`, leaving the
+          # loser with a generic uniqueness validation error. The advisory
+          # lock serializes the existence-check-then-create sequence per
+          # email digest.
+          return false if @user_email.address_digest.blank?
 
-          if existing_email &&
-              existing_email.visitor_email_status_id != VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP &&
-              (uniqueness_only || @user_email.errors.empty?)
-            @user_email = existing_email
-            session[EXISTING_EMAIL_SESSION_KEY] = @user_email.id
-            session[EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] = true
-            return true
-          end
+          SignUp::EmailPendingGuard.with_lock(
+            address_digest: @user_email.address_digest,
+            model_class: VisitorEmail,
+          ) do
+            existing_email = VisitorEmail.find_by(address_digest: @user_email.address_digest)
+            uniqueness_only = visitor_email_uniqueness_only_error?(@user_email)
 
-          return :cooldown if existing_email&.visitor_email_status_id ==
-            VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP && existing_email.reregistration_window_active?
+            if existing_email &&
+                existing_email.visitor_email_status_id != VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP &&
+                (uniqueness_only || @user_email.errors.empty?)
+              @user_email = existing_email
+              session[EXISTING_EMAIL_SESSION_KEY] = @user_email.id
+              session[EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] = true
+              next true
+            end
 
-          return false if @user_email.errors.details.except(:visitor, :visitor_id).any? && !uniqueness_only
+            if existing_email&.visitor_email_status_id == VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP &&
+                existing_email.reregistration_window_active?
+              next :cooldown
+            end
 
-          VisitorEmail.transaction do
+            next false if @user_email.errors.details.except(:visitor, :visitor_id).any? && !uniqueness_only
+
             cleanup_pending_visitor_signup!
             remove_existing_unverified_visitor_emails!
             pending_visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
@@ -232,9 +269,9 @@ module Sign
               email_address: @user_email.address,
               verification_token: token, public_id: @user_email.public_id,
             ).create.deliver_later
-          end
 
-          true
+            true
+          end
         rescue ActiveRecord::RecordInvalid => e
           @user_email = e.record if e.record.is_a?(VisitorEmail)
           strip_visitor_owner_errors!
@@ -327,6 +364,21 @@ module Sign
           safe_encoded_rt(redirect_parameter_value)
         end
 
+        # Derives a per-address rate-limit bucket. Uses the same SHA-256
+        # digest the model stores so concurrent normalisations resolve to
+        # the same bucket. Returns nil for blank input — the rate_limit
+        # lambda decides how to handle that case.
+        def sign_up_email_digest_for_rate_limit
+          raw = params.dig(:visitor_email, :raw_address) ||
+            params.dig(:visitor_email, :address) ||
+            params.dig(:user_email, :raw_address) ||
+            params.dig(:user_email, :address)
+          return nil if raw.blank?
+
+          normalized = raw.to_s.strip.downcase
+          Digest::SHA256.hexdigest(normalized)
+        end
+
         def strip_visitor_owner_errors!
           return if @user_email.blank?
 
@@ -400,7 +452,7 @@ module Sign
         end
 
         def sanitized_return_to
-          safe_path_from_encoded_rt(params[:rt].presence, fallback: nil)
+          return_path_from_signed_rt(safe_encoded_rt(params[:rt].presence))
         end
       end
     end

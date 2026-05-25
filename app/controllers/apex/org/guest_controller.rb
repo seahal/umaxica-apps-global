@@ -4,14 +4,14 @@
 module Apex
   module Org
     class GuestController < ApplicationController
-      guest_only! status: :unauthorized
+      AUTHENTICATION_MODE = :guest
+
+      declare_authentication_mode! :guest, status: :unauthorized
 
       private
 
       def after_login_path
         apex_org_root_path
-      rescue StandardError
-        "/"
       end
     end
   end

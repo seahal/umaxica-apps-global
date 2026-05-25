@@ -5,7 +5,7 @@ require "test_helper"
 
 module Apex
   module App
-    # Apex::App::BareController intentionally makes `public_strict!` a no-op:
+    # Apex::App::BareController intentionally avoids the full application stack:
     # every controller below it must be a public, self-defending endpoint
     # (health, robots, sitemaps, csp-report, open, or an auth flow that
     # enforces its own pipeline). If a new controller is added under this
@@ -31,9 +31,9 @@ module Apex
         Apex::App::Web::V0::ThemesController
       ).freeze
 
-      test "public_strict! is an intentional no-op on the bare boundary" do
-        assert_respond_to Apex::App::BareController, :public_strict!
-        assert_nil Apex::App::BareController.public_strict!
+      test "bare boundary does not inherit the full application controller" do
+        assert_equal ActionController::Base, Apex::App::BareController.superclass
+        assert_not_operator Apex::App::BareController, :<, Apex::App::ApplicationController
       end
 
       test "only the reviewed allowlist inherits the bare public boundary" do
@@ -44,8 +44,8 @@ module Apex
         assert_not_empty actual, "expected BareController descendants to be loaded after eager_load!"
 
         assert_equal ALLOWED_DESCENDANTS, actual,
-                     "Controllers under Apex::App::BareController changed. Each one inherits a no-op " \
-                     "public_strict!; confirm the new/removed controller is a public, self-defending " \
+                     "Controllers under Apex::App::BareController changed. Each one inherits the bare " \
+                     "boundary; confirm the new/removed controller is a public, self-defending " \
                      "endpoint and update ALLOWED_DESCENDANTS deliberately.\n" \
                      "added:   #{(actual - ALLOWED_DESCENDANTS).inspect}\n" \
                      "removed: #{(ALLOWED_DESCENDANTS - actual).inspect}"

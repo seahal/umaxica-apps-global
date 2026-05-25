@@ -6,6 +6,8 @@ module Apex
     module Edge
       module V0
         class HealthsController < Apex::Org::BareController
+          AUTHENTICATION_MODE = :bare
+
           include ::Health
 
           def show

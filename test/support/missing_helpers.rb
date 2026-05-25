@@ -6,7 +6,20 @@ require "jwt"
 require "base64"
 require "sha3"
 
-class SocialAuthTestCsrfController < ApplicationController
+ENV["ID_SERVICE_URL"] ||= "id.umaxica.app"
+ENV["SIGN_SERVICE_URL"] ||= "id.umaxica.app"
+ENV["ID_STAFF_URL"] ||= "id.umaxica.org"
+ENV["SIGN_STAFF_URL"] ||= "id.umaxica.org"
+ENV["ID_CORPORATE_URL"] ||= "id.umaxica.com"
+ENV["SIGN_CORPORATE_URL"] ||= "id.umaxica.com"
+
+ENV["EMAIL_ADDRESS_HMAC_SALT"] ||= "test-email-address-secret"
+ENV["TELEPHONE_NUMBER_HMAC_SALT"] ||= "test-telephone-number-secret"
+ENV["PROMOTIONAL_UNSUBSCRIBE_HMAC_SALT"] ||= "test-promotional-unsubscribe-secret"
+
+class SocialAuthTestCsrfController < (defined?(ApplicationController) ? ApplicationController : ActionController::Base)
+  protect_from_forgery using: :header_or_legacy_token
+
   def show
     render plain: form_authenticity_token
   end
@@ -641,7 +654,7 @@ module AuthenticationBaseTestSupport
   private
 
   def test_current_resource_from_headers
-    headers = request&.headers
+    headers = respond_to?(:request, true) ? request&.headers : nil
     return nil unless headers
 
     header_keys = Array(test_header_keys)
@@ -654,7 +667,8 @@ module AuthenticationBaseTestSupport
   end
 
   def test_current_session_public_id_from_headers
-    request&.headers&.[]("X-TEST-SESSION-PUBLIC-ID").to_s.presence
+    headers = respond_to?(:request, true) ? request&.headers : nil
+    headers&.[]("X-TEST-SESSION-PUBLIC-ID").to_s.presence
   end
 
   def test_header_key
@@ -701,10 +715,28 @@ if defined?(ActiveSupport::TestCase)
   ActiveSupport::TestCase.setup do
     RateLimit.store.clear if defined?(RateLimit)
     Authentication::Base.login_cooldown_enabled = false if defined?(Authentication::Base)
+    [
+      ClientTokenBindingMethod,
+      ClientTokenDbscStatus,
+      ClientTokenKind,
+      ClientTokenStatus,
+    ].each do |model|
+      model.ensure_defaults! if model.respond_to?(:ensure_defaults!)
+    end
   end
 
   ActiveSupport::TestCase.teardown do
     RateLimit.store.clear if defined?(RateLimit)
     Authentication::Base.login_cooldown_enabled = false if defined?(Authentication::Base)
+  end
+
+  class << ActiveSupport::TestCase
+    def fixtures_none!
+      self.fixture_table_names = []
+    end
+
+    def fixtures_only(*fixture_names)
+      self.fixture_table_names = fixture_names.flatten.map(&:to_s)
+    end
   end
 end

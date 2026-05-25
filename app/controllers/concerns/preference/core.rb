@@ -285,7 +285,7 @@ module Preference::Core
   def sync_to_resource_preference!
     return unless respond_to?(:current_resource, true)
 
-    resource = begin; current_resource; rescue; nil; end
+    resource = preference_current_resource
     return if resource.blank?
 
     resource_pref =
@@ -299,6 +299,8 @@ module Preference::Core
     authorize!(resource_pref, to: :update?) if respond_to?(:authorize!, true)
     sync_direct_resource_preference!(resource_pref)
     copy_preference_values!(@preferences, resource_pref, resource_pref_prefix_for_sync)
+  rescue Preference::ResolutionError
+    raise
   rescue StandardError => e
     Rails.logger.info(LogEvent.format("preference.sync_to_resource.error", error: e.class.name, message: e.message))
   end
@@ -489,9 +491,7 @@ module Preference::Core
   end
 
   def preference_write_owner_id
-    return unless respond_to?(:current_resource, true)
-
-    resource = begin; current_resource; rescue StandardError; nil; end
+    resource = preference_current_resource
     resource&.id
   end
 

@@ -184,6 +184,21 @@ module Sign
       challenges[challenge_id]
     end
 
+    # Idempotently removes a challenge from the session. Intended for
+    # `ensure` blocks where the caller wants to guarantee a challenge does
+    # not survive any code path (success, validation failure, or
+    # unexpected exception before `fetch_and_delete_challenge!` ran).
+    # Safe to call when the challenge is already gone.
+    def force_delete_challenge!(challenge_id)
+      return if challenge_id.blank?
+
+      challenges = session[CHALLENGE_SESSION_KEY]
+      return unless challenges.is_a?(Hash) && challenges.key?(challenge_id)
+
+      challenges.delete(challenge_id)
+      session[CHALLENGE_SESSION_KEY] = challenges
+    end
+
     private
 
     # Stores a challenge in session and returns its ID.

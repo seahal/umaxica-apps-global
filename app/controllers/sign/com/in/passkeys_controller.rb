@@ -5,6 +5,8 @@ module Sign
   module Com
     module In
       class PasskeysController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include Sign::Webauthn
         include Sign::PasskeyAuthentication
         include Sign::PasskeyAuthenticationHelpers

@@ -16,7 +16,7 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     assert_equal new_sign_com_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
-    assert_equal edit_sign_com_out_url(ri: "jp", host: @host), verified_redirect_return_to(response.location, "com")
+    assert_equal edit_sign_com_out_path(ri: "jp"), verified_redirect_return_to(response.location, "com")
   end
 
   test "edit page renders a direct logout form" do
@@ -68,11 +68,38 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_sign_com_out_path(ri: "jp")
   end
 
-  test "should destroy raises error without session" do
+  test "destroy without session redirects to sign in" do
     delete sign_com_out_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_equal new_sign_com_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
-    assert_equal sign_com_out_url(ri: "jp", host: @host), verified_redirect_return_to(response.location, "com")
+    assert_equal sign_com_out_path(ri: "jp"), verified_redirect_return_to(response.location, "com")
+  end
+
+  test "stale tab cannot complete logout after another tab already cleared cookies" do
+    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    get edit_sign_com_out_url(ri: "jp"),
+        headers: { "Host" => @host,
+                   "X-TEST-CURRENT-RESOURCE" => @visitor.id,
+                   "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+
+    assert_response :success
+
+    post sign_com_out_url(ri: "jp"),
+         headers: { "Host" => @host,
+                    "X-TEST-CURRENT-RESOURCE" => @visitor.id,
+                    "X-TEST-SESSION-PUBLIC-ID" => token.public_id, },
+         params: { confirm: "1" }
+
+    assert_response :success
+    assert_predicate token.reload, :revoked?
+
+    post sign_com_out_url(ri: "jp"), headers: { "Host" => @host }, params: { confirm: "1" }
+
+    assert_equal new_sign_com_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
+    assert_equal sign_com_out_path(ri: "jp"), verified_redirect_return_to(response.location, "com")
   end
 
   test "destroy resets rails session id to prevent session fixation" do
@@ -148,6 +175,21 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :revoked?
   end
 
+  test "destroy rejects legacy base64 rt after logout" do
+    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    refresh_plain = token.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    legacy_rt = Base64.urlsafe_encode64(sign_com_configuration_path(ri: "jp"))
+
+    delete sign_com_out_url(ri: "jp", rt: legacy_rt),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+
+    assert_response :unprocessable_content
+    assert_predicate token.reload, :revoked?
+  end
+
   # Regression: ordinary logout must revoke ONLY the current session's
   # token. Sign-out on one browser must not sign the visitor out on every
   # other device.
@@ -194,7 +236,7 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def signed_return_target(return_to, surface:)
-    ReturnTargetToken.issue(
+    return_target_token_harness.issue(
       return_to: return_to,
       flow: "authentication",
       surface: surface,
@@ -203,12 +245,41 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def verified_redirect_return_to(location, surface)
-    ReturnTargetToken.verified_return_to(
+    return_target_token_harness.verified_return_to(
       rt_from_location(location),
       expected_flow: "authentication",
       expected_surface: surface,
       session_nonce: session[:authentication_return_target_nonce],
     )
+  end
+
+  def return_target_token_harness
+    @return_target_token_harness ||= Class.new do
+      include ReturnTargets::SignedTokenSupport
+
+      def issue(return_to:, flow:, surface:, session_nonce:, expires_in: 15.minutes)
+        path = signed_target_internal_path(return_to)
+        claims = signed_target_claims(flow: flow, surface: surface, session_nonce: session_nonce)
+        issue_signed_target_token(
+          payload: claims.merge("return_to" => path),
+          purpose: :return_target,
+          salt: "return_target_token",
+          expires_in: expires_in,
+        )
+      end
+
+      def verified_return_to(token, expected_flow:, expected_surface:, session_nonce:)
+        payload = verified_signed_target_payload(
+          token,
+          purpose: :return_target,
+          salt: "return_target_token",
+          expected_flow: expected_flow,
+          expected_surface: expected_surface,
+          session_nonce: session_nonce,
+        )
+        signed_target_internal_path(payload&.fetch("return_to", nil))
+      end
+    end.new
   end
 
   def redirect_without_rt(location)

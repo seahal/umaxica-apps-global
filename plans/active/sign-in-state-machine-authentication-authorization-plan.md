@@ -48,7 +48,8 @@ action is allowed.
   surface-specific unless an existing shared abstraction already exists.
 - Do not let a signed-in actor start a new sign-in sequence without first signing out.
 - Do not skip the documented sign-in order: primary credential -> MFA when required -> session limit
-  -> guardrail -> session issuance -> checkpoint -> dashboard -> return path or configuration page.
+  -> guardrail -> checkpoint -> selector -> session issuance -> welcome/return path or
+  configuration page.
 - Do not store request state in globals, class variables, or `Thread.current`.
 - Do not put business logic in controllers.
 - Do not let Action Policy perform authentication. Authentication must have run before policy
@@ -70,12 +71,13 @@ Current target statuses:
 | -------------------------- | --: | ----------------------------------------------------------------------- |
 | `PRIMARY_PENDING`          |  10 | Primary credential verification is in progress.                         |
 | `MFA_PENDING`              |  20 | Sign-in MFA must complete before session-limit handling.                |
-| `SESSION_LIMIT_PENDING`    |  30 | Session-limit handling must complete before normal session issuance.    |
-| `GUARDRAIL_PENDING`        |  40 | Pre-issuance guardrail checks must stop or clear.                       |
-| `SESSION_ISSUANCE_PENDING` |  50 | The flow is authorized to issue the normal signed-in session.           |
-| `CHECKPOINT_PENDING`       |  60 | Post-login checkpoint participants must stop or clear.                  |
-| `DASHBOARD_PENDING`        |  70 | Dashboard participant may render and/or advance to final destination.   |
-| `RETURN_PENDING`           |  80 | Safe return path or default configuration destination must be consumed. |
+| `SESSION_LIMIT_PENDING`    |  30 | Session-limit handling must complete before guardrail/checkpoint.       |
+| `GUARDRAIL_PENDING`        |  40 | Pre-activation guardrail checks must stop or clear.                    |
+| `SESSION_ISSUANCE_PENDING` |  50 | Selector has committed and the active session can be issued.            |
+| `CHECKPOINT_PENDING`       |  60 | Pre-activation checkpoint participants must stop or clear.              |
+| `SELECTOR_PENDING`         |  65 | Activation candidate selection must complete before session issuance.   |
+| `DASHBOARD_PENDING`        |  70 | Legacy post-issuance dashboard participant state.                       |
+| `RETURN_PENDING`           |  80 | Legacy post-issuance return-path consumption state.                     |
 | `COMPLETED`                | 100 | The sign-in sequence has completed.                                     |
 | `FAILED`                   | 900 | The sign-in sequence failed or was abandoned.                           |
 
@@ -88,9 +90,12 @@ PRIMARY_PENDING -> GUARDRAIL_PENDING
 MFA_PENDING -> SESSION_LIMIT_PENDING
 MFA_PENDING -> GUARDRAIL_PENDING
 SESSION_LIMIT_PENDING -> GUARDRAIL_PENDING
-GUARDRAIL_PENDING -> SESSION_ISSUANCE_PENDING
-SESSION_ISSUANCE_PENDING -> CHECKPOINT_PENDING
-CHECKPOINT_PENDING -> DASHBOARD_PENDING
+GUARDRAIL_PENDING -> CHECKPOINT_PENDING
+CHECKPOINT_PENDING -> SELECTOR_PENDING
+SELECTOR_PENDING -> SESSION_ISSUANCE_PENDING
+SESSION_ISSUANCE_PENDING -> COMPLETED
+
+Legacy compatibility only:
 DASHBOARD_PENDING -> RETURN_PENDING
 RETURN_PENDING -> COMPLETED
 
@@ -100,14 +105,15 @@ SESSION_LIMIT_PENDING -> FAILED
 GUARDRAIL_PENDING -> FAILED
 SESSION_ISSUANCE_PENDING -> FAILED
 CHECKPOINT_PENDING -> FAILED
+SELECTOR_PENDING -> FAILED
 DASHBOARD_PENDING -> FAILED
 RETURN_PENDING -> FAILED
 ```
 
 The implementation may allow no-op participant auto-advance when a participant stack is empty, but
 that advance must still persist the explicit transition. For example, when guardrail has no blocking
-items, the cycle moves from `GUARDRAIL_PENDING` to `SESSION_ISSUANCE_PENDING` rather than skipping
-the state in memory only.
+items, the cycle moves from `GUARDRAIL_PENDING` to `CHECKPOINT_PENDING` rather than skipping the
+state in memory only.
 
 Target steps:
 
@@ -116,13 +122,16 @@ primary
 mfa
 session_limit
 guardrail
-session_issuance
 checkpoint
-dashboard
-return_to
+selector
+session_issuance
 completed
 failed
 ```
+
+`DASHBOARD_PENDING` and `RETURN_PENDING` remain legacy compatibility states for older post-issuance
+cycles. New sign-in flows must not enter them; the active session is issued after selector and the
+cycle completes from `SESSION_ISSUANCE_PENDING`.
 
 `status_id` is the lifecycle authority. `step` is retained only as a readable, denormalized current
 participant label for compatibility, diagnostics, and simple rendering. It must be synchronized from
@@ -202,8 +211,9 @@ has not yet been deployed.
 
 1. Cycle state granularity
 
-   Use explicit lifecycle statuses for each sequence participant. Guardrail, session issuance,
-   checkpoint, dashboard, and return handling must stay separate lifecycle states.
+   Use explicit lifecycle statuses for each sequence participant. Guardrail, checkpoint, selector,
+   and session issuance must stay separate lifecycle states. Dashboard and return states are legacy
+   compatibility states only.
 
 2. Cycle ownership before token issuance
 
@@ -482,8 +492,9 @@ guessing during controller edits.
    - `GUARDRAIL_PENDING = 40`;
    - `SESSION_ISSUANCE_PENDING = 50`;
    - `CHECKPOINT_PENDING = 60`;
-   - `DASHBOARD_PENDING = 70`;
-   - `RETURN_PENDING = 80`;
+   - `SELECTOR_PENDING = 65`;
+   - `DASHBOARD_PENDING = 70` legacy only;
+   - `RETURN_PENDING = 80` legacy only;
    - `FAILED = 900`.
 4. Update `ClientSignInCycle`, `VisitorSignInCycle`, and `OperatorSignInCycle`:
    - `STATUSES`;
@@ -493,8 +504,9 @@ guessing during controller edits.
    - `TRANSITIONS`.
 5. Update `Cycle::SignIn` with explicit transition helpers:
    - `advance_sign_in_to_guardrail!`;
-   - `advance_sign_in_to_session_issuance!`;
    - `advance_sign_in_to_checkpoint!`;
+   - `advance_sign_in_to_selector!`;
+   - `advance_sign_in_to_session_issuance!`;
    - `advance_sign_in_to_dashboard!`;
    - `advance_sign_in_to_return!`;
    - `complete_sign_in!`;
@@ -588,18 +600,19 @@ guessing during controller edits.
 
 ---
 
-### Phase 4: Session Issuance Single-Use Boundary
+### Phase 4: Selector And Session Issuance Single-Use Boundary
 
 **Depends on:** Phase 3
 
-**Purpose:** Make `SESSION_ISSUANCE_PENDING` strict and idempotent.
+**Purpose:** Make selector commit and `SESSION_ISSUANCE_PENDING` strict and idempotent.
 
 **Phase 4 note:** `notes/implementation/2026-05-20-sign-in-state-machine-phase-4-session-issuer.md`.
 
 **Work:**
 
-1. Refactor `establish_signed_in_session!` / `log_in` integration so token issuance happens only
-   from a cycle authorized at `SESSION_ISSUANCE_PENDING`.
+1. Refactor `establish_signed_in_session!` / `log_in` integration so credential success creates or
+   advances a pending cycle, and token issuance happens only after selector commit reaches
+   `SESSION_ISSUANCE_PENDING`.
 2. Ensure a cycle can issue at most one token:
    - reject if `cycle.token_id` is already present;
    - do not create another token on reload/double-submit.
@@ -613,7 +626,8 @@ guessing during controller edits.
 
 **Tests:**
 
-- Successful issuance transitions the cycle and sets `token_id`.
+- Selector commit transitions the cycle to `SESSION_ISSUANCE_PENDING`.
+- Successful issuance transitions the cycle to `COMPLETED` and sets `token_id`.
 - Double-submit/reload does not issue a second token.
 - Failed DB transaction does not set cookies/headers.
 - Fresh sign-in does not satisfy withdrawal step-up.
@@ -665,7 +679,7 @@ sequence state.
    - cleared state;
    - empty-stack auto-advance.
 2. Wire known hard-stop cases through guardrail items instead of controller branches.
-3. If the stack is empty, persist transition to `SESSION_ISSUANCE_PENDING`.
+3. If the stack is empty, persist transition to `CHECKPOINT_PENDING`.
 4. If any blocking item remains, render generic plain text and do not issue a session.
 5. Keep withdrawal-related sign-in stops as guardrail items when relevant.
 
@@ -678,31 +692,34 @@ sequence state.
 
 ---
 
-### Phase 7: Checkpoint, Dashboard, And Return Participants
+### Phase 7: Checkpoint And Selector Participants
 
 **Depends on:** Phase 6
 
-**Purpose:** Make post-issuance routing deterministic and separate ordinary dashboard access from
-sequence dashboard access.
+**Purpose:** Make pre-activation checkpoint and selector routing deterministic before session
+issuance.
 
 **Phase 7 note:** `notes/implementation/2026-05-20-sign-in-state-machine-phase-7-post-issuance.md`.
 
 **Work:**
 
 1. Move checkpoint handling to `CHECKPOINT_PENDING`.
-2. Move dashboard sequence handling to `DASHBOARD_PENDING`.
-3. Move safe return/default destination consumption to `RETURN_PENDING`.
-4. Keep ordinary dashboard access independent from sequence dashboard access.
-5. Consume safe `rt` only from the sequence path.
-6. Discard unsafe return paths.
+2. Move activation candidate selection to `SELECTOR_PENDING`.
+3. Auto-commit selector only when there is exactly one valid activation candidate.
+4. Persist selector completion before active token/session issuance.
+5. Keep ordinary dashboard access independent from sequence continuation.
+6. Store return intent on the cycle and validate the final destination only after activation.
+7. Discard unsafe return paths.
 
 **Tests:**
 
 - Empty checkpoint stack advances.
 - Blocking checkpoint remains at checkpoint until cleared.
-- Dashboard participant does not behave like ordinary dashboard access.
+- Empty selector stack is impossible; selector must have one auto-commit candidate or render/reject.
+- Selector completion is first-commit-wins; replay with the same selection is idempotent and a
+  different selection is rejected.
 - Ordinary dashboard access does not consume `rt`.
-- Safe return path is consumed only at `RETURN_PENDING`.
+- Safe return path is consumed only after activation.
 - Unsafe return path is discarded.
 
 ---

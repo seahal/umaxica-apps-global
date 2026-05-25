@@ -6,6 +6,8 @@ module Apex
     module Edge
       module V0
         class DbscController < Apex::Com::ApplicationController
+          AUTHENTICATION_MODE = :deny_all
+
           include ::Preference::WebCookieEndpoint
           include ::Preference::DbscRegistrationEndpoint
 

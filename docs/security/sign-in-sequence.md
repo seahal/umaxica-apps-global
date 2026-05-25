@@ -12,10 +12,11 @@ Successful sign-in proceeds through these gates in order:
 2. MFA challenge when the actor requires MFA and the primary method does not bypass MFA.
 3. Session-limit handling.
 4. Guardrail.
-5. Session issuance.
-6. Checkpoint.
-7. Welcome.
-8. Final return path or dashboard.
+5. Checkpoint.
+6. Selector.
+7. Session issuance.
+8. Welcome.
+9. Final return path or dashboard.
 
 The DB-backed sign-in cycle uses these states for the authoritative lifecycle:
 
@@ -23,18 +24,20 @@ The DB-backed sign-in cycle uses these states for the authoritative lifecycle:
 | -------------------------- | ------------------------------------------------------------------------------- |
 | `PRIMARY_PENDING`          | Primary credential verification is in progress.                                 |
 | `MFA_PENDING`              | Sign-in MFA must complete before the sequence can continue.                     |
-| `SESSION_LIMIT_PENDING`    | Restricted session/session-limit handling must complete before normal issuance. |
-| `GUARDRAIL_PENDING`        | Pre-issuance guardrail checks must stop or clear.                               |
-| `SESSION_ISSUANCE_PENDING` | The sequence is authorized to issue the normal signed-in session.               |
-| `CHECKPOINT_PENDING`       | Post-issuance checkpoint participants must stop or clear.                       |
-| `DASHBOARD_PENDING`        | Legacy name for the welcome sequence participant; it may render or advance.     |
-| `RETURN_PENDING`           | Safe return path or default destination is consumed.                            |
+| `SESSION_LIMIT_PENDING`    | Session-limit handling must complete before selector or normal issuance.        |
+| `GUARDRAIL_PENDING`        | Pre-activation guardrail checks must stop or clear.                             |
+| `CHECKPOINT_PENDING`       | Pre-activation checkpoint participants must stop or clear.                      |
+| `SELECTOR_PENDING`         | Region/persona activation selection must commit before welcome or return.       |
+| `SESSION_ISSUANCE_PENDING` | Selector has committed and the normal signed-in session may be issued.          |
+| `DASHBOARD_PENDING`        | Legacy state; it is not an authentication boundary for new flows.               |
+| `RETURN_PENDING`           | Legacy state; final return is post-auth UX for new flows.                       |
 | `COMPLETED`                | The sign-in sequence has completed.                                             |
 | `FAILED`                   | The sign-in sequence failed or was abandoned.                                   |
 
-Session-limit handling can interrupt session issuance. If the active-session limit is full and no
-restricted session exists, sign-in issues a restricted token and redirects to the session-management
-gate. If a restricted session already exists, sign-in is rejected through the guardrail path.
+Session-limit handling happens before selector and before active token issuance. If the active
+session limit is full and no restricted session exists, sign-in stores a pending cycle credential
+and redirects to the session-management gate. If a pending/restricted session already exists,
+sign-in is rejected through the guardrail path.
 
 `SignIn::SessionLimitManager` is the cycle-backed session-limit boundary. Legacy `SessionLimitGate`
 session keys remain only as compatibility fallback for sign-in entry points that have not yet been
@@ -51,15 +54,15 @@ on their behalf.
 
 ## Guardrail
 
-Guardrail is the sign-in stop point for cases where the system must not issue a signed-in session.
+Guardrail is the sign-in stop point for cases where the system must not continue toward selector or
+issue a signed-in session.
 Examples include login cooldown, sign-in ban or suspension notices, and hard session-limit
 rejections.
 
 Guardrail is different from checkpoint:
 
-- Guardrail happens during the sign-in process before normal session issuance.
-- Checkpoint happens after sign-in/session issuance, when the actor is allowed to continue but must
-  pass interstitial content.
+- Guardrail happens during the sign-in process before selector and normal session issuance.
+- Checkpoint happens before selector. The actor is identity-proofed but not signed in yet.
 
 `/sign/in/guardrail` returns plain text. It must not redirect to welcome, checkpoint, or a return
 path. Direct access without a valid in-sequence guardrail state is rejected with plain text instead
@@ -67,7 +70,7 @@ of being treated as a normal page view.
 
 ## Checkpoint
 
-Checkpoint is the post-login interstitial for actionable notices or requirements. A DB-backed
+Checkpoint is the pre-activation interstitial for actionable notices or requirements. A DB-backed
 sign-in cycle at `CHECKPOINT_PENDING` is the preferred authority. The legacy sign-in checkpoint
 session carrier can still be read as compatibility fallback for flows that have not yet issued a
 DB-backed cycle locator.
@@ -76,9 +79,23 @@ If the checkpoint stack has items, the actor is routed to the checkpoint page. I
 stack is empty and the current state machine position is the checkpoint participant, the sequence
 advances to the next step instead of returning an error.
 
+## Selector
+
+Selector is the activation boundary after checkpoint and before active session issuance. It
+determines which region/persona/account binding becomes active for the session. Current app/com/org
+flows have one activation candidate, so selector auto-commits through the same service path that
+future manual selection must use.
+
+No active token or active actor exists while the DB-backed sign-in cycle is at `SELECTOR_PENDING`.
+Private routes must therefore fail as unauthenticated/forbidden rather than deriving access from the
+pending cycle. Selector commit must be server-derived and row-locked. Client params are not
+authoritative activation candidates. A stale, expired, mismatched, or already advanced cycle must
+fail closed.
+
 ## Welcome And Dashboard
 
-Welcome is available only after authentication. It follows checkpoint in the sign-in sequence.
+Welcome is available only after authentication. It follows selector-triggered session issuance in
+the sign-in sequence.
 
 Current sign routes expose these authenticated top-level routes:
 
@@ -107,15 +124,15 @@ welcome gate for the surface and issues a new session gate with `remaining = 5`,
 current time is at or after `expires_at`, the welcome gate is cleared and the actor is redirected to
 `/dashboard`. The expiry is absolute and is not extended by refresh.
 
-Guardrail, checkpoint, and welcome are sequence participants whose content can grow or disappear
-over time. The sequence should decide whether each participant has required content before it routes
-the actor forward.
+Guardrail, checkpoint, selector, and welcome are sequence participants whose content can grow or
+disappear over time. The sequence should decide whether each participant has required content before
+it routes the actor forward.
 
 ## Sequence Participants
 
-Guardrail, checkpoint, and welcome should be implemented as sequence participants, not as fixed
-single-purpose pages. Each participant evaluates a list of requirement items for the current actor,
-surface, and flow.
+Guardrail, checkpoint, selector, and welcome should be implemented as sequence participants, not as
+fixed single-purpose pages. Each participant evaluates a list of requirement items for the current
+actor, surface, and flow.
 
 The participant contract is:
 
@@ -136,6 +153,8 @@ Expected behavior by participant:
 - Checkpoint: if the stack is empty, advance without displaying a page. If the stack has any
   blocking item, render the checkpoint and keep the actor at checkpoint until all blocking items
   clear.
+- Selector: if exactly one server-derived candidate exists, auto-commit it and continue to welcome.
+  Future multi-candidate selection must commit through the same selector service.
 - Welcome: if the sequence welcome stack is empty, continue to the safe return path or dashboard. If
   the stack has items, display them within the welcome gate, but do not treat welcome as an
   incomplete login state.
@@ -146,12 +165,12 @@ added by registering a new item evaluator for the participant.
 ## Return Path
 
 Return-path values are preserved only when they resolve to safe same-origin paths. Unsafe external
-return targets are discarded before they are carried into guardrail, checkpoint, or welcome URLs.
-The return path never skips guardrail, checkpoint, or welcome.
+return targets are discarded before they are carried into guardrail, checkpoint, selector, or welcome
+URLs. The return path never skips guardrail, checkpoint, selector, or welcome.
 
-For DB-backed cycles, return consumption happens only at `RETURN_PENDING`. The return participant
-clears the stored return path and completes the cycle. Ordinary dashboard access must not consume
-`rt`.
+For DB-backed cycles, the return target is stored as cycle intent before `reset_session`; after
+selector-triggered session issuance, welcome/final redirect revalidates that target against the
+active actor, region, persona, and surface. Ordinary dashboard access must not consume `rt`.
 
 ## Relying-Party Entry
 

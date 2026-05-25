@@ -5,6 +5,8 @@ module Sign
   module App
     module Up
       class CheckpointsController < GuestController
+        AUTHENTICATION_MODE = :guest
+
         include Sign::Up::SequenceControllerSupport
 
         before_action :load_sign_up_ticket
@@ -16,15 +18,28 @@ module Sign
         end
 
         def destroy
-          result = Sign::App::Up::SocialCancellation.call(cycle: @sign_up_ticket)
+          result = cancel_sign_up_ticket
           return render_sign_up_result(result) unless result.success?
 
-          sign_up_cycle_locator.clear!
-          session.delete(sign_up_sequence_session_key)
-          redirect_to(new_sign_app_up_path(ri: params[:ri]), notice: t("sign.app.registration.cancelled"))
+          sign_up_session_state.clear_all!
+          redirect_to(
+            "/",
+            notice: t(
+              "sign.app.registration.cancelled_retry_later",
+              default: "Registration cancelled. Please wait a while before registering again.",
+            ),
+          )
         end
 
         private
+
+        def cancel_sign_up_ticket
+          if @sign_up_ticket.social_entry_method?
+            Sign::App::Up::SocialCancellation.call(cycle: @sign_up_ticket)
+          else
+            SignUp::Cancellation.call(cycle: @sign_up_ticket, actor_context: Actor.authn)
+          end
+        end
 
         def authorize_sign_up_cancellation!
           return if allowed_to?(:cancel?, sign_up_policy_context, with: SignUp::TicketPolicy)

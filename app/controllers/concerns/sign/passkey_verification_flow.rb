@@ -12,10 +12,18 @@ module Sign
       challenge_data = peek_challenge(challenge_id)
       return render_error("errors.webauthn.challenge_invalid", :bad_request) unless challenge_data
 
-      actor_id = normalize_passkey_actor_id(challenge_data[passkey_challenge_actor_id_key])
+      begin
+        actor_id = normalize_passkey_actor_id(challenge_data[passkey_challenge_actor_id_key])
 
-      with_challenge(challenge_id, purpose: :authentication) do |challenge|
-        verify_and_login(challenge, actor_id)
+        with_challenge(challenge_id, purpose: :authentication) do |challenge|
+          verify_and_login(challenge, actor_id)
+        end
+      ensure
+        # Defense in depth: even if `normalize_passkey_actor_id` raises
+        # (between peek and the atomic fetch_and_delete inside
+        # with_challenge), make sure no stale challenge is left in the
+        # session that a later request could replay.
+        force_delete_challenge!(challenge_id)
       end
     rescue Sign::Webauthn::ChallengeNotFoundError, Sign::Webauthn::ChallengeExpiredError => e
       Rails.logger.warn("WebAuthn challenge error: #{e.message}")

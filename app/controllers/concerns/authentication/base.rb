@@ -40,10 +40,26 @@ module Authentication
     class SkipNotAllowedError < StandardError; end
 
     VALID_POLICIES = %i(
+      deny_all
       public_strict
       auth_required
       guest_only
     ).freeze
+
+    POLICY_AUTHENTICATION_MODES = {
+      deny_all: :deny_all,
+      public_strict: :open,
+      auth_required: :private,
+      guest_only: :guest,
+    }.freeze
+
+    AUTHENTICATION_MODE_POLICIES = {
+      bare: :public_strict,
+      deny_all: :deny_all,
+      guest: :guest_only,
+      private: :auth_required,
+      open: :public_strict,
+    }.freeze
 
     ACCESS_POLICY_RULES = Concurrent::Map.new
 
@@ -320,7 +336,7 @@ module Authentication
     end
 
     def log_in(resource, record_login_audit: true, token_kind_id: "BROWSER_WEB", require_totp_check: true,
-               audit_context: {})
+               audit_context: {}, bootstrap_actor: false)
       return { status: :login_forbidden } unless resource.login_allowed?
 
       check_login_cooldown!(resource)
@@ -336,44 +352,83 @@ module Authentication
       reset_session
       clear_previous_login_cookies!
 
-      session_limit_state = session_limit_state_for(resource)
-      return session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
+      # Serialize session-limit decision and token creation per actor. Without
+      # this, concurrent log_in calls for the same actor each see the same
+      # active-token count and can both bypass MAX_SESSIONS, leaving more
+      # active tokens than the policy allows.
+      with_actor_session_lock(resource) do
+        # Sign-up handoff must always issue an active token. If a rare data
+        # condition (e.g. an orphan social_identity that resolves to a
+        # session-saturated actor) made `session_limit_state_for` return
+        # :issue_restricted or :hard_reject for a freshly minted actor,
+        # the user would land on /sign/in/session immediately after
+        # finishing registration — a UX break with no upside. Skip the
+        # gate entirely when the caller asserts this is a bootstrap login.
+        session_limit_state = bootstrap_actor ? :within_limit : session_limit_state_for(resource)
+        next session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
 
-      is_restricted = session_limit_state == :issue_restricted
-      store_pending_login_resource(resource) if is_restricted
+        is_restricted = session_limit_state == :issue_restricted
+        store_pending_login_resource(resource) if is_restricted
 
-      kind_id = resolve_token_kind_id(token_kind_id)
-      dpop_result = validate_login_dpop_proof
-      return dpop_result unless dpop_result[:status] == :success
+        kind_id = resolve_token_kind_id(token_kind_id)
+        dpop_result = validate_login_dpop_proof
+        next dpop_result unless dpop_result[:status] == :success
 
-      token_status_id = is_restricted ? token_class::STATUS_RESTRICTED : token_class::STATUS_ACTIVE
-      token_record = create_login_token_record(
-        resource, kind_id, token_status_id: token_status_id,
-                           dpop_jkt: dpop_result[:jkt],
-      )
-      device_session = ensure_device_session_for!(resource, token_record, dpop_jkt: dpop_result[:jkt])
-      restricted_expires_at = is_restricted ? restricted_session_expires_at : nil
-      refresh_plain = rotate_login_refresh_token!(token_record, restricted_expires_at)
-      update_device_session_refresh_state!(device_session, token_record)
-      notify_restricted_session_issued(resource, token_record, restricted_expires_at) if is_restricted
+        token_status_id = is_restricted ? token_class::STATUS_RESTRICTED : token_class::STATUS_ACTIVE
+        token_record = create_login_token_record(
+          resource, kind_id, token_status_id: token_status_id,
+                             dpop_jkt: dpop_result[:jkt],
+        )
+        device_session = ensure_device_session_for!(resource, token_record, dpop_jkt: dpop_result[:jkt])
+        restricted_expires_at = is_restricted ? restricted_session_expires_at : nil
+        refresh_plain = rotate_login_refresh_token!(token_record, restricted_expires_at)
+        update_device_session_refresh_state!(device_session, token_record)
+        notify_restricted_session_issued(resource, token_record, restricted_expires_at) if is_restricted
 
-      adopt_preference_for!(resource) if respond_to?(:adopt_preference_for!, true)
-      now = Time.current
-      access_expires_at = access_token_expires_at_for(token_record, now: now)
-      access_token = encode_login_access_token(
-        resource, token_record, token_kind_id: token_kind_id,
-                                dpop_jkt: dpop_result[:jkt], access_expires_at: access_expires_at,
-      )
-      set_login_auth_cookies(token_record, access_token, refresh_plain, access_expires_at)
-      issue_dbsc_registration_header_for(token_record)
-      @current_resource = resource
-      @current_session = token_record
-      @current_session_public_id = token_session_public_id(token_record)
-      populate_current_attributes!(resource, nil)
-      @_current_resource_resolved = true
-      emit_session_issued(resource, token_record, token_kind_id, restricted: is_restricted)
-      record_audit(AUDIT_EVENTS[:logged_in], resource: resource, context: audit_context) if record_login_audit
-      login_result(token_record, access_token, refresh_plain, access_expires_at, now, restricted: is_restricted)
+        adopt_preference_for!(resource) if respond_to?(:adopt_preference_for!, true)
+        now = Time.current
+        access_expires_at = access_token_expires_at_for(token_record, now: now)
+        access_token = encode_login_access_token(
+          resource, token_record, token_kind_id: token_kind_id,
+                                  dpop_jkt: dpop_result[:jkt], access_expires_at: access_expires_at,
+        )
+        set_login_auth_cookies(token_record, access_token, refresh_plain, access_expires_at)
+        issue_dbsc_registration_header_for(token_record)
+        @current_resource = resource
+        @current_session = token_record
+        @current_session_public_id = token_session_public_id(token_record)
+        populate_current_attributes!(resource, nil)
+        @_current_resource_resolved = true
+        emit_session_issued(resource, token_record, token_kind_id, restricted: is_restricted)
+        record_audit(AUDIT_EVENTS[:logged_in], resource: resource, context: audit_context) if record_login_audit
+        login_result(token_record, access_token, refresh_plain, access_expires_at, now, restricted: is_restricted)
+      end
+    end
+
+    # Serialize the count-then-create critical section in `log_in` for a
+    # single actor. Uses a row-level lock on the resource record so that two
+    # concurrent log_in attempts for the same actor cannot both observe the
+    # same session-count snapshot. The lock lives in the resource's DB; the
+    # block may itself open transactions against the token DB.
+    def with_actor_session_lock(resource)
+      return yield unless resource&.class&.respond_to?(:transaction)
+
+      result = nil
+      owner = resource_connection_owner(resource.class)
+      owner.connected_to(role: :writing) do
+        resource.class.transaction do
+          resource.lock!
+          result = yield
+        end
+      end
+      result
+    end
+
+    def resource_connection_owner(klass)
+      connection_owner = klass
+      connection_owner = connection_owner.superclass until connection_owner.connection_class? ||
+          connection_owner == ApplicationRecord
+      connection_owner
     end
 
     def clear_previous_login_cookies!
@@ -477,6 +532,8 @@ module Authentication
       ) unless refresh_dpop_allowed?(token_record) && refresh_binding_allowed?(token_record)
 
       result = Sign::RefreshTokenService.call(refresh_token: refresh_plain)
+      return handle_invalid_refresh_token_result(result, refresh_public_id, token_record) unless result.success?
+
       previous_token_record = result[:previous_token] || token_record
       token_record = result[:token]
       new_refresh_plain = result[:refresh_token]
@@ -499,8 +556,6 @@ module Authentication
         resource, token_record, new_refresh_plain,
         previous_token_record: previous_token_record,
       )
-    rescue Sign::InvalidRefreshToken => e
-      handle_invalid_refresh_token(e, refresh_public_id, token_record)
     rescue StandardError => e
       Rails.logger.error(
         LogEvent.format(
@@ -565,7 +620,7 @@ module Authentication
           path: request&.fullpath,
           method: request&.request_method,
         )
-        rt = issue_authentication_return_target_token(request.original_url)
+        rt = issue_authentication_return_target_token(request.fullpath)
         redirect_to(
           sign_in_url_with_return(rt),
           allow_other_host: true,
@@ -632,15 +687,7 @@ module Authentication
     class_methods do
       # Declare policy for controller or specific actions (only/except).
       def access_policy_rules
-        ACCESS_POLICY_RULES.fetch_or_store(self) do
-          parent_rules =
-            if superclass.respond_to?(:access_policy_rules)
-              superclass.access_policy_rules
-            else
-              []
-            end
-          parent_rules.dup
-        end
+        ACCESS_POLICY_RULES.fetch_or_store(self) { [] }
       end
 
       def access_policy(policy, only: nil, except: nil, **options)
@@ -655,14 +702,68 @@ module Authentication
         }
 
         ACCESS_POLICY_RULES[self] = access_policy_rules + [rule]
+        declare_authentication_mode_for_policy!(policy, only: only, except: except)
       end
 
-      # Readable shortcuts.
-      def public_strict!(**) = access_policy(:public_strict, **)
+      def authentication_mode_rules
+        if instance_variable_defined?(:@authentication_mode_rules)
+          @authentication_mode_rules
+        else
+          []
+        end
+      end
 
-      def auth_required!(**) = access_policy(:auth_required, **)
+      def local_authentication_mode_rules
+        authentication_mode_rules
+      end
 
-      def guest_only!(**) = access_policy(:guest_only, **)
+      def declare_authentication_mode!(mode, only: nil, except: nil, **options)
+        mode = mode.to_sym
+        raise InvalidPolicyError, "Invalid authentication mode: #{mode.inspect}" unless authentication_modes.include?(mode)
+
+        rule = {
+          mode: mode,
+          only: Array(only).map(&:to_s).presence,
+          except: Array(except).map(&:to_s).presence,
+          options: options,
+        }
+
+        @authentication_mode_rules = authentication_mode_rules + [rule]
+      end
+
+      def authentication_mode_for(action)
+        action = action.to_s
+
+        authentication_mode_rules.reverse_each do |rule|
+          next if rule[:only].present? && rule[:only].exclude?(action)
+          next if rule[:except].present? && rule[:except].include?(action)
+
+          return rule[:mode]
+        end
+
+        return const_get(:AUTHENTICATION_MODE, false) if const_defined?(:AUTHENTICATION_MODE, false)
+
+        :deny_all
+      end
+
+      def authentication_modes
+        %i(bare deny_all guest private open)
+      end
+
+      private
+
+      def declare_authentication_mode_for_policy!(policy, only:, except:)
+        rule = access_policy_rules.last
+
+        declare_authentication_mode!(
+          POLICY_AUTHENTICATION_MODES.fetch(policy),
+          only: only,
+          except: except,
+          **(rule&.fetch(:options, {}) || {}),
+        )
+      end
+
+      public
 
       # --- Skip guardrails ---
       # Disallow removing enforce_access_policy! via skip_before_action.
@@ -942,10 +1043,14 @@ module Authentication
       (respond_to?(:request, true) && request) ? request.remote_ip : nil
     end
 
-    def handle_invalid_refresh_token(exception, refresh_public_id, token_record = nil)
+    def handle_invalid_refresh_token_result(result, refresh_public_id, token_record = nil)
+      handle_invalid_refresh_token_reason(result.reason.to_s, refresh_public_id, result.token || token_record)
+    end
+
+    def handle_invalid_refresh_token_reason(reason, refresh_public_id, token_record = nil, log_reason: reason)
       set_refresh_failure!(:unauthorized, "invalid_refresh_token")
 
-      if exception.message == "refresh_token_reuse_detected"
+      if reason == "refresh_token_reuse_detected"
         write_refresh_occurrence(
           event_type: "refresh_reuse_detected",
           token_record: token_record || find_refresh_token_record(refresh_public_id),
@@ -958,7 +1063,7 @@ module Authentication
         LogEvent.format(
           "#{resource_type}.token.refresh.failed",
           refresh_token_id: refresh_public_id,
-          reason: exception.class.name,
+          reason: log_reason,
           ip_address: request_ip_address,
         ),
       )
@@ -969,7 +1074,7 @@ module Authentication
         ip: request&.remote_ip,
         user_agent: request&.user_agent,
         request_id: request&.request_id,
-        meta: { reason: exception.class.name },
+        meta: { reason: log_reason },
       )
 
       nil
@@ -1468,35 +1573,38 @@ module Authentication
     # --- Policy enforcement methods ---
 
     def enforce_access_policy!
-      rule = resolve_policy_rule
-
-      policy = rule[:policy]
-      options = rule[:options] || {}
+      mode = self.class.authentication_mode_for(action_name)
+      policy = policy_for_authentication_mode(mode)
+      options = access_policy_options_for(action_name)
       context = access_policy_context(policy, options)
 
       Rails.logger.debug(
         LogEvent.format(
           "auth.policy.resolved",
+          authentication_mode: mode,
           policy: policy,
           controller: self.class.name,
           action: action_name,
           rules_count: self.class.access_policy_rules.size,
+          authentication_mode_rules_count: self.class.local_authentication_mode_rules.size,
         ),
       )
 
-      case policy
-      when :public_strict
+      case mode
+      when :deny_all
+        enforce_deny_all!(options)
+      when :bare, :open
         access_policy_allows?(:public_strict?, context)
-      when :auth_required
+      when :private
         return true if access_policy_allows?(:auth_required?, context)
 
         enforce_auth_required!(options)
-      when :guest_only
+      when :guest
         return true if access_policy_allows?(:guest_only?, context)
 
         enforce_guest_only!(options)
       else
-        raise InvalidPolicyError, "Unexpected policy: #{policy.inspect}"
+        raise InvalidPolicyError, "Unexpected authentication mode: #{mode.inspect}"
       end
     end
 
@@ -1520,6 +1628,31 @@ module Authentication
 
     def access_policy_allows?(rule, context)
       allowed_to?(rule, context, with: Authentication::AccessPolicy)
+    end
+
+    def policy_for_authentication_mode(mode)
+      AUTHENTICATION_MODE_POLICIES.fetch(mode.to_sym)
+    rescue KeyError
+      raise InvalidPolicyError, "Unexpected authentication mode: #{mode.inspect}"
+    end
+
+    def access_policy_options_for(action)
+      resolve_authentication_mode_rule_for(action)&.fetch(:options, {}) ||
+        resolve_access_policy_for(action)&.fetch(:options, {}) ||
+        {}
+    end
+
+    def resolve_authentication_mode_rule_for(action)
+      action = action.to_s
+
+      self.class.local_authentication_mode_rules.reverse_each do |rule|
+        next if rule[:only].present? && rule[:only].exclude?(action)
+        next if rule[:except].present? && rule[:except].include?(action)
+
+        return rule
+      end
+
+      nil
     end
 
     def resolve_policy_rule
@@ -1557,6 +1690,12 @@ module Authentication
       # If you avoid touching current_user/current_resource here,
       # the safest default is to do nothing.
       true
+    end
+
+    def enforce_deny_all!(_options = {})
+      raise MissingPolicyError,
+            "Denied by default authentication mode for #{self.class.name}##{action_name}. " \
+            "Declare a concrete authentication mode before exposing this endpoint."
     end
 
     def enforce_auth_required!(options = {})
@@ -1873,15 +2012,22 @@ module Authentication
       cycle = pending_mfa_sign_in_cycle_for(user)
       clear_pending_mfa!
 
-      result = log_in(user, require_totp_check: false)
-      complete_sign_in_cycle_after_session_result!(cycle, user, result) if cycle
+      result = pending_sign_in_result_after_primary!(
+        user,
+        rt: return_to,
+        record_login_audit: true,
+        token_kind_id: "BROWSER_WEB",
+        audit_context: { auth_method: pending_mfa&.dig(:auth_method).presence || "mfa" },
+        bootstrap_actor: false,
+      )
+      advance_pending_sign_in_cycle_after_primary!(cycle, user, result) if cycle
 
       if result[:status] == :session_limit_hard_reject
         { status: :session_limit_hard_reject, message: result[:message], http_status: result[:http_status] }
-      elsif result[:restricted]
+      elsif result[:session_management_required]
         { status: :restricted, redirect_path: session_management_path }
       elsif result[:status] == :success
-        { status: :success, redirect_path: return_to.presence }
+        { status: :success, redirect_path: sign_in_sequence_redirect_path(rt: return_to) }
       else
         result
       end
@@ -1897,11 +2043,9 @@ module Authentication
       else
         "/sign/in/session"
       end
-    rescue StandardError
-      "/sign/in/session"
     end
 
-    # Default redirect destination after login for guest_only! policy.
+    # Default redirect destination after login for guest authentication mode.
     # Override in controllers to customize (e.g. to preserve ri parameter).
     def after_login_path
       default_after_login_path
@@ -1915,8 +2059,6 @@ module Authentication
       else
         "/"
       end
-    rescue StandardError
-      "/"
     end
 
     def session_limit_gate_return_to
@@ -1929,8 +2071,6 @@ module Authentication
       return "#{controller_path}.session" if respond_to?(:controller_path, true)
 
       "auth.#{resource_type}.session"
-    rescue StandardError
-      "auth.session"
     end
 
     # Canonical entry point for establishing a signed-in session. Every
@@ -1940,16 +2080,20 @@ module Authentication
     # Paired vocabulary with logout_current_session! for the privilege
     # transition points.
     def establish_signed_in_session!(resource, rt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",
-                                     record_login_audit: true, audit_context: {})
+                                     record_login_audit: true, audit_context: {}, bootstrap_actor: false)
       auth_method = auth_method.to_s
       cycle = start_sign_in_cycle_for!(resource, rt: rt)
       login_audit_context = { auth_method: auth_method }.merge(audit_context)
       if mfa_bypassed_for_auth_method?(auth_method) || !mfa_required_for?(resource)
-        result = log_in(
-          resource, record_login_audit: record_login_audit, token_kind_id: token_kind_id,
-                    require_totp_check: false, audit_context: login_audit_context,
+        result = pending_sign_in_result_after_primary!(
+          resource,
+          rt: rt,
+          record_login_audit: record_login_audit,
+          token_kind_id: token_kind_id,
+          audit_context: login_audit_context,
+          bootstrap_actor: bootstrap_actor,
         )
-        complete_sign_in_cycle_after_session_result!(cycle, resource, result)
+        advance_pending_sign_in_cycle_after_primary!(cycle, resource, result)
         return result
       end
 
@@ -1966,6 +2110,27 @@ module Authentication
         redirect_path: mfa_entry_path(ri: ri),
         return_to: return_to,
       }
+    end
+
+    def pending_sign_in_result_after_primary!(resource, rt:, record_login_audit:, token_kind_id:,
+                                              audit_context:, bootstrap_actor:)
+      _ = [record_login_audit, token_kind_id, audit_context]
+      return { status: :login_forbidden } unless resource.login_allowed?
+
+      check_login_cooldown!(resource)
+      session_limit_state = bootstrap_actor ? :within_limit : session_limit_state_for(resource)
+      return session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
+
+      if session_limit_state == :issue_restricted
+        store_pending_login_resource(resource)
+        issue_session_limit_gate!(
+          return_to: session_limit_gate_return_to,
+          flow: session_limit_gate_flow,
+        )
+        return { status: :success, session_management_required: true, redirect_path: session_management_path }
+      end
+
+      { status: :success, redirect_path: sign_in_sequence_redirect_path(rt: rt) }
     end
 
     def check_login_cooldown!(resource)
@@ -2134,14 +2299,16 @@ module Authentication
 
     def actor_current_resource
       return unless defined?(Actor)
-      return unless Actor.authn.signed_in?
-      return unless Actor.authn.actor_type.to_s == resource_type.to_s
+
+      actor_authn = Actor.authn
+      return unless actor_authn.signed_in?
+      return unless actor_authn.actor_type.to_s == resource_type.to_s
 
       actor = Actor.actor
       return if actor.equal?(Unauthenticated.instance)
-      return unless actor.present?
+      return if actor.blank?
       return unless actor.is_a?(resource_class)
-      return unless Actor.authn.actor_id.blank? || Actor.authn.actor_id == actor.id
+      return unless actor_authn.actor_id.blank? || actor_authn.actor_id == actor.id
 
       actor
     end
@@ -2210,8 +2377,6 @@ module Authentication
       challenge = SecureRandom.urlsafe_base64(32)
       token_record.update!(dbsc_challenge: challenge, dbsc_challenge_issued_at: Time.current)
       challenge
-    rescue StandardError
-      nil
     end
 
     def token_dbsc_path
@@ -2303,6 +2468,16 @@ module Authentication
       end
     end
 
+    # Auth methods that imply the user already presented strong evidence
+    # of presence, so a second TOTP factor would be redundant:
+    #   - passkey: phishing-resistant authenticator possession
+    #   - social / google / apple: IDP-managed authentication, including
+    #     the IDP's own MFA enforcement
+    # Email and telephone OTPs are *not* in this set — OTP-only logins
+    # still escalate to TOTP if the actor has enrolled an authenticator.
+    # The "sign_up" fallback auth_method is intentionally absent too; in
+    # practice it only fires for a freshly minted actor that has no MFA
+    # enrolled yet, so the gate naturally passes via mfa_required_for?.
     def mfa_bypassed_for_auth_method?(auth_method)
       %w(passkey social google apple).include?(auth_method.to_s)
     end
@@ -2342,7 +2517,7 @@ module Authentication
     def handle_auth_required_html(options)
       path =
         if respond_to?(:sign_in_url_with_return, true)
-          rt = issue_authentication_return_target_token(request.original_url)
+          rt = issue_authentication_return_target_token(request.fullpath)
           sign_in_url_with_return(rt)
         elsif main_app.respond_to?(:sign_in_path)
           main_app.sign_in_path

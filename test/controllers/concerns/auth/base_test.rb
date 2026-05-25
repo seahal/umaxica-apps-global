@@ -210,7 +210,7 @@ module Auth
       end
 
     test "VALID_POLICIES constant is defined" do
-      assert_equal %i(public_strict auth_required guest_only), Authentication::Base::VALID_POLICIES
+      assert_equal %i(deny_all public_strict auth_required guest_only), Authentication::Base::VALID_POLICIES
     end
 
     test "AUDIT_EVENTS constant is defined" do
@@ -310,8 +310,8 @@ module Auth
       stored_rt = harness.session.fetch(:app_sign_in_sequence).fetch("rt")
       stored_safe_return_path = harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
 
-      assert_equal "/configuration", harness.safe_path_from_encoded_rt(stored_rt, fallback: "/")
-      assert_equal "/configuration", harness.safe_path_from_encoded_rt(stored_safe_return_path, fallback: "/")
+      assert_equal "/configuration", harness.return_path_from_signed_rt(stored_rt)
+      assert_equal "/configuration", harness.return_path_from_signed_rt(stored_safe_return_path)
 
       welcome_rt = "/welcome?ri=jp"
       welcome_result = harness.send(:begin_sign_in_sequence!, rt: welcome_rt, checkpoint_required: true)
@@ -337,10 +337,7 @@ module Auth
 
       assert_equal "/welcome", redirected.path
       assert_equal "/after",
-                   harness.safe_path_from_encoded_rt(
-                     Rack::Utils.parse_query(redirected.query).fetch("rt"),
-                     fallback: "/",
-                   )
+                   harness.return_path_from_signed_rt(Rack::Utils.parse_query(redirected.query).fetch("rt"))
       assert_equal 5, harness.session[:app_sign_in_welcome]["remaining"]
     end
 
@@ -359,10 +356,7 @@ module Auth
 
       assert_equal "/welcome", redirected.path
       assert_equal "/dashboard?ri=jp",
-                   harness.safe_path_from_encoded_rt(
-                     Rack::Utils.parse_query(redirected.query).fetch("rt"),
-                     fallback: "/",
-                   )
+                   harness.return_path_from_signed_rt(Rack::Utils.parse_query(redirected.query).fetch("rt"))
     end
 
     test "checkpoint continuation keeps blocking db-backed cycle at checkpoint" do
@@ -445,10 +439,7 @@ module Auth
 
       assert_equal "/sign/in/checkpoint", redirected.path
       assert_equal "/after",
-                   harness.safe_path_from_encoded_rt(
-                     Rack::Utils.parse_query(redirected.query).fetch("rt"),
-                     fallback: "/",
-                   )
+                   harness.return_path_from_signed_rt(Rack::Utils.parse_query(redirected.query).fetch("rt"))
       assert_predicate cycle.reload, :sign_in_checkpoint_pending?
     end
 
@@ -584,23 +575,25 @@ module Auth
 
       result = harness.preserve_redirect_parameter
 
-      assert_equal "/target", harness.safe_path_from_encoded_rt(result, fallback: "/")
+      assert_equal "/target", harness.return_path_from_signed_rt(result)
       assert_equal result, harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
-      assert_equal "/target", harness.safe_path_from_encoded_rt(harness.peek_redirect_parameter, fallback: "/")
-      assert_equal "/target", harness.safe_path_from_encoded_rt(harness.build_notice_params("ok")[:rt], fallback: "/")
-      assert_equal "/target", harness.safe_path_from_encoded_rt(harness.build_alert_params("ng")[:rt], fallback: "/")
-      assert_equal "/target", harness.safe_path_from_encoded_rt(harness.retrieve_redirect_parameter, fallback: "/")
+      assert_equal "/target", harness.return_path_from_signed_rt(harness.peek_redirect_parameter)
+      assert_equal "/target", harness.return_path_from_signed_rt(harness.build_notice_params("ok")[:rt])
+      assert_equal "/target", harness.return_path_from_signed_rt(harness.build_alert_params("ng")[:rt])
+      assert_equal "/target", harness.return_path_from_signed_rt(harness.retrieve_redirect_parameter)
       assert_nil harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
     end
 
     test "redirect_with_rt_handling uses rt jump when present and fallback redirect otherwise" do
       harness = HeaderKeyHarness.new
-      harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = harness.safe_encoded_rt("/encoded")
+      rt = harness.safe_encoded_rt("/dashboard")
+      harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = rt
 
       harness.redirect_with_rt_handling("/default", :notice, "done")
 
       assert_equal "done", harness.flash[:notice]
-      assert_equal ["/encoded", { allow_other_host: false }], harness.redirected
+      assert_equal [harness.return_path_from_signed_rt(rt), { allow_other_host: false }],
+                   harness.redirected
 
       harness.redirect_with_rt_handling("/default", :alert, "warn")
 

@@ -5,6 +5,8 @@ module Sign
   module Com
     module Configuration
       class WithdrawalsController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include ::Verification::Visitor
         include Common::Redirect
 

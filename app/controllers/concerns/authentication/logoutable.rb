@@ -19,12 +19,15 @@ module Authentication
   module Logoutable
     extend ActiveSupport::Concern
 
+    class ResolutionError < StandardError; end
+
     private
 
     def logout_current_session!(reason: "user_logout")
-      resource = safe_current_resource_for_logout
+      resource = nil
 
       begin
+        resource = safe_current_resource_for_logout
         Authentication::LogoutCurrentSession.call(
           current: Actor,
           resource: resource,
@@ -39,6 +42,7 @@ module Authentication
         Actor.clear if defined?(Actor)
         reset_session
       end
+      Logout::Result.success
     end
 
     # Explicit "sign out from all devices". Callers must be dedicated
@@ -53,30 +57,43 @@ module Authentication
         Actor.clear if defined?(Actor)
         reset_session
       end
+      Logout::Result.success
     end
 
     def safe_current_resource_for_logout
       current_resource if respond_to?(:current_resource, true)
-    rescue StandardError
-      nil
+    rescue StandardError => e
+      raise_logout_resolution_error!(:current_resource, e)
     end
 
     def safe_current_session_for_logout
       current_session if respond_to?(:current_session, true)
-    rescue StandardError
-      nil
+    rescue StandardError => e
+      raise_logout_resolution_error!(:current_session, e)
     end
 
     def safe_token_class_for_logout
       token_class if respond_to?(:token_class, true)
-    rescue StandardError
-      nil
+    rescue StandardError => e
+      raise_logout_resolution_error!(:token_class, e)
     end
 
     def safe_current_session_public_id_for_logout
       current_session_public_id if respond_to?(:current_session_public_id, true)
-    rescue StandardError
-      nil
+    rescue StandardError => e
+      raise_logout_resolution_error!(:current_session_public_id, e)
+    end
+
+    def raise_logout_resolution_error!(component, exception)
+      Rails.logger.warn(
+        LogEvent.format(
+          "auth.logout.resolution.failed",
+          component: component,
+          error_class: exception.class.name,
+        ),
+      )
+
+      raise ResolutionError.new("Logout #{component} resolution failed"), cause: exception
     end
 
     def record_logout_audit(resource)

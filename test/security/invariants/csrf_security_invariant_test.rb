@@ -18,7 +18,6 @@ module Security
       NULL_SESSION_STRATEGY = ActionController::RequestForgeryProtection::ProtectionMethods::NullSession
 
       SURFACE_BASE_CONTROLLERS = [
-        ApplicationController,
         Sign::App::ApplicationController,
         Sign::Com::ApplicationController,
         Sign::Org::ApplicationController,
@@ -27,10 +26,17 @@ module Security
         Sign::Org::BareController,
         Apex::App::ApplicationController,
         Apex::Com::ApplicationController,
+        Apex::Dev::ApplicationController,
+        Apex::Net::ApplicationController,
         Apex::Org::ApplicationController,
         Apex::App::BareController,
         Apex::Com::BareController,
+        Apex::Dev::BareController,
+        Apex::Net::BareController,
         Apex::Org::BareController,
+        Jump::App::ApplicationController,
+        Jump::Com::ApplicationController,
+        Jump::Org::ApplicationController,
         Jump::App::BareController,
         Jump::Com::BareController,
         Jump::Org::BareController,

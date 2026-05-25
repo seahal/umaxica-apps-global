@@ -79,6 +79,16 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
     assert_equal [], StepUp::AvailableMethods.call(@user, ticket: ticket)
   end
 
+  test "ticket attempt count four still returns configured methods" do
+    @user.client_emails.create!(
+      address: "available-attempt-four@example.com",
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+    )
+    ticket = Struct.new(:attempt_count).new(4)
+
+    assert_includes StepUp::AvailableMethods.call(@user, ticket: ticket), :email_otp
+  end
+
   test "does not include email_otp for unverified user email status" do
     @user.client_emails.create!(
       address: "unverified-stepup@example.com",

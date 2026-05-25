@@ -74,13 +74,33 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       ticket: ticket,
       event: :clear_requirement,
       actor_context: nil,
-      payload: { requirement: :birthdate },
+      payload: { requirement: :birthdate, checkpoint_version: ticket.checkpoint_version },
     )
 
     assert_equal :advanced, result.status
     assert_equal :clear_requirement, result.next_event
     assert ticket.reload.requirement_cleared?(:birthdate)
     assert_not ticket.requirement_cleared?(:passkey)
+  end
+
+  test "checkpoint requirement clearing rejects stale replay after requirement is clear" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      entry_method: "email",
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      completed_requirements: { "birthdate" => { "cleared" => true } },
+    )
+
+    result = SignUp::StateMachine.call(
+      ticket: ticket,
+      event: :clear_requirement,
+      actor_context: nil,
+      payload: { requirement: :birthdate, checkpoint_version: ticket.checkpoint_version },
+    )
+
+    assert_equal :invalid_transition, result.status
+    assert_equal ClientSignUpCycleStatus::CHECKPOINT_PENDING, ticket.reload.status_id
   end
 
   test "clearing the last checkpoint requirement points to finalization" do
@@ -95,11 +115,32 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       ticket: ticket,
       event: :clear_requirement,
       actor_context: nil,
-      payload: { requirement: :birthdate },
+      payload: { requirement: :birthdate, checkpoint_version: ticket.checkpoint_version },
     )
 
     assert_equal :finalize, result.next_event
     assert ticket.reload.requirement_cleared?(:birthdate)
+  end
+
+  test "checkpoint requirement clearing rejects stale checkpoint version" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      entry_method: "email",
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      checkpoint_version: 2,
+    )
+
+    result = SignUp::StateMachine.call(
+      ticket: ticket,
+      event: :clear_requirement,
+      actor_context: nil,
+      payload: { requirement: :birthdate, checkpoint_version: 1 },
+    )
+
+    assert_equal :invalid_transition, result.status
+    assert_not ticket.reload.requirement_cleared?(:birthdate)
+    assert_equal 2, ticket.checkpoint_version
   end
 
   test "finalize blocks until every required requirement is clear" do
@@ -202,6 +243,33 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
     assert_equal :failed, cancel_result.status
     assert_equal ClientSignUpCycleStatus::CANCELLED, cancelled.reload.status_id
     assert_predicate cancelled.cancelled_at, :present?
+  end
+
+  test "cancel is rejected after finalizing starts" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      status_id: ClientSignUpCycleStatus::FINALIZING,
+      step: "finalizing",
+    )
+
+    result = SignUp::StateMachine.call(ticket: ticket, event: :cancel, actor_context: nil)
+
+    assert_equal :invalid_transition, result.status
+    assert_equal ClientSignUpCycleStatus::FINALIZING, ticket.reload.status_id
+  end
+
+  test "cancel replay on cancelled ticket is idempotent" do
+    ticket = create_cycle(
+      ClientSignUpCycle,
+      status_id: ClientSignUpCycleStatus::CANCELLED,
+      step: "cancelled",
+      cancelled_at: 1.minute.ago,
+    )
+
+    result = SignUp::StateMachine.call(ticket: ticket, event: :cancel, actor_context: nil)
+
+    assert_equal :ok, result.status
+    assert_equal ClientSignUpCycleStatus::CANCELLED, ticket.reload.status_id
   end
 
   private

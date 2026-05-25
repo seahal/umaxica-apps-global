@@ -4,6 +4,8 @@
 <p><%= t("sign.com.registration.checkpoint.show.passcode.description") %></p>
 
 <%= form_with(model: @secret, url: sign_com_up_checkpoint_passcode_path(ri: params[:ri], rt: params[:rt].presence)) do |form| %>
+  <%= hidden_field_tag :checkpoint_version, params[:checkpoint_version].presence || @sign_up_ticket.checkpoint_version %>
+
   <% if @secret.errors.any? %>
     <ul>
       <% @secret.errors.full_messages.each do |message| %>

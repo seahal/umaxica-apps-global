@@ -5,6 +5,8 @@ module Apex
   module App
     module Auth
       class CallbacksController < Apex::App::OpenController
+        AUTHENTICATION_MODE = :open
+
         include ::Oidc::Callback
 
         skip_before_action :set_region, raise: false

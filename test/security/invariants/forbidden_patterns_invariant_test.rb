@@ -107,12 +107,6 @@ module Security
           line: /redirect_to\(destination_url, allow_other_host: true\)/,
           reason: "Jump redirector is the reviewed external redirect boundary.",
         },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/concerns/authentication/redirects.rb",
-          line: /redirect_to\(destination, allow_other_host: true\)/,
-          reason: "Redirects to validated return targets after URI parsing.",
-        },
       ].freeze
 
       LOGGER_ALLOWLIST = [].freeze

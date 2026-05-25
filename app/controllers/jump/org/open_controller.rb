@@ -4,6 +4,8 @@
 module Jump
   module Org
     class OpenController < ApplicationController
+      AUTHENTICATION_MODE = :open
+
       include ::RateLimit
       include ::ActorSupport
 
@@ -14,12 +16,9 @@ module Jump
       before_action :set_current_actor
       prepend_around_action :with_actor_lifecycle
 
-      def self.public_strict!(*)
-      end
-
       protect_from_forgery using: :header_or_legacy_token, with: :exception
 
-      public_strict!
+      declare_authentication_mode! :open
     end
   end
 end

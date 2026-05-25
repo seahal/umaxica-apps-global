@@ -216,7 +216,7 @@ module Preference::RefreshTokenTransport
 
     return unless respond_to?(:adopt_rotated_preference!, true) && respond_to?(:current_resource, true)
 
-    resource = begin; current_resource; rescue; nil; end
+    resource = preference_current_resource
     adopt_rotated_preference!(resource, rotated_preference) if resource
   end
 

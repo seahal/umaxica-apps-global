@@ -82,12 +82,26 @@ module Authentication
       end
     end
 
+    class FailingCurrentResourceHarness < Harness
+      def current_resource
+        raise StandardError, "resource lookup failed"
+      end
+    end
+
+    class FailingCurrentSessionHarness < Harness
+      def current_session
+        raise StandardError, "session lookup failed"
+      end
+    end
+
     test "logout_current_session revokes token clears auth cookies and purges rails session" do
       harness = Harness.new
-      Actor.install_context!(actor: harness.resource, actor_type: :client, authn: Actor::Authentication.new(
-        login_public_id: "session-public-id",
-        actor_type: :client,
-      ))
+      Actor.install_context!(
+        actor: harness.resource, actor_type: :client, authn: Actor::Authentication.new(
+          login_public_id: "session-public-id",
+          actor_type: :client,
+        ),
+      )
 
       harness.logout_current_session!(reason: "test_logout")
 
@@ -188,6 +202,44 @@ module Authentication
                  "refresh cookie must be cleared in ensure even on audit failure"
       assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY],
                  "device cookie must be cleared in ensure even on audit failure"
+    end
+
+    test "logout_current_session fails closed but clears local state when resource resolution raises" do
+      harness = FailingCurrentResourceHarness.new
+
+      error = assert_raises(Authentication::Logoutable::ResolutionError) do
+        harness.logout_current_session!(reason: "test_logout")
+      end
+
+      assert_match "Logout current_resource resolution failed", error.message
+      assert_equal "resource lookup failed", error.cause.message
+      assert_empty harness.session,
+                   "Rails session must be reset in ensure even on resource resolution failure"
+      assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY],
+                 "access cookie must be cleared in ensure even on resource resolution failure"
+      assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
+                 "refresh cookie must be cleared in ensure even on resource resolution failure"
+      assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY],
+                 "device cookie must be cleared in ensure even on resource resolution failure"
+    end
+
+    test "logout_current_session fails closed but clears local state when session resolution raises" do
+      harness = FailingCurrentSessionHarness.new
+
+      error = assert_raises(Authentication::Logoutable::ResolutionError) do
+        harness.logout_current_session!(reason: "test_logout")
+      end
+
+      assert_match "Logout current_session resolution failed", error.message
+      assert_equal "session lookup failed", error.cause.message
+      assert_empty harness.session,
+                   "Rails session must be reset in ensure even on session resolution failure"
+      assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY],
+                 "access cookie must be cleared in ensure even on session resolution failure"
+      assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
+                 "refresh cookie must be cleared in ensure even on session resolution failure"
+      assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY],
+                 "device cookie must be cleared in ensure even on session resolution failure"
     end
   end
 end

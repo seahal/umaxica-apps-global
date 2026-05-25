@@ -68,7 +68,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "handle_callback records google signup audit for new identity" do
+  test "handle_callback for new google identity creates pending signup without audit" do
     auth_hash = {
       "provider" => "google",
       "uid" => "new-google-signup-#{SecureRandom.hex(8)}",
@@ -79,24 +79,18 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
       },
     }
 
-    assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count }, 1 do
+    assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count } do
       result = SocialAuthService.handle_callback(
         auth_hash: auth_hash,
         current_client: nil,
         intent: "login",
       )
 
-      audit = ClientChronicle.order(created_at: :desc).find_by!(
-        event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE,
-        subject_id: result[:user].id,
-        subject_type: "Client",
-      )
-
-      assert_equal result[:user].id, audit.actor_id
+      assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, result[:user].status_id
       assert_equal ClientMultiFactorStatus::UNCONFIGURED, result[:user].multi_factor_status_id
-      assert_equal "Client", audit.actor_type
-      assert_equal "social", audit.context["auth_method"]
-      assert_equal "google", audit.context["provider"]
+      assert_nil result[:user].rp_account
+      assert_not result[:existing_account]
+      assert_equal result[:user].id, result[:identity].user_id
     end
   end
 
@@ -126,7 +120,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "handle_callback creates apple signup user with unconfigured multi factor status" do
+  test "handle_callback creates apple pending signup user with unconfigured multi factor status" do
     ClientSocialAppleStatus.find_or_create_by!(id: ClientSocialAppleStatus::ACTIVE)
     auth_hash = {
       "provider" => "apple",
@@ -144,6 +138,9 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
     )
 
     assert_equal ClientMultiFactorStatus::UNCONFIGURED, result[:user].multi_factor_status_id
+    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, result[:user].status_id
+    assert_nil result[:user].rp_account
+    assert_not result[:existing_account]
     assert_equal result[:user].id, result[:identity].user_id
     assert_equal "apple", result[:identity].provider
   end

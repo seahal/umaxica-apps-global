@@ -4,6 +4,8 @@
 module Sign
   module Com
     class OpenController < ApplicationController
+      AUTHENTICATION_MODE = :open
+
       include ::RateLimit
       include ::Session
       include ::Preference::Global
@@ -23,7 +25,7 @@ module Sign
 
       allow_browser versions: :modern
 
-      public_strict!
+      declare_authentication_mode! :open
 
       before_action :check_default_rate_limit
       before_action :set_current_context

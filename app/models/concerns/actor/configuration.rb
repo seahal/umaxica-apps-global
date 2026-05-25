@@ -2,6 +2,13 @@
 # frozen_string_literal: true
 
 class Actor
+  SignConfiguration =
+    Data.define(
+      :value,
+      :enabled,
+      :mode,
+    )
+
   class Configuration
     class NullValue
       def nil? = true

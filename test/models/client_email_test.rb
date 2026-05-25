@@ -9,6 +9,7 @@
 #  id                        :bigint           not null, primary key
 #  address                   :string           default(""), not null
 #  address_digest            :string
+#  discarded_at              :datetime         default(Infinity), not null
 #  locked_at                 :datetime         default(Infinity), not null
 #  notifiable                :boolean          default(TRUE), not null
 #  otp_attempts_count        :integer          default(0), not null
@@ -17,6 +18,7 @@
 #  otp_last_sent_at          :datetime         default(-Infinity), not null
 #  otp_private_key           :string           default(""), not null
 #  promotional               :boolean          default(TRUE), not null
+#  purged_at                 :datetime         default(Infinity), not null
 #  subscribable              :boolean          default(TRUE), not null
 #  undeletable               :boolean          default(FALSE), not null
 #  verification_token_digest :binary
@@ -28,11 +30,13 @@
 #
 # Indexes
 #
-#  index_client_emails_on_address_digest        (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
-#  index_client_emails_on_otp_last_sent_at      (otp_last_sent_at)
-#  index_client_emails_on_public_id             (public_id) UNIQUE
-#  index_client_emails_on_user_email_status_id  (user_email_status_id)
-#  index_client_emails_on_user_id               (user_id)
+#  index_client_emails_on_active_address_digest  (address_digest) UNIQUE WHERE ((address_digest IS NOT NULL) AND (user_email_status_id <> 4))
+#  index_client_emails_on_discarded_at           (discarded_at)
+#  index_client_emails_on_otp_last_sent_at       (otp_last_sent_at)
+#  index_client_emails_on_public_id              (public_id) UNIQUE
+#  index_client_emails_on_purged_at              (purged_at)
+#  index_client_emails_on_user_email_status_id   (user_email_status_id)
+#  index_client_emails_on_user_id                (user_id)
 #
 # Foreign Keys
 #
@@ -95,6 +99,23 @@ class ClientEmailTest < ActiveSupport::TestCase
 
     assert_not duplicate_email.valid?
     assert_not_empty duplicate_email.errors[:address]
+  end
+
+  test "deleted sign-up email does not reserve address forever" do
+    ClientEmail.create!(
+      @valid_attributes.merge(
+        address: "cancelled-retry@example.com",
+        user_email_status_id: ClientEmailStatus::DELETED,
+        discarded_at: 1.minute.ago,
+        purged_at: 29.minutes.from_now,
+      ),
+    )
+    retry_email = ClientEmail.new(@valid_attributes.merge(address: "cancelled-retry@example.com"))
+
+    assert_predicate retry_email, :valid?
+    assert_difference "ClientEmail.count", 1 do
+      retry_email.save!
+    end
   end
 
   test "sets address_digest from normalized input" do
@@ -191,5 +212,56 @@ class ClientEmailTest < ActiveSupport::TestCase
 
     assert_predicate locked_email, :subscription_preferences_locked?
     assert_not unlocked_email.subscription_preferences_locked?
+  end
+
+  test "otp is active just before expiry and expired exactly at expiry" do
+    user_email = ClientEmail.create!(@valid_attributes.merge(address: "otp-expiry@example.com"))
+    now = Time.zone.parse("2026-05-25 12:00:00")
+
+    travel_to now do
+      user_email.store_otp("SECRET", "2", 30.seconds.from_now.to_i)
+    end
+
+    travel_to now + 29.seconds do
+      assert_predicate user_email.reload, :otp_active?
+      assert_not user_email.otp_expired?
+    end
+
+    travel_to now + 30.seconds do
+      assert_predicate user_email.reload, :otp_expired?
+      assert_not user_email.otp_active?
+    end
+  end
+
+  test "fifth failed otp attempt locks but fourth does not" do
+    user_email = ClientEmail.create!(@valid_attributes.merge(address: "otp-lock@example.com"))
+    now = Time.zone.parse("2026-05-25 12:00:00")
+
+    travel_to now do
+      user_email.update!(otp_attempts_count: 3, otp_last_sent_at: now)
+      user_email.increment_attempts!
+
+      assert_equal 4, user_email.otp_attempts_count
+      assert_not user_email.locked?
+
+      user_email.increment_attempts!
+
+      assert_equal 5, user_email.otp_attempts_count
+      assert_predicate user_email, :locked?
+      assert_in_delta 15.minutes.from_now.to_i, user_email.locked_at.to_i, 1
+    end
+  end
+
+  test "otp attempt window resets just after fifteen minutes" do
+    user_email = ClientEmail.create!(@valid_attributes.merge(address: "otp-window@example.com"))
+    now = Time.zone.parse("2026-05-25 12:00:00")
+
+    travel_to now do
+      user_email.update!(otp_attempts_count: 4, otp_last_sent_at: 15.minutes.ago - 1.second)
+      user_email.increment_attempts!
+
+      assert_equal 1, user_email.otp_attempts_count
+      assert_not user_email.locked?
+    end
   end
 end

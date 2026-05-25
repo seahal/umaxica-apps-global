@@ -32,9 +32,9 @@ Do not use them as the current implementation contract.
 
 ## Boundary Summary
 
-`BareController` inherits directly from `ActionController::Base` and is for endpoints that do not
-use application authentication machinery. It must not inspect session, authentication, preference,
-authorization, verification, or `Actor` state.
+`BareController` inherits from its surface-local `ApplicationController`. It is the named base for
+routes that are classified as bare by concrete controller/action metadata, but it no longer bypasses
+the surface controller lifecycle by inheriting from a global controller.
 
 Surface-local `ApplicationController` inherits directly from `ActionController::Base` and owns the
 authentication-aware request lifecycle.

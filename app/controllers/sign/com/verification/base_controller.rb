@@ -5,6 +5,8 @@ module Sign
   module Com
     module Verification
       class BaseController < Sign::Com::PrivateController
+        AUTHENTICATION_MODE = :private
+
         include Sign::ComVerificationBase
 
         skip_before_action :enforce_verification_if_required, raise: false

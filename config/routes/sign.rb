@@ -17,6 +17,7 @@ scope module: :sign, as: :sign do
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
+      resource :selector, only: :show
       resource :dashboard, only: :show
 
       # Public web API: OTP delivery, cookie consent, theme
@@ -248,6 +249,7 @@ scope module: :sign, as: :sign do
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
+      resource :selector, only: :show
       resource :dashboard, only: :show
 
       # Basic public endpoints
@@ -329,7 +331,7 @@ scope module: :sign, as: :sign do
         namespace :up do
           resource :email, only: %i(new create edit update)
           resource :guardrail, only: :show
-          resource :checkpoint, only: :show
+          resource :checkpoint, only: %i(show destroy)
 
           namespace :checkpoint do
             resource :birthdate, only: :update
@@ -441,6 +443,7 @@ scope module: :sign, as: :sign do
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
+      resource :selector, only: :show
       resource :dashboard, only: :show
 
       # Staff management top-level areas

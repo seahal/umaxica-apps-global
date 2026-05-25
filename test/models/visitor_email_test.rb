@@ -9,6 +9,7 @@
 #  id                        :bigint           not null, primary key
 #  address                   :string           default(""), not null
 #  address_digest            :string
+#  discarded_at              :datetime         default(Infinity), not null
 #  locked_at                 :datetime         default(Infinity), not null
 #  notifiable                :boolean          default(TRUE), not null
 #  otp_attempts_count        :integer          default(0), not null
@@ -17,6 +18,7 @@
 #  otp_last_sent_at          :datetime         default(-Infinity), not null
 #  otp_private_key           :string           default(""), not null
 #  promotional               :boolean          default(TRUE), not null
+#  purged_at                 :datetime         default(Infinity), not null
 #  subscribable              :boolean          default(TRUE), not null
 #  undeletable               :boolean          default(FALSE), not null
 #  verification_token_digest :binary
@@ -28,9 +30,11 @@
 #
 # Indexes
 #
-#  index_visitor_emails_on_address_digest           (address_digest) UNIQUE WHERE (address_digest IS NOT NULL)
+#  index_visitor_emails_on_active_address_digest    (address_digest) UNIQUE WHERE ((address_digest IS NOT NULL) AND (visitor_email_status_id <> 4))
+#  index_visitor_emails_on_discarded_at             (discarded_at)
 #  index_visitor_emails_on_otp_last_sent_at         (otp_last_sent_at)
 #  index_visitor_emails_on_public_id                (public_id) UNIQUE
+#  index_visitor_emails_on_purged_at                (purged_at)
 #  index_visitor_emails_on_visitor_email_status_id  (visitor_email_status_id)
 #  index_visitor_emails_on_visitor_id               (visitor_id)
 #
@@ -87,6 +91,23 @@ class VisitorEmailTest < ActiveSupport::TestCase
     expected = IdentifierBlindIndex.bidx_for_email("visitor-digest@example.com")
 
     assert_equal expected, visitor_email.address_digest
+  end
+
+  test "deleted sign-up email does not reserve address forever" do
+    VisitorEmail.create!(
+      @valid_attributes.merge(
+        address: "visitor-cancelled-retry@example.com",
+        visitor_email_status_id: VisitorEmailStatus::DELETED,
+        discarded_at: 1.minute.ago,
+        purged_at: 29.minutes.from_now,
+      ),
+    )
+    retry_email = VisitorEmail.new(@valid_attributes.merge(address: "visitor-cancelled-retry@example.com"))
+
+    assert_predicate retry_email, :valid?
+    assert_difference "VisitorEmail.count", 1 do
+      retry_email.save!
+    end
   end
 
   test "rejects creating more than the maximum emails per visitor" do

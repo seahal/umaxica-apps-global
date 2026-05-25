@@ -4,6 +4,8 @@
 module Sign
   module Com
     class WelcomesController < PrivateController
+      AUTHENTICATION_MODE = :private
+
       before_action :authenticate_visitor!
       before_action :continue_welcome_sequence_without_content!
 

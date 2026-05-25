@@ -5,6 +5,8 @@ module Sign
   module Com
     module Preference
       class ThemesController < PreferencesBaseController
+        AUTHENTICATION_MODE = :open
+
         include ::Preference::SignScreenActions
 
         before_action :ensure_preferences_record

@@ -6,6 +6,8 @@ module Sign
     module Web
       module V0
         class HealthsController < Sign::Com::BareController
+          AUTHENTICATION_MODE = :bare
+
           include ::Health
 
           def show

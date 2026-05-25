@@ -39,6 +39,7 @@ module SocialAuth
 
     def login_existing_identity(identity)
       user = identity.user
+      existing_account = user.present?
       Rails.logger.debug do
         "[SocialAuth] Existing identity - user_id: #{user&.id}, orphaned: #{user.nil?}"
       end
@@ -47,7 +48,7 @@ module SocialAuth
 
       identity.update_from_auth_hash!(auth_hash)
       Rails.logger.debug { "[SocialAuth] Identity updated from auth_hash" }
-      build_result(user, identity, existing_account: true)
+      build_result(user, identity, existing_account: existing_account)
     end
 
     def login_new_identity

@@ -148,7 +148,7 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
   end
 
   test "retrieve_redirect_parameter falls back to params" do
-    @harness.params_data[Auth::IoKeys::Params::RT] = "/from-params"
+    @harness.params_data[Auth::IoKeys::Params::RT] = "/dashboard"
     result = @harness.retrieve_redirect_parameter
 
     assert_match(/--/, result)

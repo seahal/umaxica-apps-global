@@ -3,4 +3,5 @@
 <%= render "shared/passkeys/registration",
            begin_url: begin_sign_app_up_checkpoint_passkey_path(ri: params[:ri], rt: params[:rt].presence),
            finish_url: sign_app_up_checkpoint_passkey_path(ri: params[:ri], rt: params[:rt].presence),
-           success_redirect_url: @success_redirect_url %>
+           success_redirect_url: @success_redirect_url,
+           checkpoint_version: params[:checkpoint_version].presence || @sign_up_ticket.checkpoint_version %>

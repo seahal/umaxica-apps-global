@@ -79,7 +79,7 @@ module Apex
         controller = ApplicationController.new
 
         assert_respond_to controller, :oidc_sign_host
-        assert_equal "id.com.localhost", controller.send(:oidc_sign_host)
+        assert_equal ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com"), controller.send(:oidc_sign_host)
       end
     end
   end

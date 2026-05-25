@@ -5,6 +5,8 @@ module Sign
   module Org
     module Configuration
       class ActivitiesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         VISIBLE_EVENT_IDS = [
           OperatorChronicleEvent::LOGGED_IN,
           OperatorChronicleEvent::LOGIN_SUCCESS,

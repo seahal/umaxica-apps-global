@@ -6,6 +6,8 @@ module Sign
     module Configuration
       module OperatorLifecycleRequests
         class RejectionsController < PrivateController
+          AUTHENTICATION_MODE = :private
+
           before_action :authenticate_operator!
           before_action :set_request
 

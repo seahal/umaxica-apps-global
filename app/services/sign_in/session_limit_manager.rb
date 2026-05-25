@@ -69,13 +69,11 @@ module SignIn
         cycle.lock!
         ensure_session_limit_cycle!
         ensure_actor_binding!
-        restricted_token = locked_restricted_token!(metadata)
         raise PromotionBlocked, "active session limit is still full" unless can_promote?(metadata)
 
-        restricted_token.promote_to_active!
         cycle.advance_sign_in_to_guardrail!
 
-        Result.new(cycle: cycle, token: restricted_token, refresh_token: nil)
+        Result.new(cycle: cycle, token: nil, refresh_token: nil)
       end
     end
 
@@ -87,11 +85,10 @@ module SignIn
         cycle.lock!
         ensure_session_limit_cycle!
         ensure_actor_binding!
-        restricted_token = locked_restricted_token!(metadata)
-        restricted_token.revoke!
+        locked_restricted_token!(metadata)&.revoke! if cycle.token_id.present?
         cycle.fail_sign_in!
 
-        Result.new(cycle: cycle, token: restricted_token, refresh_token: nil)
+        Result.new(cycle: cycle, token: nil, refresh_token: nil)
       end
     end
 

@@ -6,6 +6,8 @@ module Sign
     module Edge
       module V0
         class HealthsController < Sign::Org::BareController
+          AUTHENTICATION_MODE = :bare
+
           include ::Health
 
           def show

@@ -4,6 +4,8 @@
 module Jump
   module App
     class HealthsController < BareController
+      AUTHENTICATION_MODE = :bare
+
       include ::Health
 
       def show

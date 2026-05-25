@@ -4,6 +4,8 @@
 module Sign
   module Org
     class IamController < PrivateController
+      AUTHENTICATION_MODE = :private
+
       before_action :authenticate_operator!
 
       def index

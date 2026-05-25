@@ -25,23 +25,38 @@ module Sign
         end
 
         def call
-          ClientTelephone.transaction do
-            cleanup_pending_signup
-
-            locked_existing = lock_existing_telephone
-            if rate_limited_existing?(locked_existing)
-              @result = Result.new(status: :rate_limited, telephone: @telephone, session_payload: nil)
-              raise ActiveRecord::Rollback
+          # Serialize per-number to prevent two concurrent sessions from
+          # both passing the existence check and racing the unique index.
+          if @telephone.number_digest.blank?
+            ClientTelephone.transaction do
+              perform_create_under_lock
             end
-
-            remove_existing_unverified_telephones
-            create_pending_telephone
+          else
+            SignUp::EmailPendingGuard.with_lock(
+              number_digest: @telephone.number_digest,
+              model_class: ClientTelephone,
+            ) do
+              perform_create_under_lock
+            end
           end
 
           @result
         end
 
         private
+
+        def perform_create_under_lock
+          cleanup_pending_signup
+
+          locked_existing = lock_existing_telephone
+          if rate_limited_existing?(locked_existing)
+            @result = Result.new(status: :rate_limited, telephone: @telephone, session_payload: nil)
+            raise ActiveRecord::Rollback
+          end
+
+          remove_existing_unverified_telephones
+          create_pending_telephone
+        end
 
         def cleanup_pending_signup
           return if @pending_public_id.blank?

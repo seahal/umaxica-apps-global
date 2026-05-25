@@ -9,6 +9,8 @@ require "sha3"
 require "concurrent"
 
 module Preference
+  class ResolutionError < StandardError; end
+
   # ==========================================================================
   # TOC (approximate)
   # 1) JWT configuration & token primitives ........................... L8-L168
@@ -455,6 +457,26 @@ module Preference
     end
 
     private
+
+    def preference_current_resource
+      return unless respond_to?(:current_resource, true)
+
+      current_resource
+    rescue StandardError => e
+      raise_preference_resolution_error!(:current_resource, e)
+    end
+
+    def raise_preference_resolution_error!(component, exception)
+      Rails.logger.warn(
+        LogEvent.format(
+          "preference.resolution.failed",
+          component: component,
+          error_class: exception.class.name,
+        ),
+      )
+
+      raise ResolutionError.new("Preference #{component} resolution failed"), cause: exception
+    end
 
     # ==========================================================================
     # 2) Preference request entrypoints (Request/Cookie I/O boundary)

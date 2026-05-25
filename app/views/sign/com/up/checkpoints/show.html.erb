@@ -12,6 +12,7 @@
         <%= hidden_field_tag :rt, params[:rt] %>
       <% end %>
       <%= hidden_field_tag :requirement, "birthdate" %>
+      <%= hidden_field_tag :checkpoint_version, @sign_up_ticket.checkpoint_version %>
 
       <div>
         <%= label_tag :birthdate, t("sign.com.registration.checkpoint.show.birthdate.label") %>
@@ -28,7 +29,11 @@
     <h2><%= t("sign.com.registration.checkpoint.show.passkey.title") %></h2>
     <p><%= t("sign.com.registration.checkpoint.show.passkey.description") %></p>
     <%= link_to t("sign.com.registration.checkpoint.show.passkey.action"),
-                new_sign_com_up_checkpoint_passkey_path(ri: params[:ri], rt: params[:rt].presence) %>
+                new_sign_com_up_checkpoint_passkey_path(
+                  ri: params[:ri],
+                  rt: params[:rt].presence,
+                  checkpoint_version: @sign_up_ticket.checkpoint_version,
+                ) %>
   </section>
 <% end %>
 
@@ -37,7 +42,11 @@
     <h2><%= t("sign.com.registration.checkpoint.show.passcode.title") %></h2>
     <p><%= t("sign.com.registration.checkpoint.show.passcode.description") %></p>
     <%= link_to t("sign.com.registration.checkpoint.show.passcode.action"),
-                new_sign_com_up_checkpoint_passcode_path(ri: params[:ri], rt: params[:rt].presence) %>
+                new_sign_com_up_checkpoint_passcode_path(
+                  ri: params[:ri],
+                  rt: params[:rt].presence,
+                  checkpoint_version: @sign_up_ticket.checkpoint_version,
+                ) %>
   </section>
 <% end %>
 

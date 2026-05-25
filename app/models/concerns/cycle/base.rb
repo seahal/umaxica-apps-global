@@ -31,16 +31,24 @@ module Cycle
       cycle_status_id == status_id
     end
 
-    def cycle_accessible?(now = Time.current)
-      cycle_future_time?(read_cycle_time(:discarded_at), now)
+    # The cycle_* predicates delegate to Retainable. Host classes are expected
+    # to `include Retainable` (SignCycle does so for sign-up/in/out cycles).
+    # Kept as named aliases so callers can use intent-revealing names within
+    # the cycle namespace; new code may use `accessible?` / `purgeable?` /
+    # `expired_or_lapsed?` directly.
+    def cycle_accessible?(_now = Time.current)
+      retainable_required!(:accessible?)
+      accessible?
     end
 
     def cycle_expired?(now = Time.current)
-      !cycle_accessible?(now) || cycle_expires_at_lapsed?(now)
+      retainable_required!(:lapsed?)
+      lapsed? || cycle_expires_at_lapsed?(now)
     end
 
-    def cycle_purgeable?(now = Time.current)
-      cycle_past_or_present_time?(read_cycle_time(:purged_at), now)
+    def cycle_purgeable?(_now = Time.current)
+      retainable_required!(:purgeable?)
+      purgeable?
     end
 
     def transition_cycle_to!(next_status_id, allowed_from:, changes: {}, now: Time.current)
@@ -59,13 +67,21 @@ module Cycle
       end
     end
 
+    # Pessimistic row lock for cycle mutations. `lock!` issues SELECT ... FOR
+    # UPDATE which only holds the lock for the surrounding transaction; without
+    # one, PostgreSQL releases the lock at statement end and the block runs
+    # unprotected. Wrap in `self.class.transaction` so the lock is real whether
+    # or not the caller already opened a transaction (Rails treats nested
+    # `transaction` as a join, not a SAVEPOINT, unless `requires_new: true`).
     def with_cycle_lock
       raise ArgumentError, "block required" unless block_given?
       raise InvalidTransition, "cycle must be persisted" unless persisted?
 
       self.class.connection_class_for_self.connected_to(role: :writing) do
-        lock!
-        yield
+        self.class.transaction do
+          lock!
+          yield
+        end
       end
     end
 
@@ -98,6 +114,13 @@ module Cycle
     def read_cycle_time(column)
       ensure_cycle_column!(column)
       public_send(column)
+    end
+
+    def retainable_required!(method_name)
+      return if respond_to?(method_name)
+
+      raise ConfigurationError,
+            "#{self.class.name} must `include Retainable` to use cycle_#{method_name.to_s.delete_suffix("?")}?"
     end
 
     def cycle_expires_at_lapsed?(now)

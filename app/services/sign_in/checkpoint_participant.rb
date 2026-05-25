@@ -13,7 +13,7 @@ module SignIn
       ParticipantResult.new(
         participant: :checkpoint,
         stack: stack,
-        next_status: "DASHBOARD_PENDING",
+        next_status: "SELECTOR_PENDING",
       )
     end
 
@@ -23,7 +23,7 @@ module SignIn
         result = evaluate
         return result if result.blocking?
 
-        cycle.advance_sign_in_to_dashboard!
+        cycle.advance_sign_in_to_selector!
         result
       end
     end

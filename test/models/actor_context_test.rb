@@ -70,7 +70,7 @@ class ActorContextTest < ActiveSupport::TestCase
   test "configuration is an immutable request context box" do
     configuration = Actor::Configuration.new(feature: true)
 
-    assert_equal true, configuration.feature
+    assert configuration.feature
     assert_equal({ feature: true }, configuration.to_h)
     assert_predicate configuration, :frozen?
 
@@ -79,6 +79,21 @@ class ActorContextTest < ActiveSupport::TestCase
     assert_equal({ feature: true }, configuration.to_h)
     assert_equal({ feature: true, region: "jp" }, updated.to_h)
     assert_not_same configuration, updated
+  end
+
+  test "configuration supports typed sign namespace values" do
+    sign_configuration =
+      Actor::SignConfiguration.new(
+        value: "required",
+        enabled: true,
+        mode: "strict",
+      )
+
+    Actor.configuration = Actor::Configuration.new(sign: sign_configuration)
+
+    assert_equal "required", Actor.configuration.sign.value
+    assert Actor.configuration.sign.enabled
+    assert_equal "strict", Actor.configuration.sign.mode
   end
 
   test "setting staff actor" do

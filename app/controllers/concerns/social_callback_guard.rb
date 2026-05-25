@@ -202,7 +202,7 @@ module SocialCallbackGuard
     [true, nil]
   rescue StandardError
     clear_social_state!
-    [false, "state_parse_error"]
+    raise
   end
 
   def load_callback_state_data(_provider)

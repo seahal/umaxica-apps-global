@@ -5,7 +5,7 @@ require "test_helper"
 
 class OccurrenceStatusTest < ActiveSupport::TestCase
   class DummyOccurrenceStatus < OccurrenceRecord
-    self.table_name = "user_occurrences"
+    self.table_name = "client_occurrence_statuses"
     include OccurrenceStatus
   end
 

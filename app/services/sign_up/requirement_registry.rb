@@ -73,8 +73,6 @@ module SignUp
       requirements.reject { |requirement| requirement_cleared?(completed_requirements, requirement) }
     end
 
-    private
-
     def requirement_cleared?(completed_requirements, requirement)
       return false unless completed_requirements.is_a?(Hash)
 

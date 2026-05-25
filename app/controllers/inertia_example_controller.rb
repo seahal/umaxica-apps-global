@@ -2,6 +2,8 @@
 # frozen_string_literal: true
 
 class InertiaExampleController < InertiaController
+  AUTHENTICATION_MODE = :deny_all
+
   def index
     render inertia: {
       rails_version: Rails.version,

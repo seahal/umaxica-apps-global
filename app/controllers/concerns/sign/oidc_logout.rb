@@ -8,7 +8,7 @@ module Sign
     include Sign::OutNotice
 
     included do
-      public_strict!
+      declare_authentication_mode! :open
     end
 
     def show

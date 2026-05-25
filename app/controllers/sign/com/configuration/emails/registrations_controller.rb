@@ -6,6 +6,8 @@ module Sign
     module Configuration
       module Emails
         class RegistrationsController < PrivateController
+          AUTHENTICATION_MODE = :private
+
           include ::CloudflareTurnstile
           include Common::Otp
           include Common::Redirect
@@ -171,7 +173,7 @@ module Sign
             encoded = retrieve_redirect_parameter(email_registration_rt_session_key)
             return default_path if encoded.blank?
 
-            safe_path_from_encoded_rt(encoded, fallback: default_path)
+            return_path_from_signed_rt(encoded) || default_path
           end
 
           def preserve_email_registration_redirect_parameter

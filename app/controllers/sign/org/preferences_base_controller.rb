@@ -4,6 +4,8 @@
 module Sign
   module Org
     class PreferencesBaseController < OpenController
+      AUTHENTICATION_MODE = :open
+
       before_action :authorize_preference_write!, if: :preference_write_request?
 
       private

@@ -11,6 +11,7 @@ vi.mock("@hotwired/stimulus", () => ({
       this.hasErrorTarget = true;
       this.hasStatusTarget = true;
       this.hasTurnstileResponseTarget = true;
+      this.element = { appendChild: vi.fn() };
     }
 
     connect() {}
@@ -171,12 +172,19 @@ describe("PasskeyRegistrationController", () => {
   });
 
   test("register: 成功時にリダイレクトする", async () => {
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
-    const verificationResponse = { ok: true, json: () => Promise.resolve({ redirect_url: "/settings" }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    const verificationResponse = {
+      ok: true,
+      json: () => Promise.resolve({ redirect_url: "/settings" }),
+    };
 
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(optionsResponse)
-      .mockResolvedValueOnce(verificationResponse));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
 
     const mockCredential = {
       id: "cred-id",
@@ -215,7 +223,10 @@ describe("PasskeyRegistrationController", () => {
 
   test("register: optionsResponse が 401 のときページをリロードする", async () => {
     const reloadMock = vi.fn();
-    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost", reload: reloadMock } });
+    vi.stubGlobal("window", {
+      PublicKeyCredential: true,
+      location: { hostname: "localhost", reload: reloadMock },
+    });
 
     const optionsResponse = {
       ok: false,
@@ -232,7 +243,10 @@ describe("PasskeyRegistrationController", () => {
   });
 
   test("register: verificationResponse が失敗し JSON エラーを返す", async () => {
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     const verificationResponse = {
       ok: false,
       status: 400,
@@ -240,9 +254,10 @@ describe("PasskeyRegistrationController", () => {
       json: () => Promise.resolve({ error: "Verification failed" }),
     };
 
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(optionsResponse)
-      .mockResolvedValueOnce(verificationResponse));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
 
     const mockCredential = {
       id: "cred-id",
@@ -263,7 +278,10 @@ describe("PasskeyRegistrationController", () => {
   });
 
   test("register: NotAllowedError のときに適切なエラーメッセージを表示する", async () => {
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
 
     const error = new Error("Cancelled");
@@ -277,7 +295,10 @@ describe("PasskeyRegistrationController", () => {
   });
 
   test("register: InvalidStateError のときに適切なエラーメッセージを表示する", async () => {
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
 
     const error = new Error("Already registered");
@@ -291,7 +312,10 @@ describe("PasskeyRegistrationController", () => {
   });
 
   test("register: その他のエラーのときにメッセージを表示する", async () => {
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
 
     const error = new Error("Something went wrong");
@@ -306,15 +330,22 @@ describe("PasskeyRegistrationController", () => {
   test("register: redirect_url がなく successRedirectUrlValue もないとき reload する", async () => {
     controller.hasSuccessRedirectUrlValue = false;
 
-    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
     const verificationResponse = { ok: true, json: () => Promise.resolve({}) };
 
     const reloadMock = vi.fn();
-    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost", reload: reloadMock } });
+    vi.stubGlobal("window", {
+      PublicKeyCredential: true,
+      location: { hostname: "localhost", reload: reloadMock },
+    });
 
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(optionsResponse)
-      .mockResolvedValueOnce(verificationResponse));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
 
     const mockCredential = {
       id: "cred-id",
@@ -345,16 +376,15 @@ describe("PasskeyRegistrationController", () => {
     };
     vi.stubGlobal("document", {
       querySelector: vi.fn(() => null),
-      createElement: vi.fn(() => script),
+      createElement: vi.fn((tag) => (tag === "script" ? script : { style: {} })),
       head: { appendChild: vi.fn() },
     });
+    const promise = controller.ensureTurnstileToken();
     window.turnstile = {
-      render: vi.fn((container, options) => {
+      render: vi.fn((_container, options) => {
         options.callback("new-token");
       }),
     };
-
-    const promise = controller.ensureTurnstileToken();
     script.onload();
     const result = await promise;
     expect(result).toBe("new-token");
@@ -371,7 +401,9 @@ describe("PasskeyRegistrationController", () => {
     });
 
     const promise = controller.ensureTurnstileScriptLoaded();
-    const errorCallback = existingScript.addEventListener.mock.calls.find(([event]) => event === "error")[1];
+    const [, errorCallback] = existingScript.addEventListener.mock.calls.find(
+      ([event]) => event === "error",
+    );
     errorCallback();
     await expect(promise).rejects.toThrow();
   });

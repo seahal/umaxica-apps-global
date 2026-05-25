@@ -5,8 +5,11 @@ module Sign
   module App
     module Configuration
       class SecretsController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include ::Verification::Client
         include ::Sign::Configuration::SecretTurnstileGuard
+        include ::Sign::Configuration::SecretCacheControl
 
         before_action :authenticate_client!
         before_action only: %i(new create) do

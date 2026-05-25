@@ -5,7 +5,7 @@ require "test_helper"
 
 module SignIn
   class PostIssuanceParticipantsTest < ActiveSupport::TestCase
-    test "empty checkpoint stack advances to dashboard" do
+    test "empty checkpoint stack advances to selector" do
       actor = create_client
       cycle = create_cycle(actor, status_name: "CHECKPOINT_PENDING")
 
@@ -13,8 +13,8 @@ module SignIn
 
       assert_predicate result, :empty?
       assert_predicate result, :cleared?
-      assert_predicate cycle.reload, :sign_in_dashboard_pending?
-      assert_equal "dashboard", cycle.step
+      assert_predicate cycle.reload, :sign_in_selector_pending?
+      assert_equal "selector", cycle.step
     end
 
     test "blocking checkpoint item keeps cycle at checkpoint" do
@@ -47,6 +47,42 @@ module SignIn
       assert_equal [:welcome], result.stack.map(&:key)
       assert_predicate cycle.reload, :sign_in_return_pending?
       assert_equal "return_to", cycle.step
+    end
+
+    test "selector auto-commits a single candidate to session issuance under cycle lock" do
+      actor = create_client
+      cycle = create_cycle(actor, status_name: "SELECTOR_PENDING")
+
+      result = SelectorParticipant.new(
+        cycle: cycle,
+        actor: actor,
+      ).auto_commit_single!
+
+      assert_equal :auto_committed, result.status
+      assert_equal "Client", result.candidate.persona
+      assert_predicate cycle.reload, :sign_in_session_issuance_pending?
+      assert_equal "session_issuance", cycle.step
+      assert_not_nil cycle.selector_completed_at if cycle.has_attribute?(:selector_completed_at)
+    end
+
+    test "selector rejects non-selector cycle without advancing" do
+      actor = create_client
+      cycle = create_cycle(actor, status_name: "CHECKPOINT_PENDING")
+
+      assert_raises SelectorParticipant::InvalidCycle do
+        SelectorParticipant.new(cycle: cycle, actor: actor).auto_commit_single!
+      end
+      assert_predicate cycle.reload, :sign_in_checkpoint_pending?
+    end
+
+    test "selector rejects mismatched actor binding" do
+      actor = create_client
+      cycle = create_cycle(actor, status_name: "SELECTOR_PENDING")
+
+      assert_raises SelectorParticipant::InvalidCycle do
+        SelectorParticipant.new(cycle: cycle, actor: create_client).auto_commit_single!
+      end
+      assert_predicate cycle.reload, :sign_in_selector_pending?
     end
 
     test "return participant consumes safe return path and completes cycle" do
@@ -92,10 +128,9 @@ module SignIn
         cycle = create_cycle(actor, cycle_class: cycle_class, status_name: "CHECKPOINT_PENDING")
 
         CheckpointParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
-        DashboardParticipant.new(cycle: cycle.reload, actor: actor).advance!
-        destination = ReturnParticipant.new(cycle: cycle.reload, default_path: "/configuration").consume!
+        SelectorParticipant.new(cycle: cycle.reload, actor: actor).auto_commit_single!
+        cycle.reload.complete_sign_in!
 
-        assert_equal "/dashboard", destination
         assert_predicate cycle.reload, :sign_in_completed?
       end
     end
@@ -129,6 +164,8 @@ module SignIn
     def step_for(status_name)
       {
         "CHECKPOINT_PENDING" => "checkpoint",
+        "SELECTOR_PENDING" => "selector",
+        "SESSION_ISSUANCE_PENDING" => "session_issuance",
         "DASHBOARD_PENDING" => "dashboard",
         "RETURN_PENDING" => "return_to",
       }.fetch(status_name)

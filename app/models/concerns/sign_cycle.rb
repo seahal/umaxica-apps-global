@@ -62,8 +62,13 @@ module SignCycle
     self.class.default_ttl.from_now
   end
 
+  # True only when the auth-flow TTL has lapsed. Distinct from `lapsed?`
+  # (logical deletion) which Retainable owns; the two used to be merged here
+  # but conflating them made callers reject events on rows that were merely
+  # discarded for audit hold. State-machine code that wants the union should
+  # check `expired? || lapsed?` explicitly.
   def expired?(now = Time.current)
-    expires_at <= now || lapsed?
+    expires_at.present? && expires_at <= now
   end
 
   def completed?
@@ -90,7 +95,22 @@ module SignCycle
     self.class::TRANSITIONS.fetch(status_id, []).include?(next_status_id)
   end
 
+  # Row-locked transition. Reading `status_id` and writing the new one must be
+  # atomic — otherwise two concurrent callers can both observe A and race-write
+  # the same outbound edge, producing inconsistent state and lost updates on
+  # sibling columns. `with_cycle_lock` (Cycle::Base) wraps in a transaction so
+  # the SELECT FOR UPDATE actually holds.
   def transition_to!(next_status, step: nil, now: Time.current)
+    if respond_to?(:with_cycle_lock)
+      with_cycle_lock { perform_transition!(next_status, step: step, now: now) }
+    else
+      perform_transition!(next_status, step: step, now: now)
+    end
+  end
+
+  def perform_transition!(next_status, step:, now:)
+    # `with_cycle_lock` issues `lock!` which is itself a `reload(lock: true)`,
+    # so the read of `status_id` here is already against the freshly-locked row.
     next_status_id = normalize_status_id(next_status)
     unless can_transition_to?(next_status_id)
       raise ArgumentError, "invalid transition from #{status_id.inspect} to #{next_status_id.inspect}"

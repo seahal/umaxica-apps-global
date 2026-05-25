@@ -4,7 +4,7 @@
 require "test_helper"
 
 class OidcCallbackTestController < ApplicationController
-  def self.public_strict!
+  def self.declare_authentication_mode!(*)
   end
 
   include Oidc::Callback
@@ -103,7 +103,12 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
     logged = []
 
     Oidc::RpTokenClient.stub(:call, result) do
-      Rails.logger.stub(:info, ->(message = nil) { logged << JSON.parse(message, symbolize_names: true) }) do
+      Rails.logger.stub(
+        :info, ->(message = nil, &block) {
+                 message = block.call if message.nil? && block
+                 logged << JSON.parse(message, symbolize_names: true) if message.to_s.start_with?("{")
+               },
+      ) do
         get "/oidc/callback", params: { code: "abc", state: "state" }
       end
     end
@@ -123,13 +128,38 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
   end
 
+  test "show raises unexpected provisioning errors" do
+    get "/oidc/callback/session",
+        params: { code_verifier: "verifier", state: "state", nonce: "nonce" }
+
+    result = Result.new(
+      success?: true,
+      token_response: { access_token: "access", refresh_token: "refresh", id_token: "id-token" },
+      error: nil,
+      error_description: nil,
+    )
+    id_token_result = Struct.new(:success?, :payload, :error, keyword_init: true).new(
+      success?: true,
+      payload: { "nonce" => "nonce" },
+      error: nil,
+    )
+
+    Oidc::RpTokenClient.stub(:call, result) do
+      Oidc::IdTokenVerifier.stub(:call, id_token_result) do
+        assert_raises(KeyError) do
+          get "/oidc/callback", params: { code: "abc", state: "state" }
+        end
+      end
+    end
+  end
+
   test "default oidc_client_id raises NotImplementedError" do
     # create a dummy controller without overriding
     dummy_class =
       Class.new(ApplicationController) do
-        define_singleton_method(:public_strict!) do
-          # No-op for test
+        def self.declare_authentication_mode!(*)
         end
+
         include Oidc::Callback
       end
 
@@ -141,9 +171,9 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
   test "oidc_client_secret uses ClientRegistry" do
     dummy_class =
       Class.new(ApplicationController) do
-        define_singleton_method(:public_strict!) do
-          # No-op for test
+        def self.declare_authentication_mode!(*)
         end
+
         include Oidc::Callback
 
         define_method(:oidc_client_id) do

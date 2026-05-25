@@ -7,8 +7,10 @@
 # Database name: app_principal
 #
 #  id                    :bigint           not null, primary key
+#  discarded_at          :datetime         default(Infinity), not null
 #  last_authenticated_at :datetime
 #  provider              :string           default("apple"), not null
+#  purged_at             :datetime         default(Infinity), not null
 #  refresh_token         :string           default(""), not null
 #  token                 :string           default(""), not null
 #  token_expires_at      :integer          not null
@@ -20,6 +22,8 @@
 #
 # Indexes
 #
+#  index_client_social_apples_on_discarded_at           (discarded_at)
+#  index_client_social_apples_on_purged_at              (purged_at)
 #  index_client_social_apples_on_status_id              (status_id)
 #  index_client_social_apples_on_token_expires_at       (token_expires_at)
 #  index_client_social_apples_on_uid_and_provider       (uid,provider) UNIQUE

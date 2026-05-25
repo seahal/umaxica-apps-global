@@ -6,7 +6,7 @@ module Oidc
     extend ActiveSupport::Concern
 
     included do
-      public_strict!
+      declare_authentication_mode! :open
     end
 
     def create

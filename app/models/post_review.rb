@@ -27,10 +27,7 @@
 #  fk_rails_...  (post_review_status_id => post_review_statuses.id)
 #
 
-class PostReview < AvatarRecord
-  belongs_to :post, inverse_of: :post_reviews
-  belongs_to :post_review_status
-
-  validates :post_id, uniqueness: { scope: :reviewer_actor_id }
-  validates :reviewer_actor_id, presence: true
+class PostReview < AppPostReview
+  belongs_to :post, class_name: "Post", inverse_of: :post_reviews
+  belongs_to :post_review_status, class_name: "PostReviewStatus", inverse_of: :post_reviews
 end

@@ -4,6 +4,8 @@
 module Apex
   module Com
     class SitemapsController < BareController
+      AUTHENTICATION_MODE = :bare
+
       include ::Sitemap
 
       def show

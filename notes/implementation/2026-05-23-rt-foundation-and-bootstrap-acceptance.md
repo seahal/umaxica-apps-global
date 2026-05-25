@@ -27,21 +27,20 @@
     requiring a controller instance.
   - `Redirect::ReturnUrl.resolve` referenced by the original plan does not exist in this tree; the
     inline path validator above replaces it for now and stays consistent with controller behavior.
-- Added `verified_return_to` as a non-raising convenience wrapper so callers in the compatibility
-  window can express "try signed verification, fall through otherwise" without rescuing.
+- Added `verified_return_to` as a non-raising convenience wrapper so callers can verify signed
+  return targets without rescuing.
 
 ### Step-up bootstrap acceptance
 
-- `Verification::Base#bootstrap_return_path` now tries `ReturnTargetToken.verified_return_to` before
-  falling back to legacy Base64 decoding.
+- `Verification::Base#bootstrap_return_path` now tries `ReturnTargetToken.verified_return_to`.
   - Surface is inferred from the including controller class name (`/::App::/`, `/::Com::/`,
     `/::Org::/`). Flow is the literal `"step_up.bootstrap"`. Session nonce comes from
     `current_session_token&.public_id`.
   - Why: ADR's signed `rt` contract requires per-surface and per-session binding. Inferring surface
     from class avoids touching every concrete controller in this commit.
-- Legacy Base64 path is preserved because no issuer currently produces signed `rt` tokens for the
-  step-up bootstrap flow. This is the compatibility behavior already documented by the predecessor
-  note for the auth-side helpers.
+- Legacy Base64 fallback described in the original note is no longer approved guidance. Per
+  `adr/signed-return-targets-only.md`, touched `rt` flows must use signed `ReturnTargetToken`
+  issuance/verification and should delete `safe_path_from_encoded_rt` usage.
 
 ## Deviations From Plan
 
@@ -62,10 +61,9 @@
 
 - `app/services/request_context/contract.rb` (new)
 - `app/services/return_target_token.rb` (new)
-- `app/controllers/concerns/verification/base.rb` — `bootstrap_return_path` now signed-first with
-  Base64 fallback; private helpers `signed_bootstrap_return_path`, `legacy_bootstrap_return_path`,
-  `bootstrap_return_target_flow`, `bootstrap_return_target_session_nonce`,
-  `bootstrap_return_target_surface` added.
+- `app/controllers/concerns/verification/base.rb` — `bootstrap_return_path` moved toward signed
+  return-target verification. Any legacy Base64 fallback mentioned by this historical note is stale
+  and should be removed when encountered.
 - `app/controllers/sign/{app,com,org}/verification/setups_controller.rb` — fixed `params(:rt)` →
   `params[:rt]` typo (would 500 at runtime).
 - `test/services/request_context/contract_test.rb` (new)
@@ -79,8 +77,9 @@
   - `bin/rails runner` round-trip: issue → verify happy path, surface mismatch, session nonce
     mismatch, tampered token, expired token, absolute URL rejection at issue time.
   - `bin/rails runner` end-to-end through `Verification::Base#bootstrap_return_path` using a harness
-    in the `Sign::App` namespace: accepts signed token, rejects wrong-surface signed token, accepts
-    legacy Base64, returns default on garbage, returns default on blank.
+    in the `Sign::App` namespace: accepts signed token, rejects wrong-surface signed token, and
+    returns default on garbage or blank input. Historical legacy Base64 acceptance is not current
+    guidance.
 - Tests not run:
   - `bin/rails test` on the new Minitest files — blocked by the 791-pending-migration gate. The test
     files are syntactically valid and should run once the migration backlog is resolved.
@@ -90,9 +89,7 @@
 
 ## Follow-Up
 
-- Migrate `encoded_step_up_rt`, `encoded_relative_return_to`, and other Base64 `rt` issuers under
-  `app/controllers/concerns/authentication/*` and `app/controllers/concerns/sign/*` to
-  `ReturnTargetToken.issue` (public-request-context Phase 5 subphases 2–4).
-- After issuers move, narrow `bootstrap_return_path` to reject invalid signed tokens with
-  `422 Unprocessable Content` instead of falling back to Base64 / default (step-up plan Phase 6 step
-  8).
+- Migrate `encoded_step_up_rt`, `encoded_relative_return_to`, `safe_path_from_encoded_rt`, and other
+  Base64 `rt` issuers/consumers under `app/controllers/concerns/authentication/*` and
+  `app/controllers/concerns/sign/*` to `ReturnTargetToken.issue` / signed verification.
+- Reject invalid signed tokens instead of falling back to Base64.

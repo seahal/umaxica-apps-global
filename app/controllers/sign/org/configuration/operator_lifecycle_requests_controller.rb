@@ -5,6 +5,8 @@ module Sign
   module Org
     module Configuration
       class OperatorLifecycleRequestsController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         before_action :authenticate_operator!
         before_action :set_request, only: %i(show)
         before_action :set_invitation, only: %i(show)

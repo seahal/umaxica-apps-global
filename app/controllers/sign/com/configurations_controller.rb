@@ -4,6 +4,8 @@
 module Sign
   module Com
     class ConfigurationsController < PrivateController
+      AUTHENTICATION_MODE = :private
+
       before_action :authenticate_visitor! # FIXME: I don't think this is needed
 
       def show

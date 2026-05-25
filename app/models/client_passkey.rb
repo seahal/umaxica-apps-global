@@ -8,8 +8,10 @@
 #
 #  id           :bigint           not null, primary key
 #  description  :string           default(""), not null
+#  discarded_at :datetime         default(Infinity), not null
 #  last_used_at :datetime
 #  public_key   :text             not null
+#  purged_at    :datetime         default(Infinity), not null
 #  sign_count   :bigint           default(0), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -21,7 +23,9 @@
 #
 # Indexes
 #
+#  index_client_passkeys_on_discarded_at    (discarded_at)
 #  index_client_passkeys_on_public_id       (public_id) UNIQUE
+#  index_client_passkeys_on_purged_at       (purged_at)
 #  index_client_passkeys_on_status_id       (status_id)
 #  index_client_passkeys_on_webauthn_id     (webauthn_id) UNIQUE
 #  index_user_identity_passkeys_on_user_id  (user_id)
@@ -34,6 +38,7 @@
 
 class ClientPasskey < AppPrincipalRecord
   include ::PublicId
+  include Retainable
   include MultiFactorStatusCredential
 
   MAX_PASSKEYS_PER_USER = 4
@@ -51,7 +56,14 @@ class ClientPasskey < AppPrincipalRecord
   validates :description, presence: true
   validates :status_id, numericality: { only_integer: true }
   validates :sign_count, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  validate :enforce_user_passkey_limit, on: :create
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :user,
+                 association: :client_passkeys,
+                 foreign_key: :user_id,
+                 limit: :MAX_PASSKEYS_PER_USER,
+                 record_name: "passkeys",
+                 owner_name: "user"
 
   before_validation :set_defaults, on: :create
   before_validation :ensure_status_defaults, on: :create
@@ -61,22 +73,6 @@ class ClientPasskey < AppPrincipalRecord
   end
 
   private
-
-  def enforce_user_passkey_limit
-    return unless user_id
-
-    count =
-      if user&.client_passkeys&.loaded?
-        user.client_passkeys.count { |passkey| passkey != self }
-      elsif defined?(Prosopite)
-        Prosopite.pause { self.class.where(user_id: user_id).count }
-      else
-        self.class.where(user_id: user_id).count
-      end
-    return if count < MAX_PASSKEYS_PER_USER
-
-    errors.add(:base, :too_many, message: "exceeds maximum passkeys per user (#{MAX_PASSKEYS_PER_USER})")
-  end
 
   def set_defaults
     self.external_id ||= SecureRandom.uuid

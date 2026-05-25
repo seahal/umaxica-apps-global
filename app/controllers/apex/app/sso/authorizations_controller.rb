@@ -5,6 +5,8 @@ module Apex
   module App
     module Sso
       class AuthorizationsController < OpenController
+        AUTHENTICATION_MODE = :open
+
         skip_before_action :set_region, raise: false
 
         def show

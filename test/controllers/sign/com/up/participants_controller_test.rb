@@ -43,6 +43,16 @@ class Sign::Com::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
     assert_equal "Not found", response.body
   end
 
+  test "checkpoint destroy is routed for sign up cancellation" do
+    route = Rails.application.routes.recognize_path(
+      "http://#{host}/sign/up/checkpoint",
+      method: :delete,
+    )
+
+    assert_equal "sign/com/up/checkpoints", route[:controller]
+    assert_equal "destroy", route[:action]
+  end
+
   private
 
   def create_ticket(attrs = {})

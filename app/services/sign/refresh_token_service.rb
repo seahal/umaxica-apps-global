@@ -5,6 +5,22 @@
 # Old rows are preserved and replay is detected via rotated_at.
 module Sign
   class RefreshTokenService
+    Result =
+      Data.define(:success, :token, :refresh_token, :previous_token, :reason) do
+        def success? = success
+
+        def [](key)
+          public_send(key)
+        end
+
+        def fetch(key)
+          value = self[key]
+          return value unless value.nil?
+
+          raise KeyError, "key not found: #{key.inspect}"
+        end
+      end
+
     def self.call(refresh_token:)
       new(refresh_token).call
     end
@@ -14,15 +30,18 @@ module Sign
     end
 
     def call
-      public_id, verifier = parse_refresh_token!
+      parsed = parse_refresh_token
+      return failure(:invalid_format) unless parsed
+
+      public_id, verifier = parsed
 
       result = nil
       ActiveRecord::Base.connected_to(role: :writing) do
         operation = -> { find_token(public_id) }
         token = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
 
-        raise InvalidRefreshToken, "token_not_found" unless token
-        raise InvalidRefreshToken, "invalid_digest" unless token.refresh_token_digest_matches?(verifier)
+        return failure(:token_not_found) unless token
+        return failure(:invalid_digest, token: token) unless token.refresh_token_digest_matches?(verifier)
 
         digest = token.class.digest_refresh_token(verifier)
         result = token.class.rotate_refresh!(
@@ -35,14 +54,16 @@ module Sign
       case result[:status]
       when :rotated
         touch_oidc_connection!(result[:token])
-        { token: result[:token],
+        success(
+          token: result[:token],
           refresh_token: result[:refresh_token],
-          previous_token: result[:previous_token], }
+          previous_token: result[:previous_token],
+        )
       when :replay
         handle_refresh_token_reuse(result[:token])
-        raise InvalidRefreshToken, "refresh_token_reuse_detected"
+        failure(:refresh_token_reuse_detected, token: result[:token])
       else
-        raise InvalidRefreshToken, "inactive_token"
+        failure(:inactive_token, token: result[:token])
       end
     end
 
@@ -58,11 +79,8 @@ module Sign
       end
     end
 
-    def parse_refresh_token!
-      parsed = ClientToken.parse_refresh_token(@refresh_token)
-      raise InvalidRefreshToken, "invalid_format" unless parsed
-
-      parsed
+    def parse_refresh_token
+      ClientToken.parse_refresh_token(@refresh_token)
     end
 
     def find_token(public_id)
@@ -122,6 +140,26 @@ module Sign
 
     def actor_type_label(token)
       actor_identifier_column(token)&.to_s&.delete_suffix("_id")
+    end
+
+    def success(token:, refresh_token:, previous_token:)
+      Result.new(
+        success: true,
+        token: token,
+        refresh_token: refresh_token,
+        previous_token: previous_token,
+        reason: nil,
+      )
+    end
+
+    def failure(reason, token: nil)
+      Result.new(
+        success: false,
+        token: token,
+        refresh_token: nil,
+        previous_token: nil,
+        reason: reason,
+      )
     end
   end
 end

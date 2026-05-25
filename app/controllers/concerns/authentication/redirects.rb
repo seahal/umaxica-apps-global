@@ -5,8 +5,12 @@ module Authentication
   module Redirects
     extend ActiveSupport::Concern
     include Common::Redirect
+    include ReturnTargets::SignedTokenSupport
 
     DEFAULT_RT_SESSION_KEY = Auth::IoKeys::Session::DEFAULT_RT
+    RETURN_TARGET_TOKEN_SALT = "return_target_token"
+    RETURN_TARGET_TOKEN_PURPOSE = :return_target
+    RETURN_TARGET_TOKEN_EXPIRES_IN = 15.minutes
 
     # Preserves the redirect parameter in session and returns it for immediate use
     #
@@ -84,8 +88,8 @@ module Authentication
 
       if rt_param.present?
         flash[message_key] = message_value
-        safe_path = safe_path_from_encoded_rt(rt_param, fallback: default_path)
-        redirect_to_return_target_destination!(safe_path)
+        destination = return_path_from_signed_rt(rt_param) || default_path
+        redirect_to_return_target_destination!(destination)
       else
         redirect_to(default_path, message_key => message_value)
       end
@@ -122,7 +126,7 @@ module Authentication
     end
 
     def safe_redirect_to_rt_or_default!(rt_param, default_path:)
-      destination = safe_path_from_encoded_rt(rt_param, fallback: nil)
+      destination = return_path_from_signed_rt(rt_param)
       return redirect_to(default_path) if rt_param.blank?
       return render_invalid_return_target! if destination.blank?
 
@@ -180,17 +184,15 @@ module Authentication
 
     def after_welcome_path
       sign_in_dashboard_path
-    rescue StandardError
-      default_after_login_path
     end
 
     alias after_dashboard_path after_welcome_path
 
-    def safe_path_from_encoded_rt(rt_param, fallback:)
-      return fallback if rt_param.blank?
+    def return_path_from_signed_rt(rt_param)
+      return nil if rt_param.blank?
 
       destination = verify_authentication_return_target_path(rt_param)
-      safe_non_welcome_return_destination(destination, fallback: fallback)
+      safe_non_welcome_return_path(destination)
     end
 
     def safe_encoded_rt(rt_param)
@@ -198,39 +200,27 @@ module Authentication
 
       token = rt_param.to_s
       verified_destination = verify_authentication_return_target_path(token)
-      if safe_non_welcome_return_destination(verified_destination, fallback: nil).present?
+      if safe_non_welcome_return_path(verified_destination).present?
         return token
       end
 
       issued_token = issue_authentication_return_target_token(token)
-      issued_token if safe_path_from_encoded_rt(issued_token, fallback: nil).present?
+      issued_token if return_path_from_signed_rt(issued_token).present?
     end
 
     def redirect_parameter_value
       params[Auth::IoKeys::Params::RT].presence
     end
 
-    def safe_non_welcome_return_path(path, fallback:)
+    def safe_non_welcome_return_path(path)
       safe_path = safe_internal_path(path)
-      return fallback if safe_path.blank?
-      return fallback if welcome_return_path?(safe_path)
+      return nil if safe_path.blank?
+      return nil if welcome_return_path?(safe_path)
 
       safe_path
     end
 
     alias safe_non_dashboard_return_path safe_non_welcome_return_path
-
-    def safe_non_welcome_return_destination(destination, fallback:)
-      return fallback if destination.blank?
-      return fallback if welcome_return_path?(destination)
-
-      uri = URI.parse(destination.to_s)
-      return destination if uri.scheme.present? && uri.host.present?
-
-      safe_non_welcome_return_path(destination, fallback: fallback)
-    rescue URI::InvalidURIError
-      fallback
-    end
 
     def welcome_return_path?(path)
       candidate = URI.parse(path.to_s)
@@ -243,36 +233,49 @@ module Authentication
     alias dashboard_return_path? welcome_return_path?
 
     def issue_authentication_return_target_token(return_to)
-      ReturnTargetToken.issue(
-        return_to: return_to,
+      destination = signed_target_internal_path(return_to)
+      if destination.blank?
+        log_signed_target_rejection("return_target.rejected", "blank_return_to")
+        return nil
+      end
+
+      claims = signed_target_claims(
         flow: authentication_return_target_flow,
         surface: authentication_return_target_surface,
         session_nonce: authentication_return_target_session_nonce,
-        request: request,
       )
-    rescue ReturnTargetToken::Invalid
-      nil
+      if claims.blank?
+        log_signed_target_rejection("return_target.rejected", "blank_common_claim")
+        return nil
+      end
+
+      issue_signed_target_token(
+        payload: claims.merge("return_to" => destination),
+        purpose: RETURN_TARGET_TOKEN_PURPOSE,
+        salt: RETURN_TARGET_TOKEN_SALT,
+        expires_in: RETURN_TARGET_TOKEN_EXPIRES_IN,
+      )
     end
 
     def verify_authentication_return_target_path(token)
-      ReturnTargetToken.verified_return_to(
+      payload = verified_signed_target_payload(
         token,
+        purpose: RETURN_TARGET_TOKEN_PURPOSE,
+        salt: RETURN_TARGET_TOKEN_SALT,
         expected_flow: authentication_return_target_flow,
         expected_surface: authentication_return_target_surface,
         session_nonce: authentication_return_target_session_nonce,
-        request: request,
       )
+      return nil if payload.blank?
+
+      signed_target_internal_path(payload["return_to"])
     end
 
     def redirect_to_return_target_destination!(destination)
-      uri = URI.parse(destination.to_s)
-      if uri.scheme.present? || uri.host.present?
-        redirect_to(destination, allow_other_host: true)
-      else
-        redirect_to(destination, allow_other_host: false)
-      end
-    rescue URI::InvalidURIError
-      redirect_to(default_after_login_path, allow_other_host: false)
+      path = safe_internal_path(destination)
+      path ||= default_after_login_path
+
+      redirect_to(path, allow_other_host: false)
     end
 
     def authentication_return_target_flow

@@ -4,6 +4,8 @@
 module Sign
   module Org
     class DashboardsController < PrivateController
+      AUTHENTICATION_MODE = :private
+
       before_action :authenticate_operator!
 
       def show

@@ -174,7 +174,7 @@ class OperatorTelephoneTest < ActiveSupport::TestCase
     staff_telephone = OperatorTelephone.new(@valid_attributes)
     staff_telephone.staff_id = nil
 
-    staff_telephone.send(:enforce_staff_telephone_limit)
+    staff_telephone.valid?
 
     assert_empty staff_telephone.errors[:base]
   end
@@ -184,7 +184,7 @@ class OperatorTelephoneTest < ActiveSupport::TestCase
     duplicate = OperatorTelephone.new(@valid_attributes.merge(raw_number: "+819012300001"))
     duplicate.number_digest = existing.number_digest
 
-    duplicate.send(:ensure_unique_number_digest)
+    duplicate.valid?
 
     assert_includes duplicate.errors.details[:number].pluck(:error), :taken
   end

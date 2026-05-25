@@ -23,18 +23,22 @@ module Oidc
     end
 
     def call
-      validate_grant_type!
-      authenticate_client!
-      authorization_code = find_and_validate_code!
-      verify_pkce!(authorization_code)
-      dpop_jkt = validate_dpop_proof!
+      return failure("invalid_request", "grant_type must be 'authorization_code'") unless valid_grant_type?
+      return failure("invalid_request", "OIDC client authentication failed") unless authenticated_client?
+
+      authorization_code = find_code
+      return failure("invalid_grant", "Authorization code not found") unless authorization_code
+
+      code_failure = validate_code(authorization_code)
+      return code_failure if code_failure
+
+      pkce_failure = verify_pkce(authorization_code)
+      return pkce_failure if pkce_failure
+
+      dpop_jkt = validate_dpop_proof
+      return dpop_jkt if dpop_jkt.is_a?(Result)
+
       consume_and_issue_tokens!(authorization_code, dpop_jkt: dpop_jkt)
-    rescue ArgumentError => e
-      failure("invalid_request", e.message)
-    rescue ActiveRecord::RecordNotFound
-      failure("invalid_grant", "Authorization code not found")
-    rescue RuntimeError => e
-      failure("invalid_grant", e.message)
     end
 
     private
@@ -42,51 +46,45 @@ module Oidc
     attr_reader :grant_type, :code, :redirect_uri, :client_id, :client_secret, :code_verifier,
                 :dpop_proof, :token_endpoint_uri, :request_method
 
-    def validate_grant_type!
-      raise ArgumentError, "grant_type must be 'authorization_code'" unless grant_type == "authorization_code"
+    def valid_grant_type?
+      grant_type == "authorization_code"
     end
 
-    def authenticate_client!
-      return if Oidc::ClientRegistry.authenticate(client_id, client_secret)
-
-      raise ArgumentError, "OIDC client authentication failed"
-
+    def authenticated_client?
+      Oidc::ClientRegistry.authenticate(client_id, client_secret)
     end
 
-    def find_and_validate_code!
-      authorization_code =
-        OrgTicketRecord.connected_to(role: :writing) do
-          OperatorAuthorizationCode.lock.find_by(code: code)
-        end || ComTicketRecord.connected_to(role: :writing) do
-          VisitorAuthorizationCode.lock.find_by(code: code)
-        end || AppTicketRecord.connected_to(role: :writing) do
-          ClientAuthorizationCode.lock.find_by(code: code)
-        end
-
-      raise ActiveRecord::RecordNotFound unless authorization_code
-
-      raise RuntimeError, "Authorization code expired" if authorization_code.expired?
-      raise RuntimeError, "Authorization code already consumed" if authorization_code.consumed?
-      raise RuntimeError, "Authorization code revoked" if authorization_code.revoked?
-      raise ArgumentError, "redirect_uri mismatch" unless authorization_code.redirect_uri == redirect_uri
-      raise ArgumentError, "client_id mismatch" unless authorization_code.client_id == client_id
-
-      authorization_code
+    def find_code
+      OrgTicketRecord.connected_to(role: :writing) do
+        OperatorAuthorizationCode.lock.find_by(code: code)
+      end || ComTicketRecord.connected_to(role: :writing) do
+        VisitorAuthorizationCode.lock.find_by(code: code)
+      end || AppTicketRecord.connected_to(role: :writing) do
+        ClientAuthorizationCode.lock.find_by(code: code)
+      end
     end
 
-    def verify_pkce!(authorization_code)
-      raise ArgumentError, "code_verifier is required" if code_verifier.blank?
+    def validate_code(authorization_code)
+      return failure("invalid_grant", "Authorization code expired") if authorization_code.expired?
+      return failure("invalid_grant", "Authorization code already consumed") if authorization_code.consumed?
+      return failure("invalid_grant", "Authorization code revoked") if authorization_code.revoked?
+      return failure("invalid_request", "redirect_uri mismatch") unless authorization_code.redirect_uri == redirect_uri
+      return failure("invalid_request", "client_id mismatch") unless authorization_code.client_id == client_id
 
-      return if authorization_code.verify_pkce(code_verifier)
+      nil
+    end
 
-      raise ArgumentError, "PKCE verification failed"
+    def verify_pkce(authorization_code)
+      return failure("invalid_request", "code_verifier is required") if code_verifier.blank?
+      return nil if authorization_code.verify_pkce(code_verifier)
 
+      failure("invalid_request", "PKCE verification failed")
     end
 
     def consume_and_issue_tokens!(authorization_code, dpop_jkt: nil)
       client = Oidc::ClientRegistry.find!(client_id)
       resource = authorization_code.resource
-      raise RuntimeError, "resource is not active" unless resource&.active?
+      return failure("invalid_grant", "resource is not active") unless resource&.active?
 
       connection_class = connection_class_for(authorization_code)
 
@@ -232,7 +230,7 @@ module Oidc
       end
     end
 
-    def validate_dpop_proof!
+    def validate_dpop_proof
       return nil if dpop_proof.blank?
 
       result = Dpop::ProofValidator.new(
@@ -241,7 +239,7 @@ module Oidc
         request_uri: token_endpoint_uri.to_s,
       ).call
 
-      raise ArgumentError, "DPoP proof invalid: #{result.error}" unless result.valid?
+      return failure("invalid_request", "DPoP proof invalid: #{result.error}") unless result.valid?
 
       result.jkt
     end

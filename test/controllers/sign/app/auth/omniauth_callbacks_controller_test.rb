@@ -79,12 +79,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@issue_bulletin_for_test, true)
     controller.send(:redirect_for_existing_account, "Apple")
 
-    assert_match "/sign/in/checkpoint", redirects.last.first.first
+    assert_match "/dashboard", redirects.last.first.first
 
     controller.instance_variable_set(:@issue_bulletin_for_test, false)
     controller.send(:redirect_for_new_account, "Apple")
 
-    assert_match "/welcome", redirects.last.first.first
+    assert_match "/dashboard", redirects.last.first.first
 
     controller.instance_variable_set(:@login_result_for_test, { status: :success, restricted: true })
     controller.send(:handle_login_intent, user, "Apple", false)
@@ -94,7 +94,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@login_result_for_test, true)
     controller.send(:handle_login_intent, user, "Apple", true)
 
-    assert_match "/welcome", redirects.last.first.first
+    assert_match "/dashboard", redirects.last.first.first
 
     controller.send(
       :handle_login_failure,
@@ -114,16 +114,19 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     auth = OpenStruct.new(provider: "apple")
     controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
-    controller.send(:handle_unexpected_error, StandardError.new("boom"), auth)
+    error = StandardError.new("boom")
+
+    assert_raises(StandardError) do
+      controller.send(:handle_unexpected_error, error, auth)
+    end
 
     assert controller.instance_variable_get(:@cleared_for_test)
-    assert_match "/sign/in/new", redirects.last.first.first
-
     session_hash[SocialAuthConcern::SOCIAL_ENTRY_SESSION_KEY] = "sign_up"
     session_hash[SocialAuthConcern::SOCIAL_RI_SESSION_KEY] = "jp"
-    controller.send(:handle_unexpected_error, StandardError.new("boom"), auth)
 
-    assert_match "/sign/up/new?ri=jp", redirects.last.first.first
+    assert_raises(StandardError) do
+      controller.send(:handle_unexpected_error, error, auth)
+    end
   end
 
   test "direct state helpers" do
@@ -185,16 +188,14 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     end
 
     user = Client.create!(status_id: ClientStatus::NOTHING)
-    encoded_rt = Base64.urlsafe_encode64("/after-social")
-    controller.send(:handle_login_intent, user, "Google", true, rt: encoded_rt)
+    return_to = "/after-social"
+    controller.send(:handle_login_intent, user, "Google", true, rt: return_to)
 
     kwargs = controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)
-
-    assert_equal encoded_rt, kwargs[:rt]
+    assert_equal return_to, kwargs[:rt]
     assert_equal "social", kwargs[:auth_method]
     assert_equal({ auth_method: "social", provider: "google" }, kwargs[:audit_context])
-    assert_match "/welcome", redirects.last.first.first
-    assert_match "rt=#{encoded_rt}", redirects.last.first.first
+    assert_match "/dashboard", redirects.last.first.first
   end
 
   test "social login result log payload excludes bearer credentials" do
@@ -228,6 +229,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
   test "social sign up entry routes new identity to sign up guardrail without signing in" do
     ClientSignUpCycleStatus.ensure_defaults!
+    ClientSignUpCycleCleanupStatus.ensure_defaults!
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
     identity = ClientSocialGoogle.create!(
       user: user,
@@ -244,6 +246,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       nonce_digest: ClientSignUpCycle.digest_nonce("nonce"),
       issued_at: Time.current,
       expires_at: 15.minutes.from_now,
+      cleanup_status_id: ClientSignUpCycleCleanupStatus::IDLE,
       entry_method: "google",
       social_provider: "google",
     )
@@ -316,7 +319,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       { status: :success }
     end
 
-    user = Client.create!(status_id: ClientStatus::ACTIVE)
+    user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
     identity = ClientSocialGoogle.create!(
       user: user,
       uid: "social-signup-existing",
@@ -339,12 +342,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     assert_equal [user], controller.instance_variable_get(:@complete_sign_in_args_for_test)
     assert_equal "encoded-rt", controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)[:rt]
-    assert_match "/welcome?ri=jp", redirects.last.first.first
+    assert_match "/dashboard?ri=jp", redirects.last.first.first
   end
 
   test "social sign in failure keeps account records" do
     controller = Sign::App::Auth::OmniauthCallbacksController.new
-    user = Client.create!(status_id: ClientStatus::ACTIVE)
+    user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
     identity = ClientSocialGoogle.create!(
       user: user,
       uid: "social-signin-keep-existing",

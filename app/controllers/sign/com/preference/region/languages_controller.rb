@@ -6,6 +6,8 @@ module Sign
     module Preference
       module Region
         class LanguagesController < PreferencesBaseController
+          AUTHENTICATION_MODE = :open
+
           include ::Preference::SignScreenActions
 
           before_action :ensure_preferences_record

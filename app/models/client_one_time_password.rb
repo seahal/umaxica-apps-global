@@ -50,7 +50,14 @@ class ClientOneTimePassword < AppPrincipalRecord
   validates :private_key, presence: true, length: { maximum: 1024 }
   validates :last_otp_at, presence: true
   validates :title, length: { maximum: 32 }, allow_blank: true
-  validate :enforce_user_totp_limit, on: :create
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :user,
+                 association: :client_one_time_passwords,
+                 foreign_key: :user_id,
+                 limit: :MAX_TOTPS_PER_USER,
+                 record_name: "totps",
+                 owner_name: "user"
 
   after_initialize :generate_private_key_if_blank
   after_initialize :generate_public_id_if_blank
@@ -61,16 +68,6 @@ class ClientOneTimePassword < AppPrincipalRecord
     return unless has_attribute?(:public_id)
 
     self.public_id = Nanoid.generate(size: 21) if self[:public_id].blank?
-  end
-
-  def enforce_user_totp_limit
-    return unless user_id
-
-    operation = -> { self.class.where(user_id: user_id).count }
-    count = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
-    return if count < MAX_TOTPS_PER_USER
-
-    errors.add(:base, :too_many, message: "exceeds maximum totps per user (#{MAX_TOTPS_PER_USER})")
   end
 
   def generate_private_key_if_blank

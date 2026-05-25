@@ -37,8 +37,6 @@ class PreferenceCoreHarness < ApplicationController
 
   def issue_access_token_from(*) = nil
 
-  def sync_to_resource_preference! = nil
-
   def preference_snapshot_for(*) = {}
 end
 
@@ -154,6 +152,49 @@ class Preference::CoreTest < ActiveSupport::TestCase
       { consented: false, functional: false, performant: false, targetable: false },
       @controller.send(:resolved_preference_cookie, nil),
     )
+  end
+
+  test "preference_write_owner_id returns nil when current_resource is not available" do
+    assert_nil @controller.send(:preference_write_owner_id)
+  end
+
+  test "preference_write_owner_id raises when current_resource resolution fails" do
+    @controller.define_singleton_method(:current_resource) do
+      raise StandardError, "resource lookup failed"
+    end
+
+    error = assert_raises(Preference::ResolutionError) do
+      @controller.send(:preference_write_owner_id)
+    end
+
+    assert_match "Preference current_resource resolution failed", error.message
+    assert_equal "resource lookup failed", error.cause.message
+  end
+
+  test "refresh_preference_token_from_db_for_edit_entry raises when current_resource resolution fails" do
+    @controller.instance_variable_set(:@preferences, FakePreference.new)
+    @controller.define_singleton_method(:copy_preference_values!) { |*| true }
+    @controller.define_singleton_method(:current_resource) do
+      raise StandardError, "resource lookup failed"
+    end
+
+    error = assert_raises(Preference::ResolutionError) do
+      @controller.send(:refresh_preference_token_from_db_for_edit_entry!)
+    end
+
+    assert_match "Preference current_resource resolution failed", error.message
+  end
+
+  test "sync_to_resource_preference raises when current_resource resolution fails" do
+    @controller.define_singleton_method(:current_resource) do
+      raise StandardError, "resource lookup failed"
+    end
+
+    error = assert_raises(Preference::ResolutionError) do
+      @controller.send(:sync_to_resource_preference!)
+    end
+
+    assert_match "Preference current_resource resolution failed", error.message
   end
 
   test "sync_to_resource_preference keeps shared preference public_id" do

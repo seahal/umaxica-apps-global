@@ -4,6 +4,8 @@
 module Sign
   module App
     class RobotsController < BareController
+      AUTHENTICATION_MODE = :bare
+
       include ::Robots
 
       def show

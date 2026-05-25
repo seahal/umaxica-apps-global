@@ -8,7 +8,7 @@ module Oidc
     InvalidCallbackState = Class.new(StandardError)
 
     included do
-      public_strict!
+      declare_authentication_mode! :open
     end
 
     def show
@@ -33,16 +33,6 @@ module Oidc
     rescue InvalidCallbackState
       clear_oidc_session_state!
       render plain: I18n.t("errors.messages.login_required"), status: :unprocessable_content
-    rescue StandardError => e
-      Rails.logger.info(
-        LogEvent.format(
-          "oidc.rp.callback.exception",
-          error_class: e.class.name,
-          client_id: oidc_client_id,
-          host: request.host,
-        ),
-      )
-      render_callback_failure("callback_failed")
     end
 
     private

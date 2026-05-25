@@ -3,6 +3,8 @@
 
 module Sign::App
   class InsController < In::GuestController
+    AUTHENTICATION_MODE = :guest
+
     def new
     end
   end

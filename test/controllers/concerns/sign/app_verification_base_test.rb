@@ -16,9 +16,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
       def helper_method(*) = nil
 
-      def auth_required!(*) = nil
-
-      def public_strict!(*) = nil
+      def declare_authentication_mode!(*, **) = nil
     end
 
     def verification_model = nil

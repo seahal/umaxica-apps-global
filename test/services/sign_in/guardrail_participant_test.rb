@@ -5,7 +5,7 @@ require "test_helper"
 
 module SignIn
   class GuardrailParticipantTest < ActiveSupport::TestCase
-    test "empty guardrail stack advances cycle to session issuance" do
+    test "empty guardrail stack advances cycle to checkpoint" do
       actor = create_client
       cycle = create_cycle(actor)
 
@@ -14,8 +14,8 @@ module SignIn
       assert_predicate result, :empty?
       assert_predicate result, :cleared?
       assert_not_predicate result, :blocking?
-      assert_predicate cycle.reload, :sign_in_session_issuance_pending?
-      assert_equal "session_issuance", cycle.step
+      assert_predicate cycle.reload, :sign_in_checkpoint_pending?
+      assert_equal "checkpoint", cycle.step
     end
 
     test "blocking evaluator stops without advancing" do
@@ -46,7 +46,7 @@ module SignIn
 
       assert_not_predicate result, :blocking?
       assert_equal [:cleared_for_test], result.stack.map(&:key)
-      assert_predicate cycle.reload, :sign_in_session_issuance_pending?
+      assert_predicate cycle.reload, :sign_in_checkpoint_pending?
     end
 
     test "login blocked actor becomes guardrail blocking item" do
@@ -83,7 +83,7 @@ module SignIn
         result = GuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
 
         assert_predicate result, :cleared?
-        assert_predicate cycle.reload, :sign_in_session_issuance_pending?
+        assert_predicate cycle.reload, :sign_in_checkpoint_pending?
       end
     end
 

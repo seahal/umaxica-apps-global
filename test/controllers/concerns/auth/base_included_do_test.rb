@@ -91,25 +91,25 @@ module Auth
       assert_equal %w(destroy), rules.first[:except]
     end
 
-    test "access_policy shortcuts work" do
+    test "authentication mode declarations work" do
       klass =
         Class.new(ApplicationController) do
           extend Authentication::Base::ClassMethods
         end
 
-      klass.public_strict!(only: :public)
-      klass.auth_required!(only: :protected)
-      klass.guest_only!(only: :guest)
+      klass.declare_authentication_mode! :open, only: :public
+      klass.declare_authentication_mode! :private, only: :protected
+      klass.declare_authentication_mode! :guest, only: :guest
 
-      rules = klass.access_policy_rules
+      rules = klass.local_authentication_mode_rules
 
       assert_equal 3, rules.length
-      assert_equal :public_strict, rules[0][:policy]
-      assert_equal :auth_required, rules[1][:policy]
-      assert_equal :guest_only, rules[2][:policy]
+      assert_equal :open, rules[0][:mode]
+      assert_equal :private, rules[1][:mode]
+      assert_equal :guest, rules[2][:mode]
     end
 
-    test "enforce_access_policy delegates declared rules to Authentication::AccessPolicy" do
+    test "enforce_access_policy delegates declared authentication mode to Authentication::AccessPolicy" do
       controller = BaseHarness.new
       controller.define_singleton_method(:action_name) { "index" }
       controller.define_singleton_method(:logged_in?) { true }
@@ -121,7 +121,7 @@ module Auth
         true
       end
 
-      BaseHarness.auth_required!(only: :index)
+      BaseHarness.declare_authentication_mode! :private, only: :index
 
       assert controller.send(:enforce_access_policy!)
       assert_equal :auth_required?, calls.first.first
@@ -129,6 +129,7 @@ module Auth
       assert_equal :auth_required, calls.first.last.policy
     ensure
       Authentication::Base::ACCESS_POLICY_RULES.delete(BaseHarness)
+      BaseHarness.remove_instance_variable(:@authentication_mode_rules) if BaseHarness.instance_variable_defined?(:@authentication_mode_rules)
     end
 
     test "access_policy validates policy name" do
@@ -186,6 +187,7 @@ module Auth
     end
 
     test "VALID_POLICIES contains expected values" do
+      assert_includes Authentication::Base::VALID_POLICIES, :deny_all
       assert_includes Authentication::Base::VALID_POLICIES, :public_strict
       assert_includes Authentication::Base::VALID_POLICIES, :auth_required
       assert_includes Authentication::Base::VALID_POLICIES, :guest_only

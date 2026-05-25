@@ -5,6 +5,8 @@ module Sign
   module Org
     module Oauth
       class TokensController < Sign::Org::TokensController
+        AUTHENTICATION_MODE = :open
+
       end
     end
   end

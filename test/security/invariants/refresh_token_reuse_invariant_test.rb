@@ -39,9 +39,10 @@ module Security
         )
         other_family.rotate_refresh_token!
 
-        assert_raises(Sign::InvalidRefreshToken) do
-          Sign::RefreshTokenService.call(refresh_token: reused_refresh)
-        end
+        result = Sign::RefreshTokenService.call(refresh_token: reused_refresh)
+
+        assert_not result.success?
+        assert_equal :refresh_token_reuse_detected, result.reason
 
         assert_operator original.reload.discarded_at, :<=, Time.current
         assert_operator rotated.reload.discarded_at, :<=, Time.current

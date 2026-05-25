@@ -4,6 +4,8 @@
 module Apex
   module Com
     class AccountsController < PrivateController
+      AUTHENTICATION_MODE = :private
+
       def index
       end
     end

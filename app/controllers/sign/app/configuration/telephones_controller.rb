@@ -5,6 +5,8 @@ module Sign
   module App
     module Configuration
       class TelephonesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include Sign::TelephoneRegistrable
         include ::Verification::Client
 

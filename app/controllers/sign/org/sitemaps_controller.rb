@@ -4,6 +4,8 @@
 module Sign
   module Org
     class SitemapsController < BareController
+      AUTHENTICATION_MODE = :bare
+
       include ::Sitemap
 
       def show

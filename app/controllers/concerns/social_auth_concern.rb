@@ -179,7 +179,7 @@ module SocialAuthConcern
       auth_hash: auth_hash,
       current_client: social_auth_user,
       intent: intent,
-      sign_up_entry: entry == "sign_up",
+      sign_up_entry: intent == "login",
     )
     result[:rt] = rt if rt.present?
     result[:entry] = entry if entry.present?

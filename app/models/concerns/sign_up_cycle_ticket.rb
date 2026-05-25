@@ -5,6 +5,10 @@ module SignUpCycleTicket
   extend ActiveSupport::Concern
 
   CONTACT_TYPES = %w(email telephone social_identity).freeze
+  # Symbolic cleanup states. Each surface's reference table (e.g.
+  # ClientSignUpCycleCleanupStatus) defines the actual integer IDs. Access via
+  # `cycle.cleanup_status_id_for(:pending)` etc.
+  CLEANUP_STATE_NAMES = %i(idle pending completed failed).freeze
   SECRET_REQUIREMENT_KEY_PATTERNS = [
     /otp/i,
     /pass_?code/i,
@@ -16,12 +20,10 @@ module SignUpCycleTicket
   ].freeze
 
   included do
-    before_validation :assign_cleanup_token
     before_validation :normalize_completed_requirements
 
     validates :entry_method, presence: true, inclusion: { in: ->(record) { record.class::ENTRY_METHODS } }
     validates :pending_contact_type, inclusion: { in: CONTACT_TYPES }, allow_nil: true
-    validates :cleanup_token, presence: true
     validates :completed_requirements, exclusion: { in: [nil] }
     validate :completed_requirements_is_object
     validate :return_to_is_safe_internal_path
@@ -29,6 +31,19 @@ module SignUpCycleTicket
   end
 
   class_methods do
+    def cleanup_status_class
+      nil
+    end
+
+    def cleanup_status_id_for(state)
+      klass = cleanup_status_class
+      raise NotImplementedError,
+            "#{name} must declare cleanup_status_class returning a ReferenceRecord " \
+            "(e.g. ClientSignUpCycleCleanupStatus)" unless klass
+
+      klass.const_get(state.to_s.upcase)
+    end
+
     def social_entry_methods
       defined?(self::SOCIAL_ENTRY_METHODS) ? self::SOCIAL_ENTRY_METHODS : []
     end
@@ -42,6 +57,24 @@ module SignUpCycleTicket
     requirement_state = completed_requirements.fetch(requirement.to_s, {})
 
     requirement_state.is_a?(Hash) && requirement_state["cleared"] == true
+  end
+
+  delegate :cleanup_status_id_for, to: :class
+
+  def cleanup_idle?
+    has_attribute?(:cleanup_status_id) && cleanup_status_id == cleanup_status_id_for(:idle)
+  end
+
+  def cleanup_pending?
+    has_attribute?(:cleanup_status_id) && cleanup_status_id == cleanup_status_id_for(:pending)
+  end
+
+  def cleanup_completed?
+    has_attribute?(:cleanup_status_id) && cleanup_status_id == cleanup_status_id_for(:completed)
+  end
+
+  def cleanup_failed?
+    has_attribute?(:cleanup_status_id) && cleanup_status_id == cleanup_status_id_for(:failed)
   end
 
   def advance_sign_up_to_checkpoint!(now: Time.current)
@@ -66,10 +99,6 @@ module SignUpCycleTicket
   end
 
   private
-
-  def assign_cleanup_token
-    self.cleanup_token = SecureRandom.urlsafe_base64(24) if cleanup_token.blank?
-  end
 
   def normalize_completed_requirements
     self.completed_requirements = {} if completed_requirements.blank?

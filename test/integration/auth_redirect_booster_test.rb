@@ -6,7 +6,7 @@ require "test_helper"
 class AuthRedirectTestController < ApplicationController
   include Authentication::Base
 
-  public_strict!
+  declare_authentication_mode! :open
 
   def trigger_redirect_with_notice
     session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = safe_encoded_rt(params[:rt]) if params[:rt].present?
@@ -26,7 +26,7 @@ class AuthRedirectTestController < ApplicationController
   end
 
   def trigger_safe_rt
-    render plain: safe_path_from_encoded_rt(params[:rt], fallback: "/fallback")
+    render plain: return_path_from_signed_rt(params[:rt]) || ""
   end
 
   def trigger_issue_bulletin
@@ -96,26 +96,26 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "add_rt_to_params" do
-    rt = "/auth_redirect/index"
+    rt = "/dashboard"
     get "/auth_redirect/params", params: { rt: rt }
 
     assert_response :success
     assert_match(/--/, response.parsed_body["rt"])
   end
 
-  test "safe_path_from_encoded_rt accepts encoded internal path" do
+  test "return_path_from_signed_rt rejects raw internal path" do
     rt = "/configuration?x=1"
     get "/auth_redirect/safe_rt", params: { rt: rt }
 
     assert_response :success
-    assert_equal "/fallback", response.body
+    assert_equal "", response.body
   end
 
-  test "safe_path_from_encoded_rt rejects unencoded external URL" do
+  test "return_path_from_signed_rt rejects unencoded external URL" do
     get "/auth_redirect/safe_rt", params: { rt: "https://evil.example/path" }
 
     assert_response :success
-    assert_equal "/fallback", response.body
+    assert_equal "", response.body
   end
 
   test "issue_bulletin returns false when no bulletin" do

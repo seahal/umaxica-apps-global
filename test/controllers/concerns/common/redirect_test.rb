@@ -79,6 +79,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
     assert_nil redirect_helper.send(:safe_internal_path, "")
     assert_nil redirect_helper.send(:safe_internal_path, "/dash\nboard")
     assert_nil redirect_helper.send(:safe_internal_path, "/dash\tboard")
+    assert_nil redirect_helper.send(:safe_internal_path, :dashboard)
   end
 
   test "safe_internal_path rejects absolute, scheme, host, and userinfo targets" do
@@ -89,12 +90,23 @@ class Common::RedirectTest < ActiveSupport::TestCase
     assert_nil redirect_helper.send(:safe_internal_path, "relative/path")
   end
 
+  test "safe_internal_path rejects fragments and ambiguous encoded path bytes" do
+    assert_nil redirect_helper.send(:safe_internal_path, "/#fragment")
+    assert_nil redirect_helper.send(:safe_internal_path, "/dashboard#fragment")
+    assert_nil redirect_helper.send(:safe_internal_path, "/dash\\board")
+    assert_nil redirect_helper.send(:safe_internal_path, "/%2F%2Fevil.example")
+    assert_nil redirect_helper.send(:safe_internal_path, "/%5Cevil")
+    assert_nil redirect_helper.send(:safe_internal_path, "/%00")
+    assert_nil redirect_helper.send(:safe_internal_path, "/%0d%0aLocation:%20https://evil.example")
+  end
+
   test "safe_internal_path accepts clean internal paths and preserves query" do
     assert_equal "/dashboard", redirect_helper.send(:safe_internal_path, "/dashboard")
     assert_equal "/dashboard?a=1&b=2", redirect_helper.send(:safe_internal_path, "/dashboard?a=1&b=2")
   end
 
   test "safe_return_path rejects external hosts when no host is allowed" do
+    assert_nil redirect_helper.send(:safe_return_path, :dashboard)
     assert_nil redirect_helper.send(:safe_return_path, "https://evil.example/path")
     assert_nil redirect_helper.send(:safe_return_path, "//evil.example/path")
   end

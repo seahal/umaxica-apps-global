@@ -9,6 +9,11 @@ scattered session/controller state without changing route intent by accident.
 invitation/provisioning entry points and operator lifecycle requests, not a normal end-user sign-up
 flow.
 
+Org/operator signup checkpoint cancellation is intentionally not implemented as part of the app/com
+checkpoint flow. Future org work may reuse the sign-up cycle lifecycle predicates, but operator
+acquisition must continue to follow the org invitation and lifecycle-request boundaries until a
+separate ADR changes that policy.
+
 ## Current Route Inventory
 
 `app` has four sign-up entry paths:
@@ -28,8 +33,25 @@ flow.
 1. External candidate inquiry.
 2. Operator lifecycle request.
 
-All six paths currently bypass a dedicated sign-up birthdate gate. The `birthdate` value can be
-shown later from configuration, but the sign-up sequence does not require or persist it today.
+The app/com sign-up checkpoint owns required registration setup before durable account finalization.
+Birthdate is a sign-up checkpoint requirement for app/com end-user registration.
+
+## App Social Sign-Up And Sign-In Boundary
+
+Google and Apple on the `app` surface use the same provider callback, but the callback must choose
+between sign-up and sign-in by whether the provider identity is already registered and complete.
+
+- If the Google or Apple identity is unknown, the request enters the app sign-up sequence. It must
+  not issue an authenticated login session. The actor may enter the normal login path only after the
+  sign-up sequence has completed required checkpoint setup and finalization.
+- If the Google or Apple identity is registered and the account has completed required sign-up
+  setup, the request enters the normal login sequence.
+- A registered Google or Apple identity must not be routed through the sign-up sequence again as a
+  new registration. The sign-up path is only for unknown provider identities or incomplete
+  registration setup that still needs checkpoint completion.
+- An account that still lacks required sign-up data, including birthdate, is not a complete
+  registered social-login account for login purposes. It must be returned to the sign-up checkpoint
+  before any authenticated login session is issued.
 
 ## Common Post-Finalization Handoff
 
@@ -37,15 +59,17 @@ All `app` and target `com` sign-up paths share the same post-finalization routin
 
 1. Complete sign-up finalization.
 2. Enter the existing sign-in boundary in the same Rails action/request.
-3. The sign-in boundary evaluates `/sign/in/guardrail` before session issuance.
-4. If sign-in guardrail does not block, issue the authenticated session.
-5. Continue to `/sign/in/checkpoint` and `/welcome`.
-6. If a safe `rt` return path is present, jump there after welcome sequence handling; otherwise
+3. The sign-in boundary creates or resumes the pending sign-in cycle.
+4. Evaluate session-limit handling, `/sign/in/guardrail`, `/sign/in/checkpoint`, and
+   `/sign/in/selector` in order.
+5. Commit the selector selection, then issue the active authenticated session.
+6. Continue to `/welcome`.
+7. If a safe `rt` return path is present, jump there after welcome sequence handling; otherwise
    continue to `/dashboard`.
 
 The sign-up finalization and sign-in boundaries must not redirect, render, or perform an HTTP reload
 between each other. Route selection belongs to the post-finalization handoff after the sign-in
-boundary has either stopped at guardrail or issued the authenticated session.
+boundary has either stopped at a pending sign-in participant or issued the authenticated session.
 
 ## Signed-In Actor Re-entry
 
@@ -65,8 +89,8 @@ continue. It is distinct from `/sign/up/checkpoint`:
 - Checkpoint collects or clears required setup before finalization.
 
 `/sign/in/guardrail` is also part of the common post-finalization handoff. It is evaluated before
-session issuance. If it blocks after durable sign-up completion, that is a sign-in failure domain;
-it must not delete completed account data.
+checkpoint, selector, and session issuance. If it blocks after durable sign-up completion, that is a
+sign-in failure domain; it must not delete completed account data.
 
 Guardrail, checkpoint, and welcome are sequence participants whose required content can grow or
 disappear over time. The sign-up state machine decides when the current sequence is allowed to
@@ -82,9 +106,12 @@ Expected participant behavior:
   item, stop the attempt with plain text. No redirect is performed.
 - Checkpoint: if the stack is empty, advance without displaying a page. If the stack has any
   blocking item, keep the actor at checkpoint until all required setup is cleared.
+- Selector: if there is one activation candidate, auto-commit it without rendering UI. If there are
+  multiple candidates, require explicit selection. The active session is issued only after selector
+  commit succeeds.
 - Welcome: if the sequence welcome stack is empty, continue to the safe `rt` return path or
   `/dashboard`. If the stack has items, display them after sign-in. Reaching welcome means the actor
-  has completed the normal `AAL1` sign-in boundary and can behave as a signed-in actor.
+  has completed selector and active session issuance and can behave as a signed-in actor.
 
 `/welcome` is the post-finalization handoff route. It consumes the preserved `rt` only when that
 return path is safe. If `rt` is missing, blank, invalid, unsafe, expired, or points back to
@@ -103,6 +130,12 @@ For example, telephone sign-up checkpoint can contain separate birthdate, passke
 requirements. The account must not finalize until all three items are cleared. Adding a future
 requirement should add a checkpoint item, not introduce a new route between checkpoint and
 finalization.
+
+Checkpoint cancellation is allowed only before durable finalization starts. Cancelled sign-up cycles
+are logically discarded immediately and scheduled for later physical cleanup; controllers do not
+physically delete sign-up artifacts. Because identifiers may remain reserved until the purge window
+expires, cancellation UI should send the actor back to the surface root and tell them to retry
+registration after a short delay.
 
 ## Reference Shape: Email Sign-Up
 
@@ -154,8 +187,8 @@ Expected state-machine path:
   - Allowed only when email OTP and checkpoint birthdate are complete.
   - Replace the current `create_user_and_login` shape with two internal boundaries:
     - `sign_up` finalizes the pending sign-up actor and required sign-up artifacts.
-    - the existing sign-in boundary evaluates guardrail and then issues the authenticated session
-      only if guardrail does not block.
+    - the existing sign-in boundary evaluates session-limit, guardrail, checkpoint, and selector,
+      then issues the authenticated session only after selector commit succeeds.
   - Both boundaries run inside the same Rails action/request.
   - Neither boundary redirects, renders, reloads through HTTP, or chooses the final route.
   - Promote the pending `Client`.
@@ -163,7 +196,7 @@ Expected state-machine path:
   - Write the sign-up audit entry.
   - Save the verified email state.
   - Enter the sign-in boundary with `auth_method: "email"`; session issuance happens only after
-    sign-in guardrail passes.
+    sign-in guardrail, checkpoint, and selector pass.
   - If sign-up finalization fails, treat it as sign-up failure recovery.
   - If sign-in/session issuance fails after durable sign-up completion, treat it as sign-in failure
     handling and do not delete the completed account.
@@ -172,9 +205,9 @@ Expected state-machine path:
   - Current route helper: `sign_app_welcome_path("post_auth")`.
   - This step is also bypassable by `continue_welcome_sequence_without_content!` when no welcome
     sequence content is required.
-  - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
-    continue to `/dashboard`.
+  - The common post-finalization handoff applies: after sign-in guardrail, checkpoint, selector,
+    session issuance, and welcome handling, continue to the safe `rt` return path when present;
+    otherwise continue to `/dashboard`.
 
 - Post-auth handoff: `complete_update_and_redirect`
   - The controller-level completion hook should hand off into the sequence instead of deciding the
@@ -224,11 +257,13 @@ Current implementation path:
   - Advances the local email flow session state.
   - Creates the welcome bulletin.
   - Calls `redirect_to_sign_in_sequence!`.
-  - Target behavior is that guardrail is evaluated before session issuance.
+  - Target behavior is that guardrail, checkpoint, and selector are evaluated before session
+    issuance.
   - In the current implementation, the actor reaches `/sign/in/checkpoint` if checkpoint content
     exists.
-  - Otherwise, or after checkpoint completion, the actor continues to welcome and then the safe `rt`
-    return path when present, falling back to `/dashboard`.
+  - Otherwise, or after checkpoint and selector completion, the actor receives the active session,
+    continues to welcome, and then the safe `rt` return path when present, falling back to
+    `/dashboard`.
 
 Current missing gate:
 

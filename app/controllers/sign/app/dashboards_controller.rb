@@ -4,6 +4,8 @@
 module Sign
   module App
     class DashboardsController < PrivateController
+      AUTHENTICATION_MODE = :private
+
       before_action :authenticate_client!
 
       def show

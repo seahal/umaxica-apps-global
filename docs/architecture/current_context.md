@@ -175,15 +175,27 @@ identity. Anonymous users and unsaved actor objects return false.
 
 Configuration state is exposed through `Actor.configuration`.
 
-This is intentionally only a second-layer request-context box for now. The concrete configuration
-resolver and durable storage model are not decided. Until that design is accepted, lifecycle code
-may install an `Actor::Configuration` value object, but normal code must not infer persistence,
-fallback, or cross-request behavior from it.
+Most Actor read paths must stay at `Actor.xxx.yyy`. Configuration is the only accepted exception
+that may use a fourth layer for namespaced settings: `Actor.configuration.<namespace>.<value>`. For
+example, `Actor.configuration.sign.value` is allowed because `sign` is a configuration category and
+`value` is the resolved value inside that category.
+
+The third layer under `Actor.configuration` must be a clear configuration namespace such as `sign`,
+`post`, or `security`. The fourth layer must be an actual value or predicate-style value such as
+`value`, `enabled`, or `mode`. Do not add fifth-layer reads such as
+`Actor.configuration.sign.value.raw`, and do not use deep non-configuration chains such as
+`Actor.authz.policy.user.account.id`.
+
+Lifecycle and resolver code may install an `Actor::Configuration` value object with shallow typed
+namespace objects. Normal code must not infer persistence, fallback, or cross-request behavior from
+it. `Actor.configuration` is resolved request context, not the durable configuration source of
+truth.
 
 When no configuration is available, `Actor.configuration` returns a null object. Unknown readers
 return a null value that is safe to chain and answers false to predicate-style feature checks such
 as `enabled?` and `configured?`. This keeps guest and anonymous request paths from raising nil
-errors when a view or service asks for optional configuration.
+errors when a view or service asks for optional configuration. This null chaining is only a safety
+fallback; it is not permission to design real APIs deeper than four layers.
 
 ## Bare And Authentication-Aware Endpoints
 
@@ -212,6 +224,7 @@ authentication failure path.
 - Do not use `Actor` values as memoized inputs while rebuilding `Actor`; resolve from current
   request/auth/preference state.
 - Prefer typed helpers and value objects over raw token hashes where practical.
+- Keep Actor read paths to `Actor.xxx.yyy`, except `Actor.configuration.<namespace>.<value>`.
 - Keep Action Policy's authorization subject name as `user`; it is not a `User` model reference.
 - Do not restore old or surface-specific current containers.
 

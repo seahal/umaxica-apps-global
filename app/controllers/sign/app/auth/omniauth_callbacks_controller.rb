@@ -18,6 +18,8 @@ module Sign
       # Apple sends state in POST body, Google sends in query string.
       # Both are accessible via params[:state].
       class OmniauthCallbacksController < Sign::App::ApplicationController
+        AUTHENTICATION_MODE = :deny_all
+
         include SocialAuthConcern
         include SocialCallbackGuard
         include SessionLimitGate
@@ -25,7 +27,7 @@ module Sign
 
         # Allow unauthenticated access for login intent
         # For link intent, auth is checked in prepare_social_auth_intent!
-        public_strict! only: %i(omniauth failure)
+        declare_authentication_mode! :open, only: %i(omniauth failure)
 
         # Skip preference before_actions that may interfere with OmniAuth callback
         skip_before_action :apply_localization_preferences, only: %i(omniauth failure)
@@ -125,7 +127,7 @@ module Sign
           )
         end
 
-        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, rt: nil, _entry: nil)
+        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, rt: nil, entry: nil)
           Rails.logger.debug(
             LogEvent.format(
               "sign.social.omniauth.handle_successful_auth",
@@ -138,7 +140,7 @@ module Sign
           when "link"
             handle_link_intent(provider_name)
           when "login"
-            if !existing_account
+            if social_sign_up_required?(user, existing_account)
               handle_social_sign_up_intent(user, provider_name, identity, rt: rt)
             else
               handle_login_intent(user, provider_name, existing_account, rt: rt)
@@ -149,9 +151,19 @@ module Sign
         end
 
         def handle_social_sign_up_intent(user, provider_name, identity, rt: nil)
-          cycle = sign_up_cycle_locator.current || create_social_sign_up_cycle!(user, identity, rt: rt)
+          # Two callbacks for the same social identity (provider + uid) can
+          # arrive simultaneously (e.g. user double-clicks the consent button
+          # or replays a stale tab). Without serialization, both pass the
+          # "no existing account" check, both fall into this branch, both
+          # try to create a sign_up_cycle, and the second loser hits the
+          # unique constraint on Client during finalization. The advisory
+          # lock collapses the second arrival into a no-op
+          # cycle-already-issued.
+          with_social_sign_up_lock(identity) do
+            cycle = sign_up_cycle_locator.current || create_social_sign_up_cycle!(user, identity, rt: rt)
+            bind_social_sign_up_cycle!(cycle, user, identity)
+          end
 
-          bind_social_sign_up_cycle!(cycle, user, identity)
           redirect_to(
             sign_app_up_guardrail_path(
               ri: params[:ri].presence || current_social_auth_ri,
@@ -159,6 +171,27 @@ module Sign
             ),
             notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
           )
+        end
+
+        def social_sign_up_required?(user, existing_account)
+          !existing_account || user&.birthdate.blank?
+        end
+
+        def with_social_sign_up_lock(identity, &)
+          if identity&.respond_to?(:uid) && identity.respond_to?(:provider) &&
+              identity.uid.present? && identity.provider.present?
+            digest = "#{SocialIdentifiable.normalize_provider(identity.provider)}:#{identity.uid}"
+            AppTicketRecord.connected_to(role: :writing) do
+              SignUp::EmailPendingGuard.with_lock(
+                namespace: "sign_up:social_callback",
+                address_digest: digest,
+                model_class: AppTicketRecord,
+                &
+              )
+            end
+          else
+            yield
+          end
         end
 
         def create_social_sign_up_cycle!(user, identity, rt: nil)
@@ -175,7 +208,7 @@ module Sign
               expires_at: ClientSignUpCycle.default_ttl.from_now,
               entry_method: SocialIdentifiable.normalize_provider(identity.provider),
               social_provider: SocialIdentifiable.normalize_provider(identity.provider),
-              return_to: safe_path_from_encoded_rt(rt, fallback: nil),
+              return_to: return_path_from_signed_rt(safe_encoded_rt(rt)),
             )
             sign_up_cycle_locator.issue!(cycle)
             session[:sign_app_up_sequence_id] = cycle.public_id

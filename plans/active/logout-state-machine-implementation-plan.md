@@ -107,7 +107,7 @@ All logout/revoke paths should return a common result shape:
 
 ```ruby
 Logout::Result(
-  status: :success | :already_logged_out | :invalid_request |
+  status: :success | :invalid_request |
           :forbidden | :not_found | :token_revoke_failed,
   token:,
   revoked_tokens:,
@@ -118,6 +118,13 @@ Logout::Result(
 ```
 
 Controllers map the result to HTTP behavior. Token services own token mutation.
+
+Current-session logout now has the first slice of this contract in production code:
+
+- `Authentication::Logoutable#logout_current_session!` returns `Logout::Result(status: :success)`.
+- unauthenticated stale-tab `POST`/`DELETE /sign/out` is rejected by `authenticate!` and redirected
+  to sign-in; it does not call the token revoke primitive, write a logout audit event, or render the
+  signed-out page.
 
 ## Implementation Phases
 
@@ -136,7 +143,7 @@ Controllers map the result to HTTP behavior. Token services own token mutation.
 ## Test Expectations
 
 - Ordinary logout revokes the current token, clears auth cookies, and resets Rails session.
-- Logout is idempotent or rejected safely when already logged out.
+- Logout is rejected safely when the browser is already logged out.
 - Revoke other sessions cannot revoke another actor's token.
 - Restricted-session cancel revokes the restricted token and logs out.
 - Restricted-session promotion happens only when active-session count permits it.

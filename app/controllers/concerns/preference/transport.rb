@@ -35,7 +35,7 @@ module Preference::Transport
     return unless respond_to?(:current_resource, true)
     return unless respond_to?(:copy_preference_values!, true)
 
-    resource = begin; current_resource; rescue StandardError; nil; end
+    resource = preference_current_resource
     return if resource.blank?
 
     resource_preference = resolved_resource_preference(resource) if respond_to?(:resolved_resource_preference, true)
@@ -47,11 +47,13 @@ module Preference::Transport
   end
 
   def restore_preference_from_resource!(_preference)
-    resource = begin; current_resource; rescue; nil; end
+    resource = preference_current_resource
     return if resource.blank?
     return unless respond_to?(:adopt_preference_for!, true)
 
     adopt_preference_for!(resource)
+  rescue Preference::ResolutionError
+    raise
   rescue StandardError => e
     Rails.logger.info(
       LogEvent.format(

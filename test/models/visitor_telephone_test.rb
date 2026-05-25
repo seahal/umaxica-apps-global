@@ -7,6 +7,7 @@
 # Database name: com_principal
 #
 #  id                          :bigint           not null, primary key
+#  discarded_at                :datetime         default(Infinity), not null
 #  locked_at                   :datetime         default(-Infinity), not null
 #  number                      :string           default(""), not null
 #  number_digest               :string
@@ -14,6 +15,7 @@
 #  otp_counter                 :text             default(""), not null
 #  otp_expires_at              :datetime         default(-Infinity), not null
 #  otp_private_key             :string           default(""), not null
+#  purged_at                   :datetime         default(Infinity), not null
 #  created_at                  :datetime         not null
 #  updated_at                  :datetime         not null
 #  public_id                   :string(21)       not null
@@ -22,8 +24,10 @@
 #
 # Indexes
 #
-#  index_visitor_telephones_on_number_digest                (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
+#  index_visitor_telephones_on_active_number_digest         (number_digest) UNIQUE WHERE ((number_digest IS NOT NULL) AND (visitor_telephone_status_id <> 4))
+#  index_visitor_telephones_on_discarded_at                 (discarded_at)
 #  index_visitor_telephones_on_public_id                    (public_id) UNIQUE
+#  index_visitor_telephones_on_purged_at                    (purged_at)
 #  index_visitor_telephones_on_visitor_id                   (visitor_id)
 #  index_visitor_telephones_on_visitor_telephone_status_id  (visitor_telephone_status_id)
 #
@@ -96,6 +100,30 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
     assert_equal existing.number_digest, duplicate.tap(&:valid?).number_digest
     assert_not duplicate.valid?
     assert_not_empty duplicate.errors[:number]
+  end
+
+  test "deleted sign-up telephone does not reserve number forever" do
+    VisitorTelephone.create!(
+      visitor: @visitor,
+      number: "+1 (555) 444-0001",
+      visitor_telephone_status_id: VisitorTelephoneStatus::DELETED,
+      otp_counter: "0",
+      otp_private_key: "secret",
+      discarded_at: 1.minute.ago,
+      purged_at: 29.minutes.from_now,
+    )
+    retry_telephone = VisitorTelephone.new(
+      visitor: @visitor,
+      number: "+15554440001",
+      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
+      otp_counter: "0",
+      otp_private_key: "secret",
+    )
+
+    assert_predicate retry_telephone, :valid?
+    assert_difference "VisitorTelephone.count", 1 do
+      retry_telephone.save!
+    end
   end
 
   test "sets number digest from normalized input" do

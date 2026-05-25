@@ -5,6 +5,8 @@ module Sign
   module Org
     module Configuration
       class GooglesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include SocialAuthConcern
 
         before_action :authenticate_operator!

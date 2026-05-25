@@ -5,6 +5,8 @@ module Sign
   module Com
     module Configuration
       class TelephonesController < PrivateController
+        AUTHENTICATION_MODE = :private
+
         include Common::Otp
         include ::Verification::Visitor
 

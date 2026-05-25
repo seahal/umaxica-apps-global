@@ -7,6 +7,7 @@
 # Database name: com_principal
 #
 #  id                          :bigint           not null, primary key
+#  discarded_at                :datetime         default(Infinity), not null
 #  locked_at                   :datetime         default(-Infinity), not null
 #  number                      :string           default(""), not null
 #  number_digest               :string
@@ -14,6 +15,7 @@
 #  otp_counter                 :text             default(""), not null
 #  otp_expires_at              :datetime         default(-Infinity), not null
 #  otp_private_key             :string           default(""), not null
+#  purged_at                   :datetime         default(Infinity), not null
 #  created_at                  :datetime         not null
 #  updated_at                  :datetime         not null
 #  public_id                   :string(21)       not null
@@ -22,8 +24,10 @@
 #
 # Indexes
 #
-#  index_visitor_telephones_on_number_digest                (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
+#  index_visitor_telephones_on_active_number_digest         (number_digest) UNIQUE WHERE ((number_digest IS NOT NULL) AND (visitor_telephone_status_id <> 4))
+#  index_visitor_telephones_on_discarded_at                 (discarded_at)
 #  index_visitor_telephones_on_public_id                    (public_id) UNIQUE
+#  index_visitor_telephones_on_purged_at                    (purged_at)
 #  index_visitor_telephones_on_visitor_id                   (visitor_id)
 #  index_visitor_telephones_on_visitor_telephone_status_id  (visitor_telephone_status_id)
 #
@@ -33,6 +37,7 @@
 #  fk_rails_...  (visitor_telephone_status_id => visitor_telephone_statuses.id)
 #
 class VisitorTelephone < ComPrincipalRecord
+  include Retainable
   include Telephone
   include PublicId
 
@@ -50,43 +55,23 @@ class VisitorTelephone < ComPrincipalRecord
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }
   validates :visitor_telephone_status_id, numericality: { only_integer: true }
-  validate :ensure_unique_number_digest
-  validate :enforce_visitor_telephone_limit, on: :create
+  validates :number_digest,
+            blind_index_uniqueness: {
+              error_attribute: :number,
+              status_column: :visitor_telephone_status_id,
+              deleted_status_id: VisitorTelephoneStatus::DELETED,
+            },
+            allow_blank: true
+  validates_with AssociatedRecordLimitValidator,
+                 on: :create,
+                 owner: :visitor,
+                 association: :visitor_telephones,
+                 foreign_key: :visitor_id,
+                 limit: :MAX_TELEPHONES_PER_VISITOR,
+                 record_name: "telephones",
+                 owner_name: "visitor"
 
   def to_param
     public_id
-  end
-
-  private
-
-  def ensure_unique_number_digest
-    return if number_digest.blank?
-
-    duplicate =
-      if visitor
-        visitor.visitor_telephones.load.any? { |telephone|
-          telephone != self && telephone.number_digest == number_digest
-        }
-      else
-        self.class.where(number_digest: number_digest).where.not(id: id).exists?
-      end
-    return unless duplicate
-
-    errors.add(:number, :taken)
-  end
-
-  def enforce_visitor_telephone_limit
-    return unless visitor_id
-
-    count =
-      if visitor
-        visitor.visitor_telephones.load.count { |telephone| telephone != self }
-      else
-        operation = -> { self.class.where(visitor_id: visitor_id).count }
-        defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
-      end
-    return if count < MAX_TELEPHONES_PER_VISITOR
-
-    errors.add(:base, :too_many, message: "exceeds maximum telephones per visitor (#{MAX_TELEPHONES_PER_VISITOR})")
   end
 end

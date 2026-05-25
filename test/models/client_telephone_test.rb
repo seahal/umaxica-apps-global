@@ -7,6 +7,7 @@
 # Database name: app_principal
 #
 #  id                                :bigint           not null, primary key
+#  discarded_at                      :datetime         default(Infinity), not null
 #  locked_at                         :datetime         default(-Infinity), not null
 #  number                            :string           default(""), not null
 #  number_digest                     :string
@@ -14,6 +15,7 @@
 #  otp_counter                       :text             default(""), not null
 #  otp_expires_at                    :datetime         default(-Infinity), not null
 #  otp_private_key                   :string           default(""), not null
+#  purged_at                         :datetime         default(Infinity), not null
 #  created_at                        :datetime         not null
 #  updated_at                        :datetime         not null
 #  public_id                         :string(21)       not null
@@ -22,8 +24,10 @@
 #
 # Indexes
 #
-#  index_client_telephones_on_number_digest                      (number_digest) UNIQUE WHERE (number_digest IS NOT NULL)
+#  index_client_telephones_on_active_number_digest               (number_digest) UNIQUE WHERE ((number_digest IS NOT NULL) AND (user_identity_telephone_status_id <> 4))
+#  index_client_telephones_on_discarded_at                       (discarded_at)
 #  index_client_telephones_on_public_id                          (public_id) UNIQUE
+#  index_client_telephones_on_purged_at                          (purged_at)
 #  index_client_telephones_on_user_id                            (user_id)
 #  index_client_telephones_on_user_identity_telephone_status_id  (user_identity_telephone_status_id)
 #
@@ -36,7 +40,8 @@
 require "test_helper"
 
 class ClientTelephoneTest < ActiveSupport::TestCase
-  fixtures_only :clients, :client_statuses, :client_telephone_statuses
+  fixtures_only :clients, :client_statuses, :client_visibilities, :client_multi_factors,
+                :client_multi_factor_statuses, :client_telephone_statuses
 
   setup do
     @user = clients(:none_user)
@@ -135,6 +140,23 @@ class ClientTelephoneTest < ActiveSupport::TestCase
     assert_equal user_telephone,
                  ClientTelephone.find_by(number_digest: IdentifierBlindIndex.bidx_for_telephone("+15557654321"))
     assert_nil ClientTelephone.find_by(number_digest: IdentifierBlindIndex.bidx_for_telephone(""))
+  end
+
+  test "deleted sign-up telephone does not reserve number forever" do
+    ClientTelephone.create!(
+      @valid_attributes.merge(
+        raw_number: "+15557654322",
+        user_telephone_status_id: ClientTelephoneStatus::DELETED,
+        discarded_at: 1.minute.ago,
+        purged_at: 29.minutes.from_now,
+      ),
+    )
+    retry_telephone = ClientTelephone.new(@valid_attributes.merge(raw_number: "+1 (555) 765-4322"))
+
+    assert_predicate retry_telephone, :valid?
+    assert_difference "ClientTelephone.count", 1 do
+      retry_telephone.save!
+    end
   end
 
   test "number is invalid when blank" do
@@ -319,5 +341,56 @@ class ClientTelephoneTest < ActiveSupport::TestCase
     expected = IdentifierBlindIndex.bidx_for_telephone("+819012345678")
 
     assert_equal expected, user_telephone.number_digest
+  end
+
+  test "otp is active just before expiry and expired exactly at expiry" do
+    user_telephone = ClientTelephone.create!(@valid_attributes.merge(raw_number: "+819012345600"))
+    now = Time.zone.parse("2026-05-25 12:00:00")
+
+    travel_to now do
+      user_telephone.store_otp("SECRET", "2", 30.seconds.from_now.to_i)
+    end
+
+    travel_to now + 29.seconds do
+      assert_predicate user_telephone.reload, :otp_active?
+      assert_not user_telephone.otp_expired?
+    end
+
+    travel_to now + 30.seconds do
+      assert_predicate user_telephone.reload, :otp_expired?
+      assert_not user_telephone.otp_active?
+    end
+  end
+
+  test "fifth failed otp attempt locks but fourth does not" do
+    user_telephone = ClientTelephone.create!(@valid_attributes.merge(raw_number: "+819012345601"))
+    now = Time.zone.parse("2026-05-25 12:00:00")
+
+    travel_to now do
+      user_telephone.update_columns(otp_attempts_count: 3, created_at: now)
+      user_telephone.increment_attempts!
+
+      assert_equal 4, user_telephone.otp_attempts_count
+      assert_not user_telephone.locked?
+
+      user_telephone.increment_attempts!
+
+      assert_equal 5, user_telephone.otp_attempts_count
+      assert_predicate user_telephone, :locked?
+      assert_in_delta 15.minutes.from_now.to_i, user_telephone.locked_at.to_i, 1
+    end
+  end
+
+  test "otp attempt window resets just after fifteen minutes" do
+    user_telephone = ClientTelephone.create!(@valid_attributes.merge(raw_number: "+819012345602"))
+    now = Time.zone.parse("2026-05-25 12:00:00")
+
+    travel_to now do
+      user_telephone.update_columns(otp_attempts_count: 4, created_at: 15.minutes.ago - 1.second)
+      user_telephone.increment_attempts!
+
+      assert_equal 1, user_telephone.otp_attempts_count
+      assert_not user_telephone.locked?
+    end
   end
 end

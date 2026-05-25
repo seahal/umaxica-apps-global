@@ -4,6 +4,8 @@
 module Sign
   module Org
     class JwksController < BareController
+      AUTHENTICATION_MODE = :bare
+
       def show
         expires_in(1.hour, public: true)
         render json: ::Oidc::JwksService.jwk_set

@@ -18,9 +18,25 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     Jump::Org::OpenController,
   ].freeze
 
+  BARE_CONTROLLERS = [
+    Apex::App::BareController,
+    Apex::Com::BareController,
+    Apex::Dev::BareController,
+    Apex::Net::BareController,
+    Apex::Org::BareController,
+    Sign::App::BareController,
+    Sign::Com::BareController,
+    Sign::Org::BareController,
+    Jump::App::BareController,
+    Jump::Com::BareController,
+    Jump::Org::BareController,
+  ].freeze
+
   APPLICATION_CONTROLLERS = [
     Apex::App::ApplicationController,
     Apex::Com::ApplicationController,
+    Apex::Dev::ApplicationController,
+    Apex::Net::ApplicationController,
     Apex::Org::ApplicationController,
     Sign::App::ApplicationController,
     Sign::Com::ApplicationController,
@@ -30,9 +46,16 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     Jump::Org::ApplicationController,
   ].freeze
 
-  test "open controllers inherit directly from ActionController base" do
+  test "open controllers inherit from their surface application controller" do
     OPEN_CONTROLLERS.each do |controller|
-      assert_equal ActionController::Base, controller.superclass
+      assert_equal controller.module_parent::ApplicationController, controller.superclass
+      assert_includes controller.ancestors, RateLimit
+    end
+  end
+
+  test "bare controllers inherit from their surface application controller" do
+    BARE_CONTROLLERS.each do |controller|
+      assert_equal controller.module_parent::ApplicationController, controller.superclass
       assert_includes controller.ancestors, RateLimit
     end
   end
