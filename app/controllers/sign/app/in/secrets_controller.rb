@@ -134,10 +134,12 @@ module Sign
         end
 
         def handle_successful_mfa(user, secret)
-          Rails.logger.info(LogEvent.format(
-            "authentication.mfa.succeeded", user_id: user.id, ip_address: request.remote_ip,
-                                            method: "secret", secret_id: secret.id,
-          ))
+          Rails.logger.info(
+            LogEvent.format(
+              "authentication.mfa.succeeded", user_id: user.id, ip_address: request.remote_ip,
+                                              method: "secret", secret_id: secret.id,
+            ),
+          )
           clear_mfa_session!
           result = finalize_mfa_login!(user)
           case result[:status]
@@ -156,10 +158,12 @@ module Sign
         end
 
         def handle_failed_mfa(user, reason, details = {})
-          Rails.logger.info(LogEvent.format(
-            "authentication.totp.failed", user_id: user&.id, ip_address: request.remote_ip,
-                                          method: "secret",
-          ))
+          Rails.logger.info(
+            LogEvent.format(
+              "authentication.totp.failed", user_id: user&.id, ip_address: request.remote_ip,
+                                            method: "secret",
+            ),
+          )
           @secret_hints = active_secret_hints_for(user) if user
           render_failed_login(reason: reason, user: user, details: details)
         end
@@ -283,31 +287,35 @@ module Sign
         end
 
         def report_authentication_error(error, flow:)
-          Rails.logger.error(LogEvent.format(
-            "sign.authentication.secret.error",
-            flow: flow,
-            error_class: error.class.name,
-            message: error.message,
-            user_id: mfa_user&.id,
-            ip: request.remote_ip,
-            exception: error,
-          ))
+          Rails.logger.error(
+            LogEvent.format(
+              "sign.authentication.secret.error",
+              flow: flow,
+              error_class: error.class.name,
+              message: error.message,
+              user_id: mfa_user&.id,
+              ip: request.remote_ip,
+              exception: error,
+            ),
+          )
         end
 
         def render_failed_login(reason:, identifier: nil, user: nil, details: {})
           @secret_form.errors.add(:base, invalid_secret_message)
 
           # Detailed failure logging (failure_reason=...) as requested
-          Rails.logger.info(LogEvent.format(
-            "sign.authentication.secret.failed",
-            reason: reason,
-            identifier_type: detect_identifier_type(identifier.to_s),
-            identifier_present: identifier.present?,
-            user_id: user&.id,
-            ip: request.remote_ip,
-            errors: @secret_form.errors.full_messages,
-            details: details,
-          ))
+          Rails.logger.info(
+            LogEvent.format(
+              "sign.authentication.secret.failed",
+              reason: reason,
+              identifier_type: detect_identifier_type(identifier.to_s),
+              identifier_present: identifier.present?,
+              user_id: user&.id,
+              ip: request.remote_ip,
+              errors: @secret_form.errors.full_messages,
+              details: details,
+            ),
+          )
 
           Sign::Risk::Emitter.emit("auth_failed", user_id: user&.id) if user
 

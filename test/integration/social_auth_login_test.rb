@@ -123,6 +123,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "Googleで登録しました", flash[:notice]
 
     follow_redirect!
+
     assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
   end
 

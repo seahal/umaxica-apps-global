@@ -5,6 +5,8 @@ module Oidc
   module Callback
     extend ActiveSupport::Concern
 
+    InvalidCallbackState = Class.new(StandardError)
+
     included do
       public_strict!
     end
@@ -28,15 +30,18 @@ module Oidc
       return render_callback_failure("login_failed") unless login_result[:status] == :success
 
       redirect_to(consume_oidc_return_to, allow_other_host: false)
-    rescue ActionController::InvalidCrossOriginRequest
-      raise
+    rescue InvalidCallbackState
+      clear_oidc_session_state!
+      render plain: I18n.t("errors.messages.login_required"), status: :unprocessable_content
     rescue StandardError => e
-      Rails.logger.info(LogEvent.format(
-        "oidc.rp.callback.exception",
-        error_class: e.class.name,
-        client_id: oidc_client_id,
-        host: request.host,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "oidc.rp.callback.exception",
+          error_class: e.class.name,
+          client_id: oidc_client_id,
+          host: request.host,
+        ),
+      )
       render_callback_failure("callback_failed")
     end
 
@@ -47,13 +52,13 @@ module Oidc
       actual = params[:state].to_s
       unless expected.present? && actual.present? && expected.bytesize == actual.bytesize &&
           ActiveSupport::SecurityUtils.secure_compare(expected, actual)
-        raise ActionController::InvalidCrossOriginRequest, "OIDC state mismatch"
+        raise InvalidCallbackState, "OIDC state mismatch"
       end
     end
 
     def exchange_code!
       code_verifier = session.delete(:oidc_code_verifier)
-      raise ActionController::InvalidCrossOriginRequest, "OIDC PKCE verifier missing" if code_verifier.blank?
+      raise InvalidCallbackState, "OIDC PKCE verifier missing" if code_verifier.blank?
 
       Oidc::RpTokenClient.call(
         token_url: oidc_token_url,
@@ -83,12 +88,14 @@ module Oidc
     end
 
     def render_callback_failure(error)
-      Rails.logger.info(LogEvent.format(
-        "oidc.rp.callback.failed",
-        error: error,
-        client_id: oidc_client_id,
-        host: request.host,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "oidc.rp.callback.failed",
+          error: error,
+          client_id: oidc_client_id,
+          host: request.host,
+        ),
+      )
       clear_oidc_session_state!
       redirect_to("/", alert: I18n.t("errors.messages.login_required"), allow_other_host: false)
     end

@@ -153,6 +153,7 @@ module Sign
               ClientEmail,
               check_otp_expiry: false,
               custom: ->(email) { email.present? && !email.otp_expired? },
+              includes: %i(user_email_status user),
             )
 
             unless @user_email

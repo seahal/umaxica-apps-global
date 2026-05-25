@@ -35,6 +35,12 @@ module Authentication
       cookie_options.merge(expires: expires_at)
     end
 
+    # NOTE: The device_id cookie is NOT a cryptographic binding. It sits in the
+    # same cookie jar as the refresh cookie, so anyone who can read the refresh
+    # cookie can also read this one. Treat it as a session-family consistency
+    # identifier used for audit/telemetry (mismatch is a compromise signal),
+    # not as a defense against stolen-cookie replay. Real per-session binding
+    # belongs to DBSC (see Authentication::DeviceBinding and Dbsc::*).
     def set_device_id_cookie!(device_id, expires_at:)
       cookies[device_cookie_key] = device_cookie_options(expires_at: expires_at).merge(value: device_id)
     end
@@ -49,6 +55,9 @@ module Authentication
       clear_dbsc_cookie!
       clear_device_id_cookie!
       @current_resource = nil
+      @current_session = nil
+      @current_session_public_id = nil
+      Actor.clear if defined?(Actor)
     end
 
     def read_device_id_cookie

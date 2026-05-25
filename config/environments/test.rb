@@ -24,6 +24,28 @@
   ENV[key] = value if ENV[key].blank? || ENV[key].include?("umaxica")
 end
 
+%w(
+  APEX_CORPORATE_URL
+  APEX_SERVICE_URL
+  APEX_STAFF_URL
+  JUMP_CORPORATE_URL
+  JUMP_SERVICE_URL
+  JUMP_STAFF_URL
+  JUMP_COM_URL
+  JUMP_APP_URL
+  JUMP_ORG_URL
+  ID_CORPORATE_URL
+  ID_SERVICE_URL
+  ID_STAFF_URL
+  SIGN_CORPORATE_URL
+  SIGN_SERVICE_URL
+  SIGN_STAFF_URL
+).each do |key|
+  next if ENV[key].blank?
+
+  ENV[key] = ENV[key].delete_suffix("/")
+end
+
 # The test environment is used exclusively to run your application's
 # test suite. You never need to work with it otherwise. Remember that
 # your test database is "scratch space" for the test suite and is wiped
@@ -78,6 +100,22 @@ Rails.application.configure do
   # Tell Active Job to use the test adapter
   config.active_job.queue_adapter = :test
   config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
+
+  config.hosts.concat(
+    [
+      /\A[a-z0-9.-]+\.localhost\z/i,
+      /\Ajump\.(app|com|org)\.localhost\z/i,
+      /\Aid\.umaxica\.(app|com|org)\z/i,
+      /\A(?:www\.)?example\.com\z/i,
+      "localhost",
+      "127.0.0.1",
+      "example.com",
+      "www.example.com",
+      "id.umaxica.app",
+      "id.umaxica.com",
+      "id.umaxica.org",
+    ],
+  )
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }

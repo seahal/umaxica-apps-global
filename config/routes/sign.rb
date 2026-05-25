@@ -14,7 +14,8 @@ scope module: :sign, as: :sign do
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      
+
+      get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
       resource :dashboard, only: :show
 
@@ -93,7 +94,7 @@ scope module: :sign, as: :sign do
         namespace :up do
           resource :email, only: %i(new create edit update)
           resource :guardrail, only: :show
-          resource :checkpoint, only: :show
+          resource :checkpoint, only: %i(show destroy)
 
           namespace :checkpoint do
             resource :birthdate, only: :update
@@ -181,8 +182,8 @@ scope module: :sign, as: :sign do
       # OAuth
       namespace :oauth do
         resource :authorization, only: :show
-        resource :token, only: :create, defaults: { format: :json }
-        resource :jwks, only: :show, defaults: { format: :json }
+        resource :token, only: :create
+        resource :jwks, only: :show
       end
 
       # MFA reset
@@ -245,6 +246,7 @@ scope module: :sign, as: :sign do
     scope module: :com, as: :com do
       root to: "roots#index"
 
+      get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
       resource :dashboard, only: :show
 
@@ -384,8 +386,8 @@ scope module: :sign, as: :sign do
       # OAuth
       namespace :oauth do
         resource :authorization, only: :show
-        resource :token, only: :create, defaults: { format: :json }
-        resource :jwks, only: :show, defaults: { format: :json }
+        resource :token, only: :create
+        resource :jwks, only: :show
       end
 
       # Account settings and linked identity management
@@ -437,6 +439,7 @@ scope module: :sign, as: :sign do
     scope module: :org, as: :org do
       root to: "roots#index"
 
+      get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
       resource :dashboard, only: :show
 
@@ -579,8 +582,8 @@ scope module: :sign, as: :sign do
       # OAuth
       namespace :oauth do
         resource :authorization, only: :show
-        resource :token, only: :create, defaults: { format: :json }
-        resource :jwks, only: :show, defaults: { format: :json }
+        resource :token, only: :create
+        resource :jwks, only: :show
       end
 
       # Account settings and identity management

@@ -12,7 +12,7 @@ module Apex
       before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash
-      after_action :purge_current
+      prepend_around_action :with_actor_lifecycle
 
       allow_browser versions: :modern
 

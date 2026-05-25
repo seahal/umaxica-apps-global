@@ -34,13 +34,15 @@ module SocialAuth
 
       identity ? handle_existing_uid_identity(identity) : link_new_identity
     rescue ActiveRecord::RecordNotUnique => e
-      Rails.logger.info(LogEvent.format(
-        "social_auth.link_race_condition",
-        user_id: current_client_id,
-        provider: provider,
-        uid: uid,
-        error: e.message,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "social_auth.link_race_condition",
+          user_id: current_client_id,
+          provider: provider,
+          uid: uid,
+          error: e.message,
+        ),
+      )
       raise ConflictError.new("errors.social_auth.identity_conflict")
     end
 
@@ -101,11 +103,13 @@ module SocialAuth
           end
         end
 
-      Rails.logger.info(LogEvent.format(
-        "social_auth.linked",
-        user_id: current_client_id,
-        provider: provider,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "social_auth.linked",
+          user_id: current_client_id,
+          provider: provider,
+        ),
+      )
 
       Rails.logger.debug { "[SocialAuth] Successfully linked new identity" }
       build_result(identity)

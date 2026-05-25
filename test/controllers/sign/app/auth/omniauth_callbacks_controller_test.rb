@@ -84,7 +84,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@issue_bulletin_for_test, false)
     controller.send(:redirect_for_new_account, "Apple")
 
-    assert_match "/dashboard", redirects.last.first.first
+    assert_match "/welcome", redirects.last.first.first
 
     controller.instance_variable_set(:@login_result_for_test, { status: :success, restricted: true })
     controller.send(:handle_login_intent, user, "Apple", false)
@@ -94,7 +94,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@login_result_for_test, true)
     controller.send(:handle_login_intent, user, "Apple", true)
 
-    assert_match "/dashboard", redirects.last.first.first
+    assert_match "/welcome", redirects.last.first.first
 
     controller.send(
       :handle_login_failure,
@@ -193,7 +193,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal encoded_rt, kwargs[:rt]
     assert_equal "social", kwargs[:auth_method]
     assert_equal({ auth_method: "social", provider: "google" }, kwargs[:audit_context])
-    assert_match "/dashboard", redirects.last.first.first
+    assert_match "/welcome", redirects.last.first.first
     assert_match "rt=#{encoded_rt}", redirects.last.first.first
   end
 
@@ -339,7 +339,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     assert_equal [user], controller.instance_variable_get(:@complete_sign_in_args_for_test)
     assert_equal "encoded-rt", controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)[:rt]
-    assert_match "/dashboard?ri=jp", redirects.last.first.first
+    assert_match "/welcome?ri=jp", redirects.last.first.first
   end
 
   test "social sign in failure keeps account records" do

@@ -15,14 +15,15 @@ module Sign
 
         allow_browser versions: :modern
 
-        before_action :apply_localization_preferences
+        before_action :set_current_context
         before_action :set_preferences_cookie
         before_action :resolve_param_context
         before_action :set_region
+        before_action :set_current
+        before_action :apply_localization_preferences
         before_action :set_locale
         before_action :set_timezone
         before_action :set_color_theme
-        before_action :set_current
         append_after_action :finish_request
 
         protect_from_forgery using: :header_or_legacy_token,

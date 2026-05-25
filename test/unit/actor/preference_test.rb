@@ -4,6 +4,8 @@
 require "test_helper"
 
 class Actor::PreferenceTest < ActiveSupport::TestCase
+  fixtures_none!
+
   test "NULL returns safe defaults" do
     pref = Actor::Preference::NULL
 
@@ -122,20 +124,20 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_not h[:consented]
   end
 
-  test "Actor.preference returns NULL by default" do
+  test "Actor.preferences returns NULL by default" do
     Actor.reset
 
-    assert_equal Actor::Preference::NULL, Actor.preference
-    assert_predicate Actor.preference, :null?
+    assert_equal Actor::Preference::NULL, Actor.preferences
+    assert_predicate Actor.preferences, :null?
   end
 
-  test "Actor.preference can be assigned" do
+  test "Actor.preferences can be assigned" do
     Actor.reset
     custom = Actor::Preference.new(language: "en")
-    Actor.preference = custom
+    Actor.install_context!(preferences: custom)
 
-    assert_equal "en", Actor.preference.language
-    assert_not Actor.preference.null?
+    assert_equal "en", Actor.preferences.language
+    assert_not Actor.preferences.null?
   ensure
     Actor.reset
   end
@@ -162,7 +164,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
       "tf" => "hour_12",
       "mo" => "reduced",
       "dn" => "compact",
-      "ipp" => "50",
+      "ipp" => "infinity",
     }
     pref = Actor::Preference.from_jwt(prf)
 
@@ -176,7 +178,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "hour_12", pref.time_format
     assert_equal "reduced", pref.motion
     assert_equal "compact", pref.density
-    assert_equal "50", pref.items_per_page
+    assert_equal "infinity", pref.items_per_page
   end
 
   test "from_jwt accepts preference snapshot without version" do

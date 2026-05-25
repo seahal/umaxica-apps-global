@@ -31,12 +31,14 @@ module Sign
           persist_user_occurrence(event, user_id, context)
         end
       rescue StandardError => e
-        Rails.logger.error(LogEvent.format(
-          "sign.risk.emitter.persist_failed",
-          error_class: e.class.name,
-          message: e.message,
-          event_name: event.name,
-        ))
+        Rails.logger.error(
+          LogEvent.format(
+            "sign.risk.emitter.persist_failed",
+            error_class: e.class.name,
+            message: e.message,
+            event_name: event.name,
+          ),
+        )
       end
 
       def self.build_context(event)

@@ -15,7 +15,7 @@
 
       <div>
         <%= label_tag :birthdate, t("sign.app.registration.checkpoint.show.birthdate.label") %>
-        <%= date_field_tag :birthdate, @sign_up_pending_actor&.birthdate, required: true %>
+        <%= date_field_tag :birthdate, @sign_up_pending_actor&.birthdate, required: true, autocomplete: "bday" %>
       </div>
 
       <%= submit_tag t("sign.app.registration.checkpoint.show.birthdate.submit") %>
@@ -43,4 +43,10 @@
 
 <% if @sign_up_missing_requirements.empty? %>
   <p><%= t("sign.app.registration.checkpoint.show.complete") %></p>
+<% end %>
+
+<% if @sign_up_ticket&.social_entry_method? %>
+  <%= button_to t("actions.cancel"),
+                sign_app_up_checkpoint_path(ri: params[:ri], rt: params[:rt].presence),
+                method: :delete %>
 <% end %>

@@ -52,7 +52,7 @@ class ActorSupportTest < ActiveSupport::TestCase
 
   test "set_current_observability skips when performant cookie is not consented" do
     # Default preference has performant? == false
-    assert_not Actor.preference.cookie.performant?
+    assert_not Actor.preferences.cookie.performant?
 
     hex_trace_id = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
     hex_span_id  = "f1e2d3c4b5a6f1e2"
@@ -81,7 +81,7 @@ class ActorSupportTest < ActiveSupport::TestCase
       consented: true, functional: true, performant: true,
       targetable: false, consent_version: "1", consented_at: Time.current,
     )
-    Actor.preference = Actor::Preference.new(cookie: cookie)
+    Actor.install_context!(preferences: Actor::Preference.new(cookie: cookie))
 
     hex_trace_id = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
     hex_span_id  = "f1e2d3c4b5a6f1e2"
@@ -113,7 +113,7 @@ class ActorSupportTest < ActiveSupport::TestCase
       consented: true, functional: true, performant: true,
       targetable: false, consent_version: "1", consented_at: Time.current,
     )
-    Actor.preference = Actor::Preference.new(cookie: cookie)
+    Actor.install_context!(preferences: Actor::Preference.new(cookie: cookie))
 
     span_context = Minitest::Mock.new
     span_context.expect(:valid?, false)
@@ -220,7 +220,7 @@ class ActorSupportTest < ActiveSupport::TestCase
     assert_equal :resolved_resource, host_class.new.safe_current_resource
   end
 
-  test "safe_current_resource keeps existing authenticated actor" do
+  test "safe_current_resource resolves from current_resource instead of existing Actor state" do
     host_class =
       Class.new(Host) do
         define_method(:current_resource) do
@@ -232,11 +232,11 @@ class ActorSupportTest < ActiveSupport::TestCase
 
     Actor.actor = :existing_actor
 
-    assert_equal :existing_actor, host_class.new.safe_current_resource
+    assert_equal :resolved_resource, host_class.new.safe_current_resource
   end
 
   test "resolved_current_session ignores existing Actor authentication cache" do
-    Actor.authentication = Actor::Authentication.new(login_public_id: "existing-session")
+    Actor.install_context!(authn: Actor::Authentication.new(login_public_id: "existing-session"))
     @host.define_singleton_method(:access_token_payload) do
       { "sid" => "token-session" }
     end
@@ -259,7 +259,7 @@ class ActorSupportTest < ActiveSupport::TestCase
   end
 
   test "resolved_current_token prefers access_token_payload over existing authentication claims" do
-    Actor.authentication = Actor::Authentication.new(access_claims: { "sid" => "existing-cache" })
+    Actor.install_context!(authn: Actor::Authentication.new(access_claims: { "sid" => "existing-cache" }))
     @host.define_singleton_method(:access_token_payload) do
       { "sid" => "from-access", "prf" => { "lx" => "en" } }
     end
@@ -289,7 +289,7 @@ class ActorSupportTest < ActiveSupport::TestCase
     assert_nil @host.resolved_current_token
   end
 
-  test "resolved_current_preference uses database preference record" do
+  test "resolved_current_preference ignores database preference record without jwt prf" do
     user = Client.create!(
       status_id: ClientStatus::ACTIVE,
       public_id: SecureRandom.hex(10),
@@ -318,21 +318,12 @@ class ActorSupportTest < ActiveSupport::TestCase
 
     preference = @host.resolved_current_preference(user)
 
-    assert_equal "en", preference.language
-    assert_equal "us", preference.region
-    assert_equal "America/New_York", preference.timezone
-    assert_equal "dr", preference.theme
-    assert_equal "usd", preference.currency
-    assert_equal "mdy", preference.date_format
-    assert_equal "hour_12", preference.time_format
-    assert_equal "reduced", preference.motion
-    assert_equal "compact", preference.density
-    assert_equal "50", preference.items_per_page
-    assert_predicate preference.cookie, :consented?
-    assert_predicate preference.cookie, :functional?
-    assert_not_predicate preference.cookie, :performant?
-    assert_predicate preference.cookie, :targetable?
-    assert_predicate preference.cookie.consent_version, :present?
+    assert_predicate preference, :null?
+    assert_equal "ja", preference.language
+    assert_equal "jp", preference.region
+    assert_equal "Asia/Tokyo", preference.timezone
+    assert_equal "sy", preference.theme
+    assert_equal Actor::Preference::NULL_COOKIE, preference.cookie
   end
 
   test "resolved_current_preference uses prf claim when no preference record exists" do

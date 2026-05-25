@@ -8,6 +8,9 @@
   "overrideCommand": true,
   "forwardPorts": [3001, 5050],
   "remoteEnv": { "EDITOR": "code --wait --reuse-window", "DEBUGGER_DISABLE": "1" },
+  "containerEnv": {
+    "PATH": "/home/global/.opencode/bin:${containerEnv:PATH}"
+  },
   "customizations": {
     "vscode": {
       "extensions": [

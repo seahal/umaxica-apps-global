@@ -13,6 +13,9 @@ module Sign
         before_action only: %i(new create options verification) do
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
+        before_action only: %i(edit update destroy) do
+          require_step_up!(scope: verification_scope)
+        end
         before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_configuration_passkey_turnstile!, only: %i(options update destroy)
 
@@ -59,7 +62,12 @@ module Sign
           Rails.logger.error(LogEvent.format("webauthn.origin_validation_failed", message: e.message))
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
         rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
-          Rails.logger.error(LogEvent.format("webauthn.registration_options_failed", error_class: e.class.name, message: e.message))
+          Rails.logger.error(
+            LogEvent.format(
+              "webauthn.registration_options_failed", error_class: e.class.name,
+                                                      message: e.message,
+            ),
+          )
           render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
         end
 

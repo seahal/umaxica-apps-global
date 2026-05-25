@@ -8,7 +8,15 @@ module Sign
         class TimezonesController < PreferencesBaseController
           include ::Preference::SignScreenActions
 
-          preference_screen :timezone
+          before_action :ensure_preferences_record
+
+          def edit
+            edit_timezone_preference_screen
+          end
+
+          def update
+            update_timezone_preference_screen
+          end
         end
       end
     end

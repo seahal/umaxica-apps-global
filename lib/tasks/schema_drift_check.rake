@@ -8,9 +8,11 @@ namespace :db do
 
     sh "RAILS_ENV=test bin/rails db:drop db:create db:migrate"
 
-    drifted = `git status --porcelain db/`.lines
-      .map { |l| l.strip.split(/\s+/, 2).last }
-      .select { |path| path&.end_with?("_schema.rb") }
+    paths =
+      `git status --porcelain db/`.lines
+        .map { |l| l.strip.split(/\s+/, 2).last }
+    paths.select! { |path| path&.end_with?("_schema.rb") }
+    drifted = paths
 
     if drifted.any?
       warn "schema drift detected:"

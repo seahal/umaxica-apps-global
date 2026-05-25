@@ -13,10 +13,15 @@ module Outbound
       def send_message(to:, title:, body:)
         validate_params(to: to, body: body)
 
-        @client.publish(
+        response = @client.publish(
           phone_number: to,
           message: body,
           subject: title.presence || "SMS",
+        )
+
+        Outbound::ProviderResponse.accepted(
+          provider: :aws_sns,
+          provider_reference: response.message_id,
         )
       end
 

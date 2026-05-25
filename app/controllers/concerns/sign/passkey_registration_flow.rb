@@ -22,10 +22,20 @@ module Sign
         options: creation_options,
       }, status: :ok
     rescue Sign::Webauthn::OriginValidationError => e
-      Rails.logger.error(LogEvent.format("sign.webauthn.registration.origin_validation_failed", message: e.message, exception: e))
+      Rails.logger.error(
+        LogEvent.format(
+          "sign.webauthn.registration.origin_validation_failed", message: e.message,
+                                                                 exception: e,
+        ),
+      )
       render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
     rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
-      Rails.logger.error(LogEvent.format("sign.webauthn.registration.options_failed", error_class: e.class.name, message: e.message))
+      Rails.logger.error(
+        LogEvent.format(
+          "sign.webauthn.registration.options_failed", error_class: e.class.name,
+                                                       message: e.message,
+        ),
+      )
       render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
     end
 

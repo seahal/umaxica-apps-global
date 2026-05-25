@@ -56,6 +56,30 @@ class VisitorPreference < ComPrincipalRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  has_one :visitor_preference_currency,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :visitor_preference_date_format,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :visitor_preference_time_format,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :visitor_preference_motion,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :visitor_preference_density,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :visitor_preference_items_per_page,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
 
   validates :visitor_id, uniqueness: true
   validates :consented, inclusion: { in: [true, false] }

@@ -60,14 +60,14 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "no Actor state leaks into response" do
-    original_authentication = Actor.authentication
+    original_authentication = Actor.authn
 
     host! ENV["SIGN_SERVICE_URL"]
     get "/health"
 
     assert_response :success
 
-    assert_equal original_authentication, Actor.authentication
+    assert_equal original_authentication, Actor.authn
   end
 
   test "POST without CSRF token returns 422" do
@@ -102,13 +102,13 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "no preference state leaks on public endpoints" do
     host! ENV["SIGN_SERVICE_URL"]
-    original_preference = Actor.preference
+    original_preference = Actor.preferences
 
     get "/health"
 
     assert_response :success
 
-    assert_equal original_preference, Actor.preference
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal original_preference, Actor.preferences
+    assert_equal Actor::Preference::NULL, Actor.preferences
   end
 end

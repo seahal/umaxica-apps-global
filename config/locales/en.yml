@@ -1524,6 +1524,7 @@ en:
             "20": 20 items
             "50": 50 items
             "100": 100 items
+            infinity: Infinite items
         resets:
           title: Reset Preferences
           description: Remove saved preference data for this browser.
@@ -1878,6 +1879,7 @@ en:
             "20": 20 items
             "50": 50 items
             "100": 100 items
+            infinity: Infinite items
     com:
       preferences:
         footer:

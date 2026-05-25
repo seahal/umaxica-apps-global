@@ -21,21 +21,21 @@ This active plan supersedes older CurrentAttribute and compatibility-reader clea
 - Keep `Actor` as the only application-facing current-context API.
 - Use `Actor.tld` as the only surface label API.
 - Remove `Actor.surface` and `Actor.domain`; do not keep compatibility aliases.
-- Move authentication-facing state toward `Actor.authentication`.
-- Remove `Actor.session` and `Actor.token`; use `Actor.authentication.login_public_id` and typed
+- Move authentication-facing state toward `Actor.authn`.
+- Remove `Actor.session` and `Actor.token`; use `Actor.authn.login_public_id` and typed
   authentication readers instead.
 - Keep Action Policy's authorization context name as `:user`.
 
 ## Superseded Backlog Notes
 
 - `plans/archive/actor-support-integration-test-coverage.md` remains useful for lifecycle coverage
-  shape, but tests should target `Actor.tld`, `Actor.authentication`, and `Actor.preference`.
+  shape, but tests should target `Actor.tld`, `Actor.authn`, and `Actor.preferences`.
 - `plans/archive/public-controller-preference-leak-test.md` remains useful for open-controller leak
   coverage, but tests should not use removed `Actor.surface` or `Actor.domain`.
 - `plans/archive/action-policy-actor-context-rename.md` is not planned; keep the Action Policy
   context key as `:user`.
 - `plans/backlog/gh610-decouple-session-id-from-token.md` remains relevant, but its runtime API
-  target is `Actor.authentication.login_public_id`.
+  target is `Actor.authn.login_public_id`.
 
 ## Implementation Notes
 

@@ -32,6 +32,12 @@ describe("CookieBannerController", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
+  test("connect: checkConsentState を呼ぶ", () => {
+    const spy = vi.spyOn(controller, "checkConsentState");
+    controller.connect();
+    expect(spy).toHaveBeenCalled();
+  });
+
   describe("connect", () => {
     test("同意済みの場合、要素を削除する (API)", async () => {
       vi.stubGlobal(
@@ -102,6 +108,50 @@ describe("CookieBannerController", () => {
           detail: { consent: { consented: true } },
         });
       });
+    });
+
+    test("openSettings: fetch 失敗時に cookie からフォールバックする", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+      cookieValue = "cookie_consent=accepted";
+
+      controller.openSettings(event);
+      expect(event.preventDefault).toHaveBeenCalled();
+
+      await vi.waitFor(() => {
+        expect(controller.dispatch).toHaveBeenCalledWith("open-settings", {
+          detail: { consent: "accepted" },
+        });
+      });
+    });
+
+    test("normalizeConsentValue: 空値は null を返す", () => {
+      expect(controller.normalizeConsentValue(null)).toBeNull();
+      expect(controller.normalizeConsentValue(undefined)).toBeNull();
+      expect(controller.normalizeConsentValue("")).toBeNull();
+    });
+
+    test("normalizeConsentValue: 小文字に正規化する", () => {
+      expect(controller.normalizeConsentValue("Accepted")).toBe("accepted");
+    });
+
+    test("fetchCookieConsent: レスポンスが OK でないときエラーを投げる", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+      await expect(controller.fetchCookieConsent()).rejects.toThrow("HTTP error! status: 500");
+    });
+
+    test("getCookieConsent: 一致しない cookie は null を返す", () => {
+      cookieValue = "other=value";
+      expect(controller.getCookieConsent()).toBeNull();
+    });
+
+    test("hasCookieConsent: 同意済みの場合 true", () => {
+      cookieValue = "cookie_consent=accepted";
+      expect(controller.hasCookieConsent()).toBe(true);
+    });
+
+    test("hasCookieConsent: 未同意の場合 false", () => {
+      cookieValue = "";
+      expect(controller.hasCookieConsent()).toBe(false);
     });
   });
 });

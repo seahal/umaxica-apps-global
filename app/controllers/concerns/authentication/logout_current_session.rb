@@ -40,8 +40,12 @@ module Authentication
       return token if token.present?
       return if token_class.blank? || session_public_id.blank?
 
-      if token_column?(:device_session_id) && (device_session = find_device_session)
-        return token_class.currently_usable_at.where(device_session_id: device_session.id).order(created_at: :desc).first
+      device_session = token_column?(:device_session_id) ? find_device_session : nil
+      if device_session
+        return token_class.currently_usable_at
+            .where(device_session_id: device_session.id)
+            .order(created_at: :desc)
+            .first
       end
 
       find_token_by(:public_id) || find_token_by(:oidc_sid)
@@ -114,16 +118,18 @@ module Authentication
       end
       true
     rescue ActiveRecord::RecordNotFound, ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordInvalid => e
-      Rails.logger.info(LogEvent.format(
-        "auth.logout_current_session.failed",
-        reason: reason,
-        resource_class: resource&.class&.name,
-        resource_id: resource&.id,
-        token_class: token_record&.class&.name,
-        token_id: token_record&.try(:public_id),
-        error_class: e.class.name,
-        error_message: e.message,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "auth.logout_current_session.failed",
+          reason: reason,
+          resource_class: resource&.class&.name,
+          resource_id: resource&.id,
+          token_class: token_record&.class&.name,
+          token_id: token_record&.try(:public_id),
+          error_class: e.class.name,
+          error_message: e.message,
+        ),
+      )
       true
     end
 

@@ -50,6 +50,8 @@ class OidcCallbackTestController < ApplicationController
 end
 
 class Oidc::CallbackTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   setup do
     Rails.application.routes.draw do
       get "/oidc/callback/session" => "oidc_callback_test#seed"
@@ -101,7 +103,7 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
     logged = []
 
     Oidc::RpTokenClient.stub(:call, result) do
-      Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
+      Rails.logger.stub(:info, ->(message = nil) { logged << JSON.parse(message, symbolize_names: true) }) do
         get "/oidc/callback", params: { code: "abc", state: "state" }
       end
     end

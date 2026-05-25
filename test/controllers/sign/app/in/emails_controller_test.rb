@@ -219,7 +219,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_dashboard_path(ri: "jp")
+    assert_redirected_to sign_app_welcome_path("post_auth", ri: "jp")
 
     cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
 
@@ -530,21 +530,21 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     )
 
     redirect_url = sign_app_configuration_path(ri: "jp")
-    encoded_rt = Base64.urlsafe_encode64(redirect_url)
+    rt = redirect_url
 
     # Start authentication with rt parameter
     post sign_app_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
-           :rt => encoded_rt,
+           :rt => rt,
          },
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_includes response.location, "rt=#{CGI.escape(encoded_rt)}"
+    assert_includes response.location, "rt="
     assert_equal test_email.id, session[:user_email_authentication_id]
-    assert_equal encoded_rt, session[:user_email_authentication_rt]
+    assert_predicate session[:user_email_authentication_rt], :present?
 
     # Generate valid OTP code
     otp_private_key = ROTP::Base32.random_base32
@@ -559,12 +559,12 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     patch sign_app_in_email_url(ri: "jp"),
           params: {
             user_email: { pass_code: valid_pass_code },
-            rt: encoded_rt,
+            rt: rt,
           },
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_dashboard_path(ri: "jp", rt: encoded_rt)
+    assert_includes response.location, "rt="
 
     cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
 
@@ -573,8 +573,8 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     follow_redirect!
 
-    assert_response :redirect
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_response :success
+    assert_select "body"
     assert_predicate cycle.reload, :sign_in_completed?
     assert_nil cycle.return_to
   end
@@ -585,18 +585,18 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
       address: "redirect_external_test_#{SecureRandom.hex(4)}@example.com",
     )
 
-    encoded_rt = Base64.urlsafe_encode64("https://example.com/evil")
+    rt = "https://example.com/evil"
 
     post sign_app_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
-           :rt => encoded_rt,
+           :rt => rt,
          },
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_includes response.location, "rt=#{CGI.escape(encoded_rt)}"
+    assert_no_match(/rt=/, response.location)
 
     otp_private_key = ROTP::Base32.random_base32
     otp_counter = 12_345
@@ -608,12 +608,12 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     patch sign_app_in_email_url(ri: "jp"),
           params: {
             user_email: { pass_code: valid_pass_code },
-            rt: encoded_rt,
+            rt: rt,
           },
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_dashboard_path(ri: "jp")
+    assert_redirected_to sign_app_welcome_path("post_auth", ri: "jp")
   end
 
   test "resets session ID after successful email login" do

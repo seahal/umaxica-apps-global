@@ -84,7 +84,7 @@ module Authentication
 
     def build_auth_preference_snapshot(resource)
       pref = resolved_current_preference(resource) if respond_to?(:resolved_current_preference, true)
-      pref ||= Actor.preference
+      pref ||= Actor.preferences
       return unless pref && !pref.null?
 
       {
@@ -121,7 +121,9 @@ module Authentication
         value: new_access_token,
         expires: access_expires_at,
       )
-      Actor.preference = resolved_current_preference(resource) if respond_to?(:resolved_current_preference, true)
+      Actor.install_context!(preferences: resolved_current_preference(resource)) if respond_to?(
+        :resolved_current_preference, true,
+      )
     end
 
     def access_token_expires_at_for(token_record, now: Time.current)

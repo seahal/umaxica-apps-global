@@ -90,7 +90,7 @@ module Sign
         record&.visitor
       end
 
-      def actor_verification_path(attrs)
+      def actor_verification_path(attrs = {})
         sign_com_verification_path(attrs)
       end
 

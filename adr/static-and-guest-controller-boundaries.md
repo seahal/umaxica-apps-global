@@ -1,6 +1,13 @@
 # ADR: Open / Bare / Private / Guest Controller Boundaries
 
-**Status:** Accepted (2026-05-18)
+**Status:** Deprecated (2026-05-24)
+
+This ADR is superseded for implementation purposes by
+`adr/two-base-authentication-mode-boundaries.md`. The current direction is to stop using
+`OpenController`, `PrivateController`, and `GuestController` inheritance as the request access
+contract. The semantic controller-base target is `BareController` plus each surface-local
+`ApplicationController`; authentication classification is explicit controller/action metadata and
+policy, not four-way controller inheritance.
 
 ## Context
 

@@ -30,6 +30,9 @@ module Sign
         before_action only: %i(new create options verification) do
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
+        before_action only: %i(edit update destroy) do
+          require_step_up!(scope: verification_scope)
+        end
         before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_configuration_passkey_turnstile!, only: %i(options update destroy)
 
@@ -89,10 +92,20 @@ module Sign
             options: creation_options,
           }, status: :ok
         rescue Sign::Webauthn::OriginValidationError => e
-          Rails.logger.error(LogEvent.format("sign.webauthn.registration.origin_validation_failed", message: e.message, exception: e))
+          Rails.logger.error(
+            LogEvent.format(
+              "sign.webauthn.registration.origin_validation_failed", message: e.message,
+                                                                     exception: e,
+            ),
+          )
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
         rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
-          Rails.logger.error(LogEvent.format("sign.webauthn.registration.options_failed", message: e.message, exception: e))
+          Rails.logger.error(
+            LogEvent.format(
+              "sign.webauthn.registration.options_failed", message: e.message,
+                                                           exception: e,
+            ),
+          )
           render json: { error: I18n.t("errors.webauthn.options_failed") }, status: :unprocessable_content
         end
 
@@ -131,7 +144,12 @@ module Sign
           Rails.logger.warn(LogEvent.format("sign.webauthn.registration.challenge_error", message: e.message))
           render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
         rescue Sign::Webauthn::ChallengePurposeMismatchError => e
-          Rails.logger.warn(LogEvent.format("sign.webauthn.registration.challenge_purpose_mismatch", message: e.message))
+          Rails.logger.warn(
+            LogEvent.format(
+              "sign.webauthn.registration.challenge_purpose_mismatch",
+              message: e.message,
+            ),
+          )
           render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
         rescue WebAuthn::Error => e
           Rails.logger.warn(LogEvent.format("sign.webauthn.registration.failed", message: e.message))

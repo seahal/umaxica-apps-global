@@ -27,10 +27,10 @@ class CoverageReloadTest < ActiveSupport::TestCase
     assert_not SessionCookieConfig.partitioned?(rails_env: ActiveSupport::EnvironmentInquirer.new("test"))
     assert_not SessionCookieConfig.force_secure?(id_service_host: "localhost", rails_env: ActiveSupport::EnvironmentInquirer.new("development"))
 
-    Actor.preference = Actor::Preference::NULL
+    Actor.install_context!(preferences: Actor::Preference::NULL)
 
-    assert AnalyticsConsentGuard.permit?("auth.login.success", preference: Actor.preference)
-    assert_not AnalyticsConsentGuard.permit?("product.page_view", preference: Actor.preference)
+    assert AnalyticsConsentGuard.permit?("auth.login.success", preference: Actor.preferences)
+    assert_not AnalyticsConsentGuard.permit?("product.page_view", preference: Actor.preferences)
 
     reporter_class =
       Class.new do
@@ -40,14 +40,14 @@ class CoverageReloadTest < ActiveSupport::TestCase
       end
     reporter_class.prepend(AnalyticsConsentGuard::EventReporterPatch)
 
-    Actor.stub(:preference, Actor::Preference::NULL) do
+    Actor.stub(:preferences, Actor::Preference::NULL) do
       Rails.logger.stub(:debug, nil) do
         assert_nil reporter_class.new.notify("product.page_view", path: "/")
       end
     end
 
     Actor.stub(
-      :preference,
+      :preferences,
       Actor::Preference.new(
         cookie: Actor::Preference::Cookie.new(
           performant: true, functional: true, targetable: false,

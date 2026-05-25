@@ -96,13 +96,15 @@ module Authentication
     def token_record_for_session_identifier(session_identifier)
       check_logic =
         lambda do
-          usable_tokens =
+          base_scope =
             if @token_class.respond_to?(:currently_usable_at)
               @token_class.currently_usable_at
             else
               @token_class.where(nil)
             end
-          if token_column?("device_session_id") && (device_session = device_session_for(session_identifier))
+          usable_tokens = base_scope.includes(:device_session)
+          device_session = token_column?("device_session_id") ? device_session_for(session_identifier) : nil
+          if device_session
             token = usable_tokens.where(device_session_id: device_session.id).order(created_at: :desc).first
             return token if token
           end

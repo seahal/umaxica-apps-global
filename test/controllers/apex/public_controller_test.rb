@@ -54,13 +54,13 @@ class ApexPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "no Actor state leaks into response" do
     host! ENV["APEX_SERVICE_URL"]
-    original_authentication = Actor.authentication
+    original_authentication = Actor.authn
 
     get "/health"
 
     assert_response :success
 
-    assert_equal original_authentication, Actor.authentication
+    assert_equal original_authentication, Actor.authn
   end
 
   test "POST without CSRF token returns 422" do
@@ -95,13 +95,13 @@ class ApexPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "no preference state leaks on public endpoints" do
     host! ENV["APEX_SERVICE_URL"]
-    original_preference = Actor.preference
+    original_preference = Actor.preferences
 
     get "/health"
 
     assert_response :success
 
-    assert_equal original_preference, Actor.preference
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal original_preference, Actor.preferences
+    assert_equal Actor::Preference::NULL, Actor.preferences
   end
 end

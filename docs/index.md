@@ -7,13 +7,13 @@ Repository documents are separated by purpose.
 - `plans/` contains future work, proposals, drafts, migration plans, and backlog notes.
 - `adr/` contains accepted architecture and design decisions, including rationale and tradeoffs.
 - `notes/` contains non-authoritative ADR-adjacent notes and implementation handoff notes.
-- `memo/` contains exploratory observations and rough analysis that do not affect implementation.
+- `memos/` contains exploratory observations and rough analysis that do not affect implementation.
 
 Rules:
 
 - Keep non-authoritative implementation notes out of `docs/`, `plans/`, and `adr/`; use `notes/`
   instead.
-- Keep exploratory notes that do not affect implementation in `memo/`.
+- Keep exploratory notes that do not affect implementation in `memos/`.
 - Keep future-facing material out of `docs/`.
 - Keep stable operational guidance out of `plans/`.
 - Record major accepted design decisions in `adr/`.
@@ -41,5 +41,9 @@ Current content-model references:
 - `docs/security/social-login-provider-scope.md`
 - `docs/security/session-reset-policy.md`
 - `docs/security/sign-withdrawal-and-membership.md`
+- `docs/dictionary/README.md`
+- `docs/dictionary/access-terms.md`
+- `docs/dictionary/alphabet.md`
+- `docs/dictionary/glossary.md`
 - `docs/reference/forbidden-rails-methods.md`
 - `docs/reference/ruby-static-analysis.md`

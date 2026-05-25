@@ -53,7 +53,13 @@ module Preference::Transport
 
     adopt_preference_for!(resource)
   rescue StandardError => e
-    Rails.logger.info(LogEvent.format("preference.restore_from_resource.error", error: e.class.name, message: e.message))
+    Rails.logger.info(
+      LogEvent.format(
+        "preference.restore_from_resource.error", error: e.class.name,
+                                                  message: e.message,
+      ),
+    )
+    nil
   end
 
   def reload_preference_for_token!(preference)

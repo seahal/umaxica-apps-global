@@ -18,22 +18,22 @@ let cookieReadValue = "";
 let cookieWritten = [];
 
 const classListMock = {
-  _store: new Set(),
+  store: new Set(),
   add(...cls) {
-    cls.forEach((c) => this._store.add(c));
+    cls.forEach((c) => this.store.add(c));
   },
   remove(...cls) {
-    cls.forEach((c) => this._store.delete(c));
+    cls.forEach((c) => this.store.delete(c));
   },
   toggle(cls, force) {
     if (force) {
-      this._store.add(cls);
+      this.store.add(cls);
     } else {
-      this._store.delete(cls);
+      this.store.delete(cls);
     }
   },
   has(cls) {
-    return this._store.has(cls);
+    return this.store.has(cls);
   },
 };
 
@@ -61,7 +61,8 @@ function makeController() {
 beforeEach(() => {
   cookieReadValue = "";
   cookieWritten = [];
-  classListMock._store = new Set();
+  classListMock.store = new Set();
+  documentMock.documentElement.dataset = {};
   windowMock.matchMedia.mockReturnValue({ matches: false, addEventListener: vi.fn() });
   documentMock.getElementById.mockReturnValue(null);
   documentMock.querySelector.mockReturnValue(null);
@@ -292,5 +293,143 @@ describe("applyThemeFromCookie (統合テスト)", () => {
 
     controller.select({ target: { value: "system" } });
     expect(matchMediaMock).toHaveBeenCalledWith("(prefers-color-scheme: dark)");
+  });
+
+  test("システムテーマの change イベントで dark クラスが切り替わる", () => {
+    let changeCallback = null;
+    const matchMediaResult = {
+      matches: false,
+      addEventListener: vi.fn((event, cb) => {
+        if (event === "change") changeCallback = cb;
+      }),
+    };
+    windowMock.matchMedia = vi.fn(() => matchMediaResult);
+    cookieReadValue = "ct=sy";
+    const controller = makeController();
+    controller.select({ target: { value: "system" } });
+    expect(changeCallback).not.toBeNull();
+
+    matchMediaResult.matches = true;
+    changeCallback();
+    expect(classListMock.has("dark")).toBe(true);
+
+    matchMediaResult.matches = false;
+    changeCallback();
+    expect(classListMock.has("dark")).toBe(false);
+  });
+});
+
+// ──────────────────────────────────────────────
+// fetchAndSyncTheme
+// ──────────────────────────────────────────────
+
+describe("fetchAndSyncTheme", () => {
+  test("API からテーマを取得して適用する", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ theme: "dr" }) }),
+    );
+
+    const controller = makeController();
+    const syncSpy = vi.spyOn(controller, "syncRadioFromThemeCode");
+    const applySpy = vi.spyOn(controller, "applyThemeFromCode");
+
+    await controller.fetchAndSyncTheme();
+
+    expect(syncSpy).toHaveBeenCalledWith("dr");
+    expect(applySpy).toHaveBeenCalledWith("dr");
+  });
+
+  test("API エラー時に syncRadio と applyThemeFromCookie にフォールバックする", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+    cookieReadValue = "ct=li";
+    const controller = makeController();
+    const syncSpy = vi.spyOn(controller, "syncRadio");
+
+    await controller.fetchAndSyncTheme();
+
+    expect(syncSpy).toHaveBeenCalled();
+    expect(documentMock.documentElement.dataset.theme).toBe("light");
+  });
+
+  test("fetch 例外時に syncRadio と applyThemeFromCookie にフォールバックする", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+
+    cookieReadValue = "ct=dr";
+    const controller = makeController();
+    const syncSpy = vi.spyOn(controller, "syncRadio");
+
+    await controller.fetchAndSyncTheme();
+
+    expect(syncSpy).toHaveBeenCalled();
+    expect(documentMock.documentElement.dataset.theme).toBe("dark");
+  });
+});
+
+// ──────────────────────────────────────────────
+// syncRadioFromThemeCode
+// ──────────────────────────────────────────────
+
+describe("syncRadioFromThemeCode", () => {
+  test('themeCode "dr" → radio[value="dark"] をチェックする', () => {
+    const radio = { checked: false };
+    const controller = makeController();
+    controller.element.querySelector.mockReturnValue(radio);
+    controller.syncRadioFromThemeCode("dr");
+    expect(controller.element.querySelector).toHaveBeenCalledWith('input[value="dark"]');
+    expect(radio.checked).toBe(true);
+  });
+
+  test("不明な themeCode は system にフォールバックする", () => {
+    const radio = { checked: false };
+    const controller = makeController();
+    controller.element.querySelector.mockReturnValue(radio);
+    controller.syncRadioFromThemeCode("unknown");
+    expect(controller.element.querySelector).toHaveBeenCalledWith('input[value="system"]');
+    expect(radio.checked).toBe(true);
+  });
+
+  test("対応する radio がない場合はエラーにならない", () => {
+    const controller = makeController();
+    controller.element.querySelector.mockReturnValue(null);
+    expect(() => controller.syncRadioFromThemeCode("li")).not.toThrow();
+  });
+});
+
+// ──────────────────────────────────────────────
+// applyThemeFromCode
+// ──────────────────────────────────────────────
+
+describe("applyThemeFromCode", () => {
+  test('themeCode "li" → light テーマを適用する', () => {
+    const controller = makeController();
+    controller.applyThemeFromCode("li");
+    expect(documentMock.documentElement.dataset.theme).toBe("light");
+    expect(classListMock.has("theme-light")).toBe(true);
+  });
+
+  test('themeCode "sy" → system テーマを適用する', () => {
+    windowMock.matchMedia.mockReturnValue({ matches: false, addEventListener: vi.fn() });
+    const controller = makeController();
+    controller.applyThemeFromCode("sy");
+    expect(documentMock.documentElement.dataset.theme).toBe("system");
+    expect(classListMock.has("theme-system")).toBe(true);
+  });
+
+  test("不明な themeCode は system にフォールバックする", () => {
+    windowMock.matchMedia.mockReturnValue({ matches: false, addEventListener: vi.fn() });
+    const controller = makeController();
+    controller.applyThemeFromCode("unknown");
+    expect(documentMock.documentElement.dataset.theme).toBe("system");
+  });
+
+  test("js-theme-cookie-value 要素がある場合、テーマ値を設定する", () => {
+    const valueEl = { textContent: "" };
+    documentMock.querySelector.mockReturnValue(valueEl);
+    const controller = makeController();
+    controller.applyThemeFromCode("dr");
+    expect(documentMock.querySelector).toHaveBeenCalledWith("#js-theme-cookie-value");
+    expect(valueEl.textContent).toBe("dark");
   });
 });

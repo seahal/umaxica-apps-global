@@ -4,6 +4,8 @@
 require "test_helper"
 
 class ClientTokenPolicyTest < ActiveSupport::TestCase
+  fixtures_none!
+
   def setup
     @user = nil
     @record = nil

@@ -15,18 +15,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     ClientSocialGoogleStatus.find_or_create_by!(id: ClientSocialGoogleStatus::REVOKED)
   end
 
-  test "extract_uid_from_id_token rejects disallowed algorithms" do
-    # alg: none forgery attempt
-    header = Base64.urlsafe_encode64({ alg: "none", typ: "JWT" }.to_json).gsub("=", "")
-    id_token = "#{header}.payload.signature"
-    auth_hash = { "provider" => "apple", "credentials" => { "id_token" => id_token } }.with_indifferent_access
-
-    service = SocialAuthService.new(auth_hash: auth_hash, current_client: nil, intent: "login")
-
-    assert_nil service.send(:extract_uid_from_id_token)
-  end
-
-  test "extract_uid falls back to raw_info id_info and signed id token" do
+  test "extract_uid falls back to raw_info then id_info" do
     raw_info_service = SocialAuthService.new(
       auth_hash: { "provider" => "apple", "extra" => { "raw_info" => { "sub" => "raw-sub" } } },
       current_client: nil,
@@ -37,17 +26,26 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       current_client: nil,
       intent: "login",
     )
+
+    assert_equal "raw-sub", raw_info_service.send(:extract_uid)
+    assert_equal "id-info-sub", id_info_service.send(:extract_uid)
+  end
+
+  test "extract_uid does not fall back to unsigned id_token" do
+    # The strategy is responsible for verifying the id_token signature and
+    # populating raw_info/id_info. We must never trust an unsigned id_token
+    # to derive uid because a forged token would silently bind to any sub.
     header = Base64.urlsafe_encode64({ alg: "RS256", typ: "JWT" }.to_json, padding: false)
-    payload = Base64.urlsafe_encode64({ sub: "token-sub" }.to_json, padding: false)
-    token_service = SocialAuthService.new(
+    payload = Base64.urlsafe_encode64({ sub: "forged-sub" }.to_json, padding: false)
+    service = SocialAuthService.new(
       auth_hash: { "provider" => "apple", "credentials" => { "id_token" => "#{header}.#{payload}.sig" } },
       current_client: nil,
       intent: "login",
     )
 
-    assert_equal "raw-sub", raw_info_service.send(:extract_uid)
-    assert_equal "id-info-sub", id_info_service.send(:extract_uid)
-    assert_equal "token-sub", token_service.send(:extract_uid)
+    assert_raises(SocialAuth::ProviderError) do
+      service.send(:extract_uid)
+    end
   end
 
   test "handle_login attaches orphaned identity to a new user" do

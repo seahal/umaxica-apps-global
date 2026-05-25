@@ -900,7 +900,7 @@ module Preference
     end
 
     test "set color theme uses actor preference before jwt payload and cookie" do
-      Actor.preference = Actor::Preference.new(theme: "dr")
+      Actor.install_context!(preferences: Actor::Preference.new(theme: "dr"))
       @controller.send(:cookies)[Preference::Base::THEME_COOKIE_KEY] = "li"
       @controller.define_singleton_method(:preference_payload_value) { |_| "sy" }
 
@@ -910,7 +910,7 @@ module Preference
     end
 
     test "set color theme keeps explicit request parameter before actor preference" do
-      Actor.preference = Actor::Preference.new(theme: "dr")
+      Actor.install_context!(preferences: Actor::Preference.new(theme: "dr"))
       @controller.test_params = { Preference::IoKeys::Params::CT => "li" }
 
       @controller.send(:set_color_theme)

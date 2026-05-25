@@ -35,7 +35,6 @@ plugins:
   - rubocop-i18n
   - rubocop-rubycw
   - rubocop-rails
-  - rubocop-sorbet
 
 # 全Copに適用される設定
 AllCops:
@@ -1333,24 +1332,6 @@ Style/RedundantSelf:
 Style/ModuleFunction:
   Enabled: true
   EnforcedStyle: module_function
-
-# ---------- Sorbet: 型注釈の強制 ----------
-
-# すべてのファイルに有効な Sorbet sigil を要求
-# typed: ignore / false / true / strict / strong のいずれかが必要
-Sorbet/ValidSigil:
-  Enabled: true
-
-# T.unsafe() の使用を禁止（型安全性の抜け穴）
-Sorbet/ForbidTUnsafe:
-  Enabled: true
-  Exclude:
-    - "config/initializers/**/*"
-    - "test/**/*"
-
-# シグネチャのビルド順を強制（sig { ... } の記述順）
-Sorbet/SignatureBuildOrder:
-  Enabled: true
 
 # ---------- Metrics: より厳格な上限 ----------
 

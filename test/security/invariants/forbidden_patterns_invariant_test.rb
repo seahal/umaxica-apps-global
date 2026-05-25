@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable I18n/RailsI18n/DecorateString
+
 require "test_helper"
 
 module Security
@@ -87,7 +89,10 @@ module Security
         {
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/concerns/oidc/sso_initiator.rb",
-          line: /redirect_to\(sign_in_url_with_return\(encoded_return_to\(request\.original_url\)\), allow_other_host: true\)/,
+          line: Regexp.new(
+            'redirect_to\(sign_in_url_with_return\(encoded_return_to\(request\.original_url\)\), ' \
+            'allow_other_host: true\)',
+          ),
           reason: "Cross-surface sign-in redirect uses encoded same-request return URL through SSO initiator.",
         },
         {
@@ -101,6 +106,12 @@ module Security
           path: "app/controllers/concerns/jump/to_redirector.rb",
           line: /redirect_to\(destination_url, allow_other_host: true\)/,
           reason: "Jump redirector is the reviewed external redirect boundary.",
+        },
+        {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/concerns/authentication/redirects.rb",
+          line: /redirect_to\(destination, allow_other_host: true\)/,
+          reason: "Redirects to validated return targets after URI parsing.",
         },
       ].freeze
 
@@ -140,16 +151,20 @@ module Security
             next unless relative_path.match?(SECURITY_LOGGER_PATH_PATTERN)
 
             content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
-            content.each_line.with_index(1).filter_map do |line, line_number|
+            lines = content.lines
+            lines.each_with_index.filter_map do |line, index|
               next unless line.match?(/\bRails\.logger\.error\b/)
-              next if line.include?("LogEvent.format(")
+              next if lines[index, 4].join.include?("LogEvent.format(")
               next if allowlisted?(LOGGER_ALLOWLIST, nil, relative_path, line)
 
+              line_number = index + 1
               "#{relative_path}:#{line_number}: direct Rails.logger.error: #{line.strip}"
             end
           end.flatten
 
-        assert_empty offenders, "Use Rails.logger.error(LogEvent.format(...)) or a sanitized audit sink instead:\n#{offenders.join("\n")}"
+        assert_empty offenders,
+                     "Use Rails.logger.error(LogEvent.format(...)) or a sanitized audit sink instead:\n" \
+                     "#{offenders.join("\n")}"
       end
 
       private

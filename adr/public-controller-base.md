@@ -1,11 +1,10 @@
 # ADR: PublicController Base for Unauthenticated Endpoints
 
-**Status:** Superseded by `adr/static-and-guest-controller-boundaries.md` (2026-05-18)
+**Status:** Historical (superseded; 2026-05-24)
 
-> Current direction: use `BareController` for lightweight endpoints that do not implement
-> application authentication. This ADR remains historical context for why auth-free endpoints were
-> split away from heavy application controllers, but `PublicController` is not the current target
-> name for new or migrated code.
+> Current direction: `OpenController` and each surface-local `ApplicationController` inherit
+> directly from `ActionController::Base`; auth-free endpoint classification is explicit metadata,
+> not a `PublicController`/`BareController` inheritance contract.
 
 ## Context
 

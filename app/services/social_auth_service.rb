@@ -97,11 +97,13 @@ class SocialAuthService
       create_social_unlink_audit!(identity, provider)
       identity.destroy!
 
-      Rails.logger.info(LogEvent.format(
-        "social_auth.unlinked",
-        user_id: @current_client.id,
-        provider: provider,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "social_auth.unlinked",
+          user_id: @current_client.id,
+          provider: provider,
+        ),
+      )
     end
 
     { success: true, provider: provider }
@@ -137,14 +139,6 @@ class SocialAuthService
 
   def extract_uid
     SocialAuth::UidExtractor.call(auth_hash: @auth_hash)
-  end
-
-  # Extract uid (sub claim) from Apple's id_token by decoding JWT payload
-  # This is a fallback when omniauth-apple doesn't populate uid correctly
-  def extract_uid_from_id_token
-    SocialAuth::UidExtractor.new(auth_hash: @auth_hash).send(:uid_from_id_token)
-  rescue SocialAuth::ProviderError
-    nil
   end
 
   # Intent: login (or nil for backward compatibility)

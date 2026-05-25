@@ -46,7 +46,7 @@ module CloudflareTurnstile
     def assert_test_override_allowed!
       return if test_override_allowed?
 
-      raise "CloudflareTurnstile validation override is allowed only in test"
+      raise RuntimeError, "CloudflareTurnstile validation override is allowed only in test"
     end
   end
 

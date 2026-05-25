@@ -17,14 +17,14 @@ class JumpPublicControllerTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
 
   test "health endpoint returns successfully" do
-    host! ENV["JUMP_SERVICE_URL"]
+    host! ENV.fetch("JUMP_SERVICE_URL", "jump.app.localhost")
     get "/health"
 
     assert_response :success
   end
 
   test "rate limit returns 429 when exceeded" do
-    host! ENV["JUMP_SERVICE_URL"]
+    host! ENV.fetch("JUMP_SERVICE_URL", "jump.app.localhost")
 
     # Default limit is 300/min
     300.times do
@@ -40,18 +40,18 @@ class JumpPublicControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "no Actor state leaks into response" do
-    original_authentication = Actor.authentication
+    original_authentication = Actor.authn
 
-    host! ENV["JUMP_SERVICE_URL"]
+    host! ENV.fetch("JUMP_SERVICE_URL", "jump.app.localhost")
     get "/health"
 
     assert_response :success
 
-    assert_equal original_authentication, Actor.authentication
+    assert_equal original_authentication, Actor.authn
   end
 
   test "Actor facade is not populated on public endpoints" do
-    host! ENV["JUMP_SERVICE_URL"]
+    host! ENV.fetch("JUMP_SERVICE_URL", "jump.app.localhost")
 
     get "/health"
 
@@ -65,7 +65,7 @@ class JumpPublicControllerTest < ActionDispatch::IntegrationTest
       get("/test_csrf", to: "jump_test_csrf#show")
       post("/test_csrf", to: "jump_test_csrf#create")
     end
-    host!(ENV["JUMP_SERVICE_URL"])
+    host!(ENV.fetch("JUMP_SERVICE_URL", "jump.app.localhost"))
     with_forgery_protection do
       post("/test_csrf")
     end
@@ -91,14 +91,14 @@ class JumpPublicControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "no preference state leaks on public endpoints" do
-    host! ENV["JUMP_SERVICE_URL"]
-    original_preference = Actor.preference
+    host! ENV.fetch("JUMP_SERVICE_URL", "jump.app.localhost")
+    original_preference = Actor.preferences
 
     get "/health"
 
     assert_response :success
 
-    assert_equal original_preference, Actor.preference
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal original_preference, Actor.preferences
+    assert_equal Actor::Preference::NULL, Actor.preferences
   end
 end

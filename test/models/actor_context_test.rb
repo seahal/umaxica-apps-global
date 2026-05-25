@@ -4,6 +4,8 @@
 require "test_helper"
 
 class ActorContextTest < ActiveSupport::TestCase
+  fixtures_none!
+
   setup do
     Actor.reset
   end
@@ -15,7 +17,7 @@ class ActorContextTest < ActiveSupport::TestCase
   test "defaults for unauthenticated state" do
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
     assert_predicate Actor, :unauthenticated?
     assert_not Actor.authenticated?
     assert_not Actor.signed_in?
@@ -23,7 +25,7 @@ class ActorContextTest < ActiveSupport::TestCase
     assert_nil Actor.client
     assert_nil Actor.operator
     assert_nil Actor.visitor
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
   end
 
@@ -51,11 +53,11 @@ class ActorContextTest < ActiveSupport::TestCase
   end
 
   test "authentication null object is safe for guests" do
-    assert_predicate Actor.authentication, :null?
-    assert_nil Actor.authentication.login_public_id
-    assert_equal [], Actor.authentication.amr
-    assert_not Actor.authentication.restricted?
-    assert_not Actor.authentication.verified?
+    assert_predicate Actor.authn, :null?
+    assert_nil Actor.authn.login_public_id
+    assert_equal [], Actor.authn.amr
+    assert_not Actor.authn.restricted?
+    assert_not Actor.authn.verified?
   end
 
   test "configuration null object is safe for guests" do
@@ -63,6 +65,20 @@ class ActorContextTest < ActiveSupport::TestCase
     assert_predicate Actor.configuration.anything, :blank?
     assert_not Actor.configuration.anything.enabled?
     assert_equal "", Actor.configuration.anything.deeply.nested.to_s
+  end
+
+  test "configuration is an immutable request context box" do
+    configuration = Actor::Configuration.new(feature: true)
+
+    assert_equal true, configuration.feature
+    assert_equal({ feature: true }, configuration.to_h)
+    assert_predicate configuration, :frozen?
+
+    updated = configuration.with(region: "jp")
+
+    assert_equal({ feature: true }, configuration.to_h)
+    assert_equal({ feature: true, region: "jp" }, updated.to_h)
+    assert_not_same configuration, updated
   end
 
   test "setting staff actor" do
@@ -90,13 +106,13 @@ class ActorContextTest < ActiveSupport::TestCase
   end
 
   test "resets preference to NULL" do
-    Actor.preference = Actor::Preference.new(language: "en")
+    Actor.install_context!(preferences: Actor::Preference.new(language: "en"))
 
-    assert_equal "en", Actor.preference.language
+    assert_equal "en", Actor.preferences.language
 
     Actor.reset
 
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
   end
 
   test "preference null object behavior" do

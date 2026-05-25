@@ -4,28 +4,32 @@
 require "test_helper"
 
 class ActorAttributesTest < ActiveSupport::TestCase
+  fixtures_none!
+
   setup { Actor.reset }
   teardown { Actor.reset }
 
   test "reset clears all attributes" do
     Actor.actor = "some_user"
     Actor.actor_type = :client
-    Actor.authentication = Actor::Authentication.new(
-      login_public_id: "session_123",
-      access_claims: { "sub" => 1 },
+    Actor.install_context!(
+      authn: Actor::Authentication.new(
+        login_public_id: "session_123",
+        access_claims: { "sub" => 1 },
+      ),
     )
     Actor.configuration = Actor::Configuration.new(foo: "bar")
     Actor.tld = :app
-    Actor.preference = Actor::Preference.new(language: "en")
+    Actor.install_context!(preferences: Actor::Preference.new(language: "en"))
 
     Actor.reset
 
     assert_same Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
     assert_nil Actor.tld
-    assert_predicate Actor.preference, :null?
+    assert_predicate Actor.preferences, :null?
   end
 
   test "user? and operator? reflect actor_type" do
@@ -60,9 +64,9 @@ class ActorAttributesTest < ActiveSupport::TestCase
   end
 
   test "preference defaults to NULL" do
-    assert_equal Actor::Preference::NULL, Actor.preference
-    assert_predicate Actor.preference, :null?
-    assert_equal "ja", Actor.preference.language # Safe default
+    assert_equal Actor::Preference::NULL, Actor.preferences
+    assert_predicate Actor.preferences, :null?
+    assert_equal "ja", Actor.preferences.language # Safe default
   end
 
   test "tld can be set" do
@@ -78,12 +82,14 @@ class ActorAttributesTest < ActiveSupport::TestCase
   end
 
   test "authentication stores login id and access claims" do
-    Actor.authentication = Actor::Authentication.new(
-      login_public_id: "session_public_id",
-      access_claims: { "sub" => 42, "act" => "client" },
+    Actor.install_context!(
+      authn: Actor::Authentication.new(
+        login_public_id: "session_public_id",
+        access_claims: { "sub" => 42, "act" => "client" },
+      ),
     )
 
-    assert_equal "session_public_id", Actor.authentication.login_public_id
-    assert_equal({ "sub" => 42, "act" => "client" }, Actor.authentication.access_claims)
+    assert_equal "session_public_id", Actor.authn.login_public_id
+    assert_equal({ "sub" => 42, "act" => "client" }, Actor.authn.access_claims)
   end
 end

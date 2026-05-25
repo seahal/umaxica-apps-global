@@ -15,42 +15,42 @@ def ensure_reference_rows(model_class, ids)
 end
 
 # Reference tables with ReferenceRecord concern
-ensure_reference_rows(UserVisibility, UserVisibility::DEFAULTS)
-ensure_reference_rows(UserStatus, UserStatus::DEFAULTS)
-ensure_reference_rows(UserMultiFactor, UserMultiFactor::DEFAULTS)
-ensure_reference_rows(UserMultiFactorStatus, UserMultiFactorStatus::DEFAULTS)
-ensure_reference_rows(UserEmailStatus, UserEmailStatus::DEFAULTS)
-ensure_reference_rows(UserTelephoneStatus, UserTelephoneStatus::DEFAULTS)
-ensure_reference_rows(UserOneTimePasswordStatus, UserOneTimePasswordStatus::DEFAULTS)
-ensure_reference_rows(UserSecretStatus, [UserSecretStatus::ACTIVE, UserSecretStatus::USED])
-ensure_reference_rows(UserSecretKind, [UserSecretKind::PERMANENT])
+ensure_reference_rows(ClientVisibility, ClientVisibility::DEFAULTS)
+ensure_reference_rows(ClientStatus, ClientStatus::DEFAULTS)
+ensure_reference_rows(ClientMultiFactor, ClientMultiFactor::DEFAULTS)
+ensure_reference_rows(ClientMultiFactorStatus, ClientMultiFactorStatus::DEFAULTS)
+ensure_reference_rows(ClientEmailStatus, ClientEmailStatus::DEFAULTS)
+ensure_reference_rows(ClientTelephoneStatus, ClientTelephoneStatus::DEFAULTS)
+ensure_reference_rows(ClientOneTimePasswordStatus, ClientOneTimePasswordStatus::DEFAULTS)
+ensure_reference_rows(ClientSecretStatus, [ClientSecretStatus::ACTIVE, ClientSecretStatus::USED])
+ensure_reference_rows(ClientSecretKind, [ClientSecretKind::PERMANENT])
 ensure_reference_rows(VisitorStatus, VisitorStatus::DEFAULTS)
 ensure_reference_rows(VisitorVisibility, VisitorVisibility::DEFAULTS)
 ensure_reference_rows(VisitorMultiFactor, VisitorMultiFactor::DEFAULTS)
 ensure_reference_rows(VisitorMultiFactorStatus, VisitorMultiFactorStatus::DEFAULTS)
 
 ensure_reference_rows(OperatorVisibility, [OperatorVisibility::STAFF])
-ensure_reference_rows(StaffStatus, [StaffStatus::ACTIVE])
+ensure_reference_rows(OperatorIdentityStatus, [OperatorIdentityStatus::ACTIVE])
 ensure_reference_rows(OperatorMultiFactor, OperatorMultiFactor::DEFAULTS)
 ensure_reference_rows(OperatorMultiFactorStatus, OperatorMultiFactorStatus::DEFAULTS)
-ensure_reference_rows(StaffEmailStatus, [StaffEmailStatus::VERIFIED])
+ensure_reference_rows(OperatorEmailStatus, [OperatorEmailStatus::VERIFIED])
 ensure_reference_rows(
-  StaffSecretStatus,
-  [StaffSecretStatus::ACTIVE, StaffSecretStatus::DELETED, StaffSecretStatus::EXPIRED,
-   StaffSecretStatus::REVOKED, StaffSecretStatus::USED,],
+  OperatorSecretStatus,
+  [OperatorSecretStatus::ACTIVE, OperatorSecretStatus::DELETED, OperatorSecretStatus::EXPIRED,
+   OperatorSecretStatus::REVOKED, OperatorSecretStatus::USED,],
 )
-ensure_reference_rows(StaffSecretKind, [StaffSecretKind::PERMANENT])
+ensure_reference_rows(OperatorSecretKind, [OperatorSecretKind::PERMANENT])
 
 # Ensure reference rows using ensure_defaults! method
-UserVisibility.ensure_defaults!
-UserStatus.ensure_defaults!
-UserMultiFactor.ensure_defaults!
-UserMultiFactorStatus.ensure_defaults!
-UserEmailStatus.ensure_defaults!
-UserTelephoneStatus.ensure_defaults!
-UserOneTimePasswordStatus.ensure_defaults!
-UserSecretStatus.ensure_defaults!
-UserSecretKind.ensure_defaults!
+ClientVisibility.ensure_defaults!
+ClientStatus.ensure_defaults!
+ClientMultiFactor.ensure_defaults!
+ClientMultiFactorStatus.ensure_defaults!
+ClientEmailStatus.ensure_defaults!
+ClientTelephoneStatus.ensure_defaults!
+ClientOneTimePasswordStatus.ensure_defaults!
+ClientSecretStatus.ensure_defaults!
+ClientSecretKind.ensure_defaults!
 
 VisitorStatus.ensure_defaults!
 VisitorVisibility.ensure_defaults!
@@ -58,40 +58,39 @@ VisitorMultiFactor.ensure_defaults!
 VisitorMultiFactorStatus.ensure_defaults!
 
 OperatorVisibility.ensure_defaults!
-StaffStatus.ensure_defaults!
+OperatorIdentityStatus.ensure_defaults!
 OperatorMultiFactor.ensure_defaults!
 OperatorMultiFactorStatus.ensure_defaults!
-StaffEmailStatus.ensure_defaults!
-StaffSecretStatus.ensure_defaults!
-StaffSecretKind.ensure_defaults!
+OperatorEmailStatus.ensure_defaults!
+OperatorSecretKind.ensure_defaults!
 
-user = User.find_or_initialize_by(public_id: "sample_user")
-user.status_id = UserStatus::ACTIVE
+user = Client.find_or_initialize_by(public_id: "sample_user")
+user.status_id = ClientStatus::ACTIVE
 user.save!
 
-user_email = user.user_emails.find_or_initialize_by(address: "sample-user@example.test")
-user_email.user_email_status_id = UserEmailStatus::VERIFIED
+user_email = user.client_emails.find_or_initialize_by(address: "sample-user@example.test")
+user_email.user_email_status_id = ClientEmailStatus::VERIFIED
 user_email.confirm_policy = true
 user_email.save!
 
-user_secret = user.user_secrets.find_or_initialize_by(name: "sample-user-secret")
-user_secret.user_secret_kind_id = UserSecretKind::PERMANENT
-user_secret.user_identity_secret_status_id = UserSecretStatus::ACTIVE
+user_secret = user.client_secrets.find_or_initialize_by(name: "sample-user-secret")
+user_secret.user_secret_kind_id = ClientSecretKind::PERMANENT
+user_secret.user_secret_status_id = ClientSecretStatus::ACTIVE
 user_secret.uses_remaining = 10
 user_secret.password = sample_user_secret
 user_secret.save!
 
-staff = Staff.find_or_initialize_by(public_id: sample_staff_public_id)
-staff.status_id = StaffStatus::ACTIVE
+staff = Operator.find_or_initialize_by(public_id: sample_staff_public_id)
+staff.status_id = OperatorIdentityStatus::ACTIVE
 staff.save!
 
-staff_email = StaffEmail.find_or_initialize_by(address: sample_staff_email_address)
+staff_email = OperatorEmail.find_or_initialize_by(address: sample_staff_email_address)
 staff_email.staff = staff
-staff_email.staff_email_status_id = StaffEmailStatus::VERIFIED
+staff_email.staff_email_status_id = OperatorEmailStatus::VERIFIED
 staff_email.save!
 
-staff_secret = staff.staff_secrets.find_or_initialize_by(name: "sample-staff-secret")
-staff_secret.staff_secret_kind_id = StaffSecretKind::PERMANENT
-staff_secret.staff_identity_secret_status_id = StaffSecretStatus::ACTIVE
+staff_secret = staff.operator_secrets.find_or_initialize_by(name: "sample-staff-secret")
+staff_secret.staff_secret_kind_id = OperatorSecretKind::PERMANENT
+staff_secret.staff_secret_status_id = OperatorSecretStatus::ACTIVE
 staff_secret.password = sample_staff_secret
 staff_secret.save!

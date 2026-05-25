@@ -30,11 +30,13 @@ class ActorSupportIncludedDoTest < ActiveSupport::TestCase
   end
 
   test "set_current_context populates unauthenticated request context" do
-    Actor.authentication = Actor::Authentication.new(
-      login_public_id: "stale-session",
-      access_claims: { "sid" => "stale-session" },
+    Actor.install_context!(
+      authn: Actor::Authentication.new(
+        login_public_id: "stale-session",
+        access_claims: { "sid" => "stale-session" },
+      ),
     )
-    Actor.preference = Actor::Preference.new(language: "en")
+    Actor.install_context!(preferences: Actor::Preference.new(language: "en"))
     Actor.trace_id = "trace"
     Actor.span_id = "span"
 
@@ -44,9 +46,9 @@ class ActorSupportIncludedDoTest < ActiveSupport::TestCase
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
     assert_nil Actor.tld
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
     assert_nil Actor.trace_id
     assert_nil Actor.span_id
   ensure
@@ -60,9 +62,9 @@ class ActorSupportIncludedDoTest < ActiveSupport::TestCase
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
     assert_nil Actor.tld
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
   ensure
     Actor.reset
   end
@@ -71,21 +73,23 @@ class ActorSupportIncludedDoTest < ActiveSupport::TestCase
     Actor.actor = Client.new(id: 1)
     Actor.actor_type = :client
     Actor.tld = :app
-    Actor.authentication = Actor::Authentication.new(
-      login_public_id: "session-1",
-      access_claims: { "sid" => "session-1" },
+    Actor.install_context!(
+      authn: Actor::Authentication.new(
+        login_public_id: "session-1",
+        access_claims: { "sid" => "session-1" },
+      ),
     )
     Actor.configuration = Actor::Configuration.new(feature: true)
-    Actor.preference = Actor::Preference.new(language: "en")
+    Actor.install_context!(preferences: Actor::Preference.new(language: "en"))
 
     actor_support_controller.send(:_reset_current_state)
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
     assert_nil Actor.tld
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
   end
 
   test "with_actor_lifecycle clears Actor context after block" do
@@ -93,11 +97,11 @@ class ActorSupportIncludedDoTest < ActiveSupport::TestCase
 
     controller.send(:with_actor_lifecycle) do
       Actor.actor_type = :client
-      Actor.authentication = Actor::Authentication.new(login_public_id: "session-1")
+      Actor.install_context!(authn: Actor::Authentication.new(login_public_id: "session-1"))
     end
 
     assert_equal :unauthenticated, Actor.actor_type
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
   end
 
   test "with_actor_lifecycle clears Actor context after exception" do

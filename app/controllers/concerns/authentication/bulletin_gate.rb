@@ -87,7 +87,8 @@ module Authentication
       when Operator then resource.staff_bulletins
       else
         return resource.client_bulletins if resource.respond_to?(:client_bulletins)
-        return resource.staff_bulletins if resource.respond_to?(:staff_bulletins)
+
+        resource.staff_bulletins if resource.respond_to?(:staff_bulletins)
       end
     end
   end

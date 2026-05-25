@@ -8,7 +8,10 @@ module Outbound
         raise ArgumentError, "Phone number is required" if to.blank?
         raise ArgumentError, "Message is required" if body.blank?
 
-        Outbound::Result.accepted(channel: :sms)
+        Outbound::ProviderResponse.accepted(
+          provider: :test,
+          provider_reference: "test-provider-reference",
+        )
       end
     end
   end

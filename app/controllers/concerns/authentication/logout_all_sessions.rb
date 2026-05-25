@@ -47,14 +47,16 @@ module Authentication
       resource.session_version = resource.session_version.to_i + 1
       resource.save!
     rescue ActiveRecord::ActiveRecordError => e
-      Rails.logger.info(LogEvent.format(
-        "auth.logout_all_sessions.session_version_failed",
-        reason: reason,
-        resource_class: resource&.class&.name,
-        resource_id: resource&.id,
-        error_class: e.class.name,
-        error_message: e.message,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "auth.logout_all_sessions.session_version_failed",
+          reason: reason,
+          resource_class: resource&.class&.name,
+          resource_id: resource&.id,
+          error_class: e.class.name,
+          error_message: e.message,
+        ),
+      )
     end
 
     def each_token
@@ -93,16 +95,18 @@ module Authentication
       # (e.g. ConnectionNotEstablished). Surfaced under a batch-specific
       # event name so operators can distinguish "one token failed inside
       # a bulk revoke" from "the only session-revoke failed".
-      Rails.logger.info(LogEvent.format(
-        "auth.logout_all_sessions.token_failed",
-        reason: reason,
-        resource_class: resource&.class&.name,
-        resource_id: resource&.id,
-        token_class: token&.class&.name,
-        token_id: token&.try(:public_id),
-        error_class: e.class.name,
-        error_message: e.message,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "auth.logout_all_sessions.token_failed",
+          reason: reason,
+          resource_class: resource&.class&.name,
+          resource_id: resource&.id,
+          token_class: token&.class&.name,
+          token_id: token&.try(:public_id),
+          error_class: e.class.name,
+          error_message: e.message,
+        ),
+      )
       true
     end
   end

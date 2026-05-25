@@ -17,7 +17,6 @@ module Oidc
   module LogoutRequest
     PURPOSE = "oidc_logout_request"
     TTL = 2.minutes
-    ALLOWED_RI = %w(jp us).freeze
     JTI_BYTES = 16
     REPLAY_CACHE_PREFIX = "oidc:logout_request:consumed:"
     # Track consumed jtis slightly longer than the token TTL so a token
@@ -29,11 +28,15 @@ module Oidc
       # Replay tracking store. Defaults to Rails.cache (Solid Cache in
       # production). Tests may inject a real store because Rails.cache
       # is `:null_store` in the test environment.
+      # rubocop:disable ThreadSafety/ClassAndModuleAttributes
       attr_writer :replay_store
+      # rubocop:enable ThreadSafety/ClassAndModuleAttributes
 
+      # rubocop:disable ThreadSafety/ClassInstanceVariable
       def replay_store
         @replay_store ||= Rails.cache
       end
+      # rubocop:enable ThreadSafety/ClassInstanceVariable
 
       def issue(client_id:, ri:)
         verifier.generate(
@@ -73,8 +76,7 @@ module Oidc
       private
 
       def normalize_ri(value)
-        normalized = value.to_s.downcase
-        ALLOWED_RI.include?(normalized) ? normalized : "jp"
+        RequestContext::Contract.normalize_region(value)
       end
 
       def verifier
@@ -87,24 +89,28 @@ module Oidc
         # Fail closed: if the store is unreachable we treat the token as
         # already consumed rather than risk allowing replay. Operators
         # see the failure via application logs.
-        Rails.logger.info(LogEvent.format(
-          "oidc.logout_request.replay_store_unavailable",
-          op: "exist?",
-          error_class: e.class.name,
-          error_message: e.message,
-        ))
+        Rails.logger.info(
+          LogEvent.format(
+            "oidc.logout_request.replay_store_unavailable",
+            op: "exist?",
+            error_class: e.class.name,
+            error_message: e.message,
+          ),
+        )
         true
       end
 
       def consume_jti!(jti)
         replay_store.write(replay_cache_key(jti), true, expires_in: REPLAY_TRACKING_TTL)
       rescue StandardError => e
-        Rails.logger.info(LogEvent.format(
-          "oidc.logout_request.replay_store_unavailable",
-          op: "write",
-          error_class: e.class.name,
-          error_message: e.message,
-        ))
+        Rails.logger.info(
+          LogEvent.format(
+            "oidc.logout_request.replay_store_unavailable",
+            op: "write",
+            error_class: e.class.name,
+            error_message: e.message,
+          ),
+        )
         false
       end
 

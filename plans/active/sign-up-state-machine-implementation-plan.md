@@ -601,7 +601,7 @@ state remains `CHECKPOINT_PENDING` until all required items are clear.
 Sign-up implementation must keep these responsibilities separate:
 
 - the state machine owns flow progression;
-- `Actor.authentication` exposes normalized authentication facts for the current request;
+- `Actor.authn` exposes normalized authentication facts for the current request;
 - Action Policy owns authorization decisions;
 - controllers load context, invoke the state machine, call policy authorization, and render the
   result.
@@ -623,10 +623,10 @@ The state machine must not answer user authorization questions by itself. It may
 ownership facts, such as ticket id, pending actor id, pending contact id, surface, and current step,
 so Action Policy can use them.
 
-### `Actor.authentication` Responsibility
+### `Actor.authn` Responsibility
 
-`Actor.authentication` is the request-local authentication fact snapshot. It may expose facts useful
-to policy and controller code, such as:
+`Actor.authn` is the request-local authentication fact snapshot. It may expose facts useful to
+policy and controller code, such as:
 
 - surface;
 - current signed-in actor id when present;
@@ -659,7 +659,7 @@ Action Policy decides whether the current request may view or mutate a sign-up r
 
 Policies should consume:
 
-- `Actor.authentication` facts;
+- `Actor.authn` facts;
 - sign-up ticket ownership facts;
 - current step / participant facts exposed by the state machine;
 - surface-local actor/contact models.
@@ -783,7 +783,7 @@ def update
   result = SignUp::StateMachine.call(
     ticket: @sign_up_ticket,
     event: :clear_requirement,
-    actor_context: Actor.authentication,
+    actor_context: Actor.authn,
     payload: requirement_form.to_payload,
   )
 
@@ -794,7 +794,7 @@ end
 The exact method names can follow local controller style, but the order should remain:
 
 1. Load explicit sequence state.
-2. Build policy context from `Actor.authentication` and the ticket.
+2. Build policy context from `Actor.authn` and the ticket.
 3. Authorize with Action Policy.
 4. Normalize params into a form/payload.
 5. Invoke the state machine.
@@ -806,7 +806,7 @@ Controllers should remain HTTP-oriented. Their before actions may:
 
 - load the sign-up cycle ticket;
 - reject missing or expired sequence state before sequence-only participant actions;
-- initialize or refresh `Actor.authentication` facts available for the request;
+- initialize or refresh `Actor.authn` facts available for the request;
 - call `authorize!` or the local Action Policy equivalent;
 - prepare form objects or view models.
 

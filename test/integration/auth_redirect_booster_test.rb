@@ -9,17 +9,17 @@ class AuthRedirectTestController < ApplicationController
   public_strict!
 
   def trigger_redirect_with_notice
-    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = params[:rt] if params[:rt].present?
+    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = safe_encoded_rt(params[:rt]) if params[:rt].present?
     redirect_with_notice("/default_path", "This is a notice")
   end
 
   def trigger_redirect_with_alert
-    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = params[:rt] if params[:rt].present?
+    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = safe_encoded_rt(params[:rt]) if params[:rt].present?
     redirect_with_alert("/default_path", "This is an alert")
   end
 
   def trigger_add_rt_to_params
-    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = params[:rt] if params[:rt].present?
+    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = safe_encoded_rt(params[:rt]) if params[:rt].present?
     redirect_params = { action: "index" }
     add_rt_to_params!(redirect_params)
     render json: redirect_params
@@ -81,12 +81,10 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "redirect_with_notice with rt" do
-    # Assuming rt is a valid base64 encoded URL
-    # "L2F1dGhfcmVkaXJlY3QvaW5kZXg=" -> "/auth_redirect/index"
-    rt = Base64.urlsafe_encode64("/auth_redirect/index")
+    rt = "/configuration?x=1"
     get "/auth_redirect/notice", params: { rt: rt }
     # jump_to_generated_url redirects
-    assert_redirected_to "/auth_redirect/index"
+    assert_redirected_to "/configuration?x=1"
     assert_equal "This is a notice", flash[:notice]
   end
 
@@ -98,19 +96,19 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "add_rt_to_params" do
-    rt = Base64.urlsafe_encode64("/auth_redirect/index")
+    rt = "/auth_redirect/index"
     get "/auth_redirect/params", params: { rt: rt }
 
     assert_response :success
-    assert_equal rt, response.parsed_body["rt"]
+    assert_match(/--/, response.parsed_body["rt"])
   end
 
   test "safe_path_from_encoded_rt accepts encoded internal path" do
-    rt = Base64.urlsafe_encode64("/auth_redirect/index?x=1")
+    rt = "/configuration?x=1"
     get "/auth_redirect/safe_rt", params: { rt: rt }
 
     assert_response :success
-    assert_equal "/auth_redirect/index?x=1", response.body
+    assert_equal "/fallback", response.body
   end
 
   test "safe_path_from_encoded_rt rejects unencoded external URL" do

@@ -15,9 +15,8 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    rt = Base64.urlsafe_encode64(edit_sign_com_out_url(ri: "jp", host: @host))
-
-    assert_redirected_to new_sign_com_in_url(rt: rt, host: @host)
+    assert_equal new_sign_com_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
+    assert_equal edit_sign_com_out_url(ri: "jp", host: @host), verified_redirect_return_to(response.location, "com")
   end
 
   test "edit page renders a direct logout form" do
@@ -72,9 +71,8 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
   test "should destroy raises error without session" do
     delete sign_com_out_url(ri: "jp"), headers: { "Host" => @host }
 
-    rt = Base64.urlsafe_encode64(sign_com_out_url(ri: "jp", host: @host))
-
-    assert_redirected_to new_sign_com_in_url(rt: rt, host: @host)
+    assert_equal new_sign_com_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
+    assert_equal sign_com_out_url(ri: "jp", host: @host), verified_redirect_return_to(response.location, "com")
   end
 
   test "destroy resets rails session id to prevent session fixation" do
@@ -120,10 +118,11 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "destroy redirects to safe rt after logout" do
+    get edit_sign_com_out_url(ri: "jp"), headers: { "Host" => @host }
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    rt = Base64.urlsafe_encode64(sign_com_configuration_path(ri: "jp"), padding: false)
+    rt = signed_return_target(sign_com_configuration_path(ri: "jp"), surface: "com")
 
     delete sign_com_out_url(ri: "jp", rt: rt),
            headers: { "Host" => @host,
@@ -134,18 +133,18 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :revoked?
   end
 
-  test "destroy with unsafe rt falls back to root after logout" do
+  test "destroy with unsafe rt fails closed after logout" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    rt = Base64.urlsafe_encode64("https://evil.example/after", padding: false)
+    rt = "not-a-valid-return-target-token"
 
     delete sign_com_out_url(ri: "jp", rt: rt),
            headers: { "Host" => @host,
                       "X-TEST-CURRENT-RESOURCE" => @visitor.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
 
-    assert_redirected_to sign_com_root_path(ri: "jp")
+    assert_response :unprocessable_content
     assert_predicate token.reload, :revoked?
   end
 
@@ -190,5 +189,36 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_empty cookies[Authentication::Base::ACCESS_COOKIE_KEY].to_s
     assert_empty cookies[Authentication::Base::REFRESH_COOKIE_KEY].to_s
     assert_empty cookies[Authentication::Base::DBSC_COOKIE_KEY].to_s
+  end
+
+  private
+
+  def signed_return_target(return_to, surface:)
+    ReturnTargetToken.issue(
+      return_to: return_to,
+      flow: "authentication",
+      surface: surface,
+      session_nonce: session.fetch(:authentication_return_target_nonce),
+    )
+  end
+
+  def verified_redirect_return_to(location, surface)
+    ReturnTargetToken.verified_return_to(
+      rt_from_location(location),
+      expected_flow: "authentication",
+      expected_surface: surface,
+      session_nonce: session[:authentication_return_target_nonce],
+    )
+  end
+
+  def redirect_without_rt(location)
+    uri = URI.parse(location)
+    query = Rack::Utils.parse_nested_query(uri.query).except("rt")
+    uri.query = query.presence&.to_query
+    uri.to_s
+  end
+
+  def rt_from_location(location)
+    Rack::Utils.parse_nested_query(URI.parse(location).query).fetch("rt")
   end
 end

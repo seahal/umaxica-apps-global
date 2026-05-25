@@ -59,7 +59,12 @@ module Authentication
 
       "/configuration/withdrawal"
     rescue StandardError => e
-      Rails.logger.error(LogEvent.format("auth.withdrawal_gate.path_resolution_failed", message: e.message, exception: e))
+      Rails.logger.error(
+        LogEvent.format(
+          "auth.withdrawal_gate.path_resolution_failed", message: e.message,
+                                                         exception: e,
+        ),
+      )
       "/configuration/withdrawal"
     end
   end

@@ -13,9 +13,9 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     include Sign::ComVerificationBase::Overrides
 
     ALLOWED_SCOPES = Sign::ComVerificationBase::ALLOWED_SCOPES
-    STEP_UP_SESSION_KEY = Sign::AppVerificationBase::STEP_UP_SESSION_KEY
-    EMAIL_OTP_SESSION_KEY = Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY
-    STEP_UP_TTL = Sign::AppVerificationBase::STEP_UP_TTL
+    STEP_UP_SESSION_KEY = Sign::ComVerificationBase::STEP_UP_SESSION_KEY
+    EMAIL_OTP_SESSION_KEY = Sign::ComVerificationBase::EMAIL_OTP_SESSION_KEY
+    STEP_UP_TTL = Sign::ComVerificationBase::STEP_UP_TTL
 
     attr_accessor :visitor, :visitor_token, :params_hash, :redirect_args, :restore_result, :generated_hotp
 
@@ -81,7 +81,7 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     visitor = create_verified_visitor_with_email(email_address: "com-start-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor)
     harness = Harness.new(visitor: visitor, visitor_token: token)
-    return_to = Base64.urlsafe_encode64("/configuration/emails/new")
+    return_to = "/configuration/emails/new"
 
     travel_to Time.zone.local(2026, 1, 1, 12, 0, 0) do
       harness.send(:start_step_up_session!, scope: "configuration_email", return_to_param: return_to)
@@ -101,20 +101,20 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     harness = Harness.new(visitor: visitor, visitor_token: token)
 
     assert_raises(ActionController::BadRequest) do
-      harness.send(:start_step_up_session!, scope: "configuration_email", return_to_param: Base64.urlsafe_encode64("https://evil.example"))
+      harness.send(:start_step_up_session!, scope: "configuration_email", return_to_param: "https://evil.example")
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "unknown",
-                                 return_to_param: Base64.urlsafe_encode64("/configuration/emails"),
+                                 return_to_param: "/configuration/emails",
       )
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "configuration_email",
-                                 return_to_param: Base64.urlsafe_encode64("/configuration/secrets"),
+                                 return_to_param: "/configuration/secrets",
       )
     end
   end

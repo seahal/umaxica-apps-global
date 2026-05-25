@@ -4,5 +4,13 @@
 class Sign::Org::Preference::Region::DatesController < Sign::Org::PreferencesBaseController
   include ::Preference::SignScreenActions
 
-  preference_screen :date_format
+  before_action :ensure_preferences_record
+
+  def edit
+    edit_selectable_preference_screen(:date_format)
+  end
+
+  def update
+    update_selectable_preference_screen(:date_format)
+  end
 end

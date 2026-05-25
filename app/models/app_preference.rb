@@ -100,6 +100,30 @@ class AppPreference < AppSettingRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  has_one :app_preference_currency,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :app_preference_date_format,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :app_preference_time_format,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :app_preference_motion,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :app_preference_density,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :app_preference_items_per_page,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
   has_many :app_preference_chronicles,
            foreign_key: :subject_id,
            inverse_of: :app_preference,
@@ -126,6 +150,8 @@ class AppPreference < AppSettingRecord
   end
 
   def persist_self_replacement
+    # rubocop:disable Rails/SkipsModelValidations
     update_column(:replaced_by_id, id) if replaced_by_id.blank?
+    # rubocop:enable Rails/SkipsModelValidations
   end
 end

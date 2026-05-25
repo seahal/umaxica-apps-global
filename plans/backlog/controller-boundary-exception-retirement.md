@@ -2,14 +2,17 @@
 
 ## Status
 
-Superseded by `plans/active/controller-boundary-lifecycle-unification.md`.
+Historical. Superseded by `plans/active/controller-boundary-lifecycle-unification.md`, which was
+itself deprecated by the 2026-05-24 emergency controller-boundary direction.
 
-This file remains as historical exception inventory only. Do not use it as the active plan.
+This file remains as historical exception inventory only. Do not use it as the active plan, and do
+not use it to justify four-way controller inheritance.
 
 ## Context
 
-`adr/static-and-guest-controller-boundaries.md` defines four semantic controller boundaries:
-`OpenController`, `BareController`, `PrivateController`, and `GuestController`.
+`adr/static-and-guest-controller-boundaries.md` used to define four semantic controller boundaries:
+`OpenController`, `BareController`, `PrivateController`, and `GuestController`. That ADR is now
+deprecated.
 
 Most controllers should move directly to one of those bases. A small set of security-sensitive
 controllers is intentionally left out of the immediate migration because their current behavior is

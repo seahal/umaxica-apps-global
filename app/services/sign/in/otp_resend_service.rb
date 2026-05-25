@@ -120,11 +120,7 @@ module Sign
         otp_code = generate_otp_for(target)
 
         if @kind == "telephone"
-          Outbound::Sms.deliver_later(
-            to: target.number,
-            title: "PassCode => #{otp_code}",
-            body: "PassCode => #{otp_code}",
-          )
+          Sign::TelephoneOtpDelivery.deliver!(target, otp_code)
         else
           Email::App::OtpMailer.with(
             encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),

@@ -45,7 +45,12 @@ module AuthorizationAudit
     create_audit_record(actor, log_data)
   rescue StandardError => e
     # Don't let audit logging break the application
-    Rails.logger.error(LogEvent.format("authorization.failure_log.failed", error_class: e.class.name, message: e.message))
+    Rails.logger.error(
+      LogEvent.format(
+        "authorization.failure_log.failed", error_class: e.class.name,
+                                            message: e.message,
+      ),
+    )
   end
 
   def build_log_data(actor, exception)

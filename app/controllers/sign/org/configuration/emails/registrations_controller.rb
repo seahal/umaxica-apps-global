@@ -11,6 +11,9 @@ module Sign
           include ::Verification::Operator
 
           before_action :authenticate_operator!
+          before_action only: %i(new create edit update) do
+            require_step_up!(scope: verification_scope)
+          end
 
           def new
             @staff_email = OperatorEmail.new

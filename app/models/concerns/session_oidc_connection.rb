@@ -34,6 +34,7 @@ module SessionOidcConnection
   end
 
   class_methods do
+    # rubocop:disable ThreadSafety/ClassInstanceVariable
     def session_oidc_connection_config(actor_name:, connection_class:)
       @session_oidc_actor_name = actor_name
       @session_oidc_connection_class = connection_class
@@ -42,6 +43,7 @@ module SessionOidcConnection
     def session_oidc_actor_name = @session_oidc_actor_name
 
     def session_oidc_connection_class = @session_oidc_connection_class
+    # rubocop:enable ThreadSafety/ClassInstanceVariable
 
     def session_oidc_actor_key = session_oidc_connection_class.actor_foreign_key
   end

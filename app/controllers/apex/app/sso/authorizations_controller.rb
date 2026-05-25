@@ -5,6 +5,8 @@ module Apex
   module App
     module Sso
       class AuthorizationsController < OpenController
+        skip_before_action :set_region, raise: false
+
         def show
           redirect_to(initiate_oidc_session!, allow_other_host: true)
         end

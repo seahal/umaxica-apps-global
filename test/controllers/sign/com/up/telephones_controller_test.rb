@@ -167,21 +167,31 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    assert_no_difference("VisitorTelephone.count") do
-      post sign_com_up_telephone_url(ri: "jp"),
-           params: {
-             visitor_telephone: {
-               raw_number: "+819012300011",
-               confirm_policy: "1",
-               confirm_using_mfa: "1",
+    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
+      assert_no_difference("VisitorTelephone.count") do
+        post sign_com_up_telephone_url(ri: "jp"),
+             params: {
+               visitor_telephone: {
+                 raw_number: "+819012300011",
+                 confirm_policy: "1",
+                 confirm_using_mfa: "1",
+               },
+               "cf-turnstile-response": "test",
              },
-             "cf-turnstile-response": "test",
-           },
-           headers: default_headers
+             headers: default_headers
+      end
     end
 
     assert_response :redirect
     assert_nil session[:com_sign_up_cycle_locator]
+    job_args = enqueued_jobs.last[:args].first
+    body = Outbound::SensitivePayload.decrypt_sms_body(job_args.fetch("encrypted_body"))
+    sent_code = body[/\d{6}/]
+
+    assert_equal "Verification code", job_args.fetch("title")
+    assert_match(/\A\d{6}\z/, sent_code)
+    assert_not_includes job_args.fetch("title"), sent_code
+    assert_not_includes job_args.inspect, sent_code
 
     code = otp_code_for(existing_telephone.reload)
 

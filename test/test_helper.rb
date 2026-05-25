@@ -89,6 +89,7 @@ module ActiveSupport
     end
     teardown do
       Prosopite.finish if defined?(Prosopite)
+      Actor.clear if defined?(Actor)
     end
   end
 end

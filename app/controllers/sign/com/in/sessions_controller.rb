@@ -98,7 +98,8 @@ module Sign
 
           if return_path.present?
             flash[:notice] = notice
-            jump_to_generated_url(return_path, fallback: sign_com_configuration_path)
+            destination = safe_path_from_encoded_rt(return_path, fallback: sign_com_configuration_path)
+            redirect_to_return_target_destination!(destination)
           else
             redirect_to(sign_com_configuration_path(ri: params[:ri]), notice: notice)
           end

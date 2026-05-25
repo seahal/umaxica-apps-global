@@ -125,7 +125,7 @@ module Sign
               SignUp::StateMachine.call(
                 ticket: cycle,
                 event: :start_social_callback,
-                actor_context: Actor.authentication,
+                actor_context: Actor.authn,
               )
             end
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
@@ -174,11 +174,8 @@ module Sign
         end
 
         def safe_decoded_rt(encoded_url)
-          return if encoded_url.blank?
-
-          safe_internal_path(Base64.urlsafe_decode64(encoded_url))
-        rescue ArgumentError, URI::InvalidURIError
-          nil
+          token = safe_encoded_rt(encoded_url)
+          safe_path_from_encoded_rt(token, fallback: nil)
         end
 
         def sign_up_cycle_locator

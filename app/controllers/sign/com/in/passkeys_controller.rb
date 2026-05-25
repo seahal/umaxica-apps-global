@@ -84,12 +84,14 @@ module Sign
         def allow_passkey_sign_in?(passkey)
           return true if passkey.visitor.has_verified_pii?
 
-          Rails.logger.info(LogEvent.format(
-            "authentication.passkey.failed",
-            reason: "verified_pii_missing",
-            visitor_id: passkey.visitor_id,
-            ip_address: request.remote_ip,
-          ))
+          Rails.logger.info(
+            LogEvent.format(
+              "authentication.passkey.failed",
+              reason: "verified_pii_missing",
+              visitor_id: passkey.visitor_id,
+              ip_address: request.remote_ip,
+            ),
+          )
           render_error("errors.webauthn.credential_not_found", :unauthorized)
           false
         end

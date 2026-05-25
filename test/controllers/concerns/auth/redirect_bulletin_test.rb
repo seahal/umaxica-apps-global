@@ -128,8 +128,8 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
     @harness.params_data[Auth::IoKeys::Params::RT] = "/dashboard"
     result = @harness.preserve_redirect_parameter
 
-    assert_equal "/dashboard", result
-    assert_equal "/dashboard", @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
+    assert_match(/--/, result)
+    assert_equal result, @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
   end
 
   test "preserve_redirect_parameter returns nil when no rt param" do
@@ -140,10 +140,10 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
   end
 
   test "retrieve_redirect_parameter returns and clears session value" do
-    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = "/dashboard"
+    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = @harness.safe_encoded_rt("/dashboard")
     result = @harness.retrieve_redirect_parameter
 
-    assert_equal "/dashboard", result
+    assert_match(/--/, result)
     assert_nil @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
   end
 
@@ -151,23 +151,23 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
     @harness.params_data[Auth::IoKeys::Params::RT] = "/from-params"
     result = @harness.retrieve_redirect_parameter
 
-    assert_equal "/from-params", result
+    assert_match(/--/, result)
   end
 
   test "peek_redirect_parameter returns without clearing" do
-    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = "/dashboard"
+    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = @harness.safe_encoded_rt("/dashboard")
     result = @harness.peek_redirect_parameter
 
-    assert_equal "/dashboard", result
-    assert_equal "/dashboard", @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
+    assert_match(/--/, result)
+    assert_equal result, @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
   end
 
   test "build_redirect_params includes rt when present" do
-    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = "/dashboard"
+    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = @harness.safe_encoded_rt("/dashboard")
     result = @harness.build_redirect_params(:notice, "Success")
 
     assert_equal "Success", result[:notice]
-    assert_equal "/dashboard", result[Auth::IoKeys::Params::RT]
+    assert_match(/--/, result[Auth::IoKeys::Params::RT])
   end
 
   test "build_notice_params creates notice hash" do

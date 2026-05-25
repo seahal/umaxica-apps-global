@@ -110,11 +110,13 @@ module Sign
       count = RateLimit.store.increment(cache_key, 1, expires_in: TELEPHONE_VERIFICATION_RATE_WINDOW.seconds)
       return unless count && count > TELEPHONE_VERIFICATION_RATE_LIMIT
 
-      Rails.logger.info(LogEvent.format(
-        "telephone.verification.rate_limited",
-        ip: request.remote_ip,
-        retry_after: TELEPHONE_VERIFICATION_RATE_WINDOW,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "telephone.verification.rate_limited",
+          ip: request.remote_ip,
+          retry_after: TELEPHONE_VERIFICATION_RATE_WINDOW,
+        ),
+      )
       raise ActionController::TooManyRequests
     end
   end

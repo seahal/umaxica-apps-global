@@ -273,7 +273,12 @@ module Authentication
     def load_session_record(session_key, model_class, validations = {})
       return nil if session[session_key].blank?
 
-      operation = -> { model_class.find_by(id: session[session_key]) }
+      operation =
+        -> {
+          scope = model_class
+          scope = scope.includes(*Array(validations[:includes])) if validations[:includes]
+          scope.find_by(id: session[session_key])
+        }
       record = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
       return nil if record.blank?
 
@@ -300,10 +305,15 @@ module Authentication
     end
 
     def current_session_public_id
+      actor_session_public_id = Actor.authn.login_public_id if defined?(Actor)
+      return actor_session_public_id if actor_session_public_id.present?
+
       @current_session_public_id ||= current_session_public_id_from_access_token
     end
 
     def current_resource
+      actor_resource = actor_current_resource
+      return actor_resource if actor_resource.present?
       return @current_resource if defined?(@current_resource)
 
       @current_resource = load_current_resource
@@ -315,23 +325,14 @@ module Authentication
 
       check_login_cooldown!(resource)
 
-      # MFA gate must run BEFORE we rotate the Rails session id and clear
-      # the prior auth cookies. If MFA is required this call returns
-      # early without issuing any new session — disposing pre-login state
-      # at that point would be premature. The actual privilege transition
-      # happens on MFA completion, which re-enters log_in via
-      # finalize_mfa_login! with require_totp_check: false and triggers
-      # the reset_session below.
+      # MFA gate must run BEFORE session rotation. Returns early if required;
+      # actual transition happens on MFA completion.
       if require_totp_check
         totp_result = check_totp_requirement(resource)
         return totp_result if totp_result
       end
 
-      # From here on we are committed to issuing a session. Rotate the
-      # Rails session id and drop any prior auth cookies at this single
-      # canonical privilege-transition chokepoint. Mirrors
-      # Sign::VerificationStepUpLifecycle#consume_step_up_session! at the
-      # AAL1->AAL2 elevation.
+      # Rotate session id and clear prior auth cookies at this chokepoint.
       reset_session
       clear_previous_login_cookies!
 
@@ -347,10 +348,8 @@ module Authentication
 
       token_status_id = is_restricted ? token_class::STATUS_RESTRICTED : token_class::STATUS_ACTIVE
       token_record = create_login_token_record(
-        resource,
-        kind_id,
-        token_status_id: token_status_id,
-        dpop_jkt: dpop_result[:jkt],
+        resource, kind_id, token_status_id: token_status_id,
+                           dpop_jkt: dpop_result[:jkt],
       )
       device_session = ensure_device_session_for!(resource, token_record, dpop_jkt: dpop_result[:jkt])
       restricted_expires_at = is_restricted ? restricted_session_expires_at : nil
@@ -359,17 +358,12 @@ module Authentication
       notify_restricted_session_issued(resource, token_record, restricted_expires_at) if is_restricted
 
       adopt_preference_for!(resource) if respond_to?(:adopt_preference_for!, true)
-
       now = Time.current
       access_expires_at = access_token_expires_at_for(token_record, now: now)
       access_token = encode_login_access_token(
-        resource,
-        token_record,
-        token_kind_id: token_kind_id,
-        dpop_jkt: dpop_result[:jkt],
-        access_expires_at: access_expires_at,
+        resource, token_record, token_kind_id: token_kind_id,
+                                dpop_jkt: dpop_result[:jkt], access_expires_at: access_expires_at,
       )
-
       set_login_auth_cookies(token_record, access_token, refresh_plain, access_expires_at)
       issue_dbsc_registration_header_for(token_record)
       @current_resource = resource
@@ -377,7 +371,6 @@ module Authentication
       @current_session_public_id = token_session_public_id(token_record)
       populate_current_attributes!(resource, nil)
       @_current_resource_resolved = true
-
       emit_session_issued(resource, token_record, token_kind_id, restricted: is_restricted)
       record_audit(AUDIT_EVENTS[:logged_in], resource: resource, context: audit_context) if record_login_audit
       login_result(token_record, access_token, refresh_plain, access_expires_at, now, restricted: is_restricted)
@@ -391,11 +384,13 @@ module Authentication
     end
 
     def session_limit_hard_reject_result(resource)
-      Rails.logger.info(LogEvent.format(
-        "session.limit.hard_reject",
-        "#{resource_type}_id": resource.id,
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "session.limit.hard_reject",
+          "#{resource_type}_id": resource.id,
+          ip_address: request_ip_address,
+        ),
+      )
       {
         status: :session_limit_hard_reject,
         http_status: :forbidden,
@@ -424,13 +419,15 @@ module Authentication
     end
 
     def notify_restricted_session_issued(resource, token_record, restricted_expires_at)
-      Rails.logger.info(LogEvent.format(
-        "session.restricted.issued",
-        "#{resource_type}_id": resource.id,
-        user_token_id: token_record.public_id,
-        expires_at: restricted_expires_at&.iso8601,
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "session.restricted.issued",
+          "#{resource_type}_id": resource.id,
+          user_token_id: token_record.public_id,
+          expires_at: restricted_expires_at&.iso8601,
+          ip_address: request_ip_address,
+        ),
+      )
     end
 
     def emit_session_issued(resource, token_record, token_kind_id, restricted:)
@@ -505,12 +502,14 @@ module Authentication
     rescue Sign::InvalidRefreshToken => e
       handle_invalid_refresh_token(e, refresh_public_id, token_record)
     rescue StandardError => e
-      Rails.logger.error(LogEvent.format(
-        "auth.token.refresh.error",
-        error_class: e.class.name,
-        message: e.message,
-        exception: e,
-      ))
+      Rails.logger.error(
+        LogEvent.format(
+          "auth.token.refresh.error",
+          error_class: e.class.name,
+          message: e.message,
+          exception: e,
+        ),
+      )
       handle_refresh_error(e, refresh_public_id, resource)
     end
 
@@ -540,7 +539,12 @@ module Authentication
         return
       end
 
-      Rails.logger.debug(LogEvent.format("auth.transparent_refresh.success", user_present: refresh_result[:user].present?))
+      Rails.logger.debug(
+        LogEvent.format(
+          "auth.transparent_refresh.success",
+          user_present: refresh_result[:user].present?,
+        ),
+      )
       @current_resource = refresh_result[:user]
     end
 
@@ -561,7 +565,7 @@ module Authentication
           path: request&.fullpath,
           method: request&.request_method,
         )
-        rt = Base64.urlsafe_encode64(request.original_url)
+        rt = issue_authentication_return_target_token(request.original_url)
         redirect_to(
           sign_in_url_with_return(rt),
           allow_other_host: true,
@@ -711,11 +715,13 @@ module Authentication
     def record_audit(event_id, resource:, actor: resource, context: {})
       return unless resource && event_id
 
-      Rails.logger.debug(LogEvent.format(
-        "auth.audit.recording",
-        event_id: event_id,
-        resource_id: resource&.id,
-      ))
+      Rails.logger.debug(
+        LogEvent.format(
+          "auth.audit.recording",
+          event_id: event_id,
+          resource_id: resource&.id,
+        ),
+      )
 
       # Delegate to AuditWriter with best-effort semantics
       # This ensures audit failures do not block authentication
@@ -752,13 +758,15 @@ module Authentication
         },
       )
     rescue StandardError => e
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.occurrence.write_failed",
-        event_type: event_type,
-        reason: reason,
-        error_class: e.class.name,
-        error_message: e.message,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.occurrence.write_failed",
+          event_type: event_type,
+          reason: reason,
+          error_class: e.class.name,
+          error_message: e.message,
+        ),
+      )
     end
 
     def occurrence_model_class
@@ -781,12 +789,14 @@ module Authentication
     def handle_missing_refresh_token(refresh_public_id)
       set_refresh_failure!(:unauthorized, "invalid_refresh_token")
 
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.token.refresh.failed",
-        refresh_token_id: refresh_public_id,
-        reason: "token_not_found",
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.token.refresh.failed",
+          refresh_token_id: refresh_public_id,
+          reason: "token_not_found",
+          ip_address: request_ip_address,
+        ),
+      )
 
       Sign::Risk::Emitter.emit(
         "refresh_failed",
@@ -818,13 +828,15 @@ module Authentication
     end
 
     def notify_inactive_resource_refresh_failed(resource, refresh_public_id)
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.token.refresh.failed",
-        "#{resource_type}_id": resource&.id,
-        refresh_token_id: refresh_public_id,
-        reason: "#{resource_type}_inactive",
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.token.refresh.failed",
+          "#{resource_type}_id": resource&.id,
+          refresh_token_id: refresh_public_id,
+          reason: "#{resource_type}_inactive",
+          ip_address: request_ip_address,
+        ),
+      )
     end
 
     def emit_inactive_resource_refresh_failed(resource, refresh_public_id)
@@ -855,9 +867,10 @@ module Authentication
             discarded_at = token_record.class.arel_table[:discarded_at]
             scope = scope.where(discarded_at.eq(nil).or(discarded_at.gt(now)))
           end
-          scope.find_each { |record| record.update_columns(expiry_attrs) }
+          # rubocop:disable Rails/SkipsModelValidations
+          scope.update_all(expiry_attrs)
         elsif !token_expired_or_revoked?(token_record, expiry_column)
-          token_record.update_columns(expiry_attrs)
+          token_record.update!(expiry_attrs)
         end
       end
     end
@@ -897,13 +910,15 @@ module Authentication
     end
 
     def notify_token_refreshed(resource, token_record, previous_token_record)
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.token.refreshed",
-        "#{resource_type}_id": resource.id,
-        old_refresh_token_id: previous_token_record&.public_id || token_record.public_id,
-        new_refresh_token_id: token_record.public_id,
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.token.refreshed",
+          "#{resource_type}_id": resource.id,
+          old_refresh_token_id: previous_token_record&.public_id || token_record.public_id,
+          new_refresh_token_id: token_record.public_id,
+          ip_address: request_ip_address,
+        ),
+      )
     end
 
     def refreshed_session_payload(resource, token_record, access_token, refresh_plain, access_expires_at)
@@ -939,12 +954,14 @@ module Authentication
         )
       end
 
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.token.refresh.failed",
-        refresh_token_id: refresh_public_id,
-        reason: exception.class.name,
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.token.refresh.failed",
+          refresh_token_id: refresh_public_id,
+          reason: exception.class.name,
+          ip_address: request_ip_address,
+        ),
+      )
 
       Sign::Risk::Emitter.emit(
         "refresh_failed",
@@ -981,12 +998,14 @@ module Authentication
       clear_auth_cookies!
       reset_session if @refresh_dbsc_reason.present? && respond_to?(:reset_session)
 
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.token.refresh.failed",
-        refresh_token_id: refresh_public_id,
-        reason: binding_failure_reason(reason, token_record),
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.token.refresh.failed",
+          refresh_token_id: refresh_public_id,
+          reason: binding_failure_reason(reason, token_record),
+          ip_address: request_ip_address,
+        ),
+      )
 
       nil
     end
@@ -994,13 +1013,15 @@ module Authentication
     def handle_refresh_error(exception, refresh_public_id, resource)
       set_refresh_failure!(:unauthorized, "invalid_refresh_token")
 
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.token.refresh.error",
-        "#{resource_type}_id": resource&.id,
-        refresh_token_id: refresh_public_id,
-        error_message: exception.message,
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.token.refresh.error",
+          "#{resource_type}_id": resource&.id,
+          refresh_token_id: refresh_public_id,
+          error_message: exception.message,
+          ip_address: request_ip_address,
+        ),
+      )
 
       Sign::Risk::Emitter.emit(
         "refresh_failed",
@@ -1023,21 +1044,25 @@ module Authentication
         token_record_connection_owner(token_record.class).connected_to(role: :writing) do
           token_record.revoke!
         end
-        Rails.logger.info(LogEvent.format(
-          "session.restricted.expired",
-          user_token_id: token_record.public_id,
-          "#{resource_type}_id": token_record.public_send("#{token_resource_prefix}_id"),
-        ))
+        Rails.logger.info(
+          LogEvent.format(
+            "session.restricted.expired",
+            user_token_id: token_record.public_id,
+            "#{resource_type}_id": token_record.public_send("#{token_resource_prefix}_id"),
+          ),
+        )
       end
 
       set_refresh_failure!(:forbidden, "restricted_session")
 
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.token.refresh.failed",
-        refresh_token_id: refresh_public_id,
-        reason: expired ? "restricted_expired" : "restricted_session",
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.token.refresh.failed",
+          refresh_token_id: refresh_public_id,
+          reason: expired ? "restricted_expired" : "restricted_session",
+          ip_address: request_ip_address,
+        ),
+      )
 
       nil
     end
@@ -1138,6 +1163,16 @@ module Authentication
       true
     end
 
+    # Session-family consistency check for the LEGACY (non-DBSC) refresh path.
+    #
+    # The device_id cookie lives in the same jar as the refresh cookie, so an
+    # attacker who steals one steals both. This check therefore does NOT defend
+    # against stolen-cookie replay — refer to the DBSC path
+    # (refresh_dbsc_allowed?) for actual per-session binding. The value here is
+    # operational: a refresh request whose device_id does not match the family
+    # the token was issued to is a meaningful compromise signal, and the
+    # failure short-circuits the refresh so the divergence is surfaced rather
+    # than silently absorbed.
     def refresh_device_allowed?(token_record)
       cookie_device_id = read_device_id_cookie
 
@@ -1162,8 +1197,8 @@ module Authentication
         return false
       end
 
-      # Compare using SHA3-384 digest for security
-      # Cookie contains plaintext device_id, DB stores digest
+      # SHA3-384 digest comparison. Cookie carries plaintext device_id, DB
+      # stores the digest only.
       presented_digest = digest_device_id(cookie_device_id)
       if token_record.device_id_digest.blank? || !secure_compare?(token_record.device_id_digest, presented_digest)
         @refresh_device_reason = "mismatch"
@@ -1205,12 +1240,14 @@ module Authentication
         end
       end
     rescue ActiveRecord::ActiveRecordError => e
-      Rails.logger.info(LogEvent.format(
-        "auth.refresh.dbsc_logout_failed",
-        token_id: token_record&.try(:public_id),
-        error_class: e.class.name,
-        error_message: e.message,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "auth.refresh.dbsc_logout_failed",
+          token_id: token_record&.try(:public_id),
+          error_class: e.class.name,
+          error_message: e.message,
+        ),
+      )
     end
 
     def clear_dbsc_challenge_after_refresh_verification!(token_record)
@@ -1319,35 +1356,44 @@ module Authentication
         when "visitor" then :visitor
         else :client
         end
+      authn = Actor::Authentication.new(
+        login_public_id: @current_session_public_id,
+        access_claims: payload,
+        acr: payload&.dig("acr"),
+        amr: payload&.dig("amr"),
+        actor_type: actor_type,
+        actor_id: resource.id,
+        restricted: current_session_restricted_for_authn,
+      )
+      surface = Core::Surface.current(request) if respond_to?(:request, true) && request.present?
       attributes = {
         actor: resource,
         actor_type: actor_type,
-        authentication: Actor::Authentication.new(
-          login_public_id: @current_session_public_id,
-          access_claims: payload,
-          acr: payload&.dig("acr"),
-          amr: payload&.dig("amr"),
-          actor_type: actor_type,
-          actor_id: resource.id,
-          restricted: current_session_restricted?,
+        authn: authn,
+        authz: Actor::Authz.new(
+          policy_user: resource,
+          token_claims: authn.access_claims,
+          surface: surface,
         ),
       }
-      attributes[:tld] = Core::Surface.current(request) if respond_to?(:request, true) && request.present?
+      attributes[:tld] = surface if surface.present?
 
-      Actor.update(**attributes)
+      Actor.install_context!(**attributes)
     end
 
     def emit_actor_mismatch_event(payload)
       act = Token.extract_act(payload)
       sub = Token.extract_subject(payload)
 
-      Rails.logger.info(LogEvent.format(
-        "authentication.actor_mismatch",
-        expected: resource_type,
-        actual: act,
-        subject: sub,
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "authentication.actor_mismatch",
+          expected: resource_type,
+          actual: act,
+          subject: sub,
+          ip_address: request_ip_address,
+        ),
+      )
 
       Sign::Risk::Emitter.emit(
         "actor_mismatch",
@@ -1394,12 +1440,14 @@ module Authentication
         reason: "refresh_token_invalidated",
       )
     rescue ActiveRecord::RecordNotDestroyed => e
-      Rails.logger.info(LogEvent.format(
-        "#{resource_type}.token.destroy.failed",
-        token_id: public_id,
-        error_message: e.message,
-        ip_address: request_ip_address,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{resource_type}.token.destroy.failed",
+          token_id: public_id,
+          error_message: e.message,
+          ip_address: request_ip_address,
+        ),
+      )
     end
 
     # Handles session expiry by redirecting with appropriate message
@@ -1426,13 +1474,15 @@ module Authentication
       options = rule[:options] || {}
       context = access_policy_context(policy, options)
 
-      Rails.logger.debug(LogEvent.format(
-        "auth.policy.resolved",
-        policy: policy,
-        controller: self.class.name,
-        action: action_name,
-        rules_count: self.class.access_policy_rules.size,
-      ))
+      Rails.logger.debug(
+        LogEvent.format(
+          "auth.policy.resolved",
+          policy: policy,
+          controller: self.class.name,
+          action: action_name,
+          rules_count: self.class.access_policy_rules.size,
+        ),
+      )
 
       case policy
       when :public_strict
@@ -1557,6 +1607,11 @@ module Authentication
       end
     end
 
+    # LEGACY here means "no DBSC binding"; the device_id cookie used by the
+    # legacy refresh path is a session-family identifier, not a possession
+    # proof. New sessions stay on LEGACY until the client opts into DBSC
+    # registration. Do not read "LEGACY" as "weak but binding" — it is "not
+    # bound".
     def default_dbsc_token_attributes
       case resource_type
       when "client"
@@ -1603,12 +1658,14 @@ module Authentication
         begin
           return kind_model.find_by!(code: raw_kind_id).id
         rescue ActiveRecord::RecordNotFound
-          Rails.logger.error(LogEvent.format(
-            "auth.token.kind_missing",
-            kind_model: kind_model.name,
-            code: raw_kind_id,
-            resource_type: resource_type,
-          ))
+          Rails.logger.error(
+            LogEvent.format(
+              "auth.token.kind_missing",
+              kind_model: kind_model.name,
+              code: raw_kind_id,
+              resource_type: resource_type,
+            ),
+          )
           raise ActiveRecord::RecordNotFound,
                 "Missing #{kind_model.name} code=#{raw_kind_id} for #{resource_type} login"
         end
@@ -1644,12 +1701,14 @@ module Authentication
         end
       end
     rescue ActiveRecord::RecordNotFound
-      Rails.logger.error(LogEvent.format(
-        "auth.token.kind_missing",
-        kind_model: kind_model.name,
-        id: token_kind_id,
-        resource_type: resource_type,
-      ))
+      Rails.logger.error(
+        LogEvent.format(
+          "auth.token.kind_missing",
+          kind_model: kind_model.name,
+          id: token_kind_id,
+          resource_type: resource_type,
+        ),
+      )
       raise ActiveRecord::RecordNotFound,
             "Missing #{kind_model.name} id=#{token_kind_id} for #{resource_type} login"
     end
@@ -2051,16 +2110,40 @@ module Authentication
       device_bound_token = find_token_record_by_device_session_identifier(session_identifier)
       return device_bound_token if device_bound_token
 
-      scope = token_class.where(public_id: session_identifier)
+      scope = token_class.includes(:device_session).where(public_id: session_identifier)
       if token_record_column?("oidc_sid") && uuid_identifier?(session_identifier)
-        scope = scope.or(token_class.where(oidc_sid: session_identifier))
+        scope = scope.or(token_class.includes(:device_session).where(oidc_sid: session_identifier))
       end
       scope.first
     end
 
     # Check if the current session is restricted
     def current_session_restricted?
+      actor_authn = Actor.authn if defined?(Actor)
+      return actor_authn.restricted? if actor_authn&.signed_in?
+
       current_session&.restricted?
+    end
+
+    def current_session_restricted_for_authn
+      return @current_session.restricted? if defined?(@current_session) && @current_session.present?
+      return false if @current_session_public_id.blank?
+
+      find_token_record_by_session_identifier(@current_session_public_id)&.restricted?
+    end
+
+    def actor_current_resource
+      return unless defined?(Actor)
+      return unless Actor.authn.signed_in?
+      return unless Actor.authn.actor_type.to_s == resource_type.to_s
+
+      actor = Actor.actor
+      return if actor.equal?(Unauthenticated.instance)
+      return unless actor.present?
+      return unless actor.is_a?(resource_class)
+      return unless Actor.authn.actor_id.blank? || Actor.authn.actor_id == actor.id
+
+      actor
     end
 
     def dbsc_payload_for(token_record)
@@ -2113,11 +2196,13 @@ module Authentication
     def best_effort_refresh_side_effect
       yield
     rescue StandardError => e
-      Rails.logger.warn(LogEvent.format(
-        "auth.transparent_refresh.side_effect_failed",
-        error_class: e.class.name,
-        message: e.message,
-      ))
+      Rails.logger.warn(
+        LogEvent.format(
+          "auth.transparent_refresh.side_effect_failed",
+          error_class: e.class.name,
+          message: e.message,
+        ),
+      )
       nil
     end
 
@@ -2257,7 +2342,7 @@ module Authentication
     def handle_auth_required_html(options)
       path =
         if respond_to?(:sign_in_url_with_return, true)
-          rt = Base64.urlsafe_encode64(request.original_url)
+          rt = issue_authentication_return_target_token(request.original_url)
           sign_in_url_with_return(rt)
         elsif main_app.respond_to?(:sign_in_path)
           main_app.sign_in_path

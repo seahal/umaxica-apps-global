@@ -14,29 +14,6 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
     ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
   end
 
-  test "extract_uid falls back to Apple id_token" do
-    key = OpenSSL::PKey::RSA.generate(2048)
-    id_token = JWT.encode({ sub: "apple-uid" }, key, "RS256")
-
-    auth_hash = OmniAuth::AuthHash.new(
-      {
-        "provider" => "apple",
-        "credentials" => { "id_token" => id_token },
-      },
-    )
-
-    service = SocialAuthService.new(auth_hash: auth_hash, current_client: nil, intent: "login")
-
-    assert_equal "apple-uid", service.send(:extract_uid)
-  end
-
-  test "extract_uid_from_id_token handles decode error" do
-    auth_hash = OmniAuth::AuthHash.new({ "credentials" => { "id_token" => "invalid" } })
-    service = SocialAuthService.new(auth_hash: auth_hash, current_client: nil, intent: "login")
-
-    assert_nil service.send(:extract_uid_from_id_token)
-  end
-
   test "handle_login creates new user and identity" do
     auth_hash = OmniAuth::AuthHash.new(
       {
@@ -111,16 +88,5 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
     end
 
     assert_nil @user.reload.last_step_up_at
-  end
-
-  test "extract_uid_from_id_token rejects disallowed algorithm" do
-    key = OpenSSL::PKey::RSA.generate(2048)
-    # Using a disallowed algorithm if possible, or just mock the header
-    id_token = JWT.encode({ sub: "uid" }, key, "RS512") # RS512 is not in ALLOWED_ID_TOKEN_ALGORITHMS
-
-    auth_hash = OmniAuth::AuthHash.new({ "credentials" => { "id_token" => id_token } })
-    service = SocialAuthService.new(auth_hash: auth_hash, current_client: nil, intent: "login")
-
-    assert_nil service.send(:extract_uid_from_id_token)
   end
 end

@@ -8,7 +8,15 @@ module Sign
         class LanguagesController < PreferencesBaseController
           include ::Preference::SignScreenActions
 
-          preference_screen :language
+          before_action :ensure_preferences_record
+
+          def edit
+            edit_language_preference_screen
+          end
+
+          def update
+            update_language_preference_screen
+          end
         end
       end
     end

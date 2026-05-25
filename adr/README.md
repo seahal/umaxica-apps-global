@@ -41,7 +41,9 @@ Current logging / observability decisions:
 
 Current controller-boundary decisions:
 
-- `adr/static-and-guest-controller-boundaries.md`
+- `adr/two-base-authentication-mode-boundaries.md`
+- `adr/static-and-guest-controller-boundaries.md` — deprecated on 2026-05-24 and superseded by the
+  two-base authentication mode direction; retained only as historical context.
 
 Current sign configuration decisions:
 

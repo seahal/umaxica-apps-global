@@ -84,34 +84,40 @@ development:
     database: development_app_setting_db
     host: <%= ENV["POSTGRESQL_APP_SETTING_PUB"] || default_host %>
     migrations_paths: db/app_settings_migrate
+    schema_dump: app_setting_schema.rb
   app_setting_replica:
     !!merge <<: *default
     replica: true
     database: development_app_setting_db
     host: <%= ENV["POSTGRESQL_APP_SETTING_SUB"] || default_host %>
     migrations_paths: db/app_settings_migrate
+    schema_dump: app_setting_schema.rb
   org_setting:
     !!merge <<: *default
     database: development_org_setting_db
     host: <%= ENV["POSTGRESQL_ORG_SETTING_PUB"] || default_host %>
     migrations_paths: db/org_settings_migrate
+    schema_dump: org_setting_schema.rb
   org_setting_replica:
     !!merge <<: *default
     replica: true
     database: development_org_setting_db
     host: <%= ENV["POSTGRESQL_ORG_SETTING_SUB"] || default_host %>
     migrations_paths: db/org_settings_migrate
+    schema_dump: org_setting_schema.rb
   com_setting:
     !!merge <<: *default
     database: development_com_setting_db
     host: <%= ENV["POSTGRESQL_COM_SETTING_PUB"] || default_host %>
     migrations_paths: db/com_settings_migrate
+    schema_dump: com_setting_schema.rb
   com_setting_replica:
     !!merge <<: *default
     replica: true
     database: development_com_setting_db
     host: <%= ENV["POSTGRESQL_COM_SETTING_SUB"] || default_host %>
     migrations_paths: db/com_settings_migrate
+    schema_dump: com_setting_schema.rb
   search:
     !!merge <<: *default
     database: development_search_db
@@ -238,12 +244,14 @@ development:
     database: development_chronicle_db
     host: <%= ENV["POSTGRESQL_CHRONICLE_PUB"] || default_host %>
     migrations_paths: db/chronicle_migrate
+    schema_dump: chronicle_schema.rb
   chronicle_replica:
     !!merge <<: *default
     replica: true
     database: development_chronicle_db
     host: <%= ENV["POSTGRESQL_CHRONICLE_SUB"] || default_host %>
     migrations_paths: db/chronicle_migrate
+    schema_dump: chronicle_schema.rb
   org_principal:
     !!merge <<: *default
     database: development_org_principal_db
@@ -348,34 +356,40 @@ test:
     database: test_app_setting_db
     host: <%= test_host %>
     migrations_paths: db/app_settings_migrate
+    schema_dump: app_setting_schema.rb
   app_setting_replica:
     !!merge <<: *test_default
     replica: true
     database: test_app_setting_db
     host: <%= test_host %>
     migrations_paths: db/app_settings_migrate
+    schema_dump: app_setting_schema.rb
   org_setting:
     !!merge <<: *test_default
     database: test_org_setting_db
     host: <%= test_host %>
     migrations_paths: db/org_settings_migrate
+    schema_dump: org_setting_schema.rb
   org_setting_replica:
     !!merge <<: *test_default
     replica: true
     database: test_org_setting_db
     host: <%= test_host %>
     migrations_paths: db/org_settings_migrate
+    schema_dump: org_setting_schema.rb
   com_setting:
     !!merge <<: *test_default
     database: test_com_setting_db
     host: <%= ENV["POSTGRESQL_COM_SETTING_PUB"] || test_host %>
     migrations_paths: db/com_settings_migrate
+    schema_dump: com_setting_schema.rb
   com_setting_replica:
     !!merge <<: *test_default
     replica: true
     database: test_com_setting_db
     host: <%= ENV["POSTGRESQL_COM_SETTING_SUB"] || test_host %>
     migrations_paths: db/com_settings_migrate
+    schema_dump: com_setting_schema.rb
   search:
     !!merge <<: *test_default
     database: test_search_db
@@ -502,12 +516,14 @@ test:
     database: test_chronicle_db
     host: <%= test_host %>
     migrations_paths: db/chronicle_migrate
+    schema_dump: chronicle_schema.rb
   chronicle_replica:
     !!merge <<: *test_default
     replica: true
     database: test_chronicle_db
     host: <%= test_host %>
     migrations_paths: db/chronicle_migrate
+    schema_dump: chronicle_schema.rb
   org_principal:
     !!merge <<: *test_default
     database: test_org_principal_db
@@ -639,6 +655,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.APP_SETTING&.PASSWORD %>
     migrations_paths: db/app_settings_migrate
+    schema_dump: app_setting_schema.rb
   app_setting_replica:
     !!merge <<: *default
     replica: true
@@ -648,6 +665,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.APP_SETTING_REPLICA&.PASSWORD %>
     migrations_paths: db/app_settings_migrate
+    schema_dump: app_setting_schema.rb
   org_setting:
     !!merge <<: *default
     database: production_org_setting_db
@@ -656,6 +674,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING&.PASSWORD %>
     migrations_paths: db/org_settings_migrate
+    schema_dump: org_setting_schema.rb
   org_setting_replica:
     !!merge <<: *default
     replica: true
@@ -665,6 +684,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.ORG_SETTING_REPLICA&.PASSWORD %>
     migrations_paths: db/org_settings_migrate
+    schema_dump: org_setting_schema.rb
   com_setting:
     !!merge <<: *default
     database: production_com_setting_db
@@ -673,6 +693,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.COM_SETTING&.PASSWORD %>
     migrations_paths: db/com_settings_migrate
+    schema_dump: com_setting_schema.rb
   com_setting_replica:
     !!merge <<: *default
     replica: true
@@ -682,6 +703,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.COM_SETTING_REPLICA&.PASSWORD %>
     migrations_paths: db/com_settings_migrate
+    schema_dump: com_setting_schema.rb
   search:
     !!merge <<: *default
     database: production_search_db
@@ -707,6 +729,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.CHRONICLE&.PASSWORD %>
     migrations_paths: db/chronicle_migrate
+    schema_dump: chronicle_schema.rb
   chronicle_replica:
     !!merge <<: *default
     replica: true
@@ -716,6 +739,7 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.CHRONICLE_REPLICA&.PASSWORD %>
     migrations_paths: db/chronicle_migrate
+    schema_dump: chronicle_schema.rb
   org_ticket:
     !!merge <<: *default
     database: production_org_ticket_db

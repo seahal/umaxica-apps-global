@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-require "base64"
-
 module Verification
   module Base
     extend ActiveSupport::Concern
@@ -67,20 +65,13 @@ module Verification
     end
 
     def recorded_step_up_satisfied?(token, scope:)
-      token.currently_usable? &&
-        token.last_step_up_at.present? &&
-        token.last_step_up_at > STEP_UP_TTL.ago &&
-        token.last_step_up_scope == scope
+      StepUp::Resolver.call(token: token, scope: scope, ttl: STEP_UP_TTL).satisfied?
     end
 
     def step_up_satisfied?(scope:)
-      token = current_session_token
-      return false unless token
-      return false unless token.currently_usable?
-
-      token.last_step_up_at.present? &&
-        token.last_step_up_at > STEP_UP_TTL.ago &&
-        token.last_step_up_scope == scope
+      step_up = StepUp::Resolver.call(token: current_session_token, scope: scope, ttl: STEP_UP_TTL)
+      Actor.install_context!(step_up: step_up) if defined?(Actor)
+      step_up.satisfied?
     end
 
     def require_step_up!(scope:)
@@ -212,32 +203,73 @@ module Verification
         safe_internal_path(request.fullpath.to_s).presence ||
         "/"
       safe_path = unwrap_verification_return_to_path(safe_path)
-      Base64.urlsafe_encode64(safe_path)
+      issue_step_up_rt(safe_path)
     end
 
     def encoded_relative_return_to(path)
-      safe_path = safe_internal_path(path.to_s)
-      Base64.urlsafe_encode64(safe_path.presence || "/")
+      safe_path = safe_internal_path(path.to_s).presence || "/"
+      issue_step_up_rt(safe_path)
+    end
+
+    def issue_step_up_rt(safe_path)
+      surface = bootstrap_return_target_surface
+      session_nonce = bootstrap_return_target_session_nonce
+      return nil if surface.blank? || session_nonce.blank?
+
+      ReturnTargetToken.issue(
+        return_to: safe_path,
+        flow: bootstrap_return_target_flow,
+        surface: surface,
+        session_nonce: session_nonce,
+        request: request,
+      )
+    rescue ReturnTargetToken::Invalid
+      nil
     end
 
     def bootstrap_return_path(default_path)
-      encoded = request.parameters["rt"].to_s
-      return default_path if encoded.blank?
-
-      decoded = Base64.urlsafe_decode64(encoded)
-      safe_internal_path(decoded).presence || default_path
-    rescue ArgumentError, URI::InvalidURIError
-      default_path
+      resolve_step_up_rt(request.parameters["rt"]) || default_path
     end
 
-    def decode_return_to_path(encoded)
+    def resolve_step_up_rt(encoded)
       encoded = encoded.to_s
       return nil if encoded.blank?
 
-      decoded = Base64.urlsafe_decode64(encoded)
-      safe_internal_path(decoded).presence
-    rescue ArgumentError, URI::InvalidURIError
-      nil
+      signed = signed_rt_to_safe_path(encoded)
+      signed.presence
+    end
+
+    def signed_rt_to_safe_path(token)
+      surface = bootstrap_return_target_surface
+      return nil if surface.blank?
+
+      ReturnTargetToken.verified_return_to(
+        token,
+        expected_flow: bootstrap_return_target_flow,
+        expected_surface: surface,
+        session_nonce: bootstrap_return_target_session_nonce,
+        request: request,
+      )
+    end
+
+    def bootstrap_return_target_flow
+      "step_up.bootstrap"
+    end
+
+    def bootstrap_return_target_session_nonce
+      current_session_token&.public_id.to_s
+    end
+
+    def bootstrap_return_target_surface
+      case self.class.name
+      when /::App::/ then "app"
+      when /::Com::/ then "com"
+      when /::Org::/ then "org"
+      end
+    end
+
+    def decode_return_to_path(encoded)
+      resolve_step_up_rt(encoded)
     end
 
     def setup_return_to_path(encoded, root_path:)
@@ -254,12 +286,7 @@ module Verification
 
     def existing_step_up_return_to_path
       encoded = params[:rt].presence || params[:return_to].presence
-      return if encoded.blank?
-
-      decoded = Base64.urlsafe_decode64(encoded.to_s)
-      safe_internal_path(decoded)
-    rescue ArgumentError, URI::InvalidURIError
-      nil
+      resolve_step_up_rt(encoded)
     end
 
     def unwrap_verification_return_to_path(path)
@@ -273,15 +300,14 @@ module Verification
         encoded = query["rt"].presence || query["return_to"].presence
         break if encoded.blank?
 
-        decoded = Base64.urlsafe_decode64(encoded.to_s)
-        nested_path = safe_internal_path(decoded)
+        nested_path = resolve_step_up_rt(encoded)
         break if nested_path.blank? || nested_path == safe_path
 
         safe_path = nested_path
       end
 
       safe_path
-    rescue ArgumentError, URI::InvalidURIError
+    rescue URI::InvalidURIError
       safe_path
     end
 
@@ -317,7 +343,7 @@ module Verification
     def available_step_up_methods(actor = current_actor)
       return @available_step_up_methods if actor.nil? && defined?(@available_step_up_methods)
 
-      result = ::StepUp::AvailableMethods.call(actor, ticket: current_step_up_ticket) & step_up_supported_methods
+      result = resolved_step_up_methods(actor).available
       @available_step_up_methods = result if actor.nil?
       result
     end
@@ -325,9 +351,17 @@ module Verification
     def configured_step_up_methods(actor = current_actor)
       return @configured_step_up_methods if actor.nil? && defined?(@configured_step_up_methods)
 
-      result = ::StepUp::ConfiguredMethods.call(actor) & step_up_supported_methods
+      result = resolved_step_up_methods(actor).configured
       @configured_step_up_methods = result if actor.nil?
       result
+    end
+
+    def resolved_step_up_methods(actor)
+      ::StepUp::MethodsResolver.call(
+        actor: actor,
+        ticket: current_step_up_ticket,
+        supported_methods: step_up_supported_methods,
+      )
     end
 
     def step_up_bootstrap_unconfigured?(actor = current_actor)

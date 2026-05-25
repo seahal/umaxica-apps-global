@@ -19,12 +19,7 @@ module Sign
     end
 
     def verification_recent?(scope:, ttl:)
-      token = actor_token_for_verification
-      return false unless token&.last_step_up_at
-
-      return false if scope.present? && token.last_step_up_scope != scope
-
-      token.last_step_up_at >= ttl.ago
+      StepUp::Resolver.call(token: actor_token_for_verification, scope: scope, ttl: ttl).satisfied?
     end
 
     def actor_token_for_verification

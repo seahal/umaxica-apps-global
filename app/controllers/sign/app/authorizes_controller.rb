@@ -7,7 +7,7 @@ module Sign
       before_action :authenticate!
 
       def show
-        access_claims = Actor.authentication.access_claims
+        access_claims = Actor.authn.access_claims
         amr = access_claims&.dig("amr")
         result = ::Oidc::AuthorizeService.call(
           params: authorize_params,

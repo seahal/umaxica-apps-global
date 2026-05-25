@@ -23,12 +23,14 @@ Regional content delivery is handled by a separate repository.
 
 ### Controllers
 
-Controllers should inherit from the semantic boundary base that matches the request contract:
+Controllers should use the current two-base lifecycle split:
 
-- `OpenController`
-- `BareController`
-- `PrivateController`
-- `GuestController`
+- `BareController` for endpoints that do not use application authentication machinery.
+- Surface-local `ApplicationController` for authentication-aware endpoints.
+
+`OpenController`, `PrivateController`, and `GuestController` are legacy compatibility wrappers.
+Authentication classification must be explicit concrete controller/action metadata, not controller
+inheritance. Undeclared endpoints fail closed as `:deny_all`.
 
 Surface behavior must remain local unless an existing shared concern explicitly abstracts it.
 

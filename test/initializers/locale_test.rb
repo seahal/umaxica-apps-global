@@ -52,7 +52,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       assert_equal "Submitting...", I18n.t("apex.app.preferences.submitting")
       assert_equal "Region & Language Settings", I18n.t("apex.app.preferences.region_settings")
       assert_equal "Back to Preferences", I18n.t("apex.app.preferences.back_to_settings")
-      assert_equal "Japanese", I18n.t("languages.japanese")
+      assert_equal "日本語", I18n.t("languages.japanese")
       assert_equal "English", I18n.t("languages.english")
     end
   end
@@ -135,6 +135,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       assert_equal "Reduced motion", I18n.t("apex.app.preference.motion.options.reduced")
       assert_equal "Compact density", I18n.t("apex.app.preference.density.options.compact")
       assert_equal "50 items", I18n.t("apex.app.preference.items_per_page.options.50")
+      assert_equal "Infinite items", I18n.t("apex.app.preference.items_per_page.options.infinity")
     end
 
     I18n.with_locale(:ja) do
@@ -144,6 +145,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       assert_equal "控えめなモーション", I18n.t("apex.app.preference.motion.options.reduced")
       assert_equal "コンパクト", I18n.t("apex.app.preference.density.options.compact")
       assert_equal "50件", I18n.t("apex.app.preference.items_per_page.options.50")
+      assert_equal "無制限", I18n.t("apex.app.preference.items_per_page.options.infinity")
     end
   end
 

@@ -15,6 +15,9 @@ module Sign
         before_action only: %i(new create) do
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
+        before_action only: %i(edit update destroy) do
+          require_step_up!(scope: verification_scope)
+        end
 
         def index
           @totps = current_client.client_one_time_passwords

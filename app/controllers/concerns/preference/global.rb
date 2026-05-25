@@ -6,9 +6,10 @@ module Preference::Global
   include Preference::Base
   include Preference::Localization
 
+  PUBLIC_CONTEXT_KEYS = RequestContext::Contract.public_keys
   PARAM_CONTEXT_KEYS = %i(ri lx ct tz).freeze
   OPTIONAL_PARAM_KEYS = %i(lx ct tz).freeze
-  ALLOWED_REGION_VALUES = %w(jp us).freeze
+  ALLOWED_REGION_VALUES = RequestContext::Contract.allowed_regions
 
   DEFAULT_CONTEXT =
     Preference::Constants::DEFAULT_PREFERENCES
@@ -39,16 +40,14 @@ module Preference::Global
   end
 
   def requested_context
-    @requested_context ||=
-      PARAM_CONTEXT_KEYS.each_with_object({}) do |key, memo|
-        raw_value = params[key].presence
-        next if raw_value.blank?
+    request_context.slice(*PARAM_CONTEXT_KEYS)
+  end
 
-        normalized_value = raw_value.to_s.downcase
-        next unless valid_requested_context_value?(key, normalized_value)
-
-        memo[key] = normalized_value
-      end
+  def request_context
+    PUBLIC_CONTEXT_KEYS.each_with_object({}) do |key, memo|
+      value = request_context_value(key)
+      memo[key] = value if value.present?
+    end
   end
 
   def cookie_context
@@ -132,7 +131,26 @@ module Preference::Global
   end
 
   def normalized_param_ri
-    params[:ri].presence&.to_s&.downcase
+    request_context_ri
+  end
+
+  def request_context_value(key)
+    key = key.to_sym
+    return unless PUBLIC_CONTEXT_KEYS.include?(key)
+
+    raw_value = params[key].presence
+    return if raw_value.blank?
+
+    normalized_value = RequestContext::Contract.normalize(key, raw_value)
+    return unless valid_requested_context_value?(key, normalized_value)
+
+    normalized_value
+  end
+
+  PUBLIC_CONTEXT_KEYS.each do |key|
+    define_method(:"request_context_#{key}") do
+      request_context_value(key)
+    end
   end
 
   def valid_ri_value?(value)

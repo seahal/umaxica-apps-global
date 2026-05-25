@@ -22,7 +22,12 @@ module Jump::ToRedirector
 
     # Validate destination URL against allowlist
     unless validate_destination_url!(destination_url)
-      Rails.logger.info(LogEvent.format("redirect.blocked", host: extract_host(destination_url), public_id: params[:public_id]))
+      Rails.logger.info(
+        LogEvent.format(
+          "redirect.blocked", host: extract_host(destination_url),
+                              public_id: params[:public_id],
+        ),
+      )
       return render_not_found
     end
 
@@ -49,6 +54,7 @@ module Jump::ToRedirector
 
     # Reject non-http(s) schemes
     return false unless uri.scheme&.downcase&.in?(%w(http https))
+    return false if uri.userinfo.present?
 
     # Validate host against allowlist
     allowed_jump_host?(uri)
@@ -64,13 +70,43 @@ module Jump::ToRedirector
 
   # Check if the URI's host is in the allowed list
   def allowed_jump_host?(uri)
-    allowed_hosts.include?(uri.host&.downcase)
+    allowed_hosts.include?(normalized_destination_host(uri))
   end
 
   # Returns list of allowed hosts for jump redirects
   def allowed_hosts
     # Use JUMP_ALLOWED_HOSTS env var (comma-separated) or fallback to empty array
-    hosts = ENV.fetch("JUMP_ALLOWED_HOSTS", "").split(",").map { |x| x.strip.downcase }
+    hosts =
+      ENV.fetch("JUMP_ALLOWED_HOSTS", "").split(",").filter_map do |value|
+        normalize_allowed_host(value)
+      end
     hosts.compact_blank
+  end
+
+  def normalize_allowed_host(value)
+    raw = value.to_s.strip
+    return if raw.blank?
+
+    uri = URI.parse(raw.include?("://") ? raw : "https://#{raw}")
+    return if uri.host.blank?
+
+    normalized_destination_host(uri)
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  def normalized_destination_host(uri)
+    host = uri.host&.downcase
+    return if host.blank?
+
+    default_port =
+      if uri.scheme == "https"
+        443
+      else
+        80
+      end
+    return host if uri.port.blank? || uri.port == default_port
+
+    "#{host}:#{uri.port}"
   end
 end

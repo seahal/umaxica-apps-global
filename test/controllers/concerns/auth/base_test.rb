@@ -7,6 +7,8 @@ require "test_helper"
 
 module Auth
   class BaseTest < ActiveSupport::TestCase
+    fixtures_none!
+
     class HeaderKeyHarness
       class MockCookies
         delegate :[], to: :@store
@@ -144,8 +146,8 @@ module Auth
         query.any? ? "#{path}?#{query.join("&")}" : path
       end
 
-      def sign_app_welcome_path(id = "post_auth", ri: nil, rt: nil)
-        path = "/welcomes/#{id}"
+      def sign_app_welcome_path(_id = "post_auth", ri: nil, rt: nil)
+        path = "/welcome"
         query = []
         query << "ri=#{ri}" if ri.present?
         query << "rt=#{rt}" if rt.present?
@@ -290,11 +292,11 @@ module Auth
       harness = HeaderKeyHarness.new
       harness.resource = ResourceStub.new(42)
       Actor.tld = :app
-      Actor.authentication = Actor::Authentication.new(amr: ["email_otp"])
+      Actor.install_context!(authn: Actor::Authentication.new(amr: ["email_otp"]))
 
       unsafe_result = harness.send(
         :begin_sign_in_sequence!,
-        rt: Base64.urlsafe_encode64("https://evil.example/phish", padding: false),
+        rt: "https://evil.example/phish",
         checkpoint_required: true,
       )
 
@@ -302,14 +304,16 @@ module Auth
       assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("rt")
       assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
 
-      safe_rt = Base64.urlsafe_encode64("/configuration", padding: false)
-      safe_result = harness.send(:begin_sign_in_sequence!, rt: safe_rt, checkpoint_required: true)
+      safe_result = harness.send(:begin_sign_in_sequence!, rt: "/configuration", checkpoint_required: true)
 
       assert_equal :success, safe_result.status
-      assert_equal safe_rt, harness.session.fetch(:app_sign_in_sequence).fetch("rt")
-      assert_equal safe_rt, harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
+      stored_rt = harness.session.fetch(:app_sign_in_sequence).fetch("rt")
+      stored_safe_return_path = harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
 
-      welcome_rt = Base64.urlsafe_encode64("/welcomes/post_auth?ri=jp", padding: false)
+      assert_equal "/configuration", harness.safe_path_from_encoded_rt(stored_rt, fallback: "/")
+      assert_equal "/configuration", harness.safe_path_from_encoded_rt(stored_safe_return_path, fallback: "/")
+
+      welcome_rt = "/welcome?ri=jp"
       welcome_result = harness.send(:begin_sign_in_sequence!, rt: welcome_rt, checkpoint_required: true)
 
       assert_equal :success, welcome_result.status
@@ -320,7 +324,7 @@ module Auth
     end
 
     test "checkpoint continuation uses db-backed sign-in cycle when locator is present" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
@@ -329,12 +333,19 @@ module Auth
       harness.send(:continue_checkpoint_sequence_without_content!)
 
       assert_predicate cycle.reload, :sign_in_dashboard_pending?
-      assert_equal ["/welcomes/post_auth?rt=/after", {}], harness.redirected
+      redirected = URI.parse(harness.redirected.first)
+
+      assert_equal "/welcome", redirected.path
+      assert_equal "/after",
+                   harness.safe_path_from_encoded_rt(
+                     Rack::Utils.parse_query(redirected.query).fetch("rt"),
+                     fallback: "/",
+                   )
       assert_equal 5, harness.session[:app_sign_in_welcome]["remaining"]
     end
 
     test "checkpoint continuation can carry dashboard as rt" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       cycle.update!(return_to: "/dashboard?ri=jp")
@@ -344,11 +355,18 @@ module Auth
       harness.send(:continue_checkpoint_sequence_without_content!)
 
       assert_predicate cycle.reload, :sign_in_dashboard_pending?
-      assert_equal ["/welcomes/post_auth?rt=/dashboard?ri=jp", {}], harness.redirected
+      redirected = URI.parse(harness.redirected.first)
+
+      assert_equal "/welcome", redirected.path
+      assert_equal "/dashboard?ri=jp",
+                   harness.safe_path_from_encoded_rt(
+                     Rack::Utils.parse_query(redirected.query).fetch("rt"),
+                     fallback: "/",
+                   )
     end
 
     test "checkpoint continuation keeps blocking db-backed cycle at checkpoint" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
@@ -363,7 +381,7 @@ module Auth
     end
 
     test "dashboard continuation consumes db-backed return path before rendering welcome page" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
@@ -381,7 +399,7 @@ module Auth
     end
 
     test "dashboard continuation falls back when persisted return path points to dashboard" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       cycle.update!(return_to: "/dashboard?ri=jp")
@@ -398,10 +416,10 @@ module Auth
     end
 
     test "dashboard continuation falls back when resolved return path is welcome" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
-      cycle.update!(return_to: "/welcomes/post_auth?ri=jp")
+      cycle.update!(return_to: "/welcome?ri=jp")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
       harness.send(:issue_welcome_gate_and_path, rt: cycle.return_to, sequence_id: cycle.public_id)
@@ -415,7 +433,7 @@ module Auth
     end
 
     test "dashboard continuation redirects checkpoint-pending cycle back to checkpoint" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
@@ -423,12 +441,19 @@ module Auth
 
       harness.send(:continue_dashboard_sequence_without_content!)
 
-      assert_equal ["/sign/in/checkpoint?rt=/after", {}], harness.redirected
+      redirected = URI.parse(harness.redirected.first)
+
+      assert_equal "/sign/in/checkpoint", redirected.path
+      assert_equal "/after",
+                   harness.safe_path_from_encoded_rt(
+                     Rack::Utils.parse_query(redirected.query).fetch("rt"),
+                     fallback: "/",
+                   )
       assert_predicate cycle.reload, :sign_in_checkpoint_pending?
     end
 
     test "dashboard continuation requires dashboard policy before advancing" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
@@ -444,7 +469,7 @@ module Auth
     end
 
     test "db-backed sequence rejects wrong participant without advancing" do
-      user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+      user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
@@ -557,23 +582,25 @@ module Auth
       harness = HeaderKeyHarness.new
       harness.params = { rt: "/target" }
 
-      assert_equal "/target", harness.preserve_redirect_parameter
-      assert_equal "/target", harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
-      assert_equal "/target", harness.peek_redirect_parameter
-      assert_equal({ notice: "ok", rt: "/target" }, harness.build_notice_params("ok"))
-      assert_equal({ alert: "ng", rt: "/target" }, harness.build_alert_params("ng"))
-      assert_equal "/target", harness.retrieve_redirect_parameter
+      result = harness.preserve_redirect_parameter
+
+      assert_equal "/target", harness.safe_path_from_encoded_rt(result, fallback: "/")
+      assert_equal result, harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
+      assert_equal "/target", harness.safe_path_from_encoded_rt(harness.peek_redirect_parameter, fallback: "/")
+      assert_equal "/target", harness.safe_path_from_encoded_rt(harness.build_notice_params("ok")[:rt], fallback: "/")
+      assert_equal "/target", harness.safe_path_from_encoded_rt(harness.build_alert_params("ng")[:rt], fallback: "/")
+      assert_equal "/target", harness.safe_path_from_encoded_rt(harness.retrieve_redirect_parameter, fallback: "/")
       assert_nil harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
     end
 
     test "redirect_with_rt_handling uses rt jump when present and fallback redirect otherwise" do
       harness = HeaderKeyHarness.new
-      harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = "/encoded"
+      harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = harness.safe_encoded_rt("/encoded")
 
       harness.redirect_with_rt_handling("/default", :notice, "done")
 
       assert_equal "done", harness.flash[:notice]
-      assert_equal ["/encoded", "/default"], harness.jumped
+      assert_equal ["/encoded", { allow_other_host: false }], harness.redirected
 
       harness.redirect_with_rt_handling("/default", :alert, "warn")
 
@@ -634,6 +661,25 @@ module Auth
     end
 
     private
+
+    def create_db_sequence_client
+      ClientStatus.ensure_defaults!
+      ClientVisibility.ensure_defaults!
+      ClientMultiFactor.ensure_defaults!
+      ClientMultiFactorStatus.ensure_defaults!
+      ClientTokenBindingMethod.ensure_defaults!
+      ClientTokenDbscStatus.ensure_defaults!
+      ClientTokenKind.ensure_defaults!
+      ClientTokenStatus.ensure_defaults!
+
+      Client.create!(
+        public_id: "u_#{SecureRandom.hex(8)}",
+        status_id: ClientStatus::ACTIVE,
+        visibility_id: ClientVisibility::USER,
+        multi_factor_id: ClientMultiFactor::NOTHING,
+        multi_factor_status_id: ClientMultiFactorStatus::UNCONFIGURED,
+      )
+    end
 
     def db_sequence_harness(user, token)
       HeaderKeyHarness.new.tap do |harness|

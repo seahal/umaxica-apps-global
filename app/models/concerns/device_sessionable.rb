@@ -32,21 +32,22 @@ module DeviceSessionable
 
   def revoke!(reason: "user_logout")
     now = Time.current
-    update_columns(
+    update!(
       status_id: STATUS_REVOKED,
       revoked_at: revoked_at || now,
       revoke_reason: reason,
-      updated_at: now,
     )
   end
 
   def bind_dbsc!(session_id:, public_key_thumbprint: nil)
+    # rubocop:disable Rails/SkipsModelValidations
     update_columns(
       dbsc_session_id_digest: self.class.digest_device_id(session_id),
       dbsc_public_key_thumbprint: public_key_thumbprint,
       dbsc_bound_at: Time.current,
       updated_at: Time.current,
     )
+    # rubocop:enable Rails/SkipsModelValidations
   end
 
   private

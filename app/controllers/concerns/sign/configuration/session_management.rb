@@ -39,12 +39,14 @@ module Sign
         return if require_step_up!(scope: "session_revoke_all") == false
 
         session_count = visible_sessions.count
-        Rails.logger.info(LogEvent.format(
-          "security.session_revoke_all",
-          actor_type: current_resource.class.name,
-          actor_id: current_resource.id,
-          session_count: session_count,
-        ))
+        Rails.logger.info(
+          LogEvent.format(
+            "security.session_revoke_all",
+            actor_type: current_resource.class.name,
+            actor_id: current_resource.id,
+            session_count: session_count,
+          ),
+        )
         logout_all_sessions_for!(resource: session_owner, reason: revoke_all_reason)
         render_revoke_all_success
       end

@@ -34,9 +34,11 @@ module Sign
 
       def destroy
         rt = params[:rt].presence
+        destination = safe_path_from_encoded_rt(rt, fallback: nil) if rt.present?
 
         logout_current_session!(reason: "app_user_logout")
-        return safe_redirect_to_rt_or_default!(rt, default_path: sign_app_root_path(ri: params[:ri])) if rt.present?
+        return render_invalid_return_target! if rt.present? && destination.blank?
+        return redirect_to_return_target_destination!(destination) if destination.present?
 
         render :show
       end

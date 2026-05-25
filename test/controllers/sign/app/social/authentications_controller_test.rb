@@ -33,7 +33,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     post continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp"),
          params: {
            entry: "sign_up",
-           rt: Base64.urlsafe_encode64("/after-social"),
+           rt: "/after-social",
          }
 
     assert_response :redirect

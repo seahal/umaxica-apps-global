@@ -22,12 +22,14 @@ module SocialAuth
 
       identity ? login_existing_identity(identity) : login_new_identity
     rescue ActiveRecord::RecordNotUnique => e
-      Rails.logger.info(LogEvent.format(
-        "social_auth.race_condition",
-        provider: provider,
-        uid: uid,
-        error: e.message,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "social_auth.race_condition",
+          provider: provider,
+          uid: uid,
+          error: e.message,
+        ),
+      )
       raise ConflictError.new("errors.social_auth.identity_conflict")
     end
 
@@ -147,7 +149,12 @@ module SocialAuth
       if status.present?
         user.multi_factor_status_id = status.id
       else
-        Rails.logger.error(LogEvent.format("social_auth.default_reference.missing", reference: "user_multi_factor_status"))
+        Rails.logger.error(
+          LogEvent.format(
+            "social_auth.default_reference.missing",
+            reference: "user_multi_factor_status",
+          ),
+        )
       end
     end
 

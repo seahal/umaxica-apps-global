@@ -10,11 +10,8 @@ module Sign
           include ::Verification::Client
 
           before_action :authenticate_client!
-          before_action only: %i(new create) do
+          before_action only: %i(new create edit update) do
             require_step_up_unless_bootstrap!(scope: verification_scope)
-          end
-          before_action only: %i(edit update) do
-            require_step_up!(scope: verification_scope)
           end
 
           private

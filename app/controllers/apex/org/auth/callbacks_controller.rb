@@ -7,6 +7,8 @@ module Apex
       class CallbacksController < Apex::Org::OpenController
         include ::Oidc::Callback
 
+        skip_before_action :set_region, raise: false
+
         private
 
         def oidc_client_id

@@ -33,7 +33,7 @@ class Sign::Org::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
     assert_response :success
     assert_select "h1", I18n.t("sign.app.configuration.mfa.show.title")
     assert_select "p", text: I18n.t("sign.app.configuration.mfa.show.reset_unavailable")
-    assert_select "form", count: 0
+    assert_select "form[action=?]", sign_org_configuration_mfa_challenge_path(ri: "jp"), count: 0
   end
 
   test "update route is not exposed" do

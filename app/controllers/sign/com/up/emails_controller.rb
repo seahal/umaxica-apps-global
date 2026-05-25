@@ -324,14 +324,7 @@ module Sign
         end
 
         def sanitized_rt_param
-          encoded = redirect_parameter_value
-          return if encoded.blank?
-
-          decoded_url = Base64.urlsafe_decode64(encoded)
-          safe_path = safe_internal_path(decoded_url)
-          Base64.urlsafe_encode64(safe_path) if safe_path
-        rescue ArgumentError, URI::InvalidURIError
-          nil
+          safe_encoded_rt(redirect_parameter_value)
         end
 
         def strip_visitor_owner_errors!
@@ -386,7 +379,7 @@ module Sign
               pending_contact_type: "email",
               pending_contact_id: email.id,
             )
-            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authentication)
+            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
           end
           session[:sign_com_up_sequence_id] = cycle.public_id
         end
@@ -397,7 +390,7 @@ module Sign
 
           result =
             ComTicketRecord.connected_to(role: :writing) do
-              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authentication)
+              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
             end
           result.status == :advanced
         end
@@ -407,12 +400,7 @@ module Sign
         end
 
         def sanitized_return_to
-          encoded_url = params[:rt].presence
-          return if encoded_url.blank?
-
-          safe_internal_path(Base64.urlsafe_decode64(encoded_url))
-        rescue ArgumentError, URI::InvalidURIError
-          nil
+          safe_path_from_encoded_rt(params[:rt].presence, fallback: nil)
         end
       end
     end

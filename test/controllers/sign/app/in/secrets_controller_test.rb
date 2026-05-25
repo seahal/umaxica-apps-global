@@ -114,7 +114,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_dashboard_path(ri: "jp")
+    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
     assert_not_equal old_session_id, session.id
   end
 
@@ -126,7 +126,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_dashboard_path(ri: "jp")
+    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
   end
 
   test "secret sign-in redirects to MFA challenge for weak method when MFA is enabled" do
@@ -239,7 +239,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_dashboard_path(ri: "jp")
+    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
     assert_equal 0, one_time_secret.reload.uses_remaining
     assert_equal ClientSecretStatus::USED, one_time_secret.user_secret_status_id
 
@@ -309,7 +309,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_dashboard_path(ri: "jp")
+    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
     assert_not_nil session.id
   end
 
@@ -573,8 +573,10 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.handle_successful_mfa(@user, secret)
 
-    assert_equal ["/dashboard?ri=jp&rt=%2Fafter", { notice: "sign.app.authentication.secret.create.success" }],
-                 redirects.last
+    assert_match %r{\A/welcome\?}, redirects.last.first
+    assert_includes redirects.last.first, "ri=jp"
+    assert_includes redirects.last.first, "rt="
+    assert_equal({ notice: "sign.app.authentication.secret.create.success" }, redirects.last.second)
 
     controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :unexpected } }
     controller.handle_successful_mfa(@user, secret)
@@ -609,6 +611,6 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.process_standard_login(@user)
 
-    assert_equal ["/dashboard?ri=jp", { notice: "sign.app.authentication.secret.create.success" }], redirects.last
+    assert_equal ["/welcome?ri=jp", { notice: "sign.app.authentication.secret.create.success" }], redirects.last
   end
 end

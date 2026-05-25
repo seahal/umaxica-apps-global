@@ -38,7 +38,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
 
     context = controller.requested_context
 
-    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "utc" }, context)
+    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "UTC" }, context)
   end
 
   test "requested_context ignores unsupported lx values" do
@@ -68,7 +68,54 @@ class Preference::GlobalTest < ActiveSupport::TestCase
 
     context = controller.requested_context
 
-    assert_equal({ ri: "jp", ct: "dr", tz: "utc" }, context)
+    assert_equal({ ri: "jp", ct: "dr", tz: "UTC" }, context)
+  end
+
+  test "request_context exposes all public request context keys through one safe reader" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(
+      ri: "US",
+      rt: "opaque-token",
+      lx: "EN",
+      ct: "DR",
+      tz: "Asia/Tokyo",
+      cu: "JPY",
+      df: "ISO",
+      tf: "Hour_24",
+      mo: "Reduced",
+      dn: "Compact",
+      pp: "50",
+      bad: "value",
+    )
+
+    assert_equal(
+      {
+        ri: "us",
+        rt: "opaque-token",
+        lx: "en",
+        ct: "dr",
+        tz: "Asia/Tokyo",
+        cu: "jpy",
+        df: "iso",
+        tf: "hour_24",
+        mo: "reduced",
+        dn: "compact",
+        pp: "50",
+      },
+      controller.request_context,
+    )
+    assert_equal "us", controller.send(:request_context_ri)
+    assert_equal "opaque-token", controller.send(:request_context_rt)
+    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "Asia/Tokyo" }, controller.requested_context)
+  end
+
+  test "request_context omits invalid public request context values" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(ri: "ca", lx: "kr", ct: "purple", tz: "Mars/Base", rt: "")
+
+    assert_empty controller.request_context
   end
 
   test "effective_context re-reads preference context after payload changes" do
@@ -90,7 +137,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
     controller.request = ActionDispatch::TestRequest.create
     controller.params = ActionController::Parameters.new(ri: "us", lx: "EN", ct: "DR", tz: "UTC")
 
-    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "utc" }, controller.default_url_options)
+    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "UTC" }, controller.default_url_options)
   end
 
   test "get_region uses persisted context when ri is missing" do

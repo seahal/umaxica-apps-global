@@ -1552,6 +1552,7 @@ ja:
             "20": 20件
             "50": 50件
             "100": 100件
+            infinity: 無制限
         date_format:
           edit:
             heading: 日付形式

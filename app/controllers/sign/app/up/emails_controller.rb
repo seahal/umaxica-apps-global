@@ -171,16 +171,7 @@ module Sign
         end
 
         def sanitize_encoded_redirect(encoded_url)
-          return if encoded_url.blank?
-
-          decoded_url = Base64.urlsafe_decode64(encoded_url)
-          safe_path = safe_internal_path(decoded_url)
-
-          if safe_path
-            Base64.urlsafe_encode64(safe_path)
-          end
-        rescue ArgumentError, URI::InvalidURIError
-          nil
+          safe_encoded_rt(encoded_url)
         end
 
         def valid_email_session?
@@ -250,10 +241,12 @@ module Sign
         def log_signup_email_errors
           return unless @user_email&.errors&.any?
 
-          Rails.logger.warn(LogEvent.format(
-            "sign.signup.email.validation_failed",
-            errors: @user_email.errors.full_messages,
-          ))
+          Rails.logger.warn(
+            LogEvent.format(
+              "sign.signup.email.validation_failed",
+              errors: @user_email.errors.full_messages,
+            ),
+          )
         end
 
         def strip_user_owner_errors!
@@ -308,7 +301,7 @@ module Sign
               pending_contact_type: "email",
               pending_contact_id: email.id,
             )
-            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authentication)
+            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
           end
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
@@ -319,16 +312,18 @@ module Sign
 
           result =
             AppTicketRecord.connected_to(role: :writing) do
-              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authentication)
+              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
             end
           return if result.status == :advanced
 
-          Rails.logger.warn(LogEvent.format(
-            "sign.signup.email.sequence_advance_failed",
-            cycle_id: cycle.public_id,
-            result_status: result.status,
-            errors: result.errors,
-          ))
+          Rails.logger.warn(
+            LogEvent.format(
+              "sign.signup.email.sequence_advance_failed",
+              cycle_id: cycle.public_id,
+              result_status: result.status,
+              errors: result.errors,
+            ),
+          )
         end
 
         def sign_up_cycle_locator
@@ -336,12 +331,7 @@ module Sign
         end
 
         def sanitized_return_to
-          encoded_url = params[:rt].presence
-          return if encoded_url.blank?
-
-          safe_internal_path(Base64.urlsafe_decode64(encoded_url))
-        rescue ArgumentError, URI::InvalidURIError
-          nil
+          safe_path_from_encoded_rt(params[:rt].presence, fallback: nil)
         end
       end
     end

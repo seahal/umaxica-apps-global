@@ -4,5 +4,13 @@
 class Sign::Org::Preference::Display::ItemsPerPagesController < Sign::Org::PreferencesBaseController
   include ::Preference::SignScreenActions
 
-  preference_screen :items_per_page
+  before_action :ensure_preferences_record
+
+  def edit
+    edit_selectable_preference_screen(:items_per_page)
+  end
+
+  def update
+    update_selectable_preference_screen(:items_per_page)
+  end
 end

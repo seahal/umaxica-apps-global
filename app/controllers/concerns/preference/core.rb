@@ -474,16 +474,18 @@ module Preference::Core
   end
 
   def record_preference_write_error(event_name, error, target:)
-    Rails.logger.info(LogEvent.format(
-      event_name,
-      error: error.class.name,
-      message: error.message,
-      preference_type: preference_class.name,
-      target: target.to_s,
-      surface: preference_surface_key,
-      owner_id: preference_write_owner_id,
-      request_id: request.request_id,
-    ))
+    Rails.logger.info(
+      LogEvent.format(
+        event_name,
+        error: error.class.name,
+        message: error.message,
+        preference_type: preference_class.name,
+        target: target.to_s,
+        surface: preference_surface_key,
+        owner_id: preference_write_owner_id,
+        request_id: request.request_id,
+      ),
+    )
   end
 
   def preference_write_owner_id

@@ -2,16 +2,18 @@
 
 ## Status
 
-Superseded by `plans/active/controller-boundary-lifecycle-unification.md`.
+Historical. Superseded by `plans/active/controller-boundary-lifecycle-unification.md`, which was
+itself deprecated by the 2026-05-24 emergency controller-boundary direction.
 
-This file remains as historical flag-retirement inventory only. Do not use it as the active plan.
+This file remains as historical flag-retirement inventory only. Do not use it as the active plan,
+and do not use it to justify four-way controller inheritance.
 
 ## Context
 
-`adr/static-and-guest-controller-boundaries.md` accepts `OpenController`, `BareController`,
+`adr/static-and-guest-controller-boundaries.md` used to accept `OpenController`, `BareController`,
 `PrivateController`, and `GuestController` as the controller-boundary names for access semantics.
-This plan tracks the remaining work to retire legacy static-style and guest-only endpoint-local
-flags.
+That ADR is now deprecated. This plan is retained only as historical context for legacy static-style
+and guest-only endpoint-local flags.
 
 The codebase is still transitional. Some controllers still declare boundary behavior with local
 flags such as `public_strict!` and `guest_only!`, and compatibility bases such as `PublicController`
@@ -19,7 +21,8 @@ and `StaticController` may remain while the rename is in progress.
 
 ## Intent
 
-Finish the base-class migration so controller inheritance expresses the boundary contract:
+The historical intent was to finish the base-class migration so controller inheritance expressed the
+boundary contract:
 
 - `BareController` inheritance means the endpoint does not need endpoint-local `public_strict!`.
 - `GuestController` inheritance means the endpoint does not need endpoint-local `guest_only!`.

@@ -191,9 +191,9 @@ migration Check manually. Cannot be uploaded to CI (takes time).
 
 **test:**
 
-- `VerificationsController` integration test for each surface shows all 9 scopes `BadRequest` to
-  `/verification?scope=X&rt=...` Make sure to properly start the step-up session without issuing the
-  .
+- `VerificationsController` integration test for each surface shows all 9 catalog scopes are
+  accepted only when the return-target token is valid for the current session, surface, and flow.
+  Invalid or mismatched `rt` must not start a reusable step-up continuation.
 - Added one integration test for session destruction route including `session_revoke_all`.
 
 ---
@@ -307,16 +307,19 @@ completed, `params[:rt]` X' redirect according to
 5. `app/controllers/sign/org/configuration/passkeys_controller.rb`:
    - Bootstrap exemption is only passkey.
    - org's email registration controllers **does not exempt bootstrap** (`require_step_up!` only).
-6. Put the common helper in `Verification::Base` or a new concern:
+6. Put the common helper in `Verification::Base` or a new concern. It must validate `rt` through the
+   return-target token primitive; do not decode raw Base64 paths:
 
    ```ruby
    def bootstrap_return_path(default_path)
-     rt = params[:rt].to_s
-     return default_path if rt.blank?
+     return_target = ReturnTargetToken.resolve(
+       params[:rt],
+       session: current_session_public_id,
+       surface: Actor.tld,
+       flow: "step_up_bootstrap",
+     )
 
-     decoded = Base64.urlsafe_decode64(rt) rescue nil
-     safe = safe_internal_path(decoded.to_s)
-     safe.presence || default_path
+     return_target&.path.presence || default_path
    end
    ```
 
@@ -335,8 +338,9 @@ completed, `params[:rt]` X' redirect according to
 
 - `/configuration/passkeys/new` with bootstrap = true(`multi_factor_status_id = 5`) Confirm with
   controller test that it can be inserted into the .
-- In the same situation, after `create` succeeds, redirect to the URL specified by `rt` and set
-  `flash[:notice]`.
+- In the same situation, after `create` succeeds, redirect to the URL specified by a valid,
+  session-bound `rt` and set `flash[:notice]`. Invalid, replayed, cross-surface, or cross-flow `rt`
+  falls back safely.
 - bootstrap = Confirm that the step-up gate fires when trying to enter the same URL with
   false(`multi_factor_status_id = 1`).
 - TOCTOU simulation: Obtain the form with GET, create a credential using another route, and then
@@ -358,7 +362,8 @@ completed, `params[:rt]` X' redirect according to
    - If `step_up_supported_methods - configured_step_up_methods` is empty, `/verification`
      Immediately redirect to (`safe_redirect_to verification_redirect_path(...)`).
    - If it is not empty, only the difference set is packed into `@missing_methods`.
-   - The logic of `@rt = params[:rt]` remains as it is.
+   - Preserve `params[:rt]` only as an opaque return-target token. Do not decode it in the setup
+     controller or view.
 2. view `app/views/sign/{app,com,org}/verification/setups/new.html.erb`:
    - Loop through `@missing_methods` and display only links. telephone ​​Link removed (ADR § Not
      applicable for bootstrap according to E).

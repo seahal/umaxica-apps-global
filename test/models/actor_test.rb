@@ -4,6 +4,8 @@
 require "test_helper"
 
 class ActorTest < ActiveSupport::TestCase
+  fixtures_none!
+
   setup { Actor.reset }
   teardown { Actor.reset }
 
@@ -24,22 +26,41 @@ class ActorTest < ActiveSupport::TestCase
     Actor.account = "account-1"
     Actor.tenant = "tenant-1"
     Actor.tld = :app
-    Actor.authentication = Actor::Authentication.new(
-      login_public_id: "session-1",
-      access_claims: { "sub" => "123" },
+    Actor.install_context!(
+      authn: Actor::Authentication.new(
+        login_public_id: "session-1",
+        access_claims: { "sub" => "123" },
+      ),
     )
-    Actor.preference = preference
+    Actor.install_context!(preferences: preference)
     Actor.trace_id = "trace-1"
     Actor.span_id = "span-1"
 
     assert_equal "account-1", Actor.account
     assert_equal "tenant-1", Actor.tenant
     assert_equal :app, Actor.tld
-    assert_equal "session-1", Actor.authentication.login_public_id
-    assert_equal({ "sub" => "123" }, Actor.authentication.access_claims)
-    assert_equal preference, Actor.preference
+    assert_equal "session-1", Actor.authn.login_public_id
+    assert_equal({ "sub" => "123" }, Actor.authn.access_claims)
+    assert_equal preference, Actor.preferences
     assert_equal "trace-1", Actor.trace_id
     assert_equal "span-1", Actor.span_id
+  end
+
+  test "old authentication and preference compatibility readers are removed" do
+    assert_not_respond_to Actor, :authentication
+    assert_not_respond_to Actor, :authentication=
+    assert_not_respond_to Actor, :preference
+    assert_not_respond_to Actor, :preference=
+  end
+
+  test "install context does not accept old authentication and preference keys" do
+    assert_raises(ArgumentError) do
+      Actor.install_context!(authentication: Actor::Authentication::NULL)
+    end
+
+    assert_raises(ArgumentError) do
+      Actor.install_context!(preference: Actor::Preference::NULL)
+    end
   end
 
   test "whoami aliases actor type" do
@@ -69,12 +90,14 @@ class ActorTest < ActiveSupport::TestCase
   test "clear empties current actor context" do
     Actor.actor = Client.new(id: 123)
     Actor.actor_type = :client
-    Actor.authentication = Actor::Authentication.new(
-      login_public_id: "session-1",
-      access_claims: { "sub" => "123" },
+    Actor.install_context!(
+      authn: Actor::Authentication.new(
+        login_public_id: "session-1",
+        access_claims: { "sub" => "123" },
+      ),
     )
     Actor.configuration = Actor::Configuration.new(foo: "bar")
-    Actor.preference = Actor::Preference.new(language: "en")
+    Actor.install_context!(preferences: Actor::Preference.new(language: "en"))
     Actor.trace_id = "trace-1"
     Actor.span_id = "span-1"
 
@@ -82,20 +105,22 @@ class ActorTest < ActiveSupport::TestCase
 
     assert_same Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
     assert_nil Actor.trace_id
     assert_nil Actor.span_id
   end
 
   test "authentication access claims are recursively frozen" do
-    Actor.authentication = Actor::Authentication.new(
-      access_claims: { "scp" => ["read:self"], "prf" => { "lx" => "ja" } },
+    Actor.install_context!(
+      authn: Actor::Authentication.new(
+        access_claims: { "scp" => ["read:self"], "prf" => { "lx" => "ja" } },
+      ),
     )
 
-    assert_predicate Actor.authentication.access_claims, :frozen?
-    assert_predicate Actor.authentication.access_claims["scp"], :frozen?
-    assert_predicate Actor.authentication.access_claims["prf"], :frozen?
+    assert_predicate Actor.authn.access_claims, :frozen?
+    assert_predicate Actor.authn.access_claims["scp"], :frozen?
+    assert_predicate Actor.authn.access_claims["prf"], :frozen?
   end
 end

@@ -16,7 +16,7 @@ module Sign
       render_error("errors.login_failed", :unprocessable_content)
     end
 
-    def render_passkey_success(result, sign_in_result:)
+    def render_passkey_success(result, _sign_in_result:)
       rt = retrieve_redirect_parameter_for_checkpoint if respond_to?(:retrieve_redirect_parameter_for_checkpoint, true)
       render json: {
         status: "ok",

@@ -71,28 +71,32 @@ module Jit
         def report(context:, host:, header:, payload:, reason:, error:, extra:)
           return if context.blank? || reason.blank?
 
-          Rails.logger.info(LogEvent.format(
-            "jwt.anomaly.detected",
-            {
-              code: "#{context}_#{reason}",
-              context: context,
-              request_host: host,
-              kid: header["kid"],
-              alg: header["alg"],
-              typ: header["typ"] || payload["typ"],
-              iss: payload["iss"],
-              aud: payload["aud"],
-              jti: payload["jti"],
-              error_class: error&.class&.name,
-              error_message: error&.message,
-            }.merge(extra),
-          ))
+          Rails.logger.info(
+            LogEvent.format(
+              "jwt.anomaly.detected",
+              {
+                code: "#{context}_#{reason}",
+                context: context,
+                request_host: host,
+                kid: header["kid"],
+                alg: header["alg"],
+                typ: header["typ"] || payload["typ"],
+                iss: payload["iss"],
+                aud: payload["aud"],
+                jti: payload["jti"],
+                error_class: error&.class&.name,
+                error_message: error&.message,
+              }.merge(extra),
+            ),
+          )
         rescue StandardError => e
-          Rails.logger.error(LogEvent.format(
-            "jwt.anomaly.reporting_failed",
-            error_class: e.class.name,
-            message: e.message,
-          ))
+          Rails.logger.error(
+            LogEvent.format(
+              "jwt.anomaly.reporting_failed",
+              error_class: e.class.name,
+              message: e.message,
+            ),
+          )
         end
 
         private_class_method :auth_context, :preference_context, :report

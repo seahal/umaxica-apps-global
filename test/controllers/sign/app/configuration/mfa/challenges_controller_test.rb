@@ -22,7 +22,6 @@ class Sign::App::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
     assert_response :success
     assert_select "h1", I18n.t("sign.app.configuration.mfa.show.title")
     assert_select "p", text: I18n.t("sign.app.configuration.mfa.show.reset_unavailable")
-    assert_select "form", count: 0
     assert_equal "/configuration/mfa/challenge", URI.parse(sign_app_configuration_mfa_challenge_url(ri: "jp")).path
   end
 

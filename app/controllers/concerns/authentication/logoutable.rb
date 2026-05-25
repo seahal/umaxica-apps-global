@@ -36,6 +36,7 @@ module Authentication
         record_logout_audit(resource)
       ensure
         clear_auth_cookies! if respond_to?(:clear_auth_cookies!, true)
+        Actor.clear if defined?(Actor)
         reset_session
       end
     end
@@ -49,6 +50,7 @@ module Authentication
         record_logout_all_sessions_audit(resource)
       ensure
         clear_auth_cookies! if respond_to?(:clear_auth_cookies!, true)
+        Actor.clear if defined?(Actor)
         reset_session
       end
     end

@@ -158,12 +158,14 @@ module SocialAuthConcern
     last_step_up = current_resource.last_step_up_at
     return unless last_step_up.blank? || last_step_up < ttl.ago
 
-    Rails.logger.info(LogEvent.format(
-      "social_auth.step_up_required",
-      user_id: current_resource.id,
-      last_step_up_at: last_step_up&.iso8601,
-      required_within: Integer(ttl.to_s, 10),
-    ))
+    Rails.logger.info(
+      LogEvent.format(
+        "social_auth.step_up_required",
+        user_id: current_resource.id,
+        last_step_up_at: last_step_up&.iso8601,
+        required_within: Integer(ttl.to_s, 10),
+      ),
+    )
     raise SocialAuth::StepUpRequiredError.new("errors.social_auth.step_up_required")
   end
 
@@ -220,12 +222,14 @@ module SocialAuthConcern
     intent = @social_auth_intent_snapshot || current_social_auth_intent
     provider = @social_auth_provider_snapshot || omniauth_provider
 
-    Rails.logger.info(LogEvent.format(
-      "social_auth.error",
-      error_class: error.class.name,
-      error_message: error.message,
-      status_code: error.status_code,
-    ))
+    Rails.logger.info(
+      LogEvent.format(
+        "social_auth.error",
+        error_class: error.class.name,
+        error_message: error.message,
+        status_code: error.status_code,
+      ),
+    )
 
     respond_to do |format|
       format.html do
@@ -244,10 +248,12 @@ module SocialAuthConcern
     intent = @social_auth_intent_snapshot || current_social_auth_intent
     provider = @social_auth_provider_snapshot || omniauth_provider
 
-    Rails.logger.info(LogEvent.format(
-      "social_auth.record_not_unique",
-      error_message: error.message,
-    ))
+    Rails.logger.info(
+      LogEvent.format(
+        "social_auth.record_not_unique",
+        error_message: error.message,
+      ),
+    )
 
     respond_to do |format|
       format.html do
@@ -277,11 +283,13 @@ module SocialAuthConcern
     return if started_at.blank?
     return if Time.current <= Time.zone.at(Integer(started_at.to_s, 10)) + STATE_TTL
 
-    Rails.logger.info(LogEvent.format(
-      "social_auth.intent_expired",
-      provider: provider,
-      started_at: started_at,
-    ))
+    Rails.logger.info(
+      LogEvent.format(
+        "social_auth.intent_expired",
+        provider: provider,
+        started_at: started_at,
+      ),
+    )
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.state_expired")
   end
 

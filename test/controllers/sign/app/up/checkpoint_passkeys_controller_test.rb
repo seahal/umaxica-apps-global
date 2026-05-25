@@ -211,7 +211,7 @@ module Sign::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      rt = "/welcomes/post_auth?ri=jp"
+      rt = "/welcome?ri=jp"
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {

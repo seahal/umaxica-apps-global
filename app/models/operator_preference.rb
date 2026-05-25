@@ -52,6 +52,30 @@ class OperatorPreference < OrgPrincipalRecord
   has_one :staff_preference_theme, class_name: "OperatorPreferenceTheme", foreign_key: :preference_id,
                                    inverse_of: :preference,
                                    dependent: :destroy
+  has_one :operator_preference_currency,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :operator_preference_date_format,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :operator_preference_time_format,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :operator_preference_motion,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :operator_preference_density,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
+  has_one :operator_preference_items_per_page,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
 
   validates :staff_id, uniqueness: true
   validates :consented, inclusion: { in: [true, false] }

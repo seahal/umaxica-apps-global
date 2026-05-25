@@ -175,6 +175,6 @@ class ApplicationPolicy < ActionPolicy::Base
   end
 
   def current_token
-    Actor.authentication.access_claims
+    Actor.authz.token_claims
   end
 end

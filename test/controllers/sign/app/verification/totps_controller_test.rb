@@ -229,7 +229,7 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_includes response.body, I18n.t("turnstile_error")
   end
 
-  test "POST returns plain error when no usable step-up methods exist" do
+  test "POST redirects to setup when bootstrap and no usable step-up methods exist" do
     StepUp::ConfiguredMethods.stub(:call, []) do
       StepUp::AvailableMethods.stub(:call, []) do
         with_prosopite_paused do
@@ -240,7 +240,7 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       end
     end
 
-    assert_response :unprocessable_content
-    assert_equal I18n.t("auth.step_up.register_methods_required"), response.body
+    assert_response :see_other
+    assert_redirected_to %r{/verification/setup/new}
   end
 end

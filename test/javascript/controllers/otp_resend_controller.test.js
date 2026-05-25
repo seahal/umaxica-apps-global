@@ -44,6 +44,20 @@ describe("OtpResendController", () => {
     vi.useRealTimers();
   });
 
+  test("connect: タイマーを初期化する", () => {
+    controller.connect();
+    expect(controller.remainingSeconds).toBe(0);
+    expect(controller.countdownTimer).toBeNull();
+  });
+
+  test("disconnect: カウントダウンを停止する", () => {
+    controller.remainingSeconds = 5;
+    controller.countdownTimer = setInterval(() => {}, 1000);
+    const spy = vi.spyOn(controller, "stopCountdown");
+    controller.disconnect();
+    expect(spy).toHaveBeenCalled();
+  });
+
   test("resend: 成功時にステータスを更新し、入力をクリアする", async () => {
     vi.stubGlobal(
       "fetch",
@@ -89,5 +103,48 @@ describe("OtpResendController", () => {
     await controller.resend(event);
 
     expect(controller.statusTarget.textContent).toBe("Failed to send");
+  });
+
+  test("resend: カウントダウン中は何もしない", async () => {
+    controller.remainingSeconds = 5;
+    const event = { preventDefault: vi.fn() };
+    await controller.resend(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(controller.statusTarget.textContent).toBe("");
+  });
+
+  test("resend: 200 だが resendable でないとき失敗メッセージを表示する", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ status: 200, json: () => Promise.resolve({ resendable: false }) }),
+    );
+
+    const event = { preventDefault: vi.fn() };
+    await controller.resend(event);
+
+    expect(controller.statusTarget.textContent).toBe("Failed to send");
+  });
+
+  test("resend: fetch 例外時にエラーメッセージを表示する", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+
+    const event = { preventDefault: vi.fn() };
+    await controller.resend(event);
+
+    expect(controller.statusTarget.textContent).toBe("Failed to send");
+  });
+
+  test("startCountdown: 0 秒以下のときすぐにリセットする", () => {
+    controller.startCountdown(0);
+    expect(controller.remainingSeconds).toBe(0);
+    expect(controller.buttonTarget.disabled).toBe(false);
+    expect(controller.buttonTarget.textContent).toBe("Resend OTP");
+  });
+
+  test("renderButton: カウントダウン終了時にボタンラベルを表示する", () => {
+    controller.remainingSeconds = 0;
+    controller.renderButton();
+    expect(controller.buttonTarget.disabled).toBe(false);
+    expect(controller.buttonTarget.textContent).toBe("Resend OTP");
   });
 });

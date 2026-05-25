@@ -230,12 +230,14 @@ module Withdrawal
     end
 
     def notify(state, payload = {})
-      Rails.logger.info(LogEvent.format(
-        "#{actor_event_prefix}.withdrawal.#{state}",
-        actor_id_key => actor.id,
-        :ip_address => request&.remote_ip,
-        **payload,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "#{actor_event_prefix}.withdrawal.#{state}",
+          actor_id_key => actor.id,
+          :ip_address => request&.remote_ip,
+          **payload,
+        ),
+      )
     end
 
     def actor_event_prefix

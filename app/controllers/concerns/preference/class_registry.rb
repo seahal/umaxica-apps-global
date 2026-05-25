@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-require Rails.root.join("app/models/preference/generated_models").to_s
-
 module Preference
   module ClassRegistry
     module_function

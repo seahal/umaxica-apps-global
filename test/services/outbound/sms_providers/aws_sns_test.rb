@@ -36,7 +36,9 @@ module Outbound
         provider = build_provider(fake_client)
         result = provider.send_message(to: "+1234567890", title: nil, body: "Hello World")
 
-        assert_equal "test-id", result.message_id
+        assert_equal "aws_sns", result.provider
+        assert_equal "test-id", result.provider_reference
+        assert_kind_of ActiveSupport::TimeWithZone, result.accepted_at
         assert_equal(
           [{ phone_number: "+1234567890", message: "Hello World", subject: "SMS" }],
           fake_client.calls,
@@ -48,7 +50,8 @@ module Outbound
         provider = build_provider(fake_client)
         result = provider.send_message(to: "+1234567890", title: "Custom Subject", body: "Hello World")
 
-        assert_equal "test-id", result.message_id
+        assert_equal "aws_sns", result.provider
+        assert_equal "test-id", result.provider_reference
         assert_equal(
           [{ phone_number: "+1234567890", message: "Hello World", subject: "Custom Subject" }],
           fake_client.calls,

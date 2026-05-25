@@ -7,7 +7,7 @@ module ActorSupportLifecycle
   private
 
   def actor_support_snapshot
-    preference = Actor.preference
+    preference = Actor.preferences
     cookie = preference.cookie
     actor = Actor.actor
 
@@ -20,12 +20,12 @@ module ActorSupportLifecycle
       signed_up: Actor.signed_up?,
       tld: Actor.tld.to_s,
       authentication: {
-        null: Actor.authentication.null?,
-        login_public_id: Actor.authentication.login_public_id,
-        acr: Actor.authentication.acr,
-        amr: Actor.authentication.amr,
-        access_claim_sid: Actor.authentication.access_claims&.dig("sid"),
-        access_claim_prf: Actor.authentication.access_claims&.dig("prf"),
+        null: Actor.authn.null?,
+        login_public_id: Actor.authn.login_public_id,
+        acr: Actor.authn.acr,
+        amr: Actor.authn.amr,
+        access_claim_sid: Actor.authn.access_claims&.dig("sid"),
+        access_claim_prf: Actor.authn.access_claims&.dig("prf"),
       },
       preference: {
         null: preference.null?,
@@ -99,7 +99,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     Actor.reset
   end
 
-  test "sign app request resolves current from user preference record and resets afterwards" do
+  test "sign app request does not use user preference record as runtime fallback and resets afterwards" do
     host = ENV.fetch("APEX_SERVICE_URL", "www.app.localhost")
     user = Client.create!(
       status_id: ClientStatus::ACTIVE,
@@ -144,23 +144,23 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert snapshot["signed_up"]
     assert_equal "app", snapshot["tld"]
     assert_equal({ "client" => "app" }, { snapshot["whoami"] => snapshot["tld"] })
-    assert_not snapshot["preference"]["null"]
-    assert_equal "usd", snapshot["preference"]["currency"]
-    assert_equal "mdy", snapshot["preference"]["date_format"]
-    assert_equal "hour_12", snapshot["preference"]["time_format"]
-    assert_equal "reduced", snapshot["preference"]["motion"]
-    assert_equal "compact", snapshot["preference"]["density"]
-    assert_equal "50", snapshot["preference"]["items_per_page"]
+    assert snapshot["preference"]["null"]
+    assert_equal "jpy", snapshot["preference"]["currency"]
+    assert_equal "iso", snapshot["preference"]["date_format"]
+    assert_equal "hour_24", snapshot["preference"]["time_format"]
+    assert_equal "standard", snapshot["preference"]["motion"]
+    assert_equal "standard", snapshot["preference"]["density"]
+    assert_equal "20", snapshot["preference"]["items_per_page"]
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
     assert_nil Actor.tld
   end
 
-  test "sign org request resolves current from staff preference record and resets afterwards" do
+  test "sign org request does not use staff preference record as runtime fallback and resets afterwards" do
     host = ENV.fetch("APEX_STAFF_URL", "www.org.localhost")
     staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
     OperatorPreference.create!(
@@ -200,19 +200,19 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert snapshot["signed_up"]
     assert_equal "org", snapshot["tld"]
     assert_equal({ "operator" => "org" }, { snapshot["whoami"] => snapshot["tld"] })
-    assert_not snapshot["preference"]["null"]
-    assert_equal "usd", snapshot["preference"]["currency"]
-    assert_equal "mdy", snapshot["preference"]["date_format"]
-    assert_equal "hour_12", snapshot["preference"]["time_format"]
-    assert_equal "reduced", snapshot["preference"]["motion"]
-    assert_equal "compact", snapshot["preference"]["density"]
-    assert_equal "50", snapshot["preference"]["items_per_page"]
+    assert snapshot["preference"]["null"]
+    assert_equal "jpy", snapshot["preference"]["currency"]
+    assert_equal "iso", snapshot["preference"]["date_format"]
+    assert_equal "hour_24", snapshot["preference"]["time_format"]
+    assert_equal "standard", snapshot["preference"]["motion"]
+    assert_equal "standard", snapshot["preference"]["density"]
+    assert_equal "20", snapshot["preference"]["items_per_page"]
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
     assert_nil Actor.tld
   end
 
@@ -249,9 +249,9 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
-    assert_equal Actor::Authentication::NULL, Actor.authentication
+    assert_equal Actor::Authentication::NULL, Actor.authn
     assert_equal Actor::Configuration::NULL, Actor.configuration
-    assert_equal Actor::Preference::NULL, Actor.preference
+    assert_equal Actor::Preference::NULL, Actor.preferences
     assert_nil Actor.tld
   end
 end

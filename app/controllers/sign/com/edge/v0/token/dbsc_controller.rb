@@ -6,6 +6,8 @@ class Sign::Com::Edge::V0::Token::DbscController < Sign::Com::ApplicationControl
   include Sign::DbscRegistrationEndpoint
 
   public_strict!
+  before_action :ensure_json_request
+  skip_before_action :set_region, raise: false
   skip_before_action :set_preferences_cookie
   skip_before_action :transparent_refresh_access_token
 

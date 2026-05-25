@@ -144,22 +144,21 @@ Future Sign In and Sign Up implementation should separate four responsibilities:
 - authorization decisions;
 - audit/history recording.
 
-`Actor.authentication` should hold the normalized authentication facts for the current
-actor/session, such as surface, actor id, current AAL, satisfied methods, primary method, step-up
-method, authentication timestamps, token/session id, restricted-session status, and the active sign
-sequence id. It should be the common source for authorization and controller decisions that need to
-know the actor's current authentication state. It should not own route progression.
+`Actor.authn` should hold the normalized authentication facts for the current actor/session, such as
+surface, actor id, current AAL, satisfied methods, primary method, step-up method, authentication
+timestamps, token/session id, restricted-session status, and the active sign sequence id. It should
+be the common source for authorization and controller decisions that need to know the actor's
+current authentication state. It should not own route progression.
 
 The sign state machine should own flow progression. It decides which sign participant is current,
 whether the participant stack is empty or blocking, and which transition is allowed next. It should
 cover sign-in, sign-up, guardrail, checkpoint, dashboard, and step-up sequences. Controllers should
 ask the state machine for the current transition/result rather than encoding route order directly.
 
-Action Policy should own authorization decisions. Policies should consume `Actor.authentication`
-and, where needed, sequence ownership facts to decide whether an actor may view or mutate a
-resource. This applies to sensitive configuration routes, AAL2-scoped actions such as operator
-lifecycle requests, social link/unlink, sign-up checkpoint setup, and any sequence-owned pending
-artifact.
+Action Policy should own authorization decisions. Policies should consume `Actor.authn` and, where
+needed, sequence ownership facts to decide whether an actor may view or mutate a resource. This
+applies to sensitive configuration routes, AAL2-scoped actions such as operator lifecycle requests,
+social link/unlink, sign-up checkpoint setup, and any sequence-owned pending artifact.
 
 Chronicle should record security-significant history. State transitions and sign boundary outcomes
 should emit audit events such as sign-up start, contact submission, OTP verification result,
@@ -197,9 +196,8 @@ without being forced into a broken Sign In path.
   because Sign In failed; incomplete newly-created social artifacts can only be cleaned when owned
   by the current unfinished Sign Up cycle.
 - Authentication context, flow progression, authorization, and audit/history must remain separate:
-  `Actor.authentication` records current authentication facts, the sign state machine advances
-  sequence state, Action Policy authorizes resource access, and Chronicle records security-relevant
-  history.
+  `Actor.authn` records current authentication facts, the sign state machine advances sequence
+  state, Action Policy authorizes resource access, and Chronicle records security-relevant history.
 - Guardrail, checkpoint, and dashboard are sequence participants whose required content can grow or
   disappear over time.
 - Existing Sign In checkpoint behavior remains unchanged except that guardrail is ordered before it.

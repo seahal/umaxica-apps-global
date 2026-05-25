@@ -186,13 +186,13 @@ module Sign
 
       def sign_up_actor_authentication
         Actor::Authentication.new(
-          login_public_id: Actor.authentication.login_public_id,
-          access_claims: Actor.authentication.access_claims,
-          acr: Actor.authentication.acr,
-          amr: Actor.authentication.amr,
-          actor_type: Actor.authentication.actor_type,
-          actor_id: Actor.authentication.actor_id,
-          restricted: Actor.authentication.restricted?,
+          login_public_id: Actor.authn.login_public_id,
+          access_claims: Actor.authn.access_claims,
+          acr: Actor.authn.acr,
+          amr: Actor.authn.amr,
+          actor_type: Actor.authn.actor_type,
+          actor_id: Actor.authn.actor_id,
+          restricted: Actor.authn.restricted?,
           active_sign_sequence_id: @sign_up_ticket&.public_id,
         )
       end
@@ -204,12 +204,7 @@ module Sign
       def sign_up_pending_actor
         return if @sign_up_ticket&.principal_id.blank?
 
-        case @sign_up_ticket
-        when ClientSignUpCycle
-          Client.find_by(id: @sign_up_ticket.principal_id)
-        when VisitorSignUpCycle
-          Visitor.find_by(id: @sign_up_ticket.principal_id)
-        end
+        sign_up_pending_actor_model&.find_by(id: @sign_up_ticket.principal_id)
       end
 
       def validate_sign_up_checkpoint_contact!
@@ -230,12 +225,7 @@ module Sign
       end
 
       def sign_up_pending_telephone
-        case @sign_up_ticket
-        when ClientSignUpCycle
-          ClientTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
-        when VisitorSignUpCycle
-          VisitorTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
-        end
+        sign_up_pending_telephone_model&.find_by(id: @sign_up_ticket.pending_contact_id)
       end
 
       def sign_up_pending_telephone_status?(telephone)
@@ -260,11 +250,21 @@ module Sign
 
       def render_invalid_sign_up_checkpoint_contact
         if request.format.json?
+          key = telephone_passkey_required_i18n_key
           render json: {
-            error: I18n.t("sign.#{sign_up_surface}.registration.telephone.update.passkey_required"),
+            error: I18n.t(key),
           }, status: :unprocessable_content
         else
           redirect_to(sign_up_telephone_edit_path)
+        end
+      end
+
+      def telephone_passkey_required_i18n_key
+        case sign_up_surface
+        when :com
+          "sign.com.registration.telephone.update.passkey_required"
+        else
+          "sign.app.registration.telephone.update.passkey_required"
         end
       end
 
@@ -442,6 +442,24 @@ module Sign
           new_sign_com_in_path(ri: params[:ri])
         else
           "/"
+        end
+      end
+
+      def sign_up_pending_actor_model
+        case @sign_up_ticket
+        when ClientSignUpCycle
+          Client
+        when VisitorSignUpCycle
+          Visitor
+        end
+      end
+
+      def sign_up_pending_telephone_model
+        case @sign_up_ticket
+        when ClientSignUpCycle
+          ClientTelephone
+        when VisitorSignUpCycle
+          VisitorTelephone
         end
       end
     end

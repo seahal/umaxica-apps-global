@@ -15,43 +15,46 @@ This creates two problems. First, request-local storage and the application-faci
 Second, subdomain-specific current classes make every new surface/tenant/region look like it needs a
 new global-ish context class.
 
-The desired direction is one request-local current-context container with one application-facing
-API.
+The desired direction is one request-local current-context container with immutable read values.
 
 ## Decision
 
-Adopt `Actor` as the only current-context container and application-facing API.
+Adopt `Actor` as the only current-context container. Application code may read resolved values from
+Actor, but Actor writes are restricted to controller-boundary lifecycle and resolver/installer code.
 
 `Actor` is backed by `ActiveSupport::CurrentAttributes`, but the mutable request-local slot stores
 one immutable `Actor::Context` snapshot implemented with Ruby `Data.define`. Controllers,
 middleware, authentication, preference resolution, host/context resolvers, policies, services, and
-views read request context through `Actor`, for example:
+views may read resolved request context through `Actor`, for example:
 
 ```ruby
 Actor.client
 Actor.account
 Actor.tld
 Actor.whoami
-Actor.preference.language
-Actor.authentication.login_public_id
+Actor.authn.aal
+Actor.authz.policy_user
+Actor.step_up.satisfied?
+Actor.preferences.language
+Actor.authn.login_public_id
 ```
 
 `Actor` does not branch by subdomain. Host and surface differences are resolved before application
 code runs, by a request-start resolver that populates `Actor`.
 
-Preference remains an immutable value object exposed as `Actor::Preference`. Callers should access
-the resolved request preference as `Actor.preference`. It carries the request's localization and
-display preference snapshot, including `language`, `region`, `timezone`, `theme`, `currency`,
-`date_format`, `time_format`, `motion`, `density`, and `items_per_page`.
+Preference remains an immutable value object exposed as `Actor::Preference` and read through the
+second-layer `Actor.preferences` reader. It carries the request's localization and display
+preference snapshot, including `language`, `region`, `timezone`, `theme`, `currency`, `date_format`,
+`time_format`, `motion`, `density`, and `items_per_page`.
 
-For normal authenticated requests, `Actor.preference` is initialized from the verified access-token
+For normal authenticated requests, `Actor.preferences` is initialized from the verified access-token
 `prf` claim and then rebuilt with a request-local overlay for valid explicit `lx`, `ct`, and `tz`
 parameters. That overlay is part of the current request's effective runtime context only. It must
 not write the database, reissue tokens, or become the next persistent preference snapshot.
 
 Updates replace the whole `Actor::Context` snapshot instead of mutating independent current
-attributes in place. Existing `Actor.actor = ...` style writers may exist as convenience API, but
-they must update the snapshot by replacement.
+attributes in place. Existing `Actor.actor = ...` style writers are compatibility API only; new
+write paths should install complete value objects through controller-boundary installer code.
 
 `Actor.whoami` exposes the current actor type (`:client`, `:operator`, `:visitor`, or
 `:unauthenticated`). `Actor.tld` exposes the current surface label (`:app`, `:com`, `:org`, `:net`,
@@ -60,18 +63,20 @@ or `:dev`).
 `Actor.tld` is the only application-facing surface API. `Actor.surface` and `Actor.domain` are
 removed and must not be restored as compatibility aliases.
 
-Authentication state is exposed through `Actor.authentication`. The application-facing identifier
-for the current login/session row is `Actor.authentication.login_public_id`; this corresponds to the
-current entry shown in the user-facing configuration sessions pages, but avoids the ambiguous
-`session` name used by Rails. Direct `Actor.session` reads are removed.
+Authentication state is exposed through `Actor.authn`. The application-facing identifier for the
+current login/session row is `Actor.authn.login_public_id`; this corresponds to the current entry
+shown in the user-facing configuration sessions pages, but avoids the ambiguous `session` name used
+by Rails. Direct `Actor.session` reads are removed.
 
 Decoded access-token claims are not a general application API. `Actor.token` is removed. If a
 low-level auth or policy boundary must inspect raw access-token claims, use
-`Actor.authentication.access_claims` and prefer adding typed authentication readers such as `acr`,
-`amr`, `restricted?`, or `verified?` instead of spreading raw claim access.
+`Actor.authn.access_claims` and prefer adding typed authentication readers such as `acr`, `amr`,
+`restricted?`, or `verified?` instead of spreading raw claim access.
 
 Authorization keeps the existing Action Policy context key `:user`. `Actor` is the request-context
-facade, but this ADR does not rename Action Policy's authorization context to `:actor`.
+facade, but this ADR does not rename Action Policy's authorization context to `:actor`. Policy
+support code should read explicit authorization context such as `Actor.authz.policy_user` and
+`Actor.authz.token_claims`, not reach back into authentication storage.
 
 ## Rejected Direction
 
@@ -108,4 +113,4 @@ current intent.
 - `adr/current-context-boundary-by-engine.md` — obsolete engine-era predecessor.
 - `adr/preference-soft-bubble-doctrine.md` — preference value-object doctrine; its read-side API is
   superseded from `Current::Preference` / `Current.preference` to `Actor::Preference` /
-  `Actor.preference`.
+  `Actor.preferences`.

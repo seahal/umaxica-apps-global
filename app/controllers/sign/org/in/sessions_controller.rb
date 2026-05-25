@@ -135,7 +135,8 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
 
     if return_path.present?
       flash[:notice] = notice
-      jump_to_generated_url(return_path, fallback: sign_org_configuration_path)
+      destination = safe_path_from_encoded_rt(return_path, fallback: sign_org_configuration_path)
+      redirect_to_return_target_destination!(destination)
     else
       redirect_to(sign_org_configuration_path, notice: notice)
     end

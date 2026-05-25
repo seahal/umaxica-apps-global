@@ -5,6 +5,9 @@ module Sign
   module ComVerificationBase
     extend ActiveSupport::Concern
 
+    STEP_UP_TTL = 15.minutes
+    STEP_UP_SESSION_KEY = :step_up
+    EMAIL_OTP_SESSION_KEY = :step_up_email_otp
     ALLOWED_SCOPES = StepUp::ScopeCatalog::COM
 
     module Overrides
@@ -161,10 +164,24 @@ module Sign
     end
 
     included do
-      include Sign::AppVerificationBase
+      include ::Preference::Global
+      include Common::Otp
+      include ::Authentication::Visitor
+      include ::Verification::Visitor
+      include Sign::Webauthn
+      include Sign::VerificationTiming
+      include Sign::VerificationCommonBase
+      include Sign::VerificationAuditAndCookie
+      include Sign::VerificationStepUpSessionStore
+      include Sign::VerificationStepUpLifecycle
+      include Sign::VerificationPasskeyChecks
+      include Sign::EmailOtpVerificationSupport
 
-      skip_before_action :authenticate_client!, raise: false
+      before_action :apply_localization_preferences
       before_action :authenticate_visitor!
+      before_action :set_actor_token
+      before_action :require_ri!
+      before_action :enforce_step_up_prereqs!
       prepend Overrides
     end
   end

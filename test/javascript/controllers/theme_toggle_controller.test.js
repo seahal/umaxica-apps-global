@@ -51,6 +51,12 @@ describe("ThemeToggleController", () => {
     expect(controller.currentTheme).toBe("dr");
   });
 
+  test("connect: currentValue がない場合は sy にフォールバックする", () => {
+    controller.currentValue = undefined;
+    controller.connect();
+    expect(controller.currentTheme).toBe("sy");
+  });
+
   test("toggle: 同じテーマの場合は何もしない", () => {
     controller.currentTheme = "dr";
     const event = { currentTarget: { dataset: { theme: "dr" }, value: "dr" } };
@@ -108,6 +114,23 @@ describe("ThemeToggleController", () => {
 
     await controller.updateTheme("dr");
     expect(controller.currentTheme).toBe("li");
+  });
+
+  test("updateTheme: サーバーから ct が返されない場合リクエストテーマを使用する", async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ preference: {} }),
+    });
+
+    let cookiesSet = [];
+    Object.defineProperty(document, "cookie", {
+      set: (val) => cookiesSet.push(val),
+      get: () => "",
+    });
+
+    await controller.updateTheme("dr");
+    expect(controller.currentTheme).toBe("dr");
+    expect(cookiesSet.some((c) => c.startsWith("ct=dr"))).toBe(true);
   });
 
   test("updateTheme: 失敗時にエラー��理する", async () => {

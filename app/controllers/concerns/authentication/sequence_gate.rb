@@ -93,6 +93,7 @@ module Authentication
       redirect_after_checkpoint_sequence!(rt: redirect_parameter_value)
     end
 
+    # rubocop:disable Metrics/AbcSize
     def continue_welcome_sequence_without_content!
       cycle = current_db_sign_in_cycle_for_sequence
       if cycle
@@ -129,6 +130,7 @@ module Authentication
       end
 
       return redirect_to(after_welcome_path) unless welcome_gate_available?
+
       sign_in_sequence_carrier.complete! if sign_in_sequence_carrier.current.participant == "dashboard"
       return redirect_to(after_welcome_path) unless consume_welcome_gate!
 
@@ -136,6 +138,7 @@ module Authentication
       clear_welcome_gate!
       sign_in_sequence_carrier.clear!
       @welcome_next_path = destination
+      # rubocop:enable Metrics/AbcSize
     end
 
     alias continue_dashboard_sequence_without_content! continue_welcome_sequence_without_content!
@@ -222,7 +225,7 @@ module Authentication
       sequence = sign_in_sequence_carrier.start!(
         surface: Actor.tld,
         actor: actor,
-        method: Array(Actor.authentication.amr).first || "unknown",
+        method: Array(Actor.authn.amr).first || "unknown",
         state: transition.fetch(:state),
         participant: transition.fetch(:participant),
         rt: safe_encoded_rt(rt),
@@ -248,14 +251,16 @@ module Authentication
       sign_in_sequence_carrier.expire! if sequence.present? && sequence.expired?
       sign_in_sequence_carrier.fail! if sequence.present? && !sequence.expired?
 
-      Rails.logger.info(LogEvent.format(
-        "authentication.sign_in_sequence.rejected",
-        surface: Actor.tld,
-        participant: participant.to_s,
-        state: sequence&.state,
-        expired: sequence&.expired?,
-        actor_type: sequence&.actor_type,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "authentication.sign_in_sequence.rejected",
+          surface: Actor.tld,
+          participant: participant.to_s,
+          state: sequence&.state,
+          expired: sequence&.expired?,
+          actor_type: sequence&.actor_type,
+        ),
+      )
       render plain: I18n.t("errors.messages.not_authorized"), status: :bad_request
       false
     end

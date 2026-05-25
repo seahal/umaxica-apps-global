@@ -168,14 +168,18 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
+
     assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
     follow_redirect!
+
     assert_response :ok
     assert_select "input[type=date][name=birthdate]"
 
-    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
-          params: { requirement: "birthdate", birthdate: "2000-02-03" },
-          headers: browser_headers.merge(@callback_headers)
+    patch(
+      sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+      params: { requirement: "birthdate", birthdate: "2000-02-03" },
+      headers: browser_headers.merge(@callback_headers),
+    )
 
     assert_response :redirect
     assert_equal "2000-02-03", user.reload.birthdate
@@ -207,9 +211,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_welcome_url("post_auth", ri: "jp")
+    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
     follow_redirect!
-    assert_redirected_to sign_app_dashboard_url(ri: "jp")
+
+    assert_response :success
     identity.reload
 
     assert_equal user.id, identity.user_id

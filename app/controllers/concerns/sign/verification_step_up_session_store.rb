@@ -11,8 +11,7 @@ module Sign
       token = current_step_up_token
       raise ActionController::BadRequest, "missing session token" unless token
 
-      decoded = Base64.urlsafe_decode64(return_to_param.to_s)
-      safe_path = safe_internal_path(decoded)
+      safe_path = resolve_step_up_rt(return_to_param)
       raise ActionController::BadRequest, "invalid return_to" if safe_path.blank?
 
       scope_str = scope.to_s
@@ -38,8 +37,6 @@ module Sign
         step_up_session.assign_attributes(attrs)
         step_up_session.save!
       end
-    rescue ArgumentError
-      raise ActionController::BadRequest, "invalid return_to encoding"
     end
 
     def current_step_up_session
@@ -61,6 +58,13 @@ module Sign
       return actor_token if respond_to?(:actor_token, true) && actor_token.present?
 
       current_session_token if respond_to?(:current_session_token, true)
+    end
+
+    def resolve_step_up_rt(encoded)
+      return signed_rt_to_safe_path(encoded) if respond_to?(:signed_rt_to_safe_path, true)
+      return safe_internal_path(encoded.to_s) if respond_to?(:safe_internal_path, true)
+
+      encoded.to_s.presence
     end
 
     def step_up_session_token_foreign_key

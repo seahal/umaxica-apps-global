@@ -7,7 +7,15 @@ module Sign
       class ThemesController < PreferencesBaseController
         include ::Preference::SignScreenActions
 
-        preference_screen :theme
+        before_action :ensure_preferences_record
+
+        def edit
+          edit_theme_preference_screen
+        end
+
+        def update
+          update_theme_preference_screen
+        end
       end
     end
   end

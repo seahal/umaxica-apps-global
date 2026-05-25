@@ -145,12 +145,14 @@ module Sign
         end
 
         def handle_deactivation_failure
-          Rails.logger.info(LogEvent.format(
-            "user.withdrawal.suspension_failed",
-            user_id: current_client.id,
-            errors: current_client.errors.full_messages,
-            ip_address: request.remote_ip,
-          ))
+          Rails.logger.info(
+            LogEvent.format(
+              "user.withdrawal.suspension_failed",
+              user_id: current_client.id,
+              errors: current_client.errors.full_messages,
+              ip_address: request.remote_ip,
+            ),
+          )
           @schedule_confirmed = true
           render :new, status: :unprocessable_content
         end

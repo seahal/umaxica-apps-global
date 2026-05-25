@@ -15,7 +15,7 @@ Do not use it for:
 - Accepted architecture decisions; use `adr/`.
 - Implementation plans or future work proposals; use `plans/`.
 - Current stable product, architecture, or operations documentation; use `docs/`.
-- Exploratory notes that do not affect implementation; use `memo/`.
+- Exploratory notes that do not affect implementation; use `memos/`.
 
 Implementation notes belong under `notes/implementation/` and should record only durable context:
 

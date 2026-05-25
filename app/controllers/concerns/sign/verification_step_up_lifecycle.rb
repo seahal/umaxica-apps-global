@@ -23,6 +23,9 @@ module Sign
       ActiveRecord::Base.connected_to(role: :writing) do
         verification, raw_token = verification_model.issue_for_token!(token: actor_token)
         actor_token.update!(last_step_up_at: now, last_step_up_scope: scope)
+        Actor.install_context!(
+          step_up: StepUp::Resolver.call(token: actor_token, scope: scope, now: now),
+        ) if defined?(Actor)
         set_verification_cookie!(raw_token, expires_at: verification.discarded_at)
         create_audit_event!(verification_success_event_id, subject: current_verification_actor)
 

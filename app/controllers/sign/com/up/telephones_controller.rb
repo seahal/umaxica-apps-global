@@ -240,11 +240,7 @@ module Sign
             existing: true,
           }
 
-          Outbound::Sms.deliver_later(
-            to: @visitor_telephone.number,
-            title: "PassCode => #{otp_number}",
-            body: "PassCode => #{otp_number}",
-          )
+          Sign::TelephoneOtpDelivery.deliver!(@visitor_telephone, otp_number)
 
           redirect_to(
             edit_sign_com_up_telephone_path(ri: params[:ri]),
@@ -304,7 +300,7 @@ module Sign
               pending_contact_type: "telephone",
               pending_contact_id: telephone.id,
             )
-            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authentication)
+            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
           end
           session[:sign_com_up_sequence_id] = cycle.public_id
         end
@@ -315,7 +311,7 @@ module Sign
 
           result =
             ComTicketRecord.connected_to(role: :writing) do
-              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authentication)
+              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
             end
           result.status == :advanced
         end

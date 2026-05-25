@@ -68,6 +68,14 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       "/configuration?#{params.to_query}"
     end
 
+    def signed_rt_to_safe_path(value)
+      value.to_s.start_with?("/") ? value.to_s : nil
+    end
+
+    def issue_step_up_rt(value)
+      "signed--#{value}"
+    end
+
     def sign_app_root_path(params = {})
       "/?#{params.to_query}"
     end
@@ -121,11 +129,11 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   test "verification params and incoming redirect helpers prefer verification payload" do
     user = ClientStruct.new(7, "user-public-id", [], [])
     harness = Harness.new(user: user)
-    return_to = Base64.urlsafe_encode64("/configuration/emails")
+    return_to = "/configuration/emails"
     harness.params_hash = {
       ri: "jp",
       scope: "configuration_secret",
-      rt: Base64.urlsafe_encode64("/configuration/secrets"),
+      rt: "/configuration/secrets",
       verification: {
         scope: "configuration_email",
         return_to: return_to,
@@ -166,7 +174,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     assert_predicate nonce, :present?
     assert_equal nonce, harness.app_call(:ensure_email_nonce!)
     assert_equal "configuration_email", harness.app_call(:current_step_up_scope)
-    assert_equal Base64.urlsafe_encode64("/configuration/emails"), harness.app_call(:current_step_up_return_to_param)
+    assert_match(/--/, harness.app_call(:current_step_up_return_to_param))
   end
 
   test "step_up session validation and restore from params" do
@@ -186,7 +194,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.scope = "" })
     assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.return_to = "" })
 
-    return_to = Base64.urlsafe_encode64("/configuration/emails")
+    return_to = "/configuration/emails"
     harness.params_hash = { scope: "configuration_email", return_to: return_to }
 
     assert harness.app_call(:restore_step_up_session_from_params!)

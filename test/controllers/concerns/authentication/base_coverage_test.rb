@@ -100,14 +100,73 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "populate_current_attributes replaces stale Actor authentication when payload is nil" do
-    Actor.authentication = Actor::Authentication.new(access_claims: { "sid" => "stale" })
+    Actor.install_context!(authn: Actor::Authentication.new(access_claims: { "sid" => "stale" }))
     @controller.define_singleton_method(:resource_type) { "client" }
 
     @controller.populate_current_attributes!(@user, nil)
 
-    assert_nil Actor.authentication.access_claims
+    assert_nil Actor.authn.access_claims
     assert_equal @user, Actor.actor
     assert_equal :client, Actor.actor_type
+  ensure
+    Actor.reset
+  end
+
+  test "authentication readers prefer Actor snapshot after authentication" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:resource_class) { Client }
+    Actor.install_context!(
+      actor: @user,
+      actor_type: :client,
+      authn: Actor::Authentication.new(
+        login_public_id: "actor-session",
+        actor_type: :client,
+        actor_id: @user.id,
+        restricted: true,
+      ),
+    )
+    @controller.instance_variable_set(:@current_resource, nil)
+    @controller.instance_variable_set(:@current_session_public_id, "ivar-session")
+
+    assert_equal @user, @controller.current_resource
+    assert_equal "actor-session", @controller.current_session_public_id
+    assert @controller.current_session_restricted?
+  ensure
+    Actor.reset
+  end
+
+  test "clearing auth cookies clears Actor snapshot and memoized authentication readers" do
+    @controller.define_singleton_method(:cookie_deletion_options) { {} }
+    @controller.define_singleton_method(:clear_dbsc_cookie!) { nil }
+    @controller.define_singleton_method(:clear_device_id_cookie!) { nil }
+    cookie_store = Class.new(Hash) do
+      def delete(key, _options = nil)
+        super(key)
+      end
+    end
+    @controller.define_singleton_method(:cookies) { @cookies ||= cookie_store.new }
+    @controller.cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "access"
+    @controller.cookies[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh"
+    Actor.install_context!(
+      actor: @user,
+      actor_type: :client,
+      authn: Actor::Authentication.new(
+        login_public_id: "actor-session",
+        actor_type: :client,
+        actor_id: @user.id,
+      ),
+    )
+    @controller.instance_variable_set(:@current_resource, @user)
+    @controller.instance_variable_set(:@current_session, Object.new)
+    @controller.instance_variable_set(:@current_session_public_id, "actor-session")
+
+    @controller.clear_auth_cookies!
+
+    assert_same Unauthenticated.instance, Actor.actor
+    assert_equal Actor::Authentication::NULL, Actor.authn
+    assert_nil @controller.instance_variable_get(:@current_resource)
+    assert_nil @controller.instance_variable_get(:@current_session)
+    assert_nil @controller.instance_variable_get(:@current_session_public_id)
   ensure
     Actor.reset
   end
@@ -209,11 +268,12 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     redirects = []
     @controller.define_singleton_method(:jump_to_generated_url) { |rt, fallback:| redirects << [:jump, rt, fallback] }
     @controller.define_singleton_method(:redirect_to) { |path, **| redirects << [:redirect, path] }
+    @controller.define_singleton_method(:render_invalid_return_target!) { redirects << [:invalid_rt] }
 
     @controller.safe_redirect_to_rt_or_default!("encoded-rt", default_path: "/default")
     @controller.safe_redirect_to_rt_or_default!(nil, default_path: "/default")
 
-    assert_equal [[:jump, "encoded-rt", "/default"], [:redirect, "/default"]], redirects
+    assert_equal [[:invalid_rt], [:redirect, "/default"]], redirects
     assert_equal :unauthorized, @controller.refresh_failure_status
     assert_equal "invalid_refresh_token", @controller.refresh_failure_code
 
@@ -446,6 +506,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     begin
       assert_equal @user, @controller.current_account
       @controller.instance_variable_set(:@current_resource_for_test, staff)
+
       assert_equal staff.staff_bulletins, @controller.bulletin_association_for_resource
 
       @controller.instance_variable_set(:@current_resource_for_test, nil)
@@ -692,7 +753,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
   test "preference snapshot and reissue access token cover early returns and success" do
     pref = Struct.new(:language, :region, :timezone, :theme, :null?).new("ja", "jp", "Asia/Tokyo", "sy", false)
-    Actor.preference = pref
+    Actor.install_context!(preferences: pref)
 
     assert_equal(
       { "ver" => Actor::Preference::SCHEMA_VERSION, "lx" => "ja", "ri" => "jp", "tz" => "Asia/Tokyo", "ct" => "sy" },
@@ -711,7 +772,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_nil @controller.reissue_access_token!
   ensure
-    Actor.preference = nil
+    Actor.install_context!(preferences: nil)
   end
 
   test "log_in binds access token to valid DPoP proof" do
@@ -865,13 +926,11 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   # ---------------------------------------------------------------
   # safe_path_from_encoded_rt regression coverage (S-7)
   # ---------------------------------------------------------------
-  # The `rt` parameter must be Base64-url-encoded. A previous
-  # implementation evaluated the *undecoded* raw value as a fallback
-  # branch, which was ambiguous and surface-area-prone. These tests
-  # lock in the single-branch contract.
+  # The `rt` parameter must be a signed return-target token. Base64
+  # encoding alone is not accepted as redirect authority.
 
-  test "safe_path_from_encoded_rt accepts a Base64-encoded internal non-welcome path" do
-    encoded = Base64.urlsafe_encode64("/configuration?x=1")
+  test "safe_path_from_encoded_rt accepts a signed internal non-welcome path" do
+    encoded = @controller.safe_encoded_rt("/configuration?x=1")
 
     assert_equal "/configuration?x=1",
                  @controller.safe_path_from_encoded_rt(encoded, fallback: "/")
@@ -879,36 +938,36 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
   test "safe_path_from_encoded_rt rejects welcome return targets after URI normalization" do
     @request.host = "id.umaxica.app"
-    encoded_internal = Base64.urlsafe_encode64("/welcomes/post_auth?ri=jp")
-    encoded_absolute = Base64.urlsafe_encode64("https://id.umaxica.app/welcomes/post_auth?ri=jp")
+    encoded_internal = @controller.safe_encoded_rt("/welcome?ri=jp")
+    encoded_absolute = @controller.safe_encoded_rt("https://id.umaxica.app/welcome?ri=jp")
 
     assert_equal "/dashboard",
                  @controller.safe_path_from_encoded_rt(encoded_internal, fallback: "/dashboard")
     assert_equal "/dashboard",
                  @controller.safe_path_from_encoded_rt(encoded_absolute, fallback: "/dashboard")
     assert_equal "/dashboard",
-                 @controller.safe_path_from_encoded_rt("/welcomes/post_auth?ri=jp", fallback: "/dashboard")
+                 @controller.safe_path_from_encoded_rt("/welcome?ri=jp", fallback: "/dashboard")
     assert_equal "/dashboard?ri=jp",
-                 @controller.safe_path_from_encoded_rt(Base64.urlsafe_encode64("/dashboard?ri=jp"), fallback: "/")
+                 @controller.safe_path_from_encoded_rt(@controller.safe_encoded_rt("/dashboard?ri=jp"), fallback: "/")
   end
 
   test "safe_path_from_encoded_rt rejects an unencoded external URL and falls back" do
-    # Not Base64-encoded; an attacker tries to pass a raw external URL.
     raw_external = "https://evil.example.test/pwn"
 
     assert_equal "/",
                  @controller.safe_path_from_encoded_rt(raw_external, fallback: "/")
   end
 
-  test "safe_path_from_encoded_rt rejects encoded external URL targeting an unallowed host" do
-    encoded_external = Base64.urlsafe_encode64("https://evil.example.test/pwn")
+  test "safe_path_from_encoded_rt rejects a tampered signed token" do
+    encoded_external = @controller.safe_encoded_rt("/configuration?x=1")
+    tampered = encoded_external.sub(/.\z/, encoded_external.end_with?("A") ? "B" : "A")
 
     assert_equal "/",
-                 @controller.safe_path_from_encoded_rt(encoded_external, fallback: "/")
+                 @controller.safe_path_from_encoded_rt(tampered, fallback: "/")
   end
 
-  test "safe_path_from_encoded_rt rejects an encoded payload with control characters" do
-    encoded_bad = Base64.urlsafe_encode64("/dashboard\nx")
+  test "safe_path_from_encoded_rt rejects malformed input" do
+    encoded_bad = "!!!not-a-token!!!"
 
     assert_equal "/",
                  @controller.safe_path_from_encoded_rt(encoded_bad, fallback: "/")
@@ -919,20 +978,19 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal "/", @controller.safe_path_from_encoded_rt("", fallback: "/")
   end
 
-  test "safe_path_from_encoded_rt returns fallback for malformed base64" do
-    # Random bytes that don't urlsafe-decode cleanly.
+  test "safe_path_from_encoded_rt returns fallback for malformed token" do
     assert_equal "/",
-                 @controller.safe_path_from_encoded_rt("!!!not-base64!!!", fallback: "/")
+                 @controller.safe_path_from_encoded_rt("not-a-token", fallback: "/")
   end
 
-  test "safe_encoded_rt returns original encoded value only when decode passes safety check" do
-    safe_encoded = Base64.urlsafe_encode64("/configuration?x=1")
+  test "safe_encoded_rt returns signed values and refuses unsafe destinations" do
+    safe_encoded = @controller.safe_encoded_rt("/configuration?x=1")
 
     assert_equal safe_encoded, @controller.safe_encoded_rt(safe_encoded)
-    assert_nil @controller.safe_encoded_rt(Base64.urlsafe_encode64("/welcomes/post_auth?x=1"))
-    assert_equal Base64.urlsafe_encode64("/dashboard?x=1"),
-                 @controller.safe_encoded_rt(Base64.urlsafe_encode64("/dashboard?x=1"))
-    assert_nil @controller.safe_encoded_rt(Base64.urlsafe_encode64("https://evil.example.test"))
+    assert_nil @controller.safe_encoded_rt("/welcome?x=1")
+    assert_equal "/dashboard?x=1",
+                 @controller.safe_path_from_encoded_rt(@controller.safe_encoded_rt("/dashboard?x=1"), fallback: "/")
+    assert_nil @controller.safe_encoded_rt("https://evil.example.test")
     assert_nil @controller.safe_encoded_rt("not-base64-and-not-internal")
     assert_nil @controller.safe_encoded_rt(nil)
   end

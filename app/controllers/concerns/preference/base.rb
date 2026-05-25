@@ -518,7 +518,7 @@ module Preference
     end
 
     def actor_preference_theme
-      preference = Actor.preference
+      preference = Actor.preferences
       return if preference.null?
 
       preference.theme
@@ -1247,13 +1247,15 @@ module Preference
       clear_preference_auth_cookies!
       @preference_refresh_failed = true
 
-      Rails.logger.info(LogEvent.format(
-        "preference.token.refresh.replay_detected",
-        preference_type: preference_class.name,
-        preference_public_id: preference.public_id,
-        replaced_by_id: preference.replaced_by_id,
-        request_id: request.request_id,
-      ))
+      Rails.logger.info(
+        LogEvent.format(
+          "preference.token.refresh.replay_detected",
+          preference_type: preference_class.name,
+          preference_public_id: preference.public_id,
+          replaced_by_id: preference.replaced_by_id,
+          request_id: request.request_id,
+        ),
+      )
     end
 
     # ==========================================================================

@@ -93,6 +93,16 @@ describe("UnsavedChangesController", () => {
     expect(event.returnValue).toBe("Unsaved changes!");
   });
 
+  test("handleBeforeUnload: dirty でないとき、なにもしない", () => {
+    controller.connect();
+    controller.dirty = false;
+    const event = { preventDefault: vi.fn(), returnValue: "" };
+
+    controller.handleBeforeUnload(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(event.returnValue).toBe("");
+  });
+
   test("disconnect: イベントリスナーを解除する", () => {
     controller.connect();
     controller.disconnect();

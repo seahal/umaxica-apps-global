@@ -7,7 +7,11 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
   test "routes record CSP violations for representative surfaces" do
     logged = []
 
-    Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
+    Rails.logger.stub(
+      :info, proc { |message = nil|
+               logged << JSON.parse(message.to_s, symbolize_names: true) if message
+             },
+    ) do
       csp_report_cases.each do |host, helper_name|
         host!(host)
 
@@ -26,7 +30,7 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("SIGN_SERVICE_URL")
 
     logged = []
-    Rails.logger.stub(:info, ->(message) { logged << message }) do
+    Rails.logger.stub(:info, proc { |message = nil| logged << message if message }) do
       post sign_app_csp_violation_report_path, params: "{not valid json", headers: json_headers
 
       assert_response :no_content

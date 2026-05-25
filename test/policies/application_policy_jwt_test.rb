@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-# Tests for ApplicationPolicy JWT integration via Actor.authentication.access_claims
+# Tests for ApplicationPolicy JWT integration via Actor.authz.token_claims
 class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   setup do
     Actor.reset
@@ -21,7 +21,7 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
     end
   end
 
-  # JWT scopes from Actor.authentication.access_claims
+  # JWT scopes from Actor.authz.token_claims
   def test_jwt_scopes_returns_empty_array_when_no_token
     policy = ApplicationPolicy.new(user: TestRecord.new(1))
 
@@ -186,6 +186,6 @@ class ApplicationPolicyJwtTest < ActiveSupport::TestCase
   private
 
   def set_current_claims(claims)
-    Actor.authentication = Actor::Authentication.new(access_claims: claims)
+    Actor.install_context!(authz: Actor::Authz.new(policy_user: nil, token_claims: claims, surface: nil))
   end
 end

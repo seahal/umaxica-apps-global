@@ -8,7 +8,7 @@ module Sign
         before_action :authenticate_visitor!
 
         def new
-          @rt = params(:rt).to_s.presence
+          @rt = params[:rt].to_s.presence
           @return_to = setup_return_to_path(@rt, root_path: sign_com_configuration_path(ri: params[:ri]))
           @missing_methods = %i(email_otp passkey) - configured_step_up_methods
 

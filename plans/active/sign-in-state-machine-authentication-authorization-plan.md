@@ -34,11 +34,11 @@ verification.
 
 ## Terminology
 
-Current code uses `Actor.authentication` for request-local authentication facts. This plan treats
-the proposed `Action.authentication` wording as `Actor.authentication` unless a later ADR introduces
-a separate `Action` request object.
+Current code uses `Actor.authn` for request-local authentication facts. This plan treats the
+proposed `Action.authentication` wording as `Actor.authn` unless a later ADR introduces a separate
+`Action` request object.
 
-`Actor.authentication` is an authentication result, not an authentication executor. Controllers and
+`Actor.authn` is an authentication result, not an authentication executor. Controllers and
 authentication concerns resolve it before authorization. Policies read it and decide whether the
 action is allowed.
 
@@ -134,7 +134,7 @@ Before authorization:
 
 1. The controller boundary verifies and decodes token/cycle/session inputs.
 2. The current actor is resolved through the established controller lifecycle.
-3. `Actor.authentication` is populated with immutable request facts such as:
+3. `Actor.authn` is populated with immutable request facts such as:
    - `login_public_id`;
    - `access_claims`;
    - `acr`;
@@ -143,7 +143,7 @@ Before authorization:
    surface, actor, and token where applicable.
 5. The action then calls Action Policy authorization.
 
-Policies may read `Actor.authentication`, current user, record, cycle state, token claims, and
+Policies may read `Actor.authn`, current user, record, cycle state, token claims, and
 surface-specific policy helpers. Policies must not send OTPs, verify WebAuthn challenges, issue
 tokens, revoke sessions, mutate cycle state, or perform redirects.
 
@@ -159,8 +159,8 @@ Policy decisions should answer narrow questions:
 - Is the actor allowed to proceed on this surface?
 - Has the required AAL2 step-up already been satisfied for sensitive signed-in operations?
 
-Action Policy should treat missing or null `Actor.authentication` as unauthenticated unless the
-controller action is explicitly open.
+Action Policy should treat missing or null `Actor.authn` as unauthenticated unless the controller
+action is explicitly open.
 
 ## Sequence Enforcement
 
@@ -323,7 +323,7 @@ has not yet been deployed.
    Avoid a generic `advance?` as the only authorization method. Shared helpers may exist inside the
    policy, but controller call sites should name the participant-level permission being checked.
 
-10. `Actor.authentication` contents
+10. `Actor.authn` contents
 
 Decide whether `Actor::Authentication` needs additional fields for this work, such as current token
 public ID, sign-in cycle public ID, surface, or restricted-session marker. If added, define them as
@@ -336,7 +336,7 @@ Decide exact callback order in surface bases and endpoint controllers:
 ```text
 rate limit / self-defense
 -> token/cycle decode
--> Actor.authentication population
+-> Actor.authn population
 -> current actor/resource resolution
 -> sign-in sequence guard
 -> Action Policy authorization
@@ -574,7 +574,7 @@ guessing during controller edits.
    - `consume_return?`;
    - `fail?`.
 3. Policies read already-resolved facts only:
-   - `Actor.authentication`;
+   - `Actor.authn`;
    - current actor/token;
    - cycle status/bindings.
 4. Policy denials use the same low-information rejection path as invalid sequence access.
@@ -582,7 +582,7 @@ guessing during controller edits.
 **Tests:**
 
 - Policy allows each action only in its matching state.
-- Missing/null `Actor.authentication` denies where authentication is required.
+- Missing/null `Actor.authn` denies where authentication is required.
 - Wrong actor/token binding denies.
 - Denials do not reveal internal state in responses.
 
@@ -805,7 +805,7 @@ handoff, and session-limit promotion now create or continue DB-backed sign-in cy
 - Ordinary dashboard access does not consume `rt`.
 - Unsafe return paths are discarded.
 - Expired, discarded, mismatched, or wrong-surface cycles are rejected.
-- Action Policy denies actions when `Actor.authentication` is missing, stale, or mismatched.
+- Action Policy denies actions when `Actor.authn` is missing, stale, or mismatched.
 - Withdrawal scheduling/recovery/early termination requires AAL2 step-up scope `withdrawal`.
 - Fresh sign-in alone does not satisfy withdrawal step-up.
 

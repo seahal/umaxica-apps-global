@@ -9,9 +9,11 @@ class Actor < ActiveSupport::CurrentAttributes
       :account,
       :tenant,
       :tld,
-      :authentication,
+      :authn,
+      :authz,
       :configuration,
-      :preference,
+      :preferences,
+      :step_up,
       :trace_id,
       :span_id,
     ) do
@@ -22,9 +24,11 @@ class Actor < ActiveSupport::CurrentAttributes
           account: nil,
           tenant: nil,
           tld: nil,
-          authentication: Actor::Authentication::NULL,
+          authn: Actor::Authentication::NULL,
+          authz: Actor::Authz::NULL,
           configuration: Actor::Configuration::NULL,
-          preference: Actor::Preference::NULL,
+          preferences: Actor::Preference::NULL,
+          step_up: Actor::StepUp::NULL,
           trace_id: nil,
           span_id: nil,
         )
@@ -44,6 +48,10 @@ class Actor < ActiveSupport::CurrentAttributes
 
     def update(**attributes)
       self.context = context.with(**normalize_context_attributes(attributes))
+    end
+
+    def install_context!(**attributes)
+      update(**attributes)
     end
 
     def clear
@@ -82,10 +90,16 @@ class Actor < ActiveSupport::CurrentAttributes
       update(tld: value)
     end
 
-    def authentication = context.authentication || Actor::Authentication::NULL
+    def authn = context.authn || Actor::Authentication::NULL
 
-    def authentication=(value)
-      update(authentication: value)
+    def authn=(value)
+      update(authn: value)
+    end
+
+    def authz = context.authz || Actor::Authz::NULL
+
+    def authz=(value)
+      update(authz: value)
     end
 
     def configuration = context.configuration || Actor::Configuration::NULL
@@ -94,10 +108,16 @@ class Actor < ActiveSupport::CurrentAttributes
       update(configuration: value)
     end
 
-    def preference = context.preference || Actor::Preference::NULL
+    def preferences = context.preferences || Actor::Preference::NULL
 
-    def preference=(value)
-      update(preference: value)
+    def preferences=(value)
+      update(preferences: value)
+    end
+
+    def step_up = context.step_up || Actor::StepUp::NULL
+
+    def step_up=(value)
+      update(step_up: value)
     end
 
     delegate :trace_id, to: :context
@@ -157,16 +177,24 @@ class Actor < ActiveSupport::CurrentAttributes
 
     def normalize_context_attributes(attributes)
       attributes.each_with_object({}) do |(key, value), normalized|
-        normalized[key] = normalize_context_value(key, value)
+        normalized[normalize_context_key(key)] = normalize_context_value(key, value)
       end
+    end
+
+    def normalize_context_key(key)
+      key
     end
 
     def normalize_context_value(key, value)
       case key
-      when :preference
+      when :preferences
         value || Actor::Preference::NULL
-      when :authentication
+      when :authn
         value || Actor::Authentication::NULL
+      when :authz
+        value || Actor::Authz::NULL
+      when :step_up
+        value || Actor::StepUp::NULL
       when :configuration
         value || Actor::Configuration::NULL
       else

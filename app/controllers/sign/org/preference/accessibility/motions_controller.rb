@@ -4,5 +4,13 @@
 class Sign::Org::Preference::Accessibility::MotionsController < Sign::Org::PreferencesBaseController
   include ::Preference::SignScreenActions
 
-  preference_screen :motion
+  before_action :ensure_preferences_record
+
+  def edit
+    edit_selectable_preference_screen(:motion)
+  end
+
+  def update
+    update_selectable_preference_screen(:motion)
+  end
 end

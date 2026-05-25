@@ -119,7 +119,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal "http://#{surface[:host]}/", response.location
       assert_response_has_auth_cookie
 
-      get "/", headers: browser_headers
+      get "/?ri=jp", headers: browser_headers
 
       assert_response :success
       assert_select "form[action^=?][method=?]", "/sso/logout", "post"

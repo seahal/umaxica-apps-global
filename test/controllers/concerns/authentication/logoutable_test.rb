@@ -77,13 +77,17 @@ module Authentication
       # Simulate an audit-write failure (e.g. chronicle DB unreachable)
       # after the token has been revoked. The ensure block must still
       # clear cookies and the Rails session.
-      def record_audit(_event, resource:)
+      def record_audit(_event, resource:) # rubocop:disable Lint/UnusedMethodArgument
         raise BoomError, "audit write failed"
       end
     end
 
     test "logout_current_session revokes token clears auth cookies and purges rails session" do
       harness = Harness.new
+      Actor.install_context!(actor: harness.resource, actor_type: :client, authn: Actor::Authentication.new(
+        login_public_id: "session-public-id",
+        actor_type: :client,
+      ))
 
       harness.logout_current_session!(reason: "test_logout")
 
@@ -92,8 +96,11 @@ module Authentication
       assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY]
       assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY]
       assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY]
+      assert_same Unauthenticated.instance, Actor.actor
       assert_equal [[Authentication::Base::AUDIT_EVENTS[:logout_current_session], harness.resource]],
                    harness.audit_events
+    ensure
+      Actor.reset
     end
 
     test "logout_all_sessions records distinct all sessions audit and clears local state" do

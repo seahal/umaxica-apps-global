@@ -1,8 +1,25 @@
 # typed: false
 # frozen_string_literal: true
 
+def exact_host_constraint(*hosts)
+  /\A(?:#{hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
+end
+
+apex_app_host = exact_host_constraint(
+  ENV.fetch("APEX_SERVICE_URL", "app.localhost"), "app.localhost",
+  "www.app.localhost",
+)
+apex_com_host = exact_host_constraint(
+  ENV.fetch("APEX_CORPORATE_URL", "com.localhost"), "com.localhost",
+  "www.com.localhost",
+)
+apex_org_host = exact_host_constraint(
+  ENV.fetch("APEX_STAFF_URL", "org.localhost"), "org.localhost",
+  "www.org.localhost",
+)
+
 scope module: :apex, as: :apex do
-  constraints host: ENV["APEX_SERVICE_URL"] do
+  constraints host: apex_app_host do
     scope module: :app, as: :app do
       root to: "roots#index"
       # Health
@@ -33,7 +50,7 @@ scope module: :apex, as: :apex do
         resource :callback, only: :show
       end
       namespace :sso do
-        resource :authorization, only: :show
+        resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
       end
       # for account page
@@ -41,7 +58,7 @@ scope module: :apex, as: :apex do
     end
   end
 
-  constraints host: ENV["APEX_CORPORATE_URL"] do
+  constraints host: apex_com_host do
     scope module: :com, as: :com do
       root to: "roots#index"
       # Health
@@ -72,7 +89,7 @@ scope module: :apex, as: :apex do
         resource :callback, only: :show
       end
       namespace :sso do
-        resource :authorization, only: :show
+        resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
       end
       # for account page
@@ -80,7 +97,7 @@ scope module: :apex, as: :apex do
     end
   end
 
-  constraints host: ENV["APEX_STAFF_URL"] do
+  constraints host: apex_org_host do
     scope module: :org, as: :org do
       root to: "roots#index"
       # Health
@@ -111,7 +128,7 @@ scope module: :apex, as: :apex do
         resource :callback, only: :show
       end
       namespace :sso do
-        resource :authorization, only: :show
+        resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
       end
       # for account page

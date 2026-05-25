@@ -54,6 +54,8 @@ module Sign
           user: @user,
           discarded_at: 1.day.from_now,
           public_id: "test_step_up_#{SecureRandom.hex(4)}",
+          last_step_up_at: 1.minute.ago,
+          last_step_up_scope: "configuration_email",
         )
 
         Engine.stub(:score, 60) do
@@ -62,8 +64,8 @@ module Sign
 
         token.reload
 
-        assert_not_nil token.last_step_up_at
-        assert_equal "risk_enforced", token.last_step_up_scope
+        assert_nil token.last_step_up_at
+        assert_nil token.last_step_up_scope
       end
 
       test "requires step up for staff tokens if score is 60" do
@@ -74,6 +76,8 @@ module Sign
           staff: staff,
           discarded_at: 1.day.from_now,
           public_id: "stf_#{SecureRandom.hex(4)}",
+          last_step_up_at: 1.minute.ago,
+          last_step_up_scope: "configuration_passkey",
         )
 
         Engine.stub(:score, 60) do
@@ -82,8 +86,8 @@ module Sign
 
         token.reload
 
-        assert_not_nil token.last_step_up_at
-        assert_equal "risk_enforced", token.last_step_up_scope
+        assert_nil token.last_step_up_at
+        assert_nil token.last_step_up_scope
       end
 
       test "does nothing if score is 0" do

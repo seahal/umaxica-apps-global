@@ -13,7 +13,7 @@ module Outbound
 
         assert_predicate result, :accepted?
         assert_equal :sms, result.channel
-        assert_nil result.provider_message_id
+        assert_nil result.delivery_id
         assert_nil result.error
       end
 

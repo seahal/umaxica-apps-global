@@ -76,4 +76,78 @@ describe("StepUpPasskeyController", () => {
 
     expect(controller.errorTarget.textContent).toBe("このブラウザはPasskeyに対応していません");
   });
+
+  test("authenticate: optionsValue が空のときエラーを表示する", async () => {
+    controller.optionsValue = "";
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証オプションの取得に失敗しました");
+  });
+
+  test("authenticate: challengeIdValue が空のときエラーを表示する", async () => {
+    controller.challengeIdValue = "";
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証オプションの取得に失敗しました");
+  });
+
+  test("authenticate: SecurityError のときに適切なエラーメッセージを表示する", async () => {
+    const error = new Error("Security issue");
+    error.name = "SecurityError";
+    navigator.credentials.get.mockRejectedValue(error);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("セキュリティエラーが発生しました");
+  });
+
+  test("authenticate: その他のエラーのときにメッセージを表示する", async () => {
+    const error = new Error("Something went wrong");
+    navigator.credentials.get.mockRejectedValue(error);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("Something went wrong");
+  });
+
+  test("encodeCredential: userHandle がある場合も正しくエンコードする", async () => {
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1, 2, 3]).buffer,
+      type: "public-key",
+      authenticatorAttachment: "platform",
+      response: {
+        clientDataJSON: new Uint8Array([4, 5, 6]).buffer,
+        authenticatorData: new Uint8Array([7, 8, 9]).buffer,
+        signature: new Uint8Array([10, 11, 12]).buffer,
+        userHandle: new Uint8Array([13, 14, 15]).buffer,
+      },
+      getClientExtensionResults: () => ({ credProps: { rk: true } }),
+    };
+    navigator.credentials.get.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.credentialJsonTarget.value).toContain("platform");
+    expect(controller.credentialJsonTarget.value).toContain("userHandle");
+  });
+
+  test("showError: errorTarget がないときは何もしない", () => {
+    controller.hasErrorTarget = false;
+    controller.showError("test error");
+    expect(controller.errorTarget.textContent).toBe("");
+  });
+
+  test("showStatus: statusTarget がないときは何もしない", () => {
+    controller.hasStatusTarget = false;
+    controller.showStatus("test status");
+    expect(controller.statusTarget.textContent).toBe("");
+  });
 });

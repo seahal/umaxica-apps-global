@@ -31,14 +31,20 @@ columns are materialized availability state for coarse gates and routing; they m
 from the same inventory rules and must not introduce separate classification logic.
 
 Persist materialized AAL credential availability on the actor record and session freshness on the
-token record. Controllers may declare required assurance boundaries, but they must not be the source
-of truth for whether an actor has AAL1, AAL2, or contact-identifier credentials.
+token record. Authorization policy is the source of truth for which assurance boundary, method set,
+and scope a sensitive action requires. Controllers may carry inventory or assertion metadata for
+CI/review, but runtime enforcement must not treat controller metadata as the source of truth for
+step-up requirements. Controllers must not be the source of truth for whether an actor has AAL1,
+AAL2, or contact-identifier credentials.
 
 - `Authentication::CredentialInventory` owns immediate DB-backed classification and counts.
 - Actor records (`Client`, `Visitor`, `Operator`) own materialized credential-availability status.
 - Token records (`ClientToken`, `VisitorToken`, `OperatorToken`) own recent AAL2 completion state.
 - Step-up session records own temporary step-up workflow state.
 - Actor convenience methods and controller / concern helpers must call the same inventory service.
+- Authorization policies own action/resource-specific step-up requirements.
+- Step-up gates own challenge issuance, redirects, return targets, continuation, and session/ticket
+  mutation. Policies must not perform those HTTP or session side effects.
 
 ## Boundary Definitions
 
@@ -123,6 +129,18 @@ whether the actor currently has any surface-counting AAL2 credential; it does no
 session has recently completed AAL2. Token `last_step_up_at` and `last_step_up_scope` hold the
 session freshness state.
 
+Step-up requirement is an authorization requirement. A policy decides whether a given actor may
+perform a given action on a given resource and may require a recent AAL2 completion with an exact
+scope and method set. The step-up gate then checks or obtains that proof. The gate may redirect,
+issue challenges, create or consume step-up tickets, validate return targets, and mutate session or
+ticket state. The policy must not redirect, write sessions, issue challenges, or consume return
+targets.
+
+If controller/action metadata exists for step-up, it is inventory/assertion metadata only. Runtime
+behavior must fail closed when policy requirements and metadata disagree; it must not choose the
+weaker requirement or merge them opportunistically. This prevents stale metadata from bypassing a
+policy change.
+
 AAL2 credential lifecycle transitions are:
 
 | transition | decision                                                                                                                                                    |
@@ -176,7 +194,7 @@ and AAL2 availability for surfaces where email OTP is an AAL2 method. Telephone 
 contact identifier count but must not be treated as reducing AAL1, AAL2, or AAL3 availability.
 
 Contact-identifier counts are immediate DB-backed inventory values. They are not token/session
-state, and they should not be read from `Actor.authentication`.
+state, and they should not be read from `Actor.authn`.
 
 ### Reverse Lookup
 
@@ -220,6 +238,10 @@ Future AAL3 design should consider:
 - New authentication and authorization code must describe its required boundary as AAL1, AAL2, or
   AAL3.
 - Step-up implementation remains the AAL2 mechanism.
+- Sensitive-action step-up requirements are policy-owned. Controller/action metadata is optional
+  inventory/assertion data and must not become a second runtime source of truth.
+- Policies may express assurance requirements, but step-up gates perform challenge, redirect, return
+  target, continuation, and ticket/session mutation.
 - Credential inventory may expose AAL and contact-identifier terminology, but AAL3 methods must
   remain empty or unsupported until an explicit AAL3 ADR and implementation exist.
 - Security-sensitive deletion checks must use immediate inventory counts, including an `excluding:`

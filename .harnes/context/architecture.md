@@ -49,9 +49,9 @@ Controllers MUST NOT:
 
 - Use `notes/implementation/` for implementation decisions, plan deviations, compromises, and
   handoff context discovered while carrying out a plan.
-- Use `memo/` for exploratory notes, rough analysis, and provisional observations that do not affect
-  implementation.
-- Keep notes and memo content out of stable docs, plans, and ADRs until it is ready to be promoted.
+- Use `memos/` for exploratory notes, rough analysis, and provisional observations that do not
+  affect implementation.
+- Keep notes and memos out of stable docs, plans, and ADRs until they are ready to be promoted.
 
 ---
 

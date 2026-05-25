@@ -111,6 +111,16 @@ the action's required scope and `last_step_up_at` is still within the freshness 
 verification event must not satisfy scoped sensitive actions such as withdrawal, credential removal,
 or session revoke-all.
 
+The action's required AAL, method set, and step-up scope come from authorization policy. The policy
+answers what proof is required for this actor, action, and resource. The step-up gate answers
+whether the current session already has that proof or must be challenged. Controllers may include
+metadata for inventory and CI assertions, but runtime enforcement must not use metadata as a second
+source of truth.
+
+Policies must not perform step-up side effects. They must not redirect, write `session`, write
+cookies, issue challenges, consume step-up tickets, or decode return targets. Those operations
+belong to the step-up gate and return-target primitives.
+
 ### AAL2 Availability And Freshness
 
 AAL2 has two separate states:
@@ -178,7 +188,7 @@ same time. Telephone deletion reduces contact identifier count only; it must not
 reducing AAL1, AAL2, or AAL3 availability.
 
 Contact-identifier counts are immediate DB-backed inventory values. They are not token/session
-state, and they should not be read from `Actor.authentication`.
+state, and they should not be read from `Actor.authn`.
 
 ## Reverse Lookup
 
@@ -220,5 +230,7 @@ behavior.
 - Contact identifier inventory answers "can this account still be reached or recovered through a
   registered contact point?"
 - Code and docs should avoid adding non-NIST-inspired product levels such as `AAL0` or `AAL4`.
-- Controllers should declare the required assurance boundary and scope, but credential availability
-  must be classified through the shared inventory and maintained by model/service lifecycle code.
+- Authorization policies should declare the required assurance boundary, method set, and scope for
+  sensitive actions. Controller metadata may exist only as inventory/assertion data.
+- Credential availability must be classified through the shared inventory and maintained by
+  model/service lifecycle code.

@@ -8,7 +8,7 @@ require "i18n/backend/fallbacks"
 I18n::Backend::Simple.include I18n::Backend::Fallbacks
 
 locale_root = Rails.root.join("config/locales")
-locale_files = Dir[locale_root.join("**", "*.{rb,yml}")].sort
+locale_files = Dir[locale_root.join("**", "*.{rb,yml}")]
 
 I18n.load_path += locale_files
 I18n.load_path.uniq!

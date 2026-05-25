@@ -135,6 +135,11 @@ redesign decisions agreed in the 2026-05-11 design dialogue.
 `configuration_totp` for naming consistency. Each `verification_scope` in the registration
 controllers must be updated to match.
 
+The scope catalog is an allowed vocabulary, not the source of truth for a sensitive action's
+requirement. Authorization policy owns the required AAL, method set, and scope for a concrete
+actor/action/resource. Controller or action metadata may reference this catalog for inventory and CI
+assertions, but runtime enforcement must not use metadata as a second source of truth.
+
 ### E. Per-surface configuration
 
 | surface | step-up methods                  | bootstrap-exempt registration actions                                                                                                                                                 |
@@ -190,15 +195,38 @@ because they are not step-up methods.
 
 After a bootstrap registration completes successfully, the registration controller:
 
-1. Decodes `params[:rt]` (base64-url-encoded internal path) with `safe_internal_path` validation.
+1. Validates `params[:rt]` as a return-target token bound to the current session, surface, and flow.
 2. Sets `flash[:notice]` with a key that names the next operation (for example,
    `t("sign.app.configuration.bootstrap.proceed_to_action")` — exact key to be defined by the
    implementer).
-3. Calls `safe_redirect_to(decoded_rt, fallback: <surface>_configuration_path(ri: params[:ri]))`.
+3. Calls
+   `safe_redirect_to(return_target.path, fallback: <surface>_configuration_path(ri: params[:ri]))`.
 
 At the original sensitive endpoint, `require_step_up!` fires again. This time
 `ConfiguredMethods.empty?` is false, so the user is sent to `/verification` (not setup) and
 completes step_up with the freshly-registered credential. The original action then proceeds.
+
+The return-target token is a navigation primitive only. It must not authorize the action and must
+not decide the step-up requirement. On return, the policy is evaluated again for the current
+actor/action/resource, and the step-up gate compares the current session's proof to that policy
+requirement.
+
+Signed return or step-up tokens must still be replay-hardened. A valid signature proves only that
+the server issued the token and that the payload was not modified. It does not prove that the token
+is fresh, unused, intended for this flow, intended for this surface, or bound to this browser
+session. Return-target and step-up continuation tokens must therefore be:
+
+- one-shot, using a server-side `jti` or challenge/ticket id that is rejected after consumption;
+- bound to the current login/session token;
+- bound to the host-derived surface;
+- bound to the expected flow;
+- short-lived;
+- rejected if the token scope, flow, surface, session, actor, or target resource does not match the
+  policy requirement and current request context.
+
+POST requests must not be automatically replayed after step-up. Return targets after step-up should
+land on a safe confirmation or re-submit page, not silently repeat the original state-changing
+request.
 
 ### H. Removals
 
@@ -267,17 +295,18 @@ code path as X.
 - Schema migrations keep the step-up tables on the three token databases (`mark`, `symbol`, `token`)
   and key them by token id.
 - Controllers in `configuration/` namespaces gain a new `before_action` helper and now honor
-  `params[:rt]` on `create`. Existing tests that assert post-create redirect destination must be
-  updated.
+  `params[:rt]` on `create` through the return-target token primitive. Existing tests that assert
+  post-create redirect destination must be updated.
 - `ALLOWED_SCOPES` and the per-controller `verification_scope` values must be kept in lockstep with
-  the table in section D. A test asserting the cross-reference is recommended.
+  the table in section D for inventory purposes. Policy remains the runtime source of truth for
+  which scope a sensitive action requires. A test asserting the cross-reference is recommended.
 - The `manage_totp` → `configuration_totp` rename requires updating one constant and one
   `verification_scope` return value. No external URL changes.
 - com no longer has TOTP routes or controllers. Any external bookmarks pointing to
   `/configuration/totps` on the com host break with 404. Acceptable because the feature was never
   advertised on com.
-- The `/verification/setup/new?ri=...&rt=...` URL is unchanged. Existing inbound bookmarks (from the
-  user's question — `https://id.umaxica.app/verification/setup/new?ri=jp&rt=...`) continue to work.
+- The `/verification/setup/new?ri=...&rt=...` URL shape is unchanged. The `rt` value is now an
+  opaque return-target token; old Base64-only values are not a compatibility contract.
 
 ## Related
 

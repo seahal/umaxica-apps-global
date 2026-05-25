@@ -47,7 +47,7 @@ module Jit
         def assert_test_override_allowed!
           return if test_override_allowed?
 
-          raise "TurnstileVerifier test override is allowed only in test"
+          raise RuntimeError, "TurnstileVerifier test override is allowed only in test"
         end
       end
 
@@ -77,7 +77,12 @@ module Jit
       rescue StandardError => e
         # Decoupled notification: only if Rails event system exists
         if defined?(Rails) && Rails.respond_to?(:event)
-          Rails.logger.info(LogEvent.format("turnstile.verify.failed", error_class: e.class.name, error_message: e.message))
+          Rails.logger.info(
+            LogEvent.format(
+              "turnstile.verify.failed", error_class: e.class.name,
+                                         error_message: e.message,
+            ),
+          )
         end
         failure(e.message)
       end

@@ -10,7 +10,7 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
   end
 
   teardown do
-    Actor.authentication = Actor::Authentication::NULL
+    Actor.install_context!(authn: Actor::Authentication::NULL)
   end
 
   test "allows primary actions before actor binding" do
@@ -51,7 +51,7 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
 
     expectations.each do |status_name, allowed_method|
       cycle = create_cycle(status_name, principal_id: @client.id, token: @token)
-      Actor.authentication = Actor::Authentication.new(login_public_id: @token.public_id)
+      Actor.install_context!(authn: Actor::Authentication.new(login_public_id: @token.public_id))
       policy = ClientSignInCyclePolicy.new(cycle, user: @client)
 
       expectations.values.each do |method_name|
@@ -68,15 +68,15 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
     cycle = create_cycle("CHECKPOINT_PENDING", principal_id: @client.id, token: @token)
     policy = ClientSignInCyclePolicy.new(cycle, user: @client)
 
-    Actor.authentication = Actor::Authentication::NULL
+    Actor.install_context!(authn: Actor::Authentication::NULL)
 
     assert_not_predicate policy, :show_checkpoint?
 
-    Actor.authentication = Actor::Authentication.new(login_public_id: "wrong-token")
+    Actor.install_context!(authn: Actor::Authentication.new(login_public_id: "wrong-token"))
 
     assert_not_predicate policy, :show_checkpoint?
 
-    Actor.authentication = Actor::Authentication.new(login_public_id: @token.public_id)
+    Actor.install_context!(authn: Actor::Authentication.new(login_public_id: @token.public_id))
 
     assert_predicate policy, :show_checkpoint?
   end
@@ -84,7 +84,7 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
   test "token-bound post-issuance participants accept matching device session id" do
     cycle = create_cycle("DASHBOARD_PENDING", principal_id: @client.id, token: @token)
 
-    Actor.authentication = Actor::Authentication.new(login_public_id: @token.device_session.public_id)
+    Actor.install_context!(authn: Actor::Authentication.new(login_public_id: @token.device_session.public_id))
 
     assert_predicate ClientSignInCyclePolicy.new(cycle, user: @client), :show_dashboard?
   end
@@ -93,11 +93,11 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
     cycle = create_cycle("SESSION_LIMIT_PENDING", principal_id: @client.id, token: @token)
     policy = ClientSignInCyclePolicy.new(cycle, user: @client)
 
-    Actor.authentication = Actor::Authentication::NULL
+    Actor.install_context!(authn: Actor::Authentication::NULL)
 
     assert_not_predicate policy, :manage_session_limit?
 
-    Actor.authentication = Actor::Authentication.new(login_public_id: @token.public_id)
+    Actor.install_context!(authn: Actor::Authentication.new(login_public_id: @token.public_id))
 
     assert_predicate policy, :manage_session_limit?
   end
@@ -120,7 +120,7 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
     )
     failed = create_cycle("FAILED", principal_id: @client.id, step: "failed")
 
-    Actor.authentication = Actor::Authentication.new(login_public_id: @token.public_id)
+    Actor.install_context!(authn: Actor::Authentication.new(login_public_id: @token.public_id))
 
     assert_not_predicate ClientSignInCyclePolicy.new(completed, user: @client), :show_dashboard?
     assert_not_predicate ClientSignInCyclePolicy.new(completed, user: @client), :fail?
@@ -136,11 +136,11 @@ class SignInCyclePolicyTest < ActiveSupport::TestCase
   test "fail requires matching actor and token when cycle is bound" do
     cycle = create_cycle("CHECKPOINT_PENDING", principal_id: @client.id, token: @token)
 
-    Actor.authentication = Actor::Authentication::NULL
+    Actor.install_context!(authn: Actor::Authentication::NULL)
 
     assert_not_predicate ClientSignInCyclePolicy.new(cycle, user: @client), :fail?
 
-    Actor.authentication = Actor::Authentication.new(login_public_id: @token.public_id)
+    Actor.install_context!(authn: Actor::Authentication.new(login_public_id: @token.public_id))
 
     assert_not_predicate ClientSignInCyclePolicy.new(cycle, user: create_client), :fail?
     assert_predicate ClientSignInCyclePolicy.new(cycle, user: @client), :fail?

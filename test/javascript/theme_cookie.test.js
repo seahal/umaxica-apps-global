@@ -6,22 +6,22 @@ import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 
 let cookieReadValue = "";
 const classListMock = {
-  _store: new Set(),
+  store: new Set(),
   add(...cls) {
-    cls.forEach((c) => this._store.add(c));
+    cls.forEach((c) => this.store.add(c));
   },
   remove(...cls) {
-    cls.forEach((c) => this._store.delete(c));
+    cls.forEach((c) => this.store.delete(c));
   },
   toggle(cls, force) {
     if (force) {
-      this._store.add(cls);
+      this.store.add(cls);
     } else {
-      this._store.delete(cls);
+      this.store.delete(cls);
     }
   },
   has(cls) {
-    return this._store.has(cls);
+    return this.store.has(cls);
   },
 };
 
@@ -44,7 +44,8 @@ const { applyThemeFromCookie } = await import("../../app/javascript/theme_cookie
 
 beforeEach(() => {
   cookieReadValue = "";
-  classListMock._store = new Set();
+  classListMock.store = new Set();
+  documentMock.documentElement.dataset = {};
   windowMock.matchMedia.mockReturnValue({ matches: false, addEventListener: vi.fn() });
   documentMock.getElementById.mockReturnValue(null);
   documentMock.querySelector.mockReturnValue(null);
@@ -99,5 +100,33 @@ describe("applyThemeFromCookie", () => {
     applyThemeFromCookie();
     expect(documentMock.querySelector).toHaveBeenCalledWith("#js-theme-cookie-value");
     expect(valueEl.textContent).toBe("light");
+  });
+
+  test("THEME_CODE_MAP にない値はそのまま小文字にする", () => {
+    cookieReadValue = "ct=unknown";
+    applyThemeFromCookie();
+    expect(documentMock.documentElement.dataset.theme).toBe("unknown");
+  });
+
+  test("システムテーマの change イベントで dark クラスが切り替わる", () => {
+    let changeCallback = null;
+    const matchMediaResult = {
+      matches: false,
+      addEventListener: vi.fn((event, cb) => {
+        if (event === "change") changeCallback = cb;
+      }),
+    };
+    windowMock.matchMedia = vi.fn(() => matchMediaResult);
+    cookieReadValue = "ct=sy";
+    applyThemeFromCookie();
+    expect(changeCallback).not.toBeNull();
+
+    matchMediaResult.matches = true;
+    changeCallback();
+    expect(classListMock.has("dark")).toBe(true);
+
+    matchMediaResult.matches = false;
+    changeCallback();
+    expect(classListMock.has("dark")).toBe(false);
   });
 });

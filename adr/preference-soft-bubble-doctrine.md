@@ -4,25 +4,25 @@
 
 > **Partial supersession (2026-05-13):** `adr/actor-current-facade.md` supersedes this ADR's
 > application-facing read API. `Actor::Preference` is the value-object shape, and application code
-> reads it through `Actor.preference`.
+> reads it through `Actor.preferences`.
 >
 > **Placement update (2026-05-18):** Session-side surface preference families now live in
 > `app_setting`, `org_setting`, and `com_setting`. Actor-local preferences stay in the matching
 > principal database.
 >
-> **Runtime overlay update (2026-05-19):** `Actor.preference` is the effective request runtime
+> **Runtime overlay update (2026-05-19):** `Actor.preferences` is the effective request runtime
 > preference. Normal authenticated requests build it from the verified access-token `prf` claim,
 > then overlay valid request-local `lx`, `ct`, and `tz` parameters when explicitly present. The
 > overlay is not a write path and must never be copied back to the database or JWT.
 >
 > **Preference edit entry update (2026-05-19):** Logged-in HTML preference edit screens are a
 > bounded DB -> JWT refresh point. They may copy the actor-local preference DB value into the
-> current surface preference and reissue the preference access-token before `Actor.preference` is
+> current surface preference and reissue the preference access-token before `Actor.preferences` is
 > initialized, so edits made in another environment are visible on the edit screen.
 >
 > **Surface write-boundary update (2026-05-19):** Preference setting writes belong to the `sign`
-> surfaces. `apex` and `jump` consume the resolved runtime preference through `Actor.preference` and
-> must treat preference state as read-only. Request context overlays, RP rendering, and jump
+> surfaces. `apex` and `jump` consume the resolved runtime preference through `Actor.preferences`
+> and must treat preference state as read-only. Request context overlays, RP rendering, and jump
 > redirects are not preference write paths.
 
 ## Context
@@ -56,7 +56,7 @@ Relevant runtime code is already in place:
 - `app/models/actor.rb` defines `Actor < ActiveSupport::CurrentAttributes` with a `preference` slot.
 - `app/models/actor/preference.rb` defines `Actor::Preference`, an immutable value object with a
   `from_jwt` constructor and a `NULL` instance for guests / bearer-only requests.
-- `app/controllers/concerns/actor_support.rb` resolves `Actor.preference` via a three-stage
+- `app/controllers/concerns/actor_support.rb` resolves `Actor.preferences` via a three-stage
   fallback: actor-side DB record → JWT `prf` claim → `NULL`.
 
 Past plans assumed two things that we now reject:
@@ -98,16 +98,16 @@ cross-database synchronization boundary.
 ### 2. Interface is unified through `Actor::Preference`
 
 `Actor::Preference` is the only runtime read interface for preference values. Application code
-(controllers, views, services) reads preference state via `Actor.preference.<field>` and never
+(controllers, views, services) reads preference state via `Actor.preferences.<field>` and never
 reaches into per-DB preference models for runtime reads. This includes `apex` and `jump`, which are
 preference consumers, not preference setting writers. The differences between DB shapes are absorbed
 at the `ActorSupport` boundary, not pushed up into callers.
 
-For normal authenticated requests, `Actor.preference` is the effective request runtime preference:
+For normal authenticated requests, `Actor.preferences` is the effective request runtime preference:
 
 ```text
-DB -> access-token JWT prf -> Actor.preference
-request lx/ct/tz -> Actor.preference request overlay
+access-token JWT prf -> Actor.preferences
+request lx/ct/tz -> Actor.preferences request overlay
 ```
 
 Valid request-local `lx`, `ct`, and `tz` parameters may change the current request's effective
@@ -116,13 +116,13 @@ preference state. If a token says `lx=ja` and a request says `lx=en`, the reques
 while the persistent preference remains Japanese.
 
 Logged-in HTML preference edit screens are a bounded exception to the normal runtime cache path.
-Before initializing `Actor.preference`, they may read the actor-local preference database, copy it
+Before initializing `Actor.preferences`, they may read the actor-local preference database, copy it
 to the current surface preference, and issue a fresh access-token JWT. This exception exists only
 for preference screen entry; it is not a generic database fallback for normal pages or broken JWTs.
 
 Explicit preference setting writes still go to the per-DB models (since the bubbles are real), but
 those writes are owned by the `sign` preference surfaces. `apex` and `jump` must not persist
-preference changes; they may only consume `Actor.preference` and apply request-local overlays that
+preference changes; they may only consume `Actor.preferences` and apply request-local overlays that
 do not write the database or reissue JWTs. Read-side coupling to the per-DB models is to be removed
 over time.
 

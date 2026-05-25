@@ -4,5 +4,13 @@
 class Sign::Org::Preference::Region::CurrenciesController < Sign::Org::PreferencesBaseController
   include ::Preference::SignScreenActions
 
-  preference_screen :currency
+  before_action :ensure_preferences_record
+
+  def edit
+    edit_selectable_preference_screen(:currency)
+  end
+
+  def update
+    update_selectable_preference_screen(:currency)
+  end
 end

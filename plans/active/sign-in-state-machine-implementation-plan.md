@@ -26,7 +26,7 @@ after durable account completion.
 ## Non-Negotiable Boundaries
 
 - Keep `app`, `com`, and `org` controllers, routes, policies, sessions, and state separate.
-- `Actor.authentication` exposes normalized authentication facts. It must not own route progression.
+- `Actor.authn` exposes normalized authentication facts. It must not own route progression.
 - Action Policy owns authorization decisions.
 - Chronicle owns security-significant history.
 - Controllers ask the state machine for the current transition/result rather than encoding route
@@ -76,8 +76,7 @@ The carrier must record:
 - MFA pending state reference when present;
 - expiry time;
 - terminal state;
-- active sign sequence id exposed in `Actor.authentication` only as a fact, not as progression
-  authority.
+- active sign sequence id exposed in `Actor.authn` only as a fact, not as progression authority.
 
 ## Sequence States
 

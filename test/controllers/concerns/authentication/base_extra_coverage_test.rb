@@ -11,6 +11,34 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
     def get?
       request_method == "GET"
     end
+
+    def filtered_parameters
+      {}
+    end
+
+    def parameters
+      {}
+    end
+
+    def optional_port
+      nil
+    end
+
+    def protocol
+      "http://"
+    end
+
+    def path_parameters
+      {}
+    end
+
+    def script_name
+      ""
+    end
+
+    def routes
+      Rails.application.routes
+    end
   end
 
   class Harness < ApplicationController
@@ -206,9 +234,11 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "safe_redirect_to_rt_or_default! jumps to rt" do
-    @harness.safe_redirect_to_rt_or_default!("/target", default_path: "/default")
+    token = @harness.send(:issue_authentication_return_target_token, "/target")
 
-    assert_equal ["/target", { fallback: "/default" }], @harness.redirected
+    @harness.safe_redirect_to_rt_or_default!(token, default_path: "/default")
+
+    assert_equal ["/target", { allow_other_host: false }], @harness.redirected
   end
 
   test "current_session_public_id returns extracted session id and memoizes it" do
@@ -249,7 +279,12 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
   test "authenticate! redirects for html" do
     @harness.authenticate!
 
-    assert_equal "/sign_in?rt=aHR0cDovL2xvY2FsaG9zdA==", @harness.redirected.first
+    uri = URI.parse(@harness.redirected.first)
+    query = Rack::Utils.parse_nested_query(uri.query)
+
+    assert_equal "/sign_in", uri.path
+    assert_match(/--/, query["rt"])
+    assert_equal "http://localhost/", @harness.send(:verify_authentication_return_target_path, query["rt"])
   end
 
   test "authenticate! renders for json" do

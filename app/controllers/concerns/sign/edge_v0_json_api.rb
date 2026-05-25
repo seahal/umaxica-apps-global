@@ -5,11 +5,6 @@ module Sign
   module EdgeV0JsonApi
     extend ActiveSupport::Concern
 
-    included do
-      before_action :ensure_json_request
-      skip_before_action :set_region
-    end
-
     private
 
     def authenticate!

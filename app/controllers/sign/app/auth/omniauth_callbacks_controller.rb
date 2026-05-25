@@ -31,6 +31,10 @@ module Sign
         skip_before_action :apply_localization_preferences, only: %i(omniauth failure)
         skip_before_action :set_region, only: %i(omniauth failure)
 
+        def omniauth
+          super
+        end
+
         def handle_omniauth_callback(auth)
           Rails.logger.debug(LogEvent.format("sign.social.omniauth.validating_state"))
           validate_social_auth_state!
@@ -40,12 +44,14 @@ module Sign
           result = process_social_auth_callback
           user = result[:user]
 
-          Rails.logger.debug(LogEvent.format(
-            "sign.social.omniauth.callback_processed",
-            user_id: user&.id,
-            intent: intent,
-            existing_account: result[:existing_account],
-          ))
+          Rails.logger.debug(
+            LogEvent.format(
+              "sign.social.omniauth.callback_processed",
+              user_id: user&.id,
+              intent: intent,
+              existing_account: result[:existing_account],
+            ),
+          )
 
           handle_successful_auth(
             user,
@@ -64,28 +70,34 @@ module Sign
           message = params[:message] || "unknown_error"
           strategy = params[:strategy] || "unknown"
 
-          Rails.logger.debug(LogEvent.format(
-            "sign.social.omniauth.failure_callback",
-            message: message,
-            strategy: strategy,
-          ))
+          Rails.logger.debug(
+            LogEvent.format(
+              "sign.social.omniauth.failure_callback",
+              message: message,
+              strategy: strategy,
+            ),
+          )
 
           failure_redirect_path = social_auth_failure_redirect_path
 
           if duplicate_google_callback_failure_after_success?(message, strategy)
-            Rails.logger.info(LogEvent.format(
-              "sign.social.omniauth.duplicate_callback_failure_ignored",
-              message: message,
-              strategy: strategy,
-            ))
+            Rails.logger.info(
+              LogEvent.format(
+                "sign.social.omniauth.duplicate_callback_failure_ignored",
+                message: message,
+                strategy: strategy,
+              ),
+            )
             return redirect_to(social_auth_success_redirect_path)
           end
 
-          Rails.logger.info(LogEvent.format(
-            "sign.social.omniauth_failure",
-            message: message,
-            strategy: strategy,
-          ))
+          Rails.logger.info(
+            LogEvent.format(
+              "sign.social.omniauth_failure",
+              message: message,
+              strategy: strategy,
+            ),
+          )
 
           # Try to find a specific translation, fall back to generic
           failure_key = ["sign.app.social.sessions.failure", message].join(".")
@@ -113,12 +125,14 @@ module Sign
           )
         end
 
-        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, rt: nil, entry: nil)
-          Rails.logger.debug(LogEvent.format(
-            "sign.social.omniauth.handle_successful_auth",
-            intent: intent,
-            user_id: user&.id,
-          ))
+        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, rt: nil, _entry: nil)
+          Rails.logger.debug(
+            LogEvent.format(
+              "sign.social.omniauth.handle_successful_auth",
+              intent: intent,
+              user_id: user&.id,
+            ),
+          )
 
           case intent
           when "link"
@@ -170,7 +184,12 @@ module Sign
         end
 
         def handle_link_intent(provider_name)
-          Rails.logger.debug(LogEvent.format("sign.social.omniauth.link_intent", message: "Redirecting to configuration"))
+          Rails.logger.debug(
+            LogEvent.format(
+              "sign.social.omniauth.link_intent",
+              message: "Redirecting to configuration",
+            ),
+          )
           default_notice = I18n.t(
             "sign.app.social.sessions.link.default",
             provider: provider_name,
@@ -198,11 +217,13 @@ module Sign
           login_result = sign_in(user, rt: rt)
 
           if login_result.is_a?(Hash) && login_result[:status] != :success
-            Rails.logger.warn(LogEvent.format(
-              "sign.social.omniauth.login_failed",
-              status: login_result[:status],
-              user_id: user.id,
-            ))
+            Rails.logger.warn(
+              LogEvent.format(
+                "sign.social.omniauth.login_failed",
+                status: login_result[:status],
+                user_id: user.id,
+              ),
+            )
             return handle_login_failure(login_result, provider_name, user)
           end
 
@@ -213,7 +234,12 @@ module Sign
             )
           end
 
-          Rails.logger.debug(LogEvent.format("sign.social.omniauth.login_successful", message: "Redirecting after login"))
+          Rails.logger.debug(
+            LogEvent.format(
+              "sign.social.omniauth.login_successful",
+              message: "Redirecting after login",
+            ),
+          )
           redirect_after_login(provider_name, existing_account, rt: rt)
         end
 
@@ -247,7 +273,12 @@ module Sign
             user, rt: rt, ri: params[:ri], auth_method: "social",
                   audit_context: social_login_audit_context,
           )
-          Rails.logger.debug(LogEvent.format("sign.social.omniauth.sign_in_result", **social_login_result_log_payload(result)))
+          Rails.logger.debug(
+            LogEvent.format(
+              "sign.social.omniauth.sign_in_result",
+              **social_login_result_log_payload(result),
+            ),
+          )
           result
         end
 
@@ -282,9 +313,13 @@ module Sign
 
         def bind_social_sign_up_cycle!(cycle, user, identity)
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless identity
-          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless identity.persisted? && identity.id.present?
+          unless identity.persisted? && identity.id.present?
+            raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+          end
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless identity.user_id == user.id
-          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless SocialIdentifiable.normalize_provider(identity.provider) == cycle.social_provider
+          unless SocialIdentifiable.normalize_provider(identity.provider) == cycle.social_provider
+            raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+          end
 
           AppTicketRecord.connected_to(role: :writing) do
             cycle.update!(
@@ -296,7 +331,7 @@ module Sign
             SignUp::StateMachine.call(
               ticket: cycle,
               event: :complete_social_callback,
-              actor_context: Actor.authentication,
+              actor_context: Actor.authn,
             ).tap do |result|
               raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
             end

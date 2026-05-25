@@ -25,6 +25,10 @@ module Sign
         skip_before_action :apply_localization_preferences, only: %i(omniauth failure)
         skip_before_action :set_region, only: %i(omniauth failure)
 
+        def omniauth
+          super
+        end
+
         def handle_omniauth_callback(auth)
           validate_social_auth_state!
           staff = find_staff_from_auth(auth)
@@ -72,11 +76,13 @@ module Sign
         end
 
         def redirect_staff_not_found(auth)
-          Rails.logger.info(LogEvent.format(
-            "sign.social.org.omniauth.staff_not_found",
-            provider: auth.provider,
-            uid_present: OperatorSocialGoogle.extract_uid(auth).present?,
-          ))
+          Rails.logger.info(
+            LogEvent.format(
+              "sign.social.org.omniauth.staff_not_found",
+              provider: auth.provider,
+              uid_present: OperatorSocialGoogle.extract_uid(auth).present?,
+            ),
+          )
           clear_social_auth_intent!
           redirect_to(
             new_sign_org_in_path,
@@ -182,13 +188,15 @@ module Sign
         end
 
         def handle_unexpected_error(error, auth)
-          Rails.logger.error(LogEvent.format(
-            "sign.social.org.omniauth.unexpected_error",
-            error_class: error.class.name,
-            error_message: error.message,
-            provider: auth&.provider,
-            exception: error,
-          ))
+          Rails.logger.error(
+            LogEvent.format(
+              "sign.social.org.omniauth.unexpected_error",
+              error_class: error.class.name,
+              error_message: error.message,
+              provider: auth&.provider,
+              exception: error,
+            ),
+          )
           clear_social_auth_intent!
           redirect_to(
             new_sign_org_in_path,
@@ -207,15 +215,17 @@ module Sign
         # Override to use org path instead of app path
         def reject_social_callback!(reason:, provider:, details: {})
           clear_social_state!
-          Rails.logger.warn(LogEvent.format(
-            "social_callback.rejected",
-            source: "SocialCallbackGuard",
-            surface: "org",
-            phase: "callback",
-            provider: provider,
-            reason: reason,
-            details: details,
-          ))
+          Rails.logger.warn(
+            LogEvent.format(
+              "social_callback.rejected",
+              source: "SocialCallbackGuard",
+              surface: "org",
+              phase: "callback",
+              provider: provider,
+              reason: reason,
+              details: details,
+            ),
+          )
           redirect_to(
             new_sign_org_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),

@@ -36,7 +36,7 @@ payload, and preference UI actions use one shared path instead of per-surface br
 - `time_format`: `hour_24`, `hour_12`; default `hour_24`
 - `motion`: `standard`, `reduced`; default `standard`
 - `density`: `standard`, `compact`; default `standard`
-- `items_per_page`: `10`, `20`, `50`, `100`; default `20`
+- `items_per_page`: `10`, `20`, `50`, `100`, `infinity`; default `20`
 
 ## Consequences
 

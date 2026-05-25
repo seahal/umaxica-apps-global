@@ -20,9 +20,9 @@ class JumpLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "app jump host renders landing page without Actor tld state" do
-    host! ENV.fetch("JUMP_APP_URL", "app.localhost")
+    host! ENV.fetch("JUMP_APP_URL", "jump.app.localhost")
 
-    get "/"
+    get "/", params: { ri: "jp" }
 
     assert_response :success
     assert_select "title", "UMAXICA (app) | Jump"
@@ -30,9 +30,9 @@ class JumpLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "com jump host renders landing page without Actor tld state" do
-    host! ENV.fetch("JUMP_COM_URL", "com.localhost")
+    host! ENV.fetch("JUMP_COM_URL", "jump.com.localhost")
 
-    get "/"
+    get "/", params: { ri: "jp" }
 
     assert_response :success
     assert_select "title", "UMAXICA (com) | Jump"
@@ -40,9 +40,9 @@ class JumpLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "org jump host renders landing page without Actor tld state" do
-    host! ENV.fetch("JUMP_ORG_URL", "org.localhost")
+    host! ENV.fetch("JUMP_ORG_URL", "jump.org.localhost")
 
-    get "/"
+    get "/", params: { ri: "jp" }
 
     assert_response :success
     assert_select "title", "UMAXICA (org) | Jump"
@@ -50,46 +50,44 @@ class JumpLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "Actor remains reset after the response" do
-    host! ENV.fetch("JUMP_APP_URL", "app.localhost")
+    host! ENV.fetch("JUMP_APP_URL", "jump.app.localhost")
 
-    get "/"
+    get "/", params: { ri: "jp" }
 
     assert_nil Actor.tld
     assert_equal :unauthenticated, Actor.actor_type
   end
 
   test "existing redirect success still works" do
-    host! ENV.fetch("JUMP_APP_URL", "app.localhost")
+    host! ENV.fetch("JUMP_APP_URL", "jump.app.localhost")
     link = AppJumpLink.create!(
       destination_url: "https://example.com/destination",
       public_id: "A#{SecureRandom.alphanumeric(20)}",
     )
 
-    get "/", params: { to: link.public_id }
+    get "/", params: { ri: "jp", to: link.public_id }
 
     assert_redirected_to link.destination_url
   end
 
   test "existing redirect failure (not found) still works" do
-    host! ENV.fetch("JUMP_APP_URL", "app.localhost")
+    host! ENV.fetch("JUMP_APP_URL", "jump.app.localhost")
 
-    get "/", params: { to: "non-existent-id" }
+    get "/", params: { ri: "jp", to: "non-existent-id" }
 
     assert_response :not_found
   end
 
   test "cookie session skip behavior still applies" do
-    host! ENV.fetch("JUMP_APP_URL", "app.localhost")
+    host! ENV.fetch("JUMP_APP_URL", "jump.app.localhost")
 
-    get "/"
+    get "/", params: { ri: "jp" }
 
     # Jump endpoints should not set session cookies
     # The Set-Cookie header should not contain session-related cookies
     set_cookie_header = response.headers["Set-Cookie"]
+    combined = Array(set_cookie_header).join("\n")
 
-    assert_nil set_cookie_header
-    if set_cookie_header.present?
-      assert_no_match(/session/i, set_cookie_header, "Jump should not set session cookies")
-    end
+    assert_no_match(/session/i, combined, "Jump should not set session cookies")
   end
 end

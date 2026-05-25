@@ -96,7 +96,7 @@ module SignIn
     def token_matches?
       return false unless token_bound?
 
-      current_public_id = Actor.authentication.login_public_id
+      current_public_id = Actor.authn.login_public_id
       return false if current_public_id.blank?
 
       token = record.token

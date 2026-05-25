@@ -61,23 +61,27 @@ module RestrictedSessionGuard
       session.revoke!
     end
 
-    Rails.logger.info(LogEvent.format(
-      "session.restricted.expired",
-      user_token_id: session.public_id,
-      user_id: session.respond_to?(:user_id) ? session.user_id : nil,
-    ))
+    Rails.logger.info(
+      LogEvent.format(
+        "session.restricted.expired",
+        user_token_id: session.public_id,
+        user_id: session.respond_to?(:user_id) ? session.user_id : nil,
+      ),
+    )
 
     true
   end
 
   def handle_restricted_session_block
-    Rails.logger.info(LogEvent.format(
-      "session.restricted.blocked_route",
-      path: request.path,
-      method: request.request_method,
-      user_token_id: current_session&.public_id,
-      user_id: current_session.respond_to?(:user_id) ? current_session.user_id : nil,
-    ))
+    Rails.logger.info(
+      LogEvent.format(
+        "session.restricted.blocked_route",
+        path: request.path,
+        method: request.request_method,
+        user_token_id: current_session&.public_id,
+        user_id: current_session.respond_to?(:user_id) ? current_session.user_id : nil,
+      ),
+    )
 
     render plain: BLOCKED_MESSAGE, status: :locked
   end

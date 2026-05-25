@@ -24,6 +24,14 @@ describe("CookieToggleController", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
+  test("connect: updateStatus と setupFormListener を呼ぶ", () => {
+    const updateSpy = vi.spyOn(controller, "updateStatus");
+    const setupSpy = vi.spyOn(controller, "setupFormListener");
+    controller.connect();
+    expect(updateSpy).toHaveBeenCalled();
+    expect(setupSpy).toHaveBeenCalled();
+  });
+
   test("updateStatus: チェックボックスの数に応じてステータスを更新する", () => {
     const cb1 = { checked: true };
     const cb2 = { checked: false };
@@ -33,6 +41,12 @@ describe("CookieToggleController", () => {
 
     controller.updateStatus();
     expect(controller.statusTarget.textContent).toBe("1 / 2 cookies enabled");
+  });
+
+  test("updateStatus: statusTarget がないときは何もしない", () => {
+    controller.hasStatusTarget = false;
+    controller.updateStatus();
+    expect(controller.statusTarget.textContent).toBe("");
   });
 
   test("toggle: ステータスを更新する", () => {
@@ -54,6 +68,31 @@ describe("CookieToggleController", () => {
     expect(functionalCb.checked).toBe(true);
   });
 
+  test("setupFormListener: form があるときリスナーを登録する", () => {
+    const form = { addEventListener: vi.fn() };
+    controller.element.querySelector.mockReturnValue(form);
+    controller.setupFormListener();
+    expect(form.addEventListener).toHaveBeenCalledWith("turbo:submit-end", expect.any(Function));
+  });
+
+  test("setupFormListener: form のリスナー内で onFormSubmitEnd を呼ぶ", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ functional: true }) }),
+    );
+    const syncSpy = vi.spyOn(controller, "syncCheckboxesFromAPI");
+
+    const event = { detail: { success: true } };
+    await controller.onFormSubmitEnd(event);
+    expect(syncSpy).toHaveBeenCalled();
+  });
+
+  test("setupFormListener: form がないとき何もしない", () => {
+    controller.element.querySelector.mockReturnValue(null);
+    controller.setupFormListener();
+    expect(controller.element.querySelector).toHaveBeenCalledWith("form");
+  });
+
   test("onFormSubmitEnd: 成功時に API から同期する", async () => {
     const consent = { functional: true };
     vi.stubGlobal(
@@ -69,5 +108,26 @@ describe("CookieToggleController", () => {
 
     expect(syncSpy).toHaveBeenCalledWith(consent);
     expect(updateSpy).toHaveBeenCalled();
+  });
+
+  test("onFormSubmitEnd: 失敗時は何もしない", async () => {
+    const updateSpy = vi.spyOn(controller, "updateStatus");
+    const event = { detail: { success: false } };
+    await controller.onFormSubmitEnd(event);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  test("onFormSubmitEnd: fetch 失敗時に updateStatus を呼ぶ", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+    const updateSpy = vi.spyOn(controller, "updateStatus");
+
+    const event = { detail: { success: true } };
+    await controller.onFormSubmitEnd(event);
+    expect(updateSpy).toHaveBeenCalled();
+  });
+
+  test("fetchCookieConsent: レスポンスが OK でないときエラーを投げる", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    await expect(controller.fetchCookieConsent()).rejects.toThrow("HTTP error! status: 500");
   });
 });

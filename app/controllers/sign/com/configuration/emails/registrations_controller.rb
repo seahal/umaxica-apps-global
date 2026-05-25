@@ -13,11 +13,8 @@ module Sign
 
           before_action :authenticate_visitor!
           before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update)
-          before_action only: %i(new create) do
+          before_action only: %i(new create edit update) do
             require_step_up_unless_bootstrap!(scope: verification_scope)
-          end
-          before_action only: %i(edit update) do
-            require_step_up!(scope: verification_scope)
           end
 
           def new
@@ -174,10 +171,7 @@ module Sign
             encoded = retrieve_redirect_parameter(email_registration_rt_session_key)
             return default_path if encoded.blank?
 
-            decoded = Base64.urlsafe_decode64(encoded)
-            safe_internal_path(decoded).presence || default_path
-          rescue ArgumentError, URI::InvalidURIError
-            default_path
+            safe_path_from_encoded_rt(encoded, fallback: default_path)
           end
 
           def preserve_email_registration_redirect_parameter
@@ -196,14 +190,7 @@ module Sign
           end
 
           def sanitize_encoded_redirect(encoded_url)
-            return if encoded_url.blank?
-
-            decoded_url = Base64.urlsafe_decode64(encoded_url)
-            safe_path = safe_internal_path(decoded_url)
-
-            Base64.urlsafe_encode64(safe_path) if safe_path
-          rescue ArgumentError, URI::InvalidURIError
-            nil
+            safe_encoded_rt(encoded_url)
           end
 
           def verification_required_action?

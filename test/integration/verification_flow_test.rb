@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "base64"
 
 # Integration tests for verification flow
 #
@@ -61,12 +60,17 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "successful passkey verification redirects to return_to" do
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    @token.update!(created_at: 1.hour.ago)
+
+    get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+
+    verification_uri = URI.parse(response.location)
+    rt = Rack::Utils.parse_query(verification_uri.query).fetch("rt")
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
-          get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+          get sign_app_verification_url(scope: "configuration_email", rt: rt, ri: "jp"),
               headers: @headers
           get new_sign_app_verification_passkey_url(ri: "jp"), headers: @headers
 

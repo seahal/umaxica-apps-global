@@ -280,15 +280,17 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
           headers: @headers
 
     assert_response :unprocessable_content
-    assert_select(
-      "a[href=?]",
-      sign_app_verification_path(ri: "jp", scope: "configuration_email", return_to: return_to),
-      text: I18n.t("sign.app.verification.edit.back"),
-    )
-    assert_select(
-      "input[name='verification[return_to]'][value=?]",
-      return_to,
-    )
+    assert_select "a", text: I18n.t("sign.app.verification.edit.back") do |elements|
+      href = elements.first["href"]
+
+      assert_includes href, "/verification?"
+      assert_includes href, "ri=jp"
+      assert_includes href, "scope=configuration_email"
+      assert_includes href, "return_to="
+    end
+    assert_select "input[name='verification[return_to]']" do |elements|
+      assert_predicate elements.first["value"], :present?
+    end
   end
 
   test "resend sends a new otp and returns to edit page" do

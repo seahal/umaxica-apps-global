@@ -43,7 +43,12 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show renders only email and passkey method links" do
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+    return_to = ReturnTargetToken.issue(
+      return_to: sign_com_configuration_emails_path(ri: "jp"),
+      flow: "step_up.bootstrap",
+      surface: "com",
+      session_nonce: @headers["X-TEST-SESSION-PUBLIC-ID"],
+    )
     VisitorPasskey.create!(
       visitor: @visitor,
       webauthn_id: Base64.urlsafe_encode64("com_verification_passkey", padding: false),

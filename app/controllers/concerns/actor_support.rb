@@ -14,15 +14,17 @@ module ActorSupport
 
   def set_current_context
     context = resolved_current_context
-    Actor.update(
+    Actor.install_context!(
       tld: context.surface,
       account: context.account,
       tenant: context.tenant,
       actor: Unauthenticated.instance,
       actor_type: :unauthenticated,
-      authentication: Actor::Authentication::NULL,
+      authn: Actor::Authentication::NULL,
+      authz: Actor::Authz::NULL,
       configuration: Actor::Configuration::NULL,
-      preference: Actor::Preference::NULL,
+      preferences: Actor::Preference::NULL,
+      step_up: Actor::StepUp::NULL,
       trace_id: nil,
       span_id: nil,
     )
@@ -33,12 +35,15 @@ module ActorSupport
     resource = safe_current_resource
     actor = resource.presence || Unauthenticated.instance
     actor_type = resolved_current_actor_type(resource)
-    Actor.update(
+    authn = resolved_current_authentication(resource: resource, actor_type: actor_type)
+    Actor.install_context!(
       actor: actor,
       actor_type: actor_type,
-      authentication: resolved_current_authentication(resource: resource, actor_type: actor_type),
+      authn: authn,
+      authz: resolved_current_authz(resource: resource, authn: authn),
       configuration: resolved_current_configuration(resource),
-      preference: resolved_current_preference(resource),
+      preferences: resolved_current_preference(resource),
+      step_up: resolved_current_step_up,
     )
   end
 
@@ -72,10 +77,6 @@ module ActorSupport
   end
 
   def safe_current_resource
-    current_actor = Actor.actor
-    if current_actor.present?
-      return current_actor unless current_actor.equal?(Unauthenticated.instance)
-    end
     return unless respond_to?(:current_resource, true)
 
     current_resource
@@ -112,7 +113,8 @@ module ActorSupport
     nil
   end
 
-  def resolved_current_authentication(resource: safe_current_resource, actor_type: resolved_current_actor_type(resource))
+  def resolved_current_authentication(resource: safe_current_resource,
+                                      actor_type: resolved_current_actor_type(resource))
     token = resolved_current_token
     session_id = resolved_current_session
     return Actor::Authentication::NULL if token.blank? && session_id.blank? && resource.blank?
@@ -154,15 +156,32 @@ module ActorSupport
     Actor::Configuration::NULL
   end
 
+  def resolved_current_authz(resource:, authn:)
+    Actor::Authz.new(
+      policy_user: resource,
+      token_claims: authn.access_claims,
+      surface: resolved_current_tld,
+    )
+  end
+
+  def resolved_current_step_up
+    return Actor::StepUp::NULL unless defined?(StepUp::Resolver)
+    return Actor::StepUp::NULL unless respond_to?(:current_session_token, true)
+
+    StepUp::Resolver.call(token: current_session_token, scope: nil)
+  rescue StandardError
+    Actor::StepUp::NULL
+  end
+
   def resolved_current_preference(resource)
-    preference_record = resolved_resource_preference(resource)
-    cookie = resolved_current_cookie(resource, preference_record: preference_record)
-    return preference_from_record(preference_record, cookie: cookie) if preference_record.present?
+    cookie = resolved_current_cookie(resource, preference_record: nil)
 
     prf_claim = resolved_current_token&.dig("prf")
-    return Actor::Preference.from_jwt(prf_claim, cookie: cookie) if prf_claim.is_a?(Hash)
+    if prf_claim.is_a?(Hash)
+      return preference_with_request_overlay(Actor::Preference.from_jwt(prf_claim, cookie: cookie))
+    end
 
-    Actor::Preference::NULL.with_cookie(cookie)
+    preference_with_request_overlay(Actor::Preference::NULL.with_cookie(cookie))
   end
 
   def resolved_current_cookie(resource, preference_record: :__resolve__)
@@ -239,6 +258,28 @@ module ActorSupport
     )
   end
 
+  def preference_with_request_overlay(preference)
+    return preference unless respond_to?(:requested_context, true)
+
+    context = requested_context
+    return preference if context.blank?
+
+    Actor::Preference.new(
+      language: context[:lx] || preference.language,
+      region: context[:ri] || preference.region,
+      timezone: context[:tz] || preference.timezone,
+      theme: context[:ct] || preference.theme,
+      currency: preference.currency,
+      date_format: preference.date_format,
+      time_format: preference.time_format,
+      motion: preference.motion,
+      density: preference.density,
+      items_per_page: preference.items_per_page,
+      cookie: preference.cookie,
+      null: preference.null?,
+    )
+  end
+
   def preference_record_value(preference_record, name)
     value = preference_record.public_send(name) if preference_record.respond_to?(name)
     value.presence || Actor::Preference::DEFAULTS.fetch(name)
@@ -246,13 +287,12 @@ module ActorSupport
 
   def set_current_observability
     return unless defined?(OpenTelemetry::Trace)
-    return unless Actor.preference.cookie.performant?
+    return unless Actor.preferences.cookie.performant?
 
     span = OpenTelemetry::Trace.current_span
     context = span.context
     return unless context.valid?
 
-    Actor.trace_id = context.hex_trace_id
-    Actor.span_id = context.hex_span_id
+    Actor.install_context!(trace_id: context.hex_trace_id, span_id: context.hex_span_id)
   end
 end

@@ -94,13 +94,37 @@ module Oidc
       "/"
     end
 
+    # Tighten the OIDC return_to to a same-host internal path.
+    #
+    # Mirrors the shape of Common::Redirect#safe_internal_path (path?query
+    # only, no scheme / host / userinfo / control chars). Inlined here instead
+    # of delegated because Oidc::SsoInitiator is included on apex application
+    # controllers that already mix in Common::Redirect via other paths, and we
+    # want this validator to be self-contained while the broader unification
+    # is planned separately. Future work: share the helper.
     def safe_return_to(return_to)
-      uri = URI.parse(return_to.to_s)
-      return "/" if uri.host.present? && uri.host != request.host
+      target = return_to.to_s
+      return "/" if target.blank?
+      return "/" if target.match?(/[[:cntrl:]]/)
 
-      uri.to_s.presence || "/"
-    rescue URI::InvalidURIError
-      "/"
+      begin
+        uri = URI.parse(target)
+      rescue URI::InvalidURIError
+        return "/"
+      end
+
+      return "/" if uri.user.present? || uri.password.present?
+
+      if uri.scheme.present? || uri.host.present?
+        scheme_ok = %w(http https).include?(uri.scheme)
+        host_ok = uri.host.present? && uri.host == request.host
+        return "/" unless scheme_ok && host_ok
+      end
+
+      path = uri.path.presence || "/"
+      return "/" unless path.start_with?("/")
+
+      uri.query.present? ? "#{path}?#{uri.query}" : path
     end
 
     def oidc_client_id

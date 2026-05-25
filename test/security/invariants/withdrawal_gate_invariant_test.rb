@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# rubocop:disable I18n/RailsI18n/DecorateString
+
 require "test_helper"
 
 module Security
@@ -66,9 +68,12 @@ module Security
           "app/controllers/apex/app/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
           "app/controllers/apex/com/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
           # DBSC endpoints must process device-session challenge state before the normal withdrawal gate.
-          "app/controllers/apex/app/edge/v0/dbsc_controller.rb" => "DBSC edge endpoint owns its device binding boundary",
-          "app/controllers/apex/com/edge/v0/dbsc_controller.rb" => "DBSC edge endpoint owns its device binding boundary",
-          "app/controllers/apex/org/edge/v0/dbsc_controller.rb" => "DBSC edge endpoint owns its device binding boundary",
+          "app/controllers/apex/app/edge/v0/dbsc_controller.rb" =>
+            "DBSC edge endpoint owns its device binding boundary",
+          "app/controllers/apex/com/edge/v0/dbsc_controller.rb" =>
+            "DBSC edge endpoint owns its device binding boundary",
+          "app/controllers/apex/org/edge/v0/dbsc_controller.rb" =>
+            "DBSC edge endpoint owns its device binding boundary",
         }
 
         assert allowlist.values.all?(&:present?), "Withdrawal gate skip allowlist entries require reasons"

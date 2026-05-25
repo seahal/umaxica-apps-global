@@ -194,10 +194,11 @@ module Preference
       end
     end
 
-    def preference_connection_class(model_class)
+    def preference_connection_class(model_or_class)
+      model_class = model_or_class.is_a?(Class) ? model_or_class : model_or_class.class
       model_class.ancestors.find do |ancestor|
         ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class?
-      end
+      end || ActiveRecord::Base
     end
 
     def sync_direct_resource_preference!(resource_pref)

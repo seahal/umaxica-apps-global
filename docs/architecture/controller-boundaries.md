@@ -1,31 +1,28 @@
 # Controller Boundaries
 
-The application uses four semantic controller boundaries for `sign` and `apex` controllers.
-Inheritance should make the request access contract readable before the controller body is
-inspected.
+The application no longer uses `OpenController`, `PrivateController`, and `GuestController`
+inheritance as the request access contract.
+
+The current controller inheritance contract is intentionally narrow:
+
+- `BareController` inherits from `ActionController::Base` and owns endpoints that do not use
+  application authentication machinery.
+- Surface-local `ApplicationController` inherits from `ActionController::Base` and owns the
+  authentication-aware request lifecycle.
+
+Authentication classification must be declared and audited explicitly by concrete controller/action
+metadata, not inferred from `OpenController`, `PrivateController`, or `GuestController` inheritance.
+Missing declarations resolve to `:deny_all`.
 
 For `sign`, these boundaries are surface-local: `Sign::App::*Controller`, `Sign::Com::*Controller`,
 and `Sign::Org::*Controller` own their own base classes so `app`, `com`, and `org` behavior stays
 separated.
 
-## The Four Boundaries
-
-### OpenController
-
-Use `OpenController` for endpoints that are reachable with or without a signed-in actor.
-
-Open controllers may inspect session, preference, authentication, actor, and current-context state
-when it exists. They must not require a signed-in actor by default.
-
-Common examples:
-
-- sign-in continuation endpoints;
-- preference endpoints that can work anonymously and can bind to a signed-in actor;
-- public-facing pages that personalize for signed-in actors.
+## Current Boundaries
 
 ### BareController
 
-Use `BareController` for endpoints that do not implement application authentication.
+`BareController` is for endpoints that do not implement application authentication.
 
 Bare controllers should not read actor, current-context, preference, authorization, verification, or
 authentication pipeline state. They may use minimal Rails behavior such as CSRF protection, browser
@@ -38,9 +35,45 @@ Common examples:
 - sitemap endpoints;
 - public infrastructure endpoints with no actor semantics.
 
-### PrivateController
+### ApplicationController
 
-Use `PrivateController` for endpoints that require an authenticated actor.
+Use the surface-local `ApplicationController` for every endpoint that uses authentication-aware
+request machinery.
+
+It owns rate limiting, session/authentication resolution, preference resolution, Actor setup,
+verification, authorization, observability, and Actor cleanup in the surface's established order.
+Concrete controllers or actions declare one of the supported authentication modes:
+
+| Mode        | Authenticated actor | Anonymous actor | Meaning                                                                       |
+| ----------- | ------------------- | --------------- | ----------------------------------------------------------------------------- |
+| `:deny_all` | closed              | closed          | Default fail-closed mode for undeclared, disabled, or unclassified endpoints. |
+| `:guest`    | closed              | open            | Guest entry flows such as sign in, sign up, and recovery.                     |
+| `:private`  | open                | closed          | Normal authenticated endpoints.                                               |
+| `:open`     | open                | open            | Anonymous and authenticated actors are both allowed.                          |
+
+`AUTHENTICATION_MODE` declarations must be local to the concrete controller or action. A parent
+constant does not count. Undeclared endpoints are `:deny_all`.
+
+`:open` does not permit authentication failure fallback. Open endpoints must distinguish absent
+credentials from invalid, expired, revoked, or malformed credentials. Absent credentials may proceed
+as anonymous; invalid credentials must use the normal authentication failure path.
+
+Authentication mode is not the source of truth for Step-Up/AAL. Authorization policy owns the
+required assurance boundary, method set, and step-up scope for a concrete actor/action/resource. The
+step-up gate owns challenge issuance, redirect, return target validation, continuation, and
+ticket/session mutation. Controller/action metadata may exist for route inventory and CI assertions,
+but runtime must not use it as a second source of truth for step-up requirements.
+
+### Legacy Compatibility Controllers
+
+`OpenController`, `PrivateController`, and `GuestController` may exist temporarily as compatibility
+classes while routes are migrated, but they are not the source of truth for authentication
+classification.
+
+`OpenController` compatibility descendants represent authentication-aware endpoints that should move
+under surface-local `ApplicationController` with explicit `:open` declarations.
+
+`PrivateController` is a compatibility wrapper for endpoints that require an authenticated actor.
 
 Private controllers run the full surface pipeline for authentication, verification, authorization,
 preferences, current actor setup, and request finishing in the established order.
@@ -52,28 +85,21 @@ Common examples:
 - credential management;
 - authenticated APIs tied to the current actor.
 
-### GuestController
-
-Use `GuestController` for flows that authenticated actors must not enter.
+`GuestController` is a compatibility wrapper for flows that authenticated actors must not enter.
 
 Guest controllers are for sign-in, sign-up, credential entry, and similar pages where an already
 signed-in actor should be rejected or redirected according to the surface behavior.
 
-## ApplicationController
-
-`ApplicationController` is a Rails compatibility parent, not a semantic boundary.
-
-Rails generators create new controllers under `ApplicationController`. That is acceptable as a
-starting point, but completed controller work should move to `OpenController`, `BareController`,
-`PrivateController`, or `GuestController` unless the controller is listed as a documented exception.
+New code must not rely on `OpenController`, `PrivateController`, or `GuestController` inheritance as
+the authentication declaration.
 
 ## Etc: Temporary Exceptions
 
-Some security-sensitive controllers are not yet migrated directly to the four boundary bases. These
-are temporary exceptions, not a fifth category.
+Some security-sensitive controllers are not yet migrated to the two-base target with explicit
+authentication metadata. These are temporary exceptions, not another boundary category.
 
 An exception is allowed only when a controller needs additional guard state that should first be
-captured by a named derivative of one of the four bases.
+captured by concrete controller/action authentication metadata or a narrow local abstraction.
 
 Current exception families:
 
@@ -91,9 +117,10 @@ Current exception families:
 Preferred retirement paths:
 
 - split mixed Open/Private controllers by action boundary;
-- introduce `OpenController` derivatives for callback, session-gate, and edge endpoints;
-- introduce a `BareController` derivative for token exchange endpoints if they remain independent of
-  actor, preference, authorization, and verification state;
+- move authentication-aware public entry points to surface-local `ApplicationController` with
+  explicit `:open` declarations;
+- use explicit controller/action authentication metadata for private, guest-only, optional, and bare
+  behavior;
 - keep surface behavior local to `app`, `com`, and `org` unless an existing shared concern already
   provides a safe abstraction.
 

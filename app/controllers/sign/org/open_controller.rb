@@ -3,7 +3,8 @@
 
 module Sign
   module Org
-    class OpenController < BareController
+    class OpenController < ApplicationController
+      include ::RateLimit
       include ::Session
       include ::Preference::Global
       include ::Preference::Adoption
@@ -17,8 +18,11 @@ module Sign
 
       layout "sign/org/application"
 
+      allow_browser versions: :modern
+
       public_strict!
 
+      before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash
       before_action :set_preferences_cookie
@@ -30,6 +34,8 @@ module Sign
       before_action :set_color_theme
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
+
+      protect_from_forgery using: :header_or_legacy_token, with: :exception
     end
   end
 end

@@ -11,7 +11,7 @@ The preference system has two different roles.
 The system must keep these roles separate.
 
 Preference setting writes are exposed through the `sign` surfaces. `apex` and `jump` consume
-preference state as read-only runtime context through `Actor.preference`.
+preference state as read-only runtime context through `Actor.preferences`.
 
 ## Scope
 
@@ -144,9 +144,9 @@ route with a valid `ri` value. `ri` is request context, not a preference write p
 
 `lx`, `ct`, and `tz` are optional request context. They are only propagated when explicitly present
 and valid. They may override the current request's locale, theme, or timezone reflection by applying
-a request-local overlay to `Actor.preference`, but they do not update the database or access-token
+a request-local overlay to `Actor.preferences`, but they do not update the database or access-token
 JWT. If they are missing, Rails request code should read the already resolved value from
-`Actor.preference`, without adding those optional keys back to generated URLs. On GET and HEAD
+`Actor.preferences`, without adding those optional keys back to generated URLs. On GET and HEAD
 requests, invalid or blank optional context parameters are removed from the query string by
 redirect.
 
@@ -169,14 +169,14 @@ Examples:
 Preference data flows in one direction for Rails runtime reads:
 
 ```text
-DB -> access-token JWT prf -> Actor.preference
+access-token JWT prf -> Actor.preferences
 ```
 
-The database is the source of truth and storage boundary. The access-token JWT is the Rails runtime
-read cache. `Actor.preference` is the immutable request-local runtime preference value exposed to
-controllers, views, and services.
+The database is the durable storage boundary used by explicit preference write and token-refresh
+flows. The access-token JWT is the Rails runtime read cache for normal requests. `Actor.preferences`
+is the immutable request-local runtime preference value exposed to controllers, views, and services.
 
-In a normal authenticated request, `Actor.preference` is built in two stages:
+In a normal authenticated request, `Actor.preferences` is built in two stages:
 
 1. Build the base preference from the verified access-token `prf` claim.
 2. Overlay valid request-local `lx`, `ct`, and `tz` values when they were explicitly present in the
@@ -189,7 +189,7 @@ Example:
 ```text
 access-token prf: lx=ja, ct=sy, tz=Asia/Tokyo
 request params:   lx=en
-Actor.preference: language=en, theme=sy, timezone=Asia/Tokyo
+Actor.preferences: language=en, theme=sy, timezone=Asia/Tokyo
 ```
 
 The page renders in English for that request. The database and access-token JWT remain Japanese
@@ -197,8 +197,8 @@ until an explicit preference write path changes them and reissues a token.
 
 Do not reverse this flow.
 
-- Do not issue preference JWTs from `Actor.preference`.
-- Do not write the database from `Actor.preference`.
+- Do not issue preference JWTs from `Actor.preferences`.
+- Do not write the database from `Actor.preferences`.
 - Do not read JS-readable preference cookies as Rails runtime input.
 - Do not treat request context params as preference writes.
 - Do not copy request-local `lx`, `ct`, or `tz` overlays back to the database or JWT.
@@ -227,7 +227,7 @@ raise or fail the request through the normal error path. Database recovery belon
 refresh, write, repair, or administrative flow, not to generic `before_action` runtime setup.
 
 Logged-in HTML preference edit screens are a bounded exception to the normal runtime path. Before
-they initialize `Actor.preference` and apply locale, timezone, or theme side effects, they may read
+they initialize `Actor.preferences` and apply locale, timezone, or theme side effects, they may read
 the actor-local preference database, copy that value into the current surface preference, and issue
 a fresh preference access-token JWT. This keeps preference editing screens from showing stale values
 when the same signed-in actor changed preferences in another browser or device. Request-local `lx`,
@@ -244,7 +244,7 @@ to the database or JWT.
 - `Actor::Preference` is the runtime read interface for request code. In the normal request path it
   is built from the access-token `prf` claim, then valid request-local `lx`, `ct`, and `tz` values
   are overlaid when explicitly present. Request code reads the resolved effective value through
-  `Actor.preference`.
+  `Actor.preferences`.
 - Auth access tokens carry the preference snapshot in the `prf` claim with stable short keys.
   Localization and theme use `lx`, `ri`, `tz`, and `ct`. Extended options use `cu` for currency,
   `df` for date format, `tf` for time format, `mo` for motion, `dn` for density, and `ipp` for items
@@ -255,13 +255,13 @@ to the database or JWT.
 - Region request context is mandatory. A valid `ri` request parameter wins for that request. If `ri`
   is missing, the system redirects to a valid `ri` value; optional context keys are not backfilled
   into URLs. `lx`, `ct`, and `tz` are optional; when valid and present they affect only the current
-  request's `Actor.preference` overlay.
+  request's `Actor.preferences` overlay.
 - Preference-changing HTML and JSON actions that update language, region, timezone, theme, currency,
   date format, time format, motion, density, items per page, cookie consent, or explicit resets must
   reload the shared preference record and reissue the preference access token before returning the
   response.
 - Logged-in HTML preference edit screens must refresh the current surface preference token from the
-  actor-local preference DB before `Actor.preference` is initialized for the request. This is a
+  actor-local preference DB before `Actor.preferences` is initialized for the request. This is a
   screen-entry sync, not a generic fallback for broken JWTs.
 - Preference access tokens carry a `jti` claim. Do not check the `jti` against the database in the
   normal Rails runtime read path; doing so turns the JWT into a database lookup ticket instead of a

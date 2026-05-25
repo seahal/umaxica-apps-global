@@ -188,7 +188,7 @@ notification. These events answer "is the service healthy?"
 
 **Product analytics and marketing analytics are DISABLED before `performant` consent is granted.**
 The legacy server-side guard was designed to drop event emissions that are not in the pre-consent
-allowlist when `Actor.preference.cookie.performant?` is false.
+allowlist when `Actor.preferences.cookie.performant?` is false.
 
 This means:
 

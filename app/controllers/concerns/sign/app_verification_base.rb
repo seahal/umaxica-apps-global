@@ -62,7 +62,7 @@ module Sign
       return_to = current_step_up_session&.return_to
       return if return_to.blank?
 
-      Base64.urlsafe_encode64(return_to)
+      issue_step_up_rt(return_to)
     end
 
     def verification_recovery_redirect_params

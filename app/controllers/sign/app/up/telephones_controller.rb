@@ -373,10 +373,12 @@ module Sign
         def log_signup_telephone_errors
           return unless @user_telephone&.errors&.any?
 
-          Rails.logger.warn(LogEvent.format(
-            "sign.signup.telephone.validation_failed",
-            errors: @user_telephone.errors.full_messages,
-          ))
+          Rails.logger.warn(
+            LogEvent.format(
+              "sign.signup.telephone.validation_failed",
+              errors: @user_telephone.errors.full_messages,
+            ),
+          )
         end
 
         def find_existing_telephone_by_digest
@@ -414,7 +416,7 @@ module Sign
             pending_contact_type: "telephone",
             pending_contact_id: telephone.id,
           )
-          SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authentication)
+          SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
 
@@ -422,15 +424,17 @@ module Sign
           cycle = sign_up_cycle_locator.current
           return unless cycle
 
-          result = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authentication)
+          result = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
           return if result.status == :advanced
 
-          Rails.logger.warn(LogEvent.format(
-            "sign.signup.telephone.sequence_advance_failed",
-            cycle_id: cycle.public_id,
-            result_status: result.status,
-            errors: result.errors,
-          ))
+          Rails.logger.warn(
+            LogEvent.format(
+              "sign.signup.telephone.sequence_advance_failed",
+              cycle_id: cycle.public_id,
+              result_status: result.status,
+              errors: result.errors,
+            ),
+          )
         end
 
         def sign_up_cycle_locator

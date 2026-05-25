@@ -31,9 +31,19 @@ describe("webauthn_utils", () => {
       expect(new Uint8Array(buffer)[0]).toBe(72);
     });
 
-    test("不正な入力に対して TypeError を投げる", () => {
-      expect(() => toArrayBuffer(123)).toThrow(TypeError);
+    test("null のとき TypeError を投げる", () => {
       expect(() => toArrayBuffer(null)).toThrow(TypeError);
+      expect(() => toArrayBuffer(null)).toThrow("null");
+    });
+
+    test("undefined のとき TypeError を投げる", () => {
+      expect(() => toArrayBuffer(undefined)).toThrow(TypeError);
+      expect(() => toArrayBuffer(undefined)).toThrow("undefined");
+    });
+
+    test("number のとき TypeError を投げる", () => {
+      expect(() => toArrayBuffer(123)).toThrow(TypeError);
+      expect(() => toArrayBuffer(123)).toThrow("number");
     });
   });
 
@@ -55,6 +65,40 @@ describe("webauthn_utils", () => {
       const options = { excludeCredentials: [{ id: "Y3JlZGlk" }] };
       const normalized = normalizePublicKeyOptions(options);
       expect(normalized.excludeCredentials[0].id).toBeInstanceOf(ArrayBuffer);
+    });
+
+    test("allowCredentials の id を正規化する", () => {
+      const options = { allowCredentials: [{ id: "YWxsb3dpZA" }] };
+      const normalized = normalizePublicKeyOptions(options);
+      expect(normalized.allowCredentials[0].id).toBeInstanceOf(ArrayBuffer);
+    });
+
+    test("null や undefined の options に TypeError を投げる", () => {
+      expect(() => normalizePublicKeyOptions(null)).toThrow(TypeError);
+      expect(() => normalizePublicKeyOptions(undefined)).toThrow(TypeError);
+      expect(() => normalizePublicKeyOptions("string")).toThrow(TypeError);
+    });
+
+    test("excludeCredentials が undefined のときそのままにする", () => {
+      const options = { challenge: "Y2hhbGxlbmdl" };
+      const normalized = normalizePublicKeyOptions(options);
+      expect(normalized.excludeCredentials).toBeUndefined();
+    });
+
+    test("excludeCredentials が null のときそのままにする", () => {
+      const options = { excludeCredentials: null };
+      const normalized = normalizePublicKeyOptions(options);
+      expect(normalized.excludeCredentials).toBeNull();
+    });
+
+    test("excludeCredentials が配列でないとき TypeError を投げる", () => {
+      const options = { excludeCredentials: "not-array" };
+      expect(() => normalizePublicKeyOptions(options)).toThrow(TypeError);
+    });
+
+    test("allowCredentials が配列でないとき TypeError を投げる", () => {
+      const options = { allowCredentials: "not-array" };
+      expect(() => normalizePublicKeyOptions(options)).toThrow(TypeError);
     });
   });
 });

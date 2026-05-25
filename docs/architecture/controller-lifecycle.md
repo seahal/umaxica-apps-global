@@ -4,12 +4,13 @@
 
 This document is the operating guide for controller boundary implementation.
 
-The four semantic controller bases are:
+The active controller bases are:
 
-- `OpenController`
 - `BareController`
-- `PrivateController`
-- `GuestController`
+- surface-local `ApplicationController`
+
+`OpenController`, `PrivateController`, and `GuestController` are legacy compatibility wrappers, not
+the source of truth for authentication classification.
 
 Use this document with `docs/architecture/controller-boundaries.md` and
 `docs/architecture/current_context.md`.
@@ -18,31 +19,30 @@ Use this document with `docs/architecture/controller-boundaries.md` and
 
 Current implementation work should follow these documents in this order:
 
-1. `adr/static-and-guest-controller-boundaries.md`
-2. `adr/actor-current-facade.md`
-3. `adr/preference-soft-bubble-doctrine.md`
-4. `docs/architecture/controller-boundaries.md`
-5. `docs/architecture/current_context.md`
-6. `docs/architecture/preference.md`
+1. `adr/two-base-authentication-mode-boundaries.md`
+2. `adr/static-and-guest-controller-boundaries.md`
+3. `adr/actor-current-facade.md`
+4. `adr/preference-soft-bubble-doctrine.md`
+5. `docs/architecture/controller-boundaries.md`
+6. `docs/architecture/current_context.md`
+7. `docs/architecture/preference.md`
 
 `adr/three-tier-controller-base.md` and `adr/public-controller-base.md` are historical context only.
 Do not use them as the current implementation contract.
 
 ## Boundary Summary
 
-`OpenController` is reachable with or without a signed-in actor. It may inspect session,
-authentication, preference, and `Actor` state when present, but it must not require a signed-in
-actor by default.
+`BareController` inherits directly from `ActionController::Base` and is for endpoints that do not
+use application authentication machinery. It must not inspect session, authentication, preference,
+authorization, verification, or `Actor` state.
 
-`BareController` is for endpoints that do not implement application authentication. Bare endpoints
-must not read actor, current-context, preference, authentication, verification, or authorization
-pipeline state.
+Surface-local `ApplicationController` inherits directly from `ActionController::Base` and owns the
+authentication-aware request lifecycle.
 
-`PrivateController` requires an authenticated actor and runs the full surface pipeline.
-
-`GuestController` is for flows that authenticated actors must not enter.
-
-`ApplicationController` is a Rails compatibility parent. It is not a semantic boundary.
+Authentication modes that are more specific than this base split, including bare endpoints,
+guest-only flows, optional access, and step-up requirements, must be declared and audited explicitly
+by concrete controller/action metadata and policy. They must not be inferred from legacy
+compatibility inheritance alone. Missing declarations resolve to `:deny_all`.
 
 ## Request Lifecycle Shape
 
@@ -71,18 +71,17 @@ rate limit
 -> verify/decode access token
 -> refresh preference token from DB for logged-in HTML preference edit entry when applicable
 -> initialize Actor from token state
--> overlay valid request-local lx/ct/tz onto Actor.preference
--> apply locale/timezone/theme from Actor.preference
+-> overlay valid request-local lx/ct/tz onto Actor.preferences
+-> apply locale/timezone/theme from Actor.preferences
 -> controller action
 -> ensure Actor.clear
 ```
 
 The request-local `lx`, `ct`, and `tz` overlay changes only the current request's
-`Actor.preference`. It must not write the database, reissue JWTs, or update the persistent
+`Actor.preferences`. It must not write the database, reissue JWTs, or update the persistent
 preference snapshot. Locale, timezone, theme, observability, and similar request effects should be
-applied after the Actor snapshot and request overlay are resolved. During migration, older code may
-still apply some of these values from preference cookies, JWT payloads, or controller instance
-variables. New code should prefer `Actor.preference`.
+applied after the Actor snapshot and request overlay are resolved. Runtime reads should use
+`Actor.preferences`.
 
 The logged-in HTML preference edit entry refresh is a bounded preference-screen exception. It exists
 so preference edit screens can pick up actor-local DB changes made in another browser or device
@@ -103,25 +102,25 @@ interface, not a `User` model or application-facing current-context API. Do not 
 
 ## Preference Read Contract
 
-Runtime preference reads should go through `Actor.preference`.
+Runtime preference reads should go through `Actor.preferences`.
 
 For normal Rails request code, preference data flows in one direction:
 
 ```text
-DB -> access-token JWT prf -> Actor.preference
+DB -> access-token JWT prf -> Actor.preferences
 ```
 
 The database is the source of truth and storage boundary. The access-token JWT is the runtime read
-cache. `Actor.preference` is the immutable request runtime value built from that claim, with valid
+cache. `Actor.preferences` is the immutable request runtime value built from that claim, with valid
 request-local `lx`, `ct`, and `tz` values overlaid when explicitly present. JS-readable preference
 cookies are Rails write-only compatibility mirrors and must not be trusted as Rails request input.
 
 The overlay is not a write path. For example, if the token says `lx=ja` and the request says
-`lx=en`, the current request renders with `Actor.preference.language == "en"`, but the database and
+`lx=en`, the current request renders with `Actor.preferences.language == "en"`, but the database and
 JWT remain `ja`.
 
 Controllers should not directly read and interpret preference model internals when a concern method
-or `Actor.preference` exposes the needed value. Writes remain in the preference concerns and
+or `Actor.preferences` exposes the needed value. Writes remain in the preference concerns and
 surface-specific models because shared preference and actor-local preference are stored separately.
 
 Here, "shared preference" means `AppPreference`, `OrgPreference`, or `ComPreference`: the
@@ -149,7 +148,7 @@ Preference concerns must not register request callbacks or callback skips from `
 Controller bases and endpoint controllers own callback order explicitly.
 
 Some controllers still call `set_color_theme` before `set_current_actor`, so theme reflection can
-come from params, cookies, JWT payload, or `@preferences` before `Actor.preference` is complete.
+come from params, cookies, JWT payload, or `@preferences` before `Actor.preferences` is complete.
 
 Some preference setup code still has deliberate side effects, including preference token reissue,
 cookie writes, refresh token lifetime updates, and login-time adoption. Those effects should remain

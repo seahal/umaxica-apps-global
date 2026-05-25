@@ -13,7 +13,7 @@ module Authentication
     # @param session_key [Symbol] The session key to store rt parameter in
     # @return [String, nil] The rt parameter value if present
     def preserve_redirect_parameter(session_key = DEFAULT_RT_SESSION_KEY)
-      value = redirect_parameter_value
+      value = safe_encoded_rt(redirect_parameter_value)
       return if value.blank?
 
       session[session_key] = value
@@ -26,7 +26,7 @@ module Authentication
     # @param session_key [Symbol] The session key to retrieve from
     # @return [String, nil] The rt parameter value
     def retrieve_redirect_parameter(session_key = DEFAULT_RT_SESSION_KEY)
-      rt_param = redirect_parameter_value.presence || session[session_key]
+      rt_param = safe_encoded_rt(redirect_parameter_value).presence || session[session_key]
       session[session_key] = nil
       rt_param
     end
@@ -36,7 +36,7 @@ module Authentication
     # @param session_key [Symbol] The session key to retrieve from
     # @return [String, nil] The rt parameter value
     def peek_redirect_parameter(session_key = DEFAULT_RT_SESSION_KEY)
-      redirect_parameter_value.presence || session[session_key]
+      safe_encoded_rt(redirect_parameter_value).presence || session[session_key]
     end
 
     # Builds redirect params hash with optional rt parameter.
@@ -84,7 +84,8 @@ module Authentication
 
       if rt_param.present?
         flash[message_key] = message_value
-        jump_to_generated_url(rt_param, fallback: default_path)
+        safe_path = safe_path_from_encoded_rt(rt_param, fallback: default_path)
+        redirect_to_return_target_destination!(safe_path)
       else
         redirect_to(default_path, message_key => message_value)
       end
@@ -121,11 +122,11 @@ module Authentication
     end
 
     def safe_redirect_to_rt_or_default!(rt_param, default_path:)
-      if rt_param.present?
-        jump_to_generated_url(rt_param, fallback: default_path)
-      else
-        redirect_to(default_path)
-      end
+      destination = safe_path_from_encoded_rt(rt_param, fallback: nil)
+      return redirect_to(default_path) if rt_param.blank?
+      return render_invalid_return_target! if destination.blank?
+
+      redirect_to_return_target_destination!(destination)
     end
 
     def sign_in_checkpoint_path(rt: nil)
@@ -148,16 +149,16 @@ module Authentication
       attrs = { ri: params[:ri] }
       safe_rt = safe_encoded_rt(rt)
       attrs[Auth::IoKeys::Params::RT] = safe_rt if safe_rt.present?
-      welcome_id = id.presence || params[:id].presence || "post_auth"
+      _ = id
 
-      if respond_to?(:sign_app_welcome_path, true)
-        sign_app_welcome_path(welcome_id, **attrs)
-      elsif respond_to?(:sign_org_welcome_path, true)
-        sign_org_welcome_path(welcome_id, **attrs)
-      elsif respond_to?(:sign_com_welcome_path, true)
-        sign_com_welcome_path(welcome_id, **attrs)
+      if respond_to?(:sign_app_welcome_entry_path, true)
+        sign_app_welcome_entry_path(**attrs)
+      elsif respond_to?(:sign_org_welcome_entry_path, true)
+        sign_org_welcome_entry_path(**attrs)
+      elsif respond_to?(:sign_com_welcome_entry_path, true)
+        sign_com_welcome_entry_path(**attrs)
       else
-        path = "/welcomes/#{welcome_id}"
+        path = "/welcome"
         query = attrs.compact.to_query
         query.present? ? "#{path}?#{query}" : path
       end
@@ -185,38 +186,24 @@ module Authentication
 
     alias after_dashboard_path after_welcome_path
 
-    # Resolve an `rt` redirect target. Accepts two shapes:
-    #
-    #   1. A Base64-url-encoded payload (the normal "from a URL" case).
-    #      Decoded and checked with `safe_return_path`, which permits
-    #      configured external hosts in addition to internal paths.
-    #
-    #   2. A raw internal path (e.g. `/after`) passed by trusted internal
-    #      code that hasn't bothered to Base64-encode. We accept this
-    #      only via `safe_internal_path`, which rejects anything with a
-    #      scheme or host, so an external URL passed unencoded as
-    #      `https://evil.example` still falls back. This is the safe
-    #      reading of what was previously a pair of `safe_return_path`
-    #      calls. See S-7: the earlier second branch passed the
-    #      undecoded rt back through `safe_return_path`, which could
-    #      surface external URLs whenever `allowed_return_hosts` was
-    #      misconfigured.
     def safe_path_from_encoded_rt(rt_param, fallback:)
       return fallback if rt_param.blank?
 
-      decoded_url = Base64.urlsafe_decode64(rt_param)
-      decoded_path = safe_return_path(decoded_url)
-      return safe_non_welcome_return_path(decoded_path, fallback: fallback) if decoded_path.present?
-
-      safe_non_welcome_return_path(safe_internal_path(rt_param), fallback: fallback)
-    rescue ArgumentError, URI::InvalidURIError
-      safe_non_welcome_return_path(safe_internal_path(rt_param), fallback: fallback)
+      destination = verify_authentication_return_target_path(rt_param)
+      safe_non_welcome_return_destination(destination, fallback: fallback)
     end
 
     def safe_encoded_rt(rt_param)
       return if rt_param.blank?
 
-      safe_path_from_encoded_rt(rt_param, fallback: nil).present? ? rt_param : nil
+      token = rt_param.to_s
+      verified_destination = verify_authentication_return_target_path(token)
+      if safe_non_welcome_return_destination(verified_destination, fallback: nil).present?
+        return token
+      end
+
+      issued_token = issue_authentication_return_target_token(token)
+      issued_token if safe_path_from_encoded_rt(issued_token, fallback: nil).present?
     end
 
     def redirect_parameter_value
@@ -233,14 +220,86 @@ module Authentication
 
     alias safe_non_dashboard_return_path safe_non_welcome_return_path
 
+    def safe_non_welcome_return_destination(destination, fallback:)
+      return fallback if destination.blank?
+      return fallback if welcome_return_path?(destination)
+
+      uri = URI.parse(destination.to_s)
+      return destination if uri.scheme.present? && uri.host.present?
+
+      safe_non_welcome_return_path(destination, fallback: fallback)
+    rescue URI::InvalidURIError
+      fallback
+    end
+
     def welcome_return_path?(path)
       candidate = URI.parse(path.to_s)
       welcome = URI.parse(sign_in_welcome_path)
-      candidate.path == welcome.path || candidate.path.start_with?("/welcomes/")
+      candidate.path == welcome.path || candidate.path == "/welcome" || candidate.path.start_with?("/welcomes/")
     rescue URI::InvalidURIError
       false
     end
 
     alias dashboard_return_path? welcome_return_path?
+
+    def issue_authentication_return_target_token(return_to)
+      ReturnTargetToken.issue(
+        return_to: return_to,
+        flow: authentication_return_target_flow,
+        surface: authentication_return_target_surface,
+        session_nonce: authentication_return_target_session_nonce,
+        request: request,
+      )
+    rescue ReturnTargetToken::Invalid
+      nil
+    end
+
+    def verify_authentication_return_target_path(token)
+      ReturnTargetToken.verified_return_to(
+        token,
+        expected_flow: authentication_return_target_flow,
+        expected_surface: authentication_return_target_surface,
+        session_nonce: authentication_return_target_session_nonce,
+        request: request,
+      )
+    end
+
+    def redirect_to_return_target_destination!(destination)
+      uri = URI.parse(destination.to_s)
+      if uri.scheme.present? || uri.host.present?
+        redirect_to(destination, allow_other_host: true)
+      else
+        redirect_to(destination, allow_other_host: false)
+      end
+    rescue URI::InvalidURIError
+      redirect_to(default_after_login_path, allow_other_host: false)
+    end
+
+    def authentication_return_target_flow
+      "authentication"
+    end
+
+    def authentication_return_target_surface
+      surface_from_controller_name || Actor.tld.presence || "app"
+    end
+
+    def surface_from_controller_name
+      case self.class.name
+      when /::App::/ then "app"
+      when /::Com::/ then "com"
+      when /::Org::/ then "org"
+      end
+    end
+
+    def authentication_return_target_session_nonce
+      session[:authentication_return_target_nonce] ||= SecureRandom.urlsafe_base64(24)
+    end
+
+    def render_invalid_return_target!
+      render(
+        plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+        status: :unprocessable_content,
+      )
+    end
   end
 end

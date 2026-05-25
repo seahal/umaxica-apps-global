@@ -125,6 +125,7 @@ class VisitorPreferenceTest < ActiveSupport::TestCase
     assert_equal VisitorPreferenceMotionOption::STANDARD, motion.option_id
     assert_equal VisitorPreferenceDensityOption::STANDARD, density.option_id
     assert_equal VisitorPreferenceItemsPerPageOption::PER_20, items_per_page.option_id
+    assert_equal "infinity", VisitorPreferenceItemsPerPageOption.new(id: VisitorPreferenceItemsPerPageOption::PER_INFINITY).name
   end
 
   test "set_defaults fills nil booleans on new records" do

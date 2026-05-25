@@ -51,9 +51,10 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
          params: { state: state },
          headers: @callback_headers
 
-    assert_redirected_to sign_app_welcome_url("post_auth", ri: "jp")
+    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
     follow_redirect!
-    assert_redirected_to sign_app_dashboard_url(ri: "jp")
+
+    assert_response :success
     assert_equal I18n.t("sign.app.social.sessions.create.already_registered", provider: "Apple"),
                  flash[:notice]
   end

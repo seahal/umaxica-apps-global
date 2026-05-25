@@ -52,8 +52,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       assert_equal "id.umaxica.app", location.host
       assert_equal "/sign/in/new", location.path
       assert_equal "jp", params["ri"]
-      assert_equal "https://id.umaxica.app/configuration/sessions?ri=jp",
-                   Base64.urlsafe_decode64(params.fetch("rt"))
+      assert_match(/--/, params.fetch("rt"))
     end
   ensure
     Rails.application.reload_routes!
@@ -335,7 +334,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{/configuration}, response.location
   end
 
-  test "update with rt param decodes Base64 and redirects to decoded path" do
+  test "update with rt param redirects to the requested path" do
     active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
@@ -344,9 +343,9 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
 
-    encoded_rt = Base64.urlsafe_encode64("/configuration")
+    rt = "/configuration"
 
-    patch sign_app_in_session_url(ri: "jp", rt: encoded_rt),
+    patch sign_app_in_session_url(ri: "jp", rt: rt),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 
@@ -356,7 +355,6 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_match %r{/configuration}, response.location
-    assert_no_match encoded_rt, response.location
   end
 
   test "update with invalid rt param falls back to default path" do
@@ -368,7 +366,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
 
-    patch sign_app_in_session_url(ri: "jp", rt: "!!!invalid-base64!!!"),
+    patch sign_app_in_session_url(ri: "jp", rt: "not-a-token"),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 
@@ -523,7 +521,12 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     logs = []
 
     travel 16.minutes do
-      Rails.logger.stub(:info, ->(message) { logs << JSON.parse(message, symbolize_names: true) }) do
+      Rails.logger.stub(
+        :info, ->(*args) do
+                 message = args.first
+                 logs << JSON.parse(message, symbolize_names: true) if message.present?
+               end,
+      ) do
         get sign_app_in_session_url(ri: "jp"), headers: headers
       end
     end
@@ -531,7 +534,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :locked
     assert_equal "きんそくじこうです", response.body
     assert_not response.redirect?
-    assert_includes logs.map { |entry| entry[:event] }, "session.restricted.expired"
+    assert_includes logs.pluck(:event), "session.restricted.expired"
   end
 
   # ===================================================================

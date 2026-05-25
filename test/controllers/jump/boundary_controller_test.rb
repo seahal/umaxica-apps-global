@@ -47,8 +47,9 @@ class JumpBoundaryControllerTest < ActionDispatch::IntegrationTest
       Jump::Com::OpenController,
       Jump::Org::OpenController,
     ].each do |controller|
-      assert_operator controller, :<, controller.module_parent::BareController
+      assert_equal ActionController::Base, controller.superclass
       assert_includes controller.ancestors, ActorSupport
+      assert_includes controller.ancestors, RateLimit
       assert_not_includes controller.ancestors, Authentication::Client
       assert_not_includes controller.ancestors, Authentication::Visitor
       assert_not_includes controller.ancestors, Authentication::Operator
@@ -64,12 +65,24 @@ class JumpBoundaryControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "jump application controllers inherit directly from ActionController base" do
+    [
+      Jump::App::ApplicationController,
+      Jump::Com::ApplicationController,
+      Jump::Org::ApplicationController,
+    ].each do |controller|
+      assert_equal ActionController::Base, controller.superclass
+      assert_includes controller.ancestors, ActorSupport
+      assert_includes controller.ancestors, RateLimit
+    end
+  end
+
   test "jump app open request resolves anonymous actor context and clears it after response" do
     Rails.application.routes.draw do
-      get "/jump_open_boundary", to: "jump/app/open_boundary_test#show"
+      get "/jump_open_boundary", to: Jump::App::OpenBoundaryTestController.action(:show)
     end
 
-    host! ENV.fetch("JUMP_SERVICE_URL")
+    host! ENV.fetch("JUMP_SERVICE_URL").delete_suffix("/")
     get "/jump_open_boundary"
 
     assert_response :success

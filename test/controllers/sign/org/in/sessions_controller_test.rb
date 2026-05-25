@@ -52,8 +52,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       assert_equal "id.umaxica.org", location.host
       assert_equal "/sign/in/new", location.path
       assert_equal "jp", params["ri"]
-      assert_equal "https://id.umaxica.org/configuration/sessions?ri=jp",
-                   Base64.urlsafe_decode64(params.fetch("rt"))
+      assert_match(/--/, params.fetch("rt"))
     end
   ensure
     Rails.application.reload_routes!
@@ -305,7 +304,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{/configuration}, response.location
   end
 
-  test "update with rt param decodes Base64 and redirects to decoded path" do
+  test "update with rt param redirects to the requested path" do
     active_token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
@@ -313,9 +312,9 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.rotate_refresh_token!
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
-    encoded_rt = Base64.urlsafe_encode64("/configuration")
+    rt = "/configuration"
 
-    patch sign_org_in_session_url(ri: "jp", rt: encoded_rt),
+    patch sign_org_in_session_url(ri: "jp", rt: rt),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 
@@ -335,7 +334,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_in_session_url(ri: "jp", rt: "!!!invalid-base64!!!"),
+    patch sign_org_in_session_url(ri: "jp", rt: "not-a-token"),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 
@@ -492,7 +491,12 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     logs = []
 
     travel 16.minutes do
-      Rails.logger.stub(:info, ->(message) { logs << JSON.parse(message, symbolize_names: true) }) do
+      Rails.logger.stub(
+        :info, ->(*args) do
+                 message = args.first
+                 logs << JSON.parse(message, symbolize_names: true) if message.present?
+               end,
+      ) do
         get sign_org_in_session_url(ri: "jp"), headers: headers
       end
     end
@@ -500,7 +504,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :locked
     assert_equal "きんそくじこうです", response.body
     assert_not response.redirect?
-    assert_includes logs.map { |entry| entry[:event] }, "session.restricted.expired"
+    assert_includes logs.pluck(:event), "session.restricted.expired"
   end
 
   # ===================================================================

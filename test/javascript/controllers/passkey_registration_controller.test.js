@@ -6,9 +6,11 @@ vi.mock("@hotwired/stimulus", () => ({
       this.descriptionTarget = { value: "" };
       this.errorTarget = { textContent: "", classList: { add: vi.fn(), remove: vi.fn() } };
       this.statusTarget = { textContent: "", classList: { add: vi.fn(), remove: vi.fn() } };
+      this.turnstileResponseTarget = { value: "" };
       this.hasDescriptionTarget = true;
       this.hasErrorTarget = true;
       this.hasStatusTarget = true;
+      this.hasTurnstileResponseTarget = true;
     }
 
     connect() {}
@@ -34,6 +36,11 @@ describe("PasskeyRegistrationController", () => {
     controller.beginUrlValue = "/configuration/passkeys/begin";
     controller.finishUrlValue = "/configuration/passkeys/finish";
     controller.successRedirectUrlValue = "/settings";
+    controller.turnstileSiteKeyValue = "sitekey123";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+    controller.hasBeginUrlValue = true;
+    controller.hasFinishUrlValue = true;
+    controller.hasSuccessRedirectUrlValue = true;
 
     vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
     vi.stubGlobal("navigator", { credentials: { create: vi.fn() } });
@@ -46,6 +53,16 @@ describe("PasskeyRegistrationController", () => {
         }
         return null;
       }),
+      createElement: vi.fn(() => ({
+        src: "",
+        async: true,
+        defer: true,
+        onload: null,
+        onerror: null,
+        appendChild: vi.fn(),
+        style: {},
+      })),
+      head: { appendChild: vi.fn() },
     });
   });
 
@@ -122,5 +139,261 @@ describe("PasskeyRegistrationController", () => {
   test("csrfToken: meta タグからトークンを取得する", () => {
     const result = controller.csrfToken;
     expect(result).toBe("csrf-token-value");
+  });
+
+  test("requestBeginUrl: beginUrlValue を優先する", () => {
+    controller.beginUrlValue = "/custom/begin";
+    expect(controller.requestBeginUrl).toBe("/custom/begin");
+  });
+
+  test("requestBeginUrl: beginUrlValue がなければ optionsUrlValue を使う", () => {
+    controller.hasBeginUrlValue = false;
+    expect(controller.requestBeginUrl).toBe("/configuration/passkeys/options");
+  });
+
+  test("requestFinishUrl: finishUrlValue を優先する", () => {
+    controller.finishUrlValue = "/custom/finish";
+    expect(controller.requestFinishUrl).toBe("/custom/finish");
+  });
+
+  test("requestFinishUrl: finishUrlValue がなければ verificationUrlValue を使う", () => {
+    controller.hasFinishUrlValue = false;
+    expect(controller.requestFinishUrl).toBe("/configuration/passkeys/verification");
+  });
+
+  test("redirectUrl: successRedirectUrlValue を優先する", () => {
+    expect(controller.redirectUrl).toBe("/settings");
+  });
+
+  test("redirectUrl: 値がなければ空文字列", () => {
+    controller.hasSuccessRedirectUrlValue = false;
+    expect(controller.redirectUrl).toBe("");
+  });
+
+  test("register: 成功時にリダイレクトする", async () => {
+    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const verificationResponse = { ok: true, json: () => Promise.resolve({ redirect_url: "/settings" }) };
+
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(optionsResponse)
+      .mockResolvedValueOnce(verificationResponse));
+
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1, 2, 3]).buffer,
+      type: "public-key",
+      authenticatorAttachment: "platform",
+      response: {
+        clientDataJSON: new Uint8Array([4, 5, 6]).buffer,
+        attestationObject: new Uint8Array([7, 8, 9]).buffer,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.create.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.register(event);
+
+    expect(controller.statusTarget.textContent).toBe("登録完了！リダイレクト中...");
+  });
+
+  test("register: optionsResponse が失敗し JSON エラーを返す", async () => {
+    const optionsResponse = {
+      ok: false,
+      status: 400,
+      headers: { get: vi.fn(() => "application/json") },
+      json: () => Promise.resolve({ error: "Invalid request" }),
+    };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const event = { preventDefault: vi.fn() };
+    await controller.register(event);
+
+    expect(controller.errorTarget.textContent).toBe("Invalid request");
+  });
+
+  test("register: optionsResponse が 401 のときページをリロードする", async () => {
+    const reloadMock = vi.fn();
+    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost", reload: reloadMock } });
+
+    const optionsResponse = {
+      ok: false,
+      status: 401,
+      headers: { get: vi.fn(() => "text/html") },
+    };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const event = { preventDefault: vi.fn() };
+    await controller.register(event);
+
+    expect(reloadMock).toHaveBeenCalled();
+  });
+
+  test("register: verificationResponse が失敗し JSON エラーを返す", async () => {
+    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const verificationResponse = {
+      ok: false,
+      status: 400,
+      headers: { get: vi.fn(() => "application/json") },
+      json: () => Promise.resolve({ error: "Verification failed" }),
+    };
+
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(optionsResponse)
+      .mockResolvedValueOnce(verificationResponse));
+
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4]).buffer,
+        attestationObject: new Uint8Array([7]).buffer,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.create.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.register(event);
+
+    expect(controller.errorTarget.textContent).toBe("Verification failed");
+  });
+
+  test("register: NotAllowedError のときに適切なエラーメッセージを表示する", async () => {
+    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const error = new Error("Cancelled");
+    error.name = "NotAllowedError";
+    navigator.credentials.create.mockRejectedValue(error);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.register(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証がキャンセルされました");
+  });
+
+  test("register: InvalidStateError のときに適切なエラーメッセージを表示する", async () => {
+    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const error = new Error("Already registered");
+    error.name = "InvalidStateError";
+    navigator.credentials.create.mockRejectedValue(error);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.register(event);
+
+    expect(controller.errorTarget.textContent).toBe("このPasskeyは既に登録されています");
+  });
+
+  test("register: その他のエラーのときにメッセージを表示する", async () => {
+    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const error = new Error("Something went wrong");
+    navigator.credentials.create.mockRejectedValue(error);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.register(event);
+
+    expect(controller.errorTarget.textContent).toBe("Something went wrong");
+  });
+
+  test("register: redirect_url がなく successRedirectUrlValue もないとき reload する", async () => {
+    controller.hasSuccessRedirectUrlValue = false;
+
+    const optionsResponse = { ok: true, json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }) };
+    const verificationResponse = { ok: true, json: () => Promise.resolve({}) };
+
+    const reloadMock = vi.fn();
+    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost", reload: reloadMock } });
+
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(optionsResponse)
+      .mockResolvedValueOnce(verificationResponse));
+
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4]).buffer,
+        attestationObject: new Uint8Array([7]).buffer,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.create.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.register(event);
+
+    expect(reloadMock).toHaveBeenCalled();
+  });
+
+  test("ensureTurnstileToken: turnstileResponseTarget が空のときスクリプト読み込みを行う", async () => {
+    controller.turnstileResponseTarget.value = "";
+    const script = {
+      src: "",
+      async: true,
+      defer: true,
+      onload: null,
+      onerror: null,
+    };
+    vi.stubGlobal("document", {
+      querySelector: vi.fn(() => null),
+      createElement: vi.fn(() => script),
+      head: { appendChild: vi.fn() },
+    });
+    window.turnstile = {
+      render: vi.fn((container, options) => {
+        options.callback("new-token");
+      }),
+    };
+
+    const promise = controller.ensureTurnstileToken();
+    script.onload();
+    const result = await promise;
+    expect(result).toBe("new-token");
+    expect(controller.turnstileResponseTarget.value).toBe("new-token");
+  });
+
+  test("ensureTurnstileScriptLoaded: 既存スクリプトの error で拒否する", async () => {
+    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
+    const existingScript = { addEventListener: vi.fn() };
+    vi.stubGlobal("document", {
+      querySelector: vi.fn(() => existingScript),
+      createElement: vi.fn(),
+      head: { appendChild: vi.fn() },
+    });
+
+    const promise = controller.ensureTurnstileScriptLoaded();
+    const errorCallback = existingScript.addEventListener.mock.calls.find(([event]) => event === "error")[1];
+    errorCallback();
+    await expect(promise).rejects.toThrow();
+  });
+
+  test("requestTurnstileToken: turnstile がないとき catch で拒否する", async () => {
+    controller.hasTurnstileResponseTarget = false;
+    vi.stubGlobal("document", {
+      createElement: vi.fn(() => ({ style: {}, appendChild: vi.fn() })),
+    });
+    window.turnstile = undefined;
+    await expect(controller.requestTurnstileToken()).rejects.toThrow();
+  });
+
+  test("showError: errorTarget がないときは何もしない", () => {
+    controller.hasErrorTarget = false;
+    controller.showError("test error");
+    expect(controller.errorTarget.textContent).toBe("");
+  });
+
+  test("showStatus: statusTarget がないときは何もしない", () => {
+    controller.hasStatusTarget = false;
+    controller.showStatus("test status");
+    expect(controller.statusTarget.textContent).toBe("");
   });
 });

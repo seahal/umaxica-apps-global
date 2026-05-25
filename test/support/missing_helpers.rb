@@ -374,6 +374,7 @@ module MissingHelpers
         token.skip_session_limit_check = true if token.respond_to?(:skip_session_limit_check=)
         token.created_at = 2.minutes.ago if token.respond_to?(:created_at=)
         token.save!
+        @token = token
         token
       end
 
