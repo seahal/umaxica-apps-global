@@ -179,7 +179,7 @@ module Sign::App::In
         }
 
         # Should log in
-        post verification_sign_app_in_passkeys_path(ri: "jp", rt: "/configuration/emails"), params: params
+        post verification_sign_app_in_passkeys_path(ri: "jp", pt: "/configuration/emails"), params: params
 
         assert_response :ok
         json = response.parsed_body
@@ -188,7 +188,7 @@ module Sign::App::In
         assert_not_nil json["access_token"]
         assert_equal "Bearer", json["token_type"]
         assert_equal Authentication::Base::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
-        assert_equal sign_app_dashboard_path(ri: "jp", rt: "/configuration/emails"), json["redirect_url"]
+        assert_equal sign_app_dashboard_path(ri: "jp", pt: "/configuration/emails"), json["redirect_url"]
 
         # Challenge verification updates sign count
         assert_equal 1, @passkey.reload.sign_count

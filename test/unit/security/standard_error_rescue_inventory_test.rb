@@ -1,0 +1,109 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
+  fixtures_none!
+
+  REVIEWED_RESCUES = {
+    "app/controllers/concerns/actor_support.rb" => {
+      count: 5,
+      classification: "auth boundary; each rescue logs and re-raises ActorSupport::ResolutionError",
+    },
+    "app/controllers/concerns/authentication/logoutable.rb" => {
+      count: 4,
+      classification: "logout boundary; each rescue logs and re-raises after session cleanup",
+    },
+    "app/controllers/concerns/social_callback_guard.rb" => {
+      count: 1,
+      classification: "callback boundary; clears state and re-raises",
+    },
+    "app/controllers/concerns/social_omniauth_callback_flow.rb" => {
+      count: 1,
+      classification: "callback boundary; clears intent and re-raises",
+    },
+    "app/controllers/concerns/authentication/audit_writer.rb" => {
+      count: 4,
+      classification: "best-effort audit side effect with outbox/fallback recovery",
+    },
+    "app/controllers/concerns/authorization_audit.rb" => {
+      count: 1,
+      classification: "best-effort authorization failure audit side effect",
+    },
+    "app/controllers/concerns/health.rb" => {
+      count: 3,
+      classification: "health probe degradation path; not an auth boundary",
+    },
+    "app/controllers/concerns/preference/adoption.rb" => {
+      count: 2,
+      classification: "best-effort preference adoption side effect",
+    },
+    "app/controllers/concerns/preference/base.rb" => {
+      count: 4,
+      classification: "preference token/cookie degradation; auth state must not depend on this",
+    },
+    "app/controllers/concerns/preference/core.rb" => {
+      count: 3,
+      classification: "preference persistence side effect; resolution errors are re-raised separately",
+    },
+    "app/controllers/concerns/preference/resource_sync.rb" => {
+      count: 1,
+      classification: "preference resource sync side effect; resolution errors are re-raised separately",
+    },
+    "app/controllers/concerns/preference/transport.rb" => {
+      count: 1,
+      classification: "preference refresh transport side effect; resolution errors are re-raised separately",
+    },
+    "app/controllers/concerns/authentication/base.rb" => {
+      count: 5,
+      classification: "mixed legacy inventory; each site needs follow-up before changing behavior",
+    },
+    "app/controllers/concerns/authentication/token_service.rb" => {
+      count: 1,
+      classification: "token issue/verify service error response boundary",
+    },
+    "app/controllers/concerns/sign/passkey_authentication.rb" => {
+      count: 1,
+      classification: "WebAuthn error response boundary",
+    },
+    "app/controllers/concerns/sign/passkey_options_flow.rb" => {
+      count: 1,
+      classification: "WebAuthn options error response boundary",
+    },
+    "app/controllers/concerns/sign/passkey_verification_flow.rb" => {
+      count: 1,
+      classification: "WebAuthn verification error response boundary",
+    },
+    "app/controllers/sign/app/in/secrets_controller.rb" => {
+      count: 2,
+      classification: "secret sign-in error response boundary; follow-up required",
+    },
+    "app/controllers/sign/com/in/secrets_controller.rb" => {
+      count: 1,
+      classification: "secret sign-in error response boundary; follow-up required",
+    },
+    "app/controllers/sign/org/in/secrets_controller.rb" => {
+      count: 1,
+      classification: "secret sign-in error response boundary; follow-up required",
+    },
+  }.freeze
+
+  test "reviewed StandardError rescues stay classified" do
+    offenders =
+      REVIEWED_RESCUES.filter_map do |path, expected|
+        actual = rescue_count(path)
+        next if actual == expected.fetch(:count) && expected.fetch(:classification).present?
+
+        "#{path}: expected #{expected.fetch(:count)}, got #{actual} (#{expected.fetch(:classification)})"
+      end
+
+    assert_empty offenders, "Reviewed StandardError rescue inventory changed:\n#{offenders.join("\n")}"
+  end
+
+  private
+
+  def rescue_count(path)
+    Rails.root.join(path).read.scan(/\brescue\s+StandardError\b/).size
+  end
+end

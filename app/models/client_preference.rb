@@ -81,6 +81,10 @@ class ClientPreference < AppPrincipalRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  has_one :client_preference_r18_display_stopper,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
 
   validates :user_id, uniqueness: true
   validates :consented, inclusion: { in: [true, false] }
@@ -91,6 +95,10 @@ class ClientPreference < AppPrincipalRecord
 
   after_initialize :set_defaults
   before_validation :generate_public_id, on: :create
+
+  def r18_display_stopper
+    client_preference_r18_display_stopper&.option&.name || "disabled"
+  end
 
   private
 

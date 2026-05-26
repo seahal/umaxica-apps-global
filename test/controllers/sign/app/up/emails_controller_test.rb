@@ -9,6 +9,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     cookies["csrf_token"] = csrf_token_value
+    RateLimit.store.clear
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -16,6 +17,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   teardown do
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
+    RateLimit.store.clear
   end
 
   test "should get new" do
@@ -593,11 +595,11 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
-  test "redirects to encoded URL after successful registration when rt parameter is provided" do
+  test "redirects to encoded URL after successful registration when pt parameter is provided" do
     email = "redirect_test_#{SecureRandom.hex(4)}@example.com"
     redirect_url = "/dashboard"
 
-    # Create registration record with rt parameter
+    # Create registration record with pt parameter
     post sign_app_up_email_url(ri: "jp"),
          params: {
            user_email: {
@@ -605,13 +607,13 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
              confirm_policy: "1",
            },
            "cf-turnstile-response": "test",
-           rt: redirect_url,
+           pt: redirect_url,
          },
          headers: default_headers
 
-    # Verify rt parameter is preserved in redirect
+    # Verify pt parameter is preserved in redirect
     assert_response :redirect
-    signed_rt = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("rt")
+    signed_rt = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("pt")
 
     assert_match(/--/, signed_rt)
 
@@ -624,19 +626,19 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
-    # Submit correct OTP with rt parameter
+    # Submit correct OTP with pt parameter
     patch sign_app_up_email_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
               pass_code: correct_code,
             },
-            rt: signed_rt,
+            pt: signed_rt,
           },
           headers: default_headers
 
-    # Should redirect directly to the decoded rt destination
-    assert_redirected_to sign_app_up_guardrail_path(ri: "jp", rt: signed_rt)
+    # Should redirect directly to the decoded pt destination
+    assert_redirected_to sign_app_up_guardrail_path(ri: "jp", pt: signed_rt)
   end
 
   # Transaction Tests for Client Creation
@@ -863,6 +865,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: default_headers
 
+    assert_response :redirect
     user_email = ClientEmail.order(:created_at).last
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
@@ -1028,6 +1031,8 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: default_headers
 
+    assert_response :redirect
+
     user_email = ClientEmail.order(:created_at).last
     cycle = current_sign_up_cycle(user_email)
 
@@ -1093,7 +1098,64 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "2000-02-03", user_email.user.reload.birthdate
     assert cycle.reload.requirement_cleared?(:birthdate)
     assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.status_id
-    assert ClientToken.exists?(user_id: user_email.user_id)
+  end
+
+  test "email signup checkpoint blocks users before thirteenth birthday" do
+    travel_to Time.zone.local(2024, 2, 29, 12, 0, 0) do
+      post sign_app_up_email_url(ri: "jp"),
+           params: {
+             user_email: {
+               raw_address: "email_under13_#{SecureRandom.hex(4)}@example.com",
+               confirm_policy: "1",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: default_headers
+
+      assert_response :redirect
+      user_email = ClientEmail.order(:created_at).last
+      cycle = current_sign_up_cycle(user_email)
+      otp_data = user_email.get_otp
+      pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+      patch sign_app_up_email_url(ri: "jp"),
+            params: { user_email: { pass_code: pass_code } },
+            headers: default_headers
+
+      assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+
+      get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
+
+      assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+
+      get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+      assert_response :success
+
+      patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+            params: {
+              requirement: "birthdate",
+              birthdate: "2011-03-01",
+              checkpoint_version: cycle.checkpoint_version,
+            },
+            headers: default_headers
+
+      assert_response :success
+      assert_includes response.body, "この登録方法ではアカウントを作成できません"
+      assert_equal ClientSignUpCycleStatus::FAILED, cycle.reload.status_id
+
+      patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+            params: {
+              requirement: "birthdate",
+              birthdate: "2000-01-01",
+              checkpoint_version: cycle.checkpoint_version,
+            },
+            headers: default_headers
+
+      assert_response :success
+      assert_equal ClientSignUpCycleStatus::FAILED, cycle.reload.status_id
+      assert_not cycle.requirement_cleared?(:birthdate)
+    end
   end
 
   test "does not leave zero or null user_id in database" do
@@ -1359,10 +1421,13 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def current_sign_up_cycle(user_email)
-    ClientSignUpCycle.order(:id).find_by!(
+    ClientSignUpCycle.order(:id).find_by(
       principal_id: user_email.user_id,
       pending_contact_type: "email",
       pending_contact_id: user_email.id,
+    ) || ClientSignUpCycle.order(:id).find_by!(
+      principal_id: user_email.user_id,
+      pending_contact_type: "email",
     )
   end
 

@@ -6,9 +6,9 @@ module Sign
     module Web
       module V0
         class HealthsController < Sign::Org::BareController
-          AUTHENTICATION_MODE = :bare
-
           include ::Health
+
+          AUTHENTICATION_MODE = :bare
 
           def show
             show_json

@@ -16,6 +16,7 @@ module Preference
       motion
       density
       items_per_page
+      r18_display_stopper
     ).freeze
 
     TYPE_KEY_MAP = {
@@ -28,6 +29,7 @@ module Preference
       :motion => :motion,
       :density => :density,
       :items_per_page => :items_per_page,
+      :r18_display_stopper => :r18_display_stopper,
       :colortheme => :theme,
       :theme => :theme,
       "Timezone" => :timezone,
@@ -39,6 +41,7 @@ module Preference
       "Motion" => :motion,
       "Density" => :density,
       "ItemsPerPage" => :items_per_page,
+      "R18DisplayStopper" => :r18_display_stopper,
       "Colortheme" => :theme,
       "Theme" => :theme,
     }.freeze
@@ -62,6 +65,7 @@ module Preference
           motion: AppPreferenceMotionOption,
           density: AppPreferenceDensityOption,
           items_per_page: AppPreferenceItemsPerPageOption,
+          r18_display_stopper: AppPreferenceR18DisplayStopperOption,
         }.freeze,
         record_classes: {
           timezone: AppPreferenceTimezone,
@@ -74,6 +78,7 @@ module Preference
           motion: AppPreferenceMotion,
           density: AppPreferenceDensity,
           items_per_page: AppPreferenceItemsPerPage,
+          r18_display_stopper: AppPreferenceR18DisplayStopper,
         }.freeze,
       }.freeze,
       "Com" => {
@@ -94,6 +99,7 @@ module Preference
           motion: ComPreferenceMotionOption,
           density: ComPreferenceDensityOption,
           items_per_page: ComPreferenceItemsPerPageOption,
+          r18_display_stopper: ComPreferenceR18DisplayStopperOption,
         }.freeze,
         record_classes: {
           timezone: ComPreferenceTimezone,
@@ -106,6 +112,7 @@ module Preference
           motion: ComPreferenceMotion,
           density: ComPreferenceDensity,
           items_per_page: ComPreferenceItemsPerPage,
+          r18_display_stopper: ComPreferenceR18DisplayStopper,
         }.freeze,
       }.freeze,
       "Org" => {
@@ -126,6 +133,7 @@ module Preference
           motion: OrgPreferenceMotionOption,
           density: OrgPreferenceDensityOption,
           items_per_page: OrgPreferenceItemsPerPageOption,
+          r18_display_stopper: OrgPreferenceR18DisplayStopperOption,
         }.freeze,
         record_classes: {
           timezone: OrgPreferenceTimezone,
@@ -138,6 +146,7 @@ module Preference
           motion: OrgPreferenceMotion,
           density: OrgPreferenceDensity,
           items_per_page: OrgPreferenceItemsPerPage,
+          r18_display_stopper: OrgPreferenceR18DisplayStopper,
         }.freeze,
       }.freeze,
       "Client" => {
@@ -153,6 +162,7 @@ module Preference
           motion: ClientPreferenceMotionOption,
           density: ClientPreferenceDensityOption,
           items_per_page: ClientPreferenceItemsPerPageOption,
+          r18_display_stopper: ClientPreferenceR18DisplayStopperOption,
         }.freeze,
         record_classes: {
           timezone: ClientPreferenceTimezone,
@@ -165,6 +175,7 @@ module Preference
           motion: ClientPreferenceMotion,
           density: ClientPreferenceDensity,
           items_per_page: ClientPreferenceItemsPerPage,
+          r18_display_stopper: ClientPreferenceR18DisplayStopper,
         }.freeze,
       }.freeze,
       "Operator" => {
@@ -180,6 +191,7 @@ module Preference
           motion: OperatorPreferenceMotionOption,
           density: OperatorPreferenceDensityOption,
           items_per_page: OperatorPreferenceItemsPerPageOption,
+          r18_display_stopper: OperatorPreferenceR18DisplayStopperOption,
         }.freeze,
         record_classes: {
           timezone: OperatorPreferenceTimezone,
@@ -192,6 +204,7 @@ module Preference
           motion: OperatorPreferenceMotion,
           density: OperatorPreferenceDensity,
           items_per_page: OperatorPreferenceItemsPerPage,
+          r18_display_stopper: OperatorPreferenceR18DisplayStopper,
         }.freeze,
       }.freeze,
       "Visitor" => {
@@ -207,6 +220,7 @@ module Preference
           motion: VisitorPreferenceMotionOption,
           density: VisitorPreferenceDensityOption,
           items_per_page: VisitorPreferenceItemsPerPageOption,
+          r18_display_stopper: VisitorPreferenceR18DisplayStopperOption,
         }.freeze,
         record_classes: {
           timezone: VisitorPreferenceTimezone,
@@ -219,6 +233,7 @@ module Preference
           motion: VisitorPreferenceMotion,
           density: VisitorPreferenceDensity,
           items_per_page: VisitorPreferenceItemsPerPage,
+          r18_display_stopper: VisitorPreferenceR18DisplayStopper,
         }.freeze,
       }.freeze,
     }.freeze
@@ -278,6 +293,7 @@ module Preference
       when :time_format then option::HOUR_24
       when :motion, :density then option::STANDARD
       when :items_per_page then option::PER_20
+      when :r18_display_stopper then option::DISABLED
       end
     end
   end

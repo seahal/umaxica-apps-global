@@ -14,8 +14,7 @@ services:
     - "/bin/bash"
     - "/home/global/workspace/docker/core/entrypoint.sh"
     command:
-    - sleep
-    - infinity
+    - bin/dev
     environment:
       POSTGRESQL_USER: "${POSTGRESQL_USER:-root}"
       POSTGRESQL_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
@@ -38,6 +37,12 @@ services:
           - id.app.localhost
           - id.com.localhost
           - id.org.localhost
+          - id.umaxica.app
+          - id.umaxica.com
+          - id.umaxica.org
+          - jp.www.umaxica.app
+          - jp.www.umaxica.com
+          - jp.www.umaxica.org
           - www.app.localhost
           - www.com.localhost
           - www.org.localhost

@@ -12,10 +12,11 @@ module Sign
       #
       # Operator social continue signs in existing staff only; unknown staff are not created.
       class AuthenticationsController < Sign::Org::ApplicationController
-        AUTHENTICATION_MODE = :deny_all
-
         include SocialAuthConcern
+
         include ::Verification::Operator
+
+        AUTHENTICATION_MODE = :deny_all
 
         SUPPORTED_PROVIDERS = %w(google_org).freeze
 

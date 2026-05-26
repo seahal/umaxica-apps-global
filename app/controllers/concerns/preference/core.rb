@@ -495,10 +495,10 @@ module Preference::Core
     resource&.id
   end
 
-  def safe_return_to_path
-    return if params["return_to"].blank?
+  def safe_pt_path
+    return if params["pt"].blank?
 
-    candidate = params.expect("return_to").to_s
+    candidate = params.expect("pt").to_s
     return unless candidate.start_with?("/")
     return if candidate.start_with?("//")
 

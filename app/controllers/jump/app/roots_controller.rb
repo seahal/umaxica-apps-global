@@ -4,9 +4,9 @@
 module Jump
   module App
     class RootsController < Jump::App::ApplicationController
-      AUTHENTICATION_MODE = :deny_all
-
       include Jump::ToRedirector
+
+      AUTHENTICATION_MODE = :deny_all
 
       JUMP_LINK_MODEL = AppJumpLink
 

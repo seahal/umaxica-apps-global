@@ -130,8 +130,8 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
       :user_id
     end
 
-    def sign_in_url_with_return(rt)
-      "/sign_in?rt=#{rt}"
+    def sign_in_url_with_pt(pt)
+      "/sign_in?pt=#{pt}"
     end
 
     def am_i_user?
@@ -233,10 +233,10 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
     assert_equal :unauthorized, @harness.rendered[:status]
   end
 
-  test "safe_redirect_to_rt_or_default! jumps to rt" do
-    token = @harness.send(:issue_authentication_return_target_token, "/target")
+  test "redirect_to_pt_or_default! jumps to pt" do
+    token = @harness.send(:issue_authentication_path_target_token, "/target")
 
-    @harness.safe_redirect_to_rt_or_default!(token, default_path: "/default")
+    @harness.redirect_to_pt_or_default!(token, default_path: "/default")
 
     assert_equal ["/target", { allow_other_host: false }], @harness.redirected
   end
@@ -283,8 +283,8 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
     query = Rack::Utils.parse_nested_query(uri.query)
 
     assert_equal "/sign_in", uri.path
-    assert_match(/--/, query["rt"])
-    assert_equal "http://localhost/", @harness.send(:verify_authentication_return_target_path, query["rt"])
+    assert_match(/--/, query["pt"])
+    assert_equal "http://localhost/", @harness.send(:verify_authentication_pt_path, query["pt"])
   end
 
   test "authenticate! renders for json" do

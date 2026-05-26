@@ -6,7 +6,6 @@ module Sign
     module Oidc
       class LogoutsController < Sign::Com::LogoutsController
         AUTHENTICATION_MODE = :open
-
       end
     end
   end

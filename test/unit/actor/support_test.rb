@@ -23,6 +23,7 @@ class ActorSupportTest < ActiveSupport::TestCase
     public :set_current_observability, :resolved_resource_preference
     public :resolved_current_session, :resolved_current_token, :resolved_current_preference
     public :resolved_current_restricted_session?, :resolved_current_step_up
+    public :current_policy_user, :resolved_current_step_up_scope, :resolved_current_step_up_required_aal
   end
 
   setup do
@@ -51,17 +52,14 @@ class ActorSupportTest < ActiveSupport::TestCase
     assert_equal :app, Actor.tld
   end
 
-  test "set_current_observability skips when performant cookie is not consented" do
+  test "set_current_observability keeps trace correlation when performant cookie is not consented" do
     # Default preference has performant? == false
     assert_not Actor.preferences.cookie.performant?
 
     hex_trace_id = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-    hex_span_id  = "f1e2d3c4b5a6f1e2"
-
     span_context = Minitest::Mock.new
     span_context.expect(:valid?, true)
     span_context.expect(:hex_trace_id, hex_trace_id)
-    span_context.expect(:hex_span_id, hex_span_id)
 
     span = Minitest::Mock.new
     span.expect(:context, span_context)
@@ -73,7 +71,7 @@ class ActorSupportTest < ActiveSupport::TestCase
       @host.set_current_observability
     end
 
-    assert_nil Actor.trace_id, "trace_id must not be set without performant consent"
+    assert_equal hex_trace_id, Actor.trace_id
     assert_nil Actor.span_id, "span_id must not be set without performant consent"
   end
 
@@ -287,9 +285,10 @@ class ActorSupportTest < ActiveSupport::TestCase
       raise StandardError, "boom"
     end
 
-    error = assert_raises(ActorSupport::ResolutionError) do
-      @host.resolved_current_token
-    end
+    error =
+      assert_raises(ActorSupport::ResolutionError) do
+        @host.resolved_current_token
+      end
 
     assert_match "Actor access_token resolution failed", error.message
     assert_equal "boom", error.cause.message
@@ -305,9 +304,10 @@ class ActorSupportTest < ActiveSupport::TestCase
         public :safe_current_resource
       end
 
-    error = assert_raises(ActorSupport::ResolutionError) do
-      host_class.new.safe_current_resource
-    end
+    error =
+      assert_raises(ActorSupport::ResolutionError) do
+        host_class.new.safe_current_resource
+      end
 
     assert_match "Actor current_resource resolution failed", error.message
   end
@@ -316,9 +316,10 @@ class ActorSupportTest < ActiveSupport::TestCase
     @host.define_singleton_method(:current_session_restricted?) do
       raise StandardError, "boom"
     end
-    error = assert_raises(ActorSupport::ResolutionError) do
-      @host.resolved_current_restricted_session?
-    end
+    error =
+      assert_raises(ActorSupport::ResolutionError) do
+        @host.resolved_current_restricted_session?
+      end
 
     assert_match "Actor restricted_session resolution failed", error.message
   end
@@ -327,11 +328,34 @@ class ActorSupportTest < ActiveSupport::TestCase
     @host.define_singleton_method(:current_session_token) do
       raise StandardError, "boom"
     end
-    error = assert_raises(ActorSupport::ResolutionError) do
-      @host.resolved_current_step_up
-    end
+    error =
+      assert_raises(ActorSupport::ResolutionError) do
+        @host.resolved_current_step_up
+      end
 
     assert_match "Actor step_up resolution failed", error.message
+  end
+
+  test "current_policy_user reads actor authz before controller fallback" do
+    Actor.install_context!(authz: Actor::Authz.new(policy_user: :actor_policy_user, token_claims: {}, surface: "app"))
+    @host.define_singleton_method(:current_resource) { :controller_resource }
+
+    assert_equal :actor_policy_user, @host.current_policy_user
+  end
+
+  test "current_policy_user falls back to current resource" do
+    @host.define_singleton_method(:current_resource) { :controller_resource }
+
+    assert_equal :controller_resource, @host.current_policy_user
+  end
+
+  test "resolved_current_step_up uses required verification scope and aal" do
+    @host.define_singleton_method(:verification_required?) { true }
+    @host.define_singleton_method(:verification_scope) { "configuration_secret" }
+    @host.define_singleton_method(:verification_required_aal) { :aal3 }
+
+    assert_equal "configuration_secret", @host.resolved_current_step_up_scope
+    assert_equal :aal3, @host.resolved_current_step_up_required_aal
   end
 
   test "resolved_current_preference ignores database preference record without jwt prf" do

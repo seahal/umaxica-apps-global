@@ -18,7 +18,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
       method: :email_otp,
       state: "CHECKPOINT_PENDING",
       participant: :checkpoint,
-      rt: "/configuration",
+      pt: "/configuration",
     )
 
     assert_equal sequence.id, session.fetch(:app_sign_in_sequence).fetch("id")
@@ -36,7 +36,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
       method: :email_otp,
       state: "CHECKPOINT_PENDING",
       participant: :checkpoint,
-      rt: nil,
+      pt: nil,
     )
 
     assert_predicate SignIn::SequenceCarrier.new(session, surface: :app).current, :present?
@@ -54,7 +54,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
       method: :email_otp,
       state: "CHECKPOINT_PENDING",
       participant: :checkpoint,
-      rt: nil,
+      pt: nil,
     )
     sequence = carrier.fail!
 
@@ -91,7 +91,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
         method: :email_otp,
         state: "CHECKPOINT_PENDING",
         participant: :checkpoint,
-        rt: nil,
+        pt: nil,
       )
     end
 
@@ -111,7 +111,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
         method: :email_otp,
         state: "BOGUS",
         participant: :checkpoint,
-        rt: nil,
+        pt: nil,
       )
     end
 
@@ -122,7 +122,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
         method: :email_otp,
         state: "CHECKPOINT_PENDING",
         participant: :unknown,
-        rt: nil,
+        pt: nil,
       )
     end
   end

@@ -30,10 +30,10 @@ class Sign::Com::Verification::SetupsControllerTest < ActionDispatch::Integratio
     }
   end
 
-  test "new shows a back link above registration methods when rt is present" do
-    rt = Base64.urlsafe_encode64(sign_com_configuration_telephones_path(ri: "jp"))
+  test "new shows a back link above registration methods when pt is present" do
+    pt = Base64.urlsafe_encode64(sign_com_configuration_telephones_path(ri: "jp"))
 
-    get new_sign_com_verification_setup_url(ri: "jp", rt: rt), headers: @headers
+    get new_sign_com_verification_setup_url(ri: "jp", pt: pt), headers: @headers
 
     assert_response :success
     assert_select "a[href=?]", sign_com_configuration_path(ri: "jp"), text: I18n.t("actions.back")

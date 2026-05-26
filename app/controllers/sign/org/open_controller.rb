@@ -4,19 +4,27 @@
 module Sign
   module Org
     class OpenController < ApplicationController
-      AUTHENTICATION_MODE = :open
-
       include ::RateLimit
+
       include ::Session
+
       include ::Preference::Global
+
       include ::Preference::Adoption
+
       include ::Preference::ResourceSync
+
       include ::Authentication::Operator
+
       include ActionPolicy::Controller
+
       include ::ActorSupport
+
       include ::Finisher
 
-      authorize :user, through: :current_operator
+      AUTHENTICATION_MODE = :open
+
+      authorize :user, through: :current_policy_user
 
       layout "sign/org/application"
 

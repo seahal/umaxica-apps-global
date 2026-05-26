@@ -42,7 +42,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification/setup/new", uri.path
-    assert_predicate query["rt"], :present?
+    assert_predicate query["pt"], :present?
   end
 
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
@@ -57,7 +57,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification/setup/new", uri.path
-    assert_predicate query["rt"], :present?
+    assert_predicate query["pt"], :present?
   end
 
   test "GET protected endpoint redirects to verification when usable methods exist" do

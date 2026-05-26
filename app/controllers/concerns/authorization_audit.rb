@@ -34,7 +34,7 @@ module AuthorizationAudit
   end
 
   def log_authorization_failure(exception)
-    actor = current_client_or_staff
+    actor = authorization_audit_actor
     return unless actor
 
     log_data = build_log_data(actor, exception)
@@ -56,17 +56,22 @@ module AuthorizationAudit
   def build_log_data(actor, exception)
     {
       actor_type: actor.class.name,
-      actor_id: actor.id,
+      actor_id: audit_identifier(actor),
+      actor_state: defined?(Actor) ? Actor.whoami : nil,
+      login_public_id: defined?(Actor) ? Actor.authn.login_public_id : nil,
       action: action_name,
       controller: controller_name,
       policy: exception.policy.class.name,
       query: exception.rule,
       record_type: exception.policy.record&.class&.name,
-      record_id: exception.policy.record&.id,
+      record_id: audit_identifier(exception.policy.record),
       ip_address: request.remote_ip,
       user_agent: request.user_agent,
+      request_id: request.respond_to?(:request_id) ? request.request_id : nil,
+      trace_id: defined?(Actor) ? Actor.trace_id : nil,
+      span_id: defined?(Actor) ? Actor.span_id : nil,
       timestamp: Time.current,
-    }
+    }.compact
   end
 
   def create_audit_record(actor, log_data)
@@ -75,6 +80,8 @@ module AuthorizationAudit
       create_user_authorization_audit(actor, log_data)
     elsif actor.is_a?(Operator)
       create_staff_authorization_audit(actor, log_data)
+    elsif defined?(Visitor) && actor.is_a?(Visitor)
+      create_visitor_authorization_audit(actor, log_data)
     end
   end
 
@@ -106,12 +113,56 @@ module AuthorizationAudit
     Rails.logger.info(LogEvent.format("authorization.audit.staff_creation_failed", error_message: e.message))
   end
 
+  def create_visitor_authorization_audit(visitor, log_data)
+    audit = ClientChronicle.new(
+      actor: visitor,
+      actor_id: visitor.id,
+      actor_type: visitor.class.name,
+      subject_id: visitor.id.to_s,
+      subject_type: visitor.class.name,
+      event_id: ClientChronicleEvent::AUTHORIZATION_FAILED,
+      ip_address: log_data[:ip_address],
+      occurred_at: log_data[:timestamp],
+    )
+    audit.context = { request_id: log_data[:request_id], trace_id: log_data[:trace_id] }.compact if audit.respond_to?(:context=)
+    audit.save!
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.info(LogEvent.format("authorization.audit.visitor_creation_failed", error_message: e.message))
+  end
+
+  def authorization_audit_actor
+    legacy_actor = current_client_or_staff
+
+    if defined?(Actor) && Actor.authenticated?
+      actor = Actor.actor
+      return actor if usable_authorization_audit_actor?(actor, legacy_actor)
+    end
+
+    legacy_actor
+  end
+
+  def usable_authorization_audit_actor?(actor, legacy_actor)
+    return false if actor.blank?
+    return false if defined?(Unauthenticated) && actor.equal?(Unauthenticated.instance)
+    return true if legacy_actor.blank?
+
+    actor == legacy_actor
+  end
+
+  def audit_identifier(record)
+    return if record.blank?
+    return record.public_id if record.respond_to?(:public_id) && record.public_id.present?
+
+    record.id if record.respond_to?(:id)
+  end
+
   def current_client_or_staff
     return current_client if respond_to?(:current_client) && current_client
     return current_user if respond_to?(:current_user) && current_user
 
     # Try current_operator (for Operator controllers)
     return current_operator if respond_to?(:current_operator) && current_operator
+    return current_visitor if respond_to?(:current_visitor) && current_visitor
 
     nil
   end

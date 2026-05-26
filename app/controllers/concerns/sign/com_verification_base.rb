@@ -50,8 +50,8 @@ module Sign
         scope = incoming_scope || current_step_up_scope
         attrs[:scope] = scope if scope.present?
 
-        return_to = incoming_return_to || current_step_up_return_to_param
-        attrs[:return_to] = return_to if return_to.present?
+        pt = incoming_pt || current_step_up_pt_param
+        attrs[:pt] = pt if pt.present?
 
         attrs
       end
@@ -61,11 +61,9 @@ module Sign
           request_parameters["scope"].to_s.presence
       end
 
-      def incoming_return_to
-        verification_params[:return_to].to_s.presence ||
-          verification_params[:rt].to_s.presence ||
-          request_parameters["return_to"].to_s.presence ||
-          request_parameters["rt"].to_s.presence
+      def incoming_pt
+        verification_params[:pt].to_s.presence ||
+          request_parameters["pt"].to_s.presence
       end
 
       def clear_step_up_state!

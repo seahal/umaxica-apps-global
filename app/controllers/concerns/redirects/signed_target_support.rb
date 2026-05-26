@@ -1,8 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
-module ReturnTargets
-  module SignedTokenSupport
+module Redirects
+  module SignedTargetSupport
     extend ActiveSupport::Concern
 
     SIGNED_TARGET_SECRET_LENGTH = 32

@@ -166,14 +166,14 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_sign_app_out_path(ri: "jp")
   end
 
-  test "destroy redirects to safe rt after logout" do
+  test "destroy redirects to safe pt after logout" do
     get edit_sign_app_out_url(ri: "jp"), headers: { "Host" => @host }
     token = ClientToken.create!(user: @user)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    rt = signed_return_target(sign_app_configuration_path(ri: "jp"), surface: "app")
+    pt = signed_return_target(sign_app_configuration_path(ri: "jp"), surface: "app")
 
-    delete sign_app_out_url(ri: "jp", rt: rt),
+    delete sign_app_out_url(ri: "jp", pt: pt),
            headers: { "Host" => @host,
                       "X-TEST-CURRENT-USER" => @user.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
@@ -182,13 +182,13 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :revoked?
   end
 
-  test "destroy with unsafe rt fails closed after logout" do
+  test "destroy with unsafe pt fails closed after logout" do
     token = ClientToken.create!(user: @user)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    rt = "not-a-valid-return-target-token"
+    pt = "not-a-valid-return-target-token"
 
-    delete sign_app_out_url(ri: "jp", rt: rt),
+    delete sign_app_out_url(ri: "jp", pt: pt),
            headers: { "Host" => @host,
                       "X-TEST-CURRENT-USER" => @user.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
@@ -197,13 +197,13 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :revoked?
   end
 
-  test "destroy rejects legacy base64 rt after logout" do
+  test "destroy rejects legacy base64 pt after logout" do
     token = ClientToken.create!(user: @user)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
     legacy_rt = Base64.urlsafe_encode64(sign_app_configuration_path(ri: "jp"))
 
-    delete sign_app_out_url(ri: "jp", rt: legacy_rt),
+    delete sign_app_out_url(ri: "jp", pt: legacy_rt),
            headers: { "Host" => @host,
                       "X-TEST-CURRENT-USER" => @user.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
@@ -328,7 +328,7 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
 
   def return_target_token_harness
     @return_target_token_harness ||= Class.new do
-      include ReturnTargets::SignedTokenSupport
+      include ::Redirects::SignedTargetSupport
 
       def issue(return_to:, flow:, surface:, session_nonce:, expires_in: 15.minutes)
         path = signed_target_internal_path(return_to)
@@ -357,12 +357,12 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
 
   def redirect_without_rt(location)
     uri = URI.parse(location)
-    query = Rack::Utils.parse_nested_query(uri.query).except("rt")
+    query = Rack::Utils.parse_nested_query(uri.query).except("pt")
     uri.query = query.presence&.to_query
     uri.to_s
   end
 
   def rt_from_location(location)
-    Rack::Utils.parse_nested_query(URI.parse(location).query).fetch("rt")
+    Rack::Utils.parse_nested_query(URI.parse(location).query).fetch("pt")
   end
 end

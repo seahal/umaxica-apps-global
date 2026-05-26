@@ -48,6 +48,28 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "app com and org IdP authorization endpoints are exposed at oauth authorize" do
+    SURFACES.each do |surface|
+      host! surface[:sign_host]
+
+      get "/oauth/authorize", params: {
+        response_type: "code",
+        client_id: surface[:client_id],
+        redirect_uri: Oidc::ClientRegistry.find!(surface[:client_id]).redirect_uris.first,
+        code_challenge: "challenge",
+        code_challenge_method: "S256",
+        state: "state",
+        nonce: "nonce",
+      }, headers: browser_headers
+
+      assert_response :redirect
+
+      get "/oauth/authorization", headers: browser_headers
+
+      assert_response :not_found
+    end
+  end
+
   test "app com and org old sign entry routes are not exposed" do
     SURFACES.each do |surface|
       host! surface[:host]
@@ -124,10 +146,10 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal "http://#{surface[:host]}/", response.location
       assert_response_has_auth_cookie
 
-      get "/?ri=jp", headers: browser_headers
+      get "/accounts?ri=jp", headers: browser_headers
 
       assert_response :success
-      assert_select "form[action^=?][method=?]", "/sso/logout", "post"
+      assert_includes response.body, "account"
     end
   end
 

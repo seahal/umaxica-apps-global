@@ -4,23 +4,35 @@
 module Sign
   module Com
     class ApplicationController < ActionController::Base
-      AUTHENTICATION_MODE = :deny_all
-
       include ::RateLimit
+
       include ::Session
+
       include ::Preference::Global
+
       include ::Preference::Adoption
+
       include ::Authentication::Visitor
+
       include ::Authentication::CredentialInventoryReader
+
       include ::Authorization::Visitor
+
       include ::Verification::Visitor
+
       include ActionPolicy::Controller
+
       include ::RestrictedSessionGuard
+
       include Sign::Com::RouteAliasHelper
+
       include ::ActorSupport
+
       include ::Finisher
 
-      authorize :user, through: :current_visitor
+      AUTHENTICATION_MODE = :deny_all
+
+      authorize :user, through: :current_policy_user
 
       helper Sign::Com::ApplicationHelper
 
@@ -96,15 +108,15 @@ module Sign
         sign_com_verification_path(attrs)
       end
 
-      def verification_redirect_path(rt: nil, scope_override: nil)
-        attrs = { ri: params[:ri], rt: rt }
+      def verification_redirect_path(pt: nil, scope_override: nil)
+        attrs = { ri: params[:ri], pt: pt }
         scope = scope_override.to_s.presence || verification_scope.to_s.presence
         attrs[:scope] = scope if scope
         sign_com_verification_path(attrs)
       end
 
-      def verification_setup_redirect_path(rt: nil)
-        new_sign_com_verification_setup_path(ri: params[:ri], rt: rt || encoded_step_up_rt)
+      def verification_setup_redirect_path(pt: nil)
+        new_sign_com_verification_setup_path(ri: params[:ri], pt: pt || encoded_step_up_pt)
       end
 
       def after_login_path

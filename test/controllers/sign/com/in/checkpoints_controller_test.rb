@@ -53,20 +53,20 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_operator session[:sign_in_checkpoint]["issued_at"], :>, previous_issued_at
   end
 
-  test "destroy consumes checkpoint and continues to dashboard with rt" do
+  test "destroy consumes checkpoint and continues to dashboard with pt" do
     start_checkpoint_sequence
-    rt = Base64.urlsafe_encode64("/configuration?ri=jp")
+    pt = Base64.urlsafe_encode64("/configuration?ri=jp")
 
-    delete sign_com_in_checkpoint_url(ri: "jp", rt: rt),
+    delete sign_com_in_checkpoint_url(ri: "jp", pt: pt),
            headers: as_visitor_headers(@visitor, host: @host).merge(
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
     assert_nil session[:sign_in_checkpoint]
-    assert_redirected_to sign_com_dashboard_path(ri: "jp", rt: rt)
+    assert_redirected_to sign_com_dashboard_path(ri: "jp", pt: pt)
   end
 
-  test "destroy without rt redirects to default" do
+  test "destroy without pt redirects to default" do
     start_checkpoint_sequence
 
     delete sign_com_in_checkpoint_url(ri: "jp"),
@@ -100,7 +100,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
       method: :email_otp,
       state: "CHECKPOINT_PENDING",
       participant: :checkpoint,
-      rt: nil,
+      pt: nil,
     )
   end
 

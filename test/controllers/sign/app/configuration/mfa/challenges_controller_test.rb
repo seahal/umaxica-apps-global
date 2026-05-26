@@ -38,7 +38,7 @@ class Sign::App::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
     assert_equal "/verification", uri.path
     assert_equal "configuration_mfa", query["scope"]
     assert_equal "jp", query["ri"]
-    assert_predicate query["rt"], :present?
+    assert_predicate query["pt"], :present?
   end
 
   test "update route is not exposed" do

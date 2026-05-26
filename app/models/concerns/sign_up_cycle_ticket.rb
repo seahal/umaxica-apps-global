@@ -21,6 +21,7 @@ module SignUpCycleTicket
 
   included do
     before_validation :normalize_completed_requirements
+    before_validation :default_cleanup_status
 
     validates :entry_method, presence: true, inclusion: { in: ->(record) { record.class::ENTRY_METHODS } }
     validates :pending_contact_type, inclusion: { in: CONTACT_TYPES }, allow_nil: true
@@ -57,6 +58,12 @@ module SignUpCycleTicket
     requirement_state = completed_requirements.fetch(requirement.to_s, {})
 
     requirement_state.is_a?(Hash) && requirement_state["cleared"] == true
+  end
+
+  def checkpoint_version
+    return self[:checkpoint_version] if has_attribute?(:checkpoint_version)
+
+    0
   end
 
   delegate :cleanup_status_id_for, to: :class
@@ -102,6 +109,15 @@ module SignUpCycleTicket
 
   def normalize_completed_requirements
     self.completed_requirements = {} if completed_requirements.blank?
+  end
+
+  def default_cleanup_status
+    return unless has_attribute?(:cleanup_status_id)
+
+    self.class.cleanup_status_class&.ensure_defaults!
+    return if cleanup_status_id.present?
+
+    self.cleanup_status_id = cleanup_status_id_for(:idle)
   end
 
   def return_to_is_safe_internal_path

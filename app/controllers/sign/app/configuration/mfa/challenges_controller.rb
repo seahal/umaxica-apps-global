@@ -6,9 +6,9 @@ module Sign
     module Configuration
       module Mfa
         class ChallengesController < PrivateController
-          AUTHENTICATION_MODE = :private
-
           include ::Verification::Client
+
+          AUTHENTICATION_MODE = :private
 
           before_action :authenticate_client!
 

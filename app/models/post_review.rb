@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: post_reviews
-# Database name: avatar
+# Database name: app_publisher
 #
 #  id                    :bigint           not null, primary key
 #  comment               :text
@@ -12,7 +12,7 @@
 #  created_at            :datetime         not null
 #  updated_at            :datetime         not null
 #  post_id               :bigint           not null
-#  post_review_status_id :bigint           default(0), not null
+#  post_review_status_id :bigint           not null
 #  reviewer_actor_id     :bigint           not null
 #
 # Indexes

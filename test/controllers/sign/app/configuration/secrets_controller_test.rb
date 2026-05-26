@@ -90,8 +90,8 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_secret", query["scope"]
-    assert_predicate query["rt"], :present?
-    assert_match(/--/, query["rt"])
+    assert_predicate query["pt"], :present?
+    assert_match(/--/, query["pt"])
   end
 
   test "should show back link on index page" do
@@ -143,8 +143,8 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     assert_equal "/verification/setup/new", uri.path
     assert_equal "jp", query["ri"]
-    assert_predicate query["rt"], :present?
-    assert_match(/--/, query["rt"])
+    assert_predicate query["pt"], :present?
+    assert_match(/--/, query["pt"])
   end
 
   test "new returns forbidden plain message when user has no verified recovery identity" do
@@ -249,8 +249,8 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
 
     assert_equal "/verification/setup/new", uri.path
     assert_equal "jp", query["ri"]
-    assert_predicate query["rt"], :present?
-    assert_match(/--/, query["rt"])
+    assert_predicate query["pt"], :present?
+    assert_match(/--/, query["pt"])
   end
 
   test "create returns unprocessable entity plain message when user has no verified recovery identity" do

@@ -21,7 +21,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     assert_equal "umaxica-core-app", client.aud
     assert_equal "client", client.resource_type
     assert_equal "Core App", client.name
-    assert_includes client.domains, "main.app.localhost"
+    assert_includes client.domains, ENV.fetch("CORE_SERVICE_URL", "jp.www.umaxica.app")
     assert_kind_of Array, client.redirect_uris
     assert client.redirect_uris.any? { |uri| uri.include?("/auth/callback") }
   end
@@ -123,5 +123,67 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     assert_includes ids, "core_app"
     assert_includes ids, "apex_org"
     assert_equal 15, ids.size
+  end
+
+  test "core clients are registered to regional redirect hosts" do
+    expectations = {
+      "core_app" => {
+        host: ENV.fetch("CORE_SERVICE_URL", "jp.www.umaxica.app"),
+        aud: "umaxica-core-app",
+        resource_type: "client",
+      },
+      "core_com" => {
+        host: ENV.fetch("CORE_CORPORATE_URL", "jp.www.umaxica.com"),
+        aud: "umaxica-core-com",
+        resource_type: "visitor",
+      },
+      "core_org" => {
+        host: ENV.fetch("CORE_STAFF_URL", "jp.www.umaxica.org"),
+        aud: "umaxica-core-org",
+        resource_type: "operator",
+      },
+    }
+
+    expectations.each do |client_id, expected|
+      client = Oidc::ClientRegistry.find!(client_id)
+      redirect_uri = URI.parse(client.redirect_uris.fetch(0))
+
+      assert_equal expected[:host], redirect_uri.host, "#{client_id} redirect host is not regional"
+      assert_equal "/auth/callback", redirect_uri.path
+      assert_equal expected[:aud], client.aud
+      assert_equal expected[:resource_type], client.resource_type
+      assert_equal [expected[:host]], client.domains
+    end
+  end
+
+  test "apex clients are registered to same surface redirect hosts" do
+    expectations = {
+      "apex_app" => {
+        host: ENV.fetch("APEX_SERVICE_URL", "www.app.localhost"),
+        aud: "umaxica-apex-app",
+        resource_type: "client",
+      },
+      "apex_com" => {
+        host: ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost"),
+        aud: "umaxica-apex-com",
+        resource_type: "visitor",
+      },
+      "apex_org" => {
+        host: ENV.fetch("APEX_STAFF_URL", "www.org.localhost"),
+        aud: "umaxica-apex-org",
+        resource_type: "operator",
+      },
+    }
+
+    expectations.each do |client_id, expected|
+      client = Oidc::ClientRegistry.find!(client_id)
+      redirect_uri = URI.parse(client.redirect_uris.fetch(0))
+
+      assert_equal expected[:host], redirect_uri.host, "#{client_id} redirect host is cross-surface"
+      assert_equal "/auth/callback", redirect_uri.path
+      assert_equal expected[:aud], client.aud
+      assert_equal expected[:resource_type], client.resource_type
+      assert_equal [expected[:host]], client.domains
+    end
   end
 end

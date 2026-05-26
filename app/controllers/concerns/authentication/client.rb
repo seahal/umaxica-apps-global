@@ -65,9 +65,9 @@ module Authentication
       :user_id
     end
 
-    def sign_in_url_with_return(return_to)
+    def sign_in_url_with_pt(return_to)
       new_sign_app_in_url(
-        rt: return_to,
+        pt: return_to,
         host: sign_app_redirect_host,
         protocol: request.protocol,
       )

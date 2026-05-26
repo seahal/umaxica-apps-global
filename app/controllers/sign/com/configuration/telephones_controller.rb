@@ -5,10 +5,11 @@ module Sign
   module Com
     module Configuration
       class TelephonesController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include Common::Otp
+
         include ::Verification::Visitor
+
+        AUTHENTICATION_MODE = :private
 
         TELEPHONE_VERIFICATION_RATE_LIMIT = 5
         TELEPHONE_VERIFICATION_RATE_WINDOW = 60

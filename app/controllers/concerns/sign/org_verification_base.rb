@@ -88,7 +88,7 @@ module Sign
     private
 
     def verification_params
-      params.fetch(:verification, {}).permit(:code, :challenge_id, :credential_json, :scope, :return_to, :rt)
+      params.fetch(:verification, {}).permit(:code, :challenge_id, :credential_json, :scope, :pt)
     end
 
     def verification_unavailable_redirect_path

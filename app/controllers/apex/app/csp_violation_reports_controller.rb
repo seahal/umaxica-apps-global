@@ -4,9 +4,9 @@
 module Apex
   module App
     class CspViolationReportsController < BareController
-      AUTHENTICATION_MODE = :bare
-
       include CspViolationReport
+
+      AUTHENTICATION_MODE = :bare
 
       def create
         record_csp_violation!

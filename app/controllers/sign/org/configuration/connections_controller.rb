@@ -5,9 +5,9 @@ module Sign
   module Org
     module Configuration
       class ConnectionsController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include Sign::OidcConnectionsManagement
+
+        AUTHENTICATION_MODE = :private
 
         private
 

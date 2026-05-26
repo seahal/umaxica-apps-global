@@ -4,10 +4,6 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 
-class ApplicationController < ActionController::Base
-  protect_from_forgery using: :header_or_legacy_token
-end
-
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers

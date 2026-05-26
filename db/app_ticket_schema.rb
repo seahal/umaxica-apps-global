@@ -153,10 +153,10 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_25_233000) do
     t.check_constraint "discarded_at <= purged_at", name: "chk_client_sign_out_cycles_retention_order"
   end
 
-  create_table "client_sign_up_cycle_statuses", force: :cascade do |t|
+  create_table "client_sign_up_cycle_cleanup_statuses", force: :cascade do |t|
   end
 
-  create_table "client_sign_up_cycle_cleanup_statuses", force: :cascade do |t|
+  create_table "client_sign_up_cycle_statuses", force: :cascade do |t|
   end
 
   create_table "client_sign_up_cycles", force: :cascade do |t|
@@ -305,8 +305,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_25_233000) do
   add_foreign_key "client_sign_out_cycles", "client_sign_out_cycle_kinds", column: "kind_id", validate: false
   add_foreign_key "client_sign_out_cycles", "client_sign_out_cycle_statuses", column: "status_id", validate: false
   add_foreign_key "client_sign_out_cycles", "client_tokens", column: "token_id", on_delete: :cascade, validate: false
-  add_foreign_key "client_sign_up_cycles", "client_sign_up_cycle_statuses", column: "status_id", validate: false
   add_foreign_key "client_sign_up_cycles", "client_sign_up_cycle_cleanup_statuses", column: "cleanup_status_id", validate: false
+  add_foreign_key "client_sign_up_cycles", "client_sign_up_cycle_statuses", column: "status_id", validate: false
   add_foreign_key "client_sign_up_cycles", "client_tokens", column: "token_id", on_delete: :cascade, validate: false
   add_foreign_key "client_step_up_sessions", "client_tokens", column: "user_token_id", on_delete: :cascade, validate: false
   add_foreign_key "client_tokens", "client_token_binding_methods", column: "user_token_binding_method_id", name: "fk_user_tokens_on_user_token_binding_method_id", validate: false

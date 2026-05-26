@@ -4,7 +4,9 @@
 module SignIn
   class SelectorParticipant
     class Error < StandardError; end
+
     class InvalidCycle < Error; end
+
     class SelectionConflict < Error; end
 
     Result = Struct.new(:cycle, :candidate, :status, keyword_init: true)
@@ -25,8 +27,7 @@ module SignIn
         raise InvalidCycle, "selector candidate is required" unless candidates.one?
 
         candidate = candidates.first
-        persist_selection!(candidate)
-        cycle.advance_sign_in_to_session_issuance!
+        cycle.advance_sign_in_to_session_issuance!(changes: selection_changes(candidate))
         Result.new(cycle: cycle, candidate: candidate, status: :auto_committed)
       end
     end
@@ -61,12 +62,12 @@ module SignIn
                  end
     end
 
-    def persist_selection!(candidate)
+    def selection_changes(candidate)
       changes = {}
       changes[:selected_region_id] = numeric_or_nil(candidate.region) if cycle.has_attribute?(:selected_region_id)
       changes[:selected_persona_id] = numeric_or_nil(candidate.persona) if cycle.has_attribute?(:selected_persona_id)
       changes[:selector_completed_at] = Time.current if cycle.has_attribute?(:selector_completed_at)
-      cycle.assign_attributes(changes) if changes.present?
+      changes
     end
 
     def numeric_or_nil(value)

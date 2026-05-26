@@ -18,9 +18,9 @@
 # The restricted session approach avoids blocking login while ensuring staff
 # can manage their sessions. Invariant: max 1 restricted session per staff.
 class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
-  AUTHENTICATION_MODE = :deny_all
-
   include SessionLimitGate
+
+  AUTHENTICATION_MODE = :deny_all
 
   # This controller handles session management for both authenticated staff
   # and staff who are in the process of logging in (with a pending gate).
@@ -62,7 +62,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
         consume_session_limit_gate!
         session.delete(:pending_login_staff_id)
         return redirect_to_sign_in_sequence!(
-          rt: retrieve_redirect_parameter.presence || session_limit_return_to,
+          pt: retrieve_pt.presence || session_limit_pt,
           notice: I18n.t("session_limit.promoted"),
         )
       end
@@ -138,13 +138,13 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   end
 
   def redirect_to_return_path(notice:)
-    return_path = retrieve_redirect_parameter || session_limit_return_to
+    return_path = retrieve_pt || session_limit_pt
     consume_session_limit_gate!
 
     if return_path.present?
       flash[:notice] = notice
-      destination = return_path_from_signed_rt(safe_encoded_rt(return_path)) || sign_org_configuration_path
-      redirect_to_return_target_destination!(destination)
+      destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_org_configuration_path
+      redirect_to_pt_destination!(destination)
     else
       redirect_to(sign_org_configuration_path, notice: notice)
     end

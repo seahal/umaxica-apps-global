@@ -4,21 +4,31 @@
 module Apex
   module App
     class ApplicationController < ActionController::Base
-      AUTHENTICATION_MODE = :deny_all
-
       include ::RateLimit
+
       include ::Session
+
       include ::Preference::Global
+
       include ::Preference::Adoption # FIXME: I hate this line.
+
       include ::Authentication::Client
+
       include ::Authorization::Client
+
       include ::Verification::Client
+
       include ActionPolicy::Controller # FIXME: I hate this line.
 
-      authorize :user, through: :current_client
       include ::Oidc::SsoInitiator # FIXME: I hate this line.
+
       include ::ActorSupport
+
       include ::Finisher
+
+      AUTHENTICATION_MODE = :deny_all
+
+      authorize :user, through: :current_policy_user
 
       allow_browser versions: :modern
 

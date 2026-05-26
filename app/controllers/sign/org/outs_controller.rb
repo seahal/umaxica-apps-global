@@ -4,11 +4,13 @@
 module Sign
   module Org
     class OutsController < OpenController
-      AUTHENTICATION_MODE = :open
-
       include ::Verification::Operator
+
       include ::Authentication::Logoutable
+
       include ::Sign::OutNotice
+
+      AUTHENTICATION_MODE = :open
 
       before_action :authenticate!, only: %i(edit create destroy)
 
@@ -35,12 +37,12 @@ module Sign
       end
 
       def destroy
-        rt = params[:rt].presence
-        destination = return_path_from_signed_rt(rt) if rt.present?
+        pt = params[:pt].presence
+        destination = path_from_signed_pt(pt) if pt.present?
 
         logout_current_session!(reason: "org_operator_logout")
-        return render_invalid_return_target! if rt.present? && destination.blank?
-        return redirect_to_return_target_destination!(destination) if destination.present?
+        return render_invalid_return_target! if pt.present? && destination.blank?
+        return redirect_to_pt_destination!(destination) if destination.present?
 
         render :show
       end

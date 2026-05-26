@@ -37,7 +37,7 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification/setup/new", uri.path
-    assert_predicate query["rt"], :present?
+    assert_predicate query["pt"], :present?
   end
 
   test "show renders method links when scope and return_to are provided" do
@@ -49,7 +49,7 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select(
       "a[href=?]",
-      new_sign_app_verification_email_path(ri: "jp", scope: "configuration_email", rt: return_to),
+      new_sign_app_verification_email_path(ri: "jp", scope: "configuration_email", pt: return_to),
     )
   end
 
@@ -65,7 +65,7 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   test "show handles scope and return target mismatch without redirecting back to verification" do
     return_to = Base64.urlsafe_encode64(sign_app_configuration_mfa_challenge_path(ri: "jp"))
 
-    get sign_app_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
+    get sign_app_verification_url(scope: "configuration_email", pt: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :redirect

@@ -35,6 +35,8 @@ Current request-context decisions:
 
 - `adr/actor-current-facade.md`
 - `adr/signed-return-targets-only.md`
+- `adr/redirect-target-lanes-pt-nt-xt.md` — supersedes the deferred return-target naming direction
+  in signed-return-targets-only; current redirect target lanes are `pt`, `nt`, and `xt`.
 
 Current logging / observability decisions:
 

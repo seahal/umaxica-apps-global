@@ -43,7 +43,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       assert_equal "id.umaxica.com", location.host
       assert_equal "/sign/in/new", location.path
       assert_equal "jp", params["ri"]
-      assert_match(/--/, params.fetch("rt"))
+      assert_match(/--/, params.fetch("pt"))
     end
   ensure
     Rails.application.reload_routes!
@@ -122,8 +122,8 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:current_session_public_id) { @session_for_test&.public_id }
     controller.define_singleton_method(:consume_session_limit_gate!) { @gate_consumed_for_test = true }
     controller.define_singleton_method(:log_out) { @logged_out_for_test = true }
-    controller.define_singleton_method(:retrieve_redirect_parameter) { @redirect_parameter_for_test }
-    controller.define_singleton_method(:session_limit_return_to) { @return_to_for_test }
+    controller.define_singleton_method(:retrieve_pt) { @redirect_parameter_for_test }
+    controller.define_singleton_method(:session_limit_pt) { @return_to_for_test }
     controller.define_singleton_method(:jump_to_generated_url) { |*args, **kwargs| jumps << [args, kwargs] }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }

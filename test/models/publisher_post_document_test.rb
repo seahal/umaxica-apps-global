@@ -6,7 +6,10 @@ require "test_helper"
 class PublisherPostDocumentTest < ActiveSupport::TestCase
   setup do
     capability = AvatarCapability.find_or_create_by!(id: AvatarCapability::NORMAL)
-    handle = Handle.find_or_create_by!(handle: "publisher_post_document_test") { |record| record.cooldown_until = Time.current }
+    handle =
+      Handle.find_or_create_by!(handle: "publisher_post_document_test") { |record|
+        record.cooldown_until = Time.current
+      }
     @avatar =
       Avatar.find_or_create_by!(moniker: "Publisher Post Author") do |record|
         record.capability = capability
@@ -40,12 +43,18 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
 
   test "available scope excludes future and expired posts" do
     now = Time.current
-    available = create_post(Post, PostStatus, permalink: "available_#{SecureRandom.hex(4)}",
-                                              published_at: now - 1.hour, expires_at: now + 1.hour)
-    future = create_post(Post, PostStatus, permalink: "future_#{SecureRandom.hex(4)}",
-                                           published_at: now + 1.hour, expires_at: now + 2.hours)
-    expired = create_post(Post, PostStatus, permalink: "expired_#{SecureRandom.hex(4)}",
-                                            published_at: now - 2.hours, expires_at: now - 1.hour)
+    available = create_post(
+      Post, PostStatus, permalink: "available_#{SecureRandom.hex(4)}",
+                        published_at: now - 1.hour, expires_at: now + 1.hour,
+    )
+    future = create_post(
+      Post, PostStatus, permalink: "future_#{SecureRandom.hex(4)}",
+                        published_at: now + 1.hour, expires_at: now + 2.hours,
+    )
+    expired = create_post(
+      Post, PostStatus, permalink: "expired_#{SecureRandom.hex(4)}",
+                        published_at: now - 2.hours, expires_at: now - 1.hour,
+    )
 
     available_ids = Post.available.pluck(:id)
 

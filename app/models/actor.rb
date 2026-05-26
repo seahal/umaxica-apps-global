@@ -114,12 +114,6 @@ class Actor < ActiveSupport::CurrentAttributes
       update(preferences: value)
     end
 
-    def preference = preferences
-
-    def preference=(value)
-      self.preferences = value
-    end
-
     def step_up = context.step_up || Actor::StepUp::NULL
 
     def step_up=(value)

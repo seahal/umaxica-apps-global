@@ -1,5 +1,5 @@
 <% title t("sign.app.authentication.email.new.page_title") %>
-<% return_to = params[:rt].presence %>
+<% pt = params[:pt].presence %>
 
 <div>
   <div>
@@ -17,7 +17,7 @@
                     scope: :user_email,
                     url: sign_com_in_email_path,
                     data: { turbo: false } do |form| %>
-        <%= hidden_field_tag :rt, return_to if return_to.present? %>
+        <%= hidden_field_tag :pt, pt if pt.present? %>
 
         <% if @user_email.errors.any? %>
           <div class="animate-shake">
@@ -51,7 +51,7 @@
       <% end %>
 
       <div>
-        <%= link_to new_sign_com_in_path(rt: return_to) do %>
+        <%= link_to new_sign_com_in_path(pt: pt) do %>
           <span><%= t("sign.app.authentication.new.back") %></span>
         <% end %>
       </div>

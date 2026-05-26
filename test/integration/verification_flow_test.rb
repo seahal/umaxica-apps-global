@@ -43,7 +43,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_match %r{/verification}, response.location
     assert_match(/scope=configuration_email/, response.location)
-    assert_match(/rt=/, response.location)
+    assert_match(/pt=/, response.location)
   end
 
   test "high-risk operation redirects to verification when step-up not satisfied (HEAD)" do
@@ -56,7 +56,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_match %r{/verification}, response.location
     assert_match(/scope=configuration_email/, response.location)
-    assert_match(/rt=/, response.location)
+    assert_match(/pt=/, response.location)
   end
 
   test "successful passkey verification redirects to return_to" do
@@ -65,12 +65,12 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
 
     verification_uri = URI.parse(response.location)
-    rt = Rack::Utils.parse_query(verification_uri.query).fetch("rt")
+    pt = Rack::Utils.parse_query(verification_uri.query).fetch("pt")
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
-          get sign_app_verification_url(scope: "configuration_email", rt: rt, ri: "jp"),
+          get sign_app_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
               headers: @headers
           get new_sign_app_verification_passkey_url(ri: "jp"), headers: @headers
 

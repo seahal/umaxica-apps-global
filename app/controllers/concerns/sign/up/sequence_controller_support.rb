@@ -9,6 +9,8 @@ module Sign
       private
 
       def load_sign_up_ticket
+        return render_sign_up_age_restricted if sign_up_session_state.age_restricted?
+
         @sign_up_ticket = sign_up_cycle_locator.current
         return if @sign_up_ticket
 
@@ -157,20 +159,39 @@ module Sign
           return
         end
 
+        actor.birthdate = sign_up_birthdate_param
+        unless actor.save
+          render plain: actor.errors.full_messages.to_sentence, status: :unprocessable_content
+          return
+        end
+
+        unless AgeEligibility.minimum_age_reached?(actor.birthdate, minimum_age: 13, today: Time.zone.today)
+          sign_up_session_state.age_restricted = true
+          result = SignUp::Termination.call(cycle: @sign_up_ticket, event: :fail, actor_context: Actor.authn)
+          return render_sign_up_result(result) unless result.success? || result.status == :failed
+
+          render_sign_up_age_restricted
+          return
+        end
+
         result = perform_sign_up_event(
           :clear_requirement,
           payload: {
             requirement: :birthdate,
             checkpoint_version: sign_up_checkpoint_version_param,
-            before_clear: -> {
-              actor.birthdate = sign_up_birthdate_param
-              actor.save!
-            },
           },
         )
         return finalize_sign_up_from_checkpoint! if result.success? && result.next_event == :finalize
 
         render_sign_up_result(result)
+      end
+
+      def render_sign_up_age_restricted
+        response.headers["Cache-Control"] = "no-store, private"
+        render plain: I18n.t(
+          "sign.#{sign_up_surface}.registration.checkpoint.age_restricted",
+          default: "この登録方法ではアカウントを作成できません。13歳の誕生日以降にもう一度お試しください。",
+        ), status: :ok
       end
 
       def finalize_sign_up_from_checkpoint!(json: false)
@@ -448,7 +469,7 @@ module Sign
         # session issuance remains delayed until checkpoint and selector pass.
         result = establish_signed_in_session!(
           actor,
-          rt: params[:rt].presence || @sign_up_ticket.return_to.presence,
+          pt: params[:pt].presence || @sign_up_ticket.return_to.presence,
           ri: params[:ri],
           auth_method: sign_up_auth_method,
           audit_context: { flow: "sign_up", sign_up_cycle_id: @sign_up_ticket.public_id },
@@ -478,7 +499,7 @@ module Sign
 
         if sign_in_result.success?
           redirect_to_sign_in_sequence!(
-            rt: params[:rt].presence || @sign_up_ticket.return_to.presence,
+            pt: params[:pt].presence || @sign_up_ticket.return_to.presence,
             notice: I18n.t("sign.app.registration.email.update.success"),
           )
         elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
@@ -491,7 +512,7 @@ module Sign
 
       def sign_up_handoff_redirect_url(sign_in_result)
         if sign_in_result.success?
-          sign_in_sequence_redirect_path(rt: params[:rt].presence || @sign_up_ticket.return_to.presence)
+          sign_in_sequence_redirect_path(pt: params[:pt].presence || @sign_up_ticket.return_to.presence)
         elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
           sign_in_result.redirect_to
         else

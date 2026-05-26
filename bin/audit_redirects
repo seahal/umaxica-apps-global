@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+targets=(
+  app/controllers
+  app/controllers/concerns
+  app/helpers
+  app/services
+  config/routes.rb
+  test/controllers
+  test/integration
+  test/services
+)
+
+[[ -d test/system ]] && targets+=(test/system)
+
+rg -n \
+  'redirect_to\s*\(?\s*params\[|allow_other_host:\s*true|params\[:(rt|return_to|redirect_to|redirect_uri|next|continue)\]|safe_return_path|return_target|safe_encoded_rt|return_path_from_signed_rt' \
+  "${targets[@]}"

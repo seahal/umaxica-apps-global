@@ -4,10 +4,11 @@
 module Jump
   module App
     class OpenController < ApplicationController
-      AUTHENTICATION_MODE = :open
-
       include ::RateLimit
+
       include ::ActorSupport
+
+      AUTHENTICATION_MODE = :open
 
       allow_browser versions: :modern
 
@@ -17,8 +18,6 @@ module Jump
       prepend_around_action :with_actor_lifecycle
 
       protect_from_forgery using: :header_or_legacy_token, with: :exception
-
-      declare_authentication_mode! :open
     end
   end
 end

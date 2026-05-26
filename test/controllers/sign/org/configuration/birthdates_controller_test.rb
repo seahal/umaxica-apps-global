@@ -74,7 +74,7 @@ module Sign::Org::Configuration
 
       assert_equal "/sign/in/new", uri.path
       assert_equal "jp", query["ri"]
-      assert_predicate query["rt"], :present?
+      assert_predicate query["pt"], :present?
     end
 
     test "does not route mutation or edit actions" do

@@ -1,0 +1,78 @@
+# typed: false
+# frozen_string_literal: true
+
+module Redirects
+  class NavigationTargetResolver
+    REGISTRY = {
+      checkpoint: ->(routes, params) { routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_in_checkpoint_path", ri: params[:ri]) },
+      selector: ->(routes, params) { routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_in_path", ri: params[:ri]) },
+      dashboard: ->(routes, params) { routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_dashboard_path", ri: params[:ri]) },
+      configuration_security: ->(routes, params) { routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_configuration_path", ri: params[:ri]) },
+      signed_out: ->(_routes, params) { "/sign/out/complete#{Redirects::NavigationTargetResolver.query(params.slice(:ri))}" },
+      home: ->(_routes, params) { "/#{Redirects::NavigationTargetResolver.query(params.slice(:ri))}" },
+    }.freeze
+
+    SCOPES = {
+      authentication: %i[checkpoint selector dashboard signed_out home].freeze,
+      configuration: %i[configuration_security dashboard home].freeze,
+      public: %i[home signed_out].freeze,
+    }.freeze
+
+    def self.call(key, routes:, params: {}, scope: nil, source: :explicit_nt)
+      new(key, routes: routes, params: params, scope: scope, source: source).call
+    end
+
+    def initialize(key, routes:, params:, scope:, source:)
+      @key = key
+      @routes = routes
+      @params = params.to_h.symbolize_keys
+      @scope = scope&.to_sym
+      @source = source
+    end
+
+    def call
+      return failure(:raw_url) if raw_url_or_path?
+
+      registry_key = normalize_key
+      return failure(:unknown_key) unless REGISTRY.key?(registry_key)
+      return failure(:scope_denied) unless allowed_in_scope?(registry_key)
+
+      result = Redirects::PathTargetResolver.call(REGISTRY.fetch(registry_key).call(routes, params), source: source)
+      return Redirects::TargetResult.ok(kind: :nt, source: source, value: result.value) if result.ok?
+
+      Redirects::TargetResult.failure(kind: :nt, source: source, reason: "invalid_registered_path", unsafe_value: result.value)
+    end
+
+    def self.surface(params)
+      params[:surface].presence || "app"
+    end
+
+    def self.query(values)
+      compact = values.compact_blank
+      compact.present? ? "?#{compact.to_query}" : ""
+    end
+
+    private
+
+    attr_reader :key, :routes, :params, :scope, :source
+
+    def normalize_key
+      return key if key.is_a?(Symbol)
+      return key.to_sym if key.is_a?(String) && key.match?(/\A[a-z][a-z0-9_]*\z/)
+    end
+
+    def raw_url_or_path?
+      key.is_a?(String) && (key.include?("/") || key.include?(":") || key.include?("\\"))
+    end
+
+    def allowed_in_scope?(registry_key)
+      return true if scope.blank?
+
+      SCOPES.fetch(scope, []).include?(registry_key)
+    end
+
+    def failure(reason)
+      Redirects::TargetResult.failure(kind: :nt, source: source, reason: reason, unsafe_value: key)
+    end
+  end
+end

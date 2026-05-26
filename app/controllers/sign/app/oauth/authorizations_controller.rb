@@ -6,7 +6,6 @@ module Sign
     module Oauth
       class AuthorizationsController < Sign::App::AuthorizesController
         AUTHENTICATION_MODE = :private
-
       end
     end
   end

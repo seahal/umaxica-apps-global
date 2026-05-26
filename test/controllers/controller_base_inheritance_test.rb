@@ -53,9 +53,10 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     end
   end
 
-  test "bare controllers inherit from their surface application controller" do
+  test "bare controllers inherit directly from ActionController base" do
     BARE_CONTROLLERS.each do |controller|
-      assert_equal controller.module_parent::ApplicationController, controller.superclass
+      assert_equal ActionController::Base, controller.superclass
+      assert_not_operator controller, :<, controller.module_parent::ApplicationController
       assert_includes controller.ancestors, RateLimit
     end
   end

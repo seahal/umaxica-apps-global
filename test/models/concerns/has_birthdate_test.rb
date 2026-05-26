@@ -109,7 +109,34 @@ class HasBirthdateTest < ActiveSupport::TestCase
 
   test "age_on returns nil for calendar-invalid birthdate" do
     each_birthdate_record("2000-02-30") do |record|
-      assert_nil record.age_on(Date.new(2024, 6, 15))
+      assert_equal 24, record.age_on(Date.new(2024, 6, 15))
+    end
+  end
+
+  test "age_on uses rollover date for structurally valid calendar overflow" do
+    each_birthdate_record("2000-02-31") do |record|
+      assert_equal Date.new(2000, 3, 1), record.birthdate_for_age
+      assert_equal 23, record.age_on(Date.new(2024, 2, 29))
+      assert_equal 24, record.age_on(Date.new(2024, 3, 1))
+    end
+  end
+
+  test "minimum_age_reached? uses canonical birthdate advance boundary" do
+    each_birthdate_record("2011-02-28") do |record|
+      assert record.minimum_age_reached?(13, today: Date.new(2024, 2, 28))
+    end
+
+    each_birthdate_record("2011-03-01") do |record|
+      assert_not record.minimum_age_reached?(13, today: Date.new(2024, 2, 29))
+    end
+  end
+
+  test "minimum_age_reached? uses canonical leap day advance in non leap year" do
+    each_birthdate_record("2012-02-29") do |record|
+      assert_not record.minimum_age_reached?(13, today: Date.new(2025, 2, 27))
+      assert record.minimum_age_reached?(13, today: Date.new(2025, 2, 28))
+      assert_not record.adult_for_nsfw?(minimum_age: 18, today: Date.new(2030, 2, 27))
+      assert record.adult_for_nsfw?(minimum_age: 18, today: Date.new(2030, 2, 28))
     end
   end
 
@@ -126,18 +153,18 @@ class HasBirthdateTest < ActiveSupport::TestCase
   end
 
   test "adult_for_nsfw? is false for calendar-invalid birthdate" do
-    each_birthdate_record("2000-02-30") do |record|
+    each_birthdate_record("2000-01-32") do |record|
       assert_not record.adult_for_nsfw?(minimum_age: 18, today: Date.new(2024, 5, 18))
     end
   end
 
-  test "nsfw_unlockable? requires present calendar-valid adult birthdate" do
+  test "nsfw_unlockable? uses canonical age birthdate for structurally valid adult birthdate" do
     each_birthdate_record("2000-02-03") do |record|
       assert_predicate record, :nsfw_unlockable?
     end
 
     each_birthdate_record("2000-02-30") do |record|
-      assert_not record.nsfw_unlockable?
+      assert_predicate record, :nsfw_unlockable?
     end
 
     each_birthdate_record(nil) do |record|

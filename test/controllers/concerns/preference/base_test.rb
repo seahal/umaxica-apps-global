@@ -723,8 +723,6 @@ module Preference
         end
       end.new(nil)
 
-      @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
-
       [AppPreference, ComPreference, OrgPreference].each do |klass|
         @controller.instance_variable_set(:@preferences, nil)
         @controller.instance_variable_set(:@preference_payload, nil)
@@ -734,11 +732,12 @@ module Preference
             Preference::Token.stub(:extract_public_id, "missing-public") do
               klass.stub(:includes, relation) do
                 @controller.define_singleton_method(:preference_class) { klass }
+                @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
 
-                assert_not @controller.send(:load_access_token_payload)
+                assert @controller.send(:load_access_token_payload)
                 assert_nil @controller.instance_variable_get(:@preferences)
-                assert_nil @controller.instance_variable_get(:@preference_payload)
-                assert_nil @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
+                assert_equal payload, @controller.instance_variable_get(:@preference_payload)
+                assert_equal "access-token", @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
               end
             end
           end
@@ -746,7 +745,7 @@ module Preference
       end
     end
 
-    test "load access token payload reads preference record through writing connection" do
+    test "bounded access token preference record loader reads through writing connection" do
       preference = app_preferences(:one)
       preference.update!(jti: "current-jti")
       payload = {
@@ -773,6 +772,7 @@ module Preference
               end
 
               assert @controller.send(:load_access_token_payload)
+              assert_equal preference, @controller.send(:load_access_token_preference_record!)
               assert_equal preference, @controller.instance_variable_get(:@preferences)
               assert_equal [:writing], roles
             end
@@ -804,7 +804,8 @@ module Preference
               AppPreference.stub(:includes, relation) do
                 @controller.define_singleton_method(:preference_class) { AppPreference }
 
-                assert_not @controller.send(:load_access_token_payload)
+                assert @controller.send(:load_access_token_payload)
+                assert_nil @controller.send(:load_access_token_preference_record!)
                 assert_nil @controller.instance_variable_get(:@preferences)
                 assert_nil @controller.instance_variable_get(:@preference_payload)
                 assert_nil @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
@@ -836,7 +837,8 @@ module Preference
             AppPreference.stub(:includes, relation) do
               @controller.define_singleton_method(:preference_class) { AppPreference }
 
-              assert_not @controller.send(:load_access_token_payload)
+              assert @controller.send(:load_access_token_payload)
+              assert_nil @controller.send(:load_access_token_preference_record!)
               assert_nil @controller.instance_variable_get(:@preferences)
               assert_nil @controller.instance_variable_get(:@preference_payload)
               assert_nil @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
@@ -869,6 +871,7 @@ module Preference
               @controller.define_singleton_method(:preference_class) { AppPreference }
 
               assert @controller.send(:load_access_token_payload)
+              assert_equal preference, @controller.send(:load_access_token_preference_record!)
               assert_equal preference, @controller.instance_variable_get(:@preferences)
             end
           end
@@ -888,12 +891,7 @@ module Preference
       assert_equal AppPreferenceStatus, @controller.send(:preference_status_class)
       assert_equal "app_preference_colortheme", @controller.send(:preference_colortheme_association)
 
-      @controller.instance_variable_set(:@preferences, Object.new)
-      association = Struct.new(:option_id).new(AppPreferenceThemeOption::DARK)
-      @controller.instance_variable_get(:@preferences).define_singleton_method(:app_preference_colortheme) {
-        association
-      }
-      @controller.define_singleton_method(:preference_payload_value) { |_| nil }
+      Actor.install_context!(preferences: Actor::Preference.new(theme: "dr"))
       @controller.send(:set_color_theme)
 
       assert_equal "dr", @controller.instance_variable_get(:@color_theme)
@@ -909,13 +907,13 @@ module Preference
       assert_equal "dr", @controller.instance_variable_get(:@color_theme)
     end
 
-    test "set color theme keeps explicit request parameter before actor preference" do
+    test "set color theme ignores explicit request parameter after actor overlay is resolved" do
       Actor.install_context!(preferences: Actor::Preference.new(theme: "dr"))
       @controller.test_params = { Preference::IoKeys::Params::CT => "li" }
 
       @controller.send(:set_color_theme)
 
-      assert_equal "li", @controller.instance_variable_get(:@color_theme)
+      assert_equal "dr", @controller.instance_variable_get(:@color_theme)
     end
 
     test "cookie banner endpoint resolves helper on expected host" do

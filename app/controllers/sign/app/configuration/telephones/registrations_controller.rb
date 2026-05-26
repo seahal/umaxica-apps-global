@@ -6,11 +6,13 @@ module Sign
     module Configuration
       module Telephones
         class RegistrationsController < ::Sign::App::PrivateController
-          AUTHENTICATION_MODE = :private
-
           include CloudflareTurnstile
+
           include Sign::TelephoneRegistrable
+
           include ::Verification::Client
+
+          AUTHENTICATION_MODE = :private
 
           before_action :authenticate_client!
 

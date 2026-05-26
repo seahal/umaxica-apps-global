@@ -20,7 +20,7 @@ module SignIn
       Sequence.new(current_payload || {})
     end
 
-    def start!(surface:, actor:, method:, state:, participant:, rt: nil, **refs)
+    def start!(surface:, actor:, method:, state:, participant:, pt: nil, **refs)
       surface = normalize_surface(surface)
       raise ArgumentError, "unsupported sign-in sequence surface" unless surface
       raise ArgumentError, "unsupported sign-in sequence state" unless Sequence::STATES.include?(state.to_s)
@@ -36,8 +36,8 @@ module SignIn
         "method" => method.to_s,
         "state" => state.to_s,
         "participant" => participant.to_s,
-        "safe_return_path" => rt.presence,
-        "rt" => rt.presence,
+        "safe_pt_path" => pt.presence,
+        "pt" => pt.presence,
         "expires_at" => TTL.from_now.iso8601,
         "terminal_state" => nil,
         "created_at" => now.iso8601,

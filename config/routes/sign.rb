@@ -40,6 +40,23 @@ scope module: :sign, as: :sign do
         end
       end
 
+      namespace :r18 do
+        resource :gate, only: %i(show create) do
+          get :blocked
+          get :stopped
+        end
+      end
+
+      if Rails.env.local?
+        # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
+        namespace :__dev, module: :dev, path: "__dev" do
+          namespace :r18 do
+            resource :open, only: %i(show create), controller: "open"
+            resource :private, only: %i(show create), controller: "private"
+          end
+        end
+      end
+
       # Edge API: token lifecycle management (check, DBSC binding, refresh)
       namespace :edge do
         namespace :v0 do
@@ -182,7 +199,7 @@ scope module: :sign, as: :sign do
 
       # OAuth
       namespace :oauth do
-        resource :authorization, only: :show
+        resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
         resource :jwks, only: :show
       end
@@ -203,6 +220,7 @@ scope module: :sign, as: :sign do
             post :verification
           end
         end
+        resource :emergency_key, only: :show
 
         namespace :mfa do
           resource :challenge, only: %i(show)
@@ -275,6 +293,13 @@ scope module: :sign, as: :sign do
 
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+        end
+      end
+
+      namespace :r18 do
+        resource :gate, only: %i(show create) do
+          get :blocked
+          get :stopped
         end
       end
 
@@ -387,7 +412,7 @@ scope module: :sign, as: :sign do
 
       # OAuth
       namespace :oauth do
-        resource :authorization, only: :show
+        resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
         resource :jwks, only: :show
       end
@@ -466,6 +491,13 @@ scope module: :sign, as: :sign do
           resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+        end
+      end
+
+      namespace :r18 do
+        resource :gate, only: %i(show create) do
+          get :blocked
+          get :stopped
         end
       end
 
@@ -584,7 +616,7 @@ scope module: :sign, as: :sign do
 
       # OAuth
       namespace :oauth do
-        resource :authorization, only: :show
+        resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
         resource :jwks, only: :show
       end

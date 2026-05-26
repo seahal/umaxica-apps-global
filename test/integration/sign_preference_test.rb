@@ -419,11 +419,8 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       delete public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
              params: { confirm_reset: "1" }
 
-      assert_redirected_to public_send(
-        "edit_sign_#{domain[:name]}_preference_reset_url",
-        default_state,
-      )
-      follow_redirect!
+      assert_response :see_other
+      assert_equal "../", response.location
 
       assert_equal I18n.t("apex." + domain[:name] + ".preference.resets.destroyed"), flash[:notice]
 
@@ -447,7 +444,8 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
         delete public_send("sign_#{domain[:name]}_preference_reset_url", state),
                params: { confirm_reset: "1" }
 
-        assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_reset_url", state)
+        assert_response :see_other
+        assert_equal "../", response.location
       end
 
       pref.reload
@@ -671,7 +669,8 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       delete public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
              params: { confirm_reset: "1" }
 
-      assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_reset_url", ri: "jp")
+      assert_response :see_other
+      assert_equal "../", response.location
 
       # Verify database changes; preference stays active after reset to defaults.
       pref.reload

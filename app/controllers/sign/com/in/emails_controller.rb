@@ -5,17 +5,21 @@ module Sign
   module Com
     module In
       class EmailsController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include ::CloudflareTurnstile
+
         include EmailValidation
+
         include Common::Redirect
+
         include Common::Otp
+
         include SessionLimitGate
 
+        AUTHENTICATION_MODE = :guest
+
         declare_authentication_mode! :guest, status: :bad_request,
-                    message: I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"),
-                    no_redirect: true
+                                             message: I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"),
+                                             no_redirect: true
 
         before_action :load_user_email, only: %i(edit update)
 
@@ -60,10 +64,10 @@ module Sign
           return render_session_limit_hard_reject if @session_limit_hard_reject
 
           record_sign_in_email_cooldown!(normalized_address)
-          preserve_redirect_parameter
+          preserve_pt
 
           flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
-          redirect_to(edit_sign_com_in_email_path(rt: peek_redirect_parameter, ri: params[:ri]))
+          redirect_to(edit_sign_com_in_email_path(pt: peek_pt, ri: params[:ri]))
         end
 
         def update
@@ -104,9 +108,9 @@ module Sign
           elsif result[:redirect_path]
             redirect_to(result[:redirect_path], notice: t("sign.app.in.mfa.required"))
           else
-            rt_param = retrieve_redirect_parameter
+            pt_param = retrieve_pt
             redirect_to_sign_in_sequence!(
-              rt: rt_param,
+              pt: pt_param,
               notice: t("sign.app.authentication.email.update.success"),
             )
           end
@@ -149,7 +153,7 @@ module Sign
 
             unless @user_email
               flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-              redirect_to(new_sign_com_in_email_path(rt: peek_redirect_parameter, ri: params[:ri]))
+              redirect_to(new_sign_com_in_email_path(pt: peek_pt, ri: params[:ri]))
               return
             end
             @otp_resend_state = Sign::In::OtpResendState.issue(kind: :email, target: @user_email.address)
@@ -161,7 +165,7 @@ module Sign
             )
           else
             flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-            redirect_to(new_sign_com_in_email_path(rt: peek_redirect_parameter, ri: params[:ri]))
+            redirect_to(new_sign_com_in_email_path(pt: peek_pt, ri: params[:ri]))
           end
         end
 
@@ -220,8 +224,8 @@ module Sign
 
             clear_otp(user_email)
             session[:user_email_authentication_id] = nil
-            rt = peek_redirect_parameter
-            result = establish_signed_in_session!(visitor, rt: rt, ri: params[:ri], auth_method: "email")
+            pt = peek_pt
+            result = establish_signed_in_session!(visitor, pt: pt, ri: params[:ri], auth_method: "email")
             sign_in_result = sign_in_result_from_session_result(result, actor: visitor)
 
             if sign_in_result.mfa_required?

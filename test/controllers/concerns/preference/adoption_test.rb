@@ -203,6 +203,18 @@ module Preference
       assert_equal AppPreferenceRegionOption::JP, @preference.app_preference_region.option_id
     end
 
+    test "sync_preferences! forces r18 stopper through canonical age calculation for underage resource" do
+      @user.update!(birthdate: "2012-02-29")
+      user_pref = create_user_preference!(@user)
+
+      travel_to Time.zone.local(2030, 2, 27, 12, 0, 0) do
+        @adoption.send(:sync_preferences!, user_pref)
+      end
+
+      assert_equal "enabled", @preference.reload.r18_display_stopper
+      assert_equal "enabled", user_pref.reload.r18_display_stopper
+    end
+
     test "adopt_preference_for! does not raise on error and logs event" do
       adoption = build_adoption_context(@preference)
       adoption.define_singleton_method(:adoptable_preference_class?) { raise StandardError, "boom" }

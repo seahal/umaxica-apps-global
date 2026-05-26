@@ -51,6 +51,10 @@ module ActorSupport
 
   alias set_current set_current_actor
 
+  def current_policy_user
+    Actor.authz.policy_user || safe_current_resource
+  end
+
   def _reset_current_state
     Actor.clear
   end
@@ -170,9 +174,25 @@ module ActorSupport
     return Actor::StepUp::NULL unless defined?(StepUp::Resolver)
     return Actor::StepUp::NULL unless respond_to?(:current_session_token, true)
 
-    StepUp::Resolver.call(token: current_session_token, scope: nil)
+    StepUp::Resolver.call(
+      token: current_session_token,
+      scope: resolved_current_step_up_scope,
+      required_aal: resolved_current_step_up_required_aal,
+    )
   rescue StandardError => e
     raise_actor_resolution_error!(:step_up, e)
+  end
+
+  def resolved_current_step_up_scope
+    return verification_scope if respond_to?(:verification_required?, true) && verification_required?
+
+    nil
+  end
+
+  def resolved_current_step_up_required_aal
+    return verification_required_aal if respond_to?(:verification_required_aal, true)
+
+    StepUp::Resolver::DEFAULT_REQUIRED_AAL
   end
 
   def raise_actor_resolution_error!(component, exception)
@@ -268,6 +288,7 @@ module ActorSupport
       motion: preference_record_value(preference_record, :motion),
       density: preference_record_value(preference_record, :density),
       items_per_page: preference_record_value(preference_record, :items_per_page),
+      r18_display_stopper: preference_record_value(preference_record, :r18_display_stopper),
       cookie: cookie,
     )
   end
@@ -280,7 +301,7 @@ module ActorSupport
 
     Actor::Preference.new(
       language: context[:lx] || preference.language,
-      region: context[:ri] || preference.region,
+      region: preference.region,
       timezone: context[:tz] || preference.timezone,
       theme: context[:ct] || preference.theme,
       currency: preference.currency,
@@ -289,26 +310,41 @@ module ActorSupport
       motion: preference.motion,
       density: preference.density,
       items_per_page: preference.items_per_page,
+      r18_display_stopper: preference.r18_display_stopper,
       cookie: preference.cookie,
       null: preference.null?,
     )
   end
 
   def preference_record_value(preference_record, name)
+    return preference_r18_display_stopper_value(preference_record) if name == :r18_display_stopper
+
     value = preference_record.public_send(name) if preference_record.respond_to?(name)
     value.presence || Actor::Preference::DEFAULTS.fetch(name)
   end
 
+  def preference_r18_display_stopper_value(preference_record)
+    association = "#{preference_record.class.name.underscore}_r18_display_stopper"
+    stopper = preference_record.public_send(association) if preference_record.respond_to?(association)
+    stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
+  end
+
   def set_current_observability
+    if respond_to?(:request, true) && request.respond_to?(:request_id) && request.request_id.present?
+      Actor.install_context!(trace_id: request.request_id)
+    end
     return unless defined?(OpenTelemetry::Trace)
 
     preference_cookie = Actor.preferences.cookie
-    return unless preference_cookie.performant?
+    analytics_allowed = preference_cookie.performant?
 
     span = OpenTelemetry::Trace.current_span
     context = span.context
     return unless context.valid?
 
-    Actor.install_context!(trace_id: context.hex_trace_id, span_id: context.hex_span_id)
+    Actor.install_context!(
+      trace_id: context.hex_trace_id,
+      span_id: analytics_allowed ? context.hex_span_id : nil,
+    )
   end
 end

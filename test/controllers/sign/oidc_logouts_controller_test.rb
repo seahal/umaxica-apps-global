@@ -4,15 +4,19 @@
 require "test_helper"
 
 class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+  end
+
   test "rejects logout without signed logout request" do
-    host! "id.app.localhost"
+    host! @host
 
     get "/oidc/logout",
         params: {
           client_id: "apex_app",
           ri: "jp",
         },
-        headers: browser_headers.merge("Host" => "id.app.localhost")
+        headers: browser_headers.merge("Host" => @host)
 
     assert_response :bad_request
     assert_equal "invalid_request", response.parsed_body["error"]
@@ -20,7 +24,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "rejects post logout redirect uri even with signed logout request" do
-    host! "id.app.localhost"
+    host! @host
 
     get "/oidc/logout",
         params: {
@@ -29,7 +33,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
           post_logout_redirect_uri: "https://evil.example/sign/out",
           ri: "jp",
         },
-        headers: browser_headers.merge("Host" => "id.app.localhost")
+        headers: browser_headers.merge("Host" => @host)
 
     assert_response :bad_request
     assert_equal "invalid_request", response.parsed_body["error"]
@@ -37,7 +41,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "signed logout request completes on sign side" do
-    host! "id.app.localhost"
+    host! @host
 
     get "/oidc/logout",
         params: {
@@ -45,19 +49,19 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
           logout_request: Oidc::LogoutRequest.issue(client_id: "apex_app", ri: "jp"),
           ri: "jp",
         },
-        headers: browser_headers.merge("Host" => "id.app.localhost")
+        headers: browser_headers.merge("Host" => @host)
 
     assert_response :see_other
     assert_redirected_to "/sign/out?ri=jp"
 
-    get "/sign/out", params: { ri: "jp" }, headers: browser_headers.merge("Host" => "id.app.localhost")
+    get "/sign/out", params: { ri: "jp" }, headers: browser_headers.merge("Host" => @host)
 
     assert_response :success
     assert_select "h1", I18n.t("sign.shared.sign_out.completed_title")
   end
 
   test "rejects client id mismatch with signed logout request" do
-    host! "id.app.localhost"
+    host! @host
 
     get "/oidc/logout",
         params: {
@@ -65,7 +69,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
           logout_request: Oidc::LogoutRequest.issue(client_id: "apex_app", ri: "jp"),
           ri: "jp",
         },
-        headers: browser_headers.merge("Host" => "id.app.localhost")
+        headers: browser_headers.merge("Host" => @host)
 
     assert_response :bad_request
     assert_equal "invalid_request", response.parsed_body["error"]
@@ -78,13 +82,13 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
   # a real MemoryStore for this assertion.
   test "rejects replay of an already-consumed signed logout request" do
     Oidc::LogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
-    host!("id.app.localhost")
+    host!(@host)
     token = Oidc::LogoutRequest.issue(client_id: "apex_app", ri: "jp")
 
     get(
       "/oidc/logout",
       params: { client_id: "apex_app", logout_request: token, ri: "jp" },
-      headers: browser_headers.merge("Host" => "id.app.localhost"),
+      headers: browser_headers.merge("Host" => @host),
     )
 
     assert_response :see_other
@@ -92,7 +96,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
     get(
       "/oidc/logout",
       params: { client_id: "apex_app", logout_request: token, ri: "jp" },
-      headers: browser_headers.merge("Host" => "id.app.localhost"),
+      headers: browser_headers.merge("Host" => @host),
     )
 
     assert_response :bad_request

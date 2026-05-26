@@ -60,7 +60,7 @@ module Preference::SignScreenActions
     return render_preference_update_response if request.format.json?
 
     redirect_to(
-      safe_return_to_path || preference_edit_url(:theme),
+      safe_pt_path || preference_edit_url(:theme),
       notice: preference_update_notice,
     )
   end
@@ -93,10 +93,10 @@ module Preference::SignScreenActions
     end
 
     reset_preference_to_defaults!
-    redirect_to(
-      preference_edit_url(:reset, preference_context_redirect_params.slice(:ri)),
-      notice: preference_reset_destroyed_notice,
-    )
+    flash[:notice] = preference_reset_destroyed_notice
+    response.set_header("Location", "../")
+    self.status = :see_other
+    self.response_body = ""
   end
 
   def edit_selectable_preference_screen(screen)

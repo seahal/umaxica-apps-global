@@ -6,9 +6,9 @@ module Sign
     module Preference
       module Region
         class TimezonesController < PreferencesBaseController
-          AUTHENTICATION_MODE = :open
-
           include ::Preference::SignScreenActions
+
+          AUTHENTICATION_MODE = :open
 
           before_action :ensure_preferences_record
 

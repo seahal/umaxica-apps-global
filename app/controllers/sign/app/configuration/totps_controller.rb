@@ -7,10 +7,11 @@ module Sign
   module App
     module Configuration
       class TotpsController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include ::CloudflareTurnstile
+
         include ::Verification::Client
+
+        AUTHENTICATION_MODE = :private
 
         MAX_TOTPS = 2
         before_action :authenticate_client!
@@ -160,22 +161,12 @@ module Sign
             last_step_up_at: Time.current,
             last_step_up_scope: verification_scope,
           )
-          create_audit_event!(ClientChronicleEvent::TOTP_ENABLED)
-        end
-
-        def create_audit_event!(event_id)
-          ChronicleRecord.connected_to(role: :writing) do
-            ClientChronicleEvent.find_or_create_by!(id: event_id)
-            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
-          end
-
-          ClientChronicle.create!(
-            actor_type: "Client",
-            actor_id: current_client.id,
-            event_id: event_id,
-            subject_id: current_client.id.to_s,
-            subject_type: "Client",
-            occurred_at: Time.current,
+          Identity::Audit.record!(
+            actor: current_client,
+            event_id: ClientChronicleEvent::TOTP_ENABLED,
+            action: "totp.enable",
+            ip_address: request.remote_ip,
+            user_agent: request.user_agent,
           )
         end
 

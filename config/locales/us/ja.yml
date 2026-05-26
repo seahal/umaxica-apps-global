@@ -441,6 +441,8 @@ ja:
             address_required: メールアドレスを入力してください。
         telephone:
           success: 電話番号が確認されました。
+          edit:
+            session_expired: セッションの有効期限が切れました。最初からやり直してください。
           update:
             success: 電話番号が確認されました。
         checkpoint:

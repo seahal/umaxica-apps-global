@@ -202,7 +202,7 @@ module Authentication
     # ======================================================================
 
     # Default session key for storing return-to parameter.
-    DEFAULT_RT_SESSION_KEY = Auth::IoKeys::Session::DEFAULT_RT
+    DEFAULT_PT_SESSION_KEY = Auth::IoKeys::Session::DEFAULT_PT
     CHECKPOINT_SESSION_KEY = Auth::IoKeys::Session::CHECKPOINT
     BULLETIN_SESSION_KEY = Auth::IoKeys::Session::BULLETIN
     BULLETIN_TIMEOUT = 2.hours
@@ -502,7 +502,7 @@ module Authentication
       return result unless restricted
 
       issue_session_limit_gate!(
-        return_to: session_limit_gate_return_to,
+        pt: session_limit_gate_pt,
         flow: session_limit_gate_flow,
       )
       result.merge(restricted: true, session_management_required: true)
@@ -620,10 +620,11 @@ module Authentication
           path: request&.fullpath,
           method: request&.request_method,
         )
-        rt = issue_authentication_return_target_token(request.fullpath)
-        redirect_to(
-          sign_in_url_with_return(rt),
-          allow_other_host: true,
+        pt = issue_authentication_path_target_token(request.fullpath)
+        url = sign_in_url_with_pt(pt)
+        redirect_to_xt_url(
+          url,
+          allowed_urls: [url],
           alert: I18n.t("errors.messages.login_required"),
         )
       end
@@ -650,8 +651,8 @@ module Authentication
       raise NotImplementedError, "resource_foreign_key must be implemented"
     end
 
-    def sign_in_url_with_return(return_to)
-      raise NotImplementedError, "sign_in_url_with_return must be implemented"
+    def sign_in_url_with_pt(return_to)
+      raise NotImplementedError, "sign_in_url_with_pt must be implemented"
     end
 
     # Authorization abstract methods - RBAC / ABAC placeholders
@@ -719,7 +720,8 @@ module Authentication
 
       def declare_authentication_mode!(mode, only: nil, except: nil, **options)
         mode = mode.to_sym
-        raise InvalidPolicyError, "Invalid authentication mode: #{mode.inspect}" unless authentication_modes.include?(mode)
+        raise InvalidPolicyError,
+              "Invalid authentication mode: #{mode.inspect}" unless authentication_modes.include?(mode)
 
         rule = {
           mode: mode,
@@ -1562,8 +1564,8 @@ module Authentication
     def handle_session_expiry(redirect_path, message_key)
       redirect_params = { notice: t(message_key) }
       # Preserve redirect parameter if present
-      default_rt_key = DEFAULT_RT_SESSION_KEY
-      redirect_params[Auth::IoKeys::Params::RT] = session[default_rt_key] if session[default_rt_key].present?
+      default_rt_key = DEFAULT_PT_SESSION_KEY
+      redirect_params[Auth::IoKeys::Params::PT] = session[default_rt_key] if session[default_rt_key].present?
       redirect_to(redirect_path, redirect_params)
     end
 
@@ -1592,17 +1594,17 @@ module Authentication
 
       case mode
       when :deny_all
-        enforce_deny_all!(options)
+        enforce_authentication_deny_all!(options)
       when :bare, :open
         access_policy_allows?(:public_strict?, context)
       when :private
         return true if access_policy_allows?(:auth_required?, context)
 
-        enforce_auth_required!(options)
+        enforce_authentication_private!(options)
       when :guest
         return true if access_policy_allows?(:guest_only?, context)
 
-        enforce_guest_only!(options)
+        enforce_authentication_guest!(options)
       else
         raise InvalidPolicyError, "Unexpected authentication mode: #{mode.inspect}"
       end
@@ -1686,19 +1688,19 @@ module Authentication
 
     # --- Behavior implementation (align with your auth stack) ---
 
-    def enforce_public_strict!(_options = {})
+    def enforce_authentication_open!(_options = {})
       # If you avoid touching current_user/current_resource here,
       # the safest default is to do nothing.
       true
     end
 
-    def enforce_deny_all!(_options = {})
+    def enforce_authentication_deny_all!(_options = {})
       raise MissingPolicyError,
             "Denied by default authentication mode for #{self.class.name}##{action_name}. " \
             "Declare a concrete authentication mode before exposing this endpoint."
     end
 
-    def enforce_auth_required!(options = {})
+    def enforce_authentication_private!(options = {})
       # Example: use Authentication::Base logged_in? / current_resource.
       return true if respond_to?(:logged_in?) && logged_in?
 
@@ -1710,7 +1712,7 @@ module Authentication
       end
     end
 
-    def enforce_guest_only!(options = {})
+    def enforce_authentication_guest!(options = {})
       # Guest-only policy: block logged-in users.
       return true unless respond_to?(:logged_in?) && logged_in?
 
@@ -1929,7 +1931,7 @@ module Authentication
       { status: :mfa_required }
     end
 
-    def set_pending_mfa!(resource:, primary:, return_to: nil, ri: nil, auth_method: nil)
+    def set_pending_mfa!(resource:, primary:, pt: nil, ri: nil, auth_method: nil)
       issued_at = Time.current.to_i
       expires_at = pending_mfa_ttl.from_now.to_i
       session[:pending_mfa] = {
@@ -1938,7 +1940,7 @@ module Authentication
         "resource_type" => resource_type,
         "primary" => primary.to_s,
         "auth_method" => auth_method.to_s.presence || primary.to_s,
-        "return_to" => return_to.presence,
+        "pt" => pt.presence,
         "ri" => ri.to_s.presence,
         "issued_at" => issued_at,
         "expires_at" => expires_at,
@@ -2008,13 +2010,13 @@ module Authentication
     end
 
     def finalize_mfa_login!(user)
-      return_to = pending_mfa&.dig(:return_to)
+      pt = pending_mfa&.dig(:pt)
       cycle = pending_mfa_sign_in_cycle_for(user)
       clear_pending_mfa!
 
       result = pending_sign_in_result_after_primary!(
         user,
-        rt: return_to,
+        pt: pt,
         record_login_audit: true,
         token_kind_id: "BROWSER_WEB",
         audit_context: { auth_method: pending_mfa&.dig(:auth_method).presence || "mfa" },
@@ -2027,7 +2029,7 @@ module Authentication
       elsif result[:session_management_required]
         { status: :restricted, redirect_path: session_management_path }
       elsif result[:status] == :success
-        { status: :success, redirect_path: sign_in_sequence_redirect_path(rt: return_to) }
+        { status: :success, redirect_path: sign_in_sequence_redirect_path(pt: pt) }
       else
         result
       end
@@ -2061,7 +2063,7 @@ module Authentication
       end
     end
 
-    def session_limit_gate_return_to
+    def session_limit_gate_pt
       request&.fullpath.presence || request&.path.presence || "/"
     rescue StandardError
       "/"
@@ -2079,15 +2081,15 @@ module Authentication
     # delegates to log_in, which performs the session-fixation reset_session.
     # Paired vocabulary with logout_current_session! for the privilege
     # transition points.
-    def establish_signed_in_session!(resource, rt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",
+    def establish_signed_in_session!(resource, pt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",
                                      record_login_audit: true, audit_context: {}, bootstrap_actor: false)
       auth_method = auth_method.to_s
-      cycle = start_sign_in_cycle_for!(resource, rt: rt)
+      cycle = start_sign_in_cycle_for!(resource, pt: pt)
       login_audit_context = { auth_method: auth_method }.merge(audit_context)
       if mfa_bypassed_for_auth_method?(auth_method) || !mfa_required_for?(resource)
         result = pending_sign_in_result_after_primary!(
           resource,
-          rt: rt,
+          pt: pt,
           record_login_audit: record_login_audit,
           token_kind_id: token_kind_id,
           audit_context: login_audit_context,
@@ -2097,22 +2099,22 @@ module Authentication
         return result
       end
 
-      return_to = resolve_mfa_return_to(rt)
+      resolved_pt = resolve_mfa_pt(pt)
       cycle.advance_sign_in_to_mfa!
       sign_in_cycle_locator_for(actor: resource).issue!(cycle)
       set_pending_mfa!(
-        resource: resource, primary: auth_method, return_to: return_to, ri: ri,
+        resource: resource, primary: auth_method, pt: resolved_pt, ri: ri,
         auth_method: auth_method,
       )
 
       {
         status: :mfa_required,
         redirect_path: mfa_entry_path(ri: ri),
-        return_to: return_to,
+        pt: resolved_pt,
       }
     end
 
-    def pending_sign_in_result_after_primary!(resource, rt:, record_login_audit:, token_kind_id:,
+    def pending_sign_in_result_after_primary!(resource, pt:, record_login_audit:, token_kind_id:,
                                               audit_context:, bootstrap_actor:)
       _ = [record_login_audit, token_kind_id, audit_context]
       return { status: :login_forbidden } unless resource.login_allowed?
@@ -2124,13 +2126,13 @@ module Authentication
       if session_limit_state == :issue_restricted
         store_pending_login_resource(resource)
         issue_session_limit_gate!(
-          return_to: session_limit_gate_return_to,
+          pt: session_limit_gate_pt,
           flow: session_limit_gate_flow,
         )
         return { status: :success, session_management_required: true, redirect_path: session_management_path }
       end
 
-      { status: :success, redirect_path: sign_in_sequence_redirect_path(rt: rt) }
+      { status: :success, redirect_path: sign_in_sequence_redirect_path(pt: pt) }
     end
 
     def check_login_cooldown!(resource)
@@ -2482,13 +2484,13 @@ module Authentication
       %w(passkey social google apple).include?(auth_method.to_s)
     end
 
-    def resolve_mfa_return_to(raw_value)
+    def resolve_mfa_pt(raw_value)
       return nil if raw_value.blank?
 
       decoded = decode_base64_urlsafe(raw_value)
       candidate = decoded.presence || raw_value
 
-      safe_return_path(candidate)
+      safe_internal_path(candidate)
     end
 
     def decode_base64_urlsafe(value)
@@ -2516,16 +2518,20 @@ module Authentication
 
     def handle_auth_required_html(options)
       path =
-        if respond_to?(:sign_in_url_with_return, true)
-          rt = issue_authentication_return_target_token(request.fullpath)
-          sign_in_url_with_return(rt)
+        if respond_to?(:sign_in_url_with_pt, true)
+          pt = issue_authentication_path_target_token(request.fullpath)
+          sign_in_url_with_pt(pt)
         elsif main_app.respond_to?(:sign_in_path)
           main_app.sign_in_path
         else
           "/sign/in"
         end
       message = options[:message] || I18n.t("errors.messages.login_required")
-      redirect_to(path, allow_other_host: true, alert: message)
+      if path.match?(%r{\Ahttps?://}i)
+        redirect_to_xt_url(path, allowed_urls: [path], alert: message)
+      else
+        redirect_to(path, allow_other_host: false, alert: message)
+      end
     end
 
     def handle_guest_only_json(options)

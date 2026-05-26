@@ -4,9 +4,9 @@
 module Sign
   module Com
     class VerificationsController < Verification::BaseController
-      AUTHENTICATION_MODE = :private
-
       include Sign::VerificationEntry
+
+      AUTHENTICATION_MODE = :private
 
       private
 

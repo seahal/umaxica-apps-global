@@ -10,7 +10,8 @@ module Apex
         skip_before_action :set_region, raise: false
 
         def show
-          redirect_to(initiate_oidc_session!, allow_other_host: true)
+          url = initiate_oidc_session!
+          redirect_to_xt_url(url, allowed_urls: [url])
         end
       end
     end

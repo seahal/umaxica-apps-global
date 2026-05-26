@@ -80,12 +80,13 @@ module Cycle
       )
     end
 
-    def advance_sign_in_to_session_issuance!(now: Time.current)
+    def advance_sign_in_to_session_issuance!(now: Time.current, changes: {})
       transition_sign_in_to!(
         "SESSION_ISSUANCE_PENDING",
         step: "session_issuance",
         allowed_from: ["SELECTOR_PENDING"],
         now: now,
+        changes: changes,
       )
     end
 
@@ -177,11 +178,11 @@ module Cycle
 
     private
 
-    def transition_sign_in_to!(next_status_name, step:, allowed_from:, now:)
+    def transition_sign_in_to!(next_status_name, step:, allowed_from:, now:, changes: {})
       transition_cycle_to!(
         status_id_for(next_status_name),
         allowed_from: status_ids_for(*allowed_from),
-        changes: { step: step },
+        changes: changes.merge(step: step),
         now: now,
       )
     end

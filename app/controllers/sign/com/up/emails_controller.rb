@@ -7,11 +7,13 @@ module Sign
   module Com
     module Up
       class EmailsController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include ::CloudflareTurnstile
+
         include Common::Redirect
+
         include Common::Otp
+
+        AUTHENTICATION_MODE = :guest
 
         SESSION_KEY = :sign_com_up_email_flow_state
         EXISTING_EMAIL_SESSION_KEY = :sign_com_up_existing_visitor_email_id
@@ -110,7 +112,7 @@ module Sign
           bind_sign_up_cycle_to_email!(@user_email) unless existing_signup_email_flow?
           progress_email_flow!(:create)
           flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
-          redirect_to(edit_sign_com_up_email_path(ri: params[:ri], rt: sanitized_rt_param))
+          redirect_to(edit_sign_com_up_email_path(ri: params[:ri], pt: sanitized_rt_param))
         end
 
         def update
@@ -131,7 +133,7 @@ module Sign
           redirect_to(
             sign_com_up_guardrail_path(
               ri: params[:ri],
-              rt: params[:rt].presence,
+              pt: params[:pt].presence,
             ),
             notice: t("sign.app.registration.email.update.success"),
           )
@@ -361,7 +363,7 @@ module Sign
         end
 
         def sanitized_rt_param
-          safe_encoded_rt(redirect_parameter_value)
+          signed_pt_token(path_target_value)
         end
 
         # Derives a per-address rate-limit bucket. Uses the same SHA-256
@@ -414,7 +416,7 @@ module Sign
               issued_at: Time.current,
               expires_at: VisitorSignUpCycle.default_ttl.from_now,
               entry_method: "email",
-              return_to: sanitized_return_to,
+              pt: sanitized_return_to,
             ),
           )
         end
@@ -452,7 +454,7 @@ module Sign
         end
 
         def sanitized_return_to
-          return_path_from_signed_rt(safe_encoded_rt(params[:rt].presence))
+          path_from_signed_pt(signed_pt_token(params[:pt].presence))
         end
       end
     end

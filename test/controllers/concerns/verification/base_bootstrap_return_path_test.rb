@@ -31,7 +31,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
 
         def request
           Request.new(
-            parameters: { "rt" => rt_param.to_s },
+            parameters: { "pt" => rt_param.to_s },
             host: "id.app.localhost",
             fullpath: "/configuration/passkeys",
             request_id: "req-1",
@@ -53,7 +53,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
     end
   end
 
-  test "returns default when rt is missing" do
+  test "returns default when pt is missing" do
     h = Sign::App::BootstrapHarness.new
     h.rt_param = nil
     h.session_token = TokenStub.new("nonce-1")
@@ -103,7 +103,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
     assert_equal "/default", h.send(:bootstrap_return_path, "/default")
   end
 
-  test "rejects legacy Base64 path when rt is not a signed token" do
+  test "rejects legacy Base64 path when pt is not a signed token" do
     legacy = Base64.urlsafe_encode64("/configuration/passkeys/legacy")
     h = Sign::App::BootstrapHarness.new
     h.rt_param = legacy
@@ -121,7 +121,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
     assert_equal "/default", h.send(:bootstrap_return_path, "/default")
   end
 
-  test "returns default when rt cannot be decoded by either path" do
+  test "returns default when pt cannot be decoded by either path" do
     h = Sign::App::BootstrapHarness.new
     h.rt_param = "not-base64!?!?garbage"
     h.session_token = TokenStub.new("nonce-1")
@@ -188,7 +188,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
 
   def return_target_token_harness
     @return_target_token_harness ||= Class.new do
-      include ReturnTargets::SignedTokenSupport
+      include ::Redirects::SignedTargetSupport
 
       def issue(return_to:, flow:, surface:, session_nonce:, expires_in:)
         path = signed_target_internal_path(return_to)

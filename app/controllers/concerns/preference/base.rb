@@ -527,11 +527,7 @@ module Preference
     end
 
     def set_color_theme
-      theme = normalize_colortheme(params[Preference::IoKeys::Params::CT].presence)
-      theme ||= normalize_colortheme(actor_preference_theme)
-      theme ||= normalize_colortheme(preference_payload_value("ct"))
-      theme ||= normalize_colortheme(cookies[THEME_COOKIE_KEY])
-      theme ||= preference_record_theme
+      theme = normalize_colortheme(actor_preference_theme)
       theme ||= "sy"
 
       write_preference_cookie(THEME_COOKIE_KEY, theme)
@@ -729,6 +725,9 @@ module Preference
     end
 
     def ensure_preferences_record
+      load_access_token_preference_record!
+      return @preferences if @preferences.present?
+
       load_preference_record_from_refresh_token!(create_if_missing: true)
     end
 
@@ -1028,7 +1027,7 @@ module Preference
 
     def preference_payload_option_ids(preference, association_prefix)
       %i(language region timezone theme currency date_format time_format motion density
-         items_per_page).index_with do |type|
+         items_per_page r18_display_stopper).index_with do |type|
         preference.public_send("#{association_prefix}_#{type}")&.option_id
       end
     end
@@ -1041,6 +1040,11 @@ module Preference
         "mo" => option_id_to_preference_value(option_ids[:motion], option_prefix, :motion) || "standard",
         "dn" => option_id_to_preference_value(option_ids[:density], option_prefix, :density) || "standard",
         "ipp" => option_id_to_preference_value(option_ids[:items_per_page], option_prefix, :items_per_page) || "20",
+        "r18s" => option_id_to_preference_value(
+          option_ids[:r18_display_stopper],
+          option_prefix,
+          :r18_display_stopper,
+        ) || "disabled",
       }
     end
 

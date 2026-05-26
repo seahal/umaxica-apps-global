@@ -97,7 +97,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
     result = controller.send(
       :establish_signed_in_session!,
       user,
-      rt: nil,
+      pt: nil,
       ri: "jp",
       auth_method: "secret",
     )
@@ -121,7 +121,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
     controller.send(
       :establish_signed_in_session!,
       user,
-      rt: nil,
+      pt: nil,
       ri: "jp",
       auth_method: "social",
       audit_context: { auth_method: "oauth", provider: "google" },
@@ -173,7 +173,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
           "X-TEST-CURRENT-USER"
         end
 
-        define_method(:sign_in_url_with_return) do |_rt|
+        define_method(:sign_in_url_with_pt) do |_rt|
           "/sign/in"
         end
 

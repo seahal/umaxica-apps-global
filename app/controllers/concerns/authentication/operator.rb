@@ -65,9 +65,9 @@ module Authentication
       :staff_id
     end
 
-    def sign_in_url_with_return(return_to)
+    def sign_in_url_with_pt(return_to)
       new_sign_org_in_url(
-        rt: return_to,
+        pt: return_to,
         host: sign_org_redirect_host,
         protocol: request.protocol,
       )

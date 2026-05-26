@@ -21,16 +21,17 @@ module Oidc
         path: request&.fullpath,
         method: request&.request_method,
       )
-      redirect_to(sign_in_url_with_return(encoded_return_to(request.original_url)), allow_other_host: true)
+      url = sign_in_url_with_pt(encoded_pt(request.original_url))
+      redirect_to_xt_url(url, allowed_urls: [url])
     end
 
-    def sign_in_url_with_return(return_to)
-      initiate_oidc_session!(return_to: decode_return_to(return_to))
+    def sign_in_url_with_pt(pt)
+      initiate_oidc_session!(pt: decode_pt(pt))
     end
 
     private
 
-    def initiate_oidc_session!(return_to: request.original_url, screen_hint: nil)
+    def initiate_oidc_session!(pt: request.original_url, screen_hint: nil)
       verifier = SecureRandom.urlsafe_base64(48)
       challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
       state = SecureRandom.urlsafe_base64(32)
@@ -39,7 +40,7 @@ module Oidc
       session[:oidc_code_verifier] = verifier
       session[:oidc_state] = state
       session[:oidc_nonce] = nonce
-      session[:oidc_return_to] = safe_return_to(return_to)
+      session[:oidc_pt] = safe_oidc_pt(pt)
 
       oidc_authorization_url(screen_hint: screen_hint, code_challenge: challenge, state: state, nonce: nonce)
     end
@@ -84,17 +85,17 @@ module Oidc
       [80, 443].include?(request.port) ? nil : request.port
     end
 
-    def encoded_return_to(return_to)
-      Base64.urlsafe_encode64(return_to.to_s)
+    def encoded_pt(pt)
+      Base64.urlsafe_encode64(pt.to_s)
     end
 
-    def decode_return_to(return_to)
-      Base64.urlsafe_decode64(return_to.to_s)
+    def decode_pt(pt)
+      Base64.urlsafe_decode64(pt.to_s)
     rescue ArgumentError
       "/"
     end
 
-    # Tighten the OIDC return_to to a same-host internal path.
+    # Tighten the OIDC pt to a same-host internal path.
     #
     # Mirrors the shape of Common::Redirect#safe_internal_path (path?query
     # only, no scheme / host / userinfo / control chars). Inlined here instead
@@ -102,8 +103,8 @@ module Oidc
     # controllers that already mix in Common::Redirect via other paths, and we
     # want this validator to be self-contained while the broader unification
     # is planned separately. Future work: share the helper.
-    def safe_return_to(return_to)
-      target = return_to.to_s
+    def safe_oidc_pt(pt)
+      target = pt.to_s
       return "/" if target.blank?
       return "/" if target.match?(/[[:cntrl:]]/)
 

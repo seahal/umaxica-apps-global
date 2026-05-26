@@ -13,7 +13,7 @@
   <%= form_with url: sign_com_verification_passkey_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
     <% options_json = @passkey_request_options ? json_escape(@passkey_request_options.to_json) : "" %>
     <%= f.hidden_field :scope, value: params.dig(:verification, :scope).presence || params[:scope], name: "verification[scope]" %>
-    <%= f.hidden_field :return_to, value: params.dig(:verification, :return_to).presence || params[:return_to], name: "verification[return_to]" %>
+    <%= f.hidden_field :pt, value: params.dig(:verification, :pt).presence || params[:pt], name: "verification[pt]" %>
     <div
       data-controller="step_up-passkey"
       data-step_up-passkey-options-value="<%= options_json %>"
@@ -36,7 +36,7 @@
                 sign_com_verification_path(
                   ri: params[:ri],
                   scope: params.dig(:verification, :scope).presence || params[:scope],
-                  return_to: params.dig(:verification, :return_to).presence || params[:return_to]
+                  pt: params.dig(:verification, :pt).presence || params[:pt]
                 ) %>
   </div>
 </div>

@@ -23,6 +23,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     assert_predicate token.reload, :revoked?
     assert_not token.currently_usable?
     cycle = ClientSignOutCycle.recent_first.find_by!(token: token)
+
     assert_predicate cycle, :sign_out_completed?
     assert_equal ClientSignOutCycle.kind_id_for("IDP_SIGN_OUT"), cycle.kind_id
     assert_equal user.id, cycle.principal_id

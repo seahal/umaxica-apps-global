@@ -50,20 +50,20 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_operator session[:sign_in_checkpoint]["issued_at"], :>, previous_issued_at
   end
 
-  test "destroy consumes bulletin and continues to dashboard with rt" do
+  test "destroy consumes bulletin and continues to dashboard with pt" do
     start_checkpoint_sequence
-    rt = Base64.urlsafe_encode64("/configuration")
+    pt = Base64.urlsafe_encode64("/configuration")
 
-    delete sign_org_in_checkpoint_url(ri: "jp", rt: rt),
+    delete sign_org_in_checkpoint_url(ri: "jp", pt: pt),
            headers: as_staff_headers(@staff, host: @host).merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
     assert_nil session[:sign_in_checkpoint]
-    assert_redirected_to sign_org_dashboard_path(ri: "jp", rt: rt)
+    assert_redirected_to sign_org_dashboard_path(ri: "jp", pt: pt)
   end
 
-  test "destroy without rt redirects to default" do
+  test "destroy without pt redirects to default" do
     start_checkpoint_sequence
 
     delete sign_org_in_checkpoint_url(ri: "jp"),
@@ -94,14 +94,14 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
 
   test "destroy still redirects when expired" do
     start_checkpoint_sequence
-    rt = Base64.urlsafe_encode64("/configuration")
+    pt = Base64.urlsafe_encode64("/configuration")
 
-    delete sign_org_in_checkpoint_url(ri: "jp", rt: rt),
+    delete sign_org_in_checkpoint_url(ri: "jp", pt: pt),
            headers: as_staff_headers(@staff, host: @host).merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: 2.hours.ago.to_i - 1, state: "updated"),
            )
 
-    assert_redirected_to sign_org_dashboard_path(ri: "jp", rt: rt)
+    assert_redirected_to sign_org_dashboard_path(ri: "jp", pt: pt)
   end
 
   private
@@ -115,7 +115,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
       method: :passkey,
       state: "CHECKPOINT_PENDING",
       participant: :checkpoint,
-      rt: nil,
+      pt: nil,
     )
   end
 

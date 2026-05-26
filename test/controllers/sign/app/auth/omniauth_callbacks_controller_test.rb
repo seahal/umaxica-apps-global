@@ -57,12 +57,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:new_sign_app_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
     controller.define_singleton_method(:new_sign_app_up_path) { |ri: nil| "/sign/up/new#{ri ? "?ri=#{ri}" : ""}" }
     controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, rt: nil|
-      "/dashboard?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+      "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_checkpoint_path) do |ri: nil, rt: nil|
-      "/sign/in/checkpoint?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    controller.define_singleton_method(:sign_app_in_checkpoint_path) do |ri: nil, pt: nil|
+      "/sign/in/checkpoint?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     end
     controller.define_singleton_method(:social_auth_success_redirect_path) { "/configuration" }
     controller.define_singleton_method(:issue_bulletin!) { @issue_bulletin_for_test }
@@ -178,8 +178,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, rt: nil|
-      "/dashboard?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+      "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:establish_signed_in_session!) do |*args, **kwargs|
       @complete_sign_in_args_for_test = args
@@ -189,10 +189,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     user = Client.create!(status_id: ClientStatus::NOTHING)
     return_to = "/after-social"
-    controller.send(:handle_login_intent, user, "Google", true, rt: return_to)
+    controller.send(:handle_login_intent, user, "Google", true, pt: return_to)
 
     kwargs = controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)
-    assert_equal return_to, kwargs[:rt]
+
+    assert_equal return_to, kwargs[:pt]
     assert_equal "social", kwargs[:auth_method]
     assert_equal({ auth_method: "social", provider: "google" }, kwargs[:audit_context])
     assert_match "/dashboard", redirects.last.first.first
@@ -266,8 +267,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:sign_app_up_guardrail_path) { |ri: nil, rt: nil|
-      "/sign/up/guardrail?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    controller.define_singleton_method(:sign_app_up_guardrail_path) { |ri: nil, pt: nil|
+      "/sign/up/guardrail?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_up_cycle_locator) { locator }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
@@ -279,11 +280,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       "Google",
       identity,
       existing_account: false,
-      rt: "encoded-rt",
+      pt: "encoded-pt",
       entry: "sign_up",
     )
 
-    assert_match "/sign/up/guardrail?ri=jp&rt=encoded-rt", redirects.last.first.first
+    assert_match "/sign/up/guardrail?ri=jp&pt=encoded-pt", redirects.last.first.first
     assert_equal user.id, cycle.reload.principal_id
     assert_equal "social_identity", cycle.pending_contact_type
     assert_equal identity.id, cycle.pending_contact_id
@@ -307,8 +308,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, rt: nil|
-      "/dashboard?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+      "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_app_up_guardrail_path) {
       raise StandardError, "should not continue sign up"
@@ -336,12 +337,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       "Google",
       identity,
       existing_account: true,
-      rt: "encoded-rt",
+      pt: "encoded-pt",
       entry: "sign_up",
     )
 
     assert_equal [user], controller.instance_variable_get(:@complete_sign_in_args_for_test)
-    assert_equal "encoded-rt", controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)[:rt]
+    assert_equal "encoded-pt", controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)[:pt]
     assert_match "/dashboard?ri=jp", redirects.last.first.first
   end
 

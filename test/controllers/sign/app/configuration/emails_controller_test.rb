@@ -72,7 +72,7 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_email", query["scope"]
-    assert_predicate query["rt"], :present?
+    assert_predicate query["pt"], :present?
   end
 
   test "edit requires step up when verified email exists" do
@@ -97,7 +97,7 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_email", query["scope"]
-    assert_predicate query["rt"], :present?
+    assert_predicate query["pt"], :present?
   end
 
   test "index shows empty state and registration link when verified email does not exist" do

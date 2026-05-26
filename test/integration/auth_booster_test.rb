@@ -32,8 +32,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
       :user_id
     end
 
-    def sign_in_url_with_return(return_to)
-      "/login?rt=#{return_to}"
+    def sign_in_url_with_pt(return_to)
+      "/login?pt=#{return_to}"
     end
 
     def sign_app_edge_v0_token_dbsc_path
@@ -214,8 +214,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_nested_query(uri.query)
 
     assert_equal "/login", uri.path
-    assert_predicate query["rt"], :present?
-    assert_match(/--/, query["rt"])
+    assert_predicate query["pt"], :present?
+    assert_match(/--/, query["pt"])
   end
 
   test "check auth allows authenticated" do

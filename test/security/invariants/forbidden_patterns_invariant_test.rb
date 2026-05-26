@@ -46,66 +46,9 @@ module Security
         },
         {
           pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/sign/app/authorizes_controller.rb",
-          line: /redirect_to\(result\.redirect_url, allow_other_host: true\)/,
-          reason: "OIDC authorization redirects only to registry-validated client redirect URLs.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/sign/com/authorizes_controller.rb",
-          line: /redirect_to\(result\.redirect_url, allow_other_host: true\)/,
-          reason: "OIDC authorization redirects only to registry-validated client redirect URLs.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/sign/org/authorizes_controller.rb",
-          line: /redirect_to\(result\.redirect_url, allow_other_host: true\)/,
-          reason: "OIDC authorization redirects only to registry-validated client redirect URLs.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/apex/app/sso/authorizations_controller.rb",
-          line: /redirect_to\(initiate_oidc_session!, allow_other_host: true\)/,
-          reason: "SSO initiation helper owns destination validation for the app surface.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/apex/com/sso/authorizations_controller.rb",
-          line: /redirect_to\(initiate_oidc_session!, allow_other_host: true\)/,
-          reason: "SSO initiation helper owns destination validation for the com surface.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/apex/org/sso/authorizations_controller.rb",
-          line: /redirect_to\(initiate_oidc_session!, allow_other_host: true\)/,
-          reason: "SSO initiation helper owns destination validation for the org surface.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/concerns/oidc/rp_logout.rb",
-          line: /redirect_to\(oidc_logout_url, allow_other_host: true\)/,
-          reason: "RP logout URL is produced by OIDC logout request handling, not raw params.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/concerns/oidc/sso_initiator.rb",
-          line: Regexp.new(
-            'redirect_to\(sign_in_url_with_return\(encoded_return_to\(request\.original_url\)\), ' \
-            'allow_other_host: true\)',
-          ),
-          reason: "Cross-surface sign-in redirect uses encoded same-request return URL through SSO initiator.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/concerns/authentication/base.rb",
-          line: /allow_other_host: true/,
-          reason: "Authentication base uses safe_redirect_to and vetted redirect helpers; new uses need review.",
-        },
-        {
-          pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/concerns/jump/to_redirector.rb",
-          line: /redirect_to\(destination_url, allow_other_host: true\)/,
-          reason: "Jump redirector is the reviewed external redirect boundary.",
+          path: "app/controllers/concerns/common/redirect.rb",
+          line: /redirect_to\(result\.value, allow_other_host: true/,
+          reason: "Only the xt redirect facade may enable cross-host redirects after resolver validation.",
         },
       ].freeze
 

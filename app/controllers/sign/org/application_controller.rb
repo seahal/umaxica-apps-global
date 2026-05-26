@@ -4,22 +4,33 @@
 module Sign
   module Org
     class ApplicationController < ActionController::Base
-      AUTHENTICATION_MODE = :deny_all
-
       include ::RateLimit
+
       include ::Session
+
       include ::Preference::Global
+
       include ::Preference::Adoption
+
       include ::Authentication::Operator
+
       include ::Authentication::CredentialInventoryReader
+
       include ::Authorization::Operator
+
       include ::Verification::Operator
+
       include ActionPolicy::Controller
+
       include ::RestrictedSessionGuard
+
       include ::ActorSupport
+
       include ::Finisher
 
-      authorize :user, through: :current_operator
+      AUTHENTICATION_MODE = :deny_all
+
+      authorize :user, through: :current_policy_user
 
       allow_browser versions: :modern
 

@@ -40,7 +40,8 @@ module Sign
                  params: { confirm_reset: "1" },
                  headers: as_staff_headers(@staff, host: @host)
 
-          assert_redirected_to edit_sign_org_preference_reset_path
+          assert_response :see_other
+          assert_equal "../", response.location
 
           @staff.staff_preference.reload
 

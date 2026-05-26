@@ -49,6 +49,19 @@ scope module: :apex, as: :apex do
       namespace :auth do
         resource :callback, only: :show
       end
+      if Rails.env.local?
+        # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
+        namespace :__dev, module: :dev, path: "__dev" do
+          namespace :r18 do
+            resource :gate, only: %i(show create) do
+              get :blocked
+              get :stopped
+            end
+            resource :open, only: %i(show create), controller: "open"
+            resource :private, only: %i(show create), controller: "private"
+          end
+        end
+      end
       namespace :sso do
         resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create

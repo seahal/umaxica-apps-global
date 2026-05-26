@@ -6,10 +6,10 @@ module Sign
     extend ActiveSupport::Concern
 
     def show
-      return_to_param = params[:return_to].presence || params[:rt].presence
+      pt_param = params[:pt].presence
 
-      if params[:scope].present? && return_to_param.present?
-        start_step_up_session!(scope: params[:scope], return_to_param: return_to_param)
+      if params[:scope].present? && pt_param.present?
+        start_step_up_session!(scope: params[:scope], pt_param: pt_param)
       end
 
       if current_step_up_session.present?

@@ -1,0 +1,65 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class Identity::OneTimeRevealTest < ActiveSupport::TestCase
+  fixtures :clients
+
+  setup do
+    @cache = ActiveSupport::Cache::MemoryStore.new
+  end
+
+  test "reveals value once for matching actor session and purpose" do
+    actor = clients(:one)
+    Rails.stub(:cache, @cache) do
+      issued = Identity::OneTimeReveal.issue!(
+        actor: actor,
+        session_nonce: "session-1",
+        value: "secret-value",
+        purpose: "test.reveal",
+        metadata: { source: "test" },
+      )
+
+      reveal = Identity::OneTimeReveal.consume!(
+        actor: actor,
+        session_nonce: "session-1",
+        token: issued.token,
+        purpose: "test.reveal",
+      )
+
+      assert_equal "secret-value", reveal.value
+      assert_equal "test", reveal.metadata["source"]
+
+      second_reveal = Identity::OneTimeReveal.consume!(
+        actor: actor,
+        session_nonce: "session-1",
+        token: issued.token,
+        purpose: "test.reveal",
+      )
+
+      assert_nil second_reveal
+    end
+  end
+
+  test "rejects mismatched session" do
+    actor = clients(:one)
+    Rails.stub(:cache, @cache) do
+      issued = Identity::OneTimeReveal.issue!(
+        actor: actor,
+        session_nonce: "session-1",
+        value: "secret-value",
+        purpose: "test.reveal",
+      )
+
+      reveal = Identity::OneTimeReveal.consume!(
+        actor: actor,
+        session_nonce: "session-2",
+        token: issued.token,
+        purpose: "test.reveal",
+      )
+
+      assert_nil reveal
+    end
+  end
+end

@@ -5,10 +5,11 @@ module Sign
   module App
     module Configuration
       class EmailsController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include CloudflareTurnstile
+
         include ::Verification::Client
+
+        AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!
 

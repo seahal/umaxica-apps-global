@@ -17,7 +17,7 @@ module Sign
     end
 
     def render_passkey_success(result, sign_in_result:)
-      rt = retrieve_redirect_parameter_for_checkpoint if respond_to?(:retrieve_redirect_parameter_for_checkpoint, true)
+      pt = retrieve_pt_for_checkpoint if respond_to?(:retrieve_pt_for_checkpoint, true)
       render json: {
         status: "ok",
         access_token: result[:access_token],
@@ -26,7 +26,7 @@ module Sign
         # It may be shorter than the default access TTL when the backing token
         # has an earlier revocation boundary.
         expires_in: result[:expires_in],
-        redirect_url: sign_in_sequence_redirect_path(rt: rt, default_path: passkey_default_redirect_url),
+        redirect_url: sign_in_sequence_redirect_path(pt: pt, default_path: passkey_default_redirect_url),
         dbsc: result[:dbsc],
       }, status: :ok
     end

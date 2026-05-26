@@ -85,7 +85,7 @@ module SignIn
       assert_predicate cycle.reload, :sign_in_selector_pending?
     end
 
-    test "return participant consumes safe return path and completes cycle" do
+    test "legacy return participant consumes safe return path and completes cycle" do
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "/settings?tab=sessions")
 
@@ -98,7 +98,7 @@ module SignIn
       assert_nil cycle.return_to
     end
 
-    test "return participant discards unsafe return path and completes cycle with default" do
+    test "legacy return participant discards unsafe return path and completes cycle with default" do
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "https://evil.example/path")
 
@@ -109,7 +109,7 @@ module SignIn
       assert_nil cycle.return_to
     end
 
-    test "return participant rejects protocol-relative return path" do
+    test "legacy return participant rejects protocol-relative return path" do
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "//evil.example/path")
 
@@ -120,7 +120,7 @@ module SignIn
       assert_nil cycle.return_to
     end
 
-    test "post-issuance participants work for visitor and operator cycles" do
+    test "checkpoint and selector participants work for visitor and operator cycles" do
       [
         [VisitorSignInCycle, create_visitor],
         [OperatorSignInCycle, create_operator],

@@ -4,10 +4,11 @@
 module Jump
   module App
     class ApplicationController < ActionController::Base
-      AUTHENTICATION_MODE = :deny_all
-
       include ::RateLimit
+
       include ::ActorSupport
+
+      AUTHENTICATION_MODE = :deny_all
 
       allow_browser versions: :modern
 

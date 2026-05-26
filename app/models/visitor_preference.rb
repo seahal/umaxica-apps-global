@@ -80,6 +80,10 @@ class VisitorPreference < ComPrincipalRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  has_one :visitor_preference_r18_display_stopper,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
 
   validates :visitor_id, uniqueness: true
   validates :consented, inclusion: { in: [true, false] }
@@ -90,6 +94,10 @@ class VisitorPreference < ComPrincipalRecord
 
   after_initialize :set_defaults
   before_validation :generate_public_id, on: :create
+
+  def r18_display_stopper
+    visitor_preference_r18_display_stopper&.option&.name || "disabled"
+  end
 
   private
 

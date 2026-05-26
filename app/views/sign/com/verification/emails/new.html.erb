@@ -12,7 +12,7 @@
 
   <%= form_with url: sign_com_verification_emails_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
     <%= f.hidden_field :scope, value: params.dig(:verification, :scope).presence || params[:scope], name: "verification[scope]" %>
-    <%= f.hidden_field :return_to, value: params.dig(:verification, :return_to).presence || params[:return_to], name: "verification[return_to]" %>
+    <%= f.hidden_field :pt, value: params.dig(:verification, :pt).presence || params[:pt], name: "verification[pt]" %>
     <div>
       <%= f.submit t("sign.app.verification.new.methods.email_otp") %>
     </div>
@@ -23,7 +23,7 @@
                 sign_com_verification_path(
                   ri: params[:ri],
                   scope: params.dig(:verification, :scope).presence || params[:scope],
-                  return_to: params.dig(:verification, :return_to).presence || params[:return_to]
+                  pt: params.dig(:verification, :pt).presence || params[:pt]
                 ) %>
   </div>
 </div>

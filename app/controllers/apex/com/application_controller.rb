@@ -4,20 +4,29 @@
 module Apex
   module Com
     class ApplicationController < ActionController::Base
-      AUTHENTICATION_MODE = :deny_all
-
       include ::RateLimit
+
       include ::Session
+
       include ::Preference::Global
+
       include ::Authentication::Visitor
+
       include ::Authorization::Visitor
+
       include ::Verification::Visitor
+
       include ActionPolicy::Controller
+
       include ::Oidc::SsoInitiator
+
       include ::ActorSupport
+
       include ::Finisher
 
-      authorize :user, through: :current_visitor
+      AUTHENTICATION_MODE = :deny_all
+
+      authorize :user, through: :current_policy_user
 
       allow_browser versions: :modern
 

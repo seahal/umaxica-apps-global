@@ -8,7 +8,6 @@
 #
 #  id                              :bigint           not null, primary key
 #  cancelled_at                    :datetime
-#  checkpoint_version              :integer          default(0), not null
 #  cleanup_attempted_at            :datetime
 #  cleanup_attempts_count          :integer          default(0), not null
 #  cleanup_completed_at            :datetime
@@ -55,7 +54,7 @@
 #
 #  fk_rails_...  (cleanup_status_id => client_sign_up_cycle_cleanup_statuses.id)
 #  fk_rails_...  (status_id => client_sign_up_cycle_statuses.id)
-#  fk_rails_...  (token_id => client_tokens.id)
+#  fk_rails_...  (token_id => client_tokens.id) ON DELETE => cascade
 #
 class ClientSignUpCycle < AppTicketRecord
   include SignCycle

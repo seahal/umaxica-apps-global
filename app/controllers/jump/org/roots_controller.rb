@@ -4,9 +4,9 @@
 module Jump
   module Org
     class RootsController < Jump::Org::ApplicationController
-      AUTHENTICATION_MODE = :deny_all
-
       include Jump::ToRedirector
+
+      AUTHENTICATION_MODE = :deny_all
 
       JUMP_LINK_MODEL = OrgJumpLink
 

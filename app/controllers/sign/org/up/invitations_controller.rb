@@ -5,9 +5,9 @@ module Sign
   module Org
     module Up
       class InvitationsController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include CloudflareTurnstile
+
+        AUTHENTICATION_MODE = :guest
 
         def new
           @invitation_code = params[:invitation_code].to_s

@@ -512,7 +512,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "direct controller private branches for flow and existing verification" do
     controller = Sign::Com::Up::EmailsController.new
     session_hash = {}
-    params_hash = ActionController::Parameters.new(ri: "jp", rt: "/configuration")
+    params_hash = ActionController::Parameters.new(ri: "jp", pt: "/configuration")
     redirects = []
     renders = []
 
@@ -525,8 +525,8 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
     controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }
     controller.define_singleton_method(:new_sign_com_up_email_path) { |ri: nil| "/sign/up/email/new?ri=#{ri}" }
-    controller.define_singleton_method(:edit_sign_com_up_email_path) { |_email, ri: nil, rt: nil|
-      "/sign/up/email/edit?ri=#{ri}&rt=#{rt}"
+    controller.define_singleton_method(:edit_sign_com_up_email_path) { |_email, ri: nil, pt: nil|
+      "/sign/up/email/edit?ri=#{ri}&pt=#{pt}"
     }
     controller.define_singleton_method(:new_sign_com_in_path) { |ri: nil| "/in?ri=#{ri}" }
     controller.define_singleton_method(:t) { |key, **| key }
@@ -580,7 +580,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [[:edit], { status: :unprocessable_content }], renders.last
 
     assert_match(/--/, controller.send(:sanitized_rt_param))
-    params_hash[:rt] = "%%%bad"
+    params_hash[:pt] = "%%%bad"
 
     assert_nil controller.send(:sanitized_rt_param)
   end

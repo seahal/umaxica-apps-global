@@ -1,6 +1,13 @@
 # typed: false
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: post_statuses
+# Database name: org_publisher
+#
+#  id :bigint           not null, primary key
+#
 class OrgPostStatus < OrgPublisherRecord
   self.table_name = "post_statuses"
 

@@ -44,39 +44,39 @@ module Sign
         assert_response :success
       end
 
-      test "authentication links carry rt" do
-        rt = Base64.urlsafe_encode64("https://id.umaxica.app/configuration/sessions?ri=jp", padding: false)
+      test "authentication links carry pt" do
+        pt = Base64.urlsafe_encode64("https://id.umaxica.app/configuration/sessions?ri=jp", padding: false)
 
-        get new_sign_app_in_url(ri: "jp", rt: rt), headers: { "Host" => @host }
-
-        assert_response :success
-        assert_select "a[href=?]", new_sign_app_in_email_path(rt: rt, ri: "jp")
-        assert_select "a[href=?]", new_sign_app_in_passkey_path(rt: rt, ri: "jp")
-        assert_select "a[href=?]", new_sign_app_in_secret_path(rt: rt, ri: "jp")
-      end
-
-      test "sign up link includes rt when rt is present" do
-        get new_sign_app_in_url(ri: "jp", rt: "abc"), headers: { "Host" => @host }
+        get new_sign_app_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up/new?ri=jp&amp;rt=abc"
+        assert_select "a[href=?]", new_sign_app_in_email_path(pt: pt, ri: "jp")
+        assert_select "a[href=?]", new_sign_app_in_passkey_path(pt: pt, ri: "jp")
+        assert_select "a[href=?]", new_sign_app_in_secret_path(pt: pt, ri: "jp")
       end
 
-      test "sign up link includes only ri when rt is absent" do
+      test "sign up link includes pt when pt is present" do
+        get new_sign_app_in_url(ri: "jp", pt: "abc"), headers: { "Host" => @host }
+
+        assert_response :success
+        assert_includes response.body, "/sign/up/new?ri=jp&amp;pt=abc"
+      end
+
+      test "sign up link includes only ri when pt is absent" do
         get new_sign_app_in_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
         assert_includes response.body, "/sign/up/new?ri=jp"
-        assert_not_includes response.body, "rt="
+        assert_not_includes response.body, "pt="
       end
 
-      test "sign up link preserves encoded-like rt value safely" do
-        rt = "aHR0cHM6Ly9leGFtcGxlLmNvbS8_cD0xJmE9Mg%3D%3D"
-        get new_sign_app_in_url(ri: "jp", rt: rt), headers: { "Host" => @host }
+      test "sign up link preserves encoded-like pt value safely" do
+        pt = "aHR0cHM6Ly9leGFtcGxlLmNvbS8_cD0xJmE9Mg%3D%3D"
+        get new_sign_app_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up/new?ri=jp&amp;rt="
-        assert_includes response.body, "rt=aHR0cHM6Ly9leGFtcGxlLmNvbS8_cD0xJmE9Mg%253D%253D"
+        assert_includes response.body, "/sign/up/new?ri=jp&amp;pt="
+        assert_includes response.body, "pt=aHR0cHM6Ly9leGFtcGxlLmNvbS8_cD0xJmE9Mg%253D%253D"
       end
 
       test "should render in english when lx=en" do

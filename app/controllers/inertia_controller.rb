@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class InertiaController < ActionController::Base
+class InertiaController < ApplicationController
   AUTHENTICATION_MODE = :deny_all
 
   # Share data with all Inertia responses

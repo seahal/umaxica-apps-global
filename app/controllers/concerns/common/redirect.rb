@@ -27,8 +27,57 @@ module Common
 
     private
 
+    def redirect_to_pt(default:, pt: params[:pt], **)
+      result = Redirects::PathTargetResolver.call(pt, source: :raw_pt)
+      log_redirect_target_failure(result) unless result.ok? || pt.blank?
+
+      redirect_to(result.ok? ? result.value : default, allow_other_host: false, **)
+    end
+
+    def redirect_to_nt(key, scope: nil, **)
+      result = Redirects::NavigationTargetResolver.call(
+        key,
+        routes: self,
+        params: redirect_target_context_params,
+        scope: scope,
+      )
+      return redirect_to(result.value, allow_other_host: false, **) if result.ok?
+
+      log_redirect_target_failure(result)
+      render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"), status: :unprocessable_content
+    end
+
+    def redirect_to_xt(key, path: "/", query: {}, **)
+      result = Redirects::ExternalTargetResolver.call(key, path: path, query: query)
+      return redirect_to(result.value, allow_other_host: true, **) if result.ok?
+
+      log_redirect_target_failure(result)
+      render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"), status: :unprocessable_content
+    end
+
+    def redirect_to_xt_url(url, allowed_urls:, **)
+      result = Redirects::ExternalTargetResolver.url(url, allowed_urls: allowed_urls)
+      return redirect_to(result.value, allow_other_host: true, **) if result.ok?
+
+      log_redirect_target_failure(result)
+      render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"), status: :unprocessable_content
+    end
+
+    def resolve_redirect_target(priority:, default:)
+      result = Redirects::PriorityResolver.call(
+        priority: priority,
+        routes: self,
+        params: redirect_target_context_params,
+        default: default,
+      )
+      log_redirect_target_failure(result) unless result.ok?
+      result
+    end
+
     def safe_redirect_to(target, fallback: "/", **)
-      safe_path = safe_internal_path(target)
+      result = Redirects::PathTargetResolver.call(target, source: :legacy_safe_redirect)
+      safe_path = result.value if result.ok?
+      log_redirect_target_failure(result) unless result.ok? || target.blank?
 
       if safe_path
         redirect_to(safe_path, allow_other_host: false, **)
@@ -38,84 +87,14 @@ module Common
     end
 
     def safe_redirect_back_or_to(fallback, **)
-      safe_path = safe_internal_path(request.referer)
+      result = Redirects::PathTargetResolver.call(request.referer, source: :referer)
+      safe_path = result.value if result.ok?
       redirect_to(safe_path || fallback, allow_other_host: false, **)
     end
 
     def safe_internal_path(target)
-      return nil unless target.is_a?(String)
-      return nil if target.blank?
-      return nil if target.match?(/[\x00-\x1F\x7F]/)
-      return nil if target.match?(/%(?:0[0-9a-f]|1[0-9a-f]|7f)/i)
-      return nil if target.match?(/%(?:2f|5c)/i)
-      return nil if target.include?("\\")
-
-      begin
-        parsed_uri = URI.parse(target)
-      rescue URI::InvalidURIError
-        return nil
-      end
-
-      return nil if parsed_uri.scheme.present? || parsed_uri.host.present?
-      return nil if parsed_uri.userinfo.present?
-      return nil if parsed_uri.fragment.present?
-
-      path = parsed_uri.path
-      return nil if path.blank?
-      return nil unless path.start_with?("/")
-      return nil if path.start_with?("//")
-
-      query = parsed_uri.query
-      query.present? ? "#{path}?#{query}" : path
-    end
-
-    def safe_return_path(target, allowed_hosts: nil)
-      return nil unless target.is_a?(String)
-      return nil if target.blank?
-      return nil if target.match?(/[\x00-\x1F\x7F]/)
-      return nil if target.match?(/%(?:0[0-9a-f]|1[0-9a-f]|7f)/i)
-      return nil if target.match?(/%(?:2f|5c)/i)
-      return nil if target.include?("\\")
-
-      begin
-        parsed_uri = URI.parse(target)
-      rescue URI::InvalidURIError
-        return nil
-      end
-
-      return nil if parsed_uri.user.present? || parsed_uri.password.present?
-      return nil if parsed_uri.fragment.present?
-
-      return safe_internal_path(target) unless parsed_uri.scheme.present? || parsed_uri.host.present?
-      return nil unless %w(http https).include?(parsed_uri.scheme)
-      return nil unless allowed_return_hosts(allowed_hosts).include?(host_with_optional_port(parsed_uri))
-
-      path = parsed_uri.path.presence || "/"
-      return nil unless path.start_with?("/")
-
-      query = parsed_uri.query
-      query.present? ? "#{path}?#{query}" : path
-    end
-
-    def generate_redirect_url(url)
-      safe_path = safe_return_path(url)
-
-      return unless safe_path
-
-      Base64.urlsafe_encode64(safe_path, padding: false)
-    end
-
-    def jump_to_generated_url(encoded_url, fallback: "/")
-      return redirect_to(fallback) if encoded_url.blank?
-
-      begin
-        decoded_url = Base64.urlsafe_decode64(encoded_url)
-        safe_path = safe_return_path(decoded_url)
-        redirect_to(safe_path || fallback, allow_other_host: false)
-      rescue ArgumentError, URI::InvalidURIError => e
-        Rails.logger.info(LogEvent.format("redirect.invalid_url", error_message: e.message))
-        redirect_to(fallback)
-      end
+      result = Redirects::PathTargetResolver.call(target, source: :internal_path)
+      result.value if result.ok?
     end
 
     def allowed_return_hosts(allowed_hosts)
@@ -154,6 +133,35 @@ module Common
 
     def default_port_for(scheme)
       (scheme == "https") ? 443 : 80
+    end
+
+    def redirect_target_context_params
+      {
+        ri: params[:ri],
+        surface: redirect_target_surface,
+      }
+    end
+
+    def redirect_target_surface
+      return surface_from_controller_name if respond_to?(:surface_from_controller_name, true) && surface_from_controller_name.present?
+      return Actor.tld if defined?(Actor) && Actor.respond_to?(:tld) && Actor.tld.present?
+
+      "app"
+    end
+
+    def log_redirect_target_failure(result)
+      return if result.ok?
+
+      Rails.logger.info(
+        LogEvent.format(
+          "redirect_target.rejected",
+          kind: result.kind,
+          source: result.source,
+          reason: result.failure_reason,
+          unsafe_value_digest: result.unsafe_value_digest,
+          request_id: request&.request_id,
+        ),
+      )
     end
   end
 end

@@ -128,7 +128,7 @@ class ActorSupportIncludedDoTest < ActiveSupport::TestCase
       method: :email_otp,
       state: "CHECKPOINT_PENDING",
       participant: :checkpoint,
-      rt: nil,
+      pt: nil,
     )
 
     assert_equal sequence.id, controller.send(:resolved_active_sign_sequence_id)
@@ -143,7 +143,7 @@ class ActorSupportIncludedDoTest < ActiveSupport::TestCase
       method: :email_otp,
       state: "CHECKPOINT_PENDING",
       participant: :checkpoint,
-      rt: nil,
+      pt: nil,
     )
     controller.session[:app_sign_in_sequence]["expires_at"] = 1.minute.ago.iso8601
 

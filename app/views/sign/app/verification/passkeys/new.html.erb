@@ -1,6 +1,6 @@
 <% title t("sign.app.verification.edit.title") %>
 <% verification_scope = params.dig(:verification, :scope).presence || params[:scope] %>
-<% verification_return_to = params.dig(:verification, :return_to).presence || params.dig(:verification, :rt).presence || params[:return_to].presence || params[:rt] %>
+<% verification_pt = params.dig(:verification, :pt).presence || params[:pt] %>
 
 <div>
   <h1><%= t("sign.app.verification.edit.title") %></h1>
@@ -15,7 +15,7 @@
   <%= form_with url: sign_app_verification_passkey_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
     <% options_json = @passkey_request_options ? json_escape(@passkey_request_options.to_json) : "" %>
     <%= f.hidden_field :scope, value: verification_scope, name: "verification[scope]" %>
-    <%= f.hidden_field :return_to, value: verification_return_to, name: "verification[return_to]" %>
+    <%= f.hidden_field :pt, value: verification_pt, name: "verification[pt]" %>
     <div
       data-controller="step_up-passkey"
       data-step_up-passkey-options-value="<%= options_json %>"
@@ -38,7 +38,7 @@
                 sign_app_verification_path(
                   ri: params[:ri],
                   scope: verification_scope,
-                  return_to: verification_return_to
+                  pt: verification_pt
                 ) %>
   </div>
 </div>

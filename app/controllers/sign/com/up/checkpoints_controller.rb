@@ -5,9 +5,9 @@ module Sign
   module Com
     module Up
       class CheckpointsController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include Sign::Up::SequenceControllerSupport
+
+        AUTHENTICATION_MODE = :guest
 
         before_action :load_sign_up_ticket
         before_action -> { authorize_sign_up_participant!(:enter_checkpoint?) }, only: :show

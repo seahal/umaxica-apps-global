@@ -231,7 +231,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143004) do
     t.index ["request_id"], name: "index_chronicles_on_request_id"
     t.index ["result"], name: "index_chronicles_on_result"
     t.index ["subject_type", "subject_id"], name: "index_chronicles_on_subject"
-    t.check_constraint "result::text = ANY (ARRAY['intent'::character varying, 'succeeded'::character varying, 'failed'::character varying, 'audit_incomplete'::character varying, 'invalidated'::character varying, 'manual_recovery_required'::character varying]::text[])", name: "chk_chronicles_result"
+    t.check_constraint "result::text = ANY (ARRAY['intent'::character varying::text, 'succeeded'::character varying::text, 'failed'::character varying::text, 'audit_incomplete'::character varying::text, 'invalidated'::character varying::text, 'manual_recovery_required'::character varying::text])", name: "chk_chronicles_result"
   end
 
   create_table "client_chronicle_events", force: :cascade do |t|

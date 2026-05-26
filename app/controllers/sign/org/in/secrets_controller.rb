@@ -5,10 +5,11 @@ module Sign
   module Org
     module In
       class SecretsController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include ::CloudflareTurnstile
+
         include SessionLimitGate
+
+        AUTHENTICATION_MODE = :guest
 
         class SecretLoginForm
           include ActiveModel::Model
@@ -101,9 +102,9 @@ module Sign
         end
 
         def process_standard_login(staff)
-          rt = redirect_parameter_value
+          pt = path_target_value
           result = establish_signed_in_session!(
-            staff, rt: rt, ri: params[:ri], auth_method: "secret",
+            staff, pt: pt, ri: params[:ri], auth_method: "secret",
           )
           sign_in_result = sign_in_result_from_session_result(result, actor: staff)
 
@@ -121,7 +122,7 @@ module Sign
             )
           elsif sign_in_result.success?
             redirect_to_sign_in_sequence!(
-              rt: rt,
+              pt: pt,
               notice: t("sign.org.authentication.secret.create.success"),
             )
           else

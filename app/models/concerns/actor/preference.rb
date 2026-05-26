@@ -16,7 +16,8 @@ class Actor
   #   Actor.preferences.null?      # => true (for guests)
   class Preference
     attr_reader :language, :region, :timezone, :theme,
-                :currency, :date_format, :time_format, :motion, :density, :items_per_page
+                :currency, :date_format, :time_format, :motion, :density, :items_per_page,
+                :r18_display_stopper
 
     Cookie =
       Data.define(:consented, :functional, :performant, :targetable, :consent_version, :consented_at) do
@@ -40,6 +41,7 @@ class Actor
       motion: "standard",
       density: "standard",
       items_per_page: "20",
+      r18_display_stopper: "disabled",
     }.freeze
 
     SCHEMA_VERSION = 1
@@ -58,6 +60,7 @@ class Actor
                    currency: DEFAULTS[:currency], date_format: DEFAULTS[:date_format],
                    time_format: DEFAULTS[:time_format], motion: DEFAULTS[:motion],
                    density: DEFAULTS[:density], items_per_page: DEFAULTS[:items_per_page],
+                   r18_display_stopper: DEFAULTS[:r18_display_stopper],
                    cookie: NULL_COOKIE, null: false)
       @language = language.freeze
       @region = region.freeze
@@ -69,6 +72,7 @@ class Actor
       @motion = motion.freeze
       @density = density.freeze
       @items_per_page = items_per_page.freeze
+      @r18_display_stopper = r18_display_stopper.freeze
       @cookie = cookie
       @null = null
       freeze
@@ -94,6 +98,7 @@ class Actor
         motion == other.motion &&
         density == other.density &&
         items_per_page == other.items_per_page &&
+        r18_display_stopper == other.r18_display_stopper &&
         cookie == other.cookie &&
         null? == other.null?
     end
@@ -103,7 +108,7 @@ class Actor
     def hash
       [
         self.class, language, region, timezone, theme, currency, date_format, time_format,
-        motion, density, items_per_page, cookie, null?,
+        motion, density, items_per_page, r18_display_stopper, cookie, null?,
       ].hash
     end
 
@@ -143,8 +148,13 @@ class Actor
         motion: @motion,
         density: @density,
         items_per_page: @items_per_page,
+        r18_display_stopper: @r18_display_stopper,
         consented: @cookie.consented?,
       }
+    end
+
+    def r18_display_stopper?
+      @r18_display_stopper == "enabled"
     end
 
     def with_cookie(cookie)
@@ -159,6 +169,7 @@ class Actor
         motion: @motion,
         density: @density,
         items_per_page: @items_per_page,
+        r18_display_stopper: @r18_display_stopper,
         cookie: self.class.cookie_from(cookie),
         null: @null,
       )
@@ -187,6 +198,13 @@ class Actor
         density: hash_value(prf_claim, "dn", :dn, "density", :density) || DEFAULTS[:density],
         items_per_page: hash_value(prf_claim, "ipp", :ipp, "items_per_page", :items_per_page) ||
           DEFAULTS[:items_per_page],
+        r18_display_stopper: hash_value(
+          prf_claim,
+          "r18s",
+          :r18s,
+          "r18_display_stopper",
+          :r18_display_stopper,
+        ) || DEFAULTS[:r18_display_stopper],
         cookie: cookie,
       )
     end

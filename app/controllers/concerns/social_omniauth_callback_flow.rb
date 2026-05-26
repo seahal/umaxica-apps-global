@@ -23,7 +23,7 @@ module SocialOmniauthCallbackFlow
     run_social_omniauth_callback(auth)
   rescue SocialAuth::BaseError => e
     handle_social_auth_error(e)
-  rescue StandardError => e
+  rescue StandardError
     clear_social_auth_intent!
     raise
   end

@@ -5,15 +5,20 @@ module Sign
   module Org
     module Up
       class BaseController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include ::RateLimit
+
         include ActionPolicy::Controller
+
         # Note: Authentication::Operator is NOT included here for unauthenticated sign-up
         include ::Preference::Global
+
         include ::Preference::Adoption
+
         include ::ActorSupport
+
         include ::Finisher
+
+        AUTHENTICATION_MODE = :guest
 
         allow_browser versions: :modern
 

@@ -18,12 +18,15 @@ module Sign
       # Apple sends state in POST body, Google sends in query string.
       # Both are accessible via params[:state].
       class OmniauthCallbacksController < Sign::App::ApplicationController
-        AUTHENTICATION_MODE = :deny_all
-
         include SocialAuthConcern
+
         include SocialCallbackGuard
+
         include SessionLimitGate
+
         include SocialOmniauthCallbackFlow
+
+        AUTHENTICATION_MODE = :deny_all
 
         # Allow unauthenticated access for login intent
         # For link intent, auth is checked in prepare_social_auth_intent!
@@ -61,7 +64,7 @@ module Sign
             SocialIdentifiable.normalize_provider(auth.provider).humanize,
             result[:identity],
             existing_account: result[:existing_account],
-            rt: result[:rt],
+            pt: result[:pt],
             entry: result[:entry],
           )
         end
@@ -127,7 +130,7 @@ module Sign
           )
         end
 
-        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, rt: nil, entry: nil)
+        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, pt: nil, entry: nil)
           Rails.logger.debug(
             LogEvent.format(
               "sign.social.omniauth.handle_successful_auth",
@@ -141,16 +144,16 @@ module Sign
             handle_link_intent(provider_name)
           when "login"
             if social_sign_up_required?(user, existing_account)
-              handle_social_sign_up_intent(user, provider_name, identity, rt: rt)
+              handle_social_sign_up_intent(user, provider_name, identity, pt: pt)
             else
-              handle_login_intent(user, provider_name, existing_account, rt: rt)
+              handle_login_intent(user, provider_name, existing_account, pt: pt)
             end
           else
-            handle_login_intent(user, provider_name, existing_account, rt: rt)
+            handle_login_intent(user, provider_name, existing_account, pt: pt)
           end
         end
 
-        def handle_social_sign_up_intent(user, provider_name, identity, rt: nil)
+        def handle_social_sign_up_intent(user, provider_name, identity, pt: nil)
           # Two callbacks for the same social identity (provider + uid) can
           # arrive simultaneously (e.g. user double-clicks the consent button
           # or replays a stale tab). Without serialization, both pass the
@@ -160,14 +163,14 @@ module Sign
           # lock collapses the second arrival into a no-op
           # cycle-already-issued.
           with_social_sign_up_lock(identity) do
-            cycle = sign_up_cycle_locator.current || create_social_sign_up_cycle!(user, identity, rt: rt)
+            cycle = sign_up_cycle_locator.current || create_social_sign_up_cycle!(user, identity, pt: pt)
             bind_social_sign_up_cycle!(cycle, user, identity)
           end
 
           redirect_to(
             sign_app_up_guardrail_path(
               ri: params[:ri].presence || current_social_auth_ri,
-              rt: rt.presence,
+              pt: pt.presence,
             ),
             notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
           )
@@ -194,7 +197,7 @@ module Sign
           end
         end
 
-        def create_social_sign_up_cycle!(user, identity, rt: nil)
+        def create_social_sign_up_cycle!(user, identity, pt: nil)
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless user && identity
 
           AppTicketRecord.connected_to(role: :writing) do
@@ -208,7 +211,7 @@ module Sign
               expires_at: ClientSignUpCycle.default_ttl.from_now,
               entry_method: SocialIdentifiable.normalize_provider(identity.provider),
               social_provider: SocialIdentifiable.normalize_provider(identity.provider),
-              return_to: return_path_from_signed_rt(safe_encoded_rt(rt)),
+              pt: path_from_signed_pt(signed_pt_token(pt)),
             )
             sign_up_cycle_locator.issue!(cycle)
             session[:sign_app_up_sequence_id] = cycle.public_id
@@ -238,7 +241,7 @@ module Sign
           )
         end
 
-        def handle_login_intent(user, provider_name, existing_account, rt: nil)
+        def handle_login_intent(user, provider_name, existing_account, pt: nil)
           Rails.logger.debug(LogEvent.format("sign.social.omniauth.login_intent", message: "Signing in user"))
           unless user&.login_allowed?
             return redirect_to(
@@ -247,7 +250,7 @@ module Sign
             )
           end
 
-          login_result = sign_in(user, rt: rt)
+          login_result = sign_in(user, pt: pt)
 
           if login_result.is_a?(Hash) && login_result[:status] != :success
             Rails.logger.warn(
@@ -273,20 +276,20 @@ module Sign
               message: "Redirecting after login",
             ),
           )
-          redirect_after_login(provider_name, existing_account, rt: rt)
+          redirect_after_login(provider_name, existing_account, pt: pt)
         end
 
-        def redirect_after_login(provider_name, existing_account, rt: nil)
+        def redirect_after_login(provider_name, existing_account, pt: nil)
           if existing_account
-            redirect_for_existing_account(provider_name, rt: rt)
+            redirect_for_existing_account(provider_name, pt: pt)
           else
-            redirect_for_new_account(provider_name, rt: rt)
+            redirect_for_new_account(provider_name, pt: pt)
           end
         end
 
-        def redirect_for_existing_account(provider_name, rt: nil)
+        def redirect_for_existing_account(provider_name, pt: nil)
           redirect_to_sign_in_sequence!(
-            rt: rt,
+            pt: pt,
             notice: I18n.t(
               "sign.app.social.sessions.create.already_registered",
               provider: provider_name,
@@ -294,16 +297,16 @@ module Sign
           )
         end
 
-        def redirect_for_new_account(provider_name, rt: nil)
+        def redirect_for_new_account(provider_name, pt: nil)
           redirect_to_sign_in_sequence!(
-            rt: rt,
+            pt: pt,
             notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
           )
         end
 
-        def sign_in(user, rt: nil)
+        def sign_in(user, pt: nil)
           result = establish_signed_in_session!(
-            user, rt: rt, ri: params[:ri], auth_method: "social",
+            user, pt: pt, ri: params[:ri], auth_method: "social",
                   audit_context: social_login_audit_context,
           )
           Rails.logger.debug(

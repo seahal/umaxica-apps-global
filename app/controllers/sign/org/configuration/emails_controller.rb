@@ -5,10 +5,11 @@ module Sign
   module Org
     module Configuration
       class EmailsController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include CloudflareTurnstile
+
         include ::Verification::Operator
+
+        AUTHENTICATION_MODE = :private
 
         VERIFIED_EMAIL_STATUSES = [
           OperatorEmailStatus::ACTIVE,

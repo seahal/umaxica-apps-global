@@ -82,7 +82,8 @@ non-existent, or limit reached.
 
 Observe the following when redirecting.
 
-- `redirect_to destination_url, allow_other_host: true`
+- Redirect through the external-target facade, for example
+  `redirect_to_xt_url(destination_url, allowed_urls: [destination_url])`.
 - `Referrer-Policy: no-referrer`
 - Skip cookie session
 - In order to make it difficult to output `destination_url` to the normal redirect log line, the

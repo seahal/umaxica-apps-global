@@ -31,12 +31,11 @@ module Withdrawal
       now = Time.current
 
       actor.class.transaction do
+        actor.lock!
         ensure_withdrawal_cycle_requested!(now: now)
-        actor.update!(withdrawal_started_at: actor.withdrawal_started_at.presence || now)
-        revoke_sessions(except_public_id: current_session_public_id)
       end
 
-      notify("closing", withdrawal_started_at: actor.withdrawal_started_at)
+      notify("requested")
       actor
     end
 
@@ -45,6 +44,7 @@ module Withdrawal
       deactivated = actor.deactivated_at.presence || now
 
       actor.class.transaction do
+        actor.lock!
         ensure_withdrawal_cycle_discarded!(now: now)
         actor.update!(
           withdrawal_started_at: actor.withdrawal_started_at.presence || now,
@@ -70,6 +70,7 @@ module Withdrawal
       raise Sign::WithdrawalRecoveryNotAvailableError unless actor.can_recover?
 
       actor.class.transaction do
+        actor.lock!
         ensure_withdrawal_cycle_recovered!(now: Time.current)
         actor.update!(
           withdrawal_started_at: nil,
@@ -88,6 +89,7 @@ module Withdrawal
       raise Sign::InvalidWithdrawalStateError, actor.class.name unless actor.early_terminatable?
 
       actor.class.transaction do
+        actor.lock!
         ensure_withdrawal_cycle_terminated!(now: Time.current)
         if actor.respond_to?(:terminated_at=)
           actor.terminated_at = Time.current
@@ -110,7 +112,7 @@ module Withdrawal
       return cycle if cycle.withdrawal_requested?
       return cycle if cycle.withdrawal_closing? || cycle.withdrawal_discarded?
 
-      cycle
+      raise Sign::InvalidWithdrawalStateError, withdrawal_cycle_class.status_name_for(cycle.status_id)
     end
 
     def ensure_withdrawal_cycle_discarded!(now:)

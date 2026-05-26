@@ -8,11 +8,13 @@ module Sign
     module In
       module Challenge
         class PasskeysController < Sign::Org::In::GuestController
-          AUTHENTICATION_MODE = :guest
-
           include Sign::Webauthn
+
           include SessionLimitGate
+
           include ::CloudflareTurnstile
+
+          AUTHENTICATION_MODE = :guest
 
           before_action :ensure_pending_mfa!
 
@@ -141,7 +143,7 @@ module Sign
               )
             when :success
               redirect_to_sign_in_sequence!(
-                rt: result[:redirect_path],
+                pt: result[:redirect_path],
                 notice: I18n.t("sign.org.in.mfa.passkey.success"),
               )
             else

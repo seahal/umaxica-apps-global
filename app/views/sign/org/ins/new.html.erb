@@ -1,5 +1,5 @@
 <% content_for :page_title, t("sign.org.authentication.new.page_title") %>
-<% return_to = params[:rt].presence %>
+<% pt = params[:pt].presence %>
 <div class="animate-fade-in-up">
   <div>
     <h1>
@@ -11,11 +11,11 @@
   </div>
 
   <div>
-    <%= link_to new_sign_org_in_passkey_path(rt: return_to, ri: params[:ri]) do %>
+    <%= link_to new_sign_org_in_passkey_path(pt: pt, ri: params[:ri]) do %>
       <span><%= t("sign.org.authentication.new.links.passkey") %></span>
     <% end %>
 
-    <%= link_to new_sign_org_in_secret_path(rt: return_to, ri: params[:ri]) do %>
+    <%= link_to new_sign_org_in_secret_path(pt: pt, ri: params[:ri]) do %>
       <span><%= t("sign.org.authentication.new.links.secret") %></span>
     <% end %>
 

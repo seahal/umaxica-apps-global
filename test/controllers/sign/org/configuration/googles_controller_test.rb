@@ -73,7 +73,7 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
 
     assert_equal "/sign/in/new", uri.path
     assert_equal "jp", query["ri"]
-    assert_predicate query["rt"], :present?
+    assert_predicate query["pt"], :present?
   end
 
   private

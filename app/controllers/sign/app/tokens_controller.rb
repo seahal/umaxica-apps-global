@@ -4,9 +4,9 @@
 module Sign
   module App
     class TokensController < ApplicationController
-      AUTHENTICATION_MODE = :deny_all
-
       include ::RateLimit
+
+      AUTHENTICATION_MODE = :deny_all
 
       declare_authentication_mode! :open
 

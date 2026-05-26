@@ -52,7 +52,8 @@ module Sign
                    headers: as_user_headers(@user, host: @host)
           end
 
-          assert_redirected_to edit_sign_com_preference_reset_path
+          assert_response :see_other
+          assert_equal "../", response.location
 
           [preference, cookie, region, timezone, theme].each(&:reload)
 

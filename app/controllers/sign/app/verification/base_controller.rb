@@ -5,10 +5,11 @@ module Sign
   module App
     module Verification
       class BaseController < Sign::App::PrivateController
-        AUTHENTICATION_MODE = :private
-
         include ::CloudflareTurnstile
+
         include Sign::AppVerificationBase
+
+        AUTHENTICATION_MODE = :private
 
         skip_before_action :enforce_verification_if_required, raise: false
 

@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 class Sign::Com::Preference::Accessibility::MotionsController < Sign::Com::PreferencesBaseController
-  AUTHENTICATION_MODE = :open
-
   include ::Preference::SignScreenActions
+
+  AUTHENTICATION_MODE = :open
 
   before_action :ensure_preferences_record
 

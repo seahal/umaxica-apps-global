@@ -5,153 +5,54 @@ module Sign
   module Com
     module Configuration
       class WithdrawalsController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include ::Verification::Visitor
         include Common::Redirect
+        include Sign::Configuration::WithdrawalFlow
+
+        AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!
 
         def new
-          build_forms
-          @schedule_confirmed = current_visitor.closing?
-          @terminated = current_visitor.terminated?
-
-          return unless params.key?(:ack_schedule_purge)
-
-          if @schedule_form.valid?
-            @schedule_confirmed = true
-          else
-            render :new, status: :unprocessable_content
-          end
+          render_withdrawal_entry(current_visitor)
         end
 
         def edit
-          unless current_visitor.withdrawal_in_progress? || current_visitor.terminated?
-            return safe_redirect_to(
-              new_sign_com_configuration_withdrawal_path(ri: params[:ri]),
-              fallback: sign_com_configuration_path(ri: params[:ri]),
-              status: :see_other,
-            )
-          end
-
-          assign_status_view_state(current_visitor)
+          render_withdrawal_status(current_visitor)
         end
 
         def create
-          unless current_visitor.can_recover?
-            return safe_redirect_to(
-              edit_sign_com_configuration_withdrawal_path(ri: params[:ri]),
-              fallback: new_sign_com_configuration_withdrawal_path(ri: params[:ri]),
-              status: :see_other,
-            )
-          end
-
-          ::Withdrawal::Lifecycle.recover!(actor: current_visitor, request: request)
-
-          safe_redirect_to(
-            sign_com_configuration_path(ri: params[:ri]),
-            fallback: "/configuration",
-            status: :see_other,
-          )
+          recover_withdrawal!(current_visitor)
         end
 
         def update
-          build_forms
-
-          return start_closing! if should_start_closing?
-
-          unless @deactivate_form.valid?
-            return render_update_validation_error
-          end
-
-          ::Withdrawal::Lifecycle.suspend!(
-            actor: current_visitor,
-            current_session_public_id: current_session_public_id,
-            request: request,
-          )
-
-          safe_redirect_to(
-            edit_sign_com_configuration_withdrawal_path(ri: params[:ri]),
-            fallback: sign_com_configuration_path(ri: params[:ri]),
-            status: :see_other,
-            notice: t("sign.app.configuration.withdrawal.deactivate.success"),
-          )
-        rescue ActiveRecord::RecordInvalid
-          handle_deactivation_failure
+          update_withdrawal!(current_visitor)
         end
 
         def destroy
-          ::Withdrawal::Lifecycle.terminate!(
-            actor: current_visitor,
-            request: request,
-          ) if current_visitor.early_terminatable?
-
-          safe_redirect_to(
-            edit_sign_com_configuration_withdrawal_path(ri: params[:ri]),
-            fallback: sign_com_configuration_path(ri: params[:ri]),
-            status: :see_other,
-          )
+          terminate_withdrawal!(current_visitor)
         end
 
         private
 
-        def build_forms
-          @schedule_form = Sign::App::Configuration::Withdrawal::ScheduleForm.new(schedule_params)
-          @deactivate_form = Sign::App::Configuration::Withdrawal::DeactivateForm.new(deactivate_params)
+        def withdrawal_new_path(extra_params = {})
+          new_sign_com_configuration_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
         end
 
-        def should_start_closing?
-          !current_visitor.closing? && !params.key?(:ack_deactivate_today)
+        def withdrawal_edit_path
+          edit_sign_com_configuration_withdrawal_path(ri: params[:ri])
         end
 
-        def start_closing!
-          unless @schedule_form.valid?
-            @schedule_confirmed = false
-            return render :new, status: :unprocessable_content
-          end
-
-          ::Withdrawal::Lifecycle.start!(
-            actor: current_visitor,
-            current_session_public_id: current_session_public_id,
-            request: request,
-          )
-
-          safe_redirect_to(
-            new_sign_com_configuration_withdrawal_path(ri: params[:ri], ack_schedule_purge: "1"),
-            fallback: sign_com_configuration_path(ri: params[:ri]),
-            status: :see_other,
-          )
+        def withdrawal_configuration_path
+          sign_com_configuration_path(ri: params[:ri])
         end
 
-        def assign_status_view_state(actor)
-          @recovery_available_at = actor.recovery_available_at
-          @recovery_deadline = actor.recovery_deadline
-          @early_termination_available_at = actor.early_termination_available_at
-          @recoverable = actor.can_recover?
-          @early_terminatable = actor.early_terminatable?
-          @terminated = actor.terminated?
-        end
-
-        def schedule_params
-          params.permit(:ack_schedule_purge)
-        end
-
-        def deactivate_params
-          params.permit(:ack_deactivate_today)
-        end
-
-        def render_update_validation_error
-          @schedule_confirmed = true
-          render :new, status: :unprocessable_content
-        end
-
-        def handle_deactivation_failure
+        def handle_deactivation_failure(actor)
           Rails.logger.info(
             LogEvent.format(
               "visitor.withdrawal.suspension_failed",
-              visitor_id: current_visitor.id,
-              errors: current_visitor.errors.full_messages,
+              visitor_id: actor.id,
+              errors: actor.errors.full_messages,
               ip_address: request.remote_ip,
             ),
           )

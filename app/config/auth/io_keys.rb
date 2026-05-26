@@ -37,18 +37,22 @@ module Auth
 
     module Params
       RI = :ri
-      RT = :rt
+      PT = :pt
+      NT = :nt
+      XT = :xt
 
       public_constant :RI
-      public_constant :RT
+      public_constant :PT
+      public_constant :NT
+      public_constant :XT
     end
 
     module Session
-      DEFAULT_RT = :user_email_authentication_rt
+      DEFAULT_PT = :user_email_authentication_pt
       CHECKPOINT = :sign_in_checkpoint
       BULLETIN = CHECKPOINT
 
-      public_constant :DEFAULT_RT
+      public_constant :DEFAULT_PT
       public_constant :CHECKPOINT
       public_constant :BULLETIN
     end

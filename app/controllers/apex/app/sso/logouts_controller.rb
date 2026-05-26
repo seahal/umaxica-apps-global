@@ -5,9 +5,9 @@ module Apex
   module App
     module Sso
       class LogoutsController < OpenController
-        AUTHENTICATION_MODE = :open
-
         include ::Oidc::RpLogout
+
+        AUTHENTICATION_MODE = :open
       end
     end
   end

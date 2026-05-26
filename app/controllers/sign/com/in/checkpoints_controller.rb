@@ -17,13 +17,13 @@ module Sign
 
         def update
           refresh_bulletin_dimension!
-          redirect_to(sign_com_in_checkpoint_path(rt: redirect_parameter_value, ri: params[:ri]))
+          redirect_to(sign_com_in_checkpoint_path(pt: path_target_value, ri: params[:ri]))
         end
 
         def destroy
-          rt_param = redirect_parameter_value
+          pt_param = path_target_value
           consume_bulletin!
-          redirect_after_checkpoint_sequence!(rt: rt_param)
+          redirect_after_checkpoint_sequence!(pt: pt_param)
         end
 
         private

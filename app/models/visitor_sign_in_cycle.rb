@@ -6,32 +6,38 @@
 # Table name: visitor_sign_in_cycles
 # Database name: com_ticket
 #
-#  id           :bigint           not null, primary key
-#  completed_at :datetime
-#  discarded_at :datetime         default(Infinity), not null
-#  expires_at   :datetime         not null
-#  issued_at    :datetime         not null
-#  nonce_digest :string           not null
-#  purged_at    :datetime         default(Infinity), not null
-#  return_to    :text
-#  state        :string           not null
-#  step         :string           not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#  principal_id :bigint
-#  public_id    :string(21)       not null
-#  status_id    :bigint           default(10), not null
-#  token_id     :bigint
+#  id                    :bigint           not null, primary key
+#  completed_at          :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  expires_at            :datetime         not null
+#  issued_at             :datetime         not null
+#  nonce_digest          :string           not null
+#  purged_at             :datetime         default(Infinity), not null
+#  return_to             :text
+#  selector_completed_at :datetime
+#  session_issued_at     :datetime
+#  state                 :string           not null
+#  step                  :string           not null
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  principal_id          :bigint
+#  public_id             :string(21)       not null
+#  selected_persona_id   :bigint
+#  selected_region_id    :bigint
+#  status_id             :bigint           default(10), not null
+#  token_id              :bigint
 #
 # Indexes
 #
-#  index_visitor_sign_in_cycles_on_discarded_at  (discarded_at)
-#  index_visitor_sign_in_cycles_on_expires_at    (expires_at)
-#  index_visitor_sign_in_cycles_on_principal_id  (principal_id)
-#  index_visitor_sign_in_cycles_on_public_id     (public_id) UNIQUE
-#  index_visitor_sign_in_cycles_on_state         (state)
-#  index_visitor_sign_in_cycles_on_status_id     (status_id)
-#  index_visitor_sign_in_cycles_on_token_id      (token_id)
+#  index_visitor_sign_in_cycles_on_discarded_at         (discarded_at)
+#  index_visitor_sign_in_cycles_on_expires_at           (expires_at)
+#  index_visitor_sign_in_cycles_on_principal_id         (principal_id)
+#  index_visitor_sign_in_cycles_on_public_id            (public_id) UNIQUE
+#  index_visitor_sign_in_cycles_on_selected_persona_id  (selected_persona_id)
+#  index_visitor_sign_in_cycles_on_selected_region_id   (selected_region_id)
+#  index_visitor_sign_in_cycles_on_state                (state)
+#  index_visitor_sign_in_cycles_on_status_id            (status_id)
+#  index_visitor_sign_in_cycles_on_token_id             (token_id)
 #
 # Foreign Keys
 #

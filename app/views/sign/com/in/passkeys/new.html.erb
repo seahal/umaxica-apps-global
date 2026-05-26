@@ -1,5 +1,5 @@
 <% title t("sign.app.authentication.passkey.new.page_title") %>
-<% return_to = params[:rt].presence %>
+<% pt = params[:pt].presence %>
 <% regional_context = params[:ri].presence %>
 
 <div>
@@ -10,8 +10,8 @@
 
   <div
     data-controller="passkey-authentication"
-    data-passkey-authentication-options-url-value="<%= options_sign_com_in_passkeys_path(rt: return_to, ri: regional_context) %>"
-    data-passkey-authentication-verification-url-value="<%= verification_sign_com_in_passkeys_path(rt: return_to, ri: regional_context) %>"
+    data-passkey-authentication-options-url-value="<%= options_sign_com_in_passkeys_path(pt: pt, ri: regional_context) %>"
+    data-passkey-authentication-verification-url-value="<%= verification_sign_com_in_passkeys_path(pt: pt, ri: regional_context) %>"
     data-passkey-authentication-identifier-param-value="identifier"
     data-passkey-authentication-turnstile-site-key-value="<%= Jit::Security::TurnstileConfig.stealth_site_key.to_s %>"
     data-passkey-authentication-turnstile-error-message-value="<%= t("turnstile_error") %>">
@@ -37,7 +37,7 @@
               data-action="click->passkey-authentication#authenticate">
         <%= t("sign.app.authentication.passkey.new.submit") %>
       </button>
-      <%= link_to t("sign.app.authentication.new.back"), new_sign_com_in_path(rt: return_to, ri: regional_context) %>
+      <%= link_to t("sign.app.authentication.new.back"), new_sign_com_in_path(pt: pt, ri: regional_context) %>
     </div>
   </div>
 </div>

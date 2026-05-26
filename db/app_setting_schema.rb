@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_18_044245) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -105,6 +105,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_18_044245) do
     t.datetime "updated_at", null: false
     t.index ["option_id"], name: "index_app_preference_motions_on_option_id"
     t.index ["preference_id"], name: "index_app_preference_motions_on_preference_id", unique: true
+  end
+
+  create_table "app_preference_r18_display_stopper_options", force: :cascade do |t|
+  end
+
+  create_table "app_preference_r18_display_stoppers", force: :cascade do |t|
+    t.bigint "preference_id", null: false
+    t.bigint "option_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_app_preference_r18_display_stoppers_on_option_id"
+    t.index ["preference_id"], name: "index_app_preference_r18_display_stoppers_on_preference_id", unique: true
   end
 
   create_table "app_preference_region_options", force: :cascade do |t|
@@ -204,6 +216,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_18_044245) do
   add_foreign_key "app_preference_languages", "app_preferences", column: "preference_id", validate: false
   add_foreign_key "app_preference_motions", "app_preference_motion_options", column: "option_id"
   add_foreign_key "app_preference_motions", "app_preferences", column: "preference_id"
+  add_foreign_key "app_preference_r18_display_stoppers", "app_preference_r18_display_stopper_options", column: "option_id"
+  add_foreign_key "app_preference_r18_display_stoppers", "app_preferences", column: "preference_id"
   add_foreign_key "app_preference_regions", "app_preference_region_options", column: "option_id", name: "fk_app_preference_regions_on_option_id"
   add_foreign_key "app_preference_regions", "app_preferences", column: "preference_id", validate: false
   add_foreign_key "app_preference_themes", "app_preference_theme_options", column: "option_id", name: "fk_app_preference_themes_on_option_id"

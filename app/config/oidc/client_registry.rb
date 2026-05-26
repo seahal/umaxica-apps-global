@@ -106,19 +106,19 @@ module Oidc
         },
         # Core
         "core_app" => {
-          redirect_uris: build_redirect_uris("MAIN_SERVICE_URL", "main.app.localhost"),
+          redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "jp.www.umaxica.app"),
           aud: "umaxica-core-app",
           resource_type: "client",
           name: "Core App",
         },
         "core_org" => {
-          redirect_uris: build_redirect_uris("MAIN_STAFF_URL", "main.org.localhost"),
+          redirect_uris: build_redirect_uris("CORE_STAFF_URL", "jp.www.umaxica.org"),
           aud: "umaxica-core-org",
           resource_type: "operator",
           name: "Core Org",
         },
         "core_com" => {
-          redirect_uris: build_redirect_uris("MAIN_CORPORATE_URL", "main.com.localhost"),
+          redirect_uris: build_redirect_uris("CORE_CORPORATE_URL", "jp.www.umaxica.com"),
           aud: "umaxica-core-com",
           resource_type: "visitor",
           name: "Core Com",

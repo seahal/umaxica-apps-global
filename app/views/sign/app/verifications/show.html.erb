@@ -2,7 +2,7 @@
 <% title t("sign.app.verification.index.title") %>
 <% verification_method_params = { ri: params[:ri] } %>
 <% verification_method_params[:scope] = params[:scope] if params[:scope].present? %>
-<% verification_method_params[:rt] = params[:rt].presence || params[:return_to].presence if params[:rt].present? || params[:return_to].present? %>
+<% verification_method_params[:pt] = params[:pt].presence || params[:pt].presence if params[:pt].present? || params[:pt].present? %>
 
 <div>
   <div>

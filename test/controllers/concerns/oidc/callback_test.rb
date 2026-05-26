@@ -13,7 +13,7 @@ class OidcCallbackTestController < ApplicationController
     session[:oidc_code_verifier] = params[:code_verifier] if params.key?(:code_verifier)
     session[:oidc_state] = params[:state] if params.key?(:state)
     session[:oidc_nonce] = params[:nonce] if params.key?(:nonce)
-    session[:oidc_return_to] = params[:return_to] if params.key?(:return_to)
+    session[:oidc_pt] = params[:pt] if params.key?(:pt)
 
     head :no_content
   end
@@ -65,9 +65,9 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
 
   Result = Struct.new(:success?, :token_response, :error, :error_description, keyword_init: true)
 
-  test "show redirects to return_to on successful exchange" do
+  test "show redirects to pt on successful exchange" do
     get "/oidc/callback/session",
-        params: { code_verifier: "verifier", state: "state", nonce: "nonce", return_to: "/after" }
+        params: { code_verifier: "verifier", state: "state", nonce: "nonce", pt: "/after" }
 
     result = Result.new(
       success?: true,

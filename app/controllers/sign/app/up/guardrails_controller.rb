@@ -5,9 +5,9 @@ module Sign
   module App
     module Up
       class GuardrailsController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include Sign::Up::SequenceControllerSupport
+
+        AUTHENTICATION_MODE = :guest
 
         before_action :load_sign_up_ticket
         before_action -> { authorize_sign_up_participant!(:enter_guardrail?) }
@@ -16,7 +16,7 @@ module Sign
           result = perform_sign_up_event(:enter_guardrail)
           return render_sign_up_result(result) unless result.status == :advanced
 
-          redirect_to(sign_app_up_checkpoint_path(ri: params[:ri], rt: params[:rt].presence))
+          redirect_to(sign_app_up_checkpoint_path(ri: params[:ri], pt: params[:pt].presence))
         end
 
         private

@@ -37,7 +37,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
       :user_id
     end
 
-    def sign_in_url_with_return(_return_to)
+    def sign_in_url_with_pt(_return_to)
       "/sign/in"
     end
 

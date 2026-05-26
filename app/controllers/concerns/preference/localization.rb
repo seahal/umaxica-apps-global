@@ -15,27 +15,14 @@ module Preference::Localization
   end
 
   def localization_locale
-    locale =
-      if respond_to?(:effective_context)
-        effective_context[:lx]
-      else
-        params[:lx].presence || cookies[Preference::Base::LANGUAGE_COOKIE_KEY].presence
-      end
-
+    preference = Actor.preferences if defined?(Actor)
+    locale = preference&.language
     locale.presence || I18n.default_locale
   end
 
   def localization_timezone
-    timezone =
-      if params[:tz].present?
-        params[:tz]
-      elsif session[:timezone].present?
-        session[:timezone]
-      elsif respond_to?(:effective_context)
-        effective_context[:tz]
-      else
-        cookies[Preference::Base::TIMEZONE_COOKIE_KEY].presence
-      end
+    preference = Actor.preferences if defined?(Actor)
+    timezone = preference&.timezone
 
     case timezone.to_s.downcase
     when "jst"

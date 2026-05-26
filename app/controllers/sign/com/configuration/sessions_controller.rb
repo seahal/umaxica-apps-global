@@ -5,9 +5,9 @@ module Sign
   module Com
     module Configuration
       class SessionsController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include Sign::Configuration::SessionManagement
+
+        AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!
 

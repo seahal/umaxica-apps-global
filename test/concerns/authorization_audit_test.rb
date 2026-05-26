@@ -125,7 +125,7 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
     result = capture_log_data(audit, exception)
 
     assert_equal "Client", result[:log_data][:actor_type]
-    assert_equal user.id, result[:log_data][:actor_id]
+    assert_equal user.public_id, result[:log_data][:actor_id]
   end
 
   test "log_authorization_failure includes policy metadata" do
@@ -148,7 +148,7 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
     result = capture_log_data(audit, exception)
 
     assert_equal "Client", result[:log_data][:record_type]
-    assert_equal record.id, result[:log_data][:record_id]
+    assert_equal record.public_id, result[:log_data][:record_id]
   end
 
   test "log_authorization_failure includes request metadata" do
@@ -281,14 +281,17 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
       result[:log_data] = log_data
     end
 
-    notifier =
+    logger =
       Struct.new(:events) do
-        define_method(:notify) do |name, payload|
-          events << [name, payload]
+        define_method(:info) do |message|
+          payload = JSON.parse(message, symbolize_names: true)
+          events << [payload.fetch(:event), payload.fetch(:data)]
         end
+
+        define_method(:error) { |_message| }
       end
 
-    Rails.stub(:event, notifier.new(result[:events])) do
+    Rails.stub(:logger, logger.new(result[:events])) do
       audit.send(:log_authorization_failure, exception)
     end
 

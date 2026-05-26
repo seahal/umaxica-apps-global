@@ -9,7 +9,6 @@
 #  id                     :bigint           not null, primary key
 #  birthdate              :text
 #  deactivated_at         :datetime
-#  deletable_at           :datetime         default(Infinity), not null
 #  discarded_at           :datetime         default(Infinity), not null
 #  last_step_up_at        :datetime
 #  lock_version           :integer          default(0), not null
@@ -29,7 +28,6 @@
 # Indexes
 #
 #  index_clients_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_clients_on_deletable_at            (deletable_at)
 #  index_clients_on_discarded_at            (discarded_at)
 #  index_clients_on_multi_factor_id         (multi_factor_id)
 #  index_clients_on_multi_factor_status_id  (multi_factor_status_id)

@@ -48,9 +48,9 @@ module SignIn
 
     def participant = payload["participant"]
 
-    def rt = payload["rt"]
+    def pt = payload["pt"]
 
-    def safe_return_path = payload["safe_return_path"] || payload["rt"]
+    def safe_pt_path = payload["safe_pt_path"] || payload["pt"]
 
     def mfa_challenge_id = payload["mfa_challenge_id"]
 

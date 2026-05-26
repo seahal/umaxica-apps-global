@@ -23,7 +23,7 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
         nonce,
         ri: params[:ri],
         scope: current_step_up_scope,
-        return_to: current_step_up_return_to_param,
+        pt: current_step_up_pt_param,
       ),
     )
   end
@@ -54,7 +54,7 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
         nonce,
         ri: params[:ri],
         scope: current_step_up_scope,
-        return_to: current_step_up_return_to_param,
+        pt: current_step_up_pt_param,
       ),
     )
   end
@@ -123,7 +123,7 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
 
   def set_verification_navigation_context
     @verification_scope = incoming_scope.presence || current_step_up_scope
-    @verification_return_to = incoming_return_to.presence || current_step_up_return_to_param
+    @verification_pt = incoming_pt.presence || current_step_up_pt_param
   end
 
   def verification_email_edit_path
@@ -131,7 +131,7 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
       params[:id],
       ri: params[:ri],
       scope: @verification_scope,
-      return_to: @verification_return_to,
+      pt: @verification_pt,
     )
   end
 end

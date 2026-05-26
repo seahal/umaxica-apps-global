@@ -11,7 +11,7 @@ module Oidc
 
     def create
       log_out
-      redirect_to(oidc_logout_url, allow_other_host: true)
+      redirect_to_xt_url(oidc_logout_url, allowed_urls: [oidc_logout_url])
     end
 
     private

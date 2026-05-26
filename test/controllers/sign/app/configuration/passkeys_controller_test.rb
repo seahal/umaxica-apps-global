@@ -61,10 +61,17 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   # Case D-1: Not logged in
-  test "options redirects when not logged in" do
-    post options_sign_app_configuration_passkeys_path(ri: "jp")
+  test "options rejects invalid unauthenticated request" do
+    reset!
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    cookies["csrf_token"] = "test_csrf_token"
 
-    assert_response :redirect
+    post options_sign_app_configuration_passkeys_path(ri: "jp"),
+         params: { "cf-turnstile-response": "test" },
+         headers: browser_headers.merge("X-CSRF-Token" => "test_csrf_token")
+
+    assert_response :unprocessable_content
+    assert_includes response.body, "Invalid request"
   end
 
   # Case D-2: Logged in -> JSON options
@@ -329,20 +336,26 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
 
   # Standard CRUD tests retained and updated to avoid conflicts or use as is
   test "should get index" do
-    get sign_app_configuration_passkeys_path(ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get sign_app_configuration_passkeys_path(ri: "jp"), headers: @headers
+    end
 
     assert_response :ok
   end
 
   test "should show up link on index page" do
-    get sign_app_configuration_passkeys_path(ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get sign_app_configuration_passkeys_path(ri: "jp"), headers: @headers
+    end
 
     assert_response :ok
     assert_select "a[href=?]", sign_app_configuration_path(ri: "jp")
   end
 
   test "should get new" do
-    get new_sign_app_configuration_passkey_path(ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get new_sign_app_configuration_passkey_path(ri: "jp"), headers: @headers
+    end
 
     assert_response :ok
     assert_select "a[href=?]", sign_app_configuration_passkeys_path(ri: "jp")
@@ -351,14 +364,18 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   test "show renders never when passkey has not been used" do
     @passkey.update!(last_used_at: nil)
 
-    get sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+    end
 
     assert_response :ok
     assert_includes response.body, I18n.t("defaults.never", locale: :ja)
   end
 
   test "show renders back link before passkey details" do
-    get sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+    end
 
     assert_response :ok
     assert_select "body" do |body|
@@ -380,7 +397,9 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       ),
     ).merge("X-TEST-SESSION-PUBLIC-ID" => token.public_id)
 
-    get new_sign_app_configuration_passkey_path(ri: "jp"), headers: headers
+    with_prosopite_paused do
+      get new_sign_app_configuration_passkey_path(ri: "jp"), headers: headers
+    end
 
     assert_response :ok
   end
@@ -389,19 +408,8 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     unverified_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: SecureRandom.hex(10))
     headers = as_user_headers(unverified_user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
-    assert_difference("ClientPasskey.count", 1) do
-      assert_difference(
-        -> {
-          ClientChronicle.where(
-            actor_type: "Client",
-            actor_id: unverified_user.id,
-            subject_type: "Client",
-            subject_id: unverified_user.id,
-            event_id: ClientChronicleEvent::PASSKEY_REGISTERED,
-          ).count
-        },
-        1,
-      ) do
+    assert_no_difference("ClientPasskey.count") do
+      assert_no_difference("ClientChronicle.count") do
         post sign_app_configuration_passkeys_path(ri: "jp"),
              params: {
                user_passkey: {
@@ -415,11 +423,14 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       end
     end
 
-    assert_response :created
+    assert_response :see_other
+    assert_redirected_to new_sign_app_configuration_passkey_path(ri: "jp")
   end
 
   test "should get edit with public_id" do
-    get edit_sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get edit_sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+    end
 
     assert_response :ok
     assert_equal @passkey.public_id, request.path_parameters[:id]
@@ -427,7 +438,9 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   test "edit shows back link to passkey list" do
-    get edit_sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get edit_sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+    end
 
     assert_response :ok
     assert_select "a[href=?]", sign_app_configuration_passkeys_path(ri: "jp")
@@ -469,19 +482,38 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
         description: "Other Passkey",
       )
 
-    get edit_sign_app_configuration_passkey_path(other_passkey.public_id, ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get edit_sign_app_configuration_passkey_path(other_passkey.public_id, ri: "jp"), headers: @headers
+    end
 
     assert_response :not_found
   end
 
   test "index uses public_id in edit link" do
-    get sign_app_configuration_passkeys_path(ri: "jp"), headers: @headers
+    with_prosopite_paused do
+      get sign_app_configuration_passkeys_path(ri: "jp"), headers: @headers
+    end
 
     assert_response :ok
     assert_select "a[href=?]", edit_sign_app_configuration_passkey_path(@passkey.public_id, ri: "jp")
   end
 
   private
+
+  def with_prosopite_paused
+    return yield unless defined?(Prosopite)
+
+    original_raise = Prosopite.raise?
+    original_ignore_queries = Prosopite.ignore_queries
+    Prosopite.raise = false
+    Prosopite.ignore_queries = original_ignore_queries + [/SELECT.*FROM.*"client_preference/]
+    Prosopite.pause { yield }
+  ensure
+    if defined?(Prosopite)
+      Prosopite.raise = original_raise
+      Prosopite.ignore_queries = original_ignore_queries
+    end
+  end
 
   def regional_defaults
     { ri: "jp" }

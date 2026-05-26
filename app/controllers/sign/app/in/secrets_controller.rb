@@ -5,13 +5,17 @@ module Sign
   module App
     module In
       class SecretsController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include ::CloudflareTurnstile
+
         include EmailValidation
+
         include IdentifierDetection
+
         include Common::Redirect
+
         include SessionLimitGate
+
+        AUTHENTICATION_MODE = :guest
 
         class SecretLoginForm
           include ActiveModel::Model
@@ -151,7 +155,7 @@ module Sign
             redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
           when :success
             redirect_to_sign_in_sequence!(
-              rt: result[:redirect_path],
+              pt: result[:redirect_path],
               notice: t("sign.app.authentication.secret.create.success"),
             )
           else
@@ -172,7 +176,7 @@ module Sign
 
         def process_standard_login(user)
           result = establish_signed_in_session!(
-            user, rt: nil, ri: params[:ri], auth_method: "secret",
+            user, pt: nil, ri: params[:ri], auth_method: "secret",
           )
           sign_in_result = sign_in_result_from_session_result(result, actor: user)
           if sign_in_result.mfa_required?
@@ -186,7 +190,7 @@ module Sign
             redirect_to(sign_in_result.redirect_to, notice: I18n.t("sign.app.in.session.restricted_notice"))
           else
             redirect_to_sign_in_sequence!(
-              rt: redirect_parameter_value,
+              pt: path_target_value,
               notice: t("sign.app.authentication.secret.create.success"),
             )
           end

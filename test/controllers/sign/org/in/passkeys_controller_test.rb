@@ -182,7 +182,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
       }
 
       # Should log in
-      post verification_sign_org_in_passkeys_url(ri: "jp", rt: "/configuration/passkeys"), params: params
+      post verification_sign_org_in_passkeys_url(ri: "jp", pt: "/configuration/passkeys"), params: params
 
       assert_response :ok
       json = response.parsed_body
@@ -191,7 +191,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
       assert_not_nil json["access_token"]
       assert_equal "Bearer", json["token_type"]
       assert_equal Authentication::Base::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
-      assert_equal sign_org_dashboard_path(ri: "jp", rt: "/configuration/passkeys"), json["redirect_url"]
+      assert_equal sign_org_dashboard_path(ri: "jp", pt: "/configuration/passkeys"), json["redirect_url"]
 
       # Challenge verification updates sign count
       assert_equal 1, @staff_passkey.reload.sign_count

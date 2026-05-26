@@ -179,7 +179,7 @@ module Authentication
           requested_at: Time.current,
           access_expires_at: Time.current,
           refresh_expires_at: sign_out_refresh_expires_at(token_record),
-          return_to: nil,
+          pt: nil,
         )
       end
     rescue ActiveRecord::ActiveRecordError, ArgumentError => e
@@ -204,9 +204,9 @@ module Authentication
       return false if cycle_class.blank?
 
       cycle_class.where(token_id: token_record.id)
-                 .where(status_id: cycle_class.status_id_for("COMPLETED"))
-                 .where(cycle_class.arel_table[:completed_at].gt(5.minutes.ago))
-                 .exists?
+        .where(status_id: cycle_class.status_id_for("COMPLETED"))
+        .where(cycle_class.arel_table[:completed_at].gt(5.minutes.ago))
+        .exists?
     rescue ActiveRecord::ActiveRecordError, ArgumentError
       false
     end

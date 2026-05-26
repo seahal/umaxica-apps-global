@@ -24,7 +24,7 @@ module Authentication
     private
 
     def logout_current_session!(reason: "user_logout")
-      resource = nil
+      nil
 
       begin
         resource = safe_current_resource_for_logout

@@ -1,6 +1,13 @@
 # typed: false
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: post_review_statuses
+# Database name: app_publisher
+#
+#  id :bigint           not null, primary key
+#
 class AppPostReviewStatus < AppPublisherRecord
   self.table_name = "post_review_statuses"
 

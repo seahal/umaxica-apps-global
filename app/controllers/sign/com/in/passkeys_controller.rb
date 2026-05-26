@@ -5,20 +5,31 @@ module Sign
   module Com
     module In
       class PasskeysController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include Sign::Webauthn
+
         include Sign::PasskeyAuthentication
+
         include Sign::PasskeyAuthenticationHelpers
+
         include Sign::PasskeyOptionsFlow
+
         include Sign::PasskeyVerificationFlow
+
         include Sign::PasskeySignInFlow
+
         include Sign::PasskeyLoginResultFlow
+
         include EmailValidation
+
         include IdentifierDetection
+
         include MinimumResponseBudget
+
         include SessionLimitGate
+
         include CloudflareTurnstile
+
+        AUTHENTICATION_MODE = :guest
 
         def new
         end
@@ -99,9 +110,9 @@ module Sign
         end
 
         def perform_passkey_sign_in(passkey)
-          rt = retrieve_redirect_parameter_for_checkpoint
+          pt = retrieve_pt_for_checkpoint
           establish_signed_in_session!(
-            passkey.visitor, rt: rt, ri: params[:ri], auth_method: "passkey",
+            passkey.visitor, pt: pt, ri: params[:ri], auth_method: "passkey",
           )
         end
 
@@ -132,7 +143,7 @@ module Sign
 
         def passkey_checkpoint_redirect_url
           sign_com_in_checkpoint_path(
-            rt: retrieve_redirect_parameter_for_checkpoint,
+            pt: retrieve_pt_for_checkpoint,
             ri: params[:ri],
           )
         end

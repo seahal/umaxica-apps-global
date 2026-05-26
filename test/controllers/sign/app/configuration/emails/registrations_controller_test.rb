@@ -296,11 +296,11 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     assert_response :success
   end
 
-  test "update returns to preserved rt after verifying OTP" do
+  test "update returns to preserved pt after verifying OTP" do
     return_to = sign_app_configuration_emails_path(ri: "jp")
-    rt = Base64.urlsafe_encode64(return_to)
+    pt = Base64.urlsafe_encode64(return_to)
 
-    get new_sign_app_configuration_emails_registration_url(ri: "jp", rt: rt), headers: request_headers
+    get new_sign_app_configuration_emails_registration_url(ri: "jp", pt: pt), headers: request_headers
 
     assert_response :success
 
@@ -308,7 +308,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
       post sign_app_configuration_emails_registration_url(ri: "jp"),
            params: {
              user_email: {
-               raw_address: "config-verify-rt@example.com",
+               raw_address: "config-verify-pt@example.com",
              },
              "cf-turnstile-response": "test",
            },
@@ -316,7 +316,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     end
 
     assert_response :redirect
-    assert_redirected_to edit_sign_app_configuration_emails_registration_url(ri: "jp", rt: rt)
+    assert_redirected_to edit_sign_app_configuration_emails_registration_url(ri: "jp", pt: pt)
 
     user_email = @user.client_emails.order(:created_at).last
     otp_data = user_email.get_otp
@@ -352,9 +352,9 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
   end
 
   test "edit renders OTP resend control" do
-    rt = Base64.urlsafe_encode64(sign_app_configuration_mfa_challenge_path(ri: "jp"))
+    pt = Base64.urlsafe_encode64(sign_app_configuration_mfa_challenge_path(ri: "jp"))
 
-    post sign_app_configuration_emails_registration_url(ri: "jp", rt: rt),
+    post sign_app_configuration_emails_registration_url(ri: "jp", pt: pt),
          params: {
            user_email: {
              raw_address: "config-resend-control@example.com",
@@ -363,11 +363,11 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
          },
          headers: request_headers
 
-    get edit_sign_app_configuration_emails_registration_url(ri: "jp", rt: rt), headers: request_headers
+    get edit_sign_app_configuration_emails_registration_url(ri: "jp", pt: pt), headers: request_headers
 
     assert_response :success
     assert_select "form[action=?][method=?]",
-                  resend_sign_app_configuration_emails_registration_path(ri: "jp", rt: rt),
+                  resend_sign_app_configuration_emails_registration_path(ri: "jp", pt: pt),
                   "post"
     assert_select "button", text: I18n.t("otp.resend.button")
   end

@@ -75,7 +75,7 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
     end
   end
 
-  test "new keeps scope and rt in form hidden fields" do
+  test "new keeps scope and pt in form hidden fields" do
     return_to = Base64.urlsafe_encode64(new_sign_app_configuration_passkey_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
@@ -86,13 +86,13 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
         assert_response :success
         assert_select(
           "a[href=?]",
-          new_sign_app_verification_passkey_path(ri: "jp", scope: "configuration_passkey", rt: return_to),
+          new_sign_app_verification_passkey_path(ri: "jp", scope: "configuration_passkey", pt: return_to),
         )
 
         get new_sign_app_verification_passkey_url(
           ri: "jp",
           scope: "configuration_passkey",
-          rt: return_to,
+          pt: return_to,
         ), headers: @headers
 
         assert_response :success

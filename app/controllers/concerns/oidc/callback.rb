@@ -29,7 +29,7 @@ module Oidc
         end
       return render_callback_failure("login_failed") unless login_result[:status] == :success
 
-      redirect_to(consume_oidc_return_to, allow_other_host: false)
+      redirect_to(consume_oidc_pt, allow_other_host: false)
     rescue InvalidCallbackState
       clear_oidc_session_state!
       render plain: I18n.t("errors.messages.login_required"), status: :unprocessable_content
@@ -73,8 +73,8 @@ module Oidc
       Oidc::ClientRegistry.find(oidc_client_id)&.client_secret
     end
 
-    def consume_oidc_return_to
-      session.delete(:oidc_return_to).presence || "/"
+    def consume_oidc_pt
+      session.delete(:oidc_pt).presence || "/"
     end
 
     def render_callback_failure(error)
@@ -94,7 +94,7 @@ module Oidc
       session.delete(:oidc_code_verifier)
       session.delete(:oidc_state)
       session.delete(:oidc_nonce)
-      session.delete(:oidc_return_to)
+      session.delete(:oidc_pt)
     end
 
     def oidc_resource_type

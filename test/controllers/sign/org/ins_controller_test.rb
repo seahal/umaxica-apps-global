@@ -28,14 +28,14 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?]", continue_sign_org_social_authentication_path(query.merge(provider: "google_org"))
   end
 
-  test "authentication links carry rt" do
-    rt = Base64.urlsafe_encode64("https://id.umaxica.org/configuration/sessions?ri=jp", padding: false)
+  test "authentication links carry pt" do
+    pt = Base64.urlsafe_encode64("https://id.umaxica.org/configuration/sessions?ri=jp", padding: false)
 
-    get new_sign_org_in_url(ri: "jp", rt: rt), headers: { "Host" => @host }
+    get new_sign_org_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "a[href=?]", new_sign_org_in_passkey_path(rt: rt, ri: "jp")
-    assert_select "a[href=?]", new_sign_org_in_secret_path(rt: rt, ri: "jp")
+    assert_select "a[href=?]", new_sign_org_in_passkey_path(pt: pt, ri: "jp")
+    assert_select "a[href=?]", new_sign_org_in_secret_path(pt: pt, ri: "jp")
   end
 
   test "does not render sign up link on sign in page" do

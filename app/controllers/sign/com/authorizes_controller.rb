@@ -15,7 +15,7 @@ module Sign
         )
 
         if result.success?
-          redirect_to(result.redirect_url, allow_other_host: true)
+          redirect_to_xt_url(result.redirect_url, allowed_urls: [params[:redirect_uri]])
         else
           render json: { error: result.error, error_description: result.error_description },
                  status: :bad_request
@@ -31,11 +31,11 @@ module Sign
         )
       end
 
-      def sign_in_url_with_return(return_to)
+      def sign_in_url_with_pt(return_to)
         return super unless params[:screen_hint].to_s == "signup"
 
         new_sign_com_up_url(
-          rt: return_to,
+          pt: return_to,
           ri: params[:ri].presence,
           host: sign_com_redirect_host,
           protocol: request.protocol,

@@ -19,9 +19,10 @@ class Sign::Org::Up::BaseControllerTest < ActionDispatch::IntegrationTest
     # raise error to simulate route missing
     controller.define_singleton_method(:sign_org_configuration_path) { raise StandardError, "route missing" }
 
-    error = assert_raises(StandardError) do
-      controller.send(:after_login_path)
-    end
+    error =
+      assert_raises(StandardError) do
+        controller.send(:after_login_path)
+      end
 
     assert_equal "route missing", error.message
   end

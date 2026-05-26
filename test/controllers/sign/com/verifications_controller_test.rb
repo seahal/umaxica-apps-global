@@ -39,7 +39,7 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification/setup/new", uri.path
-    assert_predicate query["rt"], :present?
+    assert_predicate query["pt"], :present?
   end
 
   test "show renders only email and passkey method links" do
@@ -70,7 +70,7 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
 
   def signed_return_target(return_to:, flow:, surface:, session_nonce:, expires_in: 15.minutes)
     harness = Class.new do
-      include ReturnTargets::SignedTokenSupport
+      include ::Redirects::SignedTargetSupport
 
       def issue(return_to:, flow:, surface:, session_nonce:, expires_in:)
         path = signed_target_internal_path(return_to)

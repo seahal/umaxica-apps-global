@@ -60,7 +60,7 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
       :user_id
     end
 
-    def sign_in_url_with_return(_return_to)
+    def sign_in_url_with_pt(_return_to)
       "/sign/in"
     end
 
@@ -112,8 +112,8 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
     @harness = RedirectHarness.new
   end
 
-  test "DEFAULT_RT_SESSION_KEY is defined" do
-    assert_includes Authentication::Base::DEFAULT_RT_SESSION_KEY.to_s, "rt"
+  test "DEFAULT_PT_SESSION_KEY is defined" do
+    assert_includes Authentication::Base::DEFAULT_PT_SESSION_KEY.to_s, "pt"
   end
 
   test "BULLETIN_SESSION_KEY is defined" do
@@ -124,50 +124,50 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
     assert_equal 2.hours, Authentication::Base::BULLETIN_TIMEOUT
   end
 
-  test "preserve_redirect_parameter stores rt in session" do
-    @harness.params_data[Auth::IoKeys::Params::RT] = "/dashboard"
-    result = @harness.preserve_redirect_parameter
+  test "preserve_pt stores pt in session" do
+    @harness.params_data[Auth::IoKeys::Params::PT] = "/dashboard"
+    result = @harness.preserve_pt
 
     assert_match(/--/, result)
-    assert_equal result, @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
+    assert_equal result, @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
   end
 
-  test "preserve_redirect_parameter returns nil when no rt param" do
-    result = @harness.preserve_redirect_parameter
+  test "preserve_pt returns nil when no pt param" do
+    result = @harness.preserve_pt
 
     assert_nil result
-    assert_nil @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
+    assert_nil @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
   end
 
-  test "retrieve_redirect_parameter returns and clears session value" do
-    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = @harness.safe_encoded_rt("/dashboard")
-    result = @harness.retrieve_redirect_parameter
+  test "retrieve_pt returns and clears session value" do
+    @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = @harness.signed_pt_token("/dashboard")
+    result = @harness.retrieve_pt
 
     assert_match(/--/, result)
-    assert_nil @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
+    assert_nil @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
   end
 
-  test "retrieve_redirect_parameter falls back to params" do
-    @harness.params_data[Auth::IoKeys::Params::RT] = "/dashboard"
-    result = @harness.retrieve_redirect_parameter
+  test "retrieve_pt falls back to params" do
+    @harness.params_data[Auth::IoKeys::Params::PT] = "/dashboard"
+    result = @harness.retrieve_pt
 
     assert_match(/--/, result)
   end
 
-  test "peek_redirect_parameter returns without clearing" do
-    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = @harness.safe_encoded_rt("/dashboard")
-    result = @harness.peek_redirect_parameter
+  test "peek_pt returns without clearing" do
+    @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = @harness.signed_pt_token("/dashboard")
+    result = @harness.peek_pt
 
     assert_match(/--/, result)
-    assert_equal result, @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
+    assert_equal result, @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
   end
 
-  test "build_redirect_params includes rt when present" do
-    @harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = @harness.safe_encoded_rt("/dashboard")
+  test "build_redirect_params includes pt when present" do
+    @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = @harness.signed_pt_token("/dashboard")
     result = @harness.build_redirect_params(:notice, "Success")
 
     assert_equal "Success", result[:notice]
-    assert_match(/--/, result[Auth::IoKeys::Params::RT])
+    assert_match(/--/, result[Auth::IoKeys::Params::PT])
   end
 
   test "build_notice_params creates notice hash" do

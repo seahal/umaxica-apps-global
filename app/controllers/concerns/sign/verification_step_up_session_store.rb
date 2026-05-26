@@ -7,12 +7,12 @@ module Sign
 
     private
 
-    def start_step_up_session!(scope:, return_to_param:)
+    def start_step_up_session!(scope:, pt_param:)
       token = current_step_up_token
       raise ActionController::BadRequest, "missing session token" unless token
 
-      safe_path = resolve_step_up_rt(return_to_param)
-      raise ActionController::BadRequest, "invalid return_to" if safe_path.blank?
+      safe_path = resolve_step_up_pt(pt_param)
+      raise ActionController::BadRequest, "invalid pt" if safe_path.blank?
 
       scope_str = scope.to_s
       raise ActionController::BadRequest, "invalid scope" unless self.class::ALLOWED_SCOPES.key?(scope_str)
@@ -60,8 +60,8 @@ module Sign
       current_session_token if respond_to?(:current_session_token, true)
     end
 
-    def resolve_step_up_rt(encoded)
-      return signed_rt_to_safe_path(encoded) if respond_to?(:signed_rt_to_safe_path, true)
+    def resolve_step_up_pt(encoded)
+      return signed_pt_to_safe_path(encoded) if respond_to?(:signed_pt_to_safe_path, true)
       return safe_internal_path(encoded.to_s) if respond_to?(:safe_internal_path, true)
 
       encoded.to_s.presence

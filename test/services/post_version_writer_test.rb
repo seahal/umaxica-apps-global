@@ -8,7 +8,10 @@ class PostVersionWriterTest < ActiveSupport::TestCase
 
   setup do
     capability = AvatarCapability.find_or_create_by!(id: AvatarCapability::NORMAL)
-    handle = Handle.find_or_create_by!(handle: "post_version_writer_test") { |record| record.cooldown_until = Time.current }
+    handle =
+      Handle.find_or_create_by!(handle: "post_version_writer_test") { |record|
+        record.cooldown_until = Time.current
+      }
     @avatar =
       Avatar.find_or_create_by!(moniker: "Post Version Writer Author") do |record|
         record.capability = capability

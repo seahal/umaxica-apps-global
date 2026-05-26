@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_19_173000) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -61,12 +61,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_19_173000) do
     t.boolean "promotional", default: true, null: false
     t.boolean "notifiable", default: true, null: false
     t.boolean "subscribable", default: true, null: false
-    t.index ["address_digest"], name: "index_visitor_emails_on_address_digest", unique: true, where: "(address_digest IS NOT NULL)"
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
+    t.index ["address_digest"], name: "index_visitor_emails_on_active_address_digest", unique: true, where: "((address_digest IS NOT NULL) AND (visitor_email_status_id <> 4))"
+    t.index ["discarded_at"], name: "index_visitor_emails_on_discarded_at"
     t.index ["otp_last_sent_at"], name: "index_visitor_emails_on_otp_last_sent_at"
     t.index ["public_id"], name: "index_visitor_emails_on_public_id", unique: true
+    t.index ["purged_at"], name: "index_visitor_emails_on_purged_at"
     t.index ["visitor_email_status_id"], name: "index_visitor_emails_on_visitor_email_status_id"
     t.index ["visitor_id"], name: "index_visitor_emails_on_visitor_id"
   end
+
+  add_check_constraint "visitor_emails", "discarded_at <= purged_at", name: "chk_visitor_emails_retention_order", validate: false
 
   create_table "visitor_multi_factor_statuses", force: :cascade do |t|
   end
@@ -89,11 +95,17 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_19_173000) do
     t.bigint "status_id", default: 1, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
+    t.index ["discarded_at"], name: "index_visitor_passkeys_on_discarded_at"
     t.index ["public_id"], name: "index_visitor_passkeys_on_public_id", unique: true
+    t.index ["purged_at"], name: "index_visitor_passkeys_on_purged_at"
     t.index ["status_id"], name: "index_visitor_passkeys_on_status_id"
     t.index ["visitor_id"], name: "index_visitor_passkeys_on_visitor_id"
     t.index ["webauthn_id"], name: "index_visitor_passkeys_on_webauthn_id", unique: true
   end
+
+  add_check_constraint "visitor_passkeys", "discarded_at <= purged_at", name: "chk_visitor_passkeys_retention_order", validate: false
 
   create_table "visitor_preference_currencies", force: :cascade do |t|
     t.bigint "preference_id", null: false
@@ -166,6 +178,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_19_173000) do
     t.datetime "updated_at", null: false
     t.index ["option_id"], name: "index_visitor_preference_motions_on_option_id"
     t.index ["preference_id"], name: "index_visitor_preference_motions_on_preference_id", unique: true
+  end
+
+  create_table "visitor_preference_r18_display_stopper_options", force: :cascade do |t|
+  end
+
+  create_table "visitor_preference_r18_display_stoppers", force: :cascade do |t|
+    t.bigint "preference_id", null: false
+    t.bigint "option_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_visitor_preference_r18_display_stoppers_on_option_id"
+    t.index ["preference_id"], name: "index_visitor_preference_r18_display_stoppers_on_preference_id", unique: true
   end
 
   create_table "visitor_preference_region_options", force: :cascade do |t|
@@ -289,11 +313,17 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_19_173000) do
     t.bigint "visitor_telephone_status_id", default: 1, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["number_digest"], name: "index_visitor_telephones_on_number_digest", unique: true, where: "(number_digest IS NOT NULL)"
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
+    t.index ["discarded_at"], name: "index_visitor_telephones_on_discarded_at"
+    t.index ["number_digest"], name: "index_visitor_telephones_on_active_number_digest", unique: true, where: "((number_digest IS NOT NULL) AND (visitor_telephone_status_id <> 4))"
     t.index ["public_id"], name: "index_visitor_telephones_on_public_id", unique: true
+    t.index ["purged_at"], name: "index_visitor_telephones_on_purged_at"
     t.index ["visitor_id"], name: "index_visitor_telephones_on_visitor_id"
     t.index ["visitor_telephone_status_id"], name: "index_visitor_telephones_on_visitor_telephone_status_id"
   end
+
+  add_check_constraint "visitor_telephones", "discarded_at <= purged_at", name: "chk_visitor_telephones_retention_order", validate: false
 
   create_table "visitor_visibilities", force: :cascade do |t|
   end
@@ -389,6 +419,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_19_173000) do
   add_foreign_key "visitor_preference_languages", "visitor_preferences", column: "preference_id"
   add_foreign_key "visitor_preference_motions", "visitor_preference_motion_options", column: "option_id"
   add_foreign_key "visitor_preference_motions", "visitor_preferences", column: "preference_id"
+  add_foreign_key "visitor_preference_r18_display_stoppers", "visitor_preference_r18_display_stopper_options", column: "option_id"
+  add_foreign_key "visitor_preference_r18_display_stoppers", "visitor_preferences", column: "preference_id"
   add_foreign_key "visitor_preference_regions", "visitor_preference_region_options", column: "option_id"
   add_foreign_key "visitor_preference_regions", "visitor_preferences", column: "preference_id"
   add_foreign_key "visitor_preference_themes", "visitor_preference_theme_options", column: "option_id"

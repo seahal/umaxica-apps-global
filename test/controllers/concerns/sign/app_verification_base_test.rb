@@ -66,11 +66,11 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       "/configuration?#{params.to_query}"
     end
 
-    def signed_rt_to_safe_path(value)
+    def signed_pt_to_safe_path(value)
       value.to_s.start_with?("/") ? value.to_s : nil
     end
 
-    def issue_step_up_rt(value)
+    def issue_step_up_pt(value)
       "signed--#{value}"
     end
 
@@ -82,11 +82,11 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       user_token&.step_up_session
     end
 
-    def start_step_up_session!(scope:, return_to_param:)
+    def start_step_up_session!(scope:, pt_param:)
       Sign::VerificationStepUpSessionStore.instance_method(:start_step_up_session!).bind_call(
         self,
         scope: scope,
-        return_to_param: return_to_param,
+        pt_param: pt_param,
       )
     end
 
@@ -131,7 +131,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     harness.params_hash = {
       ri: "jp",
       scope: "configuration_secret",
-      rt: "/configuration/secrets",
+      pt: "/configuration/secrets",
       verification: {
         scope: "configuration_email",
         return_to: return_to,
@@ -140,7 +140,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     }
 
     assert_equal "configuration_email", harness.send(:incoming_scope)
-    assert_equal return_to, harness.send(:incoming_return_to)
+    assert_equal return_to, harness.send(:incoming_pt)
     assert_equal(
       { ri: "jp", scope: "configuration_email", return_to: return_to },
       harness.send(:verification_recovery_redirect_params),
@@ -172,7 +172,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     assert_predicate nonce, :present?
     assert_equal nonce, harness.app_call(:ensure_email_nonce!)
     assert_equal "configuration_email", harness.app_call(:current_step_up_scope)
-    assert_match(/--/, harness.app_call(:current_step_up_return_to_param))
+    assert_match(/--/, harness.app_call(:current_step_up_pt_param))
   end
 
   test "step_up session validation and restore from params" do

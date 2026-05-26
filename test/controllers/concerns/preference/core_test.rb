@@ -163,9 +163,10 @@ class Preference::CoreTest < ActiveSupport::TestCase
       raise StandardError, "resource lookup failed"
     end
 
-    error = assert_raises(Preference::ResolutionError) do
-      @controller.send(:preference_write_owner_id)
-    end
+    error =
+      assert_raises(Preference::ResolutionError) do
+        @controller.send(:preference_write_owner_id)
+      end
 
     assert_match "Preference current_resource resolution failed", error.message
     assert_equal "resource lookup failed", error.cause.message
@@ -178,9 +179,10 @@ class Preference::CoreTest < ActiveSupport::TestCase
       raise StandardError, "resource lookup failed"
     end
 
-    error = assert_raises(Preference::ResolutionError) do
-      @controller.send(:refresh_preference_token_from_db_for_edit_entry!)
-    end
+    error =
+      assert_raises(Preference::ResolutionError) do
+        @controller.send(:refresh_preference_token_from_db_for_edit_entry!)
+      end
 
     assert_match "Preference current_resource resolution failed", error.message
   end
@@ -190,9 +192,10 @@ class Preference::CoreTest < ActiveSupport::TestCase
       raise StandardError, "resource lookup failed"
     end
 
-    error = assert_raises(Preference::ResolutionError) do
-      @controller.send(:sync_to_resource_preference!)
-    end
+    error =
+      assert_raises(Preference::ResolutionError) do
+        @controller.send(:sync_to_resource_preference!)
+      end
 
     assert_match "Preference current_resource resolution failed", error.message
   end

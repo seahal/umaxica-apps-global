@@ -38,8 +38,8 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:new_sign_org_in_path) { "/org/in/new" }
     controller.define_singleton_method(:sign_org_in_session_path) { "/org/in/session" }
     controller.define_singleton_method(:sign_org_in_checkpoint_path) { |ri: nil| "/org/in/checkpoint?ri=#{ri}" }
-    controller.define_singleton_method(:sign_org_dashboard_path) { |ri: nil, rt: nil|
-      "/org/dashboard?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    controller.define_singleton_method(:sign_org_dashboard_path) { |ri: nil, pt: nil|
+      "/org/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_org_root_path) { |ri: nil| "/org?ri=#{ri}" }
     controller.define_singleton_method(:sign_org_configuration_path) { "/org/configuration" }

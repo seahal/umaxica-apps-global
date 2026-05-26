@@ -4,9 +4,8 @@
 module Apex
   module App
     class OpenController < ApplicationController
-      AUTHENTICATION_MODE = :open
-
       include ::RateLimit
+
       include ::Session
 
       include ::Preference::Global
@@ -21,7 +20,9 @@ module Apex
 
       include ::Finisher
 
-      authorize :user, through: :current_client
+      AUTHENTICATION_MODE = :open
+
+      authorize :user, through: :current_policy_user
 
       layout "apex/app/application"
 

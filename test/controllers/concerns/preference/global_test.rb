@@ -76,7 +76,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
     controller.request = ActionDispatch::TestRequest.create
     controller.params = ActionController::Parameters.new(
       ri: "US",
-      rt: "opaque-token",
+      pt: "opaque-token",
       lx: "EN",
       ct: "DR",
       tz: "Asia/Tokyo",
@@ -92,7 +92,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
     assert_equal(
       {
         ri: "us",
-        rt: "opaque-token",
+        pt: "opaque-token",
         lx: "en",
         ct: "dr",
         tz: "Asia/Tokyo",
@@ -113,7 +113,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
   test "request_context omits invalid public request context values" do
     controller = PreferenceGlobalTestController.new
     controller.request = ActionDispatch::TestRequest.create
-    controller.params = ActionController::Parameters.new(ri: "ca", lx: "kr", ct: "purple", tz: "Mars/Base", rt: "")
+    controller.params = ActionController::Parameters.new(ri: "ca", lx: "kr", ct: "purple", tz: "Mars/Base", pt: "")
 
     assert_empty controller.request_context
   end

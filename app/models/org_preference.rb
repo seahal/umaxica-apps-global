@@ -130,6 +130,10 @@ class OrgPreference < OrgSettingRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  has_one :org_preference_r18_display_stopper,
+          foreign_key: :preference_id,
+          inverse_of: :preference,
+          dependent: :destroy
   has_many :org_preference_chronicles,
            foreign_key: :subject_id,
            inverse_of: :org_preference,
@@ -145,6 +149,10 @@ class OrgPreference < OrgSettingRecord
 
   before_validation :default_replaced_by_to_self, on: :create
   after_create :persist_self_replacement
+
+  def r18_display_stopper
+    org_preference_r18_display_stopper&.option&.name || "disabled"
+  end
 
   private
 

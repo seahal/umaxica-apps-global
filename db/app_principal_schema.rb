@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -88,12 +88,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
     t.boolean "promotional", default: true, null: false
     t.boolean "notifiable", default: true, null: false
     t.boolean "subscribable", default: true, null: false
-    t.index ["address_digest"], name: "index_client_emails_on_address_digest", unique: true, where: "(address_digest IS NOT NULL)"
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
+    t.index ["address_digest"], name: "index_client_emails_on_active_address_digest", unique: true, where: "((address_digest IS NOT NULL) AND (user_email_status_id <> 4))"
+    t.index ["discarded_at"], name: "index_client_emails_on_discarded_at"
     t.index ["otp_last_sent_at"], name: "index_client_emails_on_otp_last_sent_at"
     t.index ["public_id"], name: "index_client_emails_on_public_id", unique: true
+    t.index ["purged_at"], name: "index_client_emails_on_purged_at"
     t.index ["user_email_status_id"], name: "index_client_emails_on_user_email_status_id"
     t.index ["user_id"], name: "index_client_emails_on_user_id"
   end
+
+  add_check_constraint "client_emails", "discarded_at <= purged_at", name: "chk_client_emails_retention_order", validate: false
 
   create_table "client_member_deletions", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -207,11 +213,17 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
     t.bigint "status_id", default: 1, null: false
     t.datetime "last_used_at"
     t.string "public_id", limit: 21, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
+    t.index ["discarded_at"], name: "index_client_passkeys_on_discarded_at"
     t.index ["public_id"], name: "index_client_passkeys_on_public_id", unique: true
+    t.index ["purged_at"], name: "index_client_passkeys_on_purged_at"
     t.index ["status_id"], name: "index_client_passkeys_on_status_id"
     t.index ["user_id"], name: "index_user_identity_passkeys_on_user_id"
     t.index ["webauthn_id"], name: "index_client_passkeys_on_webauthn_id", unique: true
   end
+
+  add_check_constraint "client_passkeys", "discarded_at <= purged_at", name: "chk_client_passkeys_retention_order", validate: false
 
   create_table "client_preference_currencies", force: :cascade do |t|
     t.bigint "preference_id", null: false
@@ -283,6 +295,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
     t.datetime "updated_at", null: false
     t.index ["option_id"], name: "index_client_preference_motions_on_option_id"
     t.index ["preference_id"], name: "index_client_preference_motions_on_preference_id", unique: true
+  end
+
+  create_table "client_preference_r18_display_stopper_options", force: :cascade do |t|
+  end
+
+  create_table "client_preference_r18_display_stoppers", force: :cascade do |t|
+    t.bigint "preference_id", null: false
+    t.bigint "option_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_client_preference_r18_display_stoppers_on_option_id"
+    t.index ["preference_id"], name: "index_client_preference_r18_display_stoppers_on_preference_id", unique: true
   end
 
   create_table "client_preference_region_options", force: :cascade do |t|
@@ -398,11 +422,17 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.bigint "status_id", default: 1, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
+    t.index ["discarded_at"], name: "index_client_social_apples_on_discarded_at"
+    t.index ["purged_at"], name: "index_client_social_apples_on_purged_at"
     t.index ["status_id"], name: "index_client_social_apples_on_status_id"
     t.index ["token_expires_at"], name: "index_client_social_apples_on_token_expires_at"
     t.index ["uid", "provider"], name: "index_client_social_apples_on_uid_and_provider", unique: true
     t.index ["user_id"], name: "index_user_identity_social_apples_on_user_id_unique", unique: true, where: "(user_id IS NOT NULL)"
   end
+
+  add_check_constraint "client_social_apples", "discarded_at <= purged_at", name: "chk_client_social_apples_retention_order", validate: false
 
   create_table "client_social_google_statuses", force: :cascade do |t|
   end
@@ -418,11 +448,17 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.bigint "status_id", default: 1, null: false
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
+    t.index ["discarded_at"], name: "index_client_social_googles_on_discarded_at"
+    t.index ["purged_at"], name: "index_client_social_googles_on_purged_at"
     t.index ["status_id"], name: "index_client_social_googles_on_status_id"
     t.index ["token_expires_at"], name: "index_client_social_googles_on_token_expires_at"
     t.index ["uid", "provider"], name: "index_client_social_googles_on_uid_and_provider", unique: true
     t.index ["user_id"], name: "index_user_identity_social_googles_on_user_id_unique", unique: true, where: "(user_id IS NOT NULL)"
   end
+
+  add_check_constraint "client_social_googles", "discarded_at <= purged_at", name: "chk_client_social_googles_retention_order", validate: false
 
   create_table "client_statuses", force: :cascade do |t|
   end
@@ -443,11 +479,17 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
     t.bigint "user_identity_telephone_status_id", default: 0, null: false
     t.string "public_id", limit: 21, null: false
     t.string "number_digest"
-    t.index ["number_digest"], name: "index_client_telephones_on_number_digest", unique: true, where: "(number_digest IS NOT NULL)"
+    t.datetime "discarded_at", default: ::Float::INFINITY, null: false
+    t.datetime "purged_at", default: ::Float::INFINITY, null: false
+    t.index ["discarded_at"], name: "index_client_telephones_on_discarded_at"
+    t.index ["number_digest"], name: "index_client_telephones_on_active_number_digest", unique: true, where: "((number_digest IS NOT NULL) AND (user_identity_telephone_status_id <> 4))"
     t.index ["public_id"], name: "index_client_telephones_on_public_id", unique: true
+    t.index ["purged_at"], name: "index_client_telephones_on_purged_at"
     t.index ["user_id"], name: "index_client_telephones_on_user_id"
     t.index ["user_identity_telephone_status_id"], name: "index_client_telephones_on_user_identity_telephone_status_id"
   end
+
+  add_check_constraint "client_telephones", "discarded_at <= purged_at", name: "chk_client_telephones_retention_order", validate: false
 
   create_table "client_visibilities", force: :cascade do |t|
   end
@@ -507,14 +549,12 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
     t.datetime "deactivated_at"
     t.datetime "purged_at", default: ::Float::INFINITY, null: false
     t.bigint "visibility_id", default: 2, null: false
-    t.datetime "deletable_at", default: ::Float::INFINITY, null: false
     t.datetime "discarded_at", default: ::Float::INFINITY, null: false
     t.bigint "multi_factor_id", default: 0, null: false
     t.bigint "multi_factor_status_id", default: 5, null: false
     t.datetime "terminated_at"
     t.text "birthdate"
     t.index ["deactivated_at"], name: "index_clients_on_deactivated_at", where: "(deactivated_at IS NOT NULL)"
-    t.index ["deletable_at"], name: "index_clients_on_deletable_at"
     t.index ["discarded_at"], name: "index_clients_on_discarded_at"
     t.index ["multi_factor_id"], name: "index_clients_on_multi_factor_id"
     t.index ["multi_factor_status_id"], name: "index_clients_on_multi_factor_status_id"
@@ -693,6 +733,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_20_143000) do
   add_foreign_key "client_preference_languages", "client_preferences", column: "preference_id", name: "fk_user_preference_languages_on_preference_id"
   add_foreign_key "client_preference_motions", "client_preference_motion_options", column: "option_id"
   add_foreign_key "client_preference_motions", "client_preferences", column: "preference_id"
+  add_foreign_key "client_preference_r18_display_stoppers", "client_preference_r18_display_stopper_options", column: "option_id"
+  add_foreign_key "client_preference_r18_display_stoppers", "client_preferences", column: "preference_id"
   add_foreign_key "client_preference_regions", "client_preference_region_options", column: "option_id", name: "fk_user_preference_regions_on_option_id"
   add_foreign_key "client_preference_regions", "client_preferences", column: "preference_id", name: "fk_user_preference_regions_on_preference_id"
   add_foreign_key "client_preference_themes", "client_preference_theme_options", column: "option_id", name: "fk_user_preference_themes_on_option_id"

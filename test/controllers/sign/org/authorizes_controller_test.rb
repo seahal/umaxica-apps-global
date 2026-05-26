@@ -36,7 +36,7 @@ class Sign::Org::AuthorizesControllerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_nested_query(uri.query)
 
     assert_equal "/sign/up/new", uri.path
-    assert_predicate query["rt"], :present?
+    assert_equal "jp", query["ri"]
   end
 
   test "redirects to callback with code when authenticated" do

@@ -7,7 +7,7 @@ module Security
   class AuthenticationModeInventoryTest < ActiveSupport::TestCase
     fixtures_none!
 
-    class ParentController < ActionController::Base
+    class ParentController < ApplicationController
       include Authentication::Base
 
       declare_authentication_mode! :open
@@ -16,19 +16,19 @@ module Security
     class UndeclaredController < ParentController
     end
 
-    class ConstantController < ActionController::Base
+    class ConstantController < ApplicationController
       include Authentication::Base
 
       AUTHENTICATION_MODE = :guest
     end
 
-    class PrivateController < ActionController::Base
+    class PrivateController < ApplicationController
       include Authentication::Base
 
       declare_authentication_mode! :private
     end
 
-    class MixedController < ActionController::Base
+    class MixedController < ApplicationController
       include Authentication::Base
 
       declare_authentication_mode! :deny_all
@@ -47,9 +47,10 @@ module Security
       controller = UndeclaredController.new
       controller.define_singleton_method(:action_name) { "index" }
 
-      error = assert_raises(Authentication::Base::MissingPolicyError) do
-        controller.send(:enforce_access_policy!)
-      end
+      error =
+        assert_raises(Authentication::Base::MissingPolicyError) do
+          controller.send(:enforce_access_policy!)
+        end
 
       assert_match "Denied by default authentication mode", error.message
     end
@@ -98,7 +99,7 @@ module Security
           relative_path = path.relative_path_from(Rails.root).to_s
           content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
           matches = content.scan(/\b(?:deny_all!|public_strict!|auth_required!|guest_only!)/)
-          "#{relative_path}: #{matches.uniq.join(', ')}" if matches.any?
+          "#{relative_path}: #{matches.uniq.join(", ")}" if matches.any?
         end
 
       assert_empty legacy, "Controllers must use AUTHENTICATION_MODE instead of legacy DSL:\n#{legacy.join("\n")}"
@@ -112,7 +113,8 @@ module Security
           relative_path if content.match?(/class\s+BareController\s+<\s+ApplicationController\b/)
         end
 
-      assert_empty violations, "Bare controllers must inherit a bare base, not ApplicationController:\n#{violations.join("\n")}"
+      assert_empty violations,
+                   "Bare controllers must inherit a bare base, not ApplicationController:\n#{violations.join("\n")}"
     end
 
     test "routes resolve to controllers with local authentication mode declarations" do
@@ -129,7 +131,7 @@ module Security
           next if controller_class.respond_to?(:local_authentication_mode_rules) &&
             controller_class.local_authentication_mode_rules.present?
 
-          "#{route.verb.presence || 'ANY'} #{route.path.spec} => #{controller_class.name}##{action_name}"
+          "#{route.verb.presence || "ANY"} #{route.path.spec} => #{controller_class.name}##{action_name}"
         end
 
       assert_empty missing, "Routes must not rely on inherited authentication mode:\n#{missing.join("\n")}"

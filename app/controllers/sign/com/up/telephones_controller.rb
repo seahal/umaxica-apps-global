@@ -7,11 +7,13 @@ module Sign
   module Com
     module Up
       class TelephonesController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include CloudflareTurnstile
+
         include Common::Redirect
+
         include Common::Otp
+
+        AUTHENTICATION_MODE = :guest
 
         def new
           @visitor_telephone = VisitorTelephone.new

@@ -48,7 +48,7 @@ module Auth
 
       def resource_foreign_key = :user_id
 
-      def sign_in_url_with_return(_return_to) = "/sign/in"
+      def sign_in_url_with_pt(_return_to) = "/sign/in"
 
       def am_i_user? = false
 
@@ -138,19 +138,19 @@ module Auth
         :app
       end
 
-      def sign_app_dashboard_path(ri: nil, rt: nil)
+      def sign_app_dashboard_path(ri: nil, pt: nil)
         path = "/dashboard"
         query = []
         query << "ri=#{ri}" if ri.present?
-        query << "rt=#{rt}" if rt.present?
+        query << "pt=#{pt}" if pt.present?
         query.any? ? "#{path}?#{query.join("&")}" : path
       end
 
-      def sign_app_welcome_path(_id = "post_auth", ri: nil, rt: nil)
+      def sign_app_welcome_path(_id = "post_auth", ri: nil, pt: nil)
         path = "/welcome"
         query = []
         query << "ri=#{ri}" if ri.present?
-        query << "rt=#{rt}" if rt.present?
+        query << "pt=#{pt}" if pt.present?
         query.any? ? "#{path}?#{query.join("&")}" : path
       end
 
@@ -158,11 +158,11 @@ module Auth
         ri.present? ? "/configuration?ri=#{ri}" : "/configuration"
       end
 
-      def sign_app_in_checkpoint_path(ri: nil, rt: nil)
+      def sign_app_in_checkpoint_path(ri: nil, pt: nil)
         path = "/sign/in/checkpoint"
         query = []
         query << "ri=#{ri}" if ri.present?
-        query << "rt=#{rt}" if rt.present?
+        query << "pt=#{pt}" if pt.present?
         query.any? ? "#{path}?#{query.join("&")}" : path
       end
 
@@ -296,28 +296,28 @@ module Auth
 
       unsafe_result = harness.send(
         :begin_sign_in_sequence!,
-        rt: "https://evil.example/phish",
+        pt: "https://evil.example/phish",
         checkpoint_required: true,
       )
 
       assert_equal :success, unsafe_result.status
-      assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("rt")
+      assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("pt")
       assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
 
-      safe_result = harness.send(:begin_sign_in_sequence!, rt: "/configuration", checkpoint_required: true)
+      safe_result = harness.send(:begin_sign_in_sequence!, pt: "/configuration", checkpoint_required: true)
 
       assert_equal :success, safe_result.status
-      stored_rt = harness.session.fetch(:app_sign_in_sequence).fetch("rt")
+      stored_rt = harness.session.fetch(:app_sign_in_sequence).fetch("pt")
       stored_safe_return_path = harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
 
-      assert_equal "/configuration", harness.return_path_from_signed_rt(stored_rt)
-      assert_equal "/configuration", harness.return_path_from_signed_rt(stored_safe_return_path)
+      assert_equal "/configuration", harness.path_from_signed_pt(stored_rt)
+      assert_equal "/configuration", harness.path_from_signed_pt(stored_safe_return_path)
 
       welcome_rt = "/welcome?ri=jp"
-      welcome_result = harness.send(:begin_sign_in_sequence!, rt: welcome_rt, checkpoint_required: true)
+      welcome_result = harness.send(:begin_sign_in_sequence!, pt: welcome_rt, checkpoint_required: true)
 
       assert_equal :success, welcome_result.status
-      assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("rt")
+      assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("pt")
       assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
     ensure
       Actor.reset
@@ -337,11 +337,11 @@ module Auth
 
       assert_equal "/welcome", redirected.path
       assert_equal "/after",
-                   harness.return_path_from_signed_rt(Rack::Utils.parse_query(redirected.query).fetch("rt"))
+                   harness.path_from_signed_pt(Rack::Utils.parse_query(redirected.query).fetch("pt"))
       assert_equal 5, harness.session[:app_sign_in_welcome]["remaining"]
     end
 
-    test "checkpoint continuation can carry dashboard as rt" do
+    test "checkpoint continuation can carry dashboard as pt" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
@@ -356,7 +356,7 @@ module Auth
 
       assert_equal "/welcome", redirected.path
       assert_equal "/dashboard?ri=jp",
-                   harness.return_path_from_signed_rt(Rack::Utils.parse_query(redirected.query).fetch("rt"))
+                   harness.path_from_signed_pt(Rack::Utils.parse_query(redirected.query).fetch("pt"))
     end
 
     test "checkpoint continuation keeps blocking db-backed cycle at checkpoint" do
@@ -380,7 +380,7 @@ module Auth
       cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
-      harness.send(:issue_welcome_gate_and_path, rt: "/after", sequence_id: cycle.public_id)
+      harness.send(:issue_welcome_gate_and_path, pt: "/after", sequence_id: cycle.public_id)
 
       harness.send(:continue_dashboard_sequence_without_content!)
 
@@ -399,7 +399,7 @@ module Auth
       cycle.update!(return_to: "/dashboard?ri=jp")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
-      harness.send(:issue_welcome_gate_and_path, rt: cycle.return_to, sequence_id: cycle.public_id)
+      harness.send(:issue_welcome_gate_and_path, pt: cycle.return_to, sequence_id: cycle.public_id)
 
       harness.send(:continue_dashboard_sequence_without_content!)
 
@@ -416,7 +416,7 @@ module Auth
       cycle.update!(return_to: "/welcome?ri=jp")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
-      harness.send(:issue_welcome_gate_and_path, rt: cycle.return_to, sequence_id: cycle.public_id)
+      harness.send(:issue_welcome_gate_and_path, pt: cycle.return_to, sequence_id: cycle.public_id)
 
       harness.send(:continue_dashboard_sequence_without_content!)
 
@@ -439,7 +439,7 @@ module Auth
 
       assert_equal "/sign/in/checkpoint", redirected.path
       assert_equal "/after",
-                   harness.return_path_from_signed_rt(Rack::Utils.parse_query(redirected.query).fetch("rt"))
+                   harness.path_from_signed_pt(Rack::Utils.parse_query(redirected.query).fetch("pt"))
       assert_predicate cycle.reload, :sign_in_checkpoint_pending?
     end
 
@@ -450,7 +450,7 @@ module Auth
       harness = db_sequence_harness(user, token)
       harness.allowed_policy = { show_dashboard?: false }
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
-      harness.send(:issue_welcome_gate_and_path, rt: cycle.return_to, sequence_id: cycle.public_id)
+      harness.send(:issue_welcome_gate_and_path, pt: cycle.return_to, sequence_id: cycle.public_id)
 
       assert_not harness.send(:continue_dashboard_sequence_without_content!)
 
@@ -571,31 +571,31 @@ module Auth
 
     test "redirect parameter helpers preserve peek retrieve and build params" do
       harness = HeaderKeyHarness.new
-      harness.params = { rt: "/target" }
+      harness.params = { pt: "/target" }
 
-      result = harness.preserve_redirect_parameter
+      result = harness.preserve_pt
 
-      assert_equal "/target", harness.return_path_from_signed_rt(result)
-      assert_equal result, harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
-      assert_equal "/target", harness.return_path_from_signed_rt(harness.peek_redirect_parameter)
-      assert_equal "/target", harness.return_path_from_signed_rt(harness.build_notice_params("ok")[:rt])
-      assert_equal "/target", harness.return_path_from_signed_rt(harness.build_alert_params("ng")[:rt])
-      assert_equal "/target", harness.return_path_from_signed_rt(harness.retrieve_redirect_parameter)
-      assert_nil harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY]
+      assert_equal "/target", harness.path_from_signed_pt(result)
+      assert_equal result, harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
+      assert_equal "/target", harness.path_from_signed_pt(harness.peek_pt)
+      assert_equal "/target", harness.path_from_signed_pt(harness.build_notice_params("ok")[:pt])
+      assert_equal "/target", harness.path_from_signed_pt(harness.build_alert_params("ng")[:pt])
+      assert_equal "/target", harness.path_from_signed_pt(harness.retrieve_pt)
+      assert_nil harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
     end
 
-    test "redirect_with_rt_handling uses rt jump when present and fallback redirect otherwise" do
+    test "redirect_with_pt_handling uses pt jump when present and fallback redirect otherwise" do
       harness = HeaderKeyHarness.new
-      rt = harness.safe_encoded_rt("/dashboard")
-      harness.session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = rt
+      pt = harness.signed_pt_token("/dashboard")
+      harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = pt
 
-      harness.redirect_with_rt_handling("/default", :notice, "done")
+      harness.redirect_with_pt_handling("/default", :notice, "done")
 
       assert_equal "done", harness.flash[:notice]
-      assert_equal [harness.return_path_from_signed_rt(rt), { allow_other_host: false }],
+      assert_equal [harness.path_from_signed_pt(pt), { allow_other_host: false }],
                    harness.redirected
 
-      harness.redirect_with_rt_handling("/default", :alert, "warn")
+      harness.redirect_with_pt_handling("/default", :alert, "warn")
 
       assert_equal ["/default", { alert: "warn" }], harness.redirected
     end

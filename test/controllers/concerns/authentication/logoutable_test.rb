@@ -207,9 +207,10 @@ module Authentication
     test "logout_current_session fails closed but clears local state when resource resolution raises" do
       harness = FailingCurrentResourceHarness.new
 
-      error = assert_raises(Authentication::Logoutable::ResolutionError) do
-        harness.logout_current_session!(reason: "test_logout")
-      end
+      error =
+        assert_raises(Authentication::Logoutable::ResolutionError) do
+          harness.logout_current_session!(reason: "test_logout")
+        end
 
       assert_match "Logout current_resource resolution failed", error.message
       assert_equal "resource lookup failed", error.cause.message
@@ -226,9 +227,10 @@ module Authentication
     test "logout_current_session fails closed but clears local state when session resolution raises" do
       harness = FailingCurrentSessionHarness.new
 
-      error = assert_raises(Authentication::Logoutable::ResolutionError) do
-        harness.logout_current_session!(reason: "test_logout")
-      end
+      error =
+        assert_raises(Authentication::Logoutable::ResolutionError) do
+          harness.logout_current_session!(reason: "test_logout")
+        end
 
       assert_match "Logout current_session resolution failed", error.message
       assert_equal "session lookup failed", error.cause.message

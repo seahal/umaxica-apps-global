@@ -1,8 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-require "base64"
-
 module Sign
   module App
     module Configuration
@@ -22,11 +20,13 @@ module Sign
       # - PATCH /configuration/passkeys/:id (update - description only)
       # - DELETE /configuration/passkeys/:id (destroy)
       class PasskeysController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include ::Verification::Client
+
         include Sign::Webauthn
+
         include ::CloudflareTurnstile
+
+        AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!
         before_action only: %i(new create options verification) do
@@ -60,13 +60,22 @@ module Sign
 
         # POST /configuration/passkeys
         def create
-          @passkey = current_client.client_passkeys.new(create_params)
+          @passkey = current_client.client_passkeys.new(description: passkey_description)
           authorize!(@passkey)
 
-          return unless @passkey.save
-
-          record_passkey_registration_step_up!
-          render plain: "ok", status: :created
+          respond_to do |format|
+            format.html do
+              redirect_to(
+                new_sign_app_configuration_passkey_path(ri: params[:ri]),
+                status: :see_other,
+                alert: passkey_verification_required_message,
+              )
+            end
+            format.json do
+              render json: { error: passkey_verification_required_message },
+                     status: :unprocessable_content
+            end
+          end
         end
 
         # POST /configuration/passkeys/options
@@ -284,8 +293,8 @@ module Sign
 
         def render_verification_success
           default_redirect_url =
-            if emergency_key_issued? && respond_to?(:sign_app_configuration_emergency_key_path, true)
-              sign_app_configuration_emergency_key_path(ri: params[:ri])
+            if emergency_key_reveal_token.present?
+              sign_app_configuration_emergency_key_path(ri: params[:ri], token: emergency_key_reveal_token)
             else
               sign_app_configuration_passkeys_path(ri: params[:ri])
             end
@@ -305,9 +314,13 @@ module Sign
         end
 
         def create_params
-          params.fetch(:user_passkey, {}).permit(
-            :webauthn_id, :public_key, :sign_count, :description,
-            :external_id,
+          params.fetch(:user_passkey, {}).permit(:description)
+        end
+
+        def passkey_verification_required_message
+          I18n.t(
+            "errors.webauthn.verification_required",
+            default: "Passkey registration must be completed through WebAuthn verification.",
           )
         end
 
@@ -315,11 +328,18 @@ module Sign
           return unless current_client.has_verified_recovery_identity?
 
           result = ClientSecrets::IssueRecovery.call(actor: current_client, user: current_client)
-          session[:recovery_secret_raw] = result.raw_secret
+          reveal = Identity::OneTimeReveal.issue!(
+            actor: current_client,
+            session_nonce: current_session_token&.public_id,
+            value: result.raw_secret,
+            purpose: Sign::App::Configuration::EmergencyKeysController::REVEAL_PURPOSE,
+            metadata: { secret_public_id: result.secret.public_id },
+          )
+          @emergency_key_reveal_token = reveal.token
         end
 
-        def emergency_key_issued?
-          session[:recovery_secret_raw].present?
+        def emergency_key_reveal_token
+          @emergency_key_reveal_token
         end
 
         def passkey_description
@@ -331,22 +351,12 @@ module Sign
             last_step_up_at: Time.current,
             last_step_up_scope: verification_scope,
           )
-          create_audit_event!(ClientChronicleEvent::PASSKEY_REGISTERED)
-        end
-
-        def create_audit_event!(event_id)
-          ChronicleRecord.connected_to(role: :writing) do
-            ClientChronicleEvent.find_or_create_by!(id: event_id)
-            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
-          end
-
-          ClientChronicle.create!(
-            actor_type: "Client",
-            actor_id: current_client.id,
-            event_id: event_id,
-            subject_id: current_client.id.to_s,
-            subject_type: "Client",
-            occurred_at: Time.current,
+          Identity::Audit.record!(
+            actor: current_client,
+            event_id: ClientChronicleEvent::PASSKEY_REGISTERED,
+            action: "passkey.register",
+            ip_address: request.remote_ip,
+            user_agent: request.user_agent,
           )
         end
 

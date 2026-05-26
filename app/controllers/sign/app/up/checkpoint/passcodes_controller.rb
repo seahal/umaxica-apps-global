@@ -6,11 +6,13 @@ module Sign
     module Up
       module Checkpoint
         class PasscodesController < GuestController
-          AUTHENTICATION_MODE = :guest
-
           include Common::Redirect
+
           include Sign::PasscodeRegistrationFlow
+
           include Sign::Up::SequenceControllerSupport
+
+          AUTHENTICATION_MODE = :guest
 
           before_action :load_sign_up_ticket
           before_action :load_sign_up_actor
@@ -34,7 +36,7 @@ module Sign
 
             return render_sign_up_result(result) unless result.success?
 
-            redirect_to(sign_app_up_checkpoint_path(ri: params[:ri], rt: params[:rt].presence))
+            redirect_to(sign_app_up_checkpoint_path(ri: params[:ri], pt: params[:pt].presence))
           rescue ActiveRecord::RecordInvalid => e
             @secret = e.record
             @raw_secret = session[passcode_registration_raw_session_key]

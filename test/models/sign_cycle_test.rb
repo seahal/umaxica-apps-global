@@ -52,6 +52,7 @@ class SignCycleTest < ActiveSupport::TestCase
           GUARDRAIL_PENDING
           SESSION_ISSUANCE_PENDING
           CHECKPOINT_PENDING
+          SELECTOR_PENDING
           DASHBOARD_PENDING
           RETURN_PENDING
           COMPLETED
@@ -409,7 +410,8 @@ class SignCycleTest < ActiveSupport::TestCase
     discarded = ClientSignInCycle.create!(cycle_attrs(ClientSignInCycle))
     discarded.discard!(now: Time.current)
 
-    assert_predicate discarded, :expired?
+    assert_predicate discarded, :lapsed?
+    assert_not discarded.expired?
   end
 
   test "client sign-in cycle can belong to a client token" do
@@ -431,6 +433,9 @@ class SignCycleTest < ActiveSupport::TestCase
   end
 
   def cycle_attrs(cycle_class, nonce: "nonce")
+    cycle_class.cleanup_status_class.ensure_defaults! if
+      cycle_class < SignUpCycleTicket && cycle_class.respond_to?(:cleanup_status_class)
+
     attrs = {
       principal_id: 123,
       status_id: cycle_class::STATUS_IDS.first,

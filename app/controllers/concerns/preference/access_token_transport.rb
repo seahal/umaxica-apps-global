@@ -14,20 +14,26 @@ module Preference::AccessTokenTransport
     return false if payload.blank?
 
     @preference_payload = payload
-
-    public_id = Preference::Token.extract_public_id(payload)
-    if public_id.present?
-      operation =
-        lambda do
-          with_preference_connection(:writing) do
-            preference_class.includes(preference_associations_to_preload).find_by(public_id: public_id)
-          end
-        end
-      @preferences = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
-      return false unless keep_loaded_access_token_payload?(payload)
-    end
-
     true
+  end
+
+  def load_access_token_preference_record!
+    return @preferences if @preferences.present?
+    return unless @preference_payload.is_a?(Hash) || load_access_token_payload
+
+    public_id = Preference::Token.extract_public_id(@preference_payload)
+    return if public_id.blank?
+
+    operation =
+      lambda do
+        with_preference_connection(:writing) do
+          preference_class.includes(preference_associations_to_preload).find_by(public_id: public_id)
+        end
+      end
+    @preferences = defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
+    return unless keep_loaded_access_token_payload?(@preference_payload)
+
+    @preferences
   end
 
   def keep_loaded_access_token_payload?(payload)

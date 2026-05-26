@@ -3,7 +3,8 @@
 
 module Jump::ToRedirector
   extend ActiveSupport::Concern
-  include ReturnTargets::SignedTokenSupport
+  include Common::Redirect
+  include ::Redirects::SignedTargetSupport
 
   JUMP_TARGET_TOKEN_SALT = "jump_target_token"
   JUMP_TARGET_TOKEN_PURPOSE = :jump_target
@@ -21,7 +22,7 @@ module Jump::ToRedirector
 
       response.set_header("Referrer-Policy", "no-referrer")
       return Rails.logger.silence do
-        redirect_to(destination.fetch("url"), allow_other_host: true)
+        redirect_to_xt_url(destination.fetch("url"), allowed_urls: [destination.fetch("url")])
       end
     end
 
@@ -49,7 +50,7 @@ module Jump::ToRedirector
     response.set_header("Referrer-Policy", "no-referrer")
 
     Rails.logger.silence do
-      redirect_to(destination_url, allow_other_host: true)
+      redirect_to_xt_url(destination_url, allowed_urls: [destination_url])
     end
   end
 

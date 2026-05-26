@@ -19,7 +19,7 @@
 #   include SessionLimitGate
 #
 #   # In login flow (when session limit exceeded):
-#   issue_session_limit_gate!(return_to: request.fullpath, flow: "in.email.session")
+#   issue_session_limit_gate!(pt: request.fullpath, flow: "in.email.session")
 #   redirect_to edit_sign_app_in_email_session_path
 #
 #   # In session management controller:
@@ -32,10 +32,11 @@
 #   def update
 #     revoke_selected_sessions!
 #     consume_session_limit_gate!
-#     redirect_to session_limit_return_to
+#     redirect_to session_limit_pt
 #   end
 module SessionLimitGate
   extend ActiveSupport::Concern
+  include Common::Redirect
 
   GATE_SESSION_KEY = :session_limit_gate
   GATE_TTL_SECONDS = 900 # 15 minutes
@@ -45,15 +46,15 @@ module SessionLimitGate
   # Issues a new session limit gate token.
   # This should be called when a user attempts to log in but exceeds their session limit.
   #
-  # @param return_to [String] The path to return to after session management (must start with "/")
+  # @param pt [String] The path target to use after session management (must start with "/")
   # @param flow [String] Identifier for the authentication flow (e.g., "in.email.session")
-  def issue_session_limit_gate!(return_to:, flow:)
-    safe_return_to = return_to.to_s.start_with?("/") ? return_to : nil
+  def issue_session_limit_gate!(pt:, flow:)
+    safe_pt = safe_internal_path(pt)
 
     session[GATE_SESSION_KEY] = {
       "nonce" => SecureRandom.hex(16),
       "issued_at" => Time.current.to_i,
-      "return_to" => safe_return_to,
+      "pt" => safe_pt,
       "flow" => flow.to_s,
     }
   end
@@ -75,12 +76,11 @@ module SessionLimitGate
     session.delete(GATE_SESSION_KEY)
   end
 
-  def session_limit_return_to
+  def session_limit_pt
     gate = session[GATE_SESSION_KEY]
     return nil unless gate.is_a?(Hash)
 
-    return_to = gate["return_to"]
-    return_to if return_to.to_s.start_with?("/")
+    safe_internal_path(gate["pt"])
   end
 
   def session_limit_flow

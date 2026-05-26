@@ -207,7 +207,7 @@ module Sign::App::Up
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 
-    test "POST create respects rt parameter for redirect" do
+    test "POST create respects pt parameter for redirect" do
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_cycle(telephone)
 
@@ -220,23 +220,23 @@ module Sign::App::Up
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
-      rt = "/welcome?ri=jp"
+      pt = "/welcome?ri=jp"
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
-          rt: rt,
+          pt: pt,
           challenge_id: challenge_id,
           checkpoint_version: cycle.checkpoint_version,
           credential: {
             id: "rt_webauthn_id",
             response: { clientDataJSON: "e30=", attestationObject: "e30=" },
           },
-          description: "RT Passkey",
+          description: "PT Passkey",
         }
       end
 
       assert_response :created
-      assert_equal sign_app_up_checkpoint_path(ri: "jp", rt: rt),
+      assert_equal sign_app_up_checkpoint_path(ri: "jp", pt: pt),
                    response.parsed_body["redirect_url"]
     end
 

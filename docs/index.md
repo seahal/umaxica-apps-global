@@ -46,6 +46,7 @@ Current content-model references:
 - `docs/security/social-login-provider-scope.md`
 - `docs/security/session-reset-policy.md`
 - `docs/security/sign-withdrawal-and-membership.md`
+- `docs/security/redirect_targets.md`
 - `docs/dictionary/README.md`
 - `docs/dictionary/access-terms.md`
 - `docs/dictionary/alphabet.md`

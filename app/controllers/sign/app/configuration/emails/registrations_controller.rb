@@ -6,10 +6,11 @@ module Sign
     module Configuration
       module Emails
         class RegistrationsController < ::Sign::App::PrivateController
-          AUTHENTICATION_MODE = :private
-
           include Sign::EmailRegistrationFlow
+
           include ::Verification::Client
+
+          AUTHENTICATION_MODE = :private
 
           before_action :authenticate_client!
           before_action only: %i(new create edit update) do

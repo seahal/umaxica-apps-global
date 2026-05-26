@@ -6,9 +6,9 @@ module Sign
     module Edge
       module V0
         class HealthsController < Sign::Com::BareController
-          AUTHENTICATION_MODE = :bare
-
           include ::Health
+
+          AUTHENTICATION_MODE = :bare
 
           def show
             show_json

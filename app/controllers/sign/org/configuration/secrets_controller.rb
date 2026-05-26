@@ -5,11 +5,13 @@ module Sign
   module Org
     module Configuration
       class SecretsController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include ::Verification::Operator
+
         include ::Sign::Configuration::SecretTurnstileGuard
+
         include ::Sign::Configuration::SecretCacheControl
+
+        AUTHENTICATION_MODE = :private
 
         before_action :authenticate_operator!
         before_action :set_secret, only: %i(show edit update destroy)

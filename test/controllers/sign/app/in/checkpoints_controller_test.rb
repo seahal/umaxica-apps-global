@@ -37,9 +37,9 @@ class Sign::App::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "destroy without sign in sequence is rejected" do
-    rt = Base64.urlsafe_encode64("/configuration")
+    pt = Base64.urlsafe_encode64("/configuration")
 
-    delete sign_app_in_checkpoint_url(ri: "jp", rt: rt),
+    delete sign_app_in_checkpoint_url(ri: "jp", pt: pt),
            headers: as_user_headers(@user, host: @host).merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )

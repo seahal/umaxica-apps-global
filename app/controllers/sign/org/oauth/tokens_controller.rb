@@ -6,7 +6,6 @@ module Sign
     module Oauth
       class TokensController < Sign::Org::TokensController
         AUTHENTICATION_MODE = :open
-
       end
     end
   end

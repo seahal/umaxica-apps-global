@@ -37,7 +37,7 @@ module Sign::App::Configuration
       assert_equal expected_host, uri.host
       assert_equal "/sign/in/new", uri.path
       assert_equal "jp", query["ri"]
-      assert_predicate query["rt"], :present?
+      assert_predicate query["pt"], :present?
     end
 
     test "show treats revoked google identity as unlinked" do

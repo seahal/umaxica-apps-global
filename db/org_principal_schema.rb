@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_05_21_120000) do
+ActiveRecord::Schema[8.2].define(version: 2026_05_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -242,6 +242,18 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_21_120000) do
     t.datetime "updated_at", null: false
     t.index ["option_id"], name: "index_operator_preference_motions_on_option_id"
     t.index ["preference_id"], name: "index_operator_preference_motions_on_preference_id", unique: true
+  end
+
+  create_table "operator_preference_r18_display_stopper_options", force: :cascade do |t|
+  end
+
+  create_table "operator_preference_r18_display_stoppers", force: :cascade do |t|
+    t.bigint "preference_id", null: false
+    t.bigint "option_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["option_id"], name: "index_operator_preference_r18_display_stoppers_on_option_id"
+    t.index ["preference_id"], name: "idx_on_preference_id_7d925420d9", unique: true
   end
 
   create_table "operator_preference_region_options", force: :cascade do |t|
@@ -545,6 +557,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_05_21_120000) do
   add_foreign_key "operator_preference_languages", "operator_preferences", column: "preference_id", name: "fk_staff_preference_languages_on_preference_id"
   add_foreign_key "operator_preference_motions", "operator_preference_motion_options", column: "option_id"
   add_foreign_key "operator_preference_motions", "operator_preferences", column: "preference_id"
+  add_foreign_key "operator_preference_r18_display_stoppers", "operator_preference_r18_display_stopper_options", column: "option_id"
+  add_foreign_key "operator_preference_r18_display_stoppers", "operator_preferences", column: "preference_id"
   add_foreign_key "operator_preference_regions", "operator_preference_region_options", column: "option_id", name: "fk_staff_preference_regions_on_option_id"
   add_foreign_key "operator_preference_regions", "operator_preferences", column: "preference_id", name: "fk_staff_preference_regions_on_preference_id"
   add_foreign_key "operator_preference_themes", "operator_preference_theme_options", column: "option_id", name: "fk_staff_preference_themes_on_option_id"

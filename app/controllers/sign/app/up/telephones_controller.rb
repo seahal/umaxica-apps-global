@@ -7,15 +7,17 @@ module Sign
   module App
     module Up
       class TelephonesController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include CloudflareTurnstile
+
         include Common::Redirect
+
         include Common::Otp
 
+        AUTHENTICATION_MODE = :guest
+
         declare_authentication_mode! :guest, status: :unauthorized,
-                    message: I18n.t("errors.messages.already_authenticated"),
-                    no_redirect: true
+                                             message: I18n.t("errors.messages.already_authenticated"),
+                                             no_redirect: true
 
         def new
           @user_telephone = ClientTelephone.new

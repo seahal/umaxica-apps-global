@@ -23,6 +23,7 @@ module SignUp
         existing_email: :sign_up_existing_email_id,
         existing_email_skip_otp: :sign_up_existing_email_skip_otp,
         pending_actor_id: :pending_sign_up_user_id,
+        age_restricted: :sign_app_up_age_restricted,
       }.freeze,
       com: {
         cycle_locator: :com_sign_up_cycle_locator,
@@ -31,6 +32,7 @@ module SignUp
         existing_email: :sign_com_up_existing_visitor_email_id,
         existing_email_skip_otp: :sign_com_up_existing_visitor_email_skip_otp,
         pending_actor_id: :sign_com_up_pending_visitor_id,
+        age_restricted: :sign_com_up_age_restricted,
       }.freeze,
     }.freeze
 
@@ -118,6 +120,18 @@ module SignUp
         @session.delete(@keys.fetch(:pending_actor_id))
       else
         @session[@keys.fetch(:pending_actor_id)] = value
+      end
+    end
+
+    def age_restricted?
+      @session[@keys.fetch(:age_restricted)] == true
+    end
+
+    def age_restricted=(value)
+      if value
+        @session[@keys.fetch(:age_restricted)] = true
+      else
+        @session.delete(@keys.fetch(:age_restricted))
       end
     end
 

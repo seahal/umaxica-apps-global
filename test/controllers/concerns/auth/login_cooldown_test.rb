@@ -28,7 +28,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
 
     def resource_foreign_key = :user_id
 
-    def sign_in_url_with_return(_return_to) = "/sign/in"
+    def sign_in_url_with_pt(_return_to) = "/sign/in"
 
     def am_i_user? = false
 

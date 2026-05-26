@@ -2,7 +2,7 @@
 # == Schema Information
 #
 # Table name: post_versions
-# Database name: avatar
+# Database name: app_publisher
 #
 #  id             :bigint           not null, primary key
 #  body           :text

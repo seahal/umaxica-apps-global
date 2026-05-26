@@ -6,10 +6,11 @@ module Sign
     module In
       module Challenge
         class TotpsController < Sign::App::In::GuestController
-          AUTHENTICATION_MODE = :guest
-
           include SessionLimitGate
+
           include ::CloudflareTurnstile
+
+          AUTHENTICATION_MODE = :guest
 
           class TotpChallengeForm
             include ActiveModel::Model
@@ -89,7 +90,7 @@ module Sign
               redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
             when :success
               redirect_to_sign_in_sequence!(
-                rt: result[:redirect_path],
+                pt: result[:redirect_path],
                 notice: I18n.t("sign.app.in.mfa.totp.success"),
               )
             else

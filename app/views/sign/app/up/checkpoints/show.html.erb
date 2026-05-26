@@ -8,8 +8,8 @@
     <p><%= t("sign.app.registration.checkpoint.show.birthdate.description") %></p>
 
     <%= form_with url: sign_app_up_checkpoint_birthdate_path(ri: params[:ri]), method: :patch do %>
-      <% if params[:rt].present? %>
-        <%= hidden_field_tag :rt, params[:rt] %>
+      <% if params[:pt].present? %>
+        <%= hidden_field_tag :pt, params[:pt] %>
       <% end %>
       <%= hidden_field_tag :requirement, "birthdate" %>
       <%= hidden_field_tag :checkpoint_version, @sign_up_ticket.checkpoint_version %>
@@ -31,7 +31,7 @@
     <%= link_to t("sign.app.registration.checkpoint.show.passkey.action"),
                 new_sign_app_up_checkpoint_passkey_path(
                   ri: params[:ri],
-                  rt: params[:rt].presence,
+                  pt: params[:pt].presence,
                   checkpoint_version: @sign_up_ticket.checkpoint_version,
                 ) %>
   </section>
@@ -44,7 +44,7 @@
     <%= link_to t("sign.app.registration.checkpoint.show.passcode.action"),
                 new_sign_app_up_checkpoint_passcode_path(
                   ri: params[:ri],
-                  rt: params[:rt].presence,
+                  pt: params[:pt].presence,
                   checkpoint_version: @sign_up_ticket.checkpoint_version,
                 ) %>
   </section>
@@ -56,6 +56,6 @@
 
 <% if @sign_up_ticket&.social_entry_method? %>
   <%= button_to t("actions.cancel"),
-                sign_app_up_checkpoint_path(ri: params[:ri], rt: params[:rt].presence),
+                sign_app_up_checkpoint_path(ri: params[:ri], pt: params[:pt].presence),
                 method: :delete %>
 <% end %>

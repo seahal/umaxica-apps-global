@@ -13,11 +13,13 @@ module Sign
       # The actual OmniAuth callbacks are handled by:
       #   Sign::App::Auth::OmniauthCallbacksController
       class AuthenticationsController < Sign::App::ApplicationController
-        AUTHENTICATION_MODE = :deny_all
-
         include ::Verification::Client
+
         include ::CloudflareTurnstile
+
         include SocialAuthConcern
+
+        AUTHENTICATION_MODE = :deny_all
 
         SUPPORTED_PROVIDERS = %w(google_app apple).freeze
         SOCIAL_UNLINK_SCOPE = "social_unlink"
@@ -58,7 +60,7 @@ module Sign
           state = prepare_social_auth_intent!(
             intent,
             provider: provider,
-            rt: safe_encoded_rt(redirect_parameter_value),
+            pt: signed_pt_token(path_target_value),
             entry: social_auth_entry,
             ri: params[:ri].presence,
           )
@@ -119,7 +121,7 @@ module Sign
                 expires_at: ClientSignUpCycle.default_ttl.from_now,
                 entry_method: social_entry_method(provider),
                 social_provider: social_entry_method(provider),
-                return_to: safe_decoded_rt(redirect_parameter_value),
+                pt: safe_decoded_rt(path_target_value),
               )
             end
           result =
@@ -147,7 +149,7 @@ module Sign
           redirect_to(
             actor_verification_path(
               scope: SOCIAL_UNLINK_SCOPE,
-              rt: encoded_relative_return_to(social_unlink_configuration_path(params[:provider])),
+              pt: encoded_relative_pt(social_unlink_configuration_path(params[:provider])),
               ri: params[:ri],
             ),
             status: :see_other,
@@ -176,8 +178,8 @@ module Sign
         end
 
         def safe_decoded_rt(encoded_url)
-          token = safe_encoded_rt(encoded_url)
-          return_path_from_signed_rt(token)
+          token = signed_pt_token(encoded_url)
+          path_from_signed_pt(token)
         end
 
         def sign_up_cycle_locator

@@ -98,7 +98,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "invalid otp keeps back link from step_up session when request params are missing" do
     return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
 
-    get sign_com_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
+    get sign_com_verification_url(scope: "configuration_email", pt: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -125,7 +125,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "resend sends a new otp and returns to edit page" do
     return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
 
-    get sign_com_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
+    get sign_com_verification_url(scope: "configuration_email", pt: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -156,7 +156,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "resend is rate limited" do
     return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
 
-    get sign_com_verification_url(scope: "configuration_email", rt: return_to, ri: "jp"),
+    get sign_com_verification_url(scope: "configuration_email", pt: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -217,16 +217,16 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.define_singleton_method(:generate_hotp_code) { ["secret", 1, "123456"] }
 
     return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
-    controller.send(:start_step_up_session!, scope: "configuration_email", return_to_param: return_to)
+    controller.send(:start_step_up_session!, scope: "configuration_email", pt_param: return_to)
     step_up_session = @token.reload.step_up_session
 
     assert controller.send(:valid_step_up_session?, step_up_session)
 
     assert_raises(ActionController::BadRequest) do
-      controller.send(:start_step_up_session!, scope: "unknown", return_to_param: return_to)
+      controller.send(:start_step_up_session!, scope: "unknown", pt_param: return_to)
     end
     assert_raises(ActionController::BadRequest) do
-      controller.send(:start_step_up_session!, scope: "configuration_email", return_to_param: "%%%")
+      controller.send(:start_step_up_session!, scope: "configuration_email", pt_param: "%%%")
     end
 
     Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret" => "old" })
@@ -302,7 +302,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.define_singleton_method(:email_otp_session_active?) { @email_active_for_test }
     controller.define_singleton_method(:ensure_email_nonce!) { "nonce" }
     controller.define_singleton_method(:current_step_up_scope) { "configuration_email" }
-    controller.define_singleton_method(:current_step_up_return_to_param) { "return-token" }
+    controller.define_singleton_method(:current_step_up_pt_param) { "return-token" }
     controller.define_singleton_method(:edit_sign_com_verification_email_path) { |nonce, **kwargs|
       "/verification/emails/#{nonce}/edit?#{kwargs.to_query}"
     }

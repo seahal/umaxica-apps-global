@@ -3,7 +3,7 @@
 <h1><%= t("sign.com.registration.checkpoint.show.passcode.title") %></h1>
 <p><%= t("sign.com.registration.checkpoint.show.passcode.description") %></p>
 
-<%= form_with(model: @secret, url: sign_com_up_checkpoint_passcode_path(ri: params[:ri], rt: params[:rt].presence)) do |form| %>
+<%= form_with(model: @secret, url: sign_com_up_checkpoint_passcode_path(ri: params[:ri], pt: params[:pt].presence)) do |form| %>
   <%= hidden_field_tag :checkpoint_version, params[:checkpoint_version].presence || @sign_up_ticket.checkpoint_version %>
 
   <% if @secret.errors.any? %>
@@ -25,6 +25,6 @@
     <p><%= t("views.sign.app.configuration.secrets.new.one_time_notice") %></p>
   </div>
 
-  <%= link_to t("actions.cancel"), sign_com_up_checkpoint_path(ri: params[:ri], rt: params[:rt].presence) %>
+  <%= link_to t("actions.cancel"), sign_com_up_checkpoint_path(ri: params[:ri], pt: params[:pt].presence) %>
   <%= form.submit t("actions.save") %>
 <% end %>

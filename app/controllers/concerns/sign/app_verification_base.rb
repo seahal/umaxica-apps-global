@@ -36,8 +36,7 @@ module Sign
 
     def verification_params
       params.fetch(:verification, {}).permit(
-        :code, :challenge_id, :credential_json, :scope, :return_to,
-        :rt,
+        :code, :challenge_id, :credential_json, :scope, :pt,
       )
     end
 
@@ -58,11 +57,11 @@ module Sign
       current_step_up_session&.scope
     end
 
-    def current_step_up_return_to_param
+    def current_step_up_pt_param
       return_to = current_step_up_session&.return_to
       return if return_to.blank?
 
-      issue_step_up_rt(return_to)
+      issue_step_up_pt(return_to)
     end
 
     def verification_recovery_redirect_params
@@ -71,8 +70,8 @@ module Sign
       scope = incoming_scope
       attrs[:scope] = scope if scope.present?
 
-      return_to = incoming_return_to
-      attrs[:return_to] = return_to if return_to.present?
+      pt = incoming_pt
+      attrs[:pt] = pt if pt.present?
 
       attrs
     end
@@ -88,10 +87,10 @@ module Sign
 
     def restore_step_up_session_from_params!
       scope = incoming_scope
-      return_to = incoming_return_to
-      return false if scope.blank? || return_to.blank?
+      pt = incoming_pt
+      return false if scope.blank? || pt.blank?
 
-      start_step_up_session!(scope: scope, return_to_param: return_to)
+      start_step_up_session!(scope: scope, pt_param: pt)
       true
     rescue ActionController::BadRequest
       false
@@ -102,11 +101,9 @@ module Sign
         request_parameters["scope"].to_s.presence
     end
 
-    def incoming_return_to
-      verification_params[:return_to].to_s.presence ||
-        verification_params[:rt].to_s.presence ||
-        request_parameters["return_to"].to_s.presence ||
-        request_parameters["rt"].to_s.presence
+    def incoming_pt
+      verification_params[:pt].to_s.presence ||
+        request_parameters["pt"].to_s.presence
     end
 
     def request_parameters

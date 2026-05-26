@@ -5,11 +5,13 @@ module Sign
   module Com
     module Configuration
       class PasskeysController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include ::Verification::Visitor
+
         include Sign::Webauthn
+
         include ::CloudflareTurnstile
+
+        AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!
         before_action only: %i(new create options verification) do

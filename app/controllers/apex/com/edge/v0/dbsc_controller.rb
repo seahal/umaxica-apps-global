@@ -6,10 +6,11 @@ module Apex
     module Edge
       module V0
         class DbscController < Apex::Com::ApplicationController
-          AUTHENTICATION_MODE = :deny_all
-
           include ::Preference::WebCookieEndpoint
+
           include ::Preference::DbscRegistrationEndpoint
+
+          AUTHENTICATION_MODE = :deny_all
 
           skip_before_action :resolve_param_context, raise: false
           skip_before_action :set_region, raise: false

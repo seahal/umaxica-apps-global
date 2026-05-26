@@ -18,11 +18,11 @@ module Sign
       )
     end
 
-    def retrieve_redirect_parameter_for_checkpoint
-      params[:rt].presence
+    def retrieve_pt_for_checkpoint
+      params[:pt].presence
     end
 
-    alias_method :retrieve_redirect_parameter_for_bulletin, :retrieve_redirect_parameter_for_checkpoint
+    alias_method :retrieve_pt_for_bulletin, :retrieve_pt_for_checkpoint
 
     def generate_challenge_options(passkeys, actor)
       allow_credentials = passkeys.map { |pk| { id: pk.webauthn_id } }

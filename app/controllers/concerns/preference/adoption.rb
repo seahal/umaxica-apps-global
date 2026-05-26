@@ -95,12 +95,13 @@ module Preference
       if res_updated.present? && (app_updated.blank? || res_updated > app_updated)
         # ClientPreference/OperatorPreference is newer; copy to AppPreference/OrgPreference.
         copy_preference_values!(resource_pref, @preferences, preference_prefix)
-        issue_access_token_from(@preferences)
       else
         # AppPreference/OrgPreference is newer; copy to ClientPreference/OperatorPreference.
         copy_preference_values!(@preferences, resource_pref, resource_pref_prefix)
-        issue_access_token_from(@preferences)
       end
+
+      force_underage_r18_stopper!(resource_pref)
+      issue_access_token_from(@preferences)
     end
 
     # Copy child record option_ids and cookie consent from source to target.
@@ -146,6 +147,50 @@ module Preference
       copy_flat_preference_values!(source, target)
       copy_cookie_consent!(source, target, source_assoc, target_assoc)
       touch_target!(target)
+    end
+
+    def force_underage_r18_stopper!(resource_pref)
+      resource = preference_resource_for(resource_pref)
+      return unless resource&.respond_to?(:birthdate)
+      return if AgeEligibility.minimum_age_reached?(resource.birthdate, minimum_age: 18, today: Time.zone.today)
+
+      force_r18_stopper_child!(@preferences, preference_prefix)
+      force_r18_stopper_child!(resource_pref, resource_pref_prefix)
+    end
+
+    def force_r18_stopper_child!(preference, prefix)
+      association_prefix = preference_child_association_prefix(preference)
+      record_class = Preference::ClassRegistry.record_class(prefix, :r18_display_stopper)
+      option_class = Preference::ClassRegistry.option_class(prefix, :r18_display_stopper)
+      with_preference_writing_connection(option_class) { option_class.ensure_defaults! }
+      enabled_id = option_class::ENABLED
+
+      child = with_preference_writing_connection(preference) do
+        preference.public_send(r18_stopper_association_name(preference, association_prefix))
+      end
+
+      if child
+        with_preference_writing_connection(child) { child.update!(option_id: enabled_id) }
+      else
+        with_preference_writing_connection(record_class) do
+          record_class.create!(preference: preference, option_id: enabled_id)
+        end
+      end
+    end
+
+    def preference_resource_for(resource_pref)
+      case resource_pref
+      when ClientPreference then resource_pref.user
+      when OperatorPreference then resource_pref.staff
+      when VisitorPreference then resource_pref.visitor
+      end
+    end
+
+    def r18_stopper_association_name(preference, association_prefix)
+      prefixed = "#{association_prefix}_r18_display_stopper"
+      return prefixed if preference.respond_to?(prefixed)
+
+      "#{preference.class.name.underscore}_r18_display_stopper"
     end
 
     def resolve_cross_db_option_id(source_child, target_option_class)

@@ -6,56 +6,48 @@
 # Table name: visitor_sign_up_cycles
 # Database name: com_ticket
 #
-#  id                              :bigint           not null, primary key
-#  cancelled_at                    :datetime
-#  checkpoint_version              :integer          default(0), not null
-#  cleanup_attempted_at            :datetime
-#  cleanup_attempts_count          :integer          default(0), not null
-#  cleanup_completed_at            :datetime
-#  cleanup_error_code              :string
-#  completed_at                    :datetime
-#  completed_requirements          :jsonb            not null
-#  discarded_at                    :datetime         default(Infinity), not null
-#  entry_method                    :string
-#  expires_at                      :datetime         not null
-#  failed_at                       :datetime
-#  issued_at                       :datetime         not null
-#  nonce_digest                    :string           not null
-#  pending_contact_type            :string
-#  purged_at                       :datetime         default(Infinity), not null
-#  return_to                       :text
-#  social_provider                 :string
-#  state                           :string           not null
-#  step                            :string           not null
-#  created_at                      :datetime         not null
-#  updated_at                      :datetime         not null
-#  cleanup_status_id               :bigint           default(10), not null
-#  pending_contact_id              :bigint
-#  pending_passkey_registration_id :bigint
-#  principal_id                    :bigint
-#  public_id                       :string(21)       not null
-#  status_id                       :bigint           default(10), not null
-#  token_id                        :bigint
+#  id                     :bigint           not null, primary key
+#  cancelled_at           :datetime
+#  cleanup_token          :string           default(""), not null
+#  completed_at           :datetime
+#  completed_requirements :jsonb            not null
+#  discarded_at           :datetime         default(Infinity), not null
+#  entry_method           :string
+#  expires_at             :datetime         not null
+#  failed_at              :datetime
+#  issued_at              :datetime         not null
+#  nonce_digest           :string           not null
+#  pending_contact_type   :string
+#  purged_at              :datetime         default(Infinity), not null
+#  return_to              :text
+#  social_provider        :string
+#  state                  :string           not null
+#  step                   :string           not null
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  pending_contact_id     :bigint
+#  principal_id           :bigint
+#  public_id              :string(21)       not null
+#  status_id              :bigint           default(10), not null
+#  token_id               :bigint
 #
 # Indexes
 #
-#  index_visitor_sign_up_cycles_on_cleanup_status_id_and_purged_at  (cleanup_status_id,purged_at)
-#  index_visitor_sign_up_cycles_on_discarded_at                     (discarded_at)
-#  index_visitor_sign_up_cycles_on_expires_at                       (expires_at)
-#  index_visitor_sign_up_cycles_on_pending_contact_id               (pending_contact_id)
-#  index_visitor_sign_up_cycles_on_pending_passkey_registration_id  (pending_passkey_registration_id)
-#  index_visitor_sign_up_cycles_on_principal_id                     (principal_id)
-#  index_visitor_sign_up_cycles_on_public_id                        (public_id) UNIQUE
-#  index_visitor_sign_up_cycles_on_state                            (state)
-#  index_visitor_sign_up_cycles_on_status_id                        (status_id)
-#  index_visitor_sign_up_cycles_on_status_id_and_expires_at         (status_id,expires_at)
-#  index_visitor_sign_up_cycles_on_token_id                         (token_id)
+#  index_visitor_sign_up_cycles_on_cleanup_token             (cleanup_token)
+#  index_visitor_sign_up_cycles_on_discarded_at              (discarded_at)
+#  index_visitor_sign_up_cycles_on_expires_at                (expires_at)
+#  index_visitor_sign_up_cycles_on_pending_contact_id        (pending_contact_id)
+#  index_visitor_sign_up_cycles_on_principal_id              (principal_id)
+#  index_visitor_sign_up_cycles_on_public_id                 (public_id) UNIQUE
+#  index_visitor_sign_up_cycles_on_state                     (state)
+#  index_visitor_sign_up_cycles_on_status_id                 (status_id)
+#  index_visitor_sign_up_cycles_on_status_id_and_expires_at  (status_id,expires_at)
+#  index_visitor_sign_up_cycles_on_token_id                  (token_id)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (cleanup_status_id => visitor_sign_up_cycle_cleanup_statuses.id)
 #  fk_rails_...  (status_id => visitor_sign_up_cycle_statuses.id)
-#  fk_rails_...  (token_id => visitor_tokens.id)
+#  fk_rails_...  (token_id => visitor_tokens.id) ON DELETE => cascade
 #
 class VisitorSignUpCycle < ComTicketRecord
   include SignCycle

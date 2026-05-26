@@ -5,14 +5,15 @@ module Sign
   module App
     module Up
       class EmailsController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include Sign::EmailRegistrable
+
         include ::CloudflareTurnstile
 
+        AUTHENTICATION_MODE = :guest
+
         declare_authentication_mode! :guest, status: :unauthorized,
-                    message: I18n.t("errors.messages.already_authenticated"),
-                    no_redirect: true
+                                             message: I18n.t("errors.messages.already_authenticated"),
+                                             no_redirect: true
 
         # Defence-in-depth for sign-up entry. The default IP limit is 300/min
         # which is too generous for an OTP-generating endpoint. Tighten to
@@ -187,21 +188,21 @@ module Sign
           redirect_to(
             sign_app_up_guardrail_path(
               ri: params[:ri],
-              rt: params[:rt].presence,
+              pt: params[:pt].presence,
             ),
             notice: t("sign.app.registration.email.update.success"),
           )
         end
 
         def sanitize_redirect_params!(redirect_params)
-          return if redirect_params[:rt].blank?
+          return if redirect_params[:pt].blank?
 
-          redirect_params[:rt] = sanitize_encoded_redirect(redirect_params[:rt])
-          redirect_params.delete(:rt) if redirect_params[:rt].blank?
+          redirect_params[:pt] = sanitize_encoded_redirect(redirect_params[:pt])
+          redirect_params.delete(:pt) if redirect_params[:pt].blank?
         end
 
         def sanitize_encoded_redirect(encoded_url)
-          safe_encoded_rt(encoded_url)
+          signed_pt_token(encoded_url)
         end
 
         def valid_email_session?
@@ -329,7 +330,7 @@ module Sign
               issued_at: Time.current,
               expires_at: ClientSignUpCycle.default_ttl.from_now,
               entry_method: "email",
-              return_to: sanitized_return_to,
+              pt: sanitized_return_to,
             ),
           )
         end
@@ -376,7 +377,7 @@ module Sign
         end
 
         def sanitized_return_to
-          return_path_from_signed_rt(safe_encoded_rt(params[:rt].presence))
+          path_from_signed_pt(signed_pt_token(params[:pt].presence))
         end
       end
     end

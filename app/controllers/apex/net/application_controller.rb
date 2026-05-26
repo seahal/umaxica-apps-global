@@ -4,12 +4,15 @@
 module Apex
   module Net
     class ApplicationController < ActionController::Base
-      AUTHENTICATION_MODE = :deny_all
-
       include ::RateLimit
+
       include ::Session
+
       include ::ActorSupport
+
       include ::Finisher
+
+      AUTHENTICATION_MODE = :deny_all
 
       before_action :check_default_rate_limit
       before_action :set_current_context

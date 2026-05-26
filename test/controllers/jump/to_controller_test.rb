@@ -199,7 +199,7 @@ class JumpToControllerTest < ActionDispatch::IntegrationTest
 
   def issue_jump_target_token(url:, path:, surface:)
     harness = Class.new do
-      include ReturnTargets::SignedTokenSupport
+      include ::Redirects::SignedTargetSupport
 
       def issue(url:, path:, surface:)
         claims = signed_target_claims(flow: "jump", surface: surface, session_nonce: "jump")

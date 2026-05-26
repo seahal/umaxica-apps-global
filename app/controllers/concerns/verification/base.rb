@@ -6,12 +6,12 @@ module Verification
     extend ActiveSupport::Concern
 
     include Common::Redirect
-    include ReturnTargets::SignedTokenSupport
+    include ::Redirects::SignedTargetSupport
 
     STEP_UP_TTL = 15.minutes
     STEP_UP_REQUIRED_MESSAGE = "Step-up authentication required\nYour changes have not been saved"
-    STEP_UP_RETURN_TARGET_TOKEN_SALT = "return_target_token"
-    STEP_UP_RETURN_TARGET_TOKEN_PURPOSE = :return_target
+    STEP_UP_PATH_TARGET_TOKEN_SALT = "path_target_token"
+    STEP_UP_PATH_TARGET_TOKEN_PURPOSE = :path_target
 
     def verification_requirement
       @required_verification
@@ -34,13 +34,17 @@ module Verification
       verification_requirement
     end
 
+    def verification_required_aal
+      :aal2
+    end
+
     def verification_satisfied?
       actor_token = current_actor_token
       return false unless actor_token
 
       scope = verification_scope
       if scope.present?
-        return recorded_step_up_satisfied?(actor_token, scope: scope)
+        return recorded_step_up_satisfied?(actor_token, scope: scope, required_aal: verification_required_aal)
       end
 
       verification_record_satisfied?(actor_token)
@@ -67,19 +71,24 @@ module Verification
       true
     end
 
-    def recorded_step_up_satisfied?(token, scope:)
-      StepUp::Resolver.call(token: token, scope: scope, ttl: STEP_UP_TTL).satisfied?
+    def recorded_step_up_satisfied?(token, scope:, required_aal: verification_required_aal)
+      StepUp::Resolver.call(token: token, scope: scope, required_aal: required_aal, ttl: STEP_UP_TTL).satisfied?
     end
 
-    def step_up_satisfied?(scope:)
-      step_up = StepUp::Resolver.call(token: current_session_token, scope: scope, ttl: STEP_UP_TTL)
+    def step_up_satisfied?(scope:, required_aal: verification_required_aal)
+      step_up = StepUp::Resolver.call(
+        token: current_session_token,
+        scope: scope,
+        required_aal: required_aal,
+        ttl: STEP_UP_TTL,
+      )
       Actor.install_context!(step_up: step_up) if defined?(Actor)
       step_up.satisfied?
     end
 
-    def require_step_up!(scope:)
+    def require_step_up!(scope:, required_aal: verification_required_aal)
       return false if step_up_session_revoked?
-      return if step_up_satisfied?(scope: scope)
+      return if step_up_satisfied?(scope: scope, required_aal: required_aal)
 
       require_verification!(scope)
       return false unless enforce_step_up_prereqs!(scope_override: scope)
@@ -89,7 +98,7 @@ module Verification
         redirect_to(
           actor_verification_path(
             scope: scope,
-            rt: encoded_relative_return_to(request.fullpath),
+            pt: encoded_relative_pt(request.fullpath),
             ri: params[:ri],
           ),
         )
@@ -104,10 +113,10 @@ module Verification
       false
     end
 
-    def require_step_up_unless_bootstrap!(scope:)
+    def require_step_up_unless_bootstrap!(scope:, required_aal: verification_required_aal)
       return true if step_up_bootstrap_unconfigured?
 
-      require_step_up!(scope: scope)
+      require_step_up!(scope: scope, required_aal: required_aal)
     end
 
     private
@@ -140,7 +149,7 @@ module Verification
     def handle_unverified_actor!
       if request.get? || request.head?
         safe_redirect_to(
-          verification_redirect_path(rt: encoded_step_up_rt),
+          verification_redirect_path(pt: encoded_step_up_pt),
           fallback: verification_redirect_fallback,
           status: :found,
         )
@@ -159,9 +168,9 @@ module Verification
 
         destination =
           if step_up_bootstrap_unconfigured?
-            verification_setup_redirect_path(rt: encoded_step_up_rt)
+            verification_setup_redirect_path(pt: encoded_step_up_pt)
           else
-            verification_redirect_path(rt: encoded_step_up_rt, scope_override: scope_override)
+            verification_redirect_path(pt: encoded_step_up_pt, scope_override: scope_override)
           end
         fallback =
           if step_up_bootstrap_unconfigured?
@@ -176,9 +185,9 @@ module Verification
       else
         destination =
           if step_up_bootstrap_unconfigured?
-            verification_setup_redirect_path(rt: encoded_step_up_rt)
+            verification_setup_redirect_path(pt: encoded_step_up_pt)
           else
-            verification_redirect_path(rt: encoded_step_up_rt, scope_override: scope_override)
+            verification_redirect_path(pt: encoded_step_up_pt, scope_override: scope_override)
           end
         fallback =
           if step_up_bootstrap_unconfigured?
@@ -201,24 +210,24 @@ module Verification
       request.path == actor_verification_path
     end
 
-    def encoded_step_up_rt
-      safe_path = existing_step_up_return_to_path.presence ||
+    def encoded_step_up_pt
+      safe_path = existing_step_up_pt_path.presence ||
         safe_internal_path(request.fullpath.to_s).presence ||
         "/"
-      safe_path = unwrap_verification_return_to_path(safe_path)
-      issue_step_up_rt(safe_path)
+      safe_path = unwrap_verification_pt_path(safe_path)
+      issue_step_up_pt(safe_path)
     end
 
-    def encoded_relative_return_to(path)
+    def encoded_relative_pt(path)
       safe_path = safe_internal_path(path.to_s).presence || "/"
-      issue_step_up_rt(safe_path)
+      issue_step_up_pt(safe_path)
     end
 
-    def issue_step_up_rt(safe_path)
-      surface = bootstrap_return_target_surface
-      session_nonce = bootstrap_return_target_session_nonce
+    def issue_step_up_pt(safe_path)
+      surface = bootstrap_pt_surface
+      session_nonce = bootstrap_pt_session_nonce
       claims = signed_target_claims(
-        flow: bootstrap_return_target_flow,
+        flow: bootstrap_pt_flow,
         surface: surface,
         session_nonce: session_nonce,
       )
@@ -228,51 +237,51 @@ module Verification
       return nil if path.blank?
 
       issue_signed_target_token(
-        payload: claims.merge("return_to" => path),
-        purpose: STEP_UP_RETURN_TARGET_TOKEN_PURPOSE,
-        salt: STEP_UP_RETURN_TARGET_TOKEN_SALT,
+        payload: claims.merge("pt" => path),
+        purpose: STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
+        salt: STEP_UP_PATH_TARGET_TOKEN_SALT,
         expires_in: STEP_UP_TTL,
       )
     end
 
     def bootstrap_return_path(default_path)
-      resolve_step_up_rt(request.parameters["rt"]) || default_path
+      resolve_step_up_pt(request.parameters["pt"]) || default_path
     end
 
-    def resolve_step_up_rt(encoded)
+    def resolve_step_up_pt(encoded)
       encoded = encoded.to_s
       return nil if encoded.blank?
 
-      signed = signed_rt_to_safe_path(encoded)
+      signed = signed_pt_to_safe_path(encoded)
       signed.presence
     end
 
-    def signed_rt_to_safe_path(token)
-      surface = bootstrap_return_target_surface
+    def signed_pt_to_safe_path(token)
+      surface = bootstrap_pt_surface
       return nil if surface.blank?
 
       payload = verified_signed_target_payload(
         token,
-        purpose: STEP_UP_RETURN_TARGET_TOKEN_PURPOSE,
-        salt: STEP_UP_RETURN_TARGET_TOKEN_SALT,
-        expected_flow: bootstrap_return_target_flow,
+        purpose: STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
+        salt: STEP_UP_PATH_TARGET_TOKEN_SALT,
+        expected_flow: bootstrap_pt_flow,
         expected_surface: surface,
-        session_nonce: bootstrap_return_target_session_nonce,
+        session_nonce: bootstrap_pt_session_nonce,
       )
       return nil if payload.blank?
 
-      signed_target_internal_path(payload["return_to"])
+      signed_target_internal_path(payload["pt"])
     end
 
-    def bootstrap_return_target_flow
+    def bootstrap_pt_flow
       "step_up.bootstrap"
     end
 
-    def bootstrap_return_target_session_nonce
+    def bootstrap_pt_session_nonce
       current_session_token&.public_id.to_s
     end
 
-    def bootstrap_return_target_surface
+    def bootstrap_pt_surface
       case self.class.name
       when /::App::/ then "app"
       when /::Com::/ then "com"
@@ -280,13 +289,12 @@ module Verification
       end
     end
 
-    def decode_return_to_path(encoded)
-      resolve_step_up_rt(encoded)
+    def decode_pt_path(encoded)
+      resolve_step_up_pt(encoded)
     end
 
-    def setup_return_to_path(encoded, root_path:)
-      path = decode_return_to_path(encoded)
-      path ||= decode_legacy_setup_return_to_path(encoded)
+    def setup_pt_path(encoded, root_path:)
+      path = decode_pt_path(encoded)
       return nil if path.blank?
 
       uri = URI.parse(path)
@@ -297,19 +305,12 @@ module Verification
       nil
     end
 
-    def decode_legacy_setup_return_to_path(encoded)
-      decoded = Base64.urlsafe_decode64(encoded.to_s)
-      safe_internal_path(decoded).presence
-    rescue ArgumentError, URI::InvalidURIError
-      nil
+    def existing_step_up_pt_path
+      encoded = params[:pt].presence
+      resolve_step_up_pt(encoded)
     end
 
-    def existing_step_up_return_to_path
-      encoded = params[:rt].presence || params[:return_to].presence
-      resolve_step_up_rt(encoded)
-    end
-
-    def unwrap_verification_return_to_path(path)
+    def unwrap_verification_pt_path(path)
       safe_path = safe_internal_path(path.to_s).presence || "/"
 
       5.times do
@@ -317,10 +318,10 @@ module Verification
         break unless uri.path == actor_verification_path
 
         query = Rack::Utils.parse_nested_query(uri.query)
-        encoded = query["rt"].presence || query["return_to"].presence
+        encoded = query["pt"].presence
         break if encoded.blank?
 
-        nested_path = resolve_step_up_rt(encoded)
+        nested_path = resolve_step_up_pt(encoded)
         break if nested_path.blank? || nested_path == safe_path
 
         safe_path = nested_path
@@ -425,16 +426,16 @@ module Verification
       actor.refresh_multi_factor_status!
     end
 
-    def verification_redirect_path(rt: nil, scope_override: nil)
-      actor_verification_path(rt: rt, scope: scope_override || verification_scope, ri: params[:ri])
+    def verification_redirect_path(pt: nil, scope_override: nil)
+      actor_verification_path(pt: pt, scope: scope_override || verification_scope, ri: params[:ri])
     end
 
     def verification_redirect_fallback
       actor_root_path(ri: params[:ri])
     end
 
-    def verification_setup_redirect_path(rt: nil)
-      actor_verification_setup_path(rt: rt, ri: params[:ri])
+    def verification_setup_redirect_path(pt: nil)
+      actor_verification_setup_path(pt: pt, ri: params[:ri])
     end
 
     def verification_setup_redirect_fallback

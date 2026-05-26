@@ -24,6 +24,7 @@ module Sign::App
       assert_equal :deny_all, ApplicationController.authentication_mode_for(:index)
 
       rules = ApplicationController.local_authentication_mode_rules
+
       assert_empty rules
     end
 

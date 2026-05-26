@@ -84,7 +84,7 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     return_to = "/configuration/emails/new"
 
     travel_to Time.zone.local(2026, 1, 1, 12, 0, 0) do
-      harness.send(:start_step_up_session!, scope: "configuration_email", return_to_param: return_to)
+      harness.send(:start_step_up_session!, scope: "configuration_email", pt_param: return_to)
 
       session = token.reload.step_up_session
 
@@ -101,20 +101,20 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     harness = Harness.new(visitor: visitor, visitor_token: token)
 
     assert_raises(ActionController::BadRequest) do
-      harness.send(:start_step_up_session!, scope: "configuration_email", return_to_param: "https://evil.example")
+      harness.send(:start_step_up_session!, scope: "configuration_email", pt_param: "https://evil.example")
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "unknown",
-                                 return_to_param: "/configuration/emails",
+                                 pt_param: "/configuration/emails",
       )
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "configuration_email",
-                                 return_to_param: "/configuration/secrets",
+                                 pt_param: "/configuration/secrets",
       )
     end
   end

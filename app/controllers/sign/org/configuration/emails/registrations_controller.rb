@@ -6,11 +6,13 @@ module Sign
     module Configuration
       module Emails
         class RegistrationsController < ::Sign::Org::PrivateController
-          AUTHENTICATION_MODE = :private
-
           include ::CloudflareTurnstile
+
           include ::Common::Otp
+
           include ::Verification::Operator
+
+          AUTHENTICATION_MODE = :private
 
           before_action :authenticate_operator!
           before_action only: %i(new create edit update) do

@@ -119,14 +119,13 @@ class Common::RedirectTest < ActiveSupport::TestCase
     assert_nil redirect_helper.send(:safe_return_path, "https://u:p@trusted.example.com/x", allowed_hosts: allowed)
   end
 
-  test "safe_return_path allows an explicitly allowed host and keeps only path and query" do
+  test "safe_return_path is path target only and ignores legacy allowed hosts" do
     allowed = ["trusted.example.com"]
 
-    assert_equal "/welcome?ref=1",
-                 redirect_helper.send(
-                   :safe_return_path, "https://trusted.example.com/welcome?ref=1",
-                   allowed_hosts: allowed,
-                 )
+    assert_nil redirect_helper.send(
+      :safe_return_path, "https://trusted.example.com/welcome?ref=1",
+      allowed_hosts: allowed,
+    )
   end
 
   test "generate_redirect_url drops off-site targets and round-trips internal ones" do

@@ -21,7 +21,7 @@ module Sign
                 nonce,
                 ri: params[:ri],
                 scope: current_step_up_scope,
-                return_to: current_step_up_return_to_param,
+                pt: current_step_up_pt_param,
               ),
             )
             return
@@ -38,7 +38,7 @@ module Sign
               nonce,
               ri: params[:ri],
               scope: current_step_up_scope,
-              return_to: current_step_up_return_to_param,
+              pt: current_step_up_pt_param,
             ),
           )
         end
@@ -62,7 +62,7 @@ module Sign
                 nonce,
                 ri: params[:ri],
                 scope: current_step_up_scope,
-                return_to: current_step_up_return_to_param,
+                pt: current_step_up_pt_param,
               ),
             )
             return
@@ -79,7 +79,7 @@ module Sign
               nonce,
               ri: params[:ri],
               scope: current_step_up_scope,
-              return_to: current_step_up_return_to_param,
+              pt: current_step_up_pt_param,
             ),
           )
         end
@@ -148,7 +148,7 @@ module Sign
 
         def set_verification_navigation_context
           @verification_scope = incoming_scope || current_step_up_scope
-          @verification_return_to = incoming_return_to || current_step_up_return_to_param
+          @verification_pt = incoming_pt || current_step_up_pt_param
         end
 
         def verification_email_edit_path
@@ -156,7 +156,7 @@ module Sign
             params[:id],
             ri: params[:ri],
             scope: @verification_scope,
-            return_to: @verification_return_to,
+            pt: @verification_pt,
           )
         end
       end

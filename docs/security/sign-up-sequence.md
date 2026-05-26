@@ -80,7 +80,7 @@ The server must reject that request with a status code and a plain-text message.
 redirect to dashboard, continue a return path, create a new registration sequence, or sign the actor
 out on their behalf.
 
-## Guardrail, Checkpoint, Welcome, And Dashboard
+## Guardrail, Checkpoint, Selector, Welcome, And Dashboard
 
 `/sign/up/guardrail` is the sign-up stop point for cases where the current sign-up sequence must not
 continue. It is distinct from `/sign/up/checkpoint`:
@@ -92,9 +92,9 @@ continue. It is distinct from `/sign/up/checkpoint`:
 checkpoint, selector, and session issuance. If it blocks after durable sign-up completion, that is a
 sign-in failure domain; it must not delete completed account data.
 
-Guardrail, checkpoint, and welcome are sequence participants whose required content can grow or
-disappear over time. The sign-up state machine decides when the current sequence is allowed to
-evaluate each participant.
+Guardrail, checkpoint, selector, and welcome are sequence participants whose required content can
+grow or disappear over time. The sign-up and handoff state machines decide when the current sequence
+is allowed to evaluate each participant.
 
 Each participant evaluates an ordered stack of requirement items for the current sign-up or
 post-finalization sign-in sequence. The sequence advances only when the current participant's stack
@@ -324,16 +324,16 @@ Target state-machine path:
   - Write the sign-up audit entry.
   - Save the verified email state.
   - Enter the sign-in boundary with `auth_method: "email"`; session issuance happens only after
-    sign-in guardrail passes.
+    sign-in guardrail, checkpoint, and selector pass.
   - Sign-up finalization failure belongs to sign-up failure recovery.
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
 
 - Welcome sequence: `GET /welcomes/:id`
   - Current route helper: `sign_com_welcome_path("post_auth")`.
-  - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
-    continue to `/dashboard`.
+  - The common post-finalization handoff applies: after sign-in guardrail, checkpoint, selector,
+    session issuance, and welcome handling, continue to the safe `rt` return path when present;
+    otherwise continue to `/dashboard`.
 
 Current path:
 
@@ -348,11 +348,12 @@ Current path:
 8. The visitor is logged in.
 9. A welcome bulletin is requested through the shared helper.
 10. The flow calls the sign-in post-authentication sequence.
-11. Target behavior is that guardrail is evaluated before session issuance.
+11. Target behavior is that guardrail, checkpoint, and selector are evaluated before session
+    issuance.
 12. In the current implementation, the actor reaches `/sign/in/checkpoint` if checkpoint content
     exists.
-13. Otherwise, or after checkpoint completion, the actor continues to dashboard and then the safe
-    `rt` return path when present.
+13. Otherwise, or after checkpoint and selector completion, the actor receives the active session,
+    continues to dashboard, and then the safe `rt` return path when present.
 
 ## App Telephone
 
@@ -432,7 +433,7 @@ Expected state-machine path:
   - Create `rp_account` when missing.
   - Write the sign-up audit entry.
   - Enter the sign-in boundary with `auth_method: "telephone"`; session issuance happens only after
-    sign-in guardrail passes.
+    sign-in guardrail, checkpoint, and selector pass.
   - Sign-up finalization failure belongs to sign-up failure recovery.
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
@@ -441,9 +442,9 @@ Expected state-machine path:
   - Current route helper: `sign_app_welcome_path("post_auth")`.
   - This step is bypassable by `continue_welcome_sequence_without_content!` when no welcome sequence
     content is required.
-  - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
-    continue to `/dashboard`.
+  - The common post-finalization handoff applies: after sign-in guardrail, checkpoint, selector,
+    session issuance, and welcome handling, continue to the safe `rt` return path when present;
+    otherwise continue to `/dashboard`.
 
 Current path:
 
@@ -470,7 +471,8 @@ Target state-machine path:
 6. The checkpoint blocks account finalization until birthdate, passkey, and passcode requirements
    are all cleared.
 7. Only after the checkpoint is complete, the client is promoted, the account row is created, audit
-   is written, and the existing sign-in boundary may issue the session after guardrail passes.
+   is written, and the existing sign-in boundary may issue the session after guardrail, checkpoint,
+   and selector pass.
 
 ## App Social
 
@@ -528,7 +530,7 @@ Expected state-machine path:
   - Ensure the linked Google identity is active.
   - Write the social sign-up audit entry.
   - Enter the sign-in boundary with `auth_method: "social"` and provider context; session issuance
-    happens only after sign-in guardrail passes.
+    happens only after sign-in guardrail, checkpoint, and selector pass.
   - Sign-up finalization failure belongs to sign-up failure recovery.
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
@@ -537,9 +539,9 @@ Expected state-machine path:
   - Current route helper: `sign_app_welcome_path("post_auth")`.
   - This step is bypassable by `continue_welcome_sequence_without_content!` when no welcome sequence
     content is required.
-  - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
-    continue to `/dashboard`.
+  - The common post-finalization handoff applies: after sign-in guardrail, checkpoint, selector,
+    session issuance, and welcome handling, continue to the safe `rt` return path when present;
+    otherwise continue to `/dashboard`.
 
 ### App Apple
 
@@ -593,7 +595,7 @@ Expected state-machine path:
   - Ensure the linked Apple identity is active.
   - Write the social sign-up audit entry.
   - Enter the sign-in boundary with `auth_method: "social"` and provider context; session issuance
-    happens only after sign-in guardrail passes.
+    happens only after sign-in guardrail, checkpoint, and selector pass.
   - Sign-up finalization failure belongs to sign-up failure recovery.
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
@@ -602,9 +604,9 @@ Expected state-machine path:
   - Current route helper: `sign_app_welcome_path("post_auth")`.
   - This step is bypassable by `continue_welcome_sequence_without_content!` when no welcome sequence
     content is required.
-  - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
-    continue to `/dashboard`.
+  - The common post-finalization handoff applies: after sign-in guardrail, checkpoint, selector,
+    session issuance, and welcome handling, continue to the safe `rt` return path when present;
+    otherwise continue to `/dashboard`.
 
 Current path:
 
@@ -618,8 +620,8 @@ Current path:
 7. A social sign-up audit entry is written.
 8. The client is signed in through the normal social login path.
 9. New and existing accounts both call the sign-in post-authentication sequence.
-10. Target behavior is that guardrail is evaluated before session issuance, then the actor reaches
-    checkpoint/welcome/`rt` or dashboard according to the sign-in sequence.
+10. Target behavior is that guardrail, checkpoint, and selector are evaluated before session
+    issuance, then the actor reaches welcome/`rt` or dashboard according to the sign-in sequence.
 
 ## Com Telephone
 
@@ -697,16 +699,16 @@ Target state-machine path:
   - Create `rp_account` when missing.
   - Write the sign-up audit entry.
   - Enter the sign-in boundary with `auth_method: "telephone"`; session issuance happens only after
-    sign-in guardrail passes.
+    sign-in guardrail, checkpoint, and selector pass.
   - Sign-up finalization failure belongs to sign-up failure recovery.
   - Sign-in/session issuance failure after durable sign-up completion belongs to sign-in failure
     handling and must not delete completed account data.
 
 - Welcome sequence: `GET /welcomes/:id`
   - Current route helper: `sign_com_welcome_path("post_auth")`.
-  - The common post-finalization handoff applies: after sign-in guardrail passes, session issuance,
-    checkpoint, and welcome handling, continue to the safe `rt` return path when present; otherwise
-    continue to `/dashboard`.
+  - The common post-finalization handoff applies: after sign-in guardrail, checkpoint, selector,
+    session issuance, and welcome handling, continue to the safe `rt` return path when present;
+    otherwise continue to `/dashboard`.
 
 Current path:
 
@@ -736,7 +738,8 @@ Target state-machine path:
 6. The checkpoint blocks account finalization until birthdate, passkey, and passcode requirements
    are all cleared.
 7. Only after the checkpoint is complete, the visitor is finalized, the account row is created,
-   audit is written, and the existing sign-in boundary may issue the session after guardrail passes.
+   audit is written, and the existing sign-in boundary may issue the session after guardrail,
+   checkpoint, and selector pass.
 
 ## Org Operator Acquisition And Lifecycle
 

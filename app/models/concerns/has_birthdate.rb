@@ -21,13 +21,17 @@ module HasBirthdate
     nil
   end
 
+  def birthdate_for_age
+    AgeEligibility.birthdate_for_age(birthdate)
+  end
+
   def calendar_valid_birthdate?
     parsed_birthdate.present?
   end
 
   def age_on(date = Time.zone.today)
     date = date.to_date
-    bday = parsed_birthdate
+    bday = birthdate_for_age
     return nil unless bday
 
     age = date.year - bday.year
@@ -36,14 +40,16 @@ module HasBirthdate
     before_birthday ? age - 1 : age
   end
 
-  def adult_for_nsfw?(minimum_age: 18, today: Time.zone.today)
-    age = age_on(today)
+  def minimum_age_reached?(minimum_age, today: Time.zone.today)
+    AgeEligibility.minimum_age_reached?(birthdate, minimum_age: minimum_age, today: today)
+  end
 
-    age.present? && age >= minimum_age
+  def adult_for_nsfw?(minimum_age: 18, today: Time.zone.today)
+    minimum_age_reached?(minimum_age, today: today)
   end
 
   def nsfw_unlockable?
-    birthdate.present? && calendar_valid_birthdate? && adult_for_nsfw?
+    birthdate_for_age.present? && adult_for_nsfw?
   end
 
   private

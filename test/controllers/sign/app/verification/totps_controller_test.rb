@@ -172,14 +172,14 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_response :success
     assert_select(
       "a[href=?]",
-      new_sign_app_verification_totp_path(ri: "jp", scope: "configuration_totp", rt: return_to),
+      new_sign_app_verification_totp_path(ri: "jp", scope: "configuration_totp", pt: return_to),
     )
 
     with_prosopite_paused do
       get new_sign_app_verification_totp_url(
         ri: "jp",
         scope: "configuration_totp",
-        rt: return_to,
+        pt: return_to,
       ), headers: @headers
     end
 

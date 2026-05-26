@@ -17,18 +17,27 @@ module Sign
       # planned for a future phase. Currently, identifier is required to look up
       # the operator's registered passkeys.
       class PasskeysController < GuestController
-        AUTHENTICATION_MODE = :guest
-
         include Sign::Webauthn
+
         include Sign::PasskeyAuthentication
+
         include Sign::PasskeyAuthenticationHelpers
+
         include Sign::PasskeyOptionsFlow
+
         include Sign::PasskeyVerificationFlow
+
         include Sign::PasskeySignInFlow
+
         include Sign::PasskeyLoginResultFlow
+
         include MinimumResponseBudget
+
         include SessionLimitGate
+
         include CloudflareTurnstile
+
+        AUTHENTICATION_MODE = :guest
 
         # GET /in/passkeys/new
         # Render login page with identifier input and passkey button
@@ -83,7 +92,7 @@ module Sign
 
         def perform_passkey_sign_in(passkey)
           establish_signed_in_session!(
-            passkey.staff, rt: retrieve_redirect_parameter_for_checkpoint, ri: params[:ri], auth_method: "passkey",
+            passkey.staff, pt: retrieve_pt_for_checkpoint, ri: params[:ri], auth_method: "passkey",
           )
         end
 
@@ -93,7 +102,7 @@ module Sign
             render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
             true
           when :session_limit_exceeded
-            issue_session_limit_gate!(return_to: request.fullpath, flow: "in.passkeys.session")
+            issue_session_limit_gate!(pt: request.fullpath, flow: "in.passkeys.session")
             render json: {
               status: "session_limit_exceeded",
               redirect_url: new_sign_org_in_passkey_path,
@@ -116,7 +125,7 @@ module Sign
         end
 
         def passkey_checkpoint_redirect_url
-          sign_org_in_checkpoint_path(rt: retrieve_redirect_parameter_for_checkpoint, ri: params[:ri])
+          sign_org_in_checkpoint_path(pt: retrieve_pt_for_checkpoint, ri: params[:ri])
         end
 
         def passkey_default_redirect_url

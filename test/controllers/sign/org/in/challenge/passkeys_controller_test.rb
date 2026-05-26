@@ -358,7 +358,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_in_challenge_passkey_path(ri: "jp", rt: "/bulleting/path"),
+      post sign_org_in_challenge_passkey_path(ri: "jp", pt: "/bulleting/path"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
              mfa_passkey_form: {

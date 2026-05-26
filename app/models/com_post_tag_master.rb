@@ -1,6 +1,18 @@
 # typed: false
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: post_tag_masters
+# Database name: com_publisher
+#
+#  id        :bigint           not null, primary key
+#  parent_id :bigint           default(0), not null
+#
+# Indexes
+#
+#  index_post_tag_masters_on_parent_id  (parent_id)
+#
 class ComPostTagMaster < ComPublisherRecord
   self.table_name = "post_tag_masters"
 
@@ -22,4 +34,3 @@ class ComPostTagMaster < ComPublisherRecord
   has_many :post_tags, class_name: "ComPostTag", dependent: :restrict_with_error, inverse_of: :post_tag_master
   has_many :posts, through: :post_tags
 end
-

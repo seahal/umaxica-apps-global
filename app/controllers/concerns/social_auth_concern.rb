@@ -43,13 +43,13 @@ module SocialAuthConcern
   #
   # @param intent [String] One of: "login", "link"
   # @return [void]
-  def prepare_social_auth_intent!(intent, provider: nil, rt: nil, entry: nil, ri: nil)
+  def prepare_social_auth_intent!(intent, provider: nil, pt: nil, entry: nil, ri: nil)
     intent = intent.to_s
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent") unless VALID_INTENTS.include?(intent)
 
     validate_social_auth_login_requirement!(intent)
 
-    store_social_auth_intent_context(intent, provider: provider, rt: rt, entry: entry, ri: ri)
+    store_social_auth_intent_context(intent, provider: provider, pt: pt, entry: entry, ri: ri)
     store_social_callback_state(provider)
     store_social_auth_user_context(intent)
 
@@ -62,15 +62,15 @@ module SocialAuthConcern
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.not_logged_in")
   end
 
-  def store_social_auth_intent_context(intent, provider:, rt:, entry:, ri:)
+  def store_social_auth_intent_context(intent, provider:, pt:, entry:, ri:)
     session[SOCIAL_INTENT_SESSION_KEY] = intent
     session[SOCIAL_STARTED_AT_SESSION_KEY] = Time.current.to_i
     session[SOCIAL_FLOW_ID_SESSION_KEY] = SecureRandom.hex(16)
     session[SOCIAL_PROVIDER_SESSION_KEY] = provider
     session[SOCIAL_ENTRY_SESSION_KEY] = entry if entry.present?
     session[SOCIAL_RI_SESSION_KEY] = ri if ri.present?
-    if rt.present?
-      session[SOCIAL_RT_SESSION_KEY] = rt
+    if pt.present?
+      session[SOCIAL_RT_SESSION_KEY] = pt
     else
       session.delete(SOCIAL_RT_SESSION_KEY)
     end
@@ -172,7 +172,7 @@ module SocialAuthConcern
   def process_social_auth_callback
     auth_hash = omniauth_auth_hash
     intent = current_social_auth_intent
-    rt = current_social_auth_rt
+    pt = current_social_auth_rt
     entry = current_social_auth_entry
 
     result = SocialAuthService.handle_callback(
@@ -181,7 +181,7 @@ module SocialAuthConcern
       intent: intent,
       sign_up_entry: intent == "login",
     )
-    result[:rt] = rt if rt.present?
+    result[:pt] = pt if pt.present?
     result[:entry] = entry if entry.present?
 
     clear_social_auth_intent!

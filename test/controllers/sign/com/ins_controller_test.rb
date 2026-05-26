@@ -17,15 +17,15 @@ module Sign
         assert_select "h1", text: I18n.t("sign.com.authentication.new.page_title")
       end
 
-      test "authentication links carry rt" do
-        rt = Base64.urlsafe_encode64("https://id.umaxica.com/configuration/sessions?ri=jp", padding: false)
+      test "authentication links carry pt" do
+        pt = Base64.urlsafe_encode64("https://id.umaxica.com/configuration/sessions?ri=jp", padding: false)
 
-        get new_sign_com_in_url(ri: "jp", rt: rt), headers: { "Host" => @host }
+        get new_sign_com_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?]", new_sign_com_in_email_path(rt: rt, ri: "jp")
-        assert_select "a[href=?]", new_sign_com_in_passkey_path(rt: rt, ri: "jp")
-        assert_select "a[href=?]", new_sign_com_in_secret_path(rt: rt, ri: "jp")
+        assert_select "a[href=?]", new_sign_com_in_email_path(pt: pt, ri: "jp")
+        assert_select "a[href=?]", new_sign_com_in_passkey_path(pt: pt, ri: "jp")
+        assert_select "a[href=?]", new_sign_com_in_secret_path(pt: pt, ri: "jp")
       end
 
       test "does not show social login buttons" do

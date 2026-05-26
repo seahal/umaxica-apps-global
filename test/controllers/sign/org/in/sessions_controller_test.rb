@@ -52,7 +52,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       assert_equal "id.umaxica.org", location.host
       assert_equal "/sign/in/new", location.path
       assert_equal "jp", params["ri"]
-      assert_match(/--/, params.fetch("rt"))
+      assert_match(/--/, params.fetch("pt"))
     end
   ensure
     Rails.application.reload_routes!
@@ -304,7 +304,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{/configuration}, response.location
   end
 
-  test "update with rt param redirects to the requested path" do
+  test "update with pt param redirects to the requested path" do
     active_token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
@@ -312,9 +312,9 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.rotate_refresh_token!
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
-    rt = "/configuration"
+    pt = "/configuration"
 
-    patch sign_org_in_session_url(ri: "jp", rt: rt),
+    patch sign_org_in_session_url(ri: "jp", pt: pt),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 
@@ -325,7 +325,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{/configuration}, response.location
   end
 
-  test "update with invalid rt param falls back to default path" do
+  test "update with invalid pt param falls back to default path" do
     active_token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
@@ -334,7 +334,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_in_session_url(ri: "jp", rt: "not-a-token"),
+    patch sign_org_in_session_url(ri: "jp", pt: "not-a-token"),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 

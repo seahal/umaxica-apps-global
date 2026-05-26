@@ -6,11 +6,13 @@ module Sign
     module Up
       module Checkpoint
         class PasskeysController < GuestController
-          AUTHENTICATION_MODE = :guest
-
           include Common::Redirect
+
           include Sign::PasskeyRegistrationFlow
+
           include Sign::Up::SequenceControllerSupport
+
+          AUTHENTICATION_MODE = :guest
 
           before_action :load_sign_up_ticket
           before_action :load_sign_up_actor
@@ -64,7 +66,7 @@ module Sign
           end
 
           def success_redirect_url
-            sign_com_up_checkpoint_path(ri: params[:ri], rt: params[:rt].presence)
+            sign_com_up_checkpoint_path(ri: params[:ri], pt: params[:pt].presence)
           end
 
           def sign_up_requirement_context

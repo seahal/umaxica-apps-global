@@ -5,9 +5,9 @@ module Sign
   module Com
     module In
       class SessionsController < ApplicationController
-        AUTHENTICATION_MODE = :deny_all
-
         include SessionLimitGate
+
+        AUTHENTICATION_MODE = :deny_all
 
         declare_authentication_mode! :open
 
@@ -41,7 +41,7 @@ module Sign
               consume_session_limit_gate!
               session.delete(:pending_login_visitor_id)
               return redirect_to_sign_in_sequence!(
-                rt: retrieve_redirect_parameter.presence || session_limit_return_to,
+                pt: retrieve_pt.presence || session_limit_pt,
                 notice: I18n.t("sign.app.in.session.promoted"),
               )
             end
@@ -101,13 +101,13 @@ module Sign
         end
 
         def redirect_to_return_path(notice:)
-          return_path = retrieve_redirect_parameter || session_limit_return_to
+          return_path = retrieve_pt || session_limit_pt
           consume_session_limit_gate!
 
           if return_path.present?
             flash[:notice] = notice
-            destination = return_path_from_signed_rt(safe_encoded_rt(return_path)) || sign_com_configuration_path
-            redirect_to_return_target_destination!(destination)
+            destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_com_configuration_path
+            redirect_to_pt_destination!(destination)
           else
             redirect_to(sign_com_configuration_path(ri: params[:ri]), notice: notice)
           end

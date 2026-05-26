@@ -137,6 +137,36 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     assert_nil @user.reload.withdrawal_started_at
   end
 
+  test "schedule acknowledgement creates requested cycle without closing actor or revoking sessions" do
+    other_token = ClientToken.create!(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
+    )
+
+    patch sign_app_configuration_withdrawal_url(ri: "jp"),
+          params: { ack_schedule_purge: "1" },
+          headers: @headers
+
+    assert_response :see_other
+    assert_redirected_to new_sign_app_configuration_withdrawal_path(ri: "jp", ack_schedule_purge: "1")
+
+    @user.reload
+    @token.reload
+    other_token.reload
+
+    assert_nil @user.withdrawal_started_at
+    assert_nil @user.deactivated_at
+    assert_not @token.revoked?
+    assert_not other_token.revoked?
+
+    cycle = @user.client_withdrawal_cycles.recent_first.first
+
+    assert_predicate cycle, :withdrawal_requested?
+    assert_equal 1, cycle.client_withdrawal_cycle_events.count
+  end
+
   test "wrong step-up scope cannot recover withdrawal" do
     @user.update!(
       deactivated_at: 10.days.ago,

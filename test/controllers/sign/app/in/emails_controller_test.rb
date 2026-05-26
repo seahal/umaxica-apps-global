@@ -522,7 +522,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "redirects to encoded URL after successful login when rt parameter is provided" do
+  test "redirects to encoded URL after successful login when pt parameter is provided" do
     # Create a test user and email
     user = clients(:one)
     test_email = user.client_emails.create!(
@@ -530,19 +530,19 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     )
 
     redirect_url = sign_app_configuration_path(ri: "jp")
-    rt = redirect_url
+    pt = redirect_url
 
-    # Start authentication with rt parameter
+    # Start authentication with pt parameter
     post sign_app_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
-           :rt => rt,
+           :pt => pt,
          },
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_includes response.location, "rt="
+    assert_includes response.location, "pt="
     assert_equal test_email.id, session[:user_email_authentication_id]
     assert_predicate session[:user_email_authentication_rt], :present?
 
@@ -555,16 +555,16 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     # Store OTP
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    # Verify OTP with rt parameter
+    # Verify OTP with pt parameter
     patch sign_app_in_email_url(ri: "jp"),
           params: {
             user_email: { pass_code: valid_pass_code },
-            rt: rt,
+            pt: pt,
           },
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_includes response.location, "rt="
+    assert_includes response.location, "pt="
 
     cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
 
@@ -579,24 +579,24 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_nil cycle.return_to
   end
 
-  test "rejects external rt parameter after successful login" do
+  test "rejects external pt parameter after successful login" do
     user = clients(:one)
     test_email = user.client_emails.create!(
       address: "redirect_external_test_#{SecureRandom.hex(4)}@example.com",
     )
 
-    rt = "https://example.com/evil"
+    pt = "https://example.com/evil"
 
     post sign_app_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
-           :rt => rt,
+           :pt => pt,
          },
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_no_match(/rt=/, response.location)
+    assert_no_match(/pt=/, response.location)
 
     otp_private_key = ROTP::Base32.random_base32
     otp_counter = 12_345
@@ -608,7 +608,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     patch sign_app_in_email_url(ri: "jp"),
           params: {
             user_email: { pass_code: valid_pass_code },
-            rt: rt,
+            pt: pt,
           },
           headers: { "Host" => @host }
 

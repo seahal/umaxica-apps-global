@@ -54,4 +54,3 @@ module PublisherPostDocument
     errors.add(:published_at, "must be before expires_at")
   end
 end
-

@@ -18,7 +18,7 @@ module Auth
 
       def resource_foreign_key = :user_id
 
-      def sign_in_url_with_return(_return_to) = "/sign/in"
+      def sign_in_url_with_pt(_return_to) = "/sign/in"
 
       def am_i_user? = true
 
@@ -97,9 +97,9 @@ module Auth
           extend Authentication::Base::ClassMethods
         end
 
-      klass.declare_authentication_mode! :open, only: :public
-      klass.declare_authentication_mode! :private, only: :protected
-      klass.declare_authentication_mode! :guest, only: :guest
+      klass.declare_authentication_mode!(:open, only: :public)
+      klass.declare_authentication_mode!(:private, only: :protected)
+      klass.declare_authentication_mode!(:guest, only: :guest)
 
       rules = klass.local_authentication_mode_rules
 
@@ -121,7 +121,7 @@ module Auth
         true
       end
 
-      BaseHarness.declare_authentication_mode! :private, only: :index
+      BaseHarness.declare_authentication_mode!(:private, only: :index)
 
       assert controller.send(:enforce_access_policy!)
       assert_equal :auth_required?, calls.first.first

@@ -4,9 +4,9 @@
 module Sign
   module Org
     class BareController < ActionController::Base
-      AUTHENTICATION_MODE = :bare
-
       include ::RateLimit
+
+      AUTHENTICATION_MODE = :bare
 
       allow_browser versions: :modern
 

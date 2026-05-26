@@ -18,9 +18,9 @@
 # The restricted session approach avoids blocking login while ensuring users
 # can manage their sessions. Invariant: max 1 restricted session per user.
 class Sign::App::In::SessionsController < Sign::App::ApplicationController
-  AUTHENTICATION_MODE = :deny_all
-
   include SessionLimitGate
+
+  AUTHENTICATION_MODE = :deny_all
 
   # This controller handles session management for both authenticated users
   # and users who are in the process of logging in (with a pending gate).
@@ -62,7 +62,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
         consume_session_limit_gate!
         session.delete(:pending_login_user_id)
         return redirect_to_sign_in_sequence!(
-          rt: retrieve_redirect_parameter.presence || session_limit_return_to,
+          pt: retrieve_pt.presence || session_limit_pt,
           notice: I18n.t("sign.app.in.session.promoted"),
         )
       end
@@ -93,10 +93,10 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
       render :show
     else
       # Cancel: revoke current restricted session and logout
-    if current_session&.restricted?
-      current_session.revoke!
-    end
-    current_db_sign_in_cycle_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
+      if current_session&.restricted?
+        current_session.revoke!
+      end
+      current_db_sign_in_cycle_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
       consume_session_limit_gate!
       session.delete(:pending_login_user_id)
       log_out
@@ -142,13 +142,13 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
   end
 
   def redirect_to_return_path(notice:)
-    return_path = retrieve_redirect_parameter || session_limit_return_to
+    return_path = retrieve_pt || session_limit_pt
     consume_session_limit_gate!
 
     if return_path.present?
       flash[:notice] = notice
-      destination = return_path_from_signed_rt(safe_encoded_rt(return_path)) || sign_app_configuration_path
-      redirect_to_return_target_destination!(destination)
+      destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_app_configuration_path
+      redirect_to_pt_destination!(destination)
     else
       redirect_to(sign_app_configuration_path, notice: notice)
     end

@@ -80,10 +80,10 @@ module Cycle
     private
 
     def transition_withdrawal_to!(next_status_name, allowed_from:, now:, changes: {}, **event_attrs)
-      from_status_id = status_id
       to_status_id = status_id_for(next_status_name)
 
       with_cycle_lock do
+        from_status_id = status_id
         ensure_cycle_transition_allowed!(to_status_id, allowed_from: status_ids_for(*allowed_from), now: now)
         update!(changes.merge(status_id: to_status_id))
         record_withdrawal_event!(

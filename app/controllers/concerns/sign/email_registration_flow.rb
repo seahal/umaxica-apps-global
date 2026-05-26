@@ -207,14 +207,14 @@ module Sign
     end
 
     def email_registration_return_path(default_path)
-      encoded = retrieve_redirect_parameter(email_registration_rt_session_key)
+      encoded = retrieve_pt(email_registration_rt_session_key)
       return default_path if encoded.blank?
 
-      return_path_from_signed_rt(encoded) || default_path
+      path_from_signed_pt(encoded) || default_path
     end
 
     def preserve_email_registration_redirect_parameter
-      preserve_redirect_parameter(email_registration_rt_session_key)
+      preserve_pt(email_registration_rt_session_key)
     end
 
     def email_registration_rt_session_key
@@ -222,10 +222,10 @@ module Sign
     end
 
     def sanitize_redirect_params!(redirect_params)
-      return if redirect_params[:rt].blank?
+      return if redirect_params[:pt].blank?
 
-      redirect_params[:rt] = sanitize_encoded_redirect(redirect_params[:rt])
-      redirect_params.delete(:rt) if redirect_params[:rt].blank?
+      redirect_params[:pt] = sanitize_encoded_redirect(redirect_params[:pt])
+      redirect_params.delete(:pt) if redirect_params[:pt].blank?
     end
 
     def email_registration_edit_path_with_flash(message_key, message)
@@ -236,7 +236,7 @@ module Sign
     end
 
     def sanitize_encoded_redirect(encoded_url)
-      safe_encoded_rt(encoded_url)
+      signed_pt_token(encoded_url)
     end
 
     def finalize_registered_email!(user_email)

@@ -15,10 +15,10 @@ surfaces.
 
 The `app` and `com` surfaces should use the same withdrawal business logic.
 
-The current implementation is transitional. The intended model is a DB-backed withdrawal cycle
-implemented with shared model/controller concerns and separate surface models. Controllers remain
-surface-specific because routes, current actor helpers, redirects, translations, and audit event
-names differ between `app` and `com`. Business rules should not drift between the two surfaces.
+The implementation uses a DB-backed withdrawal cycle with shared model/controller concerns and
+separate surface models. Controllers remain surface-specific because routes, current actor helpers,
+redirects, translations, and audit event names differ between `app` and `com`. Business rules must
+not drift between the two surfaces.
 
 Withdrawal scheduling, recovery, and early irreversible termination require recent token-scoped AAL2
 step-up with exact scope `withdrawal`. A fresh sign-in session is only AAL1 and must not satisfy
@@ -37,12 +37,15 @@ The user-visible sequence is distinct from the state-machine status names.
    - A withdrawal cycle is created and records `began_at`.
    - This means the actor entered the withdrawal flow, not that the account has been scheduled for
      withdrawal.
+   - `withdrawal_started_at`, `deactivated_at`, `discarded_at`, and `purged_at` are not changed.
+   - Other sessions are not revoked.
    - The configuration history can show that the withdrawal process was opened.
 
 3. Withdrawal scheduled
    - The actor explicitly confirms withdrawal intent.
    - `withdrawal_started_at` records the point where the actor entered the withdrawal-scheduled
      state.
+   - The cycle transitions through `CLOSING`.
    - RP/OIDC actions should reject the actor after this point.
    - Normal sign/apex access should be constrained to withdrawal/status/recovery paths as
      appropriate for the surface.
@@ -51,6 +54,7 @@ The user-visible sequence is distinct from the state-machine status names.
 
 - The withdrawal is finalized by setting `discarded_at` to the logical deletion time.
 - `purged_at` is set to `discarded_at + 31.days`.
+- The cycle transitions to `DISCARDED`.
 - Other sessions are revoked; the current verified session may continue only for the allowed
   withdrawal-continuation surface.
 - The account row is not physically deleted by self-service withdrawal.
@@ -123,9 +127,9 @@ At minimum, each event should record the cycle, the previous and next status, th
 the actor, the session token where available, and a compact reason/kind value. The configuration
 history can read these events, while audit/chronicle remains the long-lived security audit trail.
 
-The app/com implementation should share controller behavior through controller concerns and share
-domain behavior through model concerns. It should not place the withdrawal business flow in a
-service object.
+The app/com implementation shares controller behavior through controller concerns and domain
+behavior through model/cycle concerns. The lifecycle service is only an orchestration boundary for
+locking, actor timestamp mutation, cycle transitions, event recording, and session revocation.
 
 ## Org Membership And Withdrawal
 

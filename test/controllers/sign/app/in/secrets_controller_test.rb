@@ -432,16 +432,16 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
       failures << kwargs.merge(reason: :hard_reject)
     }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
-    controller.define_singleton_method(:safe_redirect_to_rt_or_default!) { |rt, default_path:|
-      redirects << [rt || default_path, {}]
+    controller.define_singleton_method(:redirect_to_pt_or_default!) { |pt, default_path:|
+      redirects << [pt || default_path, {}]
     }
     controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, rt: nil|
-      "/dashboard?ri=#{ri}#{rt ? "&rt=#{rt}" : ""}"
+    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+      "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_checkpoint_path) { |rt: nil, ri: nil|
-      "/sign/in/checkpoint?rt=#{rt}&ri=#{ri}"
+    controller.define_singleton_method(:sign_app_in_checkpoint_path) { |pt: nil, ri: nil|
+      "/sign/in/checkpoint?pt=#{pt}&ri=#{ri}"
     }
     controller.define_singleton_method(:t) { |key| key }
 
@@ -524,7 +524,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     session_hash = {}
     params_hash = ActionController::Parameters.new(
       "ri" => "jp",
-      "rt" => "encoded-rt",
+      "pt" => "encoded-pt",
       "cf-turnstile-response" => "test_token",
     )
     redirects = []
@@ -535,8 +535,8 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { params_hash }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
-    controller.define_singleton_method(:safe_redirect_to_rt_or_default!) { |rt, default_path:|
-      redirects << [rt || default_path, {}]
+    controller.define_singleton_method(:redirect_to_pt_or_default!) { |pt, default_path:|
+      redirects << [pt || default_path, {}]
     }
     controller.define_singleton_method(:render_failed_login) { |**kwargs| failures << kwargs }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs|
@@ -544,8 +544,8 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     }
     controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_checkpoint_path) { |rt: nil, ri: nil|
-      "/sign/in/checkpoint?rt=#{rt}&ri=#{ri}"
+    controller.define_singleton_method(:sign_app_in_checkpoint_path) { |pt: nil, ri: nil|
+      "/sign/in/checkpoint?pt=#{pt}&ri=#{ri}"
     }
     controller.define_singleton_method(:t) { |key| key }
     controller.define_singleton_method(:clear_mfa_session!) { session_hash[Sign::App::In::SecretsController::MFA_USER_SESSION_KEY] = nil }
@@ -575,7 +575,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     assert_match %r{\A/welcome\?}, redirects.last.first
     assert_includes redirects.last.first, "ri=jp"
-    assert_includes redirects.last.first, "rt="
+    assert_includes redirects.last.first, "pt="
     assert_equal({ notice: "sign.app.authentication.secret.create.success" }, redirects.last.second)
 
     controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :unexpected } }

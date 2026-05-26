@@ -4,23 +4,34 @@
 module Sign
   module App
     class ApplicationController < ActionController::Base
-      AUTHENTICATION_MODE = :deny_all
-
       include ::RateLimit
+
       include ::Session
+
       include ::Preference::Global
+
       # Adopt anonymous preference cookies into the signed-in user account after authentication.
       include ::Preference::Adoption
+
       include ::Authentication::Client
+
       include ::Authentication::CredentialInventoryReader
+
       include ::Authorization::Client
+
       include ::Verification::Client
+
       include ActionPolicy::Controller
+
       # Note: RestrictedSessionGuard is still needed to enforce session expiration
       # and block expired restricted sessions on the session management page itself.
       include ::RestrictedSessionGuard
+
       include ::ActorSupport
+
       include ::Finisher
+
+      AUTHENTICATION_MODE = :deny_all
 
       # NOTE: Order matters (dependencies rely on this sequence)
       # Layer order: RateLimit -> CurrentContext -> Preference -> AuthN ->
@@ -47,7 +58,7 @@ module Sign
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
 
-      authorize :user, through: :current_client
+      authorize :user, through: :current_policy_user
 
       allow_browser versions: :modern
 

@@ -1,13 +1,13 @@
 <% content_for :page_title, t("sign.app.authentication.new.page_title") %>
-<% return_to = params[:rt].presence %>
+<% pt = params[:pt].presence %>
 <h1><%= t("sign.app.authentication.new.page_title") %></h1>
 <p><%= t("sign.app.authentication.new.description") %></p>
 
 <ul>
-  <li><%= link_to t("sign.app.authentication.new.links.email"), new_sign_app_in_email_path(rt: return_to) %></li>
-  <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_sign_app_in_passkey_path(rt: return_to) %>
+  <li><%= link_to t("sign.app.authentication.new.links.email"), new_sign_app_in_email_path(pt: pt) %></li>
+  <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_sign_app_in_passkey_path(pt: pt) %>
   </li>
-  <li><%= link_to t("sign.app.authentication.new.links.secret"), new_sign_app_in_secret_path(rt: return_to) %>
+  <li><%= link_to t("sign.app.authentication.new.links.secret"), new_sign_app_in_secret_path(pt: pt) %>
   </li>
 </ul>
 
@@ -23,6 +23,6 @@
   <%= t("sign.app.authentication.new.links.apple") %>
 <% end %>
 
-<%= link_to new_sign_app_up_path(ri: params[:ri], rt: params[:rt]) do %>
+<%= link_to new_sign_app_up_path(ri: params[:ri], pt: params[:pt]) do %>
   <%= t("sign.app.authentication.new.links.registration") %>
 <% end %>

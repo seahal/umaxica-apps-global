@@ -51,49 +51,49 @@ class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_match %r{/auth/callback\z}, CGI.unescape(response.location[/redirect_uri=([^&]+)/, 1])
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?
-    assert_equal "/oidc/sso", session[:oidc_return_to]
+    assert_equal "/oidc/sso", session[:oidc_pt]
   end
 
-  test "safe_return_to strips foreign hosts" do
+  test "safe_oidc_pt strips foreign hosts" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "www.example.com")
 
-    assert_equal "/", controller.send(:safe_return_to, "http://attacker.example/evil")
-    assert_equal "/", controller.send(:safe_return_to, "https://attacker.example/evil")
+    assert_equal "/", controller.send(:safe_oidc_pt, "http://attacker.example/evil")
+    assert_equal "/", controller.send(:safe_oidc_pt, "https://attacker.example/evil")
   end
 
-  test "safe_return_to rejects scheme based payloads" do
+  test "safe_oidc_pt rejects scheme based payloads" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "www.example.com")
 
-    assert_equal "/", controller.send(:safe_return_to, "javascript:alert(1)")
-    assert_equal "/", controller.send(:safe_return_to, "data:text/html,<script>")
-    assert_equal "/", controller.send(:safe_return_to, "//attacker.example/")
+    assert_equal "/", controller.send(:safe_oidc_pt, "javascript:alert(1)")
+    assert_equal "/", controller.send(:safe_oidc_pt, "data:text/html,<script>")
+    assert_equal "/", controller.send(:safe_oidc_pt, "//attacker.example/")
   end
 
-  test "safe_return_to rejects userinfo even when host matches" do
+  test "safe_oidc_pt rejects userinfo even when host matches" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "www.example.com")
 
-    assert_equal "/", controller.send(:safe_return_to, "http://attacker@www.example.com/path")
-    assert_equal "/", controller.send(:safe_return_to, "http://user:pw@www.example.com/path")
+    assert_equal "/", controller.send(:safe_oidc_pt, "http://attacker@www.example.com/path")
+    assert_equal "/", controller.send(:safe_oidc_pt, "http://user:pw@www.example.com/path")
   end
 
-  test "safe_return_to rejects control characters" do
+  test "safe_oidc_pt rejects control characters" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "www.example.com")
 
-    assert_equal "/", controller.send(:safe_return_to, "/foo\r\nSet-Cookie: x=1")
-    assert_equal "/", controller.send(:safe_return_to, "/foo\x00bar")
+    assert_equal "/", controller.send(:safe_oidc_pt, "/foo\r\nSet-Cookie: x=1")
+    assert_equal "/", controller.send(:safe_oidc_pt, "/foo\x00bar")
   end
 
-  test "safe_return_to returns same-host internal path only" do
+  test "safe_oidc_pt returns same-host internal path only" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "www.example.com")
 
-    assert_equal "/oidc/sso", controller.send(:safe_return_to, "http://www.example.com/oidc/sso")
-    assert_equal "/oidc/sso?ri=jp", controller.send(:safe_return_to, "http://www.example.com/oidc/sso?ri=jp")
-    assert_equal "/already/relative", controller.send(:safe_return_to, "/already/relative")
+    assert_equal "/oidc/sso", controller.send(:safe_oidc_pt, "http://www.example.com/oidc/sso")
+    assert_equal "/oidc/sso?ri=jp", controller.send(:safe_oidc_pt, "http://www.example.com/oidc/sso?ri=jp")
+    assert_equal "/already/relative", controller.send(:safe_oidc_pt, "/already/relative")
   end
 
   test "authenticate! renders unauthorized json for unauthenticated json requests" do

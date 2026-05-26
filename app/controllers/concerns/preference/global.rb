@@ -54,7 +54,6 @@ module Preference::Global
     preferences = preference_payload_preferences
     context = {}
     context.merge!(preference_context_from_hash(preferences)) if preferences.present?
-    context.merge!(preference_context_from_record) if @preferences.present?
     context.compact
   end
 
@@ -268,23 +267,13 @@ module Preference::Global
   end
 
   def set_locale
-    set_locale_from_params
+    I18n.locale = Actor.preferences.locale if defined?(Actor)
     write_preference_cookie(Preference::Base::LANGUAGE_COOKIE_KEY, I18n.locale.to_s.downcase)
   end
 
   def set_timezone
-    timezone = preference_payload_value("tz")
-    if timezone.blank? && @preferences.present?
-      timezone_association = "#{@preferences.class.name.underscore}_timezone"
-      timezone_record = @preferences.public_send(timezone_association)
-      timezone =
-        timezone_record&.option&.name ||
-        option_id_to_timezone(timezone_record&.option_id, preference_prefix(@preferences))
-    end
-
-    session[:timezone] = timezone if timezone.present?
-
-    set_timezone_from_session
+    timezone = Actor.preferences.timezone if defined?(Actor)
+    Time.zone = Actor.preferences.time_zone if defined?(Actor)
     timezone_value = timezone.presence || Time.zone&.name
     write_preference_cookie(Preference::Base::TIMEZONE_COOKIE_KEY, timezone_value) if timezone_value.present?
   end

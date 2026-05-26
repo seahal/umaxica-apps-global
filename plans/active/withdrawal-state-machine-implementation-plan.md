@@ -1,6 +1,6 @@
 # Withdrawal State Machine Implementation Plan
 
-Status: active planning
+Status: implemented, keep as regression checklist
 
 ## Purpose
 
@@ -111,6 +111,10 @@ DISCARDED -> FAILED
 
 `REQUESTED` means the actor opened the withdrawal flow. `CLOSING` means the actor explicitly agreed
 to schedule withdrawal.
+
+`REQUESTED` must not set `withdrawal_started_at`, `deactivated_at`, `discarded_at`, or `purged_at`,
+and must not revoke sessions. Actor lifecycle timestamps and other-session revocation begin only
+when confirmation advances the procedure through `CLOSING` to `DISCARDED`.
 
 ## Access Contract
 

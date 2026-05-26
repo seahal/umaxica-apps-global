@@ -5,11 +5,13 @@ module Sign
   module Com
     module Configuration
       class SecretsController < PrivateController
-        AUTHENTICATION_MODE = :private
-
         include ::Verification::Visitor
+
         include ::Sign::Configuration::SecretTurnstileGuard
+
         include ::Sign::Configuration::SecretCacheControl
+
+        AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!
         before_action :set_secret, only: %i(show edit update destroy regenerate)

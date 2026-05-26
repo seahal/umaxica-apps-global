@@ -9,24 +9,24 @@ class AuthRedirectTestController < ApplicationController
   declare_authentication_mode! :open
 
   def trigger_redirect_with_notice
-    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = safe_encoded_rt(params[:rt]) if params[:rt].present?
+    session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_with_notice("/default_path", "This is a notice")
   end
 
   def trigger_redirect_with_alert
-    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = safe_encoded_rt(params[:rt]) if params[:rt].present?
+    session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_with_alert("/default_path", "This is an alert")
   end
 
   def trigger_add_rt_to_params
-    session[Authentication::Base::DEFAULT_RT_SESSION_KEY] = safe_encoded_rt(params[:rt]) if params[:rt].present?
+    session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_params = { action: "index" }
-    add_rt_to_params!(redirect_params)
+    add_pt_to_params!(redirect_params)
     render json: redirect_params
   end
 
   def trigger_safe_rt
-    render plain: return_path_from_signed_rt(params[:rt]) || ""
+    render plain: path_from_signed_pt(params[:pt]) || ""
   end
 
   def trigger_issue_bulletin
@@ -73,22 +73,22 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
     Rails.application.reload_routes!
   end
 
-  test "redirect_with_notice without rt" do
+  test "redirect_with_notice without pt" do
     get "/auth_redirect/notice"
 
     assert_redirected_to "/default_path"
     assert_equal "This is a notice", flash[:notice]
   end
 
-  test "redirect_with_notice with rt" do
-    rt = "/configuration?x=1"
-    get "/auth_redirect/notice", params: { rt: rt }
+  test "redirect_with_notice with pt" do
+    pt = "/configuration?x=1"
+    get "/auth_redirect/notice", params: { pt: pt }
     # jump_to_generated_url redirects
     assert_redirected_to "/configuration?x=1"
     assert_equal "This is a notice", flash[:notice]
   end
 
-  test "redirect_with_alert without rt" do
+  test "redirect_with_alert without pt" do
     get "/auth_redirect/alert"
 
     assert_redirected_to "/default_path"
@@ -96,23 +96,23 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "add_rt_to_params" do
-    rt = "/dashboard"
-    get "/auth_redirect/params", params: { rt: rt }
+    pt = "/dashboard"
+    get "/auth_redirect/params", params: { pt: pt }
 
     assert_response :success
-    assert_match(/--/, response.parsed_body["rt"])
+    assert_match(/--/, response.parsed_body["pt"])
   end
 
-  test "return_path_from_signed_rt rejects raw internal path" do
-    rt = "/configuration?x=1"
-    get "/auth_redirect/safe_rt", params: { rt: rt }
+  test "path_from_signed_pt rejects raw internal path" do
+    pt = "/configuration?x=1"
+    get "/auth_redirect/safe_rt", params: { pt: pt }
 
     assert_response :success
     assert_equal "", response.body
   end
 
-  test "return_path_from_signed_rt rejects unencoded external URL" do
-    get "/auth_redirect/safe_rt", params: { rt: "https://evil.example/path" }
+  test "path_from_signed_pt rejects unencoded external URL" do
+    get "/auth_redirect/safe_rt", params: { pt: "https://evil.example/path" }
 
     assert_response :success
     assert_equal "", response.body
