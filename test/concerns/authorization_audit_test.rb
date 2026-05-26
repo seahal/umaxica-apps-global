@@ -288,7 +288,9 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
           events << [payload.fetch(:event), payload.fetch(:data)]
         end
 
-        define_method(:error) { |_message| }
+        # Stub: silently absorb error logs. Tests that need to observe
+        # error logging should add explicit capture in the test body.
+        define_method(:error) { |_message| nil }
       end
 
     Rails.stub(:logger, logger.new(result[:events])) do

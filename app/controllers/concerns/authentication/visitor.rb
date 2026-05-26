@@ -9,7 +9,6 @@ module Authentication
 
     ACCESS_COOKIE_KEY = Authentication::Base::ACCESS_COOKIE_KEY
     REFRESH_COOKIE_KEY = Authentication::Base::REFRESH_COOKIE_KEY
-    DEVICE_COOKIE_KEY = Authentication::Base::DEVICE_COOKIE_KEY
     ACCESS_TOKEN_TTL = Authentication::Base::ACCESS_TOKEN_TTL
     REFRESH_TOKEN_TTL = Authentication::Base::REFRESH_TOKEN_TTL
     AUDIT_EVENTS = Authentication::Base::AUDIT_EVENTS

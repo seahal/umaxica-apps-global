@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "base64"
 
 class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
@@ -12,19 +11,13 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     @user = clients(:one)
     @user.update!(status_id: ClientStatus::ACTIVE)
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @device_id = SecureRandom.uuid
-    @token = ClientToken.create!(
-      user_id: @user.id,
-      device_id: @device_id,
-      device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(@device_id)),
-    )
+    @token = ClientToken.create!(user_id: @user.id)
     @refresh_plain = @token.rotate_refresh_token!
     satisfy_user_verification(@token)
   end
 
-  def seed_refresh_session(token: @token, refresh_plain: @refresh_plain, device_id: @device_id)
+  def seed_refresh_session(token: @token, refresh_plain: @refresh_plain)
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = device_id
     token
   end
 
@@ -63,12 +56,9 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "restricted session is blocked on configuration with locked plain response" do
-    device_id = SecureRandom.uuid
     token = ClientToken.create!(
       user: @user,
       user_token_status_id: ClientTokenStatus::RESTRICTED,
-      device_id: device_id,
-      device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)),
     )
     token.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
     access_token = jwt_access_token_for(@user, host: @host, session_public_id: token.public_id)
@@ -86,15 +76,12 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "active session can access configuration normally" do
-    device_id = SecureRandom.uuid
     token = ClientToken.create!(
       user: @user,
       user_token_status_id: ClientTokenStatus::ACTIVE,
-      device_id: device_id,
-      device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)),
     )
     refresh_plain = token.rotate_refresh_token!
-    seed_refresh_session(token: token, refresh_plain: refresh_plain, device_id: device_id)
+    seed_refresh_session(token: token, refresh_plain: refresh_plain)
 
     get sign_app_configuration_url(ri: "jp")
 
@@ -102,14 +89,10 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should succeed with valid refresh cookie (transparent refresh)" do
-    # Create a user token with device_id
-    device_id = SecureRandom.uuid
-    token = ClientToken.create!(user_id: @user.id, device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
+    token = ClientToken.create!(user_id: @user.id)
     refresh_plain = token.rotate_refresh_token!
 
-    # Set refresh cookie and device_id cookie (no access token)
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = device_id
 
     get sign_app_configuration_url(ri: "jp")
 
@@ -119,14 +102,10 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not raise ReadOnlyError during transparent refresh" do
-    # Create a user token with device_id
-    device_id = SecureRandom.uuid
-    token = ClientToken.create!(user_id: @user.id, device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
+    token = ClientToken.create!(user_id: @user.id)
     refresh_plain = token.rotate_refresh_token!
 
-    # Set refresh cookie and device_id cookie
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = device_id
 
     # Should not raise any ReadOnlyError
     assert_nothing_raised do
@@ -139,14 +118,10 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should succeed even when audit fails during transparent refresh" do
-    # Create a user token with device_id
-    device_id = SecureRandom.uuid
-    token = ClientToken.create!(user_id: @user.id, device_id: device_id, device_id_digest: Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id)))
+    token = ClientToken.create!(user_id: @user.id)
     refresh_plain = token.rotate_refresh_token!
 
-    # Set refresh cookie and device_id cookie
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = device_id
 
     # Simulate audit failure by overriding record_audit to raise an error
     @controller.define_singleton_method(:record_audit) do |*_args|

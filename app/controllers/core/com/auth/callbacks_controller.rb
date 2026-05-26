@@ -6,8 +6,11 @@ module Core
     module Auth
       class CallbacksController < OpenController
         include ::Oidc::Callback
+        include ::Oidc::RpIdentityProvisioning
 
         AUTHENTICATION_MODE = :open
+        provisions_oidc_rp_identity actor_class: "Visitor", identity_class: "VisitorIdentity",
+                                    bridge_class: "CoreComVisitorBridge"
 
         skip_before_action :set_region, raise: false
 
@@ -15,10 +18,6 @@ module Core
 
         def oidc_client_id
           "core_com"
-        end
-
-        def provision_rp_account_from_id_token!(payload)
-          Visitor.find(payload.fetch("sub"))
         end
       end
     end

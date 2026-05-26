@@ -115,7 +115,8 @@ module SignUp
       when :expire
         terminal_transition!("EXPIRED", step: "expired", status: :expired, cleanup_required: true)
       when :cancel
-        return invalid("ticket is not cancelable") if ticket.respond_to?(:sign_up_cancelable?) && !ticket.sign_up_cancelable?
+        return invalid("ticket is not cancelable") if ticket.respond_to?(:sign_up_cancelable?) &&
+          !ticket.sign_up_cancelable?
 
         terminal_transition!(
           "CANCELLED", step: "cancelled", timestamp: :cancelled_at, status: :failed,

@@ -6,31 +6,37 @@ require "test_helper"
 class AuthenticationBaseTestController < ApplicationController
   include Authentication::Base
 
-  public :load_session_record, :redirect_with_pt_handling, :peek_pt,
-         :epoch_seconds, :issue_bulletin!, :handle_auth_required_json, :handle_guest_only_json,
-         :load_authentication_session, :store_authentication_session, :clear_authentication_session,
-         :validate_session_expiry, :redirect_to_pt_or_default!, :refresh_failure_status,
-         :refresh_failure_code, :cookie_options, :cookie_deletion_options, :device_cookie_key,
-         :device_cookie_options, :set_device_id_cookie!, :clear_device_id_cookie!,
-         :clear_auth_cookies!, :read_device_id_cookie, :occurrence_model_class,
-         :normalize_amr, :session_management_path, :after_login_path, :default_after_login_path,
-         :max_sessions_for_resource, :store_pending_login_resource, :token_expiry_column,
-         :access_token_expires_at_for, :refresh_cookie_expires_at_for, :expires_in_for,
-         :mfa_bypassed_for_auth_method?, :resolve_mfa_pt, :decode_base64_urlsafe,
-         :mfa_entry_path, :handle_auth_required_html, :handle_guest_only_with_status_checks,
-         :handle_guest_only_html, :current_session_restricted?, :current_account,
-         :transparent_refresh_access_token, :authenticate!, :bulletin_association_for_resource,
-         :withdrawal_gate_redirect_path, :handle_missing_refresh_token, :handle_inactive_resource,
-         :handle_refresh_error, :resolve_token_kind_id,
-         :enforce_authentication_open!, :enforce_authentication_private!, :enforce_authentication_guest!,
-         :resolve_access_policy_for, :refresh_dbsc_allowed?, :refresh_device_source,
-         :refresh_dbsc_source, :refresh_binding_source, :token_kind_model,
-         :set_pending_mfa!, :pending_mfa, :pending_mfa_valid?, :clear_pending_mfa!,
-         :session_limit_gate_pt, :session_limit_gate_flow, :build_auth_preference_snapshot,
-         :reissue_access_token!, :log_in, :populate_current_attributes!,
-         :path_from_signed_pt, :signed_pt_token, :issue_dbsc_challenge_for!
+  coverage_methods = %i(
+    load_session_record redirect_with_pt_handling peek_pt epoch_seconds issue_bulletin!
+    handle_auth_required_json handle_guest_only_json load_authentication_session
+    store_authentication_session clear_authentication_session validate_session_expiry
+    redirect_to_pt_or_default! refresh_failure_status refresh_failure_code cookie_options
+    cookie_deletion_options clear_auth_cookies! occurrence_model_class normalize_amr
+    session_management_path after_login_path default_after_login_path max_sessions_for_resource
+    store_pending_login_resource token_expiry_column access_token_expires_at_for
+    refresh_cookie_expires_at_for expires_in_for mfa_bypassed_for_auth_method?
+    resolve_mfa_pt decode_base64_urlsafe mfa_entry_path handle_auth_required_html
+    handle_guest_only_with_status_checks handle_guest_only_html current_session_restricted?
+    current_account transparent_refresh_access_token authenticate! bulletin_association_for_resource
+    withdrawal_gate_redirect_path handle_missing_refresh_token handle_inactive_resource
+    handle_refresh_error resolve_token_kind_id enforce_authentication_open!
+    enforce_authentication_private! enforce_authentication_guest! resolve_access_policy_for
+    refresh_dbsc_allowed? refresh_dbsc_source refresh_binding_source
+    token_kind_model set_pending_mfa! pending_mfa pending_mfa_valid? clear_pending_mfa!
+    session_limit_gate_pt session_limit_gate_flow build_auth_preference_snapshot
+    reissue_access_token! log_in populate_current_attributes! path_from_signed_pt signed_pt_token
+    issue_dbsc_challenge_for!
+  )
 
-  def index; render plain: "ok"; end
+  def index
+    render plain: "ok"
+  end
+
+  coverage_methods.each do |method_name|
+    next unless method_defined?(method_name) || private_method_defined?(method_name)
+
+    send(:public, method_name)
+  end
 end
 
 class AuthenticationBaseFakeModel
@@ -138,7 +144,6 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   test "clearing auth cookies clears Actor snapshot and memoized authentication readers" do
     @controller.define_singleton_method(:cookie_deletion_options) { {} }
     @controller.define_singleton_method(:clear_dbsc_cookie!) { nil }
-    @controller.define_singleton_method(:clear_device_id_cookie!) { nil }
     cookie_store =
       Class.new(Hash) do
         def delete(key, _options = nil)
@@ -286,23 +291,15 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "cookie helpers cover branches" do
-    expires_at = 1.hour.from_now
-    @controller.set_device_id_cookie!("device-1", expires_at: expires_at)
-
-    assert_equal "device-1", @controller.read_device_id_cookie
-    assert_equal @controller.device_cookie_key, Authentication::CookieName.device(refresh_cookie_key: Authentication::Base::REFRESH_COOKIE_KEY)
-    assert_equal expires_at.to_i, @controller.device_cookie_options(expires_at: expires_at)[:expires].to_i
-
-    @controller.clear_device_id_cookie!
-    @request.headers[Auth::IoKeys::Headers::DEVICE_ID] = "header-device"
-
-    assert_nil @controller.read_device_id_cookie
-
     @controller.send(:cookies)[Authentication::Base::ACCESS_COOKIE_KEY] = "access"
     @controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh"
+    @controller.send(:cookies)[Authentication::Base::DBSC_COOKIE_KEY] = "dbsc"
     @controller.clear_auth_cookies!
 
     assert_nil @controller.instance_variable_get(:@current_resource)
+    assert_nil @controller.send(:cookies)[Authentication::Base::ACCESS_COOKIE_KEY]
+    assert_nil @controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY]
+    assert_nil @controller.send(:cookies)[Authentication::Base::DBSC_COOKIE_KEY]
     assert_not @controller.cookie_deletion_options.key?(:expires)
     assert_not @controller.cookie_options.key?(:domain)
     assert_not @controller.cookie_deletion_options.key?(:domain)
@@ -678,14 +675,8 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert @controller.refresh_dbsc_allowed?(token)
   end
 
-  test "refresh source helpers cover device and dbsc branches" do
+  test "refresh source helpers cover dbsc branches" do
     token = Struct.new(:binding_method_dbsc?).new(true)
-    @controller.set_device_id_cookie!("device-cookie", expires_at: 1.hour.from_now)
-
-    assert_equal "cookie", @controller.refresh_device_source
-    @request.headers[Auth::IoKeys::Headers::DEVICE_ID] = "device-header"
-
-    assert_equal "both", @controller.refresh_device_source
     @request.headers[Auth::IoKeys::Headers::DBSC_SESSION_ID] = "session"
 
     assert_equal "session_id", @controller.refresh_dbsc_source

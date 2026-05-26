@@ -3,7 +3,7 @@
 
 module Jump
   module App
-    class BareController < ActionController::Base
+    class BareController < ApplicationController
       include ::RateLimit
 
       AUTHENTICATION_MODE = :bare

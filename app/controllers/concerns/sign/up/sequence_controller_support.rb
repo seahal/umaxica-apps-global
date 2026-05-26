@@ -6,6 +6,12 @@ module Sign
     module SequenceControllerSupport
       extend ActiveSupport::Concern
 
+      AGE_RESTRICTED_I18N_KEYS = {
+        "app" => "sign.app.registration.checkpoint.age_restricted",
+        "com" => "sign.com.registration.checkpoint.age_restricted",
+      }.freeze
+      private_constant :AGE_RESTRICTED_I18N_KEYS
+
       private
 
       def load_sign_up_ticket
@@ -188,10 +194,11 @@ module Sign
 
       def render_sign_up_age_restricted
         response.headers["Cache-Control"] = "no-store, private"
-        render plain: I18n.t(
-          "sign.#{sign_up_surface}.registration.checkpoint.age_restricted",
-          default: "この登録方法ではアカウントを作成できません。13歳の誕生日以降にもう一度お試しください。",
-        ), status: :ok
+        i18n_key =
+          AGE_RESTRICTED_I18N_KEYS.fetch(sign_up_surface.to_s) do
+            raise ArgumentError, "Unknown sign_up_surface for age-restricted lookup: #{sign_up_surface.inspect}"
+          end
+        render plain: I18n.t(i18n_key), status: :ok
       end
 
       def finalize_sign_up_from_checkpoint!(json: false)

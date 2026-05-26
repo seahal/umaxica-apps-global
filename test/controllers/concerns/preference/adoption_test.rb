@@ -211,8 +211,8 @@ module Preference
         @adoption.send(:sync_preferences!, user_pref)
       end
 
-      assert_equal "enabled", @preference.reload.r18_display_stopper
-      assert_equal "enabled", user_pref.reload.r18_display_stopper
+      assert_equal "deny", @preference.reload.r18_display_stopper
+      assert_equal "deny", user_pref.reload.r18_display_stopper
     end
 
     test "adopt_preference_for! does not raise on error and logs event" do

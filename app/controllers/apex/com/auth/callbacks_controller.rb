@@ -6,8 +6,10 @@ module Apex
     module Auth
       class CallbacksController < Apex::Com::OpenController
         include ::Oidc::Callback
+        include ::Oidc::RpIdentityProvisioning
 
         AUTHENTICATION_MODE = :open
+        provisions_oidc_rp_identity actor_class: "Visitor", identity_class: "VisitorIdentity"
 
         skip_before_action :set_region, raise: false
 
@@ -15,10 +17,6 @@ module Apex
 
         def oidc_client_id
           "apex_com"
-        end
-
-        def provision_rp_account_from_id_token!(payload)
-          Visitor.find(payload.fetch("sub"))
         end
       end
     end

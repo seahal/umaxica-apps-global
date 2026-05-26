@@ -51,11 +51,11 @@ module RefreshTokenShared
       ActiveSupport::SecurityUtils.secure_compare(expected, actual)
     end
 
-    def digest_device_id(device_id)
-      return nil if device_id.blank?
+    def digest_session_identifier(identifier)
+      return nil if identifier.blank?
 
       # SHA3-384 produces binary output; encode to Base64 for string storage
-      Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(device_id.to_s))
+      Base64.strict_encode64(SHA3::Digest::SHA3_384.digest(identifier.to_s))
     end
 
     def lock_refresh_token_record_by_digest(
@@ -72,14 +72,6 @@ module RefreshTokenShared
       scope = scope.where(arel_table[expires_at_column].gt(now)) if expires_at_column
       scope.lock.order(:id).first
     end
-
-    def refresh_token_device_matches?(record, device_id)
-      return true if device_id.blank?
-      return true unless record.respond_to?(:device_id)
-      return true if record.device_id.blank?
-
-      record.device_id == device_id
-    end
   end
 
   def generate_refresh_token(public_id:)
@@ -87,8 +79,8 @@ module RefreshTokenShared
   end
 
   delegate :parse_refresh_token, :digest_refresh_token,
-           :legacy_refresh_token_digest, :secure_compare?, :digest_device_id,
-           :lock_refresh_token_record_by_digest, :refresh_token_device_matches?,
+           :legacy_refresh_token_digest, :secure_compare?, :digest_session_identifier,
+           :lock_refresh_token_record_by_digest,
            :refresh_token_separator, :refresh_token_verifier_bytes,
            to: :class
 end

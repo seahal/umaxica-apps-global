@@ -68,6 +68,25 @@ describe("CookieToggleController", () => {
     expect(functionalCb.checked).toBe(true);
   });
 
+  test("syncCheckboxesFromAPI: チェックボックスがない場合はスキップする", () => {
+    controller.element.querySelector.mockReturnValue(null);
+
+    expect(() => controller.syncCheckboxesFromAPI({ functional: true })).not.toThrow();
+  });
+
+  test("syncCheckboxesFromAPI: API にキーがない場合はスキップする", () => {
+    const functionalCb = { checked: true };
+    controller.element.querySelector.mockImplementation((selector) => {
+      if (selector === 'input[name="preference_cookie[functional]"]') {
+        return functionalCb;
+      }
+      return null;
+    });
+
+    controller.syncCheckboxesFromAPI({});
+    expect(functionalCb.checked).toBe(true);
+  });
+
   test("setupFormListener: form があるときリスナーを登録する", () => {
     const form = { addEventListener: vi.fn() };
     controller.element.querySelector.mockReturnValue(form);

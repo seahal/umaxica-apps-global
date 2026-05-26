@@ -129,7 +129,9 @@ module Auth
       assert_equal :auth_required, calls.first.last.policy
     ensure
       Authentication::Base::ACCESS_POLICY_RULES.delete(BaseHarness)
-      BaseHarness.remove_instance_variable(:@authentication_mode_rules) if BaseHarness.instance_variable_defined?(:@authentication_mode_rules)
+      if BaseHarness.instance_variable_defined?(:@authentication_mode_rules)
+        BaseHarness.remove_instance_variable(:@authentication_mode_rules)
+      end
     end
 
     test "access_policy validates policy name" do

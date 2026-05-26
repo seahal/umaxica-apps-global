@@ -110,7 +110,6 @@ module Security
           user: user,
           user_token_status_id: ClientTokenStatus::NOTHING,
           user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-          device_id: "withdrawal-gate-#{state}",
           discarded_at: 1.day.from_now,
         )
         satisfy_user_verification(token)

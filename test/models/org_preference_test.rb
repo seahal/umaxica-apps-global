@@ -8,7 +8,6 @@
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
-#  device_id_digest         :string
 #  discarded_at             :datetime         default(Infinity), not null
 #  jti                      :string
 #  purged_at                :datetime         default(Infinity), not null
@@ -19,7 +18,6 @@
 #  binding_method_id        :bigint           default(0), not null
 #  dbsc_session_id          :string
 #  dbsc_status_id           :bigint           default(0), not null
-#  device_id                :string
 #  public_id                :string           not null
 #  replaced_by_id           :bigint
 #  status_id                :bigint           default(2), not null
@@ -29,8 +27,6 @@
 #  index_org_preferences_on_binding_method_id  (binding_method_id)
 #  index_org_preferences_on_dbsc_session_id    (dbsc_session_id) UNIQUE
 #  index_org_preferences_on_dbsc_status_id     (dbsc_status_id)
-#  index_org_preferences_on_device_id          (device_id)
-#  index_org_preferences_on_device_id_digest   (device_id_digest)
 #  index_org_preferences_on_jti                (jti) UNIQUE
 #  index_org_preferences_on_public_id          (public_id) UNIQUE
 #  index_org_preferences_on_purged_at          (purged_at)
@@ -164,7 +160,6 @@ class OrgPreferenceTest < ActiveSupport::TestCase
       discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
 
     first = OrgPreference.consume_once_by_digest!(digest: digest)
@@ -181,21 +176,18 @@ class OrgPreferenceTest < ActiveSupport::TestCase
       token_digest: OrgPreference.digest_refresh_token("org-revoked"),
       discarded_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
     compromised = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
       token_digest: OrgPreference.digest_refresh_token("org-compromised"),
       discarded_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
     expired = OrgPreference.create!(
       status_id: OrgPreferenceStatus::NOTHING,
       discarded_at: 1.minute.ago,
       token_digest: OrgPreference.digest_refresh_token("org-expired"),
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
 
     assert_nil OrgPreference.consume_once_by_digest!(digest: revoked.token_digest)
@@ -210,10 +202,9 @@ class OrgPreferenceTest < ActiveSupport::TestCase
       discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: "org-device",
     )
 
-    rotated = OrgPreference.rotate!(presented_digest: digest, device_id: "org-device", now: Time.current)
+    rotated = OrgPreference.rotate!(presented_digest: digest, now: Time.current)
 
     assert_predicate rotated, :present?
     assert_predicate rotated.issued_refresh_token, :present?

@@ -3,7 +3,7 @@
 
 module Redirects
   class ExternalTargetResolver
-    DANGEROUS_QUERY_KEYS = %w[redirect_uri return_to rt pt nt xt redirect_to next continue url].freeze
+    DANGEROUS_QUERY_KEYS = %w(redirect_uri return_to rt pt nt xt redirect_to next continue url).freeze
 
     REGISTRY = {
       rp_app: { env: "RP_APP_URL", default: "https://rp.app.localhost" },
@@ -17,15 +17,33 @@ module Redirects
 
     def self.url(value, allowed_urls:, source: :explicit_xt_url)
       uri = URI.parse(value.to_s)
-      return Redirects::TargetResult.failure(kind: :xt, source: source, reason: :invalid_uri, unsafe_value: value) if uri.host.blank?
-      return Redirects::TargetResult.failure(kind: :xt, source: source, reason: :userinfo, unsafe_value: value) if uri.userinfo.present?
-      return Redirects::TargetResult.failure(kind: :xt, source: source, reason: :fragment, unsafe_value: value) if uri.fragment.present?
-      return Redirects::TargetResult.failure(kind: :xt, source: source, reason: :control_char, unsafe_value: value) if value.to_s.match?(/[\x00-\x1F\x7F]/)
-      return Redirects::TargetResult.failure(kind: :xt, source: source, reason: :https_required, unsafe_value: value) unless uri.scheme == "https" || local_uri_allowed?(uri)
+      return Redirects::TargetResult.failure(
+        kind: :xt, source: source, reason: :invalid_uri,
+        unsafe_value: value,
+      ) if uri.host.blank?
+      return Redirects::TargetResult.failure(
+        kind: :xt, source: source, reason: :userinfo,
+        unsafe_value: value,
+      ) if uri.userinfo.present?
+      return Redirects::TargetResult.failure(
+        kind: :xt, source: source, reason: :fragment,
+        unsafe_value: value,
+      ) if uri.fragment.present?
+      return Redirects::TargetResult.failure(
+        kind: :xt, source: source, reason: :control_char,
+        unsafe_value: value,
+      ) if value.to_s.match?(/[\x00-\x1F\x7F]/)
+      return Redirects::TargetResult.failure(
+        kind: :xt, source: source, reason: :https_required,
+        unsafe_value: value,
+      ) unless uri.scheme == "https" || local_uri_allowed?(uri)
 
-      allowed = Array(allowed_urls).map { |url| normalized_origin(url) }.compact
+      allowed = Array(allowed_urls).filter_map { |url| normalized_origin(url) }
       origin = normalized_origin(uri.to_s)
-      return Redirects::TargetResult.failure(kind: :xt, source: source, reason: :origin_denied, unsafe_value: value) unless allowed.include?(origin)
+      return Redirects::TargetResult.failure(
+        kind: :xt, source: source, reason: :origin_denied,
+        unsafe_value: value,
+      ) unless allowed.include?(origin)
 
       Redirects::TargetResult.ok(kind: :xt, source: source, value: uri.to_s)
     rescue URI::InvalidURIError
@@ -70,7 +88,8 @@ module Redirects
 
     def normalize_key
       return key if key.is_a?(Symbol)
-      return key.to_sym if key.is_a?(String) && key.match?(/\A[a-z][a-z0-9_]*\z/)
+
+      key.to_sym if key.is_a?(String) && key.match?(/\A[a-z][a-z0-9_]*\z/)
     end
 
     def origin_for(entry)
@@ -82,10 +101,10 @@ module Redirects
     end
 
     def self.local_uri_allowed?(uri)
-      return false unless Rails.env.development? || Rails.env.test?
+      return false unless Rails.env.local?
       return false unless uri.scheme == "http"
 
-      uri.host.to_s.end_with?(".localhost") || %w[localhost 127.0.0.1 ::1].include?(uri.host)
+      uri.host.to_s.end_with?(".localhost") || %w(localhost 127.0.0.1 ::1).include?(uri.host)
     end
 
     def self.normalized_origin(value)
@@ -93,16 +112,16 @@ module Redirects
       return if uri.scheme.blank? || uri.host.blank?
 
       port = uri.port
-      default_port = uri.scheme == "https" ? 443 : 80
+      default_port = (uri.scheme == "https") ? 443 : 80
       host = uri.host.downcase
-      port.present? && port != default_port ? "#{uri.scheme}://#{host}:#{port}" : "#{uri.scheme}://#{host}"
+      (port.present? && port != default_port) ? "#{uri.scheme}://#{host}:#{port}" : "#{uri.scheme}://#{host}"
     rescue URI::InvalidURIError
       nil
     end
 
     def merged_query(path_value, raw_query)
       path_query = URI.parse(path_value).query
-      pairs = URI.decode_www_form(path_query.to_s).reject { |key, _value| DANGEROUS_QUERY_KEYS.include?(key) }
+      pairs = URI.decode_www_form(path_query.to_s).except(*DANGEROUS_QUERY_KEYS)
       safe_query = raw_query.stringify_keys.except(*DANGEROUS_QUERY_KEYS)
       pairs.concat(safe_query.to_a)
       pairs.present? ? URI.encode_www_form(pairs) : nil

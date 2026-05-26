@@ -10,8 +10,6 @@ module DeviceSessionable
   STATUS_REVOKED = 104
 
   included do
-    before_validation :ensure_device_id_digest, on: :create
-
     validates :public_id, uniqueness: true, length: { maximum: 21 }
     validates :status_id, presence: true
 
@@ -42,19 +40,11 @@ module DeviceSessionable
   def bind_dbsc!(session_id:, public_key_thumbprint: nil)
     # rubocop:disable Rails/SkipsModelValidations
     update_columns(
-      dbsc_session_id_digest: self.class.digest_device_id(session_id),
+      dbsc_session_id_digest: self.class.digest_session_identifier(session_id),
       dbsc_public_key_thumbprint: public_key_thumbprint,
       dbsc_bound_at: Time.current,
       updated_at: Time.current,
     )
     # rubocop:enable Rails/SkipsModelValidations
-  end
-
-  private
-
-  def ensure_device_id_digest
-    return unless respond_to?(:device_id)
-
-    self.device_id_digest = self.class.digest_device_id(device_id) if device_id.present? && device_id_digest.blank?
   end
 end

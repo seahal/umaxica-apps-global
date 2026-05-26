@@ -88,12 +88,6 @@ class AuthCookieHelpersTest < ActiveSupport::TestCase
     @harness = CookieHarness.new
   end
 
-  test "device_cookie_key returns correct key name" do
-    key = @harness.send(:device_cookie_key)
-
-    assert_equal "auth_device_id", key
-  end
-
   test "ACCESS_COOKIE_KEY constant is defined" do
     assert_equal "auth_access", Authentication::Base::ACCESS_COOKIE_KEY
   end
@@ -102,8 +96,8 @@ class AuthCookieHelpersTest < ActiveSupport::TestCase
     assert_equal "auth_refresh", Authentication::Base::REFRESH_COOKIE_KEY
   end
 
-  test "DEVICE_COOKIE_KEY constant is defined" do
-    assert_equal "auth_device_id", Authentication::Base::DEVICE_COOKIE_KEY
+  test "DBSC_COOKIE_KEY constant is defined" do
+    assert_equal "auth_dbsc", Authentication::Base::DBSC_COOKIE_KEY
   end
 
   test "ACCESS_TOKEN_TTL defaults to 1 hour" do

@@ -85,7 +85,7 @@ module SignUp
 
         begin
           attempt_attrs = increment_attempts_attrs
-          cycle.update_columns(
+          cycle.update!(
             attempt_attrs.merge(
               cleanup_status_id: cycle.cleanup_status_id_for(:pending),
               cleanup_attempted_at: now,
@@ -93,13 +93,13 @@ module SignUp
             ),
           )
           schedule_dependent_retention!
-          cycle.update_columns(
+          cycle.update!(
             cleanup_status_id: cycle.cleanup_status_id_for(:completed),
             cleanup_completed_at: now,
             cleanup_error_code: nil,
           )
         rescue ActiveRecord::ActiveRecordError, ArgumentError => e
-          cycle.update_columns(
+          cycle.update!(
             cleanup_status_id: cycle.cleanup_status_id_for(:failed),
             cleanup_attempted_at: now,
             cleanup_error_code: "#{e.class.name}: #{e.message}".first(255),
@@ -134,11 +134,11 @@ module SignUp
 
           if record.respond_to?(:discard_now!)
             record.discard_now!(purge_after: PHYSICAL_PURGE_DELAY, now: now)
-            record.update_columns(status_column => deleted_id) if status_column && deleted_id
+            record.update!(status_column => deleted_id) if status_column && deleted_id
           else
             attrs = retention_attrs(record)
             attrs[status_column] = deleted_id if status_column && deleted_id
-            record.update_columns(attrs) if attrs.any?
+            record.update!(attrs) if attrs.any?
           end
         end
       end
@@ -251,15 +251,20 @@ module SignUp
 
     def deleted_status_id(record)
       case record
-      when ClientEmail then ClientEmailStatus::DELETED
-      when ClientTelephone then ClientTelephoneStatus::DELETED
-      when ClientPasskey then ClientPasskeyStatus::DELETED
-      when ClientSocialGoogle then ClientSocialGoogleStatus::DELETED
-      when ClientSocialApple then ClientSocialAppleStatus::DELETED
-      when VisitorEmail then VisitorEmailStatus::DELETED
-      when VisitorTelephone then VisitorTelephoneStatus::DELETED
-      when VisitorPasskey then VisitorPasskeyStatus::DELETED
+      when ClientEmail then deleted_status_id_for(ClientEmailStatus)
+      when ClientTelephone then deleted_status_id_for(ClientTelephoneStatus)
+      when ClientPasskey then deleted_status_id_for(ClientPasskeyStatus)
+      when ClientSocialGoogle then deleted_status_id_for(ClientSocialGoogleStatus)
+      when ClientSocialApple then deleted_status_id_for(ClientSocialAppleStatus)
+      when VisitorEmail then deleted_status_id_for(VisitorEmailStatus)
+      when VisitorTelephone then deleted_status_id_for(VisitorTelephoneStatus)
+      when VisitorPasskey then deleted_status_id_for(VisitorPasskeyStatus)
       end
+    end
+
+    def deleted_status_id_for(status_class)
+      status_class.ensure_defaults! if status_class.respond_to?(:ensure_defaults!)
+      status_class::DELETED
     end
 
     # Fallback for dependent records that do not include Retainable. Most do,

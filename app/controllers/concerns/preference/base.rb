@@ -728,7 +728,18 @@ module Preference
       load_access_token_preference_record!
       return @preferences if @preferences.present?
 
-      load_preference_record_from_refresh_token!(create_if_missing: true)
+      preference, = load_preference_record_from_refresh_token!(create_if_missing: true)
+      if preference.present?
+        @preferences = preference
+        return @preferences
+      end
+      return create_new_preference_record! unless @preference_refresh_failed
+
+      @preference_refresh_failed = false
+      @refresh_token_value = nil
+      @refresh_presented_digest = nil
+      @refresh_public_id = nil
+      create_new_preference_record!
     end
 
     def create_audit_log(event_id:, context:, expires_at: nil)
@@ -1044,7 +1055,7 @@ module Preference
           option_ids[:r18_display_stopper],
           option_prefix,
           :r18_display_stopper,
-        ) || "disabled",
+        ) || "nothing",
       }
     end
 
@@ -1136,73 +1147,47 @@ module Preference
 
     def clear_preference_refresh_failure!
       @preference_refresh_failed = false
-      @preference_refresh_device_denied = false
     end
 
     def preference_refresh_failed?
       @preference_refresh_failed
     end
 
-    def extract_preference_refresh_device_id
-      cookie_device_id = read_preference_device_id_cookie
-
-      if cookie_device_id.blank?
-        @preference_refresh_device_reason = "missing"
-        return nil
-      end
-
-      cookie_device_id
-    end
-
     def preference_refresh_binding_allowed?(preference)
       return preference_refresh_dbsc_allowed?(preference) if preference.binding_method_dbsc?
-
-      refresh_device_id = extract_preference_refresh_device_id
-      if refresh_device_id.blank?
-        @preference_refresh_device_reason = "missing"
-        return false
-      end
-
-      # Compare using SHA3-384 digest for security
-      # Cookie contains plaintext device_id, DB stores digest
-      presented_digest = digest_device_id(refresh_device_id)
-      if preference.device_id_digest.blank? || !secure_compare?(preference.device_id_digest, presented_digest)
-        @preference_refresh_device_reason = "mismatch"
-        return false
-      end
 
       true
     end
 
     def preference_refresh_dbsc_allowed?(preference)
       unless preference.dbsc_status_active?
-        @preference_refresh_device_reason = "dbsc_not_active"
+        @preference_refresh_binding_reason = "dbsc_not_active"
         return false
       end
 
       dbsc_cookie = cookies[preference_dbsc_cookie_name].to_s.presence
       if dbsc_cookie.blank?
-        @preference_refresh_device_reason = "missing_bound_cookie"
+        @preference_refresh_binding_reason = "missing_bound_cookie"
         return false
       end
 
       if preference.dbsc_session_id.to_s.blank? || preference.dbsc_session_id != dbsc_cookie
-        @preference_refresh_device_reason = "session_id_mismatch"
+        @preference_refresh_binding_reason = "session_id_mismatch"
         return false
       end
 
       true
     end
 
-    def handle_preference_refresh_device_denied(preference, refresh_public_id)
+    def handle_preference_refresh_binding_denied(preference, refresh_public_id)
       clear_preference_auth_cookies!
       @preference_refresh_failed = true
-      @preference_refresh_device_denied = true
+      @preference_refresh_binding_denied = true
 
       Rails.logger.warn(
         {
           message: "Preference refresh denied",
-          reason: @preference_refresh_device_reason || "missing",
+          reason: @preference_refresh_binding_reason || "missing",
           preference_type: preference_class.name,
           preference_public_id: preference&.public_id || refresh_public_id,
           request_id: request.request_id,
@@ -1317,10 +1302,6 @@ module Preference
       Preference::CookieName.refresh(surface: preference_cookie_surface)
     end
 
-    def preference_device_id_cookie_name
-      Preference::CookieName.device(refresh_cookie_key: refresh_token_cookie_name)
-    end
-
     def preference_dbsc_cookie_name
       Preference::CookieName.dbsc(surface: preference_cookie_surface)
     end
@@ -1345,22 +1326,9 @@ module Preference
       )
     end
 
-    def set_preference_device_id_cookie!(device_id, expires_at:)
-      cookies[preference_device_id_cookie_name] = preference_cookie_options(
-        expires_at: expires_at,
-        httponly: true,
-      ).merge(
-        value: device_id,
-      )
-    end
-
-    def read_preference_device_id_cookie
-      cookies[preference_device_id_cookie_name].to_s.presence
-    end
-
     def clear_preference_auth_cookies!
       [access_token_cookie_name, refresh_token_cookie_name,
-       preference_device_id_cookie_name, preference_dbsc_cookie_name,].uniq.each do |cookie_name|
+       preference_dbsc_cookie_name,].uniq.each do |cookie_name|
         cookies.delete(cookie_name, **preference_cookie_deletion_options)
       end
     end

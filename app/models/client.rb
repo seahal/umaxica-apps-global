@@ -225,6 +225,9 @@ class Client < AppPrincipalRecord
            inverse_of: :user
   has_many :client_bulletins, foreign_key: :user_id, dependent: :destroy, inverse_of: :user
   has_one :rp_account, class_name: "ClientAccount", foreign_key: :user_id, dependent: :destroy, inverse_of: :user
+  has_one :core_app_client_bridge,
+          dependent: :destroy,
+          inverse_of: :client
   has_one :user_preference, class_name: "ClientPreference", foreign_key: :user_id, dependent: :destroy,
                             inverse_of: :user
   # Cross-database (avatar DB). Join rows are purged explicitly via

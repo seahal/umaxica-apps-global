@@ -38,7 +38,6 @@ module Preference::RefreshTokenTransport
       return [nil, false]
     end
 
-    return [nil, false] if @preference_refresh_device_denied
     return [nil, false] unless create_if_missing
 
     @refresh_presented_digest = nil
@@ -104,14 +103,13 @@ module Preference::RefreshTokenTransport
   end
 
   def handle_denied_refresh_binding(pref, refresh_public_id)
-    handle_preference_refresh_device_denied(pref, refresh_public_id)
+    handle_preference_refresh_binding_denied(pref, refresh_public_id)
     nil
   end
 
   def create_new_preference_record!
     expires_at = refresh_token_expiry
     generated_token = nil
-    generated_device_id = SecureRandom.uuid
 
     preference_creation =
       lambda do
@@ -121,8 +119,6 @@ module Preference::RefreshTokenTransport
             @preferences = preference_class.create!(
               expires_at: expires_at,
               jti: Jit::Security::Jwt::JtiGenerator.generate,
-              device_id: generated_device_id,
-              device_id_digest: digest_device_id(generated_device_id),
               binding_method_id: preference_binding_method_class::LEGACY,
               dbsc_status_id: preference_dbsc_status_class::NOTHING,
             )
@@ -165,7 +161,6 @@ module Preference::RefreshTokenTransport
       @preferences.dbsc_session_id,
       expires_at: preference_dbsc_cookie_expires_at(@preferences),
     ) if @preferences.binding_method_dbsc?
-    set_preference_device_id_cookie!(@preferences.device_id, expires_at: expires_at)
     issue_preference_dbsc_registration_header_for(@preferences)
 
     @preferences
@@ -178,7 +173,6 @@ module Preference::RefreshTokenTransport
       with_preference_connection(:writing) do
         preference.class.rotate!(
           presented_digest: @refresh_presented_digest,
-          device_id: preference.device_id,
           now: Time.current,
         )
       end
@@ -210,7 +204,6 @@ module Preference::RefreshTokenTransport
       rotated_preference.dbsc_session_id,
       expires_at: preference_dbsc_cookie_expires_at(rotated_preference),
     ) if rotated_preference.binding_method_dbsc?
-    set_preference_device_id_cookie!(rotated_preference.device_id, expires_at: new_expiry)
     @refresh_token_value = new_token
     issue_preference_dbsc_registration_header_for(rotated_preference)
 

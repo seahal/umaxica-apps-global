@@ -65,7 +65,6 @@ module Sign
             result[:identity],
             existing_account: result[:existing_account],
             pt: result[:pt],
-            entry: result[:entry],
           )
         end
 
@@ -130,7 +129,7 @@ module Sign
           )
         end
 
-        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, pt: nil, entry: nil)
+        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, pt: nil)
           Rails.logger.debug(
             LogEvent.format(
               "sign.social.omniauth.handle_successful_auth",
@@ -211,7 +210,7 @@ module Sign
               expires_at: ClientSignUpCycle.default_ttl.from_now,
               entry_method: SocialIdentifiable.normalize_provider(identity.provider),
               social_provider: SocialIdentifiable.normalize_provider(identity.provider),
-              pt: path_from_signed_pt(signed_pt_token(pt)),
+              return_to: path_from_signed_pt(signed_pt_token(pt)),
             )
             sign_up_cycle_locator.issue!(cycle)
             session[:sign_app_up_sequence_id] = cycle.public_id

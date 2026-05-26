@@ -37,6 +37,7 @@ module SignIn
         "state" => state.to_s,
         "participant" => participant.to_s,
         "safe_pt_path" => pt.presence,
+        "safe_return_path" => pt.presence,
         "pt" => pt.presence,
         "expires_at" => TTL.from_now.iso8601,
         "terminal_state" => nil,

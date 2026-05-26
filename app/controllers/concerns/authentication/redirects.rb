@@ -212,6 +212,24 @@ module Authentication
       params[Auth::IoKeys::Params::PT].presence
     end
 
+    def resolved_path_or_navigation_target(scope: :authentication)
+      navigation_target = params[Auth::IoKeys::Params::NT].presence
+      if navigation_target.present?
+        result = ::Redirects::NavigationTargetResolver.call(
+          navigation_target,
+          routes: self,
+          params: redirect_target_context_params,
+          scope: scope,
+        )
+        return result.value if result.ok?
+
+        log_redirect_target_failure(result)
+        return nil
+      end
+
+      path_from_signed_pt(signed_pt_token(path_target_value))
+    end
+
     def safe_non_welcome_return_path(path)
       safe_path = safe_internal_path(path)
       return nil if safe_path.blank?

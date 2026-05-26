@@ -27,17 +27,16 @@ module SingleUseToken
       consumed
     end
 
-    def rotate!(presented_digest:, device_id:, now: Time.current)
+    def rotate!(presented_digest:, now: Time.current)
       replacement = nil
       raw_refresh_token = nil
 
       transaction do
         consumed = lock_consumable_by_digest(presented_digest, now: now)
         next unless consumed
-        next unless refresh_token_device_matches?(consumed, device_id)
 
         consume_record!(consumed, now: now)
-        replacement = create_rotated_record!(consumed, device_id: device_id, now: now)
+        replacement = create_rotated_record!(consumed, now: now)
         consumed.update!(replaced_by_id: replacement.id)
         raw_refresh_token = replacement.issued_refresh_token
       end
@@ -65,12 +64,9 @@ module SingleUseToken
       record
     end
 
-    def create_rotated_record!(consumed, device_id:, now:)
-      new_device_id = device_id.presence || consumed.device_id
+    def create_rotated_record!(consumed, now:)
       attrs = {
         status_id: consumed.status_id,
-        device_id: new_device_id,
-        device_id_digest: digest_device_id(new_device_id),
         discarded_at: now + PREFERENCE_REFRESH_TTL,
         jti: Jit::Security::Jwt::JtiGenerator.generate,
         binding_method_id: consumed.binding_method_id,

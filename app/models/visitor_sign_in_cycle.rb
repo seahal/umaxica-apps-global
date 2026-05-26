@@ -91,4 +91,5 @@ class VisitorSignInCycle < ComTicketRecord
 
   belongs_to :token, class_name: "VisitorToken"
   belongs_to :status, class_name: "VisitorSignInCycleStatus"
+  belongs_to :principal, class_name: "Visitor", optional: true
 end

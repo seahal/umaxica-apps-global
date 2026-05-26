@@ -52,7 +52,6 @@ class RefreshTokenSharedTest < ActiveSupport::TestCase
       discarded_at: 1.hour.from_now,
       token_digest: eligible_digest,
       jti: SecureRandom.uuid,
-      device_id: "device-1",
     )
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
@@ -60,14 +59,12 @@ class RefreshTokenSharedTest < ActiveSupport::TestCase
       token_digest: used_digest,
       used_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: "device-1",
     )
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
       discarded_at: 1.minute.ago,
       token_digest: expired_digest,
       jti: SecureRandom.uuid,
-      device_id: "device-1",
     )
 
     record = AppPreference.lock_refresh_token_record_by_digest(
@@ -90,14 +87,5 @@ class RefreshTokenSharedTest < ActiveSupport::TestCase
       unused_column: :used_at,
       expires_at_column: :discarded_at,
     )
-  end
-
-  test "refresh_token_device_matches rejects only concrete mismatches" do
-    record = Struct.new(:device_id).new("device-1")
-
-    assert DummyToken.refresh_token_device_matches?(record, nil)
-    assert DummyToken.refresh_token_device_matches?(Struct.new(:device_id).new(nil), "device-1")
-    assert DummyToken.refresh_token_device_matches?(record, "device-1")
-    assert_not DummyToken.refresh_token_device_matches?(record, "device-2")
   end
 end

@@ -15,14 +15,12 @@ module RefreshTokenable
     before_validation :ensure_lapses_at, on: :create
     before_validation :ensure_refresh_token_family_id, on: :create
     before_validation :ensure_refresh_token_generation, on: :create
-    before_validation :ensure_device_id, on: :create
-    before_validation :ensure_device_id_digest, on: :create
     before_validation :ensure_device_session_record, on: :create
     validates :refresh_token_digest, uniqueness: true, allow_nil: true
   end
 
   class_methods do
-    def rotate_refresh!(presented_refresh_digest:, device_id:, now: Time.current)
+    def rotate_refresh!(presented_refresh_digest:, now: Time.current)
       return { status: :invalid, token: nil } if presented_refresh_digest.blank?
 
       operation =
@@ -36,10 +34,6 @@ module RefreshTokenable
 
             return { status: :invalid, token: nil } unless current_token
             return { status: :replay, token: current_token } if current_token.rotated_at.present?
-            return { status: :invalid, token: current_token } unless refresh_token_device_matches?(
-              current_token,
-              device_id,
-            )
             return { status: :invalid, token: current_token } unless current_token.currently_usable?(now)
 
             current_token.update!(rotated_at: now, last_used_at: now, updated_at: now)
@@ -69,8 +63,6 @@ module RefreshTokenable
         refresh_token_family_id: previous_token.refresh_token_family_id.presence || SecureRandom.uuid,
         refresh_token_generation: Integer(previous_token.refresh_token_generation.to_s, 10) + 1,
         discarded_at: previous_token.discarded_at,
-        device_id: previous_token.device_id,
-        device_id_digest: column_names.include?("device_id_digest") ? digest_device_id(previous_token.device_id) : nil,
         dbsc_session_id: previous_token.dbsc_session_id,
         dbsc_public_key: previous_token.dbsc_public_key,
         dbsc_challenge: previous_token.dbsc_challenge,
@@ -242,18 +234,6 @@ module RefreshTokenable
     self.refresh_token_generation ||= 0
   end
 
-  def ensure_device_id
-    return unless has_attribute?(:device_id)
-
-    self.device_id = SecureRandom.uuid if device_id.blank?
-  end
-
-  def ensure_device_id_digest
-    return unless has_attribute?(:device_id_digest)
-
-    self.device_id_digest = digest_device_id(device_id)
-  end
-
   def ensure_device_session_record
     return unless has_attribute?(:device_session_id)
     return if device_session_id.present?
@@ -264,7 +244,6 @@ module RefreshTokenable
 
     attrs = {
       actor_key => public_send(actor_key),
-      :device_id_digest => has_attribute?(:device_id_digest) ? device_id_digest.presence : nil,
       :dpop_jkt => has_attribute?(:dpop_jkt) ? dpop_jkt.presence : nil,
       :refresh_token_family_id => refresh_token_family_id,
       :last_seen_at => Time.current,

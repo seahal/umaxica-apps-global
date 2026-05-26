@@ -8,7 +8,6 @@
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
-#  device_id_digest         :string
 #  discarded_at             :datetime         default(Infinity), not null
 #  jti                      :string
 #  purged_at                :datetime         default(Infinity), not null
@@ -19,7 +18,6 @@
 #  binding_method_id        :bigint           default(0), not null
 #  dbsc_session_id          :string
 #  dbsc_status_id           :bigint           default(0), not null
-#  device_id                :string
 #  public_id                :string           not null
 #  replaced_by_id           :bigint
 #  status_id                :bigint           default(0), not null
@@ -29,8 +27,6 @@
 #  index_app_preferences_on_binding_method_id  (binding_method_id)
 #  index_app_preferences_on_dbsc_session_id    (dbsc_session_id) UNIQUE
 #  index_app_preferences_on_dbsc_status_id     (dbsc_status_id)
-#  index_app_preferences_on_device_id          (device_id)
-#  index_app_preferences_on_device_id_digest   (device_id_digest)
 #  index_app_preferences_on_jti                (jti) UNIQUE
 #  index_app_preferences_on_public_id          (public_id) UNIQUE
 #  index_app_preferences_on_purged_at          (purged_at)
@@ -172,7 +168,6 @@ class AppPreferenceTest < ActiveSupport::TestCase
       discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
 
     consumed = AppPreference.consume_once_by_digest!(digest: digest)
@@ -196,21 +191,18 @@ class AppPreferenceTest < ActiveSupport::TestCase
       token_digest: revoked_digest,
       discarded_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
       token_digest: compromised_digest,
       discarded_at: Time.current,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
     AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
       discarded_at: 1.minute.ago,
       token_digest: expired_digest,
       jti: SecureRandom.uuid,
-      device_id: SecureRandom.uuid,
     )
 
     assert_nil AppPreference.consume_once_by_digest!(digest: revoked_digest)
@@ -235,37 +227,34 @@ class AppPreferenceTest < ActiveSupport::TestCase
       discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: "device-1",
     )
 
-    rotated = AppPreference.rotate!(presented_digest: digest, device_id: "device-1", now: Time.current)
+    rotated = AppPreference.rotate!(presented_digest: digest, now: Time.current)
 
     assert_predicate rotated, :present?
     assert_predicate rotated.issued_refresh_token, :present?
     assert_not_equal preference.id, rotated.id
     assert_equal preference.status_id, rotated.status_id
-    assert_equal "device-1", rotated.device_id
     assert_predicate rotated.token_digest, :present?
     assert_equal rotated.id, preference.reload.replaced_by_id
   end
 
-  test "rotate! rejects mismatched device without consuming token" do
+  test "rotate! consumes token without device fallback" do
     digest = AppPreference.digest_refresh_token("rotate-wrong-device")
     preference = AppPreference.create!(
       status_id: AppPreferenceStatus::NOTHING,
       discarded_at: 1.day.from_now,
       token_digest: digest,
       jti: SecureRandom.uuid,
-      device_id: "device-1",
     )
 
-    rotated = AppPreference.rotate!(presented_digest: digest, device_id: "device-2", now: Time.current)
+    rotated = AppPreference.rotate!(presented_digest: digest, now: Time.current)
 
-    assert_nil rotated
+    assert_predicate rotated, :present?
     preference.reload
 
-    assert_nil preference.used_at
-    assert_equal preference.id, preference.replaced_by_id
+    assert_predicate preference.used_at, :present?
+    assert_equal rotated.id, preference.replaced_by_id
   end
 
   test "migrate_preference_children! moves child preference reference" do

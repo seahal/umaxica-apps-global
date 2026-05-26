@@ -6,11 +6,7 @@ require "test_helper"
 module Dpop
   class NonceServiceTest < ActiveSupport::TestCase
     setup do
-      REDIS_CLIENT.keys("dpop:nonce:*").each { |k| REDIS_CLIENT.del(k) }
-    end
-
-    teardown do
-      REDIS_CLIENT.keys("dpop:nonce:*").each { |k| REDIS_CLIENT.del(k) }
+      ClientDpopProofState.delete_all
     end
 
     test "generate creates a unique nonce" do
@@ -37,13 +33,10 @@ module Dpop
       assert_not NonceService.verify(nil)
     end
 
-    test "nonce expires after ttl" do
+    test "nonce is single use" do
       nonce = NonceService.generate
 
       assert NonceService.verify(nonce)
-
-      REDIS_CLIENT.del("dpop:nonce:#{nonce}")
-
       assert_not NonceService.verify(nonce)
     end
   end

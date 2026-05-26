@@ -124,7 +124,8 @@ module AuthorizationAudit
       ip_address: log_data[:ip_address],
       occurred_at: log_data[:timestamp],
     )
-    audit.context = { request_id: log_data[:request_id], trace_id: log_data[:trace_id] }.compact if audit.respond_to?(:context=)
+    audit.context = { request_id: log_data[:request_id],
+                      trace_id: log_data[:trace_id], }.compact if audit.respond_to?(:context=)
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.info(LogEvent.format("authorization.audit.visitor_creation_failed", error_message: e.message))

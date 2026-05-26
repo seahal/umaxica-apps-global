@@ -8,12 +8,14 @@ module Dpop
         def valid? = valid
       end
 
-    def initialize(access_token_payload:, proof_jwt:, request_method:, request_uri:, access_token: nil)
+    def initialize(access_token_payload:, proof_jwt:, request_method:, request_uri:, access_token: nil,
+                   resource_type: "client")
       @access_token_payload = access_token_payload
       @proof_jwt = proof_jwt
       @request_method = request_method
       @request_uri = request_uri
       @access_token = access_token
+      @resource_type = resource_type
     end
 
     def call
@@ -30,6 +32,7 @@ module Dpop
         request_method: @request_method,
         request_uri: @request_uri,
         access_token: @access_token,
+        resource_type: @resource_type,
       ).call
 
       return Result.new(valid: false, error: proof_result.error) unless proof_result.valid?

@@ -66,6 +66,14 @@ describe("CookieBannerController", () => {
       await controller.checkConsentState();
       expect(element.remove).not.toHaveBeenCalled();
     });
+
+    test("fetch 失敗時に cookie がない場合、要素を削除しない", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+      cookieValue = "other=value";
+
+      await controller.checkConsentState();
+      expect(element.remove).not.toHaveBeenCalled();
+    });
   });
 
   describe("actions", () => {
@@ -120,6 +128,20 @@ describe("CookieBannerController", () => {
       await vi.waitFor(() => {
         expect(controller.dispatch).toHaveBeenCalledWith("open-settings", {
           detail: { consent: "accepted" },
+        });
+      });
+    });
+
+    test("openSettings: fetch 失敗時に cookie もない場合は null をフォールバックする", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+      cookieValue = "";
+
+      controller.openSettings(event);
+      expect(event.preventDefault).toHaveBeenCalled();
+
+      await vi.waitFor(() => {
+        expect(controller.dispatch).toHaveBeenCalledWith("open-settings", {
+          detail: { consent: null },
         });
       });
     });

@@ -318,10 +318,7 @@ module Sign
         end
 
         def passkey_verification_required_message
-          I18n.t(
-            "errors.webauthn.verification_required",
-            default: "Passkey registration must be completed through WebAuthn verification.",
-          )
+          I18n.t("errors.webauthn.verification_required")
         end
 
         def issue_emergency_key_if_available!

@@ -14,6 +14,11 @@ This repository already contains a message domain skeleton:
 - edge API placeholder controllers
 - a dedicated `message` database with message-related tables
 
+Current boundary docs classify direct message behavior as regional `line` work. That creates an
+explicit boundary conflict with this repository-local skeleton: before any production direct message
+implementation proceeds, an ADR or active plan must decide whether the skeleton is retired,
+migrated, or kept only as a temporary placeholder.
+
 However, the current implementation does not yet show the legal and operational controls that are
 normally required when a service mediates user-to-user communication in Japan.
 

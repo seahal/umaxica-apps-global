@@ -9,7 +9,6 @@ module Authentication
       set_auth_cookies(
         access_token: access_token,
         refresh_token: refresh_plain,
-        device_id: token_record.device_id,
         access_expires_at: access_expires_at,
         refresh_expires_at: refresh_cookie_expires_at_for(token_record),
         dbsc_token: dbsc_cookie_value_for(token_record),
@@ -27,52 +26,17 @@ module Authentication
       authentication_cookie_service.auth_cookie_deletion_options
     end
 
-    def device_cookie_key
-      authentication_cookie_service.device_cookie_key
-    end
-
-    def device_cookie_options(expires_at:)
-      cookie_options.merge(expires: expires_at)
-    end
-
-    # NOTE: The device_id cookie is NOT a cryptographic binding. It sits in the
-    # same cookie jar as the refresh cookie, so anyone who can read the refresh
-    # cookie can also read this one. Treat it as a session-family consistency
-    # identifier used for audit/telemetry (mismatch is a compromise signal),
-    # not as a defense against stolen-cookie replay. Real per-session binding
-    # belongs to DBSC (see Authentication::DeviceBinding and Dbsc::*).
-    def set_device_id_cookie!(device_id, expires_at:)
-      cookies[device_cookie_key] = device_cookie_options(expires_at: expires_at).merge(value: device_id)
-    end
-
-    def clear_device_id_cookie!
-      cookies.delete(device_cookie_key, cookie_deletion_options)
-    end
-
     def clear_auth_cookies!
       cookies.delete(Authentication::Base::ACCESS_COOKIE_KEY, cookie_deletion_options)
       cookies.delete(Authentication::Base::REFRESH_COOKIE_KEY, cookie_deletion_options)
       clear_dbsc_cookie!
-      clear_device_id_cookie!
       @current_resource = nil
       @current_session = nil
       @current_session_public_id = nil
       Actor.clear if defined?(Actor)
     end
 
-    def read_device_id_cookie
-      store = cookies
-      cookie_value = store&.[](device_cookie_key)
-      stored_value =
-        if cookie_value.is_a?(Hash)
-          cookie_value[:value] || cookie_value["value"]
-        else
-          cookie_value
-        end
-      stored_value.to_s.presence&.presence
-    end
-
-    def set_auth_cookies(access_token:, refresh_token:, device_id:, access_expires_at:, refresh_expires_at:,
+    def set_auth_cookies(access_token:, refresh_token:, access_expires_at:, refresh_expires_at:,
                          dbsc_token: nil, dbsc_expires_at: nil)
       cookies[Authentication::Base::ACCESS_COOKIE_KEY] = cookie_options.merge(
         value: access_token,
@@ -83,7 +47,6 @@ module Authentication
         expires: refresh_expires_at,
       )
       set_dbsc_cookie!(dbsc_token, expires_at: dbsc_expires_at) if dbsc_token.present? && dbsc_expires_at.present?
-      set_device_id_cookie!(device_id, expires_at: refresh_expires_at)
     end
 
     def set_dbsc_cookie!(token, expires_at:)
@@ -107,7 +70,6 @@ module Authentication
       set_auth_cookies(
         access_token: access_token,
         refresh_token: refresh_plain,
-        device_id: token_record.device_id,
         access_expires_at: access_expires_at,
         refresh_expires_at: refresh_cookie_expires_at_for(token_record),
         dbsc_token: dbsc_cookie_value_for(token_record),

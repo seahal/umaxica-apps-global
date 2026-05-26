@@ -35,7 +35,7 @@ bin/db-reset-all all          # development + test 両方
 
 bin/rails db:verify_no_schema_drift
 # クリーン test DB に対してマイグレーションを流し、
-# コミット済みの db/*_schema.rb と差分がなければ成功。
+# コミット済みの db/*_structure.sql と差分がなければ成功。
 # 差分があれば「schema drift 発生」と報告して終了コード 1。
 ```
 

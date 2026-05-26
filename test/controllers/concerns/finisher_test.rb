@@ -16,7 +16,7 @@ class FinisherTest < ActiveSupport::TestCase
     controller = DummyController.new
 
     controller.define_singleton_method(:finish_request) do
-      raise "finish failed"
+      raise RuntimeError, "finish failed"
     end
 
     assert_raises(RuntimeError) { controller.send(:finish_request) }

@@ -135,6 +135,26 @@ describe("PasskeyAuthenticationController", () => {
     expect(result.clientExtensionResults).toEqual({ appid: true });
   });
 
+  test("encodeCredential: authenticatorAttachment が null/undefined の場合", () => {
+    const credential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1]).buffer,
+      type: "public-key",
+      authenticatorAttachment: null,
+      response: {
+        clientDataJSON: new Uint8Array([4]).buffer,
+        authenticatorData: new Uint8Array([7]).buffer,
+        signature: new Uint8Array([10]).buffer,
+        userHandle: null,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+
+    const result = controller.encodeCredential(credential);
+    expect(result.authenticatorAttachment).toBeNull();
+    expect(result.response.userHandle).toBeNull();
+  });
+
   test("ensureTurnstileToken: turnstileSiteKeyValue がなければエラー", async () => {
     controller.turnstileSiteKeyValue = "";
 
@@ -144,6 +164,14 @@ describe("PasskeyAuthenticationController", () => {
   test("csrfToken: meta タグからトークンを取得する", () => {
     const result = controller.csrfToken;
     expect(result).toBe("csrf-token-value");
+  });
+
+  test("csrfToken: meta タグがない場合は空文字列", () => {
+    vi.stubGlobal("document", {
+      querySelector: vi.fn(() => null),
+    });
+    const result = controller.csrfToken;
+    expect(result).toBe("");
   });
 
   test("identifierValue: target があればその値を返す", () => {
@@ -268,6 +296,51 @@ describe("PasskeyAuthenticationController", () => {
     };
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(reloadMock).toHaveBeenCalled();
+  });
+
+  test("authenticate: verificationResponse が 401 のときページをリロードする", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const reloadMock = vi.fn();
+    vi.stubGlobal("window", {
+      PublicKeyCredential: true,
+      location: { hostname: "localhost", reload: reloadMock },
+    });
+
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    const verificationResponse = {
+      ok: false,
+      status: 401,
+      headers: { get: vi.fn(() => "text/html") },
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
+
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4]).buffer,
+        authenticatorData: new Uint8Array([7]).buffer,
+        signature: new Uint8Array([10]).buffer,
+        userHandle: null,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.get.mockResolvedValue(mockCredential);
 
     const event = { preventDefault: vi.fn() };
     await controller.authenticate(event);
@@ -531,9 +604,29 @@ describe("PasskeyAuthenticationController", () => {
     expect(controller.errorTarget.textContent).toBe("");
   });
 
+  test("showError: statusTarget がない場合もエラーを表示する", () => {
+    controller.hasStatusTarget = false;
+    controller.showError("test error");
+    expect(controller.errorTarget.textContent).toBe("test error");
+  });
+
   test("showStatus: statusTarget がないときは何もしない", () => {
     controller.hasStatusTarget = false;
     controller.showStatus("test status");
     expect(controller.statusTarget.textContent).toBe("");
+  });
+
+  test("clearMessages: errorTarget がない場合も status をクリアする", () => {
+    controller.hasErrorTarget = false;
+    controller.clearMessages();
+    expect(controller.statusTarget.textContent).toBe("");
+    expect(controller.statusTarget.classList.add).toHaveBeenCalledWith("hidden");
+  });
+
+  test("clearMessages: statusTarget がない場合も error をクリアする", () => {
+    controller.hasStatusTarget = false;
+    controller.clearMessages();
+    expect(controller.errorTarget.textContent).toBe("");
+    expect(controller.errorTarget.classList.add).toHaveBeenCalledWith("hidden");
   });
 });

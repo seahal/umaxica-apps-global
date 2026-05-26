@@ -91,4 +91,5 @@ class OperatorSignInCycle < OrgTicketRecord
 
   belongs_to :token, class_name: "OperatorToken"
   belongs_to :status, class_name: "OperatorSignInCycleStatus"
+  belongs_to :principal, class_name: "Operator", optional: true
 end

@@ -10,6 +10,10 @@ Active planning note (2026-05-25).
 this working copy. The current stable repository boundary says regional content delivery belongs to
 the separate regional repository, not this global Rails app.
 
+This plan is about docs/news publication history, not the global SNS-style or in-application `post`
+boundary described in `docs/architecture/regional-content.md`. Global `post` work must not be used
+as an implicit decision to bring docs/news/help publication back into this repository.
+
 Older ADRs and archived plans still preserve the product and storage history:
 
 - `post.*` was the former Publisher / Distributor public contract for content delivery.

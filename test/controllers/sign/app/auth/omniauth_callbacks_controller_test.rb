@@ -291,6 +291,42 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal "contact_verified", cycle.step
   end
 
+  test "social callback sign up cycle stores decoded pt as return_to" do
+    ClientSignUpCycleStatus.ensure_defaults!
+    ClientSignUpCycleCleanupStatus.ensure_defaults!
+    user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
+    identity = ClientSocialGoogle.create!(
+      user: user,
+      uid: "social-signup-return-to",
+      provider: "google_app",
+      token: "token",
+      token_expires_at: 1.week.from_now.to_i,
+      user_social_google_status: client_social_google_statuses(:active),
+    )
+    issued_cycles = []
+    controller = Sign::App::Auth::OmniauthCallbacksController.new
+    session_hash = {}
+
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:signed_pt_token) { |value| "signed:#{value}" }
+    controller.define_singleton_method(:path_from_signed_pt) do |value|
+      (value == "signed:/after-social") ? "/after-social" : nil
+    end
+    controller.define_singleton_method(:sign_up_cycle_locator) do
+      Struct.new(:issued_cycles) do
+        def issue!(cycle)
+          issued_cycles << cycle
+        end
+      end.new(issued_cycles)
+    end
+
+    cycle = controller.send(:create_social_sign_up_cycle!, user, identity, pt: "/after-social")
+
+    assert_equal "/after-social", cycle.return_to
+    assert_equal [cycle], issued_cycles
+    assert_equal cycle.public_id, session_hash[:sign_app_up_sequence_id]
+  end
+
   test "social sign up entry with existing identity follows sign in path" do
     controller = Sign::App::Auth::OmniauthCallbacksController.new
     redirects = []

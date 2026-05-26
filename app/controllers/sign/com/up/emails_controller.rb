@@ -416,7 +416,7 @@ module Sign
               issued_at: Time.current,
               expires_at: VisitorSignUpCycle.default_ttl.from_now,
               entry_method: "email",
-              pt: sanitized_return_to,
+              return_to: sanitized_return_to,
             ),
           )
         end
@@ -454,7 +454,7 @@ module Sign
         end
 
         def sanitized_return_to
-          path_from_signed_pt(signed_pt_token(params[:pt].presence))
+          resolved_path_or_navigation_target
         end
       end
     end

@@ -44,31 +44,43 @@ _fixture:
   model_class: Operator
 
 placeholder:
+  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
+  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
   status_id: <%= OperatorIdentityStatus::NOTHING %>
   public_id: "ABCD2345EFGH67JK"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 one:
+  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
+  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
   status_id: <%= OperatorIdentityStatus::NOTHING %>
   public_id: "BCDE2345FGHJ67KM"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 none_staff:
+  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
+  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
   status_id: <%= OperatorIdentityStatus::NOTHING %>
   public_id: "CDEF2345GHJK67NM"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 two:
+  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
+  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
   status_id: <%= OperatorIdentityStatus::NOTHING %>
   public_id: "DEFG2345HJKP67MN"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 sample_staff:
+  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
+  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
   status_id: <%= OperatorIdentityStatus::NOTHING %>
   public_id: "TMPN2345WXYZ67AB"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 reserved_staff:
+  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
+  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
   status_id: <%= OperatorIdentityStatus::RESERVED %>
   public_id: "RZRV2345WXYZ67AB"
   created_at: <%= Time.current %>

@@ -55,11 +55,7 @@ module SignIn
 
     def resolved_actor
       @resolved_actor ||=
-        actor || case cycle
-                 when ClientSignInCycle then Client.find_by(id: cycle.principal_id)
-                 when VisitorSignInCycle then Visitor.find_by(id: cycle.principal_id)
-                 when OperatorSignInCycle then Operator.find_by(id: cycle.principal_id)
-                 end
+        actor || cycle.principal
     end
 
     def selection_changes(candidate)

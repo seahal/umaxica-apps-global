@@ -28,13 +28,11 @@ Rails.application.configure do
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true
 
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
+  # Force all access to the app over SSL and use secure cookies.
   config.force_ssl = true
 
-  # HSTS with preload support (submit to hstspreload.org after deploying).
-  config.ssl_options = {
-    hsts: { subdomains: true, preload: true, expires: Integer(2.years, 10) },
-  }
+  # HSTS is managed by the CDN, not Rails.
+  config.ssl_options = { hsts: false }
 
   # Log application output to STDOUT for Cloud Run visibility.
   STDOUT.sync = true

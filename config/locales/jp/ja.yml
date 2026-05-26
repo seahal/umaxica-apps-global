@@ -270,6 +270,7 @@ ja:
       credential_already_registered: このパスキーは既に登録されています。
       sign_count_mismatch: パスキーのセキュリティカウンターに問題があります。
       verification_failed: パスキーの検証に失敗しました。
+      verification_required: パスキーの登録は WebAuthn 認証で完了する必要があります。
     not_implemented: 機能はまだ実装されていません
     invalid_authenticity_token: セッションが期限切れです。ページを再読み込みしてください。
     preference:
@@ -423,6 +424,7 @@ ja:
       test: テスト
     com:
       registration:
+        cancelled_retry_later: 登録をキャンセルしました。しばらくしてから再度お試しください。
         new:
           page_title: アカウント登録
           page_description: "%{product} の利用をはじめるための登録方法を選択してください。"
@@ -443,6 +445,7 @@ ja:
           update:
             success: 電話番号が確認されました。
         checkpoint:
+          age_restricted: この登録方法ではアカウントを作成できません。13歳の誕生日以降にもう一度お試しください。
           show:
             page_title: 登録を完了
             complete: 登録に必要な項目は完了しています。
@@ -568,6 +571,7 @@ ja:
           invalid_session: 無効なセッション参照です。
           cannot_revoke_current: この方法で現在のセッションを無効化できません。キャンセルでログアウトしてください。
       registration:
+        cancelled_retry_later: 登録をキャンセルしました。しばらくしてから再度お試しください。
         email:
           flow:
             invalid: セッションの有効期限が切れました。
@@ -642,6 +646,7 @@ ja:
               apple: Appleで続行
             disclaimer: 許可なく投稿や共有を行うことはありません。
         checkpoint:
+          age_restricted: この登録方法ではアカウントを作成できません。13歳の誕生日以降にもう一度お試しください。
           show:
             page_title: 登録を完了
             complete: 登録に必要な項目は完了しています。
@@ -2203,6 +2208,9 @@ ja:
         cookie_settings: クッキー設定
         locale_settings: 言語の設定
         theme_settings: テーマ設定
+        motion_settings: モーション設定
+        density_settings: 表示密度設定
+        items_per_page_settings: 1ページあたりの表示件数
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2280,6 +2288,9 @@ ja:
         cookie_settings: クッキー設定
         locale_settings: 言語の設定
         theme_settings: テーマ設定
+        motion_settings: モーション設定
+        density_settings: 表示密度設定
+        items_per_page_settings: 1ページあたりの表示件数
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2511,6 +2522,15 @@ ja:
             '50': 50件
             '100': 100件
             infinity: 無制限
+        r18_display_stopper:
+          edit:
+            heading: R18表示設定
+            description: R18 コンテンツを未設定、承認、拒否のどれにするかを選択します。
+            option_label: R18表示設定
+          options:
+            nothing: 未設定
+            approved: 承認
+            deny: 拒否
         date_format:
           edit:
             heading: 日付形式

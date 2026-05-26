@@ -25,11 +25,13 @@ class CreateClientSignUpCycleCleanupStatuses < ActiveRecord::Migration[8.2]
   def up
     unless table_exists?(:client_sign_up_cycle_cleanup_statuses)
       create_table :client_sign_up_cycle_cleanup_statuses, id: :bigint, force: false
-      execute(<<~SQL.squish)
-        INSERT INTO client_sign_up_cycle_cleanup_statuses (id)
-        VALUES #{STATUS_IDS.map { |id, _| "(#{id})" }.join(", ")}
-        ON CONFLICT DO NOTHING
-      SQL
+      safety_assured do
+        execute(<<~SQL.squish)
+          INSERT INTO client_sign_up_cycle_cleanup_statuses (id)
+          VALUES #{STATUS_IDS.map { |id, _| "(#{id})" }.join(", ")}
+          ON CONFLICT DO NOTHING
+        SQL
+      end
     end
 
     unless column_exists?(:client_sign_up_cycles, :cleanup_status_id)
@@ -38,11 +40,13 @@ class CreateClientSignUpCycleCleanupStatuses < ActiveRecord::Migration[8.2]
 
     # Backfill from string column.
     STRING_TO_ID.each do |string, id|
-      execute(<<~SQL.squish)
-        UPDATE client_sign_up_cycles
-        SET cleanup_status_id = #{id}
-        WHERE cleanup_status = '#{string}' AND cleanup_status_id = 10
-      SQL
+      safety_assured do
+        execute(<<~SQL.squish)
+          UPDATE client_sign_up_cycles
+          SET cleanup_status_id = #{id}
+          WHERE cleanup_status = '#{string}' AND cleanup_status_id = 10
+        SQL
+      end
     end
 
     unless foreign_key_exists?(:client_sign_up_cycles, :client_sign_up_cycle_cleanup_statuses)
@@ -73,11 +77,13 @@ class CreateClientSignUpCycleCleanupStatuses < ActiveRecord::Migration[8.2]
     end
 
     STRING_TO_ID.each do |string, id|
-      execute(<<~SQL.squish)
-        UPDATE client_sign_up_cycles
-        SET cleanup_status = '#{string}'
-        WHERE cleanup_status_id = #{id}
-      SQL
+      safety_assured do
+        execute(<<~SQL.squish)
+          UPDATE client_sign_up_cycles
+          SET cleanup_status = '#{string}'
+          WHERE cleanup_status_id = #{id}
+        SQL
+      end
     end
 
     add_index :client_sign_up_cycles, [:cleanup_status, :purged_at],

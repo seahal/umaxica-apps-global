@@ -6,13 +6,16 @@ module Retainable
 
   SENTINEL = ::Float::INFINITY
 
+  # Models that include Retainable register themselves here. Used by the
+  # `RetentionPurgeJob` allowlist test to assert that any new retainable
+  # model is actually picked up by the worker — forgetting to add a new
+  # model leaves rows purgeable in principle but never purged in practice.
+  REGISTRY = Concurrent::Array.new
+  private_constant :REGISTRY
+
   class << self
-    # Models that include Retainable register themselves here. Used by the
-    # `RetentionPurgeJob` allowlist test to assert that any new retainable
-    # model is actually picked up by the worker — forgetting to add a new
-    # model leaves rows purgeable in principle but never purged in practice.
     def registry
-      @registry ||= []
+      REGISTRY
     end
   end
 

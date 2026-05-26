@@ -92,7 +92,7 @@ class OperatorPreference < OrgPrincipalRecord
   before_validation :generate_public_id, on: :create
 
   def r18_display_stopper
-    operator_preference_r18_display_stopper&.option&.name || "disabled"
+    operator_preference_r18_display_stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
   end
 
   private

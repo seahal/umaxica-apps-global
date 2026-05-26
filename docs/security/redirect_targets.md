@@ -113,10 +113,10 @@ Do not redirect directly to a raw request parameter.
 
 ## Legacy Names
 
-Legacy names such as `rt`, `return_to`, `redirect_to`, `redirect_uri`, `next`, and `continue` are not
-the public internal-return contract. Existing OIDC protocol fields named `redirect_uri` remain
-protocol inputs, but they must resolve through the OIDC client registry and external-target
-boundary before any cross-host redirect.
+Legacy names such as `rt`, `return_to`, `redirect_to`, `redirect_uri`, `next`, and `continue` are
+not the public internal-return contract. Existing OIDC protocol fields named `redirect_uri` remain
+protocol inputs, but they must resolve through the OIDC client registry and external-target boundary
+before any cross-host redirect.
 
 Remaining `rt` and `return_to` uses in sign-in, sign-up, step-up, logout, social, and jump flows are
 migration debt. They must either move to `pt`, `nt`, or `xt`, or be isolated with an owning-flow

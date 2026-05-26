@@ -112,14 +112,11 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
     access_opts = @obj.cookies.options_for(::Authentication::Client::ACCESS_COOKIE_KEY)
     refresh_opts = @obj.cookies.options_for(::Authentication::Client::REFRESH_COOKIE_KEY)
-    device_opts = @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY)
 
     assert_operator access_opts[:expires], :>, 10.minutes.from_now
     assert_operator access_opts[:expires], :<, 2.hours.from_now
     assert_operator refresh_opts[:expires], :>, 29.days.from_now
     assert_operator refresh_opts[:expires], :<, 31.days.from_now
-    assert_operator device_opts[:expires], :>, 29.days.from_now
-    assert_operator device_opts[:expires], :<, 31.days.from_now
   end
 
   test "log_out clears session and current_client" do
@@ -143,7 +140,6 @@ class Authentication::ClientTest < ActiveSupport::TestCase
     assert_predicate token.reload, :revoked?
     assert_nil @obj.cookies[::Authentication::Client::ACCESS_COOKIE_KEY]
     assert_nil @obj.cookies.encrypted[::Authentication::Client::REFRESH_COOKIE_KEY]
-    assert_nil @obj.cookies[::Authentication::Base::DEVICE_COOKIE_KEY]
   end
 
   test "log_in keeps auth cookies host-only for __Host prefix compatibility" do
@@ -154,7 +150,6 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
     assert_not @obj.cookies.options_for(::Authentication::Client::ACCESS_COOKIE_KEY).key?(:domain)
     assert_not @obj.cookies.options_for(::Authentication::Client::REFRESH_COOKIE_KEY).key?(:domain)
-    assert_not @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY).key?(:domain)
   end
 
   test "log_in returns tokens hash" do
@@ -165,7 +160,6 @@ class Authentication::ClientTest < ActiveSupport::TestCase
     assert_kind_of Hash, tokens
     assert tokens[:access_token]
     assert tokens[:refresh_token]
-    assert_predicate @obj.cookies[::Authentication::Base::DEVICE_COOKIE_KEY], :present?
     assert_equal "Bearer", tokens[:token_type]
     assert_equal ::Authentication::Base::ACCESS_TOKEN_TTL.to_i, tokens[:expires_in]
   end
@@ -216,7 +210,6 @@ class Authentication::ClientTest < ActiveSupport::TestCase
       token = ClientToken.create!(
         user: @user,
         user_token_kind_id: ClientTokenKind::BROWSER_WEB,
-        device_id: "device-user",
         discarded_at: 20.minutes.from_now,
       )
 
@@ -229,12 +222,10 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
       access_opts = @obj.cookies.options_for(::Authentication::Client::ACCESS_COOKIE_KEY)
       refresh_opts = @obj.cookies.options_for(::Authentication::Client::REFRESH_COOKIE_KEY)
-      device_opts = @obj.cookies.options_for(::Authentication::Base::DEVICE_COOKIE_KEY)
 
       assert_in_delta token.discarded_at.to_i, payload["exp"], 1
       assert_in_delta token.discarded_at.to_i, access_opts[:expires].to_i, 1
       assert_in_delta token.discarded_at.to_i, refresh_opts[:expires].to_i, 1
-      assert_in_delta token.discarded_at.to_i, device_opts[:expires].to_i, 1
       assert_equal 20.minutes.to_i, result[:expires_in]
     end
   end

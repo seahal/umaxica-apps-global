@@ -96,7 +96,7 @@ class VisitorPreference < ComPrincipalRecord
   before_validation :generate_public_id, on: :create
 
   def r18_display_stopper
-    visitor_preference_r18_display_stopper&.option&.name || "disabled"
+    visitor_preference_r18_display_stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
   end
 
   private

@@ -1,6 +1,27 @@
 # typed: false
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: org_preference_r18_display_stoppers
+# Database name: org_setting
+#
+#  id            :bigint           not null, primary key
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  option_id     :bigint           not null
+#  preference_id :bigint           not null
+#
+# Indexes
+#
+#  index_org_preference_r18_display_stoppers_on_option_id      (option_id)
+#  index_org_preference_r18_display_stoppers_on_preference_id  (preference_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (option_id => org_preference_r18_display_stopper_options.id)
+#  fk_rails_...  (preference_id => org_preferences.id)
+#
 class OrgPreferenceR18DisplayStopper < OrgSettingRecord
   belongs_to :preference, class_name: "OrgPreference", inverse_of: :org_preference_r18_display_stopper
   belongs_to :option,
@@ -11,11 +32,15 @@ class OrgPreferenceR18DisplayStopper < OrgSettingRecord
 
   before_validation :set_option_id
 
-  def enabled? = option_id == OrgPreferenceR18DisplayStopperOption::ENABLED
+  def approved? = option_id == OrgPreferenceR18DisplayStopperOption::APPROVED
+
+  def denied? = option_id == OrgPreferenceR18DisplayStopperOption::DENY
+
+  def enabled? = denied?
 
   private
 
   def set_option_id
-    self.option_id ||= OrgPreferenceR18DisplayStopperOption::DISABLED
+    self.option_id ||= OrgPreferenceR18DisplayStopperOption::NOTHING
   end
 end

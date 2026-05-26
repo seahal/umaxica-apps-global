@@ -4,18 +4,37 @@
 module Redirects
   class NavigationTargetResolver
     REGISTRY = {
-      checkpoint: ->(routes, params) { routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_in_checkpoint_path", ri: params[:ri]) },
-      selector: ->(routes, params) { routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_in_path", ri: params[:ri]) },
-      dashboard: ->(routes, params) { routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_dashboard_path", ri: params[:ri]) },
-      configuration_security: ->(routes, params) { routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_configuration_path", ri: params[:ri]) },
-      signed_out: ->(_routes, params) { "/sign/out/complete#{Redirects::NavigationTargetResolver.query(params.slice(:ri))}" },
+      checkpoint: ->(routes, params) {
+        routes.public_send(
+          "sign_#{Redirects::NavigationTargetResolver.surface(params)}_in_checkpoint_path",
+          ri: params[:ri],
+        )
+      },
+      selector: ->(routes, params) {
+        routes.public_send("sign_#{Redirects::NavigationTargetResolver.surface(params)}_in_path", ri: params[:ri])
+      },
+      dashboard: ->(routes, params) {
+        routes.public_send(
+          "sign_#{Redirects::NavigationTargetResolver.surface(params)}_dashboard_path",
+          ri: params[:ri],
+        )
+      },
+      configuration_security: ->(routes, params) {
+        routes.public_send(
+          "sign_#{Redirects::NavigationTargetResolver.surface(params)}_configuration_path",
+          ri: params[:ri],
+        )
+      },
+      signed_out: ->(_routes, params) {
+        "/sign/out/complete#{Redirects::NavigationTargetResolver.query(params.slice(:ri))}"
+      },
       home: ->(_routes, params) { "/#{Redirects::NavigationTargetResolver.query(params.slice(:ri))}" },
     }.freeze
 
     SCOPES = {
-      authentication: %i[checkpoint selector dashboard signed_out home].freeze,
-      configuration: %i[configuration_security dashboard home].freeze,
-      public: %i[home signed_out].freeze,
+      authentication: %i(checkpoint selector dashboard signed_out home).freeze,
+      configuration: %i(configuration_security dashboard home).freeze,
+      public: %i(home signed_out).freeze,
     }.freeze
 
     def self.call(key, routes:, params: {}, scope: nil, source: :explicit_nt)
@@ -40,7 +59,10 @@ module Redirects
       result = Redirects::PathTargetResolver.call(REGISTRY.fetch(registry_key).call(routes, params), source: source)
       return Redirects::TargetResult.ok(kind: :nt, source: source, value: result.value) if result.ok?
 
-      Redirects::TargetResult.failure(kind: :nt, source: source, reason: "invalid_registered_path", unsafe_value: result.value)
+      Redirects::TargetResult.failure(
+        kind: :nt, source: source, reason: "invalid_registered_path",
+        unsafe_value: result.value,
+      )
     end
 
     def self.surface(params)
@@ -58,7 +80,8 @@ module Redirects
 
     def normalize_key
       return key if key.is_a?(Symbol)
-      return key.to_sym if key.is_a?(String) && key.match?(/\A[a-z][a-z0-9_]*\z/)
+
+      key.to_sym if key.is_a?(String) && key.match?(/\A[a-z][a-z0-9_]*\z/)
     end
 
     def raw_url_or_path?

@@ -62,6 +62,7 @@ module Authentication
     }.freeze
 
     ACCESS_POLICY_RULES = Concurrent::Map.new
+    AUTHENTICATION_MODE_RULES = Concurrent::Map.new
 
     AccessPolicyContext = Struct.new(
       :policy,
@@ -79,7 +80,6 @@ module Authentication
     ACCESS_COOKIE_KEY = Authentication::CookieName.access
     REFRESH_COOKIE_KEY = Authentication::CookieName.refresh
     DBSC_COOKIE_KEY = Authentication::CookieName.dbsc
-    DEVICE_COOKIE_KEY = Authentication::CookieName.device(refresh_cookie_key: REFRESH_COOKIE_KEY)
 
     # Token TTLs
     ACCESS_TOKEN_TTL = Integer(ENV.fetch("AUTH_ACCESS_TOKEN_TTL", 1.hour.to_i.to_s), 10).seconds
@@ -435,7 +435,6 @@ module Authentication
       cookies.delete(ACCESS_COOKIE_KEY, cookie_deletion_options)
       cookies.delete(REFRESH_COOKIE_KEY, cookie_deletion_options)
       clear_dbsc_cookie!
-      clear_device_id_cookie!
     end
 
     def session_limit_hard_reject_result(resource)
@@ -461,6 +460,7 @@ module Authentication
         proof_jwt: dpop_proof,
         request_method: request.request_method,
         request_uri: request.original_url,
+        resource_type: resource_type,
       ).call
       return { status: :dpop_proof_invalid, error: proof_result.error } unless proof_result.valid?
 
@@ -707,11 +707,7 @@ module Authentication
       end
 
       def authentication_mode_rules
-        if instance_variable_defined?(:@authentication_mode_rules)
-          @authentication_mode_rules
-        else
-          []
-        end
+        AUTHENTICATION_MODE_RULES.fetch_or_store(self) { [] }
       end
 
       def local_authentication_mode_rules
@@ -730,7 +726,7 @@ module Authentication
           options: options,
         }
 
-        @authentication_mode_rules = authentication_mode_rules + [rule]
+        AUTHENTICATION_MODE_RULES[self] = authentication_mode_rules + [rule]
       end
 
       def authentication_mode_for(action)
@@ -1057,7 +1053,7 @@ module Authentication
           event_type: "refresh_reuse_detected",
           token_record: token_record || find_refresh_token_record(refresh_public_id),
           reason: "reuse",
-          device_source: refresh_device_source,
+          binding_source: refresh_binding_source(token_record),
         )
       end
 
@@ -1083,14 +1079,14 @@ module Authentication
     end
 
     def handle_refresh_binding_denied(token_record, refresh_public_id)
-      reason = @refresh_dpop_reason || @refresh_device_reason || @refresh_dbsc_reason || "missing"
+      reason = @refresh_dpop_reason || @refresh_dbsc_reason || "missing"
       event_type =
         if @refresh_dpop_reason.present?
           "refresh_dpop_denied"
         elsif token_record&.binding_method_dbsc?
           "refresh_dbsc_denied"
         else
-          (reason == "mismatch") ? "refresh_device_mismatch" : "refresh_device_missing"
+          "refresh_binding_denied"
         end
       write_refresh_occurrence(
         event_type: event_type,
@@ -1190,7 +1186,6 @@ module Authentication
       @refresh_failure_status = nil
       @refresh_failure_code = nil
       @refresh_dpop_reason = nil
-      @refresh_device_reason = nil
       @refresh_dbsc_reason = nil
       @refresh_dbsc_verified = false
     end
@@ -1210,6 +1205,7 @@ module Authentication
         proof_jwt: proof,
         request_method: request.request_method,
         request_uri: request.original_url,
+        resource_type: resource_type,
       ).call
       unless result.valid?
         @refresh_dpop_reason = result.error
@@ -1229,7 +1225,7 @@ module Authentication
       return false unless device_session_refresh_allowed?(token_record)
       return refresh_dbsc_allowed?(token_record) if token_record&.binding_method_dbsc?
 
-      refresh_device_allowed?(token_record)
+      true
     end
 
     def device_session_refresh_allowed?(token_record)
@@ -1247,7 +1243,7 @@ module Authentication
       end
 
       if device_session.dbsc_session_id_digest.present?
-        presented_digest = device_session.class.digest_device_id(Dbsc::HeaderParser.string_value(session_id))
+        presented_digest = device_session.class.digest_session_identifier(Dbsc::HeaderParser.string_value(session_id))
         unless secure_compare?(device_session.dbsc_session_id_digest, presented_digest)
           @refresh_dbsc_reason = "session_id_mismatch"
           return false
@@ -1267,51 +1263,6 @@ module Authentication
 
       clear_dbsc_challenge_after_refresh_verification!(token_record)
       @refresh_dbsc_verified = true
-      true
-    end
-
-    # Session-family consistency check for the LEGACY (non-DBSC) refresh path.
-    #
-    # The device_id cookie lives in the same jar as the refresh cookie, so an
-    # attacker who steals one steals both. This check therefore does NOT defend
-    # against stolen-cookie replay — refer to the DBSC path
-    # (refresh_dbsc_allowed?) for actual per-session binding. The value here is
-    # operational: a refresh request whose device_id does not match the family
-    # the token was issued to is a meaningful compromise signal, and the
-    # failure short-circuits the refresh so the divergence is surfaced rather
-    # than silently absorbed.
-    def refresh_device_allowed?(token_record)
-      cookie_device_id = read_device_id_cookie
-
-      if cookie_device_id.blank?
-        @refresh_device_reason = "missing"
-        return false
-      end
-
-      return true if token_record.blank?
-
-      if token_record.device_id_digest.blank?
-        if token_record.device_id.present?
-          if token_record.device_id == cookie_device_id
-            return true
-          end
-
-          @refresh_device_reason = "mismatch"
-          return false
-        end
-
-        @refresh_device_reason = "missing"
-        return false
-      end
-
-      # SHA3-384 digest comparison. Cookie carries plaintext device_id, DB
-      # stores the digest only.
-      presented_digest = digest_device_id(cookie_device_id)
-      if token_record.device_id_digest.blank? || !secure_compare?(token_record.device_id_digest, presented_digest)
-        @refresh_device_reason = "mismatch"
-        return false
-      end
-
       true
     end
 
@@ -1366,16 +1317,6 @@ module Authentication
       token_record.dbsc_challenge_issued_at = nil if token_record.respond_to?(:dbsc_challenge_issued_at=)
     end
 
-    def refresh_device_source
-      header_present = request.headers[Auth::IoKeys::Headers::DEVICE_ID].to_s.present?
-      cookie_present = read_device_id_cookie.present?
-      return "both" if header_present && cookie_present
-      return "header" if header_present
-      return "cookie" if cookie_present
-
-      "none"
-    end
-
     def refresh_dbsc_source
       session_present = request.headers[Auth::IoKeys::Headers::DBSC_SESSION_ID].to_s.present?
       response_present = request.headers[Auth::IoKeys::Headers::DBSC_RESPONSE].to_s.present?
@@ -1390,13 +1331,13 @@ module Authentication
       return "dpop" if @refresh_dpop_reason.present?
       return refresh_dbsc_source if token_record&.binding_method_dbsc?
 
-      refresh_device_source
+      "none"
     end
 
     def binding_failure_reason(reason, token_record)
       return "dpop_#{reason}" if @refresh_dpop_reason.present?
 
-      prefix = token_record&.binding_method_dbsc? ? "dbsc" : "device"
+      prefix = token_record&.binding_method_dbsc? ? "dbsc" : "binding"
       "#{prefix}_#{reason}"
     end
 
@@ -1442,7 +1383,7 @@ module Authentication
       ).call
 
       if result.resource.blank? && (authorization_scheme.to_s.casecmp?("DPoP") || dpop_proof.present?)
-        response.headers["DPoP-Nonce"] = Dpop::NonceService.generate if defined?(Dpop::NonceService)
+        response.headers["DPoP-Nonce"] = Dpop::NonceService.generate(resource_type: resource_type) if defined?(Dpop::NonceService)
       end
 
       emit_actor_mismatch_event(result.payload) if result.failure_reason == :actor_mismatch
@@ -1695,9 +1636,12 @@ module Authentication
     end
 
     def enforce_authentication_deny_all!(_options = {})
+      # Developer-facing internal raise; not user-facing, so not translated.
+      # rubocop:disable I18n/RailsI18n/DecorateString
       raise MissingPolicyError,
             "Denied by default authentication mode for #{self.class.name}##{action_name}. " \
             "Declare a concrete authentication mode before exposing this endpoint."
+      # rubocop:enable I18n/RailsI18n/DecorateString
     end
 
     def enforce_authentication_private!(options = {})
@@ -1748,11 +1692,8 @@ module Authentication
       end
     end
 
-    # LEGACY here means "no DBSC binding"; the device_id cookie used by the
-    # legacy refresh path is a session-family identifier, not a possession
-    # proof. New sessions stay on LEGACY until the client opts into DBSC
-    # registration. Do not read "LEGACY" as "weak but binding" — it is "not
-    # bound".
+    # LEGACY here means "no DBSC binding". Non-DBSC sessions are ordinary
+    # sessions and must not fall back to a pseudo device guarantee.
     def default_dbsc_token_attributes
       case resource_type
       when "client"

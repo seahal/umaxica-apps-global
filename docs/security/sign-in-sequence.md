@@ -20,19 +20,19 @@ Successful sign-in proceeds through these gates in order:
 
 The DB-backed sign-in cycle uses these states for the authoritative lifecycle:
 
-| State                      | Meaning                                                                         |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| `PRIMARY_PENDING`          | Primary credential verification is in progress.                                 |
-| `MFA_PENDING`              | Sign-in MFA must complete before the sequence can continue.                     |
-| `SESSION_LIMIT_PENDING`    | Session-limit handling must complete before selector or normal issuance.        |
-| `GUARDRAIL_PENDING`        | Pre-activation guardrail checks must stop or clear.                             |
-| `CHECKPOINT_PENDING`       | Pre-activation checkpoint participants must stop or clear.                      |
-| `SELECTOR_PENDING`         | Region/persona activation selection must commit before welcome or return.       |
-| `SESSION_ISSUANCE_PENDING` | Selector has committed and the normal signed-in session may be issued.          |
-| `DASHBOARD_PENDING`        | Legacy state; it is not an authentication boundary for new flows.               |
-| `RETURN_PENDING`           | Legacy state; final return is post-auth UX for new flows.                       |
-| `COMPLETED`                | The sign-in sequence has completed.                                             |
-| `FAILED`                   | The sign-in sequence failed or was abandoned.                                   |
+| State                      | Meaning                                                                   |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `PRIMARY_PENDING`          | Primary credential verification is in progress.                           |
+| `MFA_PENDING`              | Sign-in MFA must complete before the sequence can continue.               |
+| `SESSION_LIMIT_PENDING`    | Session-limit handling must complete before selector or normal issuance.  |
+| `GUARDRAIL_PENDING`        | Pre-activation guardrail checks must stop or clear.                       |
+| `CHECKPOINT_PENDING`       | Pre-activation checkpoint participants must stop or clear.                |
+| `SELECTOR_PENDING`         | Region/persona activation selection must commit before welcome or return. |
+| `SESSION_ISSUANCE_PENDING` | Selector has committed and the normal signed-in session may be issued.    |
+| `DASHBOARD_PENDING`        | Legacy state; it is not an authentication boundary for new flows.         |
+| `RETURN_PENDING`           | Legacy state; final return is post-auth UX for new flows.                 |
+| `COMPLETED`                | The sign-in sequence has completed.                                       |
+| `FAILED`                   | The sign-in sequence failed or was abandoned.                             |
 
 Session-limit handling happens before selector and before active token issuance. If the active
 session limit is full and no restricted session exists, sign-in stores a pending cycle credential
@@ -55,9 +55,8 @@ on their behalf.
 ## Guardrail
 
 Guardrail is the sign-in stop point for cases where the system must not continue toward selector or
-issue a signed-in session.
-Examples include login cooldown, sign-in ban or suspension notices, and hard session-limit
-rejections.
+issue a signed-in session. Examples include login cooldown, sign-in ban or suspension notices, and
+hard session-limit rejections.
 
 Guardrail is different from checkpoint:
 
@@ -165,8 +164,8 @@ added by registering a new item evaluator for the participant.
 ## Return Path
 
 Return-path values are preserved only when they resolve to safe same-origin paths. Unsafe external
-return targets are discarded before they are carried into guardrail, checkpoint, selector, or welcome
-URLs. The return path never skips guardrail, checkpoint, selector, or welcome.
+return targets are discarded before they are carried into guardrail, checkpoint, selector, or
+welcome URLs. The return path never skips guardrail, checkpoint, selector, or welcome.
 
 For DB-backed cycles, the return target is stored as cycle intent before `reset_session`; after
 selector-triggered session issuance, welcome/final redirect revalidates that target against the

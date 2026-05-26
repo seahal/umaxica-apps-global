@@ -98,6 +98,32 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
     assert duplicate.errors.of_kind?(:primary, :taken)
   end
 
+  test "account exposes current membership and collective interface" do
+    persona = Persona.create!(client_identity: client_identity("persona-interface"))
+    enterprise = Enterprise.create!(name: "Acme")
+    unit = EnterpriseUnit.create!(enterprise:, name: "Root")
+    membership = PersonaMembership.create!(
+      persona:,
+      enterprise:,
+      enterprise_unit: unit,
+      membership_kind_id: PersonaMembershipKind::OWNER,
+      membership_state_id: PersonaMembershipState::ACTIVE,
+      primary: true,
+    )
+
+    assert_equal :persona_memberships, Persona.membership_association_name
+    assert_equal membership, persona.primary_membership
+    assert_equal membership, persona.current_membership
+    assert_equal [membership], persona.current_memberships.to_a
+    assert_equal enterprise, persona.current_collective
+    assert_equal unit, persona.current_collective_unit
+    assert_equal persona, membership.account
+    assert_equal enterprise, membership.collective
+    assert_equal unit, membership.collective_unit
+    assert_predicate membership, :active?
+    assert_predicate membership, :primary_active?
+  end
+
   test "database rejects a second persona for the same client identity" do
     identity = client_identity("persona-identity-unique")
     Persona.create!(client_identity: identity)

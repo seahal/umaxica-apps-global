@@ -35,7 +35,7 @@ module Oidc
       pkce_failure = verify_pkce(authorization_code)
       return pkce_failure if pkce_failure
 
-      dpop_jkt = validate_dpop_proof
+      dpop_jkt = validate_dpop_proof(authorization_code)
       return dpop_jkt if dpop_jkt.is_a?(Result)
 
       consume_and_issue_tokens!(authorization_code, dpop_jkt: dpop_jkt)
@@ -230,18 +230,27 @@ module Oidc
       end
     end
 
-    def validate_dpop_proof
+    def validate_dpop_proof(authorization_code)
       return nil if dpop_proof.blank?
 
       result = Dpop::ProofValidator.new(
         proof_jwt: dpop_proof,
         request_method: request_method,
         request_uri: token_endpoint_uri.to_s,
+        resource_type: resource_type_for(authorization_code),
       ).call
 
       return failure("invalid_request", "DPoP proof invalid: #{result.error}") unless result.valid?
 
       result.jkt
+    end
+
+    def resource_type_for(authorization_code)
+      case authorization_code
+      when OperatorAuthorizationCode then "operator"
+      when VisitorAuthorizationCode then "visitor"
+      else "client"
+      end
     end
 
     def failure(error, description)

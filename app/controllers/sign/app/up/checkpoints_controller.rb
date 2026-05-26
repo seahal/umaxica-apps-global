@@ -9,7 +9,8 @@ module Sign
 
         AUTHENTICATION_MODE = :guest
 
-        before_action :load_sign_up_ticket
+        before_action :load_sign_up_ticket, only: :show
+        before_action :load_sign_up_ticket_for_destroy, only: :destroy
         before_action -> { authorize_sign_up_participant!(:enter_checkpoint?) }, only: :show
         before_action :authorize_sign_up_cancellation!, only: :destroy
 
@@ -24,10 +25,7 @@ module Sign
           sign_up_session_state.clear_all!
           redirect_to(
             "/",
-            notice: t(
-              "sign.app.registration.cancelled_retry_later",
-              default: "Registration cancelled. Please wait a while before registering again.",
-            ),
+            notice: t("sign.app.registration.cancelled_retry_later"),
           )
         end
 
@@ -39,6 +37,18 @@ module Sign
           else
             SignUp::Cancellation.call(cycle: @sign_up_ticket, actor_context: Actor.authn)
           end
+        end
+
+        def load_sign_up_ticket_for_destroy
+          @sign_up_ticket = sign_up_cycle_locator.current
+          return if @sign_up_ticket
+
+          sign_up_session_state.clear_all!
+          redirect_to(
+            "/",
+            status: :see_other,
+            notice: t("sign.app.registration.cancelled_retry_later"),
+          )
         end
 
         def authorize_sign_up_cancellation!

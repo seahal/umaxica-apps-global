@@ -6,30 +6,37 @@ require "test_helper"
 class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
-      host: ENV.fetch("CORE_SERVICE_URL", "jp.www.umaxica.app"),
+      host: ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"),
       client_id: "core_app",
       sign_host: ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"),
       resource: -> { clients(:one) },
     },
     {
-      host: ENV.fetch("CORE_STAFF_URL", "jp.www.umaxica.org"),
+      host: ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
       client_id: "core_org",
       sign_host: ENV.fetch("ID_STAFF_URL", "id.umaxica.org"),
       resource: -> { operators(:one) },
     },
     {
-      host: ENV.fetch("CORE_CORPORATE_URL", "jp.www.umaxica.com"),
+      host: ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
       client_id: "core_com",
       sign_host: ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com"),
       resource: -> { create_visitor! },
     },
   ].freeze
 
+  setup do
+    ClientIdentityState.ensure_defaults!
+    VisitorIdentityState.ensure_defaults!
+    OperatorIdentityState.ensure_defaults!
+  end
+
   test "regional core roots are exposed by host" do
     SURFACES.each do |surface|
       host! surface[:host]
+      https!
 
-      get "/", headers: browser_headers
+      get "/?ri=jp", headers: browser_headers
 
       assert_response :success
     end
@@ -37,9 +44,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "regional core callback routes are host constrained" do
     expectations = {
-      ENV.fetch("CORE_SERVICE_URL", "jp.www.umaxica.app") => "core/app/auth/callbacks",
-      ENV.fetch("CORE_CORPORATE_URL", "jp.www.umaxica.com") => "core/com/auth/callbacks",
-      ENV.fetch("CORE_STAFF_URL", "jp.www.umaxica.org") => "core/org/auth/callbacks",
+      ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app") => "core/app/auth/callbacks",
+      ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com") => "core/com/auth/callbacks",
+      ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org") => "core/org/auth/callbacks",
     }
 
     expectations.each do |host, controller|
@@ -53,6 +60,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "regional core sso authorize redirects to IdP with state nonce and PKCE" do
     SURFACES.each do |surface|
       host! surface[:host]
+      https!
 
       get "/sso/authorize", headers: browser_headers
 
@@ -73,6 +81,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "regional core accounts require matching core OIDC clients" do
     SURFACES.each do |surface|
       host! surface[:host]
+      https!
 
       get "/accounts?ri=jp", headers: browser_headers
 
@@ -90,6 +99,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "regional core callback establishes RP session after successful authorization" do
     SURFACES.each do |surface|
       host! surface[:host]
+      https!
       get "/sso/authorize", headers: browser_headers
 
       state = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("state")
@@ -110,7 +120,8 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :redirect
-      assert_equal "http://#{surface[:host]}/", response.location
+      assert_equal "https://#{surface[:host]}/", response.location
+      assert_core_bridge_exists_for(surface[:client_id], resource)
 
       get "/accounts?ri=jp", headers: browser_headers
 
@@ -122,6 +133,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "regional core logout redirects to IdP logout" do
     SURFACES.each do |surface|
       host! surface[:host]
+      https!
 
       post "/sso/logout", headers: browser_headers
 
@@ -146,5 +158,18 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
     Visitor.create!(status_id: VisitorStatus::NOTHING)
+  end
+
+  def assert_core_bridge_exists_for(client_id, resource)
+    case client_id
+    when "core_app"
+      assert_predicate CoreAppClientBridge.find_by!(client_id: resource.id), :core?
+    when "core_org"
+      assert_predicate CoreOrgOperatorBridge.find_by!(operator_id: resource.id), :core?
+    when "core_com"
+      assert_predicate CoreComVisitorBridge.find_by!(visitor_id: resource.id), :core?
+    else
+      flunk("unexpected core client_id: #{client_id}")
+    end
   end
 end

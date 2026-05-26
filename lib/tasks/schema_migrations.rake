@@ -9,6 +9,7 @@ namespace :db do
       ActiveRecord::Base.establish_connection(db_config)
 
       schema_migration = ActiveRecord::Base.connection_pool.schema_migration
+      schema_migration.create_table
       migration_context = ActiveRecord::MigrationContext.new(db_config.migrations_paths, schema_migration)
       existing_versions = schema_migration.normalized_versions
       migration_context.migrations.each do |migration|

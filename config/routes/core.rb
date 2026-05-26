@@ -6,13 +6,13 @@ def core_exact_host_constraint(*hosts)
 end
 
 core_app_host = core_exact_host_constraint(
-  ENV.fetch("CORE_SERVICE_URL", "jp.www.umaxica.app"),
+  ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"),
 )
 core_com_host = core_exact_host_constraint(
-  ENV.fetch("CORE_CORPORATE_URL", "jp.www.umaxica.com"),
+  ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
 )
 core_org_host = core_exact_host_constraint(
-  ENV.fetch("CORE_STAFF_URL", "jp.www.umaxica.org"),
+  ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
 )
 
 scope module: :core, as: :core do

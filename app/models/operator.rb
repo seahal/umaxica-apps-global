@@ -145,6 +145,9 @@ class Operator < OrgPrincipalRecord
   has_many :staff_bulletins, class_name: "OperatorBulletin", dependent: :destroy, inverse_of: :staff
   has_many :staff_banners, class_name: "OperatorBanner", dependent: :destroy, inverse_of: :staff
   has_one :rp_account, class_name: "OperatorAccount", dependent: :destroy, inverse_of: :staff
+  has_one :core_org_operator_bridge,
+          dependent: :destroy,
+          inverse_of: :operator
   has_one :staff_preference, class_name: "OperatorPreference", dependent: :destroy, inverse_of: :staff
 
   validates :public_id,

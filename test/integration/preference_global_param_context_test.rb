@@ -44,6 +44,31 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       assert_match(/ri=us/, request.url)
     end
 
+    test "#{domain[:name]} uses ri as request-local locale when lx is absent" do
+      host!(domain[:host])
+
+      url_method = domain[:preference_url_method] || domain[:root_url_method]
+      get public_send(url_method, ri: "us")
+
+      assert_response :success
+      assert_select "html[lang='en']"
+
+      get public_send(url_method, ri: "jp")
+
+      assert_response :success
+      assert_select "html[lang='ja']"
+    end
+
+    test "#{domain[:name]} prefers explicit lx over ri-derived locale" do
+      host!(domain[:host])
+
+      url_method = domain[:preference_url_method] || domain[:root_url_method]
+      get public_send(url_method, ri: "jp", lx: "en")
+
+      assert_response :success
+      assert_select "html[lang='en']"
+    end
+
     test "#{domain[:name]} ri param is always included in default_url_options" do
       host!(domain[:host])
 

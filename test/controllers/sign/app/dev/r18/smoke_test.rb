@@ -62,6 +62,7 @@ class Sign::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "private R18 smoke page asks logged in adult with undecided preference" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
+    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::NOTHING)
 
     get sign_app___dev_r18_private_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
@@ -71,7 +72,7 @@ class Sign::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "private R18 smoke page allows logged in adult with allow preference" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
-    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::DISABLED)
+    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::APPROVED)
 
     get sign_app___dev_r18_private_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
@@ -81,7 +82,7 @@ class Sign::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "private R18 smoke page stops logged in adult with stopped preference" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
-    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::ENABLED)
+    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::DENY)
 
     get sign_app___dev_r18_private_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
@@ -90,7 +91,7 @@ class Sign::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "private R18 smoke page forbids logged in POST instead of redirecting" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
-    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::DISABLED)
+    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::APPROVED)
 
     post sign_app___dev_r18_private_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
@@ -99,13 +100,13 @@ class Sign::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "rating preference cannot be changed through GET params" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
-    preference = create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::ENABLED)
+    preference = create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::DENY)
 
     get sign_app___dev_r18_private_url(ri: "jp", rating_preference_id: 1),
         headers: as_user_headers(user, host: @host)
 
     assert_redirected_to stopped_sign_app_r18_gate_url(ri: "jp", host: @host)
-    assert_equal ClientPreferenceR18DisplayStopperOption::ENABLED,
+    assert_equal ClientPreferenceR18DisplayStopperOption::DENY,
                  preference.client_preference_r18_display_stopper.reload.option_id
   end
 

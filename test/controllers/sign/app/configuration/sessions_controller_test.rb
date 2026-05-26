@@ -90,7 +90,6 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
       expires_at: 1.minute.ago,
     )
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = token.device_id
 
     get sign_app_configuration_sessions_url(ri: "jp"),
         headers: host_headers(@host)

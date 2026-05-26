@@ -31,22 +31,32 @@ module Redirects
     def resolve_entry(entry)
       case entry.fetch(:kind).to_sym
       when :nt
-        Redirects::NavigationTargetResolver.call(entry[:value], routes: routes, params: params, scope: entry[:scope], source: entry.fetch(:source, :priority_nt))
+        Redirects::NavigationTargetResolver.call(
+          entry[:value], routes: routes, params: params, scope: entry[:scope],
+                         source: entry.fetch(:source, :priority_nt),
+        )
       when :signed_nt
-        Redirects::NavigationTargetResolver.call(entry[:value], routes: routes, params: params, scope: entry[:scope], source: entry.fetch(:source, :signed_nt))
+        Redirects::NavigationTargetResolver.call(
+          entry[:value], routes: routes, params: params, scope: entry[:scope],
+                         source: entry.fetch(:source, :signed_nt),
+        )
       when :signed_pt
         Redirects::PathTargetResolver.call(entry[:value], source: entry.fetch(:source, :signed_pt))
       when :pt
         Redirects::PathTargetResolver.call(entry[:value], source: entry.fetch(:source, :raw_pt))
       else
-        Redirects::TargetResult.failure(kind: entry[:kind], source: :priority, reason: :unknown_kind, unsafe_value: entry[:value])
+        Redirects::TargetResult.failure(
+          kind: entry[:kind], source: :priority, reason: :unknown_kind,
+          unsafe_value: entry[:value],
+        )
       end
     end
 
     def fail_closed?(result)
-      %w[control_char encoded_control_char encoded_host_escape backslash protocol_relative scheme host userinfo raw_url].include?(
-        result.failure_reason.to_s,
-      )
+      %w(control_char encoded_control_char encoded_host_escape backslash protocol_relative scheme host userinfo
+         raw_url).include?(
+           result.failure_reason.to_s,
+         )
     end
   end
 end

@@ -35,7 +35,6 @@ module Authentication
         @cookies = {
           Authentication::Base::ACCESS_COOKIE_KEY => "access-token",
           Authentication::Base::REFRESH_COOKIE_KEY => "refresh-token",
-          Authentication::Base::DEVICE_COOKIE_KEY => "device-id",
         }
         @resource = Object.new
         @token = Token.new
@@ -54,7 +53,6 @@ module Authentication
       def clear_auth_cookies!
         cookies.delete(Authentication::Base::ACCESS_COOKIE_KEY)
         cookies.delete(Authentication::Base::REFRESH_COOKIE_KEY)
-        cookies.delete(Authentication::Base::DEVICE_COOKIE_KEY)
       end
 
       def reset_session
@@ -109,7 +107,6 @@ module Authentication
       assert_empty harness.session
       assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY]
       assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY]
-      assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY]
       assert_same Unauthenticated.instance, Actor.actor
       assert_equal [[Authentication::Base::AUDIT_EVENTS[:logout_current_session], harness.resource]],
                    harness.audit_events
@@ -127,7 +124,6 @@ module Authentication
       assert_empty harness.session
       assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY]
       assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY]
-      assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY]
       assert_equal [[Authentication::Base::AUDIT_EVENTS[:logout_all_sessions], harness.resource]],
                    harness.audit_events
     end
@@ -183,8 +179,6 @@ module Authentication
                  "access cookie must be cleared in ensure even on failure"
       assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
                  "refresh cookie must be cleared in ensure even on failure"
-      assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY],
-                 "device cookie must be cleared in ensure even on failure"
     end
 
     test "logout_current_session clears cookies and session even if audit raises" do
@@ -200,8 +194,6 @@ module Authentication
                  "access cookie must be cleared in ensure even on audit failure"
       assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
                  "refresh cookie must be cleared in ensure even on audit failure"
-      assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY],
-                 "device cookie must be cleared in ensure even on audit failure"
     end
 
     test "logout_current_session fails closed but clears local state when resource resolution raises" do
@@ -220,8 +212,6 @@ module Authentication
                  "access cookie must be cleared in ensure even on resource resolution failure"
       assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
                  "refresh cookie must be cleared in ensure even on resource resolution failure"
-      assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY],
-                 "device cookie must be cleared in ensure even on resource resolution failure"
     end
 
     test "logout_current_session fails closed but clears local state when session resolution raises" do
@@ -240,8 +230,6 @@ module Authentication
                  "access cookie must be cleared in ensure even on session resolution failure"
       assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
                  "refresh cookie must be cleared in ensure even on session resolution failure"
-      assert_nil harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY],
-                 "device cookie must be cleared in ensure even on session resolution failure"
     end
   end
 end

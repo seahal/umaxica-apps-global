@@ -13,7 +13,6 @@ module Preference
       ACCESS_BASENAME = "preference_access"
       REFRESH_BASENAME = "preference_refresh"
       DBSC_BASENAME = "preference_dbsc"
-      DEVICE_BASENAME = "preference_device_id"
 
       public_constant :THEME
       public_constant :LANGUAGE
@@ -22,17 +21,14 @@ module Preference
       public_constant :ACCESS_BASENAME
       public_constant :REFRESH_BASENAME
       public_constant :DBSC_BASENAME
-      public_constant :DEVICE_BASENAME
     end
 
     module Headers
-      DEVICE_ID = "X-Device-Id"
       DBSC_REGISTRATION = "Sec-Session-Registration"
       DBSC_CHALLENGE = "Sec-Session-Challenge"
       DBSC_SESSION_ID = "Sec-Session-Id"
       DBSC_RESPONSE = "Sec-Session-Response"
 
-      public_constant :DEVICE_ID
       public_constant :DBSC_REGISTRATION
       public_constant :DBSC_CHALLENGE
       public_constant :DBSC_SESSION_ID

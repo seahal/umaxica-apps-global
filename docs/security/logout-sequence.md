@@ -14,8 +14,8 @@ The shared boundary is:
 2. `#destroy` validates any signed return target before mutating logout state.
 3. `Authentication::Logoutable#logout_current_session!` calls `Authentication::LogoutCurrentSession`
    once.
-4. `Authentication::LogoutCurrentSession` creates a surface-local sign-out cycle when it can
-   resolve the current token.
+4. `Authentication::LogoutCurrentSession` creates a surface-local sign-out cycle when it can resolve
+   the current token.
 5. The sign-out cycle advances through access discard, logical token revoke, expiry wait, and
    completion under the token/session revoke primitive.
 6. The logout concern records the current-session audit event when an actor is present.
@@ -56,8 +56,8 @@ Supported current-session statuses:
 
 - `success`: the current token was processed through the logout primitive.
 
-This state renders the signed-out page with `200 OK` when there is no valid return target.
-If the token is already revoked but still resolvable, the primitive remains idempotent and records a
+This state renders the signed-out page with `200 OK` when there is no valid return target. If the
+token is already revoked but still resolvable, the primitive remains idempotent and records a
 completed sign-out cycle for that authenticated request.
 
 ## Stale Tab Submissions

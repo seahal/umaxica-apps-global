@@ -17,8 +17,8 @@ return-target handling, and future MFA reset state contracts without forcing a f
   display.
 - Treat MFA reset as a persisted recovery request state machine, not as a controller-local flag and
   not as a step-up bypass.
-- Keep session revoke strictness as TBC. Future security-level controls may decide whether single
-  or other-session revoke requires fresh AAL2.
+- Keep session revoke strictness as TBC. Future security-level controls may decide whether single or
+  other-session revoke requires fresh AAL2.
 
 ## Implementation Changes
 
@@ -39,9 +39,9 @@ return-target handling, and future MFA reset state contracts without forcing a f
 - Add service tests for `IdentityAudit.record!`.
 - Add controller regression coverage that passkey `create` does not persist credential material.
 - Add one-time reveal tests before replacing `session[:recovery_secret_raw]`.
-- Track existing unrelated failures separately: current focused run showed fixture/preference
-  lookup errors through `OmniAuthCorporateGuard`, one missing `jwt_access_token_for` helper, and
-  Prosopite N+1 reports in revoke-all logout.
+- Track existing unrelated failures separately: current focused run showed fixture/preference lookup
+  errors through `OmniAuthCorporateGuard`, one missing `jwt_access_token_for` helper, and Prosopite
+  N+1 reports in revoke-all logout.
 
 ## Assumptions
 

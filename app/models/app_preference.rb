@@ -8,7 +8,6 @@
 #  dbsc_challenge           :text
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
-#  device_id_digest         :string
 #  discarded_at             :datetime         default(Infinity), not null
 #  jti                      :string
 #  purged_at                :datetime         default(Infinity), not null
@@ -19,7 +18,6 @@
 #  binding_method_id        :bigint           default(0), not null
 #  dbsc_session_id          :string
 #  dbsc_status_id           :bigint           default(0), not null
-#  device_id                :string
 #  public_id                :string           not null
 #  replaced_by_id           :bigint
 #  status_id                :bigint           default(0), not null
@@ -29,8 +27,6 @@
 #  index_app_preferences_on_binding_method_id  (binding_method_id)
 #  index_app_preferences_on_dbsc_session_id    (dbsc_session_id) UNIQUE
 #  index_app_preferences_on_dbsc_status_id     (dbsc_status_id)
-#  index_app_preferences_on_device_id          (device_id)
-#  index_app_preferences_on_device_id_digest   (device_id_digest)
 #  index_app_preferences_on_jti                (jti) UNIQUE
 #  index_app_preferences_on_public_id          (public_id) UNIQUE
 #  index_app_preferences_on_purged_at          (purged_at)
@@ -148,7 +144,7 @@ class AppPreference < AppSettingRecord
   after_create :persist_self_replacement
 
   def r18_display_stopper
-    app_preference_r18_display_stopper&.option&.name || "disabled"
+    app_preference_r18_display_stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
   end
 
   private

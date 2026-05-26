@@ -63,6 +63,7 @@ module Jit
     # USE UTC
     config.time_zone = "UTC"
     config.active_record.default_timezone = :utc
+    config.active_record.schema_format = :sql
 
     # ActiveJob
     # Use Solid Queue for job processing
@@ -121,9 +122,9 @@ module Jit
       "APEX_STAFF_URL" => "www.org.localhost",
       "APEX_NETWORK_URL" => "www.net.localhost",
       "APEX_DEVELOPER_URL" => "www.dev.localhost",
-      "CORE_CORPORATE_URL" => "jp.www.umaxica.com",
-      "CORE_SERVICE_URL" => "jp.www.umaxica.app",
-      "CORE_STAFF_URL" => "jp.www.umaxica.org",
+      "CORE_CORPORATE_URL" => "www.jp.umaxica.com",
+      "CORE_SERVICE_URL" => "www.jp.umaxica.app",
+      "CORE_STAFF_URL" => "www.jp.umaxica.org",
       "ID_CORPORATE_URL" => "id.umaxica.com",
       "ID_SERVICE_URL" => "id.umaxica.app",
       "ID_STAFF_URL" => "id.umaxica.org",

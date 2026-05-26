@@ -2,10 +2,10 @@
 
 ## Context
 
-- Original spec: user request on 2026-05-26 to destructively split redirect targets into `pt`,
-  `nt`, and `xt`.
-- Related ADR/docs: `adr/signed-return-targets-only.md`,
-  `adr/redirect-target-lanes-pt-nt-xt.md`, `docs/security/redirect_targets.md`.
+- Original spec: user request on 2026-05-26 to destructively split redirect targets into `pt`, `nt`,
+  and `xt`.
+- Related ADR/docs: `adr/signed-return-targets-only.md`, `adr/redirect-target-lanes-pt-nt-xt.md`,
+  `docs/security/redirect_targets.md`.
 
 ## Decisions Made During Implementation
 
@@ -21,8 +21,8 @@
 
 ## Deviations From Plan
 
-- Full call-site migration across all sign-in, sign-up, step-up, social, OIDC, and jump flows is
-  not complete in this pass.
+- Full call-site migration across all sign-in, sign-up, step-up, social, OIDC, and jump flows is not
+  complete in this pass.
   - Risk: the new security regression test intentionally reports remaining direct
     `allow_other_host: true` users until they move behind `redirect_to_xt`.
   - Follow-up: migrate remaining legacy `rt`/`return_to` flow state to `pt` or `nt` per owning flow.

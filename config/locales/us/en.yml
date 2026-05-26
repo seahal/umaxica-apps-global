@@ -101,6 +101,7 @@ en:
     default_passkey_description: My Passkey
     com:
       registration:
+        cancelled_retry_later: Registration cancelled. Please wait a while before registering again.
         new:
           page_title: Registration
           page_description: Select how you would like to begin using %{product}.
@@ -119,6 +120,7 @@ en:
           update:
             success: Telephone number verified.
         checkpoint:
+          age_restricted: This sign-up method cannot create an account. Please try again after your 13th birthday.
           show:
             page_title: Complete registration
             complete: Registration requirements are complete.
@@ -609,6 +611,7 @@ en:
           configuration: Settings
           logout: Log Out
       registration:
+        cancelled_retry_later: Registration cancelled. Please wait a while before registering again.
         new:
           page_title: Create your account
           page_description: Choose the sign-up method that works best for your %{product} account.
@@ -680,6 +683,7 @@ en:
             link_to_home: Back to Home
             link_to_sign_in: Go to Sign In
         checkpoint:
+          age_restricted: This sign-up method cannot create an account. Please try again after your 13th birthday.
           show:
             page_title: Complete registration
             complete: Registration requirements are complete.
@@ -1334,6 +1338,7 @@ en:
       credential_already_registered: This passkey is already registered
       sign_count_mismatch: Passkey security verification failed
       verification_failed: Passkey verification failed
+      verification_required: Passkey registration must be completed through WebAuthn verification.
     not_implemented: This feature is not implemented
     social_auth:
       conflict: This account is already linked to another user
@@ -1615,6 +1620,9 @@ en:
         cookie_settings: Cookie Settings
         region_settings: Region & Language Settings
         theme_settings: Theme Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        items_per_page_settings: Items Per Page
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.
@@ -1707,6 +1715,15 @@ en:
             '50': 50 items
             '100': 100 items
             infinity: Infinite items
+        r18_display_stopper:
+          edit:
+            heading: R18 Display Stopper
+            description: Choose whether R18 content is approved, denied, or left unset.
+            option_label: R18 display stopper
+          options:
+            nothing: Unset
+            approved: Approved
+            deny: Deny
         resets:
           title: Reset Preferences
           description: Remove saved preference cookies for this browser.
@@ -1860,6 +1877,9 @@ en:
         cookie_settings: Cookie Settings
         region_settings: Region & Language Settings
         theme_settings: Theme Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        items_per_page_settings: Items Per Page
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.

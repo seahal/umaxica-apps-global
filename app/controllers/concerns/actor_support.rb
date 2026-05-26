@@ -300,8 +300,8 @@ module ActorSupport
     return preference if context.blank?
 
     Actor::Preference.new(
-      language: context[:lx] || preference.language,
-      region: preference.region,
+      language: context[:lx] || locale_from_request_region(context[:ri]) || preference.language,
+      region: context[:ri] || preference.region,
       timezone: context[:tz] || preference.timezone,
       theme: context[:ct] || preference.theme,
       currency: preference.currency,
@@ -314,6 +314,16 @@ module ActorSupport
       cookie: preference.cookie,
       null: preference.null?,
     )
+  end
+
+  def locale_from_request_region(region)
+    return if region.blank?
+    return locale_from_region(region) if respond_to?(:locale_from_region, true)
+
+    {
+      "jp" => "ja",
+      "us" => "en",
+    }[region.to_s.downcase]
   end
 
   def preference_record_value(preference_record, name)

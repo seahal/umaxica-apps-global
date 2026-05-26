@@ -2,16 +2,16 @@
 # frozen_string_literal: true
 
 namespace :db do
-  desc "Verify committed db/*_schema.rb files match what migrations produce from a clean DB"
+  desc "Verify committed db/*_structure.sql files match what migrations produce from a clean DB"
   task verify_no_schema_drift: :environment do
     abort "refuse to run in production" if Rails.env.production?
 
-    sh "RAILS_ENV=test bin/rails db:drop db:create db:migrate"
+    sh "RAILS_ENV=test bin/rails db:drop db:create db:migrate db:schema:dump"
 
     paths =
       `git status --porcelain db/`.lines
         .map { |l| l.strip.split(/\s+/, 2).last }
-    paths.select! { |path| path&.end_with?("_schema.rb") }
+    paths.select! { |path| path&.end_with?("_structure.sql") }
     drifted = paths
 
     if drifted.any?
@@ -22,7 +22,7 @@ namespace :db do
       warn "migrations from a clean DB produces. To fix locally:"
       warn ""
       warn "  bin/db-reset-all test"
-      warn "  git add db/*_schema.rb"
+      warn "  git add db/*_structure.sql"
       warn ""
       abort
     end

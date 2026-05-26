@@ -91,4 +91,5 @@ class ClientSignInCycle < AppTicketRecord
 
   belongs_to :token, class_name: "ClientToken"
   belongs_to :status, class_name: "ClientSignInCycleStatus"
+  belongs_to :principal, class_name: "Client", optional: true
 end

@@ -20,15 +20,6 @@ module Preference
       with_secure_prefix(scoped_basename(Preference::IoKeys::Cookies::DBSC_BASENAME, surface), production: production)
     end
 
-    def device(production: Rails.env.production?, refresh_cookie_key: nil, surface: nil)
-      return refresh_cookie_key.sub(
-        Preference::IoKeys::Cookies::REFRESH_BASENAME,
-        Preference::IoKeys::Cookies::DEVICE_BASENAME,
-      ) if refresh_cookie_key
-
-      with_secure_prefix(scoped_basename(Preference::IoKeys::Cookies::DEVICE_BASENAME, surface), production: production)
-    end
-
     def with_secure_prefix(basename, production:)
       return basename unless production
 

@@ -13,11 +13,12 @@ module Dpop
         def valid? = valid
       end
 
-    def initialize(proof_jwt:, request_method:, request_uri:, access_token: nil)
+    def initialize(proof_jwt:, request_method:, request_uri:, access_token: nil, resource_type: "client")
       @proof_jwt = proof_jwt.to_s
       @request_method = request_method.to_s.upcase
       @request_uri = request_uri.to_s
       @access_token = access_token
+      @resource_type = resource_type
     end
 
     def call
@@ -45,14 +46,20 @@ module Dpop
 
       return Result.new(valid: false, error: "missing_iat") unless payload["iat"].is_a?(Integer)
       return Result.new(valid: false, error: "iat_out_of_window") unless iat_within_window?(payload["iat"])
-      return jti_replay_result(payload["jti"]) if jti_replay_detection_enabled?
 
       if @access_token.present?
         expected_ath = Jit::Security::Jwt::ThumbprintCalculator.ath(@access_token)
+        return Result.new(valid: false, error: "missing_ath") if payload["ath"].blank?
         return Result.new(valid: false, error: "ath_mismatch") unless payload["ath"] == expected_ath
       end
 
       jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+      replay_result = record_jti(payload["jti"], jkt: jkt, payload: payload)
+      return replay_result unless replay_result.valid?
+
+      nonce_result = verify_nonce(payload["nonce"])
+      return nonce_result unless nonce_result.valid?
+
       Result.new(valid: true, error: nil, jwk: jwk, jkt: jkt)
     rescue JWT::DecodeError, OpenSSL::PKey::PKeyError, ArgumentError, JSON::ParserError
       Result.new(valid: false, error: "proof_validation_error")
@@ -60,14 +67,26 @@ module Dpop
 
     private
 
-    def jti_replay_detection_enabled?
-      ActiveModel::Type::Boolean.new.cast(ENV.fetch("DPOP_JTI_REPLAY_DETECTION_ENABLED", "false"))
-    end
-
-    def jti_replay_result(jti)
+    def record_jti(jti, jkt:, payload:)
       return Result.new(valid: false, error: "missing_jti") if jti.blank?
 
-      Result.new(valid: false, error: "jti_replay") unless Dpop::JtiReplayGuard.record!(jti)
+      recorded = Dpop::JtiReplayGuard.record!(
+        jti,
+        resource_type: @resource_type,
+        jkt: jkt,
+        htm: payload["htm"],
+        htu: normalize_uri(payload["htu"]),
+      )
+      return Result.new(valid: true, error: nil) if recorded
+
+      Result.new(valid: false, error: "jti_replay")
+    end
+
+    def verify_nonce(nonce)
+      return Result.new(valid: true, error: nil) if nonce.blank?
+      return Result.new(valid: true, error: nil) if Dpop::NonceService.verify(nonce, resource_type: @resource_type)
+
+      Result.new(valid: false, error: "nonce_invalid")
     end
 
     def decode_unverified

@@ -61,6 +61,7 @@ module Preference::Core
   end
 
   def set_timezone_preferences_update
+    @preferences ||= ensure_preferences_record
     raise PreferenceOperationError if @preferences.blank?
 
     submitted_timezone = preference_timezone_params[Preference::IoKeys::Params::OPTION_ID]
@@ -197,6 +198,7 @@ module Preference::Core
 
   def load_or_refresh_preference_child(child_type, default_attributes = {})
     association_name = :"#{preference_prefix_underscore}_#{child_type.to_s.underscore}"
+    @preferences ||= ensure_preferences_record
 
     # Access-token loading can leave a child association memoized on @preferences.
     # Reload it here so preference edit/update screens render the latest DB value
@@ -402,6 +404,7 @@ module Preference::Core
       motion: "Motion",
       density: "Density",
       items_per_page: "ItemsPerPage",
+      r18_display_stopper: "R18DisplayStopper",
     }.fetch(type.to_sym)
   end
 
@@ -673,6 +676,7 @@ module Preference::Core
       when :motion then "accessibility_motion"
       when :density then "accessibility_density"
       when :items_per_page then "display_items_per_page"
+      when :r18_display_stopper then "display_r18_display_stopper"
       when :theme then "theme"
       when :cookie then "cookie"
       when :reset then "reset"

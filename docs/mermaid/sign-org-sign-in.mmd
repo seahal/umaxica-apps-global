@@ -1,0 +1,71 @@
+---
+title: Org Sign-In State Machine
+---
+
+stateDiagram-v2
+  [*] --> PRIMARY_PENDING: start sign-in cycle
+
+  PRIMARY_PENDING --> primary_route: primary credential accepted
+  PRIMARY_PENDING --> FAILED: unrecoverable primary failure
+
+  state primary_route <<choice>>
+  primary_route --> MFA_PENDING: MFA required
+  primary_route --> SESSION_LIMIT_PENDING: session limit must resolve
+  primary_route --> GUARDRAIL_PENDING: otherwise
+
+  MFA_PENDING --> mfa_route: MFA accepted
+  MFA_PENDING --> FAILED: unrecoverable MFA failure
+
+  state mfa_route <<choice>>
+  mfa_route --> SESSION_LIMIT_PENDING: session limit must resolve
+  mfa_route --> GUARDRAIL_PENDING: otherwise
+
+  SESSION_LIMIT_PENDING --> GUARDRAIL_PENDING: session limit resolved
+  SESSION_LIMIT_PENDING --> FAILED: session limit rejected
+
+  GUARDRAIL_PENDING --> CHECKPOINT_PENDING: guardrail cleared
+  GUARDRAIL_PENDING --> FAILED: guardrail blocks continuation
+
+  CHECKPOINT_PENDING --> checkpoint_route: checkpoint cleared
+  CHECKPOINT_PENDING --> FAILED: unrecoverable checkpoint failure
+
+  state checkpoint_route <<choice>>
+  checkpoint_route --> SELECTOR_PENDING: selector required
+  checkpoint_route --> SESSION_ISSUANCE_PENDING: selector not required
+
+  SELECTOR_PENDING --> SESSION_ISSUANCE_PENDING: activation selected
+  SELECTOR_PENDING --> FAILED: selector rejected
+
+  SESSION_ISSUANCE_PENDING --> COMPLETED: active session issued
+  SESSION_ISSUANCE_PENDING --> FAILED: issuance failed
+
+  PRIMARY_PENDING --> CANCELLED: user cancels
+  MFA_PENDING --> CANCELLED: user cancels
+  SESSION_LIMIT_PENDING --> CANCELLED: user cancels
+  GUARDRAIL_PENDING --> CANCELLED: user cancels
+  CHECKPOINT_PENDING --> CANCELLED: user cancels
+  SELECTOR_PENDING --> CANCELLED: user cancels
+
+  PRIMARY_PENDING --> EXPIRED: cycle TTL expires
+  MFA_PENDING --> EXPIRED: cycle TTL expires
+  SESSION_LIMIT_PENDING --> EXPIRED: cycle TTL expires
+  GUARDRAIL_PENDING --> EXPIRED: cycle TTL expires
+  CHECKPOINT_PENDING --> EXPIRED: cycle TTL expires
+  SELECTOR_PENDING --> EXPIRED: cycle TTL expires
+
+  note right of COMPLETED
+    Welcome, return target, dashboard, and other
+    post-auth navigation are route decisions after
+    sign-in completion, not sign-in lifecycle states.
+  end note
+
+  note right of FAILED
+    FAILED means unrecoverable, non-resumable cycle
+    failure. Retryable credential or validation errors
+    do not enter this terminal state.
+  end note
+
+  COMPLETED --> [*]
+  EXPIRED --> [*]
+  FAILED --> [*]
+  CANCELLED --> [*]

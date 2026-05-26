@@ -128,6 +128,9 @@ class Visitor < ComPrincipalRecord
           class_name: "VisitorAccount",
           inverse_of: :visitor,
           dependent: :destroy
+  has_one :core_com_visitor_bridge,
+          dependent: :destroy,
+          inverse_of: :visitor
 
   def staff?
     false

@@ -91,6 +91,7 @@ scope module: :sign, as: :sign do
 
         namespace :display do
           resource :items_per_page, only: [:edit, :update]
+          resource :r18_display_stopper, only: [:edit, :update]
         end
 
         # Display and privacy settings

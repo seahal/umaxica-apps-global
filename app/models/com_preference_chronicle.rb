@@ -58,6 +58,7 @@ class ComPreferenceChronicle < ChronicleRecord
              primary_key: "id",
              inverse_of: :com_preference_chronicles
   # subject_id/subject_type for cross-DB compatibility (no FK)
+  validates :subject_id, presence: true
   validates :subject_type, presence: true
 
   validates :event_id, length: { maximum: 255 }

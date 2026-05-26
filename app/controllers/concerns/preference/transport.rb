@@ -21,6 +21,7 @@ module Preference::Transport
     return render_preference_refresh_error! if preference_refresh_failed?
     return if preference.blank?
 
+    @preferences = preference
     restore_preference_from_resource!(preference) if created && respond_to?(:current_resource, true)
 
     refresh_refresh_token_lifetime(preference)

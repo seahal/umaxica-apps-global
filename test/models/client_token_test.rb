@@ -10,7 +10,6 @@
 #  dbsc_challenge               :text
 #  dbsc_challenge_issued_at     :datetime
 #  dbsc_public_key              :jsonb
-#  device_id_digest             :string
 #  discarded_at                 :datetime         default(Infinity), not null
 #  dpop_jkt                     :string
 #  last_step_up_at              :datetime
@@ -26,7 +25,6 @@
 #  created_at                   :datetime         not null
 #  updated_at                   :datetime         not null
 #  dbsc_session_id              :string
-#  device_id                    :string           default(""), not null
 #  device_session_id            :bigint
 #  oidc_client_id               :string(64)
 #  oidc_connection_id           :bigint
@@ -42,8 +40,6 @@
 #
 #  index_client_tokens_on_created_at                    (created_at)
 #  index_client_tokens_on_dbsc_session_id               (dbsc_session_id) UNIQUE
-#  index_client_tokens_on_device_id                     (device_id)
-#  index_client_tokens_on_device_id_digest              (device_id_digest)
 #  index_client_tokens_on_device_session_id             (device_session_id)
 #  index_client_tokens_on_discarded_at                  (discarded_at)
 #  index_client_tokens_on_oidc_connection_id            (oidc_connection_id)
@@ -261,7 +257,6 @@ class ClientTokenTest < ActiveSupport::TestCase
 
       result = ClientToken.rotate_refresh!(
         presented_refresh_digest: token.refresh_token_digest,
-        device_id: token.device_id,
         now: Time.current,
       )
       replacement = result[:token]
@@ -367,12 +362,12 @@ class ClientTokenTest < ActiveSupport::TestCase
   end
 
   test "rotate_refresh! consumes old row and creates new generation in same family" do
-    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, device_id: "device-user")
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     raw = token.rotate_refresh_token!
     _, verifier = ClientToken.parse_refresh_token(raw)
     digest = ClientToken.digest_refresh_token(verifier)
 
-    result = ClientToken.rotate_refresh!(presented_refresh_digest: digest, device_id: "device-user", now: Time.current)
+    result = ClientToken.rotate_refresh!(presented_refresh_digest: digest, now: Time.current)
 
     assert_equal :rotated, result[:status]
     new_token = result[:token]
@@ -387,20 +382,19 @@ class ClientTokenTest < ActiveSupport::TestCase
 
   test "rotate_refresh! rejects blank and unknown digests" do
     assert_equal :invalid,
-                 ClientToken.rotate_refresh!(presented_refresh_digest: nil, device_id: "device-user")[:status]
+                 ClientToken.rotate_refresh!(presented_refresh_digest: nil)[:status]
     assert_equal :invalid,
                  ClientToken.rotate_refresh!(
                    presented_refresh_digest: ClientToken.digest_refresh_token("unknown"),
-                   device_id: "device-user",
                  )[:status]
   end
 
   test "rotate_refresh! allows missing presented device id" do
-    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, device_id: "device-user")
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     raw = token.rotate_refresh_token!
     digest = ClientToken.digest_refresh_token(ClientToken.parse_refresh_token(raw).last)
 
-    result = ClientToken.rotate_refresh!(presented_refresh_digest: digest, device_id: nil, now: Time.current)
+    result = ClientToken.rotate_refresh!(presented_refresh_digest: digest, now: Time.current)
 
     assert_equal :rotated, result[:status]
   end
@@ -437,58 +431,58 @@ class ClientTokenTest < ActiveSupport::TestCase
   end
 
   test "rotate_refresh! classifies second attempt as replay" do
-    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, device_id: "device-user")
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     raw = token.rotate_refresh_token!
     _, verifier = ClientToken.parse_refresh_token(raw)
     digest = ClientToken.digest_refresh_token(verifier)
 
-    first = ClientToken.rotate_refresh!(presented_refresh_digest: digest, device_id: "device-user", now: Time.current)
+    first = ClientToken.rotate_refresh!(presented_refresh_digest: digest, now: Time.current)
 
     assert_equal :rotated, first[:status]
 
-    second = ClientToken.rotate_refresh!(presented_refresh_digest: digest, device_id: "device-user", now: Time.current)
+    second = ClientToken.rotate_refresh!(presented_refresh_digest: digest, now: Time.current)
 
     assert_equal :replay, second[:status]
     assert_predicate token.reload.rotated_at, :present?
   end
 
   test "rotate_refresh! classifies rotated token reuse as replay before device mismatch" do
-    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, device_id: "device-user")
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     raw = token.rotate_refresh_token!
     digest = ClientToken.digest_refresh_token(ClientToken.parse_refresh_token(raw).last)
 
-    first = ClientToken.rotate_refresh!(presented_refresh_digest: digest, device_id: "device-user", now: Time.current)
+    first = ClientToken.rotate_refresh!(presented_refresh_digest: digest, now: Time.current)
 
     assert_equal :rotated, first[:status]
 
-    second = ClientToken.rotate_refresh!(presented_refresh_digest: digest, device_id: "other-device", now: Time.current)
+    second = ClientToken.rotate_refresh!(presented_refresh_digest: digest, now: Time.current)
 
     assert_equal :replay, second[:status]
     assert_equal token.id, second[:token].id
   end
 
-  test "rotate_refresh! rejects mismatched device id with current token" do
-    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, device_id: "device-user")
+  test "rotate_refresh! does not require device fallback" do
+    token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     raw = token.rotate_refresh_token!
     digest = ClientToken.digest_refresh_token(ClientToken.parse_refresh_token(raw).last)
     family_id = token.refresh_token_family_id
     before_count = ClientToken.where(refresh_token_family_id: family_id).count
 
-    result = ClientToken.rotate_refresh!(presented_refresh_digest: digest, device_id: "other-device", now: Time.current)
+    result = ClientToken.rotate_refresh!(presented_refresh_digest: digest, now: Time.current)
 
-    assert_equal :invalid, result[:status]
-    assert_equal token.id, result[:token].id
+    assert_equal :rotated, result[:status]
+    assert_not_equal token.id, result[:token].id
     token.reload
 
-    assert_nil token.rotated_at
-    assert_equal before_count, ClientToken.where(refresh_token_family_id: family_id).count
+    assert_predicate token.rotated_at, :present?
+    assert_equal before_count + 1, ClientToken.where(refresh_token_family_id: family_id).count
   end
 
   test "rotate_refresh! rejects revoked compromised and expired tokens" do
     user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::NOTHING)
-    revoked = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, device_id: "d1")
-    compromised = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, device_id: "d2")
-    expired = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB, device_id: "d3")
+    revoked = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    compromised = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    expired = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     revoked_raw = revoked.rotate_refresh_token!
     compromised_raw = compromised.rotate_refresh_token!
     expired_raw = expired.rotate_refresh_token!
@@ -503,17 +497,17 @@ class ClientTokenTest < ActiveSupport::TestCase
 
       assert_equal :invalid,
                    ClientToken.rotate_refresh!(
-                     presented_refresh_digest: revoked_digest, device_id: "d1",
+                     presented_refresh_digest: revoked_digest,
                      now: Time.current,
                    )[:status]
       assert_equal :invalid,
                    ClientToken.rotate_refresh!(
-                     presented_refresh_digest: compromised_digest, device_id: "d2",
+                     presented_refresh_digest: compromised_digest,
                      now: Time.current,
                    )[:status]
       assert_equal :invalid,
                    ClientToken.rotate_refresh!(
-                     presented_refresh_digest: expired_digest, device_id: "d3",
+                     presented_refresh_digest: expired_digest,
                      now: Time.current,
                    )[:status]
     end

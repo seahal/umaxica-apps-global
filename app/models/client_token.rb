@@ -10,7 +10,6 @@
 #  dbsc_challenge               :text
 #  dbsc_challenge_issued_at     :datetime
 #  dbsc_public_key              :jsonb
-#  device_id_digest             :string
 #  discarded_at                 :datetime         default(Infinity), not null
 #  dpop_jkt                     :string
 #  last_step_up_at              :datetime
@@ -26,7 +25,6 @@
 #  created_at                   :datetime         not null
 #  updated_at                   :datetime         not null
 #  dbsc_session_id              :string
-#  device_id                    :string           default(""), not null
 #  device_session_id            :bigint
 #  oidc_client_id               :string(64)
 #  oidc_connection_id           :bigint
@@ -42,8 +40,6 @@
 #
 #  index_client_tokens_on_created_at                    (created_at)
 #  index_client_tokens_on_dbsc_session_id               (dbsc_session_id) UNIQUE
-#  index_client_tokens_on_device_id                     (device_id)
-#  index_client_tokens_on_device_id_digest              (device_id_digest)
 #  index_client_tokens_on_device_session_id             (device_session_id)
 #  index_client_tokens_on_discarded_at                  (discarded_at)
 #  index_client_tokens_on_oidc_connection_id            (oidc_connection_id)

@@ -20,6 +20,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "standard", pref.motion
     assert_equal "standard", pref.density
     assert_equal "20", pref.items_per_page
+    assert_equal "nothing", pref.r18_display_stopper
     assert_equal :ja, pref.locale
     assert_predicate pref, :system_theme?
     assert_not pref.dark_mode?
@@ -218,6 +219,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "sy", pref.theme # DEFAULTS[:theme]
     assert_equal "jpy", pref.currency
     assert_equal "standard", pref.motion
+    assert_equal "nothing", pref.r18_display_stopper
   end
 
   test "from_jwt handles empty hash" do

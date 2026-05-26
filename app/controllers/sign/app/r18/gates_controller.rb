@@ -18,7 +18,7 @@ module Sign
           set_r18_no_store!
           return redirect_to(r18_fallback_path, allow_other_host: false) if params[:decision] == "cancel"
           return redirect_to(r18_blocked_path, allow_other_host: false) unless
-            ActiveModel::Type::Boolean.new.cast(params[:yes]) || params[:decision].in?(%w(view allow))
+            ActiveModel::Type::Boolean.new.cast(params[:yes]) || params.expect(:decision).in?(%w(view allow))
 
           if logged_in?
             acknowledge_r18_view_once!

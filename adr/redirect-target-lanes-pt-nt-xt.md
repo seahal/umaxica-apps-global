@@ -24,8 +24,8 @@ Redirect targets use three structurally separate lanes:
 - `xt` carries named allowlisted external targets.
 
 `pt` is path-plus-query only and is never an external URL carrier. It rejects schemes, hosts,
-protocol-relative URLs, userinfo, fragments, control characters, encoded control characters,
-encoded slash or backslash host escapes, backslashes, executable schemes, blank values, and nil.
+protocol-relative URLs, userinfo, fragments, control characters, encoded control characters, encoded
+slash or backslash host escapes, backslashes, executable schemes, blank values, and nil.
 
 `nt` is a navigation target, not an "internal target". It is resolved from a symbol or explicit
 string key through a registry. Raw paths and raw URLs are invalid `nt` input. Flow-specific scopes

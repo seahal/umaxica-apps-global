@@ -179,7 +179,6 @@ module Authentication
           requested_at: Time.current,
           access_expires_at: Time.current,
           refresh_expires_at: sign_out_refresh_expires_at(token_record),
-          pt: nil,
         )
       end
     rescue ActiveRecord::ActiveRecordError, ArgumentError => e

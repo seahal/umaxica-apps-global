@@ -367,7 +367,7 @@ module Preference
     FakePreferenceState =
       Struct.new(
         :binding_method, :dbsc_status, :dbsc_session_id, :expires_at,
-        :device_id, :device_id_digest, :status_id, :discarded_at, :replaced_by_id, :public_id,
+        :status_id, :discarded_at, :replaced_by_id, :public_id,
         keyword_init: true,
       ) do
         def binding_method_dbsc? = binding_method == :dbsc
@@ -630,33 +630,25 @@ module Preference
       assert_nil @controller.send(:preference_dbsc_cookie_expires_at, legacy)
     end
 
-    test "preference refresh binding validates device cookie and dbsc cookie" do
-      @controller.define_singleton_method(:digest_device_id) { |value| "digest:#{value}" }
-      @controller.send(:cookies)[@controller.send(:preference_device_id_cookie_name)] =
-        "device-1"
-      legacy = FakePreferenceState.new(binding_method: :legacy, device_id_digest: "digest:device-1")
+    test "preference refresh binding validates only active dbsc-bound preferences" do
+      legacy = FakePreferenceState.new(binding_method: :legacy)
 
       assert @controller.send(:preference_refresh_binding_allowed?, legacy)
-
-      legacy.device_id_digest = "other"
-
-      assert_not @controller.send(:preference_refresh_binding_allowed?, legacy)
-      assert_equal "mismatch", @controller.instance_variable_get(:@preference_refresh_device_reason)
 
       dbsc = FakePreferenceState.new(binding_method: :dbsc, dbsc_status: :pending, dbsc_session_id: "session-1")
 
       assert_not @controller.send(:preference_refresh_binding_allowed?, dbsc)
-      assert_equal "dbsc_not_active", @controller.instance_variable_get(:@preference_refresh_device_reason)
+      assert_equal "dbsc_not_active", @controller.instance_variable_get(:@preference_refresh_binding_reason)
 
       dbsc.dbsc_status = :active
 
       assert_not @controller.send(:preference_refresh_binding_allowed?, dbsc)
-      assert_equal "missing_bound_cookie", @controller.instance_variable_get(:@preference_refresh_device_reason)
+      assert_equal "missing_bound_cookie", @controller.instance_variable_get(:@preference_refresh_binding_reason)
 
       @controller.send(:cookies)[@controller.send(:preference_dbsc_cookie_name)] = "wrong"
 
       assert_not @controller.send(:preference_refresh_binding_allowed?, dbsc)
-      assert_equal "session_id_mismatch", @controller.instance_variable_get(:@preference_refresh_device_reason)
+      assert_equal "session_id_mismatch", @controller.instance_variable_get(:@preference_refresh_binding_reason)
 
       @controller.send(:cookies)[@controller.send(:preference_dbsc_cookie_name)] = "session-1"
 
@@ -700,11 +692,9 @@ module Preference
       expires_at = 1.hour.from_now
       @controller.send(:set_refresh_token_cookie, "refresh-token", expires_at)
       @controller.send(:set_preference_dbsc_cookie!, "dbsc-token", expires_at: expires_at)
-      @controller.send(:set_preference_device_id_cookie!, "device-1", expires_at: expires_at)
 
       assert_equal "refresh-token", @controller.send(:cookies)[@controller.send(:refresh_token_cookie_name)]
       assert_equal "dbsc-token", @controller.send(:cookies)[@controller.send(:preference_dbsc_cookie_name)]
-      assert_equal "device-1", @controller.send(:read_preference_device_id_cookie)
 
       deletion_options = @controller.send(:preference_cookie_deletion_options)
 
@@ -940,6 +930,7 @@ module Preference
       assert_equal "xx", @controller.send(:option_id_to_region, "XX", "App")
       assert_equal "Mars/Base", @controller.send(:option_id_to_timezone, "Mars/Base", "App")
       assert_equal "contrast", @controller.send(:option_id_to_colortheme, "contrast", "App")
+      assert_equal "R18DisplayStopper", @controller.send(:preference_child_class_suffix, :r18_display_stopper)
     end
 
     test "refresh failure handlers and render error branches set state" do
@@ -953,11 +944,11 @@ module Preference
       assert @controller.send(:preference_refresh_failed?)
 
       @controller.send(:clear_preference_refresh_failure!)
-      @controller.instance_variable_set(:@preference_refresh_device_reason, "missing")
-      @controller.send(:handle_preference_refresh_device_denied, preference, nil)
+      @controller.instance_variable_set(:@preference_refresh_binding_reason, "missing")
+      @controller.send(:handle_preference_refresh_binding_denied, preference, nil)
 
       assert @controller.send(:preference_refresh_failed?)
-      assert @controller.instance_variable_get(:@preference_refresh_device_denied)
+      assert @controller.instance_variable_get(:@preference_refresh_binding_denied)
 
       rendered = []
       headed = []
@@ -1020,7 +1011,6 @@ module Preference
       )
       rotated.define_singleton_method(:class) { rotated_class }
       rotated.define_singleton_method(:issued_refresh_token) { "new-refresh" }
-      rotated.define_singleton_method(:device_id) { "device-1" }
       rotated.define_singleton_method(:binding_method_dbsc?) { true }
       rotated_class.rotated = rotated
 
@@ -1031,9 +1021,6 @@ module Preference
       }
       @controller.define_singleton_method(:set_preference_dbsc_cookie!) { |token, expires_at:|
         calls << [:dbsc_cookie, token, expires_at]
-      }
-      @controller.define_singleton_method(:set_preference_device_id_cookie!) { |device_id, expires_at:|
-        calls << [:device_cookie, device_id, expires_at]
       }
       @controller.define_singleton_method(:issue_preference_dbsc_registration_header_for) { |pref|
         calls << [:dbsc_header, pref]
@@ -1047,7 +1034,6 @@ module Preference
       assert_includes calls.map(&:first), :audit
       assert_includes calls.map(&:first), :refresh_cookie
       assert_includes calls.map(&:first), :dbsc_cookie
-      assert_includes calls.map(&:first), :device_cookie
     end
 
     test "load preference record from refresh token covers valid invalid and create branches" do

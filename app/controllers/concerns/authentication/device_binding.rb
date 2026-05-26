@@ -38,9 +38,7 @@ module Authentication
       klass = device_session_class
       return unless klass
 
-      device_id = token_record.device_id.presence || read_device_id_cookie || SecureRandom.uuid
       attrs = {
-        device_id_digest: klass.digest_device_id(device_id),
         dpop_jkt: dpop_jkt.presence,
         refresh_token_family_id: token_record.refresh_token_family_id,
         last_seen_at: Time.current,

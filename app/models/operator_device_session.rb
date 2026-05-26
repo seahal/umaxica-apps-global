@@ -10,7 +10,6 @@
 #  dbsc_bound_at              :datetime
 #  dbsc_public_key_thumbprint :string
 #  dbsc_session_id_digest     :string
-#  device_id_digest           :string
 #  dpop_jkt                   :string
 #  last_seen_at               :datetime
 #  revoke_reason              :string
@@ -27,7 +26,6 @@
 #
 #  index_operator_device_sessions_on_current_refresh_token_id  (current_refresh_token_id)
 #  index_operator_device_sessions_on_dbsc_session_id_digest    (dbsc_session_id_digest)
-#  index_operator_device_sessions_on_device_id_digest          (device_id_digest)
 #  index_operator_device_sessions_on_public_id                 (public_id) UNIQUE
 #  index_operator_device_sessions_on_refresh_token_family_id   (refresh_token_family_id)
 #  index_operator_device_sessions_on_revoked_at                (revoked_at)

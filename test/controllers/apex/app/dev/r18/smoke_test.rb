@@ -42,7 +42,7 @@ class Apex::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "private R18 smoke page allows logged in adult with allow preference" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
-    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::DISABLED)
+    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::APPROVED)
 
     get apex_app___dev_r18_private_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
@@ -52,7 +52,7 @@ class Apex::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "private R18 smoke page forbids logged in POST instead of redirecting" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
-    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::DISABLED)
+    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::APPROVED)
 
     post apex_app___dev_r18_private_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 

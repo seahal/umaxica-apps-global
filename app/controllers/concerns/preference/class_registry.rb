@@ -293,7 +293,7 @@ module Preference
       when :time_format then option::HOUR_24
       when :motion, :density then option::STANDARD
       when :items_per_page then option::PER_20
-      when :r18_display_stopper then option::DISABLED
+      when :r18_display_stopper then option::NOTHING
       end
     end
   end

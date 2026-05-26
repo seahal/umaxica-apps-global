@@ -50,7 +50,7 @@ module SignIn
 
     def pt = payload["pt"]
 
-    def safe_pt_path = payload["safe_pt_path"] || payload["pt"]
+    def safe_pt_path = payload["safe_pt_path"] || payload["safe_return_path"] || payload["pt"]
 
     def mfa_challenge_id = payload["mfa_challenge_id"]
 

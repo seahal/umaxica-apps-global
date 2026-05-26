@@ -158,11 +158,11 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
     assert @harness.instance_variable_get(:@preference_refresh_failed)
   end
 
-  test "handle_preference_refresh_device_denied sets flags" do
-    @harness.send(:handle_preference_refresh_device_denied, nil, "p1")
+  test "handle_preference_refresh_binding_denied sets flags" do
+    @harness.send(:handle_preference_refresh_binding_denied, nil, "p1")
 
     assert @harness.instance_variable_get(:@preference_refresh_failed)
-    assert @harness.instance_variable_get(:@preference_refresh_device_denied)
+    assert @harness.instance_variable_get(:@preference_refresh_binding_denied)
   end
 
   test "render_preference_refresh_error! handles json and html" do

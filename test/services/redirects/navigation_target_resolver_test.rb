@@ -3,12 +3,16 @@
 require "test_helper"
 
 class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
-  Routes = Struct.new(:calls) do
-    def sign_app_in_checkpoint_path(ri:) = "/sign/in/checkpoint?ri=#{ri}"
-    def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
-    def sign_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
-    def sign_app_configuration_path(ri:) = "/configuration?ri=#{ri}"
-  end
+  Routes =
+    Struct.new(:calls) do
+      def sign_app_in_checkpoint_path(ri:) = "/sign/in/checkpoint?ri=#{ri}"
+
+      def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
+
+      def sign_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
+
+      def sign_app_configuration_path(ri:) = "/configuration?ri=#{ri}"
+    end
 
   test "resolves registered navigation keys" do
     assert_equal "/sign/in/checkpoint?ri=jp", resolve(:checkpoint).value
@@ -25,13 +29,14 @@ class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
 
   test "enforces flow scope" do
     result = resolve(:configuration_security, scope: :authentication)
+
     assert_not result.ok?
     assert_equal "scope_denied", result.failure_reason
   end
 
   test "does not resolve external urls from registry" do
     routes = Class.new do
-      def sign_app_dashboard_path(ri:) = "https://evil.example"
+      def sign_app_dashboard_path(**) = "https://evil.example"
     end.new
     result = Redirects::NavigationTargetResolver.call(
       :dashboard,

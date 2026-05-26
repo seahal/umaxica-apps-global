@@ -17,9 +17,12 @@ module Sign
 
         AUTHENTICATION_MODE = :guest
 
-        declare_authentication_mode! :guest, status: :bad_request,
-                                             message: I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"),
-                                             no_redirect: true
+        declare_authentication_mode!(
+          :guest,
+          status: :bad_request,
+          message: I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"),
+          no_redirect: true,
+        )
 
         before_action :load_user_email, only: %i(edit update)
 

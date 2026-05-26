@@ -1,0 +1,32 @@
+---
+title: Org Sign-Out State Machine
+---
+
+stateDiagram-v2
+  [*] --> REQUESTED: authenticated sign-out submitted
+
+  REQUESTED --> ACCESS_DISCARDED: access cookie discarded
+  REQUESTED --> FAILED: access discard failed
+
+  ACCESS_DISCARDED --> TOKEN_REVOKED: token revoke primitive completed
+  ACCESS_DISCARDED --> FAILED: token revoke failed
+
+  TOKEN_REVOKED --> AWAITING_EXPIRY: wait for token expiry boundary
+  TOKEN_REVOKED --> FAILED: expiry boundary failed
+
+  AWAITING_EXPIRY --> COMPLETED: cookies cleared and session reset
+  AWAITING_EXPIRY --> FAILED: reset failed
+
+  note right of ACCESS_DISCARDED
+    ACCESS_DISCARDED is the POST-operation refusal
+    boundary. After this state, the browser must not
+    be able to perform authenticated writes.
+  end note
+
+  note right of COMPLETED
+    Already-signed-out replay is an idempotent result,
+    not a persisted sign-out cycle state.
+  end note
+
+  COMPLETED --> [*]
+  FAILED --> [*]

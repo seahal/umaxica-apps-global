@@ -60,7 +60,7 @@ module Sign
           state = prepare_social_auth_intent!(
             intent,
             provider: provider,
-            pt: signed_pt_token(path_target_value),
+            pt: signed_pt_token(resolved_path_or_navigation_target),
             entry: social_auth_entry,
             ri: params[:ri].presence,
           )
@@ -121,7 +121,7 @@ module Sign
                 expires_at: ClientSignUpCycle.default_ttl.from_now,
                 entry_method: social_entry_method(provider),
                 social_provider: social_entry_method(provider),
-                pt: safe_decoded_rt(path_target_value),
+                return_to: resolved_path_or_navigation_target,
               )
             end
           result =

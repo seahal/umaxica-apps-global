@@ -7,6 +7,7 @@ class CycleBaseTest < ActiveSupport::TestCase
   class CycleBaseTestRecord < ApplicationRecord
     self.table_name = "cycle_base_test_records"
 
+    include Retainable
     include Cycle::Base
 
     cycle_status_column :cycle_status_id
@@ -57,114 +58,109 @@ class CycleBaseTest < ActiveSupport::TestCase
 
   test "transition_cycle_to updates status when current status is allowed" do
     now = Time.zone.local(2026, 5, 19, 10, 0, 0)
-    record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
 
     travel_to now do
+      record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
       record.transition_cycle_to!(20, allowed_from: [10])
+      assert_equal 20, record.reload.cycle_status_id
     end
-
-    assert_equal 20, record.reload.cycle_status_id
   end
 
   test "transition_cycle_to applies additional changes with the status update" do
     now = Time.zone.local(2026, 5, 19, 10, 0, 0)
-    record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
 
     travel_to now do
+      record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
       record.transition_cycle_to!(20, allowed_from: [10], changes: { expires_at: now + 2.hours })
+      record.reload
+      assert_equal 20, record.cycle_status_id
+      assert_equal now + 2.hours, record.expires_at
     end
-
-    record.reload
-
-    assert_equal 20, record.cycle_status_id
-    assert_equal now + 2.hours, record.expires_at
   end
 
   test "transition_cycle_to rejects disallowed current status without mutation" do
     now = Time.zone.local(2026, 5, 19, 10, 0, 0)
-    record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
 
     travel_to now do
+      record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
       error =
         assert_raises(Cycle::InvalidTransition) do
           record.transition_cycle_to!(30, allowed_from: [20])
         end
 
       assert_match(/invalid transition/, error.message)
+      assert_equal 10, record.reload.cycle_status_id
     end
-
-    assert_equal 10, record.reload.cycle_status_id
   end
 
   test "transition_cycle_to rejects discarded cycles" do
     now = Time.zone.local(2026, 5, 19, 10, 0, 0)
-    record = build_record(cycle_status_id: 10, discarded_at: now, purged_at: now + 1.day)
 
     travel_to now do
+      record = build_record(cycle_status_id: 10, discarded_at: now, purged_at: now + 1.day)
       error =
         assert_raises(Cycle::InvalidTransition) do
           record.transition_cycle_to!(20, allowed_from: [10])
         end
 
       assert_match(/cycle is discarded/, error.message)
+      assert_equal 10, record.reload.cycle_status_id
     end
-
-    assert_equal 10, record.reload.cycle_status_id
   end
 
   test "transition_cycle_to rejects expired cycles" do
     now = Time.zone.local(2026, 5, 19, 10, 0, 0)
-    record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now)
 
     travel_to now do
+      record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now)
       error =
         assert_raises(Cycle::InvalidTransition) do
           record.transition_cycle_to!(20, allowed_from: [10])
         end
 
       assert_match(/cycle is expired/, error.message)
+      assert_equal 10, record.reload.cycle_status_id
     end
-
-    assert_equal 10, record.reload.cycle_status_id
   end
 
   test "discard_cycle updates retention timestamps when order is valid" do
     now = Time.zone.local(2026, 5, 19, 10, 0, 0)
-    record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, purged_at: now + 2.days)
 
     travel_to now do
-      record.discard_cycle!(discarded_at: now, purged_at: now + 30.days)
+      record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, purged_at: now + 2.days)
+      record.discard_cycle!(discarded_at: now + 1.second, purged_at: now + 30.days)
+      record.reload
+      assert_equal now + 1.second, record.discarded_at
+      assert_equal now + 30.days, record.purged_at
     end
-
-    record.reload
-
-    assert_equal now, record.discarded_at
-    assert_equal now + 30.days, record.purged_at
   end
 
   test "discard_cycle rejects retention timestamps out of order" do
     now = Time.zone.local(2026, 5, 19, 10, 0, 0)
-    record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, purged_at: now + 2.days)
 
-    error =
-      assert_raises(ArgumentError) do
-        record.discard_cycle!(discarded_at: now + 2.days, purged_at: now + 1.day)
-      end
+    travel_to now do
+      record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, purged_at: now + 2.days)
+      error =
+        assert_raises(ArgumentError) do
+          record.discard_cycle!(discarded_at: now + 2.days, purged_at: now + 1.day)
+        end
 
-    assert_match(/discarded_at must be <= purged_at/, error.message)
-    assert_equal now + 1.day, record.reload.discarded_at
+      assert_match(/discarded_at must be <= purged_at/, error.message)
+      assert_equal now + 1.day, record.reload.discarded_at
+    end
   end
 
   test "cycle boundary predicates follow retention and expiry timestamps" do
     now = Time.zone.local(2026, 5, 19, 10, 0, 0)
-    record = build_record(
-      cycle_status_id: 10,
-      discarded_at: now + 1.second,
-      purged_at: now + 2.seconds,
-      expires_at: now + 1.second,
-    )
+    record = nil
 
     travel_to now do
+      record = build_record(
+        cycle_status_id: 10,
+        discarded_at: now + 1.second,
+        purged_at: now + 2.seconds,
+        expires_at: now + 1.second,
+      )
       assert_predicate record, :cycle_accessible?
       assert_not record.cycle_expired?
       assert_not record.cycle_purgeable?

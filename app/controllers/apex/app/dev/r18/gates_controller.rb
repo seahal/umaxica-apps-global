@@ -50,7 +50,7 @@ module Apex
           end
 
           def r18_fallback_path
-            logged_in? ? apex_app_root_path(ri: params[:ri]) : apex_app_root_path(ri: params[:ri])
+            apex_app_root_path(ri: params[:ri])
           end
         end
       end

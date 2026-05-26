@@ -163,17 +163,18 @@ module Preference
       record_class = Preference::ClassRegistry.record_class(prefix, :r18_display_stopper)
       option_class = Preference::ClassRegistry.option_class(prefix, :r18_display_stopper)
       with_preference_writing_connection(option_class) { option_class.ensure_defaults! }
-      enabled_id = option_class::ENABLED
+      denied_id = option_class::DENY
 
-      child = with_preference_writing_connection(preference) do
-        preference.public_send(r18_stopper_association_name(preference, association_prefix))
-      end
+      child =
+        with_preference_writing_connection(preference) do
+          preference.public_send(r18_stopper_association_name(preference, association_prefix))
+        end
 
       if child
-        with_preference_writing_connection(child) { child.update!(option_id: enabled_id) }
+        with_preference_writing_connection(child) { child.update!(option_id: denied_id) }
       else
         with_preference_writing_connection(record_class) do
-          record_class.create!(preference: preference, option_id: enabled_id)
+          record_class.create!(preference: preference, option_id: denied_id)
         end
       end
     end

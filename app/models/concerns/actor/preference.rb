@@ -41,7 +41,7 @@ class Actor
       motion: "standard",
       density: "standard",
       items_per_page: "20",
-      r18_display_stopper: "disabled",
+      r18_display_stopper: "nothing",
     }.freeze
 
     SCHEMA_VERSION = 1
@@ -154,7 +154,7 @@ class Actor
     end
 
     def r18_display_stopper?
-      @r18_display_stopper == "enabled"
+      @r18_display_stopper == "deny" || @r18_display_stopper == "enabled"
     end
 
     def with_cookie(cookie)

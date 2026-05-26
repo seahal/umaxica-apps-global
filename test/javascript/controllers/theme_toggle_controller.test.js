@@ -57,6 +57,12 @@ describe("ThemeToggleController", () => {
     expect(controller.currentTheme).toBe("sy");
   });
 
+  test("connect: currentValue が空文字の場合は sy にフォールバックする", () => {
+    controller.currentValue = "";
+    controller.connect();
+    expect(controller.currentTheme).toBe("sy");
+  });
+
   test("toggle: 同じテーマの場合は何もしない", () => {
     controller.currentTheme = "dr";
     const event = { currentTarget: { dataset: { theme: "dr" }, value: "dr" } };

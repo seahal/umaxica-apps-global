@@ -230,11 +230,6 @@ module Auth
       assert_equal "auth_refresh", Authentication::Base::REFRESH_COOKIE_KEY
     end
 
-    test "DEVICE_COOKIE_KEY is defined" do
-      assert_kind_of String, Authentication::Base::DEVICE_COOKIE_KEY
-      assert_equal "auth_device_id", Authentication::Base::DEVICE_COOKIE_KEY
-    end
-
     test "test_header_key resolves actor specific keys" do
       harness = HeaderKeyHarness.new
 
@@ -253,15 +248,6 @@ module Auth
       harness.actor_type = "unknown"
 
       assert_equal "X-TEST-CURRENT-RESOURCE", harness.send(:test_header_key)
-    end
-
-    test "device cookie helper methods are defined" do
-      assert HeaderKeyHarness.private_method_defined?(:set_device_id_cookie!),
-             "HeaderKeyHarness should define set_device_id_cookie!"
-      assert HeaderKeyHarness.private_method_defined?(:clear_device_id_cookie!),
-             "HeaderKeyHarness should define clear_device_id_cookie!"
-      assert HeaderKeyHarness.private_method_defined?(:read_device_id_cookie),
-             "HeaderKeyHarness should define read_device_id_cookie"
     end
 
     test "ACCESS_TOKEN_TTL is defined" do
@@ -598,26 +584,6 @@ module Auth
       harness.redirect_with_pt_handling("/default", :alert, "warn")
 
       assert_equal ["/default", { alert: "warn" }], harness.redirected
-    end
-
-    test "set_device_id_cookie! and read_device_id_cookie" do
-      harness = HeaderKeyHarness.new
-      expires_at = 1.day.from_now
-      HeaderKeyHarness.reset_encrypted_cookies!
-
-      Core::CookieOptions.stub(:for, {}) do
-        harness.send(:set_device_id_cookie!, "dev-123", expires_at: expires_at)
-
-        # Cookie is now stored as plaintext (not encrypted) with options
-        cookie_value = harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY]
-
-        assert_equal "dev-123", cookie_value.is_a?(Hash) ? cookie_value[:value] : cookie_value
-
-        # Set cookie directly for reading test
-        harness.cookies[Authentication::Base::DEVICE_COOKIE_KEY] = "dev-123"
-
-        assert_equal "dev-123", harness.send(:read_device_id_cookie)
-      end
     end
 
     test "clear_auth_cookies! deletes all auth-related cookies" do

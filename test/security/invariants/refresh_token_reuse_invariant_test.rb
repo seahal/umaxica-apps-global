@@ -24,7 +24,6 @@ module Security
         user = create_client
         original = ClientToken.create!(
           user: user,
-          device_id: "reuse-family-current",
           discarded_at: 1.day.from_now,
           purged_at: 2.days.from_now,
         )
@@ -33,7 +32,6 @@ module Security
 
         other_family = ClientToken.create!(
           user: user,
-          device_id: "reuse-family-other",
           discarded_at: 1.day.from_now,
           purged_at: 2.days.from_now,
         )
@@ -54,7 +52,6 @@ module Security
         user = create_client
         current = ClientToken.create!(
           user: user,
-          device_id: "logout-scope-current",
           discarded_at: 1.day.from_now,
           purged_at: 2.days.from_now,
         )

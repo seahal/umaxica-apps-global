@@ -91,7 +91,6 @@ module Preference
     def dbsc_cookie_attributes_string
       [
         "Path=/",
-        ("Domain=#{request.host}"),
         ("Secure" if Rails.env.production?),
         "HttpOnly",
         "SameSite=Lax",

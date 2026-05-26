@@ -9,7 +9,6 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   setup do
     @staff = operators(:one)
     @host = ENV.fetch("ID_STAFF_URL", "test.umaxica.com")
-    @device_id = SecureRandom.uuid
     @original_allow_forgery_protection = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = false
   end
@@ -19,13 +18,12 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh with valid refresh token sets both access and refresh cookies" do
-    token_record = OperatorToken.create!(staff: @staff, device_id: @device_id)
+    token_record = OperatorToken.create!(staff: @staff)
     refresh_plain = token_record.rotate_refresh_token!
 
     csrf_token = "test_csrf_token"
     cookies["csrf_token"] = csrf_token
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
 
     post "/edge/v0/token/refresh",
          headers: {
@@ -58,11 +56,10 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh syncs preference_consented cookie on success" do
     csrf_token = "test_csrf_token"
     cookies["csrf_token"] = csrf_token
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
     expires_at = Time.utc(2035, 5, 6, 7, 8, 9)
 
     travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
-      token_record = OperatorToken.create!(staff: @staff, device_id: @device_id)
+      token_record = OperatorToken.create!(staff: @staff)
       refresh_plain = token_record.rotate_refresh_token!
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
@@ -92,13 +89,12 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "GET check with valid access token from refresh returns 200" do
-    token_record = OperatorToken.create!(staff: @staff, device_id: @device_id)
+    token_record = OperatorToken.create!(staff: @staff)
     refresh_plain = token_record.rotate_refresh_token!
 
     csrf_token = "test_csrf_token"
     cookies["csrf_token"] = csrf_token
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
 
     post "/edge/v0/token/refresh",
          headers: {
@@ -124,14 +120,13 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   end
 
   test "POST refresh with old refresh token after rotation returns 401" do
-    token_record = OperatorToken.create!(staff: @staff, device_id: @device_id)
+    token_record = OperatorToken.create!(staff: @staff)
     old_refresh_plain = token_record.rotate_refresh_token!
     token_record.rotate_refresh_token!
 
     csrf_token = "test_csrf_token"
     cookies["csrf_token"] = csrf_token
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = old_refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
 
     post "/edge/v0/token/refresh",
          headers: {
@@ -147,44 +142,15 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_equal "invalid_refresh_token", json["error_code"]
   end
 
-  test "POST refresh denies when device_id missing and writes occurrence" do
-    token_record = OperatorToken.create!(staff: @staff, device_id: SecureRandom.uuid)
-    refresh_plain = token_record.rotate_refresh_token!
-
-    csrf_token = "test_csrf_token"
-    cookies["csrf_token"] = csrf_token
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-
-    post "/edge/v0/token/refresh",
-         headers: {
-           "Host" => @host,
-           "Accept" => "application/json",
-           "X-CSRF-Token" => csrf_token,
-           "X-STRICT-DEVICE-CHECK" => "1",
-         },
-         as: :json
-
-    assert_response :unauthorized
-    occurrence = OperatorOccurrence.order(:id).last
-
-    assert_equal "refresh_device_missing", occurrence.event_type
-    assert_equal 1, occurrence.status_id
-    assert_equal "missing", occurrence.context["reason"]
-    assert_predicate occurrence.context["request_id"], :present?
-    assert_predicate occurrence.context["ip_hash"], :present?
-  end
-
   test "POST refresh with restricted token returns localized error message" do
     token_record = OperatorToken.create!(
       staff: @staff, staff_token_status_id: OperatorTokenStatus::RESTRICTED,
-      device_id: @device_id,
     )
     refresh_plain = token_record.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     csrf_token = "test_csrf_token"
     cookies["csrf_token"] = csrf_token
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DEVICE_COOKIE_KEY] = @device_id
 
     post "/edge/v0/token/refresh",
          headers: {

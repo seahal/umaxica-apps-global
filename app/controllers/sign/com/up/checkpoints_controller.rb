@@ -24,10 +24,7 @@ module Sign
           sign_up_session_state.clear_all!
           redirect_to(
             "/",
-            notice: t(
-              "sign.com.registration.cancelled_retry_later",
-              default: "Registration cancelled. Please wait a while before registering again.",
-            ),
+            notice: t("sign.com.registration.cancelled_retry_later"),
           )
         end
 

@@ -8,20 +8,20 @@ This pass fixed the RP-to-IdP authorization endpoint mismatch for the apex/sign 
 
 - `sign` OAuth authorization routes now expose `/oauth/authorize` for app, com, and org.
 - `apex` app/com/org RP authorize redirects now land on an actual same-surface IdP route.
-- OIDC browser-flow coverage now verifies `/oauth/authorize` exists and `/oauth/authorization`
-  is not exposed.
-- Client registry coverage now pins apex app/com/org redirect hosts, audiences, and resource
-  types to prevent cross-surface client mixups.
+- OIDC browser-flow coverage now verifies `/oauth/authorize` exists and `/oauth/authorization` is
+  not exposed.
+- Client registry coverage now pins apex app/com/org redirect hosts, audiences, and resource types
+  to prevent cross-surface client mixups.
 
 ## Verified
 
 - app: `apex_app` redirects to `ID_SERVICE_URL`, validates state/nonce, establishes an RP session,
   and can reach `/accounts` after callback.
-- com: `apex_com` redirects to `ID_CORPORATE_URL`, validates state/nonce, establishes an RP
-  session, and can reach `/accounts` after callback.
-- org: `apex_org` redirects to `ID_STAFF_URL`, validates state/nonce, establishes an RP session,
-  and can reach `/accounts` after callback. Org sign-up remains incomplete by product scope, but
-  OIDC route/config/callback/logout connection points are present.
+- com: `apex_com` redirects to `ID_CORPORATE_URL`, validates state/nonce, establishes an RP session,
+  and can reach `/accounts` after callback.
+- org: `apex_org` redirects to `ID_STAFF_URL`, validates state/nonce, establishes an RP session, and
+  can reach `/accounts` after callback. Org sign-up remains incomplete by product scope, but OIDC
+  route/config/callback/logout connection points are present.
 
 ## Test Evidence
 

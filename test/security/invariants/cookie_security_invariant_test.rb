@@ -24,10 +24,9 @@ module Security
       test "production auth cookie names use host prefix" do
         assert_equal "__Host-auth_access", Authentication::CookieName.access(production: true)
         assert_equal "__Host-auth_refresh", Authentication::CookieName.refresh(production: true)
-        assert_equal "__Host-auth_device_id", Authentication::CookieName.device(production: true)
       end
 
-      test "auth refresh and device cookies use secure host-prefix compatible attributes" do
+      test "auth cookies use secure host-prefix compatible attributes" do
         cookies = RecordingCookies.new({})
         request = Request.new("id.app.example")
 
@@ -35,7 +34,6 @@ module Security
           Authentication::CookieService.new(cookies, request).set_auth_cookies(
             access_token: "access-token",
             refresh_token: "refresh-token",
-            device_id: "device-id",
             access_ttl: 15.minutes,
             refresh_ttl: 30.days,
           )
@@ -43,7 +41,6 @@ module Security
 
         assert_auth_cookie_options(cookies.writes.fetch(Authentication::CookieName.access))
         assert_auth_cookie_options(cookies.writes.fetch(Authentication::CookieName.refresh))
-        assert_auth_cookie_options(cookies.writes.fetch(Authentication::CookieName.device))
       end
 
       test "production session cookie is secure httponly lax and host-prefixed" do

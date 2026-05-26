@@ -82,6 +82,32 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
     assert mismatch.errors.of_kind?(:company_unit, :invalid)
   end
 
+  test "account exposes current membership and collective interface" do
+    individual = Individual.create!(visitor_identity: visitor_identity("individual-interface"))
+    company = Company.create!(name: "Example Co")
+    unit = CompanyUnit.create!(company:, name: "Root")
+    membership = IndividualMembership.create!(
+      individual:,
+      company:,
+      company_unit: unit,
+      membership_kind_id: IndividualMembershipKind::OWNER,
+      membership_state_id: IndividualMembershipState::ACTIVE,
+      primary: true,
+    )
+
+    assert_equal :individual_memberships, Individual.membership_association_name
+    assert_equal membership, individual.primary_membership
+    assert_equal membership, individual.current_membership
+    assert_equal [membership], individual.current_memberships.to_a
+    assert_equal company, individual.current_collective
+    assert_equal unit, individual.current_collective_unit
+    assert_equal individual, membership.account
+    assert_equal company, membership.collective
+    assert_equal unit, membership.collective_unit
+    assert_predicate membership, :active?
+    assert_predicate membership, :primary_active?
+  end
+
   test "database rejects identity and company hierarchy integrity violations" do
     identity = visitor_identity("individual-identity-unique")
     Individual.create!(visitor_identity: identity)

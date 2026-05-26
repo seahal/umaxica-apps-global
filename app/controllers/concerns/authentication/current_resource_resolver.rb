@@ -88,6 +88,7 @@ module Authentication
         request_method: @request_method,
         request_uri: @request_uri,
         access_token: @access_token,
+        resource_type: @resource_type,
       ).call
 
       result.valid?

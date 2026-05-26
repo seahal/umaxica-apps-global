@@ -3,7 +3,7 @@
 
 module Sign
   module Org
-    class BareController < ActionController::Base
+    class BareController < ApplicationController
       include ::RateLimit
 
       AUTHENTICATION_MODE = :bare

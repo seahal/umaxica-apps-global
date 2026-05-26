@@ -13,9 +13,7 @@ class AuthIoKeysTest < ActiveSupport::TestCase
     assert_equal "__Host-", Auth::IoKeys::HOST_COOKIE_PREFIX
     assert_equal "auth_access", Auth::IoKeys::Cookies::ACCESS_BASENAME
     assert_equal "auth_refresh", Auth::IoKeys::Cookies::REFRESH_BASENAME
-    assert_equal "auth_device_id", Auth::IoKeys::Cookies::DEVICE_BASENAME
     assert_equal "Authorization", Auth::IoKeys::Headers::AUTHORIZATION
-    assert_equal "X-Device-Id", Auth::IoKeys::Headers::DEVICE_ID
     assert_equal :pt, Auth::IoKeys::Params::PT
     assert_equal :nt, Auth::IoKeys::Params::NT
     assert_equal :xt, Auth::IoKeys::Params::XT
@@ -29,8 +27,6 @@ class AuthIoKeysTest < ActiveSupport::TestCase
     assert_equal "tz", Preference::IoKeys::Cookies::TIMEZONE
     assert_equal "preference_access", Preference::IoKeys::Cookies::ACCESS_BASENAME
     assert_equal "preference_refresh", Preference::IoKeys::Cookies::REFRESH_BASENAME
-    assert_equal "preference_device_id", Preference::IoKeys::Cookies::DEVICE_BASENAME
-    assert_equal "X-Device-Id", Preference::IoKeys::Headers::DEVICE_ID
     assert_equal :refresh_token, Preference::IoKeys::Params::REFRESH_TOKEN
   end
 end

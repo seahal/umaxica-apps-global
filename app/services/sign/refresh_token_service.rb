@@ -46,7 +46,6 @@ module Sign
         digest = token.class.digest_refresh_token(verifier)
         result = token.class.rotate_refresh!(
           presented_refresh_digest: digest,
-          device_id: token.device_id,
           now: Time.current,
         )
       end

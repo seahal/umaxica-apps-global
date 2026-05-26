@@ -10,7 +10,6 @@
 #  dbsc_challenge                :text
 #  dbsc_challenge_issued_at      :datetime
 #  dbsc_public_key               :jsonb
-#  device_id_digest              :string
 #  discarded_at                  :datetime         default(Infinity), not null
 #  dpop_jkt                      :string
 #  last_step_up_at               :datetime
@@ -26,7 +25,6 @@
 #  created_at                    :datetime         not null
 #  updated_at                    :datetime         not null
 #  dbsc_session_id               :string
-#  device_id                     :string           default(""), not null
 #  device_session_id             :bigint
 #  oidc_client_id                :string(64)
 #  oidc_connection_id            :bigint
@@ -42,8 +40,6 @@
 #
 #  index_operator_tokens_on_created_at                     (created_at)
 #  index_operator_tokens_on_dbsc_session_id                (dbsc_session_id) UNIQUE
-#  index_operator_tokens_on_device_id                      (device_id)
-#  index_operator_tokens_on_device_id_digest               (device_id_digest)
 #  index_operator_tokens_on_device_session_id              (device_session_id)
 #  index_operator_tokens_on_discarded_at                   (discarded_at)
 #  index_operator_tokens_on_oidc_connection_id             (oidc_connection_id)
@@ -240,7 +236,6 @@ class OperatorTokenTest < ActiveSupport::TestCase
 
       result = OperatorToken.rotate_refresh!(
         presented_refresh_digest: token.refresh_token_digest,
-        device_id: token.device_id,
         now: Time.current,
       )
       replacement = result[:token]
@@ -309,14 +304,13 @@ class OperatorTokenTest < ActiveSupport::TestCase
   test "rotate_refresh! consumes old row and creates new generation in same family" do
     token = OperatorToken.create!(
       staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      device_id: "device-staff",
     )
     raw = token.rotate_refresh_token!
     _, verifier = OperatorToken.parse_refresh_token(raw)
     digest = OperatorToken.digest_refresh_token(verifier)
 
     result = OperatorToken.rotate_refresh!(
-      presented_refresh_digest: digest, device_id: "device-staff",
+      presented_refresh_digest: digest,
       now: Time.current,
     )
 
@@ -333,21 +327,20 @@ class OperatorTokenTest < ActiveSupport::TestCase
   test "rotate_refresh! classifies second attempt as replay" do
     token = OperatorToken.create!(
       staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      device_id: "device-staff",
     )
     raw = token.rotate_refresh_token!
     _, verifier = OperatorToken.parse_refresh_token(raw)
     digest = OperatorToken.digest_refresh_token(verifier)
 
     first = OperatorToken.rotate_refresh!(
-      presented_refresh_digest: digest, device_id: "device-staff",
+      presented_refresh_digest: digest,
       now: Time.current,
     )
 
     assert_equal :rotated, first[:status]
 
     second = OperatorToken.rotate_refresh!(
-      presented_refresh_digest: digest, device_id: "device-staff",
+      presented_refresh_digest: digest,
       now: Time.current,
     )
 
@@ -361,16 +354,13 @@ class OperatorTokenTest < ActiveSupport::TestCase
     expired_staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
     revoked = OperatorToken.create!(
       staff: revoked_staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      device_id: "sd1",
     )
     compromised = OperatorToken.create!(
       staff: compromised_staff,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      device_id: "sd2",
     )
     expired = OperatorToken.create!(
       staff: expired_staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
-      device_id: "sd3",
     )
     revoked_raw = revoked.rotate_refresh_token!
     compromised_raw = compromised.rotate_refresh_token!
@@ -386,17 +376,17 @@ class OperatorTokenTest < ActiveSupport::TestCase
 
       assert_equal :invalid,
                    OperatorToken.rotate_refresh!(
-                     presented_refresh_digest: revoked_digest, device_id: "sd1",
+                     presented_refresh_digest: revoked_digest,
                      now: Time.current,
                    )[:status]
       assert_equal :invalid,
                    OperatorToken.rotate_refresh!(
-                     presented_refresh_digest: compromised_digest, device_id: "sd2",
+                     presented_refresh_digest: compromised_digest,
                      now: Time.current,
                    )[:status]
       assert_equal :invalid,
                    OperatorToken.rotate_refresh!(
-                     presented_refresh_digest: expired_digest, device_id: "sd3",
+                     presented_refresh_digest: expired_digest,
                      now: Time.current,
                    )[:status]
     end

@@ -9,7 +9,11 @@ module R18Gate
   COOKIE_TTL = 30.days
 
   included do
-    class_attribute :r18_required_actions, default: Set.new
+    # `class_attribute` mutation is class-definition-time only — `r18_required`
+    # is invoked from the controller class body during boot, before any
+    # request threads exist. Per-class isolation comes from class_attribute's
+    # inheritance-aware setter.
+    class_attribute :r18_required_actions, default: Set.new # rubocop:disable ThreadSafety/ClassAndModuleAttributes
     before_action :require_r18_viewing!
   end
 
@@ -86,12 +90,23 @@ module R18Gate
     preference = r18_actor_preference(actor)
     stopper = r18_preference_stopper(preference)
     return :ask unless stopper
-    return :stopped if stopper.respond_to?(:enabled?) && stopper.enabled?
-    return :allow if stopper.respond_to?(:enabled?)
+
+    if stopper.respond_to?(:approved?) || stopper.respond_to?(:denied?)
+      return :allow if stopper.respond_to?(:approved?) && stopper.approved?
+      return :stopped if stopper.respond_to?(:denied?) && stopper.denied?
+
+      return :ask
+    end
+
+    if stopper.respond_to?(:enabled?)
+      return :stopped if stopper.enabled?
+
+      return :allow
+    end
 
     case stopper.to_s
-    when "enabled" then :stopped
-    when "disabled" then :allow
+    when "approved", "disabled" then :allow
+    when "deny", "enabled" then :stopped
     else :ask
     end
   end

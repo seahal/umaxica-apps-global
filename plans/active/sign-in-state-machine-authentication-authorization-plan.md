@@ -48,8 +48,8 @@ action is allowed.
   surface-specific unless an existing shared abstraction already exists.
 - Do not let a signed-in actor start a new sign-in sequence without first signing out.
 - Do not skip the documented sign-in order: primary credential -> MFA when required -> session limit
-  -> guardrail -> checkpoint -> selector -> session issuance -> welcome/return path or
-  configuration page.
+  -> guardrail -> checkpoint -> selector -> session issuance -> welcome/return path or configuration
+  page.
 - Do not store request state in globals, class variables, or `Thread.current`.
 - Do not put business logic in controllers.
 - Do not let Action Policy perform authentication. Authentication must have run before policy
@@ -67,19 +67,19 @@ Use the existing sign-in cycle models:
 
 Current target statuses:
 
-| Status                     |  ID | Meaning                                                                 |
-| -------------------------- | --: | ----------------------------------------------------------------------- |
-| `PRIMARY_PENDING`          |  10 | Primary credential verification is in progress.                         |
-| `MFA_PENDING`              |  20 | Sign-in MFA must complete before session-limit handling.                |
-| `SESSION_LIMIT_PENDING`    |  30 | Session-limit handling must complete before guardrail/checkpoint.       |
-| `GUARDRAIL_PENDING`        |  40 | Pre-activation guardrail checks must stop or clear.                    |
-| `SESSION_ISSUANCE_PENDING` |  50 | Selector has committed and the active session can be issued.            |
-| `CHECKPOINT_PENDING`       |  60 | Pre-activation checkpoint participants must stop or clear.              |
-| `SELECTOR_PENDING`         |  65 | Activation candidate selection must complete before session issuance.   |
-| `DASHBOARD_PENDING`        |  70 | Legacy post-issuance dashboard participant state.                       |
-| `RETURN_PENDING`           |  80 | Legacy post-issuance return-path consumption state.                     |
-| `COMPLETED`                | 100 | The sign-in sequence has completed.                                     |
-| `FAILED`                   | 900 | The sign-in sequence failed or was abandoned.                           |
+| Status                     |  ID | Meaning                                                               |
+| -------------------------- | --: | --------------------------------------------------------------------- |
+| `PRIMARY_PENDING`          |  10 | Primary credential verification is in progress.                       |
+| `MFA_PENDING`              |  20 | Sign-in MFA must complete before session-limit handling.              |
+| `SESSION_LIMIT_PENDING`    |  30 | Session-limit handling must complete before guardrail/checkpoint.     |
+| `GUARDRAIL_PENDING`        |  40 | Pre-activation guardrail checks must stop or clear.                   |
+| `SESSION_ISSUANCE_PENDING` |  50 | Selector has committed and the active session can be issued.          |
+| `CHECKPOINT_PENDING`       |  60 | Pre-activation checkpoint participants must stop or clear.            |
+| `SELECTOR_PENDING`         |  65 | Activation candidate selection must complete before session issuance. |
+| `DASHBOARD_PENDING`        |  70 | Legacy post-issuance dashboard participant state.                     |
+| `RETURN_PENDING`           |  80 | Legacy post-issuance return-path consumption state.                   |
+| `COMPLETED`                | 100 | The sign-in sequence has completed.                                   |
+| `FAILED`                   | 900 | The sign-in sequence failed or was abandoned.                         |
 
 Target transitions:
 

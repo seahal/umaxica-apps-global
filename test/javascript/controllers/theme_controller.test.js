@@ -177,6 +177,16 @@ describe("syncRadio", () => {
     expect(radio.checked).toBe(true);
   });
 
+  test("ct= のみで value が空の場合は system にフォールバックする", () => {
+    cookieReadValue = "ct=";
+    const radio = { checked: false };
+    const controller = makeController();
+    controller.element.querySelector.mockReturnValue(radio);
+    controller.syncRadio();
+    expect(controller.element.querySelector).toHaveBeenCalledWith('input[value="system"]');
+    expect(radio.checked).toBe(true);
+  });
+
   test("クッキーが空の場合は system にフォールバックする", () => {
     cookieReadValue = "";
     const radio = { checked: false };
@@ -319,6 +329,19 @@ describe("applyThemeFromCookie (統合テスト)", () => {
     changeCallback();
     expect(classListMock.has("dark")).toBe(false);
   });
+
+  test("システムテーマを二回選択してもリスナーは一度だけ登録される", () => {
+    const matchMediaResult = {
+      matches: false,
+      addEventListener: vi.fn(),
+    };
+    windowMock.matchMedia = vi.fn(() => matchMediaResult);
+    cookieReadValue = "ct=sy";
+    const controller = makeController();
+    controller.select({ target: { value: "system" } });
+    controller.select({ target: { value: "system" } });
+    expect(matchMediaResult.addEventListener).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ──────────────────────────────────────────────
@@ -366,6 +389,20 @@ describe("fetchAndSyncTheme", () => {
 
     expect(syncSpy).toHaveBeenCalled();
     expect(documentMock.documentElement.dataset.theme).toBe("dark");
+  });
+
+  test("API から空文字の theme が返された場合 sy にフォールバックする", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ theme: "" }) }),
+    );
+
+    const controller = makeController();
+    const syncSpy = vi.spyOn(controller, "syncRadioFromThemeCode");
+
+    await controller.fetchAndSyncTheme();
+
+    expect(syncSpy).toHaveBeenCalledWith("sy");
   });
 });
 

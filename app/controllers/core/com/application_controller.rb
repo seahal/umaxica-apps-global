@@ -6,7 +6,7 @@ module Core
     class ApplicationController < Apex::Com::ApplicationController
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: HostOriginEnv.trusted_origins(
-                             ENV.fetch("CORE_CORPORATE_URL", "jp.www.umaxica.com"),
+                             ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
                            ),
                            with: :exception
 

@@ -178,6 +178,8 @@ class Avatar < AvatarRecord
 
   validates :public_id, presence: true, uniqueness: true
   validates :moniker, presence: true
+  validates :capability, presence: true
+  validates :active_handle, presence: true
 
   # Create avatar with owner assigned in a transaction
   def self.create_with_owner(attributes, user)

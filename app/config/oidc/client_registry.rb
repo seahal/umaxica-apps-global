@@ -17,6 +17,9 @@ module Oidc
     CLIENTS_MUTEX = Mutex.new
     CLIENTS_CACHE = Concurrent::AtomicReference.new(nil)
 
+    LOOPBACK_HOST_TOKENS = %w(localhost 127.0.0.1 ::1).freeze
+    private_constant :LOOPBACK_HOST_TOKENS
+
     module_function
 
     # @param client_id [String]
@@ -106,19 +109,19 @@ module Oidc
         },
         # Core
         "core_app" => {
-          redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "jp.www.umaxica.app"),
+          redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "www.jp.umaxica.app"),
           aud: "umaxica-core-app",
           resource_type: "client",
           name: "Core App",
         },
         "core_org" => {
-          redirect_uris: build_redirect_uris("CORE_STAFF_URL", "jp.www.umaxica.org"),
+          redirect_uris: build_redirect_uris("CORE_STAFF_URL", "www.jp.umaxica.org"),
           aud: "umaxica-core-org",
           resource_type: "operator",
           name: "Core Org",
         },
         "core_com" => {
-          redirect_uris: build_redirect_uris("CORE_CORPORATE_URL", "jp.www.umaxica.com"),
+          redirect_uris: build_redirect_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
           aud: "umaxica-core-com",
           resource_type: "visitor",
           name: "Core Com",
@@ -185,9 +188,18 @@ module Oidc
 
     def build_redirect_uris(env_key, default_host)
       host = ENV.fetch(env_key, default_host)
-      protocol = Rails.env.production? ? "https" : "http"
-      port_suffix = Rails.env.production? ? "" : ":#{ENV.fetch("PORT", "3000")}"
+      protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
+      port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":#{ENV.fetch("PORT", "3000")}"
       ["#{protocol}://#{host}#{port_suffix}/auth/callback"]
+    end
+
+    def public_host?(host)
+      normalized_host = URI.parse("//#{host}").host.to_s
+
+      normalized_host.present? &&
+        LOOPBACK_HOST_TOKENS.none? { |token| normalized_host.include?(token) }
+    rescue URI::InvalidURIError
+      false
     end
 
     def resolve_secret(client_id)
@@ -204,7 +216,7 @@ module Oidc
       :"OIDC_CLIENT_SECRETS_#{client_id.to_s.upcase}"
     end
 
-    private_class_method :clients, :build_clients, :build_redirect_uris,
+    private_class_method :clients, :build_clients, :build_redirect_uris, :public_host?,
                          :resolve_secret, :domains_from_redirect_uris, :credential_key_for
   end
 end

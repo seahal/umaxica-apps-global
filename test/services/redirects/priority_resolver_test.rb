@@ -3,12 +3,16 @@
 require "test_helper"
 
 class Redirects::PriorityResolverTest < ActiveSupport::TestCase
-  Routes = Struct.new(:calls) do
-    def sign_app_in_checkpoint_path(ri:) = "/sign/in/checkpoint?ri=#{ri}"
-    def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
-    def sign_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
-    def sign_app_configuration_path(ri:) = "/configuration?ri=#{ri}"
-  end
+  Routes =
+    Struct.new(:calls) do
+      def sign_app_in_checkpoint_path(ri:) = "/sign/in/checkpoint?ri=#{ri}"
+
+      def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
+
+      def sign_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
+
+      def sign_app_configuration_path(ri:) = "/configuration?ri=#{ri}"
+    end
 
   test "explicit nt wins over signed pt" do
     result = resolve([{ kind: :nt, value: :dashboard }, { kind: :signed_pt, value: "/configuration" }])

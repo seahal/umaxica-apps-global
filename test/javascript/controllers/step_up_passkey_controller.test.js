@@ -139,6 +139,30 @@ describe("StepUpPasskeyController", () => {
     expect(controller.credentialJsonTarget.value).toContain("userHandle");
   });
 
+  test("encodeCredential: authenticatorAttachment が undefined の場合 null になる", async () => {
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1]).buffer,
+      type: "public-key",
+      authenticatorAttachment: undefined,
+      response: {
+        clientDataJSON: new Uint8Array([4]).buffer,
+        authenticatorData: new Uint8Array([7]).buffer,
+        signature: new Uint8Array([10]).buffer,
+        userHandle: null,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.get.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    const parsed = JSON.parse(controller.credentialJsonTarget.value);
+    expect(parsed.authenticatorAttachment).toBeNull();
+    expect(parsed.response.userHandle).toBeNull();
+  });
+
   test("showError: errorTarget がないときは何もしない", () => {
     controller.hasErrorTarget = false;
     controller.showError("test error");

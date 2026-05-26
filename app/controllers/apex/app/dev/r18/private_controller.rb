@@ -7,11 +7,10 @@ module Apex
       module R18
         # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
         class PrivateController < Apex::App::OpenController
-          before_action :require_dev_private_authentication!
-
           include ::R18Gate
 
           AUTHENTICATION_MODE = :open
+          before_action :require_dev_private_authentication!
 
           def show
             render plain: "private r18 ok"

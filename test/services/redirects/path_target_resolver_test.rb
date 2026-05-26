@@ -39,6 +39,7 @@ class Redirects::PathTargetResolverTest < ActiveSupport::TestCase
   test "rejects scheme host userinfo blank and nil with reason" do
     ["https://user:pass@evil.example/path", "", nil].each do |value|
       result = resolve(value)
+
       assert_not result.ok?
       assert_predicate result.failure_reason, :present?
       assert_nil result.value

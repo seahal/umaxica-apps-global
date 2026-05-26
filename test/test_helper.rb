@@ -1,13 +1,22 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] ||= "test"
+
+COVERAGE_ENABLED = %w[1 true].include?(ENV.fetch("COVERAGE", "").downcase)
+
+if COVERAGE_ENABLED
+  require "simplecov"
+
+  SimpleCov.start "rails"
+end
+
 require_relative "../config/environment"
 require "rails/test_help"
 
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
-    parallelize(workers: :number_of_processors)
+    parallelize(workers: COVERAGE_ENABLED ? 1 : :number_of_processors)
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all

@@ -40,9 +40,9 @@ services:
           - id.umaxica.app
           - id.umaxica.com
           - id.umaxica.org
-          - jp.www.umaxica.app
-          - jp.www.umaxica.com
-          - jp.www.umaxica.org
+          - www.jp.umaxica.app
+          - www.jp.umaxica.com
+          - www.jp.umaxica.org
           - www.app.localhost
           - www.com.localhost
           - www.org.localhost

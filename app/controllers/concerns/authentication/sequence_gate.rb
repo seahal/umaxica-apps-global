@@ -95,7 +95,11 @@ module Authentication
           end
         return if result.blocking?
 
-        redirect_to(sign_in_selector_path(pt: cycle.reload.return_to))
+        cycle.reload.update!(
+          status_id: cycle.status_id_for("DASHBOARD_PENDING"),
+          step: "dashboard",
+        )
+        redirect_to(issue_welcome_gate_and_path(pt: cycle.return_to, sequence_id: cycle.public_id))
         return
       end
 
@@ -115,26 +119,51 @@ module Authentication
     def continue_welcome_sequence_without_content!
       cycle = current_db_sign_in_cycle_for_sequence
       if cycle
-        if cycle.sign_in_completed?
-          clear_welcome_gate!
-          clear_current_sign_in_cycle_locator!
-          return redirect_to(after_welcome_path)
-        end
-        return redirect_to(sign_in_session_limit_path(pt: cycle.return_to)) if cycle.sign_in_session_limit_pending?
-        return redirect_to(sign_in_checkpoint_path(pt: cycle.return_to)) if cycle.sign_in_checkpoint_pending?
-        return redirect_to(sign_in_selector_path(pt: cycle.return_to)) if cycle.sign_in_selector_pending?
-        return reject_invalid_sign_in_sequence! unless cycle.sign_in_completed?
-        return redirect_to(after_welcome_path) unless welcome_gate_available?
-        return redirect_to(after_welcome_path) unless consume_welcome_gate!(sequence_id: cycle.public_id)
+        process_cycle_based_sequence!(cycle)
+      else
+        process_non_cycle_sequence!
+      end
+    end
 
+    def process_cycle_based_sequence!(cycle)
+      if cycle.sign_in_completed?
         clear_welcome_gate!
         clear_current_sign_in_cycle_locator!
-        fallback_destination = safe_non_welcome_return_path(after_welcome_path)
-        destination = safe_non_welcome_return_path(cycle.return_to) || fallback_destination
-        @welcome_next_path = destination if destination.present?
-        return
+        return redirect_to(after_welcome_path)
+      end
+      return redirect_to(sign_in_session_limit_path(pt: cycle.return_to)) if cycle.sign_in_session_limit_pending?
+      return redirect_to(sign_in_checkpoint_path(pt: cycle.return_to)) if cycle.sign_in_checkpoint_pending?
+      return redirect_to(sign_in_selector_path(pt: cycle.return_to)) if cycle.sign_in_selector_pending?
+      return reject_invalid_sign_in_sequence! unless cycle.sign_in_dashboard_pending? || cycle.sign_in_return_pending?
+      return redirect_to(after_welcome_path) unless welcome_gate_available?
+      return redirect_to(after_welcome_path) unless consume_welcome_gate!(sequence_id: cycle.public_id)
+      return reject_invalid_sign_in_sequence! unless allowed_to?(:show_dashboard?, cycle)
+
+      if cycle.sign_in_dashboard_pending?
+        result =
+          with_sign_in_cycle_writing(cycle) do
+            sign_in_dashboard_participant(cycle).advance!
+          end
+        return if result.blocking?
       end
 
+      reloaded_cycle = cycle.reload
+      destination =
+        with_sign_in_cycle_writing(reloaded_cycle) do
+          SignIn::ReturnParticipant.new(
+            cycle: reloaded_cycle,
+            default_path: after_welcome_path,
+          ).consume!
+        end
+
+      clear_welcome_gate!
+      clear_current_sign_in_cycle_locator!
+      fallback_destination = safe_non_welcome_return_path(after_welcome_path)
+      destination = safe_non_welcome_return_path(destination) || fallback_destination
+      @welcome_next_path = destination if destination.present?
+    end
+
+    def process_non_cycle_sequence!
       return redirect_to(after_welcome_path) unless welcome_gate_available?
 
       sign_in_sequence_carrier.complete! if sign_in_sequence_carrier.current.participant == "dashboard"
@@ -388,7 +417,7 @@ module Authentication
         principal_id: resource.id,
         status_id: cycle_class.status_id_for("PRIMARY_PENDING"),
         step: "primary",
-        pt: path_from_signed_pt(signed_pt_token(pt)),
+        return_to: path_from_signed_pt(signed_pt_token(pt)),
         nonce_digest: cycle_class.digest_nonce(nonce),
       )
     end
@@ -508,12 +537,9 @@ module Authentication
 
     def sign_in_cycle_actor(cycle)
       return current_resource if current_resource
+      return unless cycle.respond_to?(:principal)
 
-      case cycle
-      when ClientSignInCycle then Client.find_by(id: cycle.principal_id)
-      when VisitorSignInCycle then Visitor.find_by(id: cycle.principal_id)
-      when OperatorSignInCycle then Operator.find_by(id: cycle.principal_id)
-      end
+      cycle.principal
     end
 
     def pending_mfa_sign_in_cycle_for(resource)

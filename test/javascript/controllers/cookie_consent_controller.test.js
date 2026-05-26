@@ -51,6 +51,13 @@ describe("CookieConsentController", () => {
     expect(controller.bannerTarget.classList.remove).not.toHaveBeenCalledWith("hidden");
   });
 
+  test("connect: bannerTarget がない場合は何もしない", () => {
+    controller.consentedValue = false;
+    controller.hasBannerTarget = false;
+    controller.connect();
+    expect(controller.bannerTarget.classList.remove).not.toHaveBeenCalledWith("hidden");
+  });
+
   test("showBanner: バナーを表示する", () => {
     controller.showBanner();
     expect(controller.bannerTarget.classList.remove).toHaveBeenCalledWith("hidden");
@@ -119,6 +126,42 @@ describe("CookieConsentController", () => {
     await controller.submitConsent(true);
 
     expect(cookiesSet.some((c) => c.startsWith("preference_consented="))).toBe(true);
+    expect(controller.bannerTarget.classList.add).toHaveBeenCalledWith("hidden");
+  });
+
+  test("submitConsent: preference がない場合は accepted をフォールバックとして使う", async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    let cookiesSet = [];
+    Object.defineProperty(document, "cookie", {
+      set: (val) => cookiesSet.push(val),
+      get: () => "",
+    });
+
+    await controller.submitConsent(true);
+
+    expect(cookiesSet.some((c) => c.startsWith("preference_consented=1"))).toBe(true);
+    expect(controller.bannerTarget.classList.add).toHaveBeenCalledWith("hidden");
+  });
+
+  test("submitConsent: preference.consented がない場合は accepted をフォールバックとして使う", async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ preference: {} }),
+    });
+
+    let cookiesSet = [];
+    Object.defineProperty(document, "cookie", {
+      set: (val) => cookiesSet.push(val),
+      get: () => "",
+    });
+
+    await controller.submitConsent(false);
+
+    expect(cookiesSet.some((c) => c.startsWith("preference_consented=0"))).toBe(true);
     expect(controller.bannerTarget.classList.add).toHaveBeenCalledWith("hidden");
   });
 

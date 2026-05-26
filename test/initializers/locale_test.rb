@@ -127,10 +127,21 @@ class LocaleInitializerTest < ActiveSupport::TestCase
   test "provides localized labels for app display and accessibility preferences" do
     assert_nothing_raised { reload_locale_initializer }
 
+    %w[app com org].each do |surface|
+      I18n.with_locale(:en) do
+        assert_equal "Motion Settings", I18n.t("apex.#{surface}.preferences.motion_settings")
+        assert_equal "Density Settings", I18n.t("apex.#{surface}.preferences.density_settings")
+        assert_equal "Items Per Page", I18n.t("apex.#{surface}.preferences.items_per_page_settings")
+      end
+
+      I18n.with_locale(:ja) do
+        assert_equal "モーション設定", I18n.t("apex.#{surface}.preferences.motion_settings")
+        assert_equal "表示密度設定", I18n.t("apex.#{surface}.preferences.density_settings")
+        assert_equal "1ページあたりの表示件数", I18n.t("apex.#{surface}.preferences.items_per_page_settings")
+      end
+    end
+
     I18n.with_locale(:en) do
-      assert_equal "Motion Settings", I18n.t("apex.app.preferences.motion_settings")
-      assert_equal "Density Settings", I18n.t("apex.app.preferences.density_settings")
-      assert_equal "Items Per Page", I18n.t("apex.app.preferences.items_per_page_settings")
       assert_equal "Reduced motion", I18n.t("apex.app.preference.motion.options.reduced")
       assert_equal "Compact density", I18n.t("apex.app.preference.density.options.compact")
       assert_equal "50 items", I18n.t("apex.app.preference.items_per_page.options.50")
@@ -138,9 +149,6 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     end
 
     I18n.with_locale(:ja) do
-      assert_equal "モーション設定", I18n.t("apex.app.preferences.motion_settings")
-      assert_equal "表示密度設定", I18n.t("apex.app.preferences.density_settings")
-      assert_equal "1ページあたりの表示件数", I18n.t("apex.app.preferences.items_per_page_settings")
       assert_equal "控えめなモーション", I18n.t("apex.app.preference.motion.options.reduced")
       assert_equal "コンパクト", I18n.t("apex.app.preference.density.options.compact")
       assert_equal "50件", I18n.t("apex.app.preference.items_per_page.options.50")

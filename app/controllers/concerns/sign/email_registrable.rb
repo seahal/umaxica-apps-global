@@ -91,13 +91,15 @@ module Sign
 
       @user_email.validate
 
-      # Serialize all concurrent sign-up attempts for the same address
-      # digest. Without this, two sessions submitting the same address can
-      # both pass the existence check below and race the unique index on
-      # `save!`; only one survives and the loser surfaces a confusing
-      # uniqueness error mid-OTP-flow.
       return false if @user_email.address_digest.blank?
 
+      create_and_send_verified_email!(allow_existing)
+    rescue ActiveRecord::RecordInvalid => e
+      @user_email = e.record if e.record.is_a?(ClientEmail)
+      false
+    end
+
+    def create_and_send_verified_email!(allow_existing)
       cooldown_active = false
       otp_number = nil
 
@@ -122,8 +124,6 @@ module Sign
             next :cooldown
           end
 
-          # Definitive recheck under the address-level advisory lock with
-          # row lock as a belt-and-suspenders.
           if pending_email_status?(existing_email)
             locked = ClientEmail.lock.find_by(id: existing_email.id)
             if locked&.reregistration_window_active?
@@ -148,9 +148,6 @@ module Sign
 
       send_verification_email(otp_number)
       true
-    rescue ActiveRecord::RecordInvalid => e
-      @user_email = e.record if e.record.is_a?(ClientEmail)
-      false
     end
 
     def complete_email_verification!(id, submitted_code, token = nil)

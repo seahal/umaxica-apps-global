@@ -82,6 +82,32 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
     assert mismatch.errors.of_kind?(:bureau_unit, :invalid)
   end
 
+  test "account exposes current membership and collective interface" do
+    agent = Agent.create!(operator_identity: operator_identity("agent-interface"))
+    bureau = Bureau.create!(name: "Operations")
+    unit = BureauUnit.create!(bureau:, name: "Root")
+    membership = AgentMembership.create!(
+      agent:,
+      bureau:,
+      bureau_unit: unit,
+      membership_kind_id: AgentMembershipKind::OWNER,
+      membership_state_id: AgentMembershipState::ACTIVE,
+      primary: true,
+    )
+
+    assert_equal :agent_memberships, Agent.membership_association_name
+    assert_equal membership, agent.primary_membership
+    assert_equal membership, agent.current_membership
+    assert_equal [membership], agent.current_memberships.to_a
+    assert_equal bureau, agent.current_collective
+    assert_equal unit, agent.current_collective_unit
+    assert_equal agent, membership.account
+    assert_equal bureau, membership.collective
+    assert_equal unit, membership.collective_unit
+    assert_predicate membership, :active?
+    assert_predicate membership, :primary_active?
+  end
+
   test "database rejects identity and bureau hierarchy integrity violations" do
     identity = operator_identity("agent-identity-unique")
     Agent.create!(operator_identity: identity)
