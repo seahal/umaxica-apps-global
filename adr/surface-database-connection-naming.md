@@ -64,8 +64,8 @@ Each target also has the matching replica connection, for example `app_ticket_re
 - `principal` means the surface-owned authenticated principal and its principal-side state.
 - `ticket` means login/session/OIDC ticket persistence. The word intentionally avoids overloading
   controller and protocol route names that use `token`.
-- `zenith` means the Zenith/RP-facing account, subject, and local projection layer used by the apex
-  side of the system.
+- `zenith` means the Zenith/RP-facing account, subject, and local projection layer used by the Acme
+  RP side of the system.
 - `signal` means the notification-origin database for email, web push, banners, and related delivery
   channels.
 - `setting` means login-independent surface setting and preference state. Actor-local preference

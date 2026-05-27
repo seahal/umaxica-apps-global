@@ -688,7 +688,7 @@ CREATE UNLOGGED TABLE public.chronicles (
     changeset jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp(6) with time zone NOT NULL,
     updated_at timestamp(6) with time zone NOT NULL,
-    CONSTRAINT chk_chronicles_result CHECK (((result)::text = ANY (ARRAY[('intent'::character varying)::text, ('succeeded'::character varying)::text, ('failed'::character varying)::text, ('audit_incomplete'::character varying)::text, ('invalidated'::character varying)::text, ('manual_recovery_required'::character varying)::text])))
+    CONSTRAINT chk_chronicles_result CHECK (((result)::text = ANY ((ARRAY['intent'::character varying, 'succeeded'::character varying, 'failed'::character varying, 'audit_incomplete'::character varying, 'invalidated'::character varying, 'manual_recovery_required'::character varying])::text[])))
 );
 
 

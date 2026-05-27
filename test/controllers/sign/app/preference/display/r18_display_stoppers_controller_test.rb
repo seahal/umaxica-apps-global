@@ -11,7 +11,7 @@ module Sign
           fixtures :clients, :client_preferences
 
           setup do
-            @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+            @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
             @user = clients(:one)
             host! @host
           end

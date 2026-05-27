@@ -5,7 +5,14 @@ module Core
   module Com
     module Edge
       module V0
-        class HealthsController < Apex::Com::Edge::V0::HealthsController
+        class HealthsController < Core::Com::BareController
+          include ::Health
+
+          AUTHENTICATION_MODE = :bare
+
+          def show
+            show_json
+          end
         end
       end
     end

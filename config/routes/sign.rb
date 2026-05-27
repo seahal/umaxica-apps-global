@@ -3,11 +3,16 @@
 # typed: false
 # frozen_string_literal: true
 
+def sign_normalize_route_host(host)
+  host.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first.presence
+end
+
 scope module: :sign, as: :sign do
   # User auth service (id.app domain)
-  constraints host: ENV["SIGN_SERVICE_URL"] do
+  constraints host: sign_normalize_route_host(ENV["SIGN_SERVICE_URL"]) do
     scope module: :app, as: :app do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
 
       # Basic public endpoints
       resource :health, only: :show
@@ -262,9 +267,10 @@ scope module: :sign, as: :sign do
   end
 
   # Corporate id service (id.com domain)
-  constraints host: ENV["SIGN_CORPORATE_URL"] do
+  constraints host: sign_normalize_route_host(ENV["SIGN_CORPORATE_URL"]) do
     scope module: :com, as: :com do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
@@ -463,9 +469,10 @@ scope module: :sign, as: :sign do
   end
 
   # Staff auth management
-  constraints host: ENV["SIGN_STAFF_URL"] do
+  constraints host: sign_normalize_route_host(ENV["SIGN_STAFF_URL"]) do
     scope module: :org, as: :org do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show

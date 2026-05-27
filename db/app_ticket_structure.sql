@@ -145,7 +145,7 @@ ALTER SEQUENCE public.client_device_sessions_id_seq OWNED BY public.client_devic
 -- Name: client_dpop_proof_states; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.client_dpop_proof_states (
+CREATE UNLOGGED TABLE public.client_dpop_proof_states (
     id bigint NOT NULL,
     jti character varying,
     jkt character varying,
@@ -164,7 +164,7 @@ CREATE TABLE public.client_dpop_proof_states (
 -- Name: client_dpop_proof_states_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.client_dpop_proof_states_id_seq
+CREATE UNLOGGED SEQUENCE public.client_dpop_proof_states_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE

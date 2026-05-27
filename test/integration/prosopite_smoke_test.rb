@@ -4,8 +4,8 @@
 require "test_helper"
 
 class ProsopiteSmokeTest < ActionDispatch::IntegrationTest
-  test "prosopite scans each test globally" do
-    assert_predicate Prosopite, :scan?
+  test "prosopite raises in test" do
+    assert_predicate Prosopite, :raise?
   end
 
   test "prosopite raises for n+1 queries in integration tests" do

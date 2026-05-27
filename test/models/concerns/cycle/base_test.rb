@@ -62,6 +62,7 @@ class CycleBaseTest < ActiveSupport::TestCase
     travel_to now do
       record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
       record.transition_cycle_to!(20, allowed_from: [10])
+
       assert_equal 20, record.reload.cycle_status_id
     end
   end
@@ -73,6 +74,7 @@ class CycleBaseTest < ActiveSupport::TestCase
       record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
       record.transition_cycle_to!(20, allowed_from: [10], changes: { expires_at: now + 2.hours })
       record.reload
+
       assert_equal 20, record.cycle_status_id
       assert_equal now + 2.hours, record.expires_at
     end
@@ -130,6 +132,7 @@ class CycleBaseTest < ActiveSupport::TestCase
       record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, purged_at: now + 2.days)
       record.discard_cycle!(discarded_at: now + 1.second, purged_at: now + 30.days)
       record.reload
+
       assert_equal now + 1.second, record.discarded_at
       assert_equal now + 30.days, record.purged_at
     end
@@ -161,6 +164,7 @@ class CycleBaseTest < ActiveSupport::TestCase
         purged_at: now + 2.seconds,
         expires_at: now + 1.second,
       )
+
       assert_predicate record, :cycle_accessible?
       assert_not record.cycle_expired?
       assert_not record.cycle_purgeable?

@@ -127,7 +127,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
   test "provides localized labels for app display and accessibility preferences" do
     assert_nothing_raised { reload_locale_initializer }
 
-    %w[app com org].each do |surface|
+    %w(app com org).each do |surface|
       I18n.with_locale(:en) do
         assert_equal "Motion Settings", I18n.t("apex.#{surface}.preferences.motion_settings")
         assert_equal "Density Settings", I18n.t("apex.#{surface}.preferences.density_settings")

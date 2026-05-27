@@ -3,7 +3,14 @@
 
 module Core
   module App
-    class RobotsController < Apex::App::RobotsController
+    class RobotsController < BareController
+      include ::Robots
+
+      AUTHENTICATION_MODE = :bare
+
+      def show
+        show_plain_text
+      end
     end
   end
 end

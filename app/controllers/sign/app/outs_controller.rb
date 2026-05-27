@@ -12,7 +12,7 @@ module Sign
 
       AUTHENTICATION_MODE = :open
 
-      before_action :authenticate!, only: %i(edit create destroy)
+      prepend_before_action :authenticate!, only: %i(edit create destroy)
 
       def show
         @sign_out_notice = consume_sign_out_notice

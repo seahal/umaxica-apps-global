@@ -11,7 +11,7 @@ module Core
 
         def show
           url = initiate_oidc_session!
-          redirect_to_xt_url(url, allowed_urls: [url])
+          redirect_to_jump_url(url)
         end
       end
     end

@@ -16,11 +16,13 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
     CoreAppClientBridge.where(client_id: client.id).delete_all
     controller = Core::App::Auth::CallbacksController.new
 
-    actor = controller.send(:provision_rp_account_from_id_token!, {
-      "iss" => "umaxica-auth:client",
-      "sub" => client.id.to_s,
-      "aud" => "core_app",
-    })
+    actor = controller.send(
+      :provision_rp_account_from_id_token!, {
+        "iss" => "umaxica-auth:client",
+        "sub" => client.id.to_s,
+        "aud" => "core_app",
+      },
+    )
 
     identity = ClientIdentity.find_by!(source_record_id: client.id)
     bridge = CoreAppClientBridge.find_by!(client_id: client.id)
@@ -47,11 +49,13 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
     )
     controller = Core::App::Auth::CallbacksController.new
 
-    actor = controller.send(:provision_rp_account_from_id_token!, {
-      "iss" => "umaxica-auth:client",
-      "sub" => "opaque-idp-subject",
-      "aud" => "core_app",
-    })
+    actor = controller.send(
+      :provision_rp_account_from_id_token!, {
+        "iss" => "umaxica-auth:client",
+        "sub" => "opaque-idp-subject",
+        "aud" => "core_app",
+      },
+    )
 
     assert_equal client, actor
     assert_equal 1, ClientIdentity.where(source_record_id: client.id).count
@@ -63,11 +67,13 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
     VisitorIdentity.where(source_record_id: visitor.id).delete_all
     controller = Apex::Com::Auth::CallbacksController.new
 
-    actor = controller.send(:provision_rp_account_from_id_token!, {
-      "iss" => "umaxica-auth:visitor",
-      "sub" => visitor.id.to_s,
-      "aud" => "apex_com",
-    })
+    actor = controller.send(
+      :provision_rp_account_from_id_token!, {
+        "iss" => "umaxica-auth:visitor",
+        "sub" => visitor.id.to_s,
+        "aud" => "apex_com",
+      },
+    )
 
     identity = VisitorIdentity.find_by!(source_record_id: visitor.id)
 

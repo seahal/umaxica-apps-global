@@ -68,7 +68,7 @@ module Authentication
       new_sign_app_in_url(
         pt: return_to,
         host: sign_app_redirect_host,
-        protocol: request.protocol,
+        protocol: "https",
       )
     end
 

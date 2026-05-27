@@ -48,12 +48,23 @@ module Oidc
 
     def build_success_redirect(code_record)
       uri = URI.parse(code_record.redirect_uri)
+      normalize_default_port!(uri)
       query_params = URI.decode_www_form(uri.query || "")
       query_params << ["code", code_record.code]
       query_params << ["state", code_record.state] if code_record.state.present?
       uri.query = URI.encode_www_form(query_params)
 
       Result.new(success: true, redirect_url: uri.to_s, error: nil, error_description: nil)
+    end
+
+    def normalize_default_port!(uri)
+      default_port =
+        case uri.scheme
+        when "https" then 443
+        when "http" then 80
+        end
+
+      uri.port = nil if default_port.present? && uri.port == default_port
     end
 
     def failure(error, description)

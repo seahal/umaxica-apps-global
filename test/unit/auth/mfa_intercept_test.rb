@@ -102,7 +102,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
       auth_method: "secret",
     )
 
-    assert_equal({ status: :success }, result)
+    assert_equal({ status: :success, redirect_path: "/dashboard" }, result)
     assert_equal user, captured.first
     assert_not captured.last[:require_totp_check]
     assert_equal({ auth_method: "secret" }, captured.last[:audit_context])

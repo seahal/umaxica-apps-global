@@ -3,7 +3,16 @@
 
 module Core
   module Org
-    class CspViolationReportsController < Apex::Org::CspViolationReportsController
+    class CspViolationReportsController < BareController
+      include CspViolationReport
+
+      AUTHENTICATION_MODE = :bare
+
+      def create
+        record_csp_violation!
+
+        head :no_content
+      end
     end
   end
 end

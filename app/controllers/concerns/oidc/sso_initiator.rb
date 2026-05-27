@@ -4,6 +4,7 @@
 module Oidc
   module SsoInitiator
     extend ActiveSupport::Concern
+    include Common::Redirect
 
     def authenticate!
       if logged_in?
@@ -22,7 +23,7 @@ module Oidc
         method: request&.request_method,
       )
       url = sign_in_url_with_pt(encoded_pt(request.original_url))
-      redirect_to_xt_url(url, allowed_urls: [url])
+      redirect_to_jump_url(url)
     end
 
     def sign_in_url_with_pt(pt)
@@ -47,7 +48,7 @@ module Oidc
 
     def oidc_authorization_url(screen_hint:, code_challenge:, state:, nonce:)
       uri = URI::Generic.build(
-        scheme: request.ssl? ? "https" : "http",
+        scheme: oidc_sign_scheme,
         host: oidc_sign_host,
         port: oidc_port,
         path: "/oauth/authorize",
@@ -73,7 +74,7 @@ module Oidc
 
     def oidc_token_url
       uri = URI::Generic.build(
-        scheme: request.ssl? ? "https" : "http",
+        scheme: oidc_sign_scheme,
         host: oidc_sign_host,
         port: oidc_port,
         path: "/oauth/token",
@@ -83,6 +84,12 @@ module Oidc
 
     def oidc_port
       [80, 443].include?(request.port) ? nil : request.port
+    end
+
+    def oidc_sign_scheme
+      return "http" if !request.ssl? && oidc_sign_host.to_s.end_with?(".localhost")
+
+      "https"
     end
 
     def encoded_pt(pt)

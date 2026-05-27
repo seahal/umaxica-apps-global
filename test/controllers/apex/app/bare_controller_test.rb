@@ -16,19 +16,12 @@ module Apex
       fixtures_none!
 
       ALLOWED_DESCENDANTS = %w(
-        Apex::App::Auth::CallbacksController
         Apex::App::CspViolationReportsController
-        Apex::App::Edge::V0::CookiesController
         Apex::App::Edge::V0::HealthsController
         Apex::App::HealthsController
-        Apex::App::OpenController
+        Apex::App::JwksController
         Apex::App::RobotsController
-        Apex::App::RootsController
         Apex::App::SitemapsController
-        Apex::App::Sso::AuthorizationsController
-        Apex::App::Sso::LogoutsController
-        Apex::App::Web::V0::CookiesController
-        Apex::App::Web::V0::ThemesController
       ).freeze
 
       test "bare boundary does not inherit the full application controller" do

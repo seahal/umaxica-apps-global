@@ -66,6 +66,28 @@ module Common
              status: :unprocessable_content
     end
 
+    def redirect_to_jump_rt(token, **)
+      result = Redirects::JumpGatewayUrl.call(token)
+      return redirect_to(result.value, allow_other_host: true, **) if result.ok?
+
+      log_redirect_target_failure(result)
+      render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+             status: :unprocessable_content
+    end
+
+    def redirect_to_jump_url(url, namespace: jump_rt_issuer_namespace, dst: "internal", **)
+      token = JumpRt::Issuer.call(namespace: namespace, url: url, dst: dst)
+      return redirect_to_jump_rt(token, **) if token.present?
+
+      result = Redirects::TargetResult.failure(
+        kind: :xt, source: :jump_rt_issue, reason: :invalid_jump_rt_url,
+        unsafe_value: url,
+      )
+      log_redirect_target_failure(result)
+      render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+             status: :unprocessable_content
+    end
+
     def resolve_redirect_target(priority:, default:)
       result = Redirects::PriorityResolver.call(
         priority: priority,
@@ -114,6 +136,8 @@ module Common
     rescue URI::InvalidURIError
       nil
     end
+
+    alias safe_return_to_path safe_return_path
 
     def generate_redirect_url(target)
       safe_path = safe_internal_path(target)
@@ -182,6 +206,10 @@ module Common
       return Actor.tld if defined?(Actor) && Actor.respond_to?(:tld) && Actor.tld.present?
 
       "app"
+    end
+
+    def jump_rt_issuer_namespace
+      JumpRt::Surface.namespace_for_controller(self.class.name)
     end
 
     def log_redirect_target_failure(result)

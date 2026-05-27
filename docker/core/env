@@ -91,6 +91,7 @@ SIGN_STAFF_URL=id.umaxica.org
 JUMP_CORPORATE_URL=jump.com.localhost
 JUMP_SERVICE_URL=jump.app.localhost/
 JUMP_STAFF_URL=jump.org.localhost
+JUMP_GATEWAY_URL=https://jump.umaxica.net
 EDGE_CORPORATE_URL=jp.umaxica.com
 EDGE_SERVICE_URL=jp.umaxica.app
 EDGE_STAFF_URL=jp.umaxica.org
@@ -98,6 +99,27 @@ STATUS_URL=status.umaxica.dev
 ASSET_URL=asset.localhost
 # JWT Configuration
 PREFERENCE_JWT_AUDIENCES=umaxica.app,umaxica.com,localhost
+# Jump RT JWT public key configuration.
+# Private keys are resolved from Rails credentials in development/test and from the production
+# secret backend in production. Do not add JWT_*_PRIVATE_KEY values here.
+JWT_SIGN_APP_ACTIVE_KID=sign-app-es384-dev-a
+JWT_SIGN_APP_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"x6aDKIMMNLFuWNKpMUHepXJucGnNmpylWaZDaNYM-Hrjopz3vzirveMEMonYE8pt","y":"-rNxdYYZeNd8soGC2fv79VmWoEAXIOnaw19Vrlo8HoueVVt20wDu0w-DZ8-qSdo8","kid":"sign-app-es384-dev-a","alg":"ES384","use":"sig"}]
+JWT_SIGN_COM_ACTIVE_KID=sign-com-es384-dev-a
+JWT_SIGN_COM_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"hmFaX5CM2RPRRrjXrrB8Hpab7R3JyRuJxB6so6JOuMnjX-qajdbT9fEvuXOYmFIu","y":"dl6h2s9Zavqn9_9iJamRQRzZnA4c12-k-olzpsob9-f8QAaD-tY9QSZ0FECt6X1f","kid":"sign-com-es384-dev-a","alg":"ES384","use":"sig"}]
+JWT_SIGN_ORG_ACTIVE_KID=sign-org-es384-dev-a
+JWT_SIGN_ORG_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"pnaeqRkO-JSimF1ocVxkRJeVL3vgv5YDDsssvM0KDyYoC8nITNa1QcEVnEDW4CMF","y":"ftibt0WPEjhuy2PoxUA6AEMoZ1-ju8njCXfqT7kytTlADpkqkmfZOt77Uxi4ljxx","kid":"sign-org-es384-dev-a","alg":"ES384","use":"sig"}]
+JWT_ACME_APP_ACTIVE_KID=acme-app-es384-dev-a
+JWT_ACME_APP_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"wdikSXJzVPTOHYBSzAXxS7QfoCEhcZ4xVpRGGFXdKbRKpAT2hhJePryhRZfd6nsM","y":"ua51r8f4RRPYBNdGMj4NmInxPACWApP2zuuHCHyDltA51d3_MlzKxJDij721MKhc","kid":"acme-app-es384-dev-a","alg":"ES384","use":"sig"}]
+JWT_ACME_COM_ACTIVE_KID=acme-com-es384-dev-a
+JWT_ACME_COM_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"1Vl4SE2JWH-YWFIvgcf9oHJtvdHtf8H5KA2_XCbomPO-fQlKpMUF7Ci9aW8BifiO","y":"xHERxfP_Z625tf07KAimLcD5cHeqpV2sttdZU0HLTyXkSEEfWIuVHq5lHrumwNu3","kid":"acme-com-es384-dev-a","alg":"ES384","use":"sig"}]
+JWT_ACME_ORG_ACTIVE_KID=acme-org-es384-dev-a
+JWT_ACME_ORG_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"Q7JNCHvDs79nujKr6fdMcG0_MKpMRGkMe8rhEdP5Jvxp4qQRhBh_EEWEltUrDLOA","y":"MadFGTzfe6mx2xl-duWabljbf61sQguy8uDH8zXXfoJD6d7xE7uDuOiIEq-Vli1R","kid":"acme-org-es384-dev-a","alg":"ES384","use":"sig"}]
+JWT_CORE_APP_ACTIVE_KID=core-app-es384-dev-a
+JWT_CORE_APP_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"pou3_JtZU4E0WRfkDxCrpNFE7u43s4j4qUQw9Zu1Bm9sT_APwNosi58lMuFvFPko","y":"eczW9itNmH5n4OOciomeR0t4Tb-7HePxZBhi89hZjiOOj4rkTehaGLQ8dwaPnQgk","kid":"core-app-es384-dev-a","alg":"ES384","use":"sig"}]
+JWT_CORE_COM_ACTIVE_KID=core-com-es384-dev-a
+JWT_CORE_COM_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"oOhrqDHnhdvb-7f08er0TL4-WRZSEzXlWj6SprKGnn8ke-eAPK04w6ePLE3LPbZ5","y":"urP18AmN1ccOecmMqM8FIEU3SxoVBNM2321upYRbwg53wF4uPFEK2gQfO8yK0ZMC","kid":"core-com-es384-dev-a","alg":"ES384","use":"sig"}]
+JWT_CORE_ORG_ACTIVE_KID=core-org-es384-dev-a
+JWT_CORE_ORG_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"1qI30T6AnBMLsjd-gS0lJINJm1PbHDDOWjzfDzhbS2MJNbBsVTh6PevbtayBp-fO","y":"4W7yjBUY4N7LrgFAEArYBmiQ7eyQvJan9kJLwTKG2PG0VUHqO9gBQzjp4R6qAfTi","kid":"core-org-es384-dev-a","alg":"ES384","use":"sig"}]
 # WebAuthn
 TRUSTED_ORIGINS=https://id.umaxica.app,https://id.umaxica.org,https://id.umaxica.com
 WEBAUTHN_APP_RP_ID=id.umaxica.app

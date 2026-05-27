@@ -8,7 +8,7 @@ module Redirects
     REGISTRY = {
       rp_app: { env: "RP_APP_URL", default: "https://rp.app.localhost" },
       idp: { env: "ID_CORPORATE_URL", default: "https://id.com.localhost" },
-      jump: { env: "JUMP_CORPORATE_URL", default: "https://jump.com.localhost" },
+      jump: { env: "JUMP_GATEWAY_URL", default: "https://jump.umaxica.net" },
     }.freeze
 
     def self.call(key, path: "/", query: {}, source: :explicit_xt)

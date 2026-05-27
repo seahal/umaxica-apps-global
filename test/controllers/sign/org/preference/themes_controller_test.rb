@@ -24,7 +24,10 @@ module Sign
           assert_response :ok
           assert_equal "dr", response.parsed_body.dig("preference", "ct")
           assert_equal "ja", response.parsed_body.dig("preference", "lx")
-          assert_includes response.headers["Set-Cookie"].to_s, "#{::Preference::CookieName.access}="
+          assert_includes(
+            response.headers["Set-Cookie"].to_s,
+            "#{::Preference::CookieName.access(surface: :org)}=",
+          )
 
           @staff.staff_preference.reload
 

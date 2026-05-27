@@ -188,8 +188,8 @@ module Preference
 
     def resource_preference_association_prefix(resource_pref)
       case resource_pref
-      when ClientPreference then "user_preference"
-      when OperatorPreference then "staff_preference"
+      when ClientPreference then "client_preference"
+      when OperatorPreference then "operator_preference"
       when VisitorPreference then "visitor_preference"
       else
         resource_pref.class.name.underscore
@@ -229,7 +229,10 @@ module Preference
       association_prefix = preference.class.name.underscore
 
       Preference::ClassRegistry::CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
-        child = preference.public_send("#{association_prefix}_#{type}")
+        association_name = "#{association_prefix}_#{type}"
+        next unless preference.respond_to?(association_name)
+
+        child = preference.public_send(association_name)
         value = child&.option&.name
         value = value&.downcase if %i(language region currency).include?(type)
         value = colortheme_short_code(value) if type == :theme
@@ -250,7 +253,10 @@ module Preference
       end
 
       association_prefix = preference.class.name.underscore
-      cookie = preference.public_send("#{association_prefix}_cookie")
+      cookie_name = "#{association_prefix}_cookie"
+      return default_preference_cookie_state unless preference.respond_to?(cookie_name)
+
+      cookie = preference.public_send(cookie_name)
       return default_preference_cookie_state if cookie.blank?
 
       {

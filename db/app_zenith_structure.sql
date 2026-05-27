@@ -165,7 +165,7 @@ ALTER SEQUENCE public.client_profiles_id_seq OWNED BY public.client_profiles.id;
 -- Name: core_app_client_bridges; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.core_app_client_bridges (
+CREATE UNLOGGED TABLE public.core_app_client_bridges (
     id bigint NOT NULL,
     client_id bigint NOT NULL,
     public_id character varying DEFAULT ''::character varying NOT NULL,
@@ -182,7 +182,7 @@ CREATE TABLE public.core_app_client_bridges (
 -- Name: core_app_client_bridges_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.core_app_client_bridges_id_seq
+CREATE UNLOGGED SEQUENCE public.core_app_client_bridges_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE

@@ -4,12 +4,10 @@
 module Sign
   module Org
     class JwksController < BareController
-      AUTHENTICATION_MODE = :bare
+      include Authentication::JwksRendering
 
-      def show
-        expires_in(1.hour, public: true)
-        render json: ::Oidc::JwksService.jwk_set
-      end
+      AUTHENTICATION_MODE = :bare
+      JWT_KEY_NAMESPACE = "SIGN_ORG"
     end
   end
 end

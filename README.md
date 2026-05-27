@@ -109,6 +109,63 @@ needed.
 | Sign    | `http://id.{org,com,app}.localhost:3001`   |
 | Jump    | `http://jump.{app,com,org}.localhost:3001` |
 
+## コード品質
+
+本プロジェクトのコード品質は、ISO/IEC 25010 の System / Software Product Quality モデルに基づいて整理する。以降の `Linting and Formatting` / `Testing` / `Security and Quality Checks` は、この品質特性をそれぞれ運用面で支えるための具体的手段に対応する。
+
+```mermaid
+flowchart LR
+  Q["System / Software Product Quality"]
+
+  Q --> FS["Functional Suitability"]
+  Q --> PE["Performance Efficiency"]
+  Q --> C["Compatibility"]
+  Q --> U["Usability"]
+  Q --> R["Reliability"]
+  Q --> S["Security"]
+  Q --> M["Maintainability"]
+  Q --> P["Portability"]
+
+  FS --> FS1["Functional Completeness"]
+  FS --> FS2["Functional Correctness"]
+  FS --> FS3["Functional Appropriateness"]
+
+  PE --> PE1["Time Behaviour"]
+  PE --> PE2["Resource Utilization"]
+  PE --> PE3["Capacity"]
+
+  C --> C1["Co-existence"]
+  C --> C2["Interoperability"]
+
+  U --> U1["Appropriateness Recognizability"]
+  U --> U2["Learnability"]
+  U --> U3["Operability"]
+  U --> U4["User Error Protection"]
+  U --> U5["User Interface Aesthetics"]
+  U --> U6["Accessibility"]
+
+  R --> R1["Maturity"]
+  R --> R2["Availability"]
+  R --> R3["Fault Tolerance"]
+  R --> R4["Recoverability"]
+
+  S --> S1["Confidentiality"]
+  S --> S2["Integrity"]
+  S --> S3["Non-repudiation"]
+  S --> S4["Accountability"]
+  S --> S5["Authenticity"]
+
+  M --> M1["Modularity"]
+  M --> M2["Reusability"]
+  M --> M3["Analysability"]
+  M --> M4["Modifiability"]
+  M --> M5["Testability"]
+
+  P --> P1["Adaptability"]
+  P --> P2["Installability"]
+  P --> P3["Replaceability"]
+```
+
 ## Linting and Formatting
 
 ```bash

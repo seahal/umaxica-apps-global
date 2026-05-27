@@ -11,7 +11,7 @@ module Oidc
 
     def create
       log_out
-      redirect_to_xt_url(oidc_logout_url, allowed_urls: [oidc_logout_url])
+      redirect_to_jump_url(oidc_logout_url)
     end
 
     private
@@ -19,7 +19,7 @@ module Oidc
     def oidc_logout_url
       ri = params[:ri].presence || "jp"
       uri = URI::Generic.build(
-        scheme: request.ssl? ? "https" : "http",
+        scheme: oidc_sign_scheme,
         host: oidc_sign_host,
         port: oidc_port,
         path: "/oidc/logout",
@@ -30,6 +30,12 @@ module Oidc
         ri: ri,
       }.to_query
       uri.to_s
+    end
+
+    def oidc_sign_scheme
+      return "http" if !request.ssl? && oidc_sign_host.to_s.end_with?(".localhost")
+
+      "https"
     end
   end
 end

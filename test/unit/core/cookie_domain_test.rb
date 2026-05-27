@@ -29,6 +29,12 @@ module Core
       end
     end
 
+    test "derives from request host when configured credential does not match non-localhost host" do
+      with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".app.localhost") do
+        assert_equal ".umaxica.app", Core::CookieDomain.for(surface: :app, request_host: "id.umaxica.app")
+      end
+    end
+
     test "returns host-only when credential is HOST_ONLY" do
       with_cookie_domain_credentials(COOKIE_DOMAIN_APP: "HOST_ONLY") do
         assert_nil Core::CookieDomain.for(surface: :app, request_host: "app.example.com")

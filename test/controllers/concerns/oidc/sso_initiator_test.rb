@@ -30,10 +30,15 @@ class OidcSsoInitiatorTestController < ApplicationController
   def oidc_callback_url
     "http://www.example.com/auth/callback"
   end
+
+  def jump_rt_issuer_namespace
+    "ACME_APP"
+  end
 end
 
 class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
   setup do
+    load_jump_rt_env!
     Rails.application.routes.draw do
       get "/oidc/sso" => "oidc_sso_initiator_test#index"
     end
@@ -47,8 +52,10 @@ class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
     get "/oidc/sso"
 
     assert_response :redirect
-    assert_match %r{\Ahttp://id\.app\.localhost/oauth/authorize\?}, response.location
-    assert_match %r{/auth/callback\z}, CGI.unescape(response.location[/redirect_uri=([^&]+)/, 1])
+    location = jump_rt_url_from_location(response.location)
+
+    assert_match %r{\Ahttp://id\.app\.localhost/oauth/authorize\?}, location
+    assert_match %r{/auth/callback\z}, CGI.unescape(location[/redirect_uri=([^&]+)/, 1])
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?
     assert_equal "/oidc/sso", session[:oidc_pt]

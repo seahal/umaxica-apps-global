@@ -28,6 +28,9 @@ class Common::RedirectTest < ActiveSupport::TestCase
 
     assert_includes controller.private_methods, :jump_to_generated_url
     assert_not controller.public_methods.include?(:jump_to_generated_url)
+
+    assert_includes controller.private_methods, :redirect_to_jump_rt
+    assert_not controller.public_methods.include?(:redirect_to_jump_rt)
   end
 
   test "allowed_hosts is public on including controller" do
@@ -135,5 +138,76 @@ class Common::RedirectTest < ActiveSupport::TestCase
 
     assert_not_nil encoded
     assert_equal "/safe?a=1", redirect_helper.send(:safe_return_path, Base64.urlsafe_decode64(encoded))
+  end
+
+  test "redirect_to_jump_rt redirects through dedicated jump gateway" do
+    controller = redirect_helper
+    redirects = []
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
+      controller.send(:redirect_to_jump_rt, "aaa.bbb.ccc")
+    end
+
+    assert_equal [["https://jump.umaxica.net/?rt=aaa.bbb.ccc", { allow_other_host: true }]], redirects
+  end
+
+  test "redirect_to_jump_rt rejects malformed token" do
+    controller = redirect_helper
+    renders = []
+    controller.define_singleton_method(:render) { |**kwargs| renders << kwargs }
+    controller.define_singleton_method(:request) { Struct.new(:request_id).new("request-id") }
+
+    controller.send(:redirect_to_jump_rt, "not-a-jwt")
+
+    assert_equal :unprocessable_content, renders.first.fetch(:status)
+  end
+
+  test "redirect_to_jump_url issues token using controller namespace" do
+    controller =
+      Class.new(ApplicationController) do
+        include Common::Redirect
+
+        def self.name = "Sign::App::HarnessController"
+      end.new
+    redirects = []
+    private_key = OpenSSL::PKey::EC.generate("secp384r1")
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
+      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+    ) do
+      JumpRt::Keyring.stub(:private_key, private_key) do
+        controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")
+      end
+    end
+
+    location = redirects.first.first
+    uri = URI.parse(location)
+    token = Rack::Utils.parse_query(uri.query).fetch("rt")
+    payload, header = JWT.decode(token, nil, false)
+
+    assert_equal "https", uri.scheme
+    assert_equal "jump.umaxica.net", uri.host
+    assert_equal "ES384", header["alg"]
+    assert_equal "sign-app-es384-test-a", header["kid"]
+    assert_equal "https://id.umaxica.app", payload["iss"]
+    assert_equal "https://www.umaxica.app/dashboard", payload["url"]
+    assert_equal({ allow_other_host: true }, redirects.first.last)
+  end
+
+  def with_env(values)
+    previous = values.transform_values { |_value| nil }
+    values.each do |key, value|
+      previous[key] = ENV[key]
+      ENV[key] = value
+    end
+    yield
+  ensure
+    previous.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
   end
 end

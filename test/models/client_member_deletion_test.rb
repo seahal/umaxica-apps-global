@@ -62,7 +62,7 @@ class ClientMemberDeletionTest < ActiveSupport::TestCase
     )
 
     assert_not duplicate.valid?
-    assert_includes duplicate.errors[:member_id], "はすでに存在します"
+    assert_includes duplicate.errors[:member_id], I18n.t("errors.messages.taken")
   end
 
   test "allows different members for same user" do

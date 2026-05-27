@@ -20,7 +20,12 @@ module Core
       return derive_from_host(request_host) if localhost_host?(host.to_s)
 
       configured = Rails.app.creds.option(SURFACE_CREDENTIAL_KEYS.fetch(surface.to_sym))&.strip
-      return normalize_configured(configured) if configured.present?
+      if configured.present?
+        return nil if configured.casecmp?(HOST_ONLY)
+
+        configured_domain = normalize_configured(configured)
+        return configured_domain if configured_domain.present? && domain_matches_host?(configured_domain, host)
+      end
 
       derive_from_host(request_host)
     end
@@ -67,6 +72,14 @@ module Core
       ".#{parts.last(2).join(".")}"
     end
     private_class_method :localhost_cookie_domain
+
+    def domain_matches_host?(domain, host)
+      normalized_domain = normalize_host(domain)
+      return false if normalized_domain.blank? || host.blank?
+
+      host == normalized_domain || host.end_with?(".#{normalized_domain}")
+    end
+    private_class_method :domain_matches_host?
 
     # SECURITY NOTE: Scoping cookies to the apex domain (e.g., ".example.com") is intentional
     # for cross-subdomain SSO. This means auth cookies are readable by ALL subdomains.

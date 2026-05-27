@@ -36,7 +36,10 @@ module Sign
           assert_response :ok
           assert response.parsed_body.dig("preference", "consented")
           assert response.parsed_body.dig("preference", "functional")
-          assert_includes response.headers["Set-Cookie"].to_s, "#{::Preference::CookieName.access}="
+          assert_includes(
+            response.headers["Set-Cookie"].to_s,
+            "#{::Preference::CookieName.access(surface: :org)}=",
+          )
 
           @staff.staff_preference.reload
 

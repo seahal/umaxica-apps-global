@@ -46,6 +46,24 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
     end
   end
 
+  test "jump registry points at jump gateway url" do
+    with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
+      result = Redirects::ExternalTargetResolver.call(:jump, path: "/")
+
+      assert_predicate result, :ok?
+      assert_equal "https://jump.umaxica.net/", result.value
+    end
+  end
+
+  test "generic external redirect still strips rt query" do
+    with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
+      result = Redirects::ExternalTargetResolver.call(:jump, path: "/", query: { rt: "aaa.bbb.ccc", ok: "1" })
+
+      assert_predicate result, :ok?
+      assert_equal "https://jump.umaxica.net/?ok=1", result.value
+    end
+  end
+
   private
 
   def with_env(values)

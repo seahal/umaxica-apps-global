@@ -3,7 +3,12 @@
 
 scope module: :jump, as: :jump do
   def exact_host_constraint(*hosts)
-    /\A(?:#{hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
+    normalized_hosts = hosts.filter_map { |host| normalize_route_host(host) }
+    /\A(?:#{normalized_hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
+  end
+
+  def normalize_route_host(host)
+    host.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first.presence
   end
 
   jump_app_host = exact_host_constraint(
@@ -25,6 +30,7 @@ scope module: :jump, as: :jump do
   constraints host: jump_app_host do
     scope module: :app, as: :app do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Health
       resource :health, only: :show
       # CSP violation reporting
@@ -35,6 +41,7 @@ scope module: :jump, as: :jump do
   constraints host: jump_com_host do
     scope module: :com, as: :com do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Health
       resource :health, only: :show
       # CSP violation reporting
@@ -45,6 +52,7 @@ scope module: :jump, as: :jump do
   constraints host: jump_org_host do
     scope module: :org, as: :org do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Health
       resource :health, only: :show
       # CSP violation reporting

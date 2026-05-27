@@ -21,7 +21,7 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    assert_equal new_sign_app_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
+    assert_equal new_sign_app_in_url(ri: "jp", host: @host, protocol: "https"), redirect_without_rt(response.location)
     assert_equal edit_sign_app_out_path(ri: "jp"), verified_redirect_return_to(response.location, "app")
   end
 
@@ -100,7 +100,7 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
   test "destroy without session redirects to sign in" do
     delete sign_app_out_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_equal new_sign_app_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
+    assert_equal new_sign_app_in_url(ri: "jp", host: @host, protocol: "https"), redirect_without_rt(response.location)
     assert_equal sign_app_out_path(ri: "jp"), verified_redirect_return_to(response.location, "app")
   end
 
@@ -128,7 +128,7 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::LOGGED_OUT).count } do
       post sign_app_out_url(ri: "jp"), headers: { "Host" => @host }, params: { confirm: "1" }
     end
-    assert_equal new_sign_app_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
+    assert_equal new_sign_app_in_url(ri: "jp", host: @host, protocol: "https"), redirect_without_rt(response.location)
     assert_equal sign_app_out_path(ri: "jp"), verified_redirect_return_to(response.location, "app")
   end
 

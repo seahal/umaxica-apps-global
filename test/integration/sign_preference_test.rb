@@ -12,7 +12,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
   DOMAINS = [
     {
       name: "app",
-      host: "id.app.localhost",
+      host: ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app"),
       scope: "apex.app.preferences",
       preference_model: AppPreference,
       audit_class: AppPreferenceChronicle,
@@ -20,7 +20,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     },
     {
       name: "org",
-      host: "id.org.localhost",
+      host: ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"),
       scope: "apex.org.preferences",
       preference_model: OrgPreference,
       audit_class: OrgPreferenceChronicle,
@@ -28,7 +28,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     },
     {
       name: "com",
-      host: "id.com.localhost",
+      host: ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"),
       scope: "apex.com.preferences",
       preference_model: ComPreference,
       audit_class: ComPreferenceChronicle,
@@ -557,7 +557,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
   end
 
   test "org extended region preference edit pages show top localized back link" do
-    host!("id.org.localhost")
+    host!(DOMAINS.second[:host])
 
     assert_preference_created(DOMAINS.second)
     state = { ri: "us", lx: "ja" }
@@ -581,9 +581,9 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
   end
 
   test "app extended display and accessibility preference edit pages allow signed-in clients" do
-    host!("id.app.localhost")
+    host!(DOMAINS.first[:host])
     user = clients(:one)
-    headers = as_user_headers(user, host: "id.app.localhost")
+    headers = as_user_headers(user, host: DOMAINS.first[:host])
 
     [
       edit_sign_app_preference_accessibility_motion_url(ri: "jp"),
@@ -612,7 +612,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
   end
 
   test "app extended region preference edit pages do not write missing child records" do
-    host!("id.app.localhost")
+    host!(DOMAINS.first[:host])
     pref, = assert_preference_created(DOMAINS.first)
 
     Prosopite.pause do

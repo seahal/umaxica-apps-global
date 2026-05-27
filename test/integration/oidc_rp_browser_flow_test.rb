@@ -27,6 +27,13 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       }, },
   ].freeze
 
+  setup do
+    load_jump_rt_env!
+    ClientIdentityState.ensure_defaults!
+    VisitorIdentityState.ensure_defaults!
+    OperatorIdentityState.ensure_defaults!
+  end
+
   test "app com and org sso authorize redirects to IdP with state nonce and PKCE" do
     SURFACES.each do |surface|
       host! surface[:host]
@@ -34,7 +41,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/sso/authorize", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(response.location)
+      uri = URI.parse(jump_rt_url_from_location(response.location))
       query = Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal surface[:sign_host], uri.host
@@ -100,7 +107,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "callback rejects nonce mismatch" do
     host! "www.app.localhost"
     get "/sso/authorize", headers: browser_headers
-    state = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("state")
+    state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
     id_token = Oidc::IdTokenIssuer.call(
       resource: clients(:one),
       client: Oidc::ClientRegistry.find!("apex_app"),
@@ -125,7 +132,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       host! surface[:host]
       get "/sso/authorize", headers: browser_headers
 
-      state = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("state")
+      state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
       id_token = Oidc::IdTokenIssuer.call(
         resource: resource,
@@ -160,7 +167,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       post "/sso/logout", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(response.location)
+      uri = URI.parse(jump_rt_url_from_location(response.location))
       query = Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal surface[:sign_host], uri.host

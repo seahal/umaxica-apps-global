@@ -8,14 +8,15 @@ unless Rails.application.routes.draw_paths.include?(routing_draw_path)
 end
 
 Rails.application.routes.draw do
+  constraints host: /\A(?:.*\.)?(?:example\.com|example\.org)\z/ do
+    root to: "inertia_example#index"
+  end
+
   # Global application entrypoints
   # BFF
-  draw :apex
+  draw :acme
   # sign in / up
   draw :sign
-  # Jump Page
-  draw :jump
-
   # Regional application entrypoints
   draw :core
   draw :line

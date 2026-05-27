@@ -3,6 +3,7 @@
 
 module Preference::Core
   extend ActiveSupport::Concern
+  include Common::Redirect
   include Preference::Base
   include Preference::ResourceSync
 
@@ -396,18 +397,6 @@ module Preference::Core
     ).permit(:option_id)
   end
 
-  def preference_child_class_suffix(type)
-    {
-      currency: "Currency",
-      date_format: "DateFormat",
-      time_format: "TimeFormat",
-      motion: "Motion",
-      density: "Density",
-      items_per_page: "ItemsPerPage",
-      r18_display_stopper: "R18DisplayStopper",
-    }.fetch(type.to_sym)
-  end
-
   def load_or_build_selectable_preference_child(type)
     type = type.to_sym
     association_name = :"#{preference_prefix_underscore}_#{type}"
@@ -437,7 +426,10 @@ module Preference::Core
     association_prefix = preference.class.name.underscore
 
     Preference::ClassRegistry::CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
-      child = preference.public_send("#{association_prefix}_#{type}")
+      association_name = "#{association_prefix}_#{type}"
+      next unless preference.respond_to?(association_name)
+
+      child = preference.public_send(association_name)
       value = child&.option&.name
       value = value&.downcase if %i(language region currency).include?(type)
       value = colortheme_short_code(value) if type == :theme
@@ -458,7 +450,10 @@ module Preference::Core
     end
 
     association_prefix = preference.class.name.underscore
-    cookie = preference.public_send("#{association_prefix}_cookie")
+    cookie_name = "#{association_prefix}_cookie"
+    return default_preference_cookie_state unless preference.respond_to?(cookie_name)
+
+    cookie = preference.public_send(cookie_name)
     return default_preference_cookie_state if cookie.blank?
 
     {
@@ -650,6 +645,10 @@ module Preference::Core
     @preferences = nil
     @preference_payload = nil
     @refresh_token_value = nil
+  end
+
+  def safe_return_to_path
+    safe_return_path(params[:return_to])
   end
 
   def preference_surface_key

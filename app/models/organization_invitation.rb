@@ -34,8 +34,6 @@ class OrganizationInvitation < OrgTicketRecord
   validates :code, presence: true, uniqueness: true
   validates :email, presence: true
   validates :organization_id, presence: true
-  validates :invited_by, presence: true
-  validates :invited_by_id, presence: true
   validates :expires_at, presence: true
 
   before_validation :generate_code, on: :create

@@ -295,7 +295,7 @@ ALTER SEQUENCE public.bureaus_id_seq OWNED BY public.bureaus.id;
 -- Name: core_org_operator_bridges; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.core_org_operator_bridges (
+CREATE UNLOGGED TABLE public.core_org_operator_bridges (
     id bigint NOT NULL,
     operator_id bigint NOT NULL,
     public_id character varying DEFAULT ''::character varying NOT NULL,
@@ -312,7 +312,7 @@ CREATE TABLE public.core_org_operator_bridges (
 -- Name: core_org_operator_bridges_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.core_org_operator_bridges_id_seq
+CREATE UNLOGGED SEQUENCE public.core_org_operator_bridges_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE

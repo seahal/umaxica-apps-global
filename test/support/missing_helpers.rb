@@ -335,22 +335,24 @@ module MissingHelpers
     visitor.reload
   end
 
-  def satisfy_user_verification(token)
+  def satisfy_user_verification(token, scope: nil)
     _verification, raw_token = ClientVerification.issue_for_token!(token: token)
     cookies[ClientVerification.cookie_name] = raw_token
+    verification_scope = scope.presence || token.last_step_up_scope.presence || "verification"
     token.update_columns(
       last_step_up_at: Time.current,
-      last_step_up_scope: "verification",
+      last_step_up_scope: verification_scope,
       updated_at: Time.current,
     )
   end
 
-  def satisfy_staff_verification(token)
+  def satisfy_staff_verification(token, scope: nil)
     _verification, raw_token = OperatorVerification.issue_for_token!(token: token)
     cookies[OperatorVerification.cookie_name] = raw_token
+    verification_scope = scope.presence || token.last_step_up_scope.presence || "verification"
     token.update_columns(
       last_step_up_at: Time.current,
-      last_step_up_scope: "verification",
+      last_step_up_scope: verification_scope,
       updated_at: Time.current,
     )
   end
@@ -499,6 +501,8 @@ module MissingHelpers
     ClientStatus.find_or_create_by!(id: ClientStatus::NOTHING)
     ClientVisibility.find_or_create_by!(id: ClientVisibility::USER)
     ClientMultiFactor.find_or_create_by!(id: ClientMultiFactor::NOTHING)
+    ClientMultiFactorStatus.find_or_create_by!(id: ClientMultiFactorStatus::NOTHING)
+    ClientMultiFactorStatus.find_or_create_by!(id: ClientMultiFactorStatus::ACTIVE)
     ClientMultiFactorStatus.find_or_create_by!(id: ClientMultiFactorStatus::UNCONFIGURED)
     ClientEmailStatus.find_or_create_by!(id: ClientEmailStatus::VERIFIED)
     ClientTelephoneStatus.find_or_create_by!(id: ClientTelephoneStatus::VERIFIED)

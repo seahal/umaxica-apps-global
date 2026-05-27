@@ -1039,7 +1039,10 @@ module Preference
     def preference_payload_option_ids(preference, association_prefix)
       %i(language region timezone theme currency date_format time_format motion density
          items_per_page r18_display_stopper).index_with do |type|
-        preference.public_send("#{association_prefix}_#{type}")&.option_id
+        association_name = "#{association_prefix}_#{type}"
+        next unless preference.respond_to?(association_name)
+
+        preference.public_send(association_name)&.option_id
       end
     end
 
@@ -1069,7 +1072,13 @@ module Preference
     end
 
     def preference_cookie_consent_state(preference, association_prefix)
-      cookie = preference.public_send("#{association_prefix}_cookie")
+      cookie_name = "#{association_prefix}_cookie"
+      return { consented: false,
+               functional: false,
+               performant: false,
+               targetable: false, } unless preference.respond_to?(cookie_name)
+
+      cookie = preference.public_send(cookie_name)
       return { consented: false, functional: false, performant: false, targetable: false } if cookie.blank?
 
       {
@@ -1337,6 +1346,18 @@ module Preference
       opts = preference_cookie_options(expires_at: nil, httponly: true)
       opts.delete(:expires)
       opts
+    end
+
+    def preference_child_class_suffix(type)
+      {
+        currency: "Currency",
+        date_format: "DateFormat",
+        time_format: "TimeFormat",
+        motion: "Motion",
+        density: "Density",
+        items_per_page: "ItemsPerPage",
+        r18_display_stopper: "R18DisplayStopper",
+      }.fetch(type.to_sym)
     end
 
     def preference_associations_to_preload

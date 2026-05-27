@@ -2,7 +2,12 @@
 # frozen_string_literal: true
 
 def core_exact_host_constraint(*hosts)
-  /\A(?:#{hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
+  normalized_hosts = hosts.filter_map { |host| core_normalize_route_host(host) }
+  /\A(?:#{normalized_hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
+end
+
+def core_normalize_route_host(host)
+  host.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first.presence
 end
 
 core_app_host = core_exact_host_constraint(
@@ -19,6 +24,7 @@ scope module: :core, as: :core do
   constraints host: core_app_host do
     scope module: :app, as: :app do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       resource :health, only: :show
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -55,6 +61,7 @@ scope module: :core, as: :core do
   constraints host: core_com_host do
     scope module: :com, as: :com do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       resource :health, only: :show
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -91,6 +98,7 @@ scope module: :core, as: :core do
   constraints host: core_org_host do
     scope module: :org, as: :org do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       resource :health, only: :show
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"

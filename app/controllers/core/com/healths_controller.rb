@@ -3,7 +3,14 @@
 
 module Core
   module Com
-    class HealthsController < Apex::Com::HealthsController
+    class HealthsController < BareController
+      include ::Health
+
+      AUTHENTICATION_MODE = :bare
+
+      def show
+        show_plain_text
+      end
     end
   end
 end

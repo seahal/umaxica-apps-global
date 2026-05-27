@@ -45,6 +45,16 @@ Controllers MUST NOT:
 - Policies: authorization
 - Concerns: cross-cutting behavior
 
+Rails concerns MUST stay small and low side-effect:
+
+- Define reusable behavior in the concern.
+- Do not make including a concern install callbacks, expose helpers, mutate sessions/cookies/state,
+  change authorization, or trigger other runtime side effects unless an existing, reviewed pattern
+  explicitly requires it.
+- Make the including controller, model, service, or other class opt in to side effects explicitly.
+- Keep concern methods private by default. Expose public methods only when the including class or
+  external callers need a stable public contract, and make that boundary intentional.
+
 ## Working Notes
 
 - Use `notes/implementation/` for implementation decisions, plan deviations, compromises, and

@@ -41,6 +41,7 @@ Current request-context decisions:
 Current logging / observability decisions:
 
 - `adr/application-logging-boundary.md`
+- `adr/traces-and-metrics-routing-via-alloy.md`
 
 Current localization decisions:
 
@@ -90,6 +91,7 @@ Current retention / deletion decisions:
 Current repository / application boundary decisions:
 
 - `adr/split-into-regional-and-global-repos.md`
+- `adr/acme-rp-boundary-naming.md`
 
 Historical engine-era ADRs are retained for traceability only. They do not authorize reintroducing
 `engines/`, wrapper apps under `apps/<name>`, `Jit::<EngineName>` namespaces, or `isolate_namespace`

@@ -3,7 +3,14 @@
 
 module Core
   module App
-    class SitemapsController < Apex::App::SitemapsController
+    class SitemapsController < BareController
+      include ::Sitemap
+
+      AUTHENTICATION_MODE = :bare
+
+      def show
+        show_xml
+      end
     end
   end
 end

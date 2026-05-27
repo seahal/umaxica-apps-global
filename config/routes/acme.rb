@@ -2,7 +2,12 @@
 # frozen_string_literal: true
 
 def exact_host_constraint(*hosts)
-  /\A(?:#{hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
+  normalized_hosts = hosts.filter_map { |host| normalize_route_host(host) }
+  /\A(?:#{normalized_hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
+end
+
+def normalize_route_host(host)
+  host.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first.presence
 end
 
 apex_app_host = exact_host_constraint(
@@ -22,6 +27,7 @@ scope module: :apex, as: :apex do
   constraints host: apex_app_host do
     scope module: :app, as: :app do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Health
       resource :health, only: :show
       # Robots
@@ -74,6 +80,7 @@ scope module: :apex, as: :apex do
   constraints host: apex_com_host do
     scope module: :com, as: :com do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Health
       resource :health, only: :show
       # Robots
@@ -113,6 +120,7 @@ scope module: :apex, as: :apex do
   constraints host: apex_org_host do
     scope module: :org, as: :org do
       root to: "roots#index"
+      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Health
       resource :health, only: :show
       # Robots

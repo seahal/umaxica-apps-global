@@ -68,7 +68,7 @@ module Authentication
       new_sign_org_in_url(
         pt: return_to,
         host: sign_org_redirect_host,
-        protocol: request.protocol,
+        protocol: "https",
       )
     end
 

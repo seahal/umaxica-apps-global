@@ -115,7 +115,7 @@ module Authentication
       new_sign_com_in_url(
         pt: return_to,
         host: sign_com_redirect_host,
-        protocol: request.protocol,
+        protocol: "https",
       )
     end
 

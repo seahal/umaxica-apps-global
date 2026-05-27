@@ -26,6 +26,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   ].freeze
 
   setup do
+    load_jump_rt_env!
     ClientIdentityState.ensure_defaults!
     VisitorIdentityState.ensure_defaults!
     OperatorIdentityState.ensure_defaults!
@@ -65,7 +66,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/sso/authorize", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(response.location)
+      uri = URI.parse(jump_rt_url_from_location(response.location))
       query = Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal surface[:sign_host], uri.host
@@ -86,7 +87,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/accounts?ri=jp", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(response.location)
+      uri = URI.parse(jump_rt_url_from_location(response.location))
       query = Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal surface[:sign_host], uri.host
@@ -102,7 +103,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       https!
       get "/sso/authorize", headers: browser_headers
 
-      state = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("state")
+      state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
       id_token = Oidc::IdTokenIssuer.call(
         resource: resource,
@@ -138,7 +139,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       post "/sso/logout", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(response.location)
+      uri = URI.parse(jump_rt_url_from_location(response.location))
       query = Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal surface[:sign_host], uri.host
@@ -163,10 +164,13 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   def assert_core_bridge_exists_for(client_id, resource)
     case client_id
     when "core_app"
+
       assert_predicate CoreAppClientBridge.find_by!(client_id: resource.id), :core?
     when "core_org"
+
       assert_predicate CoreOrgOperatorBridge.find_by!(operator_id: resource.id), :core?
     when "core_com"
+
       assert_predicate CoreComVisitorBridge.find_by!(visitor_id: resource.id), :core?
     else
       flunk("unexpected core client_id: #{client_id}")

@@ -133,7 +133,7 @@ ALTER SEQUENCE public.company_units_id_seq OWNED BY public.company_units.id;
 -- Name: core_com_visitor_bridges; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.core_com_visitor_bridges (
+CREATE UNLOGGED TABLE public.core_com_visitor_bridges (
     id bigint NOT NULL,
     visitor_id bigint NOT NULL,
     public_id character varying DEFAULT ''::character varying NOT NULL,
@@ -150,7 +150,7 @@ CREATE TABLE public.core_com_visitor_bridges (
 -- Name: core_com_visitor_bridges_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.core_com_visitor_bridges_id_seq
+CREATE UNLOGGED SEQUENCE public.core_com_visitor_bridges_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE

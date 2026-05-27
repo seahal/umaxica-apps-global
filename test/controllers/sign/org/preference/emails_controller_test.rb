@@ -20,6 +20,13 @@ module Sign
           )
           @token = @email.promotional_unsubscribe_token
           host! @host
+          CloudflareTurnstile.test_mode = true
+          CloudflareTurnstile.test_validation_response = { "success" => true }
+        end
+
+        teardown do
+          CloudflareTurnstile.test_mode = false
+          CloudflareTurnstile.test_validation_response = nil
         end
 
         test "controller uses bare unsubscribe boundary" do

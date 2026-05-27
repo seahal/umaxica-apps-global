@@ -622,9 +622,8 @@ module Authentication
         )
         pt = issue_authentication_path_target_token(request.fullpath)
         url = sign_in_url_with_pt(pt)
-        redirect_to_xt_url(
+        redirect_to_jump_url(
           url,
-          allowed_urls: [url],
           alert: I18n.t("errors.messages.login_required"),
         )
       end
@@ -2057,7 +2056,6 @@ module Authentication
 
     def pending_sign_in_result_after_primary!(resource, pt:, record_login_audit:, token_kind_id:,
                                               audit_context:, bootstrap_actor:)
-      _ = [record_login_audit, token_kind_id, audit_context]
       return { status: :login_forbidden } unless resource.login_allowed?
 
       check_login_cooldown!(resource)
@@ -2073,7 +2071,17 @@ module Authentication
         return { status: :success, session_management_required: true, redirect_path: session_management_path }
       end
 
-      { status: :success, redirect_path: sign_in_sequence_redirect_path(pt: pt) }
+      result = log_in(
+        resource,
+        record_login_audit: record_login_audit,
+        token_kind_id: token_kind_id,
+        require_totp_check: false,
+        audit_context: audit_context,
+        bootstrap_actor: bootstrap_actor,
+      )
+      return result unless result[:status] == :success
+
+      result.merge(redirect_path: sign_in_sequence_redirect_path(pt: pt))
     end
 
     def check_login_cooldown!(resource)
@@ -2434,6 +2442,10 @@ module Authentication
       safe_internal_path(candidate)
     end
 
+    def resolve_mfa_return_to(raw_value)
+      resolve_mfa_pt(raw_value)
+    end
+
     def decode_base64_urlsafe(value)
       Base64.urlsafe_decode64(value.to_s)
     rescue ArgumentError
@@ -2469,7 +2481,7 @@ module Authentication
         end
       message = options[:message] || I18n.t("errors.messages.login_required")
       if path.match?(%r{\Ahttps?://}i)
-        redirect_to_xt_url(path, allowed_urls: [path], alert: message)
+        redirect_to_jump_url(path, alert: message)
       else
         redirect_to(path, allow_other_host: false, alert: message)
       end

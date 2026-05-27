@@ -313,7 +313,12 @@ module Authentication
     end
 
     def authentication_pt_session_nonce
-      session[:authentication_pt_nonce] ||= SecureRandom.urlsafe_base64(24)
+      session[:authentication_pt_nonce] ||= session[:authentication_return_target_nonce] || SecureRandom.urlsafe_base64(24)
+      session[:authentication_return_target_nonce] ||= session[:authentication_pt_nonce]
+    end
+
+    def authentication_return_target_nonce
+      authentication_pt_session_nonce
     end
 
     def render_invalid_return_target!

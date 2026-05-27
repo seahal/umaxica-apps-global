@@ -54,6 +54,7 @@ module Preference::Global
     preferences = preference_payload_preferences
     context = {}
     context.merge!(preference_context_from_hash(preferences)) if preferences.present?
+    context.merge!(preference_context_from_record) if @preferences.present?
     context.compact
   end
 
@@ -150,6 +151,10 @@ module Preference::Global
     define_method(:"request_context_#{key}") do
       request_context_value(key)
     end
+  end
+
+  def request_context_rt
+    request_context_pt
   end
 
   def valid_ri_value?(value)
@@ -272,9 +277,11 @@ module Preference::Global
   end
 
   def set_timezone
-    timezone = Actor.preferences.timezone if defined?(Actor)
-    Time.zone = Actor.preferences.time_zone if defined?(Actor)
+    timezone = effective_context[:tz]
+    timezone = Actor.preferences.timezone if timezone.blank? && defined?(Actor)
     timezone_value = timezone.presence || Time.zone&.name
+    Time.zone = timezone_value if timezone_value.present?
+    session[:timezone] = timezone_value if timezone_value.present?
     write_preference_cookie(Preference::Base::TIMEZONE_COOKIE_KEY, timezone_value) if timezone_value.present?
   end
 end
