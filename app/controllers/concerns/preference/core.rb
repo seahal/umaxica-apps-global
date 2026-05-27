@@ -85,11 +85,12 @@ module Preference::Core
     return if @preference_timezone.option_id.blank?
 
     @preference_timezone.reload
-    timezone = option_id_to_timezone(@preference_timezone.option_id, preference_prefix)
-    timezone = submitted_timezone if submitted_timezone.to_s.include?("/")
-    Time.zone = timezone if timezone.present?
-    session[:timezone] = timezone if timezone.present?
-    write_preference_cookie(Preference::Base::TIMEZONE_COOKIE_KEY, timezone) if timezone.present?
+    timezone = resolved_writable_timezone(@preference_timezone, submitted_timezone)
+    return if timezone.blank?
+
+    Time.zone = timezone
+    session[:timezone] = timezone
+    write_preference_cookie(Preference::Base::TIMEZONE_COOKIE_KEY, timezone)
   rescue ArgumentError
     raise PreferenceOperationError
   end
@@ -197,6 +198,26 @@ module Preference::Core
 
   private
 
+  # Resolves the timezone that may be persisted to Time.zone / session / cookie.
+  # Only IANA names accepted by ActiveSupport::TimeZone may flow through; any
+  # raw submitted string must pass this whitelist before being trusted.
+  def resolved_writable_timezone(preference_record, submitted_value)
+    submitted = normalize_known_timezone(submitted_value)
+    return submitted if submitted.present?
+
+    normalize_known_timezone(option_id_to_timezone(preference_record.option_id, preference_prefix))
+  end
+
+  def normalize_known_timezone(value)
+    candidate = value.to_s.strip
+    return nil if candidate.blank?
+
+    zone = ActiveSupport::TimeZone[candidate]
+    return nil if zone.nil?
+
+    zone.tzinfo&.name || zone.name
+  end
+
   def load_or_refresh_preference_child(child_type, default_attributes = {})
     association_name = :"#{preference_prefix_underscore}_#{child_type.to_s.underscore}"
     @preferences ||= ensure_preferences_record
@@ -283,65 +304,6 @@ module Preference::Core
     }
   end
 
-  # Dual-write: when logged in, sync current AppPreference/ComPreference/OrgPreference values
-  # to the corresponding ClientPreference/VisitorPreference/OperatorPreference.
-  def sync_to_resource_preference!
-    return unless respond_to?(:current_resource, true)
-
-    resource = preference_current_resource
-    return if resource.blank?
-
-    resource_pref =
-      case preference_class.name
-      when "AppPreference" then resource.user_preference
-      when "ComPreference" then ensure_visitor_resource_preference_for_sync(resource)
-      when "OrgPreference" then resource.staff_preference
-      end
-    return if resource_pref.blank?
-
-    authorize!(resource_pref, to: :update?) if respond_to?(:authorize!, true)
-    sync_direct_resource_preference!(resource_pref)
-    copy_preference_values!(@preferences, resource_pref, resource_pref_prefix_for_sync)
-  rescue Preference::ResolutionError
-    raise
-  rescue StandardError => e
-    Rails.logger.info(LogEvent.format("preference.sync_to_resource.error", error: e.class.name, message: e.message))
-  end
-
-  def resource_pref_prefix_for_sync
-    case preference_class.name
-    when "AppPreference" then "Client"
-    when "ComPreference" then "Visitor"
-    when "OrgPreference" then "Operator"
-    end
-  end
-
-  def sync_direct_resource_preference!(resource_pref)
-    snapshot = preference_snapshot_for(@preferences)
-    cookie = resolved_preference_cookie(@preferences)
-    attrs = snapshot.merge(cookie).compact
-    return if attrs.blank?
-
-    resource_pref.update!(attrs)
-  end
-
-  def ensure_visitor_resource_preference_for_sync(resource)
-    return unless resource.respond_to?(:visitor_preference)
-
-    resource.visitor_preference || build_visitor_resource_preference_for_sync(resource)
-  end
-
-  def build_visitor_resource_preference_for_sync(resource)
-    preference = resource.create_visitor_preference
-    Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
-      Preference::ClassRegistry.record_class("Visitor", type).create!(
-        preference: preference,
-        option_id: Preference::ClassRegistry.default_option_id("Visitor", type),
-      )
-    end
-    preference.reload
-  end
-
   def preference_cookie_params
     return params.fetch(:preference_cookie, {}).permit(
       :functional, :performant, :targetable, :consented, :consented_at,
@@ -409,70 +371,6 @@ module Preference::Core
     )
   end
 
-  def resolved_preference_snapshot(preference)
-    return {} if preference.blank?
-
-    if preference.respond_to?(:language) &&
-        preference.respond_to?(:region) &&
-        preference.respond_to?(:timezone) &&
-        preference.respond_to?(:theme)
-      return Preference::ClassRegistry::CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
-        next unless preference.respond_to?(type)
-
-        snapshot[type] = preference.public_send(type)
-      end.compact
-    end
-
-    association_prefix = preference.class.name.underscore
-
-    Preference::ClassRegistry::CHILD_RECORD_TYPES.each_with_object({}) do |type, snapshot|
-      association_name = "#{association_prefix}_#{type}"
-      next unless preference.respond_to?(association_name)
-
-      child = preference.public_send(association_name)
-      value = child&.option&.name
-      value = value&.downcase if %i(language region currency).include?(type)
-      value = colortheme_short_code(value) if type == :theme
-      snapshot[type] = value if value.present?
-    end
-  end
-
-  def resolved_preference_cookie(preference)
-    return default_preference_cookie_state if preference.blank?
-
-    if preference.respond_to?(:consented)
-      return {
-        consented: !!preference.consented,
-        functional: !!preference.functional,
-        performant: !!preference.performant,
-        targetable: !!preference.targetable,
-      }
-    end
-
-    association_prefix = preference.class.name.underscore
-    cookie_name = "#{association_prefix}_cookie"
-    return default_preference_cookie_state unless preference.respond_to?(cookie_name)
-
-    cookie = preference.public_send(cookie_name)
-    return default_preference_cookie_state if cookie.blank?
-
-    {
-      consented: !!cookie.consented,
-      functional: !!cookie.functional,
-      performant: !!cookie.performant,
-      targetable: !!cookie.targetable,
-    }
-  end
-
-  def default_preference_cookie_state
-    {
-      consented: false,
-      functional: false,
-      performant: false,
-      targetable: false,
-    }
-  end
-
   def record_preference_write_error(event_name, error, target:)
     Rails.logger.info(
       LogEvent.format(
@@ -493,14 +391,15 @@ module Preference::Core
     resource&.id
   end
 
+  # Resolves the post-update redirect target carried by params[:pt].
+  # Delegates path validation to Common::Redirect so the same rules
+  # (no scheme, no host, no protocol-relative '//', no encoded backslash)
+  # apply consistently across the app.
   def safe_pt_path
-    return if params["pt"].blank?
+    raw = params["pt"]
+    return if raw.blank?
 
-    candidate = params.expect("pt").to_s
-    return unless candidate.start_with?("/")
-    return if candidate.start_with?("//")
-
-    candidate
+    safe_internal_path(raw.to_s)
   end
 
   def preference_edit_url(screen, params_hash = {})

@@ -296,5 +296,23 @@ module Preference
       when :r18_display_stopper then option::NOTHING
       end
     end
+
+    # Symbolic audit-event constants live on each surface's
+    # *PreferenceChronicleEvent class. The constant name is stable across
+    # surfaces, with one historical exception:
+    # UPDATE_PREFERENCE_COLORTHEME maps to UPDATE_PREFERENCE_THEME on the
+    # event class.
+    AUDIT_EVENT_NAME_REMAP = {
+      "UPDATE_PREFERENCE_COLORTHEME" => "UPDATE_PREFERENCE_THEME",
+    }.freeze
+
+    def audit_event_id_for(audit_event_class, event_name)
+      return event_name if event_name.is_a?(Integer)
+
+      constant_name = AUDIT_EVENT_NAME_REMAP.fetch(event_name.to_s, event_name.to_s)
+      return event_name unless audit_event_class.const_defined?(constant_name, false)
+
+      audit_event_class.const_get(constant_name)
+    end
   end
 end

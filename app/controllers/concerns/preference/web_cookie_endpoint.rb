@@ -110,7 +110,7 @@ module Preference
     end
 
     def refresh_token_value
-      params[Preference::IoKeys::Params::REFRESH_TOKEN].presence || cookies[refresh_token_cookie_name]
+      cookies[refresh_token_cookie_name]
     end
 
     def requested_consented_value

@@ -2,8 +2,7 @@
 
 ## Status
 
-Superseded by `adr/acme-rp-boundary-naming.md` and
-`plans/active/acme-rp-boundary-rename.md`.
+Superseded by `adr/acme-rp-boundary-naming.md` and `plans/active/acme-rp-boundary-rename.md`.
 
 ## Summary
 
@@ -20,8 +19,8 @@ or database connection renames. The inventory found no physical DB names contain
 - Remove Core controller inheritance from the RP boundary; do not carry `Core::* < Apex::*` forward
   as `Core::* < Acme::*`.
 - Keep runtime actor names fixed as `Client`, `Visitor`, and `Operator`.
-- Preserve the DB boundary: app records stay under `app_zenith`, com records under `com_zenith`,
-  and org records under `org_zenith`.
+- Preserve the DB boundary: app records stay under `app_zenith`, com records under `com_zenith`, and
+  org records under `org_zenith`.
 - Do not introduce compatibility aliases for old `apex` OIDC client ids or environment names unless
   implementation discovers a concrete local-data dependency.
 - Keep DNS apex-domain terminology unchanged.

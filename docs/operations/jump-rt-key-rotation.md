@@ -2,8 +2,8 @@
 
 ## Purpose
 
-This runbook manages ES384 signing keys used by Rails issuer surfaces to issue Jump redirect
-tokens for `https://jump.umaxica.net/?rt=<JWT>`.
+This runbook manages ES384 signing keys used by Rails issuer surfaces to issue Jump redirect tokens
+for `https://jump.umaxica.net/?rt=<JWT>`.
 
 Jump redirect tokens are not authentication tokens. JWT key management may share one naming and
 rotation model, but the Jump RT signing key material is scoped to each issuer FQDN surface.

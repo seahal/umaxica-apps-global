@@ -7,6 +7,10 @@ module Preference
 
     private
 
+    # Dual-write: when logged in, sync current AppPreference/ComPreference/OrgPreference
+    # values to the corresponding ClientPreference/VisitorPreference/OperatorPreference.
+    # Both direct columns and child option records are propagated so the resource
+    # preference is a complete mirror of the token preference.
     def sync_to_resource_preference!
       return unless respond_to?(:current_resource, true)
 
@@ -18,10 +22,18 @@ module Preference
 
       authorize!(resource_pref, to: :update?) if respond_to?(:authorize!, true)
       sync_direct_resource_preference!(resource_pref)
+      sync_resource_preference_children!(resource_pref)
     rescue Preference::ResolutionError
       raise
     rescue StandardError => e
       Rails.logger.info(LogEvent.format("preference.sync_to_resource.error", error: e.class.name, message: e.message))
+    end
+
+    def sync_resource_preference_children!(resource_pref)
+      return unless respond_to?(:copy_preference_values!, true)
+
+      target_prefix = resource_preference_registry_prefix(resource_pref)
+      copy_preference_values!(@preferences, resource_pref, target_prefix)
     end
 
     def preference_write_resource_preference!(resource = nil)

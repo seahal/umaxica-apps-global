@@ -40,14 +40,12 @@ module Preference
       LX = :lx
       RI = :ri
       TZ = :tz
-      REFRESH_TOKEN = :refresh_token
       OPTION_ID = :option_id
 
       public_constant :CT
       public_constant :LX
       public_constant :RI
       public_constant :TZ
-      public_constant :REFRESH_TOKEN
       public_constant :OPTION_ID
     end
 

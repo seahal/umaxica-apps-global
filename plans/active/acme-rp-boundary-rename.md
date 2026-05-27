@@ -19,16 +19,14 @@ Must rename:
 - generated route helper references from `apex_*` to `acme_*`.
 - `app/controllers/apex/**` to `app/controllers/acme/**`.
 - `Apex::*` constants to `Acme::*`.
-- `app/views/apex/**`, `app/views/layouts/apex/**`, and `app/assets/stylesheets/apex/**` to
-  `acme`.
+- `app/views/apex/**`, `app/views/layouts/apex/**`, and `app/assets/stylesheets/apex/**` to `acme`.
 - `layout "apex/..."` and `render template: "apex/..."` references to `acme`.
-- `Core::* < Apex::*` inheritance by giving Core its own `ActionController::Base`-backed
-  controller bases. Do not replace this with `Core::* < Acme::*`.
-- OIDC client ids `apex_app`, `apex_com`, and `apex_org` to `acme_app`, `acme_com`, and
-  `acme_org`.
+- `Core::* < Apex::*` inheritance by giving Core its own `ActionController::Base`-backed controller
+  bases. Do not replace this with `Core::* < Acme::*`.
+- OIDC client ids `apex_app`, `apex_com`, and `apex_org` to `acme_app`, `acme_com`, and `acme_org`.
 - OIDC audiences such as `umaxica-apex-app` to `umaxica-acme-app`.
-- ENV/config names `APEX_SERVICE_URL`, `APEX_CORPORATE_URL`, `APEX_STAFF_URL`,
-  `APEX_NETWORK_URL`, and `APEX_DEVELOPER_URL` to `ACME_*`.
+- ENV/config names `APEX_SERVICE_URL`, `APEX_CORPORATE_URL`, `APEX_STAFF_URL`, `APEX_NETWORK_URL`,
+  and `APEX_DEVELOPER_URL` to `ACME_*`.
 - i18n keys under `apex.*` to `acme.*`.
 - exposed RP boundary labels such as `Apex preferences` to `Acme preferences`.
 - test paths, class names, test names, assertions, and fixtures that use the RP boundary name.
@@ -59,8 +57,8 @@ The inventory found no `apex` names in:
 
 If implementation later discovers persisted data values containing OIDC `audience` or `client_id`
 values such as `apex_app`, handle that as an application-data compatibility decision, not as a
-schema rename. The current deployment state does not require staging or production compatibility
-for old OIDC names.
+schema rename. The current deployment state does not require staging or production compatibility for
+old OIDC names.
 
 ## Routing And API Impact
 

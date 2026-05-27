@@ -98,7 +98,7 @@ EDGE_STAFF_URL=jp.umaxica.org
 STATUS_URL=status.umaxica.dev
 ASSET_URL=asset.localhost
 # JWT Configuration
-PREFERENCE_JWT_AUDIENCES=umaxica.app,umaxica.com,localhost
+PREFERENCE_JWT_AUDIENCES=umaxica.app,umaxica.com,umaxica.org,localhost
 # Jump RT JWT public key configuration.
 # Private keys are resolved from Rails credentials in development/test and from the production
 # secret backend in production. Do not add JWT_*_PRIVATE_KEY values here.

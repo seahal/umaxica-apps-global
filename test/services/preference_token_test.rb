@@ -3,7 +3,8 @@
 
 require "test_helper"
 require "openssl"
-require_relative "../../app/controllers/concerns/preference/base"
+require_relative "../../app/controllers/concerns/preference/jwt_configuration"
+require_relative "../../app/controllers/concerns/preference/token"
 
 class PreferenceTokenServiceTest < ActiveSupport::TestCase
   setup do
@@ -96,15 +97,71 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test ".app token cannot be replayed against the .com surface" do
+    audiences = ["id.umaxica.app", "id.umaxica.com"].freeze
+    key_for = ->(kid) { (kid == "default") ? @public_key : nil }
+
+    Preference::JwtConfiguration.stub(:private_key, @private_key) do
+      Preference::JwtConfiguration.stub(:public_key, @public_key) do
+        Preference::JwtConfiguration.stub(:private_key_for_active, @private_key) do
+          Preference::JwtConfiguration.stub(:public_key_for, key_for) do
+            Preference::JwtConfiguration.stub(:active_kid, "default") do
+              Preference::JwtConfiguration.stub(:issuer, @issuer) do
+                Preference::JwtConfiguration.stub(:audiences, audiences) do
+                  app_token = Preference::Token.encode(
+                    @prefs,
+                    host: "id.umaxica.app",
+                    preference_type: "AppPreference",
+                    public_id: @public_id,
+                    jti: @jti,
+                  )
+
+                  assert_not_nil app_token
+                  assert_nil Preference::Token.decode(app_token, host: "id.umaxica.com"),
+                             "audience scoped to .app TLD must not validate on a .com host"
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  test "JwtConfiguration.audiences raises when PREFERENCE_JWT_AUDIENCES is missing" do
+    original = ENV["PREFERENCE_JWT_AUDIENCES"]
+    begin
+      ENV.delete("PREFERENCE_JWT_AUDIENCES")
+      assert_raises(Preference::JwtConfiguration::MissingAudienceError) do
+        Preference::JwtConfiguration.audiences
+      end
+    ensure
+      ENV["PREFERENCE_JWT_AUDIENCES"] = original
+    end
+  end
+
+  test "audience_for requires a host" do
+    Preference::JwtConfiguration.stub(:audiences, ["example.com"]) do
+      assert_raises(ArgumentError) { Preference::JwtConfiguration.audience_for(nil) }
+      assert_raises(ArgumentError) { Preference::JwtConfiguration.audience_for("") }
+    end
+  end
+
   private
 
   def with_jwt_keys
+    key_for = ->(kid) { (kid == "default") ? @public_key : nil }
+
     Preference::JwtConfiguration.stub(:private_key, @private_key) do
       Preference::JwtConfiguration.stub(:public_key, @public_key) do
-        Preference::JwtConfiguration.stub(:active_kid, "default") do
-          Preference::JwtConfiguration.stub(:issuer, @issuer) do
-            Preference::JwtConfiguration.stub(:audiences, @audiences) do
-              yield
+        Preference::JwtConfiguration.stub(:private_key_for_active, @private_key) do
+          Preference::JwtConfiguration.stub(:public_key_for, key_for) do
+            Preference::JwtConfiguration.stub(:active_kid, "default") do
+              Preference::JwtConfiguration.stub(:issuer, @issuer) do
+                Preference::JwtConfiguration.stub(:audiences, @audiences) do
+                  yield
+                end
+              end
             end
           end
         end

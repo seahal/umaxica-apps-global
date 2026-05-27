@@ -241,27 +241,29 @@ module Preference
       end
     end
 
-    test "audience_for returns all audiences when host is blank" do
+    test "audience_for raises when host is blank" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        result = Preference::JwtConfiguration.audience_for("")
-
-        assert_equal %w(umaxica.app umaxica.com), result
+        assert_raises(ArgumentError) { Preference::JwtConfiguration.audience_for("") }
+        assert_raises(ArgumentError) { Preference::JwtConfiguration.audience_for(nil) }
       end
     end
 
-    test "audience_for falls back to the current host when no TLD matches" do
+    test "audience_for raises when no configured TLD matches" do
+      # A host whose TLD is not represented in PREFERENCE_JWT_AUDIENCES must
+      # fail loudly. Silently falling back to [host] would defeat audience
+      # scoping by accepting tokens issued for any new surface.
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        result = Preference::JwtConfiguration.audience_for("example.org")
-
-        assert_equal %w(example.org), result
+        assert_raises(Preference::JwtConfiguration::MissingAudienceError) do
+          Preference::JwtConfiguration.audience_for("example.org")
+        end
       end
     end
 
-    test "audience_for keeps org preference tokens host-scoped when org audience is not configured" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
-        result = Preference::JwtConfiguration.audience_for("id.umaxica.org")
-
-        assert_equal %w(id.umaxica.org), result
+    test "audience_for raises for an .org host when only .app/.com are configured" do
+      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
+        assert_raises(Preference::JwtConfiguration::MissingAudienceError) do
+          Preference::JwtConfiguration.audience_for("id.umaxica.org")
+        end
       end
     end
 
@@ -272,9 +274,11 @@ module Preference
       end
     end
 
-    test "host_scope_for falls back to host when no configured audience matches" do
+    test "host_scope_for raises when no configured audience matches" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_equal "id.umaxica.org", Preference::JwtConfiguration.host_scope_for("id.umaxica.org")
+        assert_raises(Preference::JwtConfiguration::MissingAudienceError) do
+          Preference::JwtConfiguration.host_scope_for("id.umaxica.org")
+        end
       end
     end
 

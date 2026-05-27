@@ -213,8 +213,11 @@ module Preference::RefreshTokenTransport
     adopt_rotated_preference!(resource, rotated_preference) if resource
   end
 
+  # Refresh tokens MUST come from the HttpOnly cookie only.
+  # Accepting them via URL/body params leaks them to logs, history, and Referer
+  # headers, defeating the HttpOnly/Secure cookie protections.
   def refresh_token_value
-    params[Preference::IoKeys::Params::REFRESH_TOKEN].presence || cookies[refresh_token_cookie_name]
+    cookies[refresh_token_cookie_name]
   end
 
   def refresh_token_expiry

@@ -111,7 +111,9 @@ needed.
 
 ## コード品質
 
-本プロジェクトのコード品質は、ISO/IEC 25010 の System / Software Product Quality モデルに基づいて整理する。以降の `Linting and Formatting` / `Testing` / `Security and Quality Checks` は、この品質特性をそれぞれ運用面で支えるための具体的手段に対応する。
+本プロジェクトのコード品質は、ISO/IEC 25010 の System / Software Product
+Quality モデルに基づいて整理する。以降の `Linting and Formatting` / `Testing` /
+`Security and Quality Checks` は、この品質特性をそれぞれ運用面で支えるための具体的手段に対応する。
 
 ```mermaid
 flowchart LR

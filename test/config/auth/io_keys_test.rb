@@ -27,6 +27,11 @@ class AuthIoKeysTest < ActiveSupport::TestCase
     assert_equal "tz", Preference::IoKeys::Cookies::TIMEZONE
     assert_equal "preference_access", Preference::IoKeys::Cookies::ACCESS_BASENAME
     assert_equal "preference_refresh", Preference::IoKeys::Cookies::REFRESH_BASENAME
-    assert_equal :refresh_token, Preference::IoKeys::Params::REFRESH_TOKEN
+  end
+
+  test "preference refresh token is never accepted via URL/body params" do
+    # Refresh tokens flow only through HttpOnly cookies. Reintroducing a
+    # params constant would invite logging/Referer leaks.
+    assert_not Preference::IoKeys::Params.const_defined?(:REFRESH_TOKEN, false)
   end
 end

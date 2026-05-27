@@ -12,9 +12,9 @@ The global Rails application hosts both the IdP face and the RP face:
 - `core` is internal foundation and shared infrastructure.
 - `visitor`, `client`, and `operator` are persona / actor boundaries.
 
-The word `apex` is overloaded. In DNS and URL discussions, an apex domain means the bare domain
-such as `example.com`, without a subdomain. Using `Apex` as a Rails namespace, route helper prefix,
-OIDC client id prefix, and RP boundary name makes DNS and application-boundary discussions easy to
+The word `apex` is overloaded. In DNS and URL discussions, an apex domain means the bare domain such
+as `example.com`, without a subdomain. Using `Apex` as a Rails namespace, route helper prefix, OIDC
+client id prefix, and RP boundary name makes DNS and application-boundary discussions easy to
 misread.
 
 This repository does not have staging or production deployments that require preserving the old
@@ -67,8 +67,8 @@ is replaced by:
   `acme_app`, `acme_com`, and `acme_org`.
 - Because there is no staging or production compatibility requirement, the implementation does not
   need long-lived compatibility aliases for the old `apex` OIDC or environment names.
-- Because the database inventory found no physical `apex` names, no schema migration is required
-  for this rename.
+- Because the database inventory found no physical `apex` names, no schema migration is required for
+  this rename.
 - Documentation must keep DNS apex-domain usage unchanged. In particular, `apex-scoped` cookie
   domain language remains correct when it describes `.example.com` style domain scope.
 

@@ -2,6 +2,14 @@
 
 ENV["RAILS_ENV"] ||= "test"
 
+# Preference JWTs are audience-scoped per surface; tests exercise all three
+# (.app/.com/.org) so the test process must carry every TLD audience even when
+# the developer's .env only configures a subset.
+required_pref_audiences = %w(umaxica.app umaxica.com umaxica.org localhost)
+existing_pref_audiences = ENV["PREFERENCE_JWT_AUDIENCES"].to_s.split(",").map(&:strip).reject(&:empty?)
+merged_pref_audiences = (existing_pref_audiences + required_pref_audiences).uniq
+ENV["PREFERENCE_JWT_AUDIENCES"] = merged_pref_audiences.join(",")
+
 COVERAGE_ENABLED = %w(1 true).include?(ENV.fetch("COVERAGE", "").downcase)
 
 if COVERAGE_ENABLED
