@@ -11,11 +11,12 @@
     <%= t("acme.app.preference.timezone.edit.description") %>
   </p>
 
-  <% timezone_labels = I18n.t("acme.app.preference.locale.edit.timezone_options") %>
+  <% timezone_labels = I18n.t("acme.app.preference.locale.edit.timezone_options").with_indifferent_access %>
   <% timezone_options = AppPreferenceTimezoneOption.order(:id).map do |option|
     label_key = case option.name
                 when "Etc/UTC" then "UTC"
                 when "Asia/Tokyo" then "JST"
+                else option.name.to_s.upcase.tr("/", "_")
                 end
     label = label_key ? timezone_labels[label_key] : nil
     [label.presence || ActiveSupport::TimeZone[option.name]&.to_s || option.name, option.id]

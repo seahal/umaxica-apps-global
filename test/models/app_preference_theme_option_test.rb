@@ -39,4 +39,34 @@ class AppPreferenceThemeOptionTest < ActiveSupport::TestCase
       option.destroy!
     end
   end
+
+  test "name returns light for LIGHT id" do
+    option = AppPreferenceThemeOption.new(id: AppPreferenceThemeOption::LIGHT)
+
+    assert_equal "light", option.name
+  end
+
+  test "name returns dark for DARK id" do
+    option = AppPreferenceThemeOption.new(id: AppPreferenceThemeOption::DARK)
+
+    assert_equal "dark", option.name
+  end
+
+  test "name returns system for SYSTEM id" do
+    option = AppPreferenceThemeOption.new(id: AppPreferenceThemeOption::SYSTEM)
+
+    assert_equal "system", option.name
+  end
+
+  test "name returns nil for NOTHING id" do
+    option = AppPreferenceThemeOption.new(id: AppPreferenceThemeOption::NOTHING)
+
+    assert_nil option.name
+  end
+
+  test "name returns nil for unknown id" do
+    option = AppPreferenceThemeOption.new(id: 999)
+
+    assert_nil option.name
+  end
 end

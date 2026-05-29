@@ -6,7 +6,7 @@
 > to a separate repository. Do not use the Fat Engine target described below for new work; treat
 > this document as historical only.
 
-**Status:** Accepted (2026-04-22)
+**Status:** Obsolete (accepted 2026-04-22, superseded 2026-04-25)
 
 **Supersedes:**
 

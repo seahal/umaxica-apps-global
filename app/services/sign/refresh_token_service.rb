@@ -107,7 +107,7 @@ module Sign
       )
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "authentication.refresh.reuse_detected",
           token_id: token.public_id,
           refresh_token_family_id: token.refresh_token_family_id,

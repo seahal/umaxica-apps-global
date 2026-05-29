@@ -50,16 +50,17 @@ module Sign
         get new_sign_app_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?]", new_sign_app_in_email_path(pt: pt, ri: "jp")
-        assert_select "a[href=?]", new_sign_app_in_passkey_path(pt: pt, ri: "jp")
-        assert_select "a[href=?]", new_sign_app_in_secret_path(pt: pt, ri: "jp")
+        assert_select "a[href=?]", new_sign_app_in_email_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_app_in_passkey_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_app_in_secret_path(ri: "jp")
       end
 
       test "sign up link includes pt when pt is present" do
         get new_sign_app_in_url(ri: "jp", pt: "abc"), headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up/new?ri=jp&amp;pt=abc"
+        assert_includes response.body, "/sign/up/new?ri=jp"
+        assert_not_includes response.body, "pt=abc"
       end
 
       test "sign up link includes only ri when pt is absent" do
@@ -75,8 +76,8 @@ module Sign
         get new_sign_app_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up/new?ri=jp&amp;pt="
-        assert_includes response.body, "pt=aHR0cHM6Ly9leGFtcGxlLmNvbS8_cD0xJmE9Mg%253D%253D"
+        assert_includes response.body, "/sign/up/new?ri=jp"
+        assert_not_includes response.body, "pt="
       end
 
       test "should render in english when lx=en" do
@@ -91,11 +92,13 @@ module Sign
         get new_sign_app_in_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "form[action=?]",
+        assert_select "form[action=?][data-turbo=?]",
                       continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp"),
+                      "false",
                       count: 1
-        assert_select "form[action=?]",
+        assert_select "form[action=?][data-turbo=?]",
                       continue_sign_app_social_authentication_path(provider: "apple", ri: "jp"),
+                      "false",
                       count: 1
       end
 

@@ -25,7 +25,9 @@ module Oidc
       I18n.t(
         "oidc.rp_logout.local_only",
         # rubocop:disable I18n/RailsI18n/DecorateString
-        default: "This domain has been signed out. You are still signed in to sign. To sign out everywhere, use session management at %{idp_sessions_url}.",
+        default: "This domain has been signed out. You are still signed in to sign. To sign out everywhere, " \
+                 "use session management at %{idp_sessions_url}.",
+        # rubocop:enable I18n/RailsI18n/DecorateString
         idp_sessions_url: idp_session_management_url,
       )
     end

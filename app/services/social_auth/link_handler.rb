@@ -35,7 +35,7 @@ module SocialAuth
       identity ? handle_existing_uid_identity(identity) : link_new_identity
     rescue ActiveRecord::RecordNotUnique => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "social_auth.link_race_condition",
           user_id: current_client_id,
           provider: provider,
@@ -104,7 +104,7 @@ module SocialAuth
         end
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "social_auth.linked",
           user_id: current_client_id,
           provider: provider,

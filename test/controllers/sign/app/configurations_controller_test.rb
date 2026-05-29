@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/auth_helpers"
 
 class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
@@ -44,9 +45,7 @@ class Sign::App::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_configuration_url(ri: "jp")
 
     assert_response :redirect
-    target_path = new_sign_app_in_path
-
-    assert_match %r{#{Regexp.escape(target_path)}\?.*ri=jp}, response.headers["Location"]
+    assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
   end
 
   test "edit route is not available" do

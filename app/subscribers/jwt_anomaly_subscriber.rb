@@ -28,7 +28,7 @@ class JwtAnomalySubscriber
     )
   rescue StandardError => e
     Rails.logger.error(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "jwt.anomaly.subscriber_failed",
         error_class: e.class.name,
         message: e.message,

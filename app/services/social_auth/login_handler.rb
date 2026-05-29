@@ -23,7 +23,7 @@ module SocialAuth
       identity ? login_existing_identity(identity) : login_new_identity
     rescue ActiveRecord::RecordNotUnique => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "social_auth.race_condition",
           provider: provider,
           uid: uid,
@@ -97,7 +97,7 @@ module SocialAuth
       if status.present?
         user.status_id = status.id
       else
-        Rails.logger.error(LogEvent.format("social_auth.default_reference.missing", reference: "user_status"))
+        Rails.logger.error(Jit::LogEvent.format("social_auth.default_reference.missing", reference: "user_status"))
       end
     end
 
@@ -114,7 +114,7 @@ module SocialAuth
       if visibility.present?
         user.visibility_id = visibility.id
       else
-        Rails.logger.error(LogEvent.format("social_auth.default_reference.missing", reference: "user_visibility"))
+        Rails.logger.error(Jit::LogEvent.format("social_auth.default_reference.missing", reference: "user_visibility"))
       end
     end
 
@@ -132,7 +132,12 @@ module SocialAuth
       if multi_factor.present?
         user.multi_factor_id = multi_factor.id
       else
-        Rails.logger.error(LogEvent.format("social_auth.default_reference.missing", reference: "user_multi_factor"))
+        Rails.logger.error(
+          Jit::LogEvent.format(
+            "social_auth.default_reference.missing",
+            reference: "user_multi_factor",
+          ),
+        )
       end
     end
 
@@ -151,7 +156,7 @@ module SocialAuth
         user.multi_factor_status_id = status.id
       else
         Rails.logger.error(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "social_auth.default_reference.missing",
             reference: "user_multi_factor_status",
           ),

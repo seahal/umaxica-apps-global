@@ -7,8 +7,8 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    host! ENV.fetch("ID_APP_URL", "id.app.localhost")
-    @host = ENV.fetch("ID_APP_URL", "id.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     ActionMailer::Base.deliveries.clear
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }

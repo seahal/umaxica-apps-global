@@ -45,4 +45,37 @@ class AppPreferenceTimezoneOptionTest < ActiveSupport::TestCase
 
     assert_nil option.name
   end
+
+  test "name returns Etc/UTC for ETC_UTC id" do
+    option = AppPreferenceTimezoneOption.new(id: AppPreferenceTimezoneOption::ETC_UTC)
+
+    assert_equal "Etc/UTC", option.name
+  end
+
+  test "name returns Asia/Tokyo for ASIA_TOKYO id" do
+    option = AppPreferenceTimezoneOption.new(id: AppPreferenceTimezoneOption::ASIA_TOKYO)
+
+    assert_equal "Asia/Tokyo", option.name
+  end
+
+  test "name returns United States timezones" do
+    expectations = {
+      AppPreferenceTimezoneOption::AMERICA_NEW_YORK => "America/New_York",
+      AppPreferenceTimezoneOption::AMERICA_CHICAGO => "America/Chicago",
+      AppPreferenceTimezoneOption::AMERICA_DENVER => "America/Denver",
+      AppPreferenceTimezoneOption::AMERICA_LOS_ANGELES => "America/Los_Angeles",
+      AppPreferenceTimezoneOption::AMERICA_ANCHORAGE => "America/Anchorage",
+      AppPreferenceTimezoneOption::PACIFIC_HONOLULU => "Pacific/Honolulu",
+    }
+
+    expectations.each do |id, timezone|
+      assert_equal timezone, AppPreferenceTimezoneOption.new(id: id).name
+    end
+  end
+
+  test "name returns nil for NOTHING id" do
+    option = AppPreferenceTimezoneOption.new(id: AppPreferenceTimezoneOption::NOTHING)
+
+    assert_nil option.name
+  end
 end

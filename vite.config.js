@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import inertia from "@inertiajs/vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -6,10 +8,16 @@ import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   plugins: [RubyPlugin(), tailwindcss(), inertia(), react()],
+  resolve: {
+    alias: {
+      controllers: path.resolve(import.meta.dirname, "app/javascript/controllers"),
+    },
+  },
   staged: {
     "*": "vp test && vp check",
   },
   test: {
+    environment: "jsdom",
     root: "/home/global/workspace",
     include: ["test/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
     exclude: [
@@ -214,6 +222,7 @@ export default defineConfig({
         rules: {
           "no-console": "off",
           "no-alert": "off",
+          "typescript/unbound-method": "off",
         },
       },
     ],

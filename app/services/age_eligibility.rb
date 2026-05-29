@@ -8,7 +8,7 @@ module AgeEligibility
     return nil if value.blank?
 
     birthdate = value.to_s
-    return nil unless birthdate.match?(BirthdateFormat::PATTERN)
+    return nil unless birthdate.match?(Jit::Utils::BirthdateFormat::PATTERN)
 
     year, month, day = birthdate.split("-").map(&:to_i)
     Date.new(year, month, day)

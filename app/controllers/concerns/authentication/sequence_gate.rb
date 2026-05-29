@@ -363,7 +363,7 @@ module Authentication
       sign_in_sequence_carrier.fail! if sequence.present? && !sequence.expired?
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "authentication.sign_in_sequence.rejected",
           surface: Actor.tld,
           participant: participant.to_s,

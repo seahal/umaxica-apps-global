@@ -81,7 +81,7 @@ module Oidc
 
     def render_callback_failure(error)
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "oidc.rp.callback.failed",
           error: error,
           client_id: oidc_client_id,

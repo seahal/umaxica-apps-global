@@ -8,7 +8,7 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     _ = Preference::Base # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = IdHostEnv.service_url || "id.app.localhost"
+    @host = Jit::IdHostEnv.service_url || "id.app.localhost"
     host! @host
   end
 
@@ -27,7 +27,7 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       host: @host,
       public_id: "pref-app-public-id",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[Preference::CookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
       get sign_app_web_v0_theme_path, as: :json
@@ -45,7 +45,7 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       host: @host,
       public_id: "pref-app-public-id",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[Preference::CookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
       patch sign_app_web_v0_theme_path, params: { theme: "dark" }, as: :json

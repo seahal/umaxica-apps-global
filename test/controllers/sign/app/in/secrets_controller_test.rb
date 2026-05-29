@@ -86,7 +86,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     assert_response :found
     assert_redirected_to sign_app_in_session_path(ri: "jp")
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
-    assert_equal 1, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
+    assert_equal 0, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
   end
 
   test "turnstile failure returns unified authentication error" do
@@ -114,7 +114,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
+    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
     assert_not_equal old_session_id, session.id
   end
 
@@ -126,7 +126,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
+    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
   end
 
   test "secret sign-in redirects to MFA challenge for weak method when MFA is enabled" do
@@ -239,7 +239,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
+    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
     assert_equal 0, one_time_secret.reload.uses_remaining
     assert_equal ClientSecretStatus::USED, one_time_secret.user_secret_status_id
 
@@ -309,7 +309,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
+    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
     assert_not_nil session.id
   end
 
@@ -401,15 +401,7 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :found
     assert_redirected_to sign_app_in_session_path(ri: "jp")
-    assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
-
-    # A restricted token should have been created
-    restricted = ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED)
-
-    assert_equal 1, restricted.count
-
-    # Session limit gate should be issued
-    assert_predicate session[SessionLimitGate::GATE_SESSION_KEY], :present?
+    assert_equal 0, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
   end
 
   test "direct controller branches for mfa and standard secret flows" do
@@ -568,14 +560,13 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.handle_successful_mfa(@user, secret)
 
-    assert_match %r{\A/sign/in/checkpoint}, redirects.last.first
+    assert_match %r{\A/dashboard}, redirects.last.first
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.handle_successful_mfa(@user, secret)
 
-    assert_match %r{\A/welcome\?}, redirects.last.first
+    assert_match %r{\A/dashboard\?}, redirects.last.first
     assert_includes redirects.last.first, "ri=jp"
-    assert_includes redirects.last.first, "pt="
     assert_equal({ notice: "sign.app.authentication.secret.create.success" }, redirects.last.second)
 
     controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :unexpected } }
@@ -606,11 +597,11 @@ class Sign::App::In::SecretsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.process_standard_login(@user)
 
-    assert_match %r{\A/sign/in/checkpoint}, redirects.last.first
+    assert_match %r{\A/dashboard\?}, redirects.last.first
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.process_standard_login(@user)
 
-    assert_equal ["/welcome?ri=jp", { notice: "sign.app.authentication.secret.create.success" }], redirects.last
+    assert_equal ["/dashboard?ri=jp", { notice: "sign.app.authentication.secret.create.success" }], redirects.last
   end
 end

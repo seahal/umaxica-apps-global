@@ -52,13 +52,11 @@ class OrgPreferenceChronicle < ChronicleRecord
              inverse_of: :org_preference_chronicles
   belongs_to :actor, polymorphic: true # Helper methods for compatibility
   belongs_to :org_preference_chronicle_level, foreign_key: :level_id, inverse_of: :org_preference_chronicles
-  # event_id references OrgPreferenceChronicleEvent.id (string)
   belongs_to :org_preference_chronicle_event,
              class_name: "OrgPreferenceChronicleEvent",
              foreign_key: "event_id",
              primary_key: "id",
              inverse_of: :org_preference_chronicles
-  # subject_id/subject_type for cross-DB compatibility (no FK)
   validates :subject_type, presence: true
 
   validates :event_id, length: { maximum: 255 }

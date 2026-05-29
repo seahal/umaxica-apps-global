@@ -18,7 +18,7 @@ class Sign::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
     get sign_com_dashboard_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_match %r{/sign/in/new}, response.location
+    assert_match %r{\Ahttps://id\.umaxica\.com/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
   end
 
   test "show renders when signed in" do

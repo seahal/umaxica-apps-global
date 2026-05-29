@@ -25,7 +25,7 @@ module JumpRt
       return redirect_to_jump_return_target! if result.success?
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "jump_return.rejected",
           reason: result.error,
           request_id: request.request_id,

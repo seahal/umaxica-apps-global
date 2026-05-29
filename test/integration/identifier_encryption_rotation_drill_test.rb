@@ -116,7 +116,7 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     )
 
     assert_response :found
-    assert_redirected_to sign_app_welcome_entry_path(ri: "jp")
+    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
   end
 
   def encryption_key_provider(*passwords)

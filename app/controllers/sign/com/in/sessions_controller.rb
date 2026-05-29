@@ -36,8 +36,8 @@ module Sign
             revoke_sessions_by_refs(@current_visitor, refs)
           end
 
-          if pending_session_limit_cycle? && can_promote_session?(@current_visitor)
-            if promote_current_session_limit_cycle!(@current_visitor)
+          if (pending_session_limit_cycle? || current_session_restricted?) && can_promote_session?(@current_visitor)
+            if pending_session_limit_cycle? && promote_current_session_limit_cycle!(@current_visitor)
               consume_session_limit_gate!
               session.delete(:pending_login_visitor_id)
               return redirect_to_sign_in_sequence!(

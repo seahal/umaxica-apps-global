@@ -32,8 +32,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_includes response.body, "turbo:load"
-    assert_includes response.body, "DOMContentLoaded"
+    assert_select "[data-controller='turnstile'][data-turnstile-mode-value='render']"
     assert_select "h2", I18n.t("sign.com.registration.email.new.page_title")
     assert_select "input[type=checkbox][name='visitor_email[notifiable]']", count: 1
     assert_select "input[type=checkbox][name='visitor_email[promotional]']", count: 0
@@ -105,8 +104,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_email_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
-    assert_response :unauthorized
-    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
+    assert_redirected_to sign_com_dashboard_url(ri: "jp")
   end
 
   test "create rejects when visitor is already logged in" do
@@ -124,8 +122,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
            headers: as_visitor_headers(visitor, host: host)
     end
 
-    assert_response :unauthorized
-    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
+    assert_response :redirect
   end
 
   test "collection get is not routed" do

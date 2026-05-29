@@ -94,12 +94,12 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@issue_bulletin_for_test, true)
     controller.send(:handle_login_result, true, "Google org")
 
-    assert_match "/sign/in/checkpoint", redirects.last.first.first
+    assert_match %r{/dashboard\?}, redirects.last.first.first
 
     controller.instance_variable_set(:@issue_bulletin_for_test, false)
     controller.send(:handle_login_result, true, "Google org")
 
-    assert_match %r{\A/welcome\?}, redirects.last.first.first
+    assert_match %r{/dashboard\?}, redirects.last.first.first
 
     controller.send(:handle_unexpected_error, StandardError.new("boom"), OpenStruct.new(provider: "google_org"))
 

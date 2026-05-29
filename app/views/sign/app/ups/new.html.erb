@@ -16,7 +16,7 @@
 <div data-test-id="registration-method">
   <%= button_to continue_sign_app_social_authentication_path(provider: "google_app", ri: params[:ri], entry: "sign_up"),
                 method: :post,
-                data: { turbo: false } do %>
+                form: { data: { turbo: false } } do %>
     <%= t("sign.app.registration.new.social.buttons.google") %>
   <% end %>
 </div>
@@ -24,7 +24,7 @@
 <div data-test-id="registration-method">
   <%= button_to continue_sign_app_social_authentication_path(provider: "apple", ri: params[:ri], entry: "sign_up"),
                 method: :post,
-                data: { turbo: false } do %>
+                form: { data: { turbo: false } } do %>
     <%= t("sign.app.registration.new.social.buttons.apple") %>
   <% end %>
 </div>

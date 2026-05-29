@@ -102,7 +102,7 @@ class Oidc::JwksServiceTest < ActiveSupport::TestCase
     {
       kty: "EC",
       crv: "P-384",
-      kid: "sign-app-es384-test-a",
+      kid: Jit::Security::Jwt::Registry.surface("SIGN_APP").current_kid,
       alg: "ES384",
       use: "sig",
       x: "x-value",

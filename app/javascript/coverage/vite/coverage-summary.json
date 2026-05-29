@@ -1,9 +1,9 @@
 {
   "total": {
-    "lines": { "total": 592, "covered": 575, "skipped": 0, "pct": 97.12 },
-    "statements": { "total": 606, "covered": 587, "skipped": 0, "pct": 96.86 },
-    "functions": { "total": 128, "covered": 122, "skipped": 0, "pct": 95.31 },
-    "branches": { "total": 352, "covered": 306, "skipped": 0, "pct": 86.93 },
+    "lines": { "total": 634, "covered": 617, "skipped": 0, "pct": 97.31 },
+    "statements": { "total": 648, "covered": 629, "skipped": 0, "pct": 97.06 },
+    "functions": { "total": 139, "covered": 133, "skipped": 0, "pct": 95.68 },
+    "branches": { "total": 367, "covered": 320, "skipped": 0, "pct": 87.19 },
     "branchesTrue": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
   },
   "/home/global/workspace/app/javascript/theme_cookie.js": {
@@ -70,6 +70,12 @@
     "lines": { "total": 17, "covered": 17, "skipped": 0, "pct": 100 },
     "functions": { "total": 4, "covered": 4, "skipped": 0, "pct": 100 },
     "statements": { "total": 17, "covered": 17, "skipped": 0, "pct": 100 },
+    "branches": { "total": 15, "covered": 14, "skipped": 0, "pct": 93.33 }
+  },
+  "/home/global/workspace/app/javascript/controllers/turnstile_controller.js": {
+    "lines": { "total": 42, "covered": 42, "skipped": 0, "pct": 100 },
+    "functions": { "total": 11, "covered": 11, "skipped": 0, "pct": 100 },
+    "statements": { "total": 42, "covered": 42, "skipped": 0, "pct": 100 },
     "branches": { "total": 15, "covered": 14, "skipped": 0, "pct": 93.33 }
   },
   "/home/global/workspace/app/javascript/controllers/unsaved_changes_controller.js": {

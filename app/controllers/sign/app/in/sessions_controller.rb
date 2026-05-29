@@ -57,8 +57,8 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
     end
 
     # Check if we can promote restricted session to active
-    if pending_session_limit_cycle? && can_promote_session?(@current_client)
-      if promote_current_session_limit_cycle!(@current_client)
+    if (pending_session_limit_cycle? || current_session_restricted?) && can_promote_session?(@current_client)
+      if pending_session_limit_cycle? && promote_current_session_limit_cycle!(@current_client)
         consume_session_limit_gate!
         session.delete(:pending_login_user_id)
         return redirect_to_sign_in_sequence!(

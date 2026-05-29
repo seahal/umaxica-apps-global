@@ -38,7 +38,7 @@ module Sign
         new_sign_org_up_url(
           ri: params[:ri].presence,
           host: sign_org_redirect_host,
-          protocol: request.protocol,
+          protocol: "https",
         )
       end
     end

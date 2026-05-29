@@ -107,7 +107,8 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     get sign_org_configuration_passkeys_url(ri: "jp"), headers: @host_headers
 
     assert_response :redirect
-    assert_match new_sign_org_in_path, response.headers["Location"]
+    assert_equal "https://#{ENV.fetch("ID_STAFF_URL", "id.umaxica.org")}#{new_sign_org_in_path(ri: "jp")}",
+                 jump_rt_url_from_location(response.headers["Location"])
   end
 
   test "should get edit" do

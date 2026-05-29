@@ -11,6 +11,7 @@ class Sign::Org::Edge::V0::Token::ChecksController < Sign::Org::ApplicationContr
   skip_before_action :set_region, raise: false
   skip_before_action :set_preferences_cookie
   skip_before_action :transparent_refresh_access_token
+  skip_before_action :set_current_actor, raise: false
 
   def show
     response.set_header("Cache-Control", "no-store")

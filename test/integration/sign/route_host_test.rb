@@ -31,8 +31,8 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
     Rails.application.reload_routes!
   end
 
-  test "sign org routes match ID_STAFF_URL" do
-    with_env("ID_STAFF_URL" => "sign.org.example.test") do
+  test "sign org routes match SIGN_STAFF_URL" do
+    with_env("SIGN_STAFF_URL" => "sign.org.example.test") do
       Rails.application.reload_routes!
       host!("sign.org.example.test")
 

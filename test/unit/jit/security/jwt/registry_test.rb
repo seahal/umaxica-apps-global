@@ -136,14 +136,18 @@ module Jit
             JSON.generate(keys: [Registry.export_public_jwk(@preference_legacy_key, kid: "pref-legacy-kid")])
 
           creds = {
-            :AUTH_JWT_PRIVATE_KEYSET => JSON.generate((env["AUTH_JWT_ACTIVE_KID"] || "auth-kid") => base64_der(@auth_key)),
+            :AUTH_JWT_PRIVATE_KEYSET => JSON.generate(
+              (env["AUTH_JWT_ACTIVE_KID"] || "auth-kid") => base64_der(@auth_key),
+            ),
             :AUTH_JWT_PUBLIC_KEYSET => JSON.generate(
               keys: [Registry.export_public_jwk(
                 @auth_legacy_key,
                 kid: "auth-legacy-kid",
               )],
             ),
-            :PREFERENCE_JWT_PRIVATE_KEYSET => JSON.generate((env["PREFERENCE_JWT_ACTIVE_KID"] || "pref-kid") => base64_der(@preference_key)),
+            :PREFERENCE_JWT_PRIVATE_KEYSET => JSON.generate(
+              (env["PREFERENCE_JWT_ACTIVE_KID"] || "pref-kid") => base64_der(@preference_key),
+            ),
             :PREFERENCE_JWT_PUBLIC_KEYSET => JSON.generate(
               keys: [Registry.export_public_jwk(
                 @preference_legacy_key,

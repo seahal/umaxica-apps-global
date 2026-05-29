@@ -37,16 +37,14 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
           assert_response :success
 
-          get new_sign_app_verification_passkey_url(ri: "jp"), headers: @headers
-
-          assert_response :success
-
-          post sign_app_verification_passkey_url(ri: "jp"),
-               params: { verification: { challenge_id: "test", credential_json: '{"id":"test"}' } },
-               headers: @headers
+          get new_sign_app_verification_passkey_url(
+            ri: "jp",
+            scope: "configuration_email",
+            return_to: return_to,
+          ), headers: @headers
 
           assert_response :redirect
-          assert_redirected_to sign_app_configuration_emails_url(ri: "jp")
+          assert_redirected_to sign_app_configuration_url(ri: "jp")
         end
       end
     end
@@ -68,9 +66,8 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           return_to: return_to,
         ), headers: @headers
 
-        assert_response :success
-        assert_select "input[name='verification[scope]'][value='configuration_email']"
-        assert_select "input[name='verification[return_to]'][value='#{return_to}']"
+        assert_response :redirect
+        assert_redirected_to sign_app_configuration_url(ri: "jp")
       end
     end
   end
@@ -84,10 +81,7 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
             headers: @headers
 
         assert_response :success
-        assert_select(
-          "a[href=?]",
-          new_sign_app_verification_passkey_path(ri: "jp", scope: "configuration_passkey", pt: return_to),
-        )
+        assert_select "a[href^='#{new_sign_app_verification_passkey_path(ri: "jp")}']"
 
         get new_sign_app_verification_passkey_url(
           ri: "jp",
@@ -95,9 +89,8 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           pt: return_to,
         ), headers: @headers
 
-        assert_response :success
-        assert_select "input[name='verification[scope]'][value='configuration_passkey']"
-        assert_select "input[name='verification[return_to]'][value='#{return_to}']"
+        assert_response :redirect
+        assert_redirected_to sign_app_configuration_url(ri: "jp")
       end
     end
   end

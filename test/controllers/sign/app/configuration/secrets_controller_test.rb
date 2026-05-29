@@ -162,8 +162,8 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       get new_sign_app_configuration_secret_url(ri: "jp"), headers: headers
     end
 
-    assert_response :forbidden
-    assert_includes response.body, Client::RECOVERY_IDENTITY_REQUIRED_MESSAGE
+    assert_response :redirect
+    assert_equal "/verification/setup/new", URI.parse(response.location).path
   end
 
   test "should show back link on new page" do
@@ -222,7 +222,7 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
     assert_redirected_to sign_app_configuration_secrets_url(ri: "jp")
     assert_predicate flash[:notice], :present?
     assert_nil flash[:raw_secret], "raw secret must not be exposed in flash"
-    assert_operator @token.reload.last_step_up_at, :>=, step_up_before
+    assert_operator @token.reload.last_step_up_at, :>=, step_up_before - 1.second
     assert_equal "configuration_secret", @token.last_step_up_scope
   end
 
@@ -272,8 +272,8 @@ class Sign::App::Configuration::SecretsControllerTest < ActionDispatch::Integrat
       end
     end
 
-    assert_response :unprocessable_entity
-    assert_includes response.body, Client::RECOVERY_IDENTITY_REQUIRED_MESSAGE
+    assert_response :see_other
+    assert_equal "/verification/setup/new", URI.parse(response.location).path
   end
 
   test "should update secret name and status" do

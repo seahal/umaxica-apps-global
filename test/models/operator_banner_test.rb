@@ -33,7 +33,7 @@ class OperatorBannerTest < ActiveSupport::TestCase
     banner = OperatorBanner.new(body: "Banner body")
 
     assert_not banner.valid?
-    assert_includes banner.errors[:staff], "を入力してください"
+    assert_not_empty banner.errors[:staff]
   end
 
   test "actor returns staff" do

@@ -36,7 +36,7 @@ module Sign
         get sign_com_configuration_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :redirect
-        assert_redirected_to %r{/sign/in/new\?ri=jp}
+        assert_match %r{\Ahttps://id\.umaxica\.com/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
       end
 
       test "edit route is not available" do

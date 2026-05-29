@@ -88,7 +88,7 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
     assert_response :redirect
 
-    assert_redirected_to sign_com_welcome_entry_path(ri: "jp")
+    assert_match %r{\Ahttp://id\.umaxica\.com/sign/in/checkpoint}, response.location
     assert_nil session[:pending_mfa]
     assert_equal 6, @passkey.reload.sign_count
   end

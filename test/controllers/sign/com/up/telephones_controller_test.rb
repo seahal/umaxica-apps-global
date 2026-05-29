@@ -49,8 +49,8 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_telephone_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
-    assert_response :unauthorized
-    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
+    assert_response :redirect
+    assert_redirected_to sign_com_dashboard_url(ri: "jp")
   end
 
   test "create rejects when visitor is already logged in" do
@@ -69,8 +69,10 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
            headers: as_visitor_headers(visitor, host: host)
     end
 
-    assert_response :unauthorized
-    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
+    assert_response :redirect
+    uri = URI.parse(response.location)
+
+    assert_equal "/configuration/telephones/registration/new?ri=jp", uri.request_uri
   end
 
   test "create redirects to edit and creates pending visitor telephone" do

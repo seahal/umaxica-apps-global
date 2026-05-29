@@ -200,7 +200,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
     assert_no_match(/[=+\/]/, token)
     assert_equal "JWT", header["typ"]
     assert_equal "ES384", header["alg"]
-    assert_equal "sign-app-es384-test-a", header["kid"]
+    assert_equal Jit::Security::Jwt::Registry.surface("SIGN_APP").current_kid, header["kid"]
     assert_equal "https://id.umaxica.app", payload["iss"]
     assert_equal "reuse", payload["rpl"]
     assert_equal "https://www.umaxica.app/dashboard", payload["url"]
@@ -412,16 +412,17 @@ class Common::RedirectTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
     with_env(
-      "JWT_SIGN_APP_ACTIVE_KID" => nil,
       "SIGN_SERVICE_URL" => "id.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
-      Rails.stub(:logger, logger) do
-        controller.send(
-          :redirect_to_jump_url,
-          "https://id.umaxica.app/sign/in?secret=hidden",
-          fallback_internal: true,
-        )
+      JumpRt::Issuer.stub(:call, nil) do
+        Rails.stub(:logger, logger) do
+          controller.send(
+            :redirect_to_jump_url,
+            "https://id.umaxica.app/sign/in?secret=hidden",
+            fallback_internal: true,
+          )
+        end
       end
     end
 
@@ -516,7 +517,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
     previous = values.transform_values { |_value| nil }
     values.each do |key, value|
       previous[key] = ENV[key]
-      ENV[key] = value
+      value.nil? ? ENV.delete(key) : ENV[key] = value
     end
     yield
   ensure

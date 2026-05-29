@@ -49,7 +49,7 @@ module Sign
 
         def handle_deactivation_failure(actor)
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "visitor.withdrawal.suspension_failed",
               visitor_id: actor.id,
               errors: actor.errors.full_messages,

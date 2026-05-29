@@ -251,12 +251,13 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
 
     Authentication::Base::Token.stub(
       :extract_session_id_allow_expired,
-      ->(token, host:, resource_type:, issuer: nil, audiences: nil) {
+      ->(token, host:, resource_type:, issuer: nil, audiences: nil, jwt_issuer_id: nil) {
         assert_equal "access-token", token
         assert_equal "localhost", host
         assert_equal "user", resource_type
         assert_nil issuer
         assert_nil audiences
+        assert_equal "surface:SIGN_APP", jwt_issuer_id
         "session-public-id"
       },
     ) do
@@ -283,8 +284,7 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
     query = Rack::Utils.parse_nested_query(uri.query)
 
     assert_equal "/sign_in", uri.path
-    assert_match(/--/, query["pt"])
-    assert_equal "http://localhost/", @harness.send(:verify_authentication_pt_path, query["pt"])
+    assert_equal "", query["pt"]
   end
 
   test "authenticate! renders for json" do
@@ -299,6 +299,12 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
 
   test "log_out clears session and cookies" do
     @harness.current_resource = Client.new
+    @harness.define_singleton_method(:current_session) do
+      Struct.new(:public_id).new("session-public-id")
+    end
+    @harness.define_singleton_method(:current_session_public_id) do
+      "session-public-id"
+    end
     # Mock clear_auth_cookies! and destroy_refresh_token_from_cookie
     @harness.define_singleton_method(:clear_auth_cookies!) do
       nil

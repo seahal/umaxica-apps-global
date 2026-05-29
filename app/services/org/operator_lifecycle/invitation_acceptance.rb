@@ -106,7 +106,7 @@ module Org
         end
       rescue StandardError => e
         Rails.logger.error(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "org.operator_lifecycle.invitation_acceptance.compensation_failed",
             operator_id: operator&.id,
             error_class: e.class.name,

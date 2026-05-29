@@ -67,7 +67,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
         as: :json
 
     assert_response :unauthorized
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_unauthenticated_response
   end
 
   test "GET check with user token on staff endpoint returns 401" do
@@ -127,7 +127,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
         as: :json
 
     assert_response :unauthorized
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_unauthenticated_response
   end
 
   test "GET check accepts DPoP-bound staff token with valid proof" do
@@ -188,7 +188,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :unauthorized
     assert_predicate response.headers["DPoP-Nonce"], :present?
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_unauthenticated_response
   end
 
   test "GET check rejects DPoP-bound staff token without proof" do
@@ -213,7 +213,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :unauthorized
     assert_predicate response.headers["DPoP-Nonce"], :present?
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_unauthenticated_response
   end
 
   test "GET check rejects DPoP staff proof with wrong ath" do
@@ -243,7 +243,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :unauthorized
     assert_predicate response.headers["DPoP-Nonce"], :present?
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_unauthenticated_response
   end
 
   private
@@ -263,5 +263,12 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       "ath" => Jit::Security::Jwt::ThumbprintCalculator.ath(access_token),
     }
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
+  end
+
+  def assert_unauthenticated_response
+    body = response.parsed_body
+    return assert_equal({ "authenticated" => false }, body) if body.is_a?(Hash)
+
+    assert_equal I18n.t("auth.session_expired"), body
   end
 end

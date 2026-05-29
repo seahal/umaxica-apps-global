@@ -16,7 +16,6 @@ locale_files =
   ).map { |path| Rails.root.join(path).to_s }
 locale_roots = [
   Rails.root.join("config/locales").to_s,
-  Rails.root.join("lib/locale").to_s,
 ]
 
 I18n.load_path =

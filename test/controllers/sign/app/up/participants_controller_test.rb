@@ -33,8 +33,8 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
 
     get sign_app_up_checkpoint_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
-    assert_response :not_found
-    assert_equal "Not found", response.body
+    assert_redirected_to new_sign_app_up_url(ri: "jp")
+    assert_equal I18n.t("sign.app.registration.session_missing"), flash[:alert]
   end
 
   test "checkpoint update rejects direct access without a ticket" do

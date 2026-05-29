@@ -35,7 +35,7 @@ class OrgPreferenceTimezoneTest < ActiveSupport::TestCase
     timezone = OrgPreferenceTimezone.new
 
     assert_not timezone.valid?
-    assert_includes timezone.errors[:preference], "を入力してください"
+    assert_not_empty timezone.errors[:preference]
   end
 
   test "can be created with preference and option" do

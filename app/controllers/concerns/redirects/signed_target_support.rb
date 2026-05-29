@@ -94,7 +94,7 @@ module Redirects
 
     def log_signed_target_rejection(event_name, reason, payload: nil)
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           event_name,
           reason: reason,
           flow: payload&.dig("flow"),

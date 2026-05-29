@@ -137,24 +137,30 @@ The sign surfaces use the same request context contract for `app`, `org`, and `c
 - `lx` carries the language.
 - `ct` carries the theme.
 - `tz` carries the timezone.
+- `cu`, `df`, `tf`, `mo`, `dn`, and `pp` carry optional display and locale-adjacent overlays.
+- `pt` and `nt` carry redirect target lanes and are not propagated through ordinary preference
+  navigation by default.
 
 `ri` is mandatory request context. Current sign `app`, `org`, and `com` routes must carry a valid
 `ri`. If `ri` is missing or invalid on a GET or HEAD request, the controller redirects to the same
 route with a valid `ri` value. `ri` is request context, not a preference write path.
 
-`lx`, `ct`, and `tz` are optional request context. They are only propagated when explicitly present
-and valid. They may override the current request's locale, theme, or timezone reflection by applying
-a request-local overlay to `Actor.preferences`, but they do not update the database or access-token
-JWT. If they are missing, Rails request code should read the already resolved value from
-`Actor.preferences`, without adding those optional keys back to generated URLs. On GET and HEAD
-requests, invalid or blank optional context parameters are removed from the query string by
-redirect.
+`lx`, `ct`, `tz`, `cu`, `df`, `tf`, `mo`, `dn`, and `pp` are optional request context. They are only
+propagated when explicitly present and valid. The runtime preference subset may override the current
+request's locale, theme, timezone, or display reflection by applying a request-local overlay to
+`Actor.preferences`, but these parameters do not update the database or access-token JWT. If they
+are missing, Rails request code should read the already resolved value from `Actor.preferences`,
+without adding those optional keys back to generated URLs. On GET and HEAD requests, invalid or
+blank optional context parameters are removed from the query string by redirect.
 
 Supported optional request values:
 
 - `lx`: `ja`, `en`
 - `ct`: `li`, `dr`, `sy`, or their long forms `light`, `dark`, `system`
 - `tz`: `utc`, `etc/utc`, `jst`, `asia/tokyo`
+- `tf`: `12`, `24`, or their long forms `hour_12`, `hour_24`
+- `mo`: `st`, `rd`, or their long forms `standard`, `reduced`
+- `dn`: `st`, `cp`, or their long forms `standard`, `compact`
 
 Examples:
 

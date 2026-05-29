@@ -49,8 +49,7 @@ class Sign::Com::UpsControllerTest < ActionDispatch::IntegrationTest
 
     get new_sign_com_up_url(ri: "jp"), headers: as_visitor_headers(visitor, host: host)
 
-    assert_response :unauthorized
-    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
+    assert_redirected_to sign_com_dashboard_url(ri: "jp")
   end
 
   test "checkpoint without active registration redirects to sign up start" do

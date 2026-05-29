@@ -23,9 +23,9 @@ module Sign
         get new_sign_com_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?]", new_sign_com_in_email_path(pt: pt, ri: "jp")
-        assert_select "a[href=?]", new_sign_com_in_passkey_path(pt: pt, ri: "jp")
-        assert_select "a[href=?]", new_sign_com_in_secret_path(pt: pt, ri: "jp")
+        assert_select "a[href=?]", new_sign_com_in_email_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_com_in_passkey_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_com_in_secret_path(ri: "jp")
       end
 
       test "does not show social login buttons" do

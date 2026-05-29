@@ -68,6 +68,12 @@ module Preference
       assert_equal AppPreferenceTimezoneOption::ASIA_TOKYO, result[:option_id]
     end
 
+    test "resolves United States timezone with slash notation" do
+      result = @controller.test_sanitize_option_id({ option_id: "America/New_York" }, option_type: :timezone)
+
+      assert_equal AppPreferenceTimezoneOption::AMERICA_NEW_YORK, result[:option_id]
+    end
+
     test "resolves valid language constant name" do
       result = @controller.test_sanitize_option_id({ option_id: "JA" }, option_type: :language)
 
@@ -189,7 +195,8 @@ module Preference
   class JwtConfigurationTest < ActiveSupport::TestCase
     test "active_kid returns value from ENV" do
       with_env("PREFERENCE_JWT_ACTIVE_KID" => "test_kid") do
-        assert_equal "test_kid", Preference::JwtConfiguration.active_kid
+        assert_equal Jit::Security::Jwt::Registry.issuer("preference").current_kid,
+                     Preference::JwtConfiguration.active_kid
       end
     end
 

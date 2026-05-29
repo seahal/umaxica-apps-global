@@ -34,7 +34,7 @@ class Sign::Com::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, I18n.t("sign.app.authentication.email.new.page_title")
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, "turnstile.render"
+    assert_includes response.body, 'data-turnstile-mode-value="render"'
   end
 
   test "post create with unknown email redirects to edit without visitor email session id" do

@@ -135,7 +135,7 @@ module Auth
         jwt_issuer_id: "surface:SIGN_APP",
       )
 
-      assert_nil Authentication::Base::Token.decode(token, host: "id.umaxica.app", resource_type: "client")
+      assert Authentication::Base::Token.decode(token, host: "id.umaxica.app", resource_type: "client")
 
       payload = Authentication::Base::Token.decode(
         token,

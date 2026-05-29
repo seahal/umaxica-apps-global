@@ -41,6 +41,13 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
     assert_not too_long.valid?
   end
 
+  test "generated permalink is valid when public id starts with a hyphen" do
+    post = build_post(Post, PostStatus, public_id: "-#{SecureRandom.alphanumeric(20)}")
+
+    assert_predicate post, :valid?
+    assert_match(/\A[A-Za-z0-9_][A-Za-z0-9_-]{0,199}\z/, post.permalink)
+  end
+
   test "available scope excludes future and expired posts" do
     now = Time.current
     available = create_post(

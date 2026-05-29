@@ -13,7 +13,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     @user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
   end
 
-  test "social login flow does not trigger email verification and redirects to dashboard" do
+  test "social login flow does not trigger email verification and enters guardrail" do
     OmniAuth.config.test_mode = true
     # IMPORTANT: Social login uses provider+uid ONLY, NOT email
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
@@ -38,8 +38,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     follow_redirect!
 
-    # Verify we are on dashboard, NOT email verification page
-    assert_equal sign_app_dashboard_path, path
+    assert_equal sign_app_up_guardrail_path, path
 
     # Client status should still be UNVERIFIED_WITH_SIGN_UP if it was new,
     # but no ClientEmail should have been created from the IdP info

@@ -182,16 +182,22 @@ module Authentication
         ClientChronicleEvent.where(id: invalid_event_id).delete_all
       end
 
-      assert_difference -> {
-        ChronicleRecord.connected_to(role: :reading) { ChronicleOutboxEntry.count }
-      }, 1 do
-        Authentication::AuditWriter.write(
-          ClientChronicle,
-          invalid_event_id,
-          resource: @user,
-          actor: @user,
-          ip_address: "127.0.0.1",
-        )
+      Authentication::AuditWriter.stub(
+        :write!, ->(*) {
+                   raise Authentication::AuditWriter::AuditWriteError, "forced"
+                 },
+      ) do
+        assert_difference -> {
+          ChronicleRecord.connected_to(role: :reading) { ChronicleOutboxEntry.count }
+        }, 1 do
+          Authentication::AuditWriter.write(
+            ClientChronicle,
+            invalid_event_id,
+            resource: @user,
+            actor: @user,
+            ip_address: "127.0.0.1",
+          )
+        end
       end
 
       entry =
@@ -221,23 +227,29 @@ module Authentication
         ClientChronicleEvent.where(id: invalid_event_id).delete_all
       end
 
-      Authentication::AuditWriter.write(
-        ClientChronicle,
-        invalid_event_id,
-        resource: @user,
-        actor: @user,
-        ip_address: "127.0.0.1",
-        context: {
-          auth_method: "secret",
-          raw_secret: "should-not-survive",
-          password: "nope",
-          token: "token-should-not-survive",
-          otp: "123456",
-          session_id: "session-should-not-survive",
-          raw_email: "person@example.test",
-          raw_ip: "203.0.113.10",
-        },
-      )
+      Authentication::AuditWriter.stub(
+        :write!, ->(*) {
+                   raise Authentication::AuditWriter::AuditWriteError, "forced"
+                 },
+      ) do
+        Authentication::AuditWriter.write(
+          ClientChronicle,
+          invalid_event_id,
+          resource: @user,
+          actor: @user,
+          ip_address: "127.0.0.1",
+          context: {
+            auth_method: "secret",
+            raw_secret: "should-not-survive",
+            password: "nope",
+            token: "token-should-not-survive",
+            otp: "123456",
+            session_id: "session-should-not-survive",
+            raw_email: "person@example.test",
+            raw_ip: "203.0.113.10",
+          },
+        )
+      end
 
       entry =
         ChronicleRecord.connected_to(role: :reading) do
@@ -347,7 +359,7 @@ module Authentication
 
       Rails.stub(:logger, logger) do
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             Authentication::AuditWriter::WRITE_FAILED_EVENT,
             event_uuid: SecureRandom.uuid,
             audit_class: "ClientChronicle",

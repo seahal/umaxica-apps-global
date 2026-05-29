@@ -4,7 +4,7 @@
 class Actor
   Authz =
     Data.define(:policy_user, :token_claims, :surface) do
-      def self.null = NULL
+      def self.null = self::NULL
 
       def null?
         policy_user.blank? && token_claims.blank? && surface.blank?

@@ -30,7 +30,8 @@
 require "test_helper"
 
 class OperatorStepUpSessionTest < ActiveSupport::TestCase
-  fixtures_only :operator_identity_statuses
+  fixtures_only :operator_identity_statuses, :operator_visibilities, :operator_multi_factors,
+                :operator_multi_factor_statuses
 
   setup do
     @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
@@ -74,6 +75,28 @@ class OperatorStepUpSessionTest < ActiveSupport::TestCase
 
       assert_not session.valid?, status
       assert_not_empty session.errors[:status]
+    end
+  end
+
+  test "attempt count cannot be negative" do
+    session = OperatorStepUpSession.new(@valid_params.merge(attempt_count: -1))
+
+    assert_not session.valid?
+    assert_not_empty session.errors[:attempt_count]
+  end
+
+  test "database rejects retention order when validations are bypassed" do
+    session = OperatorStepUpSession.new(
+      @valid_params.merge(
+        discarded_at: 2.days.from_now,
+        purged_at: 1.day.from_now,
+      ),
+    )
+    exception_classes = [ActiveRecord::StatementInvalid]
+    exception_classes << ActiveRecord::CheckConstraintViolation if defined?(ActiveRecord::CheckConstraintViolation)
+
+    assert_raises(*exception_classes) do
+      ActiveRecord::Base.logger.silence { session.save!(validate: false) }
     end
   end
 

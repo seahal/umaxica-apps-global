@@ -51,13 +51,11 @@ class ComPreferenceChronicle < ChronicleRecord
              inverse_of: :com_preference_chronicles
   belongs_to :actor, polymorphic: true
   belongs_to :com_preference_chronicle_level, foreign_key: :level_id, inverse_of: :com_preference_chronicles
-  # event_id references ComPreferenceChronicleEvent.id (string)
   belongs_to :com_preference_chronicle_event,
              class_name: "ComPreferenceChronicleEvent",
              foreign_key: "event_id",
              primary_key: "id",
              inverse_of: :com_preference_chronicles
-  # subject_id/subject_type for cross-DB compatibility (no FK)
   validates :subject_type, presence: true
 
   validates :event_id, length: { maximum: 255 }

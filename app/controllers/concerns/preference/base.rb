@@ -69,7 +69,7 @@ module Preference
 
     def raise_preference_resolution_error!(component, exception)
       Rails.logger.warn(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "preference.resolution.failed",
           component: component,
           error_class: exception.class.name,
@@ -715,7 +715,7 @@ module Preference
       return "Asia/Tokyo" if option_id == option_class::ASIA_TOKYO
       return "Etc/UTC" if option_id == option_class::ETC_UTC
 
-      option_id.to_s
+      option_class.find_by(id: option_id)&.name || option_id.to_s
     end
 
     def option_id_to_colortheme(option_id, prefix)
@@ -865,7 +865,7 @@ module Preference
       @preference_refresh_failed = true
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "preference.token.refresh.replay_detected",
           preference_type: preference_class.name,
           preference_public_id: preference.public_id,

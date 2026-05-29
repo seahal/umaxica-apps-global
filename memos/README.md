@@ -16,3 +16,7 @@ Guidelines:
 - Prefer direct observations over polished narratives.
 - Promote content out of `memos/` once it becomes stable or actionable.
 - Do not treat files here as source of truth.
+- Do not commit secrets, tokens, cookies, authorization headers, full request parameters, private
+  keys, real credentials, or sensitive local environment details. Keep sensitive scratch context in
+  ephemeral working memory, write only masked/redacted summaries, or use ignored `memos/local/`,
+  `memos/private/`, or `memos/tmp/`.

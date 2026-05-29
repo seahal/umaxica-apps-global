@@ -23,7 +23,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   end
 
   test "mfa_required_for? returns true for user with full multi_factor_id" do
-    user = Client.create!(multi_factor_id: ClientMultiFactor::FULL)
+    user = Client.create!(multi_factor_id: ClientMultiFactor::FULL, multi_factor_enabled: true)
     controller = build_test_controller
 
     assert controller.send(:mfa_required_for?, user)

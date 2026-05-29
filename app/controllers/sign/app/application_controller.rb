@@ -63,7 +63,7 @@ module Sign
       allow_browser versions: :modern
 
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: HostOriginEnv.trusted_origins(
+                           trusted_origins: Jit::HostOriginEnv.trusted_origins(
                              ENV["ID_SERVICE_URL"],
                              ENV.fetch("SIGN_SERVICE_URL"),
                            ),

@@ -17,8 +17,14 @@ module Sign
 
     private
 
+    def load_current_resource
+      return nil if extract_access_token(Authentication::Base::ACCESS_COOKIE_KEY).blank?
+
+      super
+    end
+
     def dbsc_token_record
-      current_session || token_from_refresh_cookie
+      token_from_refresh_cookie || current_session
     end
 
     def token_from_refresh_cookie

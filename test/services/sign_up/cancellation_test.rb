@@ -30,7 +30,7 @@ class SignUpCancellationTest < ActiveSupport::TestCase
     assert_operator email.purged_at, :>, Time.current
   end
 
-  test "replayed cancel keeps cleanup pending when previous cleanup did not finish" do
+  test "replayed cancel reruns cleanup when previous cleanup did not finish" do
     cycle = create_cycle(
       status_id: ClientSignUpCycleStatus::CANCELLED,
       step: "cancelled",
@@ -42,7 +42,7 @@ class SignUpCancellationTest < ActiveSupport::TestCase
     result = SignUp::Cancellation.call(cycle: cycle, actor_context: nil)
 
     assert_equal :ok, result.status
-    assert_equal ClientSignUpCycleCleanupStatus::PENDING, cycle.reload.cleanup_status_id
+    assert_equal ClientSignUpCycleCleanupStatus::COMPLETED, cycle.reload.cleanup_status_id
     assert_nil cycle.cleanup_error_code
   end
 
@@ -78,9 +78,8 @@ class SignUpCancellationTest < ActiveSupport::TestCase
       status_id: ClientSignUpCycleStatus::CANCELLED,
       step: "cancelled",
       cleanup_status_id: ClientSignUpCycleCleanupStatus::PENDING,
-      discarded_at: 1.minute.ago,
-      purged_at: 29.minutes.from_now,
     )
+    cycle.update_columns(discarded_at: cycle.created_at, purged_at: cycle.created_at + 29.minutes)
 
     SignUp::ArtifactCleanup.call(cycle: cycle)
 

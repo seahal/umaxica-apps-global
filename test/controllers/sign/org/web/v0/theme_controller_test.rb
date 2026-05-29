@@ -9,7 +9,7 @@ class Sign::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     _ = Preference::Base # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = IdHostEnv.staff_url || "id.org.localhost"
+    @host = Jit::IdHostEnv.staff_url || "id.org.localhost"
     host! @host
   end
 
@@ -29,7 +29,7 @@ class Sign::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       public_id: "pref-org-public-id",
       preference_type: "OrgPreference",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[Preference::CookieName.access(surface: :org)] = token
 
     with_preference_jwt_keys(host: @host) do
       get sign_org_web_v0_theme_path, as: :json
@@ -48,7 +48,7 @@ class Sign::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       public_id: "pref-org-public-id",
       preference_type: "OrgPreference",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[Preference::CookieName.access(surface: :org)] = token
 
     with_preference_jwt_keys(host: @host) do
       patch sign_org_web_v0_theme_path, params: { theme: "light" }, as: :json

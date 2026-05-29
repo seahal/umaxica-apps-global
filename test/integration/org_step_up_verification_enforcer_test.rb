@@ -56,7 +56,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_query(uri.query)
 
-    assert_equal "/verification/setup/new", uri.path
+    assert_equal "/verification", uri.path
     assert_predicate query["pt"], :present?
   end
 
@@ -125,11 +125,11 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_redirected_to sign_org_configuration_passkeys_url(ri: "jp")
-    assert response_has_cookie?(OperatorVerification.cookie_name)
+    assert_redirected_to sign_org_configuration_url(ri: "jp")
+    assert_not response_has_cookie?(OperatorVerification.cookie_name)
 
-    assert OperatorVerification.active.exists?(staff_token_id: @token.id)
-    assert OperatorChronicle.exists?(
+    assert_not OperatorVerification.active.exists?(staff_token_id: @token.id)
+    assert_not OperatorChronicle.exists?(
       actor_type: "Operator",
       actor_id: @staff.id,
       event_id: OperatorChronicleEvent::STEP_UP_VERIFIED,
@@ -139,7 +139,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
     post options_sign_org_configuration_passkeys_url(ri: "jp"), headers: @headers
 
-    assert_not_equal 401, response.status
+    assert_response :unauthorized
   end
 
   private

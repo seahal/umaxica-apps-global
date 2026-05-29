@@ -98,16 +98,30 @@ class Preference::GlobalTest < ActiveSupport::TestCase
         tz: "Asia/Tokyo",
         cu: "jpy",
         df: "iso",
-        tf: "hour_24",
-        mo: "reduced",
-        dn: "compact",
+        tf: "24",
+        mo: "rd",
+        dn: "cp",
         pp: "50",
       },
       controller.request_context,
     )
     assert_equal "us", controller.send(:request_context_ri)
     assert_equal "opaque-token", controller.send(:request_context_pt)
-    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "Asia/Tokyo" }, controller.requested_context)
+    assert_equal(
+      {
+        ri: "us",
+        lx: "en",
+        ct: "dr",
+        tz: "Asia/Tokyo",
+        cu: "jpy",
+        df: "iso",
+        tf: "24",
+        mo: "rd",
+        dn: "cp",
+        pp: "50",
+      },
+      controller.requested_context,
+    )
   end
 
   test "request_context omits invalid public request context values" do

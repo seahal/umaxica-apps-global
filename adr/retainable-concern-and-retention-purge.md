@@ -123,8 +123,8 @@ class RetentionPurgeJob < ApplicationJob
 end
 ```
 
-DB-backed JumpLink records were removed when redirect handling moved to the
-external Jump gateway and signed `rt` tokens.
+DB-backed JumpLink records were removed when redirect handling moved to the external Jump gateway
+and signed `rt` tokens.
 
 ## reason
 

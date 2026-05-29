@@ -51,4 +51,22 @@ class OrgPreferenceThemeOptionTest < ActiveSupport::TestCase
 
     assert_nil option.name
   end
+
+  test "name returns light for LIGHT id" do
+    option = OrgPreferenceThemeOption.new(id: OrgPreferenceThemeOption::LIGHT)
+
+    assert_equal "light", option.name
+  end
+
+  test "name returns dark for DARK id" do
+    option = OrgPreferenceThemeOption.new(id: OrgPreferenceThemeOption::DARK)
+
+    assert_equal "dark", option.name
+  end
+
+  test "name returns system for SYSTEM id" do
+    option = OrgPreferenceThemeOption.new(id: OrgPreferenceThemeOption::SYSTEM)
+
+    assert_equal "system", option.name
+  end
 end

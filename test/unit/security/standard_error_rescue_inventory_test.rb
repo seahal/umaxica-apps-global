@@ -40,11 +40,11 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       classification: "best-effort preference adoption side effect",
     },
     "app/controllers/concerns/preference/base.rb" => {
-      count: 4,
+      count: 2,
       classification: "preference token/cookie degradation; auth state must not depend on this",
     },
     "app/controllers/concerns/preference/core.rb" => {
-      count: 3,
+      count: 2,
       classification: "preference persistence side effect; resolution errors are re-raised separately",
     },
     "app/controllers/concerns/preference/resource_sync.rb" => {

@@ -40,13 +40,13 @@ module AuthorizationAudit
     log_data = build_log_data(actor, exception)
 
     # Log the authorization failure event
-    Rails.logger.info(LogEvent.format("authorization.failure", log_data))
+    Rails.logger.info(Jit::LogEvent.format("authorization.failure", log_data))
 
     create_audit_record(actor, log_data)
   rescue StandardError => e
     # Don't let audit logging break the application
     Rails.logger.error(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "authorization.failure_log.failed", error_class: e.class.name,
                                             message: e.message,
       ),
@@ -96,7 +96,7 @@ module AuthorizationAudit
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
     # Event ID might not exist in the database yet
-    Rails.logger.info(LogEvent.format("authorization.audit.user_creation_failed", error_message: e.message))
+    Rails.logger.info(Jit::LogEvent.format("authorization.audit.user_creation_failed", error_message: e.message))
   end
 
   def create_staff_authorization_audit(staff, log_data)
@@ -110,7 +110,7 @@ module AuthorizationAudit
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
     # Event ID might not exist in the database yet
-    Rails.logger.info(LogEvent.format("authorization.audit.staff_creation_failed", error_message: e.message))
+    Rails.logger.info(Jit::LogEvent.format("authorization.audit.staff_creation_failed", error_message: e.message))
   end
 
   def create_visitor_authorization_audit(visitor, log_data)
@@ -128,7 +128,7 @@ module AuthorizationAudit
                       trace_id: log_data[:trace_id], }.compact if audit.respond_to?(:context=)
     audit.save!
   rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.info(LogEvent.format("authorization.audit.visitor_creation_failed", error_message: e.message))
+    Rails.logger.info(Jit::LogEvent.format("authorization.audit.visitor_creation_failed", error_message: e.message))
   end
 
   def authorization_audit_actor

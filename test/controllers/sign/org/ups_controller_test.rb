@@ -80,7 +80,6 @@ class Sign::Org::UpsControllerTest < ActionDispatch::IntegrationTest
 
     get new_sign_org_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_response :unauthorized
-    assert_includes response.body, I18n.t("sign.org.registration.email.already_logged_in")
+    assert_redirected_to sign_org_dashboard_url(ri: "jp")
   end
 end

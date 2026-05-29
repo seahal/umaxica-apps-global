@@ -49,11 +49,11 @@ module Authentication
           step_up_until: step_up_until,
         )
 
-        token_issuer_id = jwt_issuer_id.presence
+        token_issuer_id = resolve_jwt_issuer_id(host: host, resource_type: resource_type, jwt_issuer_id: jwt_issuer_id)
         token_issuer_id ? Jit::Security::Jwt::Keyring.encode(payload, issuer_id: token_issuer_id) : Jit::Security::Jwt::Keyring.encode(payload)
       rescue StandardError => e
         Rails.logger.error(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "authentication.token.encoding.error",
             error_class: e.class.name,
             message: e.message,
@@ -97,9 +97,13 @@ module Authentication
           return nil
         end
 
+        resolved_jwt_issuer_id = resolve_jwt_issuer_id(
+          host: host, resource_type: resource_type,
+          jwt_issuer_id: jwt_issuer_id,
+        )
         public_key =
-          if jwt_issuer_id.present?
-            Jit::Security::Jwt::Keyring.public_key_for(header["kid"], issuer_id: jwt_issuer_id)
+          if resolved_jwt_issuer_id.present?
+            Jit::Security::Jwt::Keyring.public_key_for(header["kid"], issuer_id: resolved_jwt_issuer_id)
           else
             Jit::Security::Jwt::Keyring.public_key_for(header["kid"])
           end
@@ -138,12 +142,12 @@ module Authentication
           header: header,
           reason: "EXPIRED",
         )
-        Rails.logger.info(LogEvent.format("authentication.token.verification.expired", host: host))
+        Rails.logger.info(Jit::LogEvent.format("authentication.token.verification.expired", host: host))
         nil
       rescue JWT::InvalidIssuerError, JWT::InvalidAudError, JWT::InvalidIatError, JWT::ImmatureSignature => e
         report_claim_error(resource_type: resource_type, host: host, header: header, error: e)
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "authentication.token.verification.claim_invalid",
             error_class: e.class.name,
             host: host,
@@ -153,7 +157,7 @@ module Authentication
       rescue JWT::DecodeError, JWT::VerificationError => e
         report_decode_error(resource_type: resource_type, host: host, header: header, error: e)
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "authentication.token.verification.failed",
             error_class: e.class.name,
             host: host,
@@ -162,7 +166,7 @@ module Authentication
         nil
       rescue OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "authentication.token.verification.error",
             error_class: e.class.name,
             error_message: e.message,
@@ -236,6 +240,48 @@ module Authentication
         when "operator" then ::OperatorToken
         when "visitor" then ::VisitorToken
         end
+      end
+
+      def resolve_jwt_issuer_id(host:, resource_type:, jwt_issuer_id:)
+        return jwt_issuer_id.presence if jwt_issuer_id.present?
+
+        inferred = inferred_surface_jwt_issuer_id(host: host, resource_type: resource_type)
+        return inferred if inferred.present?
+
+        nil
+      end
+
+      def inferred_surface_jwt_issuer_id(host:, resource_type:)
+        normalized = host.to_s
+        return nil if normalized.blank?
+        return nil unless normalized.include?("umaxica") || normalized.include?("localhost") ||
+          normalized.include?("acme") || normalized.include?("core")
+
+        service =
+          if normalized.include?("acme")
+            "ACME"
+          elsif normalized.include?("core")
+            "CORE"
+          else
+            "SIGN"
+          end
+
+        surface =
+          if service == "SIGN"
+            case resource_type.to_s
+            when "operator" then "ORG"
+            when "visitor" then "COM"
+            else "APP"
+            end
+          elsif normalized.include?(".org") || normalized.include?("org.")
+            "ORG"
+          elsif normalized.include?(".com") || normalized.include?("com.")
+            "COM"
+          else
+            "APP"
+          end
+
+        "surface:#{service}_#{surface}"
       end
 
       def token_connection_owner(token_class)

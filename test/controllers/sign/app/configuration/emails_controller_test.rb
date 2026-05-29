@@ -195,7 +195,7 @@ class Sign::App::Configuration::EmailsControllerTest < ActionDispatch::Integrati
     assert_select "input[type=checkbox][name='user_email[promotional]'][checked]", count: 0
     assert_select "input[type=checkbox][name='user_email[notifiable]'][checked]", count: 1
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, "turnstile.execute"
+    assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
   test "edit disables email preference toggles when email is unverified" do

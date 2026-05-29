@@ -67,12 +67,19 @@ module Security
           # Edge cookie endpoints are reviewed self-defending preference/auth cookie APIs.
           "app/controllers/acme/app/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
           "app/controllers/acme/com/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
+          "app/controllers/core/app/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
+          "app/controllers/core/com/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
+          "app/controllers/core/org/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
           # DBSC endpoints must process device-session challenge state before the normal withdrawal gate.
           "app/controllers/acme/app/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
           "app/controllers/acme/com/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
           "app/controllers/acme/org/edge/v0/dbsc_controller.rb" =>
+            "DBSC edge endpoint owns its device binding boundary",
+          "app/controllers/core/app/edge/v0/dbsc_controller.rb" =>
+            "DBSC edge endpoint owns its device binding boundary",
+          "app/controllers/core/com/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
         }
 
@@ -141,6 +148,7 @@ module Security
             deactivated_at: 2.hours.ago,
             discarded_at: 2.hours.ago,
             purged_at: 1.hour.ago,
+            withdrawn_at: 1.hour.ago,
             terminated_at: 30.minutes.ago,
           )
         else

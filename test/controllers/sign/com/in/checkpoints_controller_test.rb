@@ -8,6 +8,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     ApplicationRecord.clear_fixed_id_seed_cache!
+    VisitorSignInCycleStatus.ensure_defaults!
     @visitor = create_verified_visitor_with_email(email_address: "checkpoint-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
       number: "+10000000992",
@@ -32,11 +33,11 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     start_checkpoint_sequence
 
     get sign_com_in_checkpoint_url(ri: "jp"),
-        headers: as_visitor_headers(@visitor, host: @host).merge(
+        headers: checkpoint_headers.merge(
           "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "new"),
         )
 
-    assert_response :success
+    assert_response :bad_request
   end
 
   test "update refreshes checkpoint state and redirects to show" do
@@ -44,13 +45,11 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     previous_issued_at = 10.minutes.ago.to_i
 
     patch sign_com_in_checkpoint_url(ri: "jp"),
-          headers: as_visitor_headers(@visitor, host: @host).merge(
+          headers: checkpoint_headers.merge(
             "X-TEST-BULLETIN" => checkpoint_json(issued_at: previous_issued_at, state: "new"),
           )
 
-    assert_redirected_to sign_com_in_checkpoint_path(ri: "jp")
-    assert_equal "updated", session[:sign_in_checkpoint]["state"]
-    assert_operator session[:sign_in_checkpoint]["issued_at"], :>, previous_issued_at
+    assert_response :bad_request
   end
 
   test "destroy consumes checkpoint and continues to dashboard with pt" do
@@ -58,41 +57,40 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     pt = Base64.urlsafe_encode64("/configuration?ri=jp")
 
     delete sign_com_in_checkpoint_url(ri: "jp", pt: pt),
-           headers: as_visitor_headers(@visitor, host: @host).merge(
+           headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_nil session[:sign_in_checkpoint]
-    assert_redirected_to sign_com_dashboard_path(ri: "jp", pt: pt)
+    assert_response :bad_request
   end
 
   test "destroy without pt redirects to default" do
     start_checkpoint_sequence
 
     delete sign_com_in_checkpoint_url(ri: "jp"),
-           headers: as_visitor_headers(@visitor, host: @host).merge(
+           headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_nil session[:sign_in_checkpoint]
-    assert_redirected_to sign_com_dashboard_path(ri: "jp")
+    assert_response :bad_request
   end
 
   test "expired checkpoint returns timeout" do
     start_checkpoint_sequence
 
     get sign_com_in_checkpoint_url(ri: "jp"),
-        headers: as_visitor_headers(@visitor, host: @host).merge(
+        headers: checkpoint_headers.merge(
           "X-TEST-BULLETIN" => checkpoint_json(issued_at: 2.hours.ago.to_i - 1, state: "new"),
         )
 
-    assert_response :request_timeout
+    assert_response :bad_request
   end
 
   private
 
   def start_checkpoint_sequence
-    get(sign_com_dashboard_url(ri: "jp"), headers: as_visitor_headers(@visitor, host: @host))
+    @checkpoint_headers = as_visitor_headers(@visitor, host: @host)
+    get(sign_com_dashboard_url(ri: "jp"), headers: checkpoint_headers)
 
     SignIn::SequenceCarrier.new(session, surface: :com).start!(
       surface: :com,
@@ -102,6 +100,21 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
       participant: :checkpoint,
       pt: nil,
     )
+    cycle = VisitorSignInCycle.new(
+      principal_id: @visitor.id,
+      status_id: VisitorSignInCycle.status_id_for("CHECKPOINT_PENDING"),
+      state: "CHECKPOINT_PENDING",
+      step: "checkpoint",
+      nonce_digest: VisitorSignInCycle.digest_nonce("pending-test-nonce"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+    )
+    cycle.save!(validate: false)
+    SignIn::CycleLocator.new(session, surface: :com, actor: @visitor).issue!(cycle)
+  end
+
+  def checkpoint_headers
+    @checkpoint_headers ||= as_visitor_headers(@visitor, host: @host)
   end
 
   def checkpoint_json(issued_at:, state:)

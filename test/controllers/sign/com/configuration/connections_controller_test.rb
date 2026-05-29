@@ -24,6 +24,7 @@ class Sign::Com::Configuration::ConnectionsControllerTest < ActionDispatch::Inte
     )
     @current_token = create_visitor_token!
     @current_token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_connection")
+    mark_token_step_up_satisfied_for_test(@current_token, scope: "configuration_connection")
     @headers = as_visitor_headers(@visitor, host: @host, session_public_id: @current_token.public_id)
     @connection = VisitorOidcConnection.create!(
       visitor: @visitor,
@@ -43,7 +44,7 @@ class Sign::Com::Configuration::ConnectionsControllerTest < ActionDispatch::Inte
 
     assert_response :success
     assert_select "td", text: "Core Com"
-    assert_select "td", text: /main\.com\.localhost/
+    assert_select "td", text: /first_party_session/
     assert_select "td", text: /openid, visitor/
   end
 

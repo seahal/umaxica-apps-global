@@ -16,6 +16,8 @@ security headers.
 ## Implementation Notes
 
 - CSP is configured in `config/initializers/content_security_policy.rb`.
+- `form-action` stays same-origin except for the Google and Apple OAuth endpoints used by app social
+  sign-in/sign-up. Browsers enforce `form-action` across those OAuth navigations.
 - Permissions-Policy, Cross-Origin-Embedder-Policy, Cross-Origin-Opener-Policy, and
   Cross-Origin-Resource-Policy are configured in `config/initializers/permissions_policy.rb`.
 - Session cookie transport is configured through `config/initializers/session_store.rb` and

@@ -34,8 +34,8 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_org_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "a[href=?]", new_sign_org_in_passkey_path(pt: pt, ri: "jp")
-    assert_select "a[href=?]", new_sign_org_in_secret_path(pt: pt, ri: "jp")
+    assert_select "a[href=?]", new_sign_org_in_passkey_path(ri: "jp")
+    assert_select "a[href=?]", new_sign_org_in_secret_path(ri: "jp")
   end
 
   test "does not render sign up link on sign in page" do
@@ -58,6 +58,7 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
 
     get new_sign_org_in_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_response :unauthorized
+    assert_response :redirect
+    assert_redirected_to sign_org_dashboard_url(ri: "jp")
   end
 end

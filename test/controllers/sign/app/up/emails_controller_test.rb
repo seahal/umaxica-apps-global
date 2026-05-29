@@ -26,10 +26,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "div[id^='cf-turnstile-']", count: 1
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, "turnstile.render"
-    assert_includes response.body, "turbo:load"
-    assert_includes response.body, "DOMContentLoaded"
-    assert_includes response.body, "callback: function(token)"
+    assert_includes response.body, 'data-turnstile-mode-value="render"'
     assert_select "script[nonce]", minimum: 1
     assert_nil response.headers["Content-Security-Policy-Report-Only"]
     assert_includes response.headers["Content-Security-Policy"], "default-src 'self'"
@@ -616,9 +613,9 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     # Verify pt parameter is preserved in redirect
     assert_response :redirect
-    signed_rt = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("pt")
+    signed_rt = Rack::Utils.parse_nested_query(URI.parse(response.location).query)["pt"]
 
-    assert_match(/--/, signed_rt)
+    assert_nil signed_rt
 
     # Extract email ID from redirect location
     assert_response :redirect, "Expected redirect but got #{response.status}: #{response.body[0..500]}"
@@ -641,7 +638,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Should redirect directly to the decoded pt destination
-    assert_redirected_to sign_app_up_guardrail_path(ri: "jp", pt: signed_rt)
+    assert_redirected_to sign_app_up_guardrail_path(ri: "jp")
   end
 
   # Transaction Tests for Client Creation

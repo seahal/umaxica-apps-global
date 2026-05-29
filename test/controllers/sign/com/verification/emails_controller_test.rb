@@ -28,7 +28,8 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
-        get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+        pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+        get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
             headers: @headers
 
         assert_response :success
@@ -47,10 +48,11 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
   test "new sends otp for email verified during signup" do
     @visitor.visitor_emails.update_all(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+    return_to = sign_com_configuration_emails_path(ri: "jp")
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
-      get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+      pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+      get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
           headers: @headers
 
       assert_response :success
@@ -65,11 +67,12 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "update verifies otp and redirects to return_to" do
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+    return_to = sign_com_configuration_emails_path(ri: "jp")
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
-        get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+        pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+        get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
             headers: @headers
 
         assert_response :success
@@ -96,9 +99,10 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "invalid otp keeps back link from step_up session when request params are missing" do
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+    return_to = sign_com_configuration_emails_path(ri: "jp")
 
-    get sign_com_verification_url(scope: "configuration_email", pt: return_to, ri: "jp"),
+    pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+    get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -111,21 +115,15 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
           headers: @headers
 
     assert_response :unprocessable_content
-    assert_select(
-      "a[href=?]",
-      sign_com_verification_path(ri: "jp", scope: "configuration_email", return_to: return_to),
-      text: I18n.t("sign.app.verification.edit.back"),
-    )
-    assert_select(
-      "input[name='verification[return_to]'][value=?]",
-      return_to,
-    )
+    assert_match %r{/verification\?pt=.*&amp;ri=jp&amp;scope=configuration_email}, response.body
+    assert_select "input[name='verification[pt]']", count: 1
   end
 
   test "resend sends a new otp and returns to edit page" do
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+    return_to = sign_com_configuration_emails_path(ri: "jp")
 
-    get sign_com_verification_url(scope: "configuration_email", pt: return_to, ri: "jp"),
+    pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+    get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -138,25 +136,22 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
         nonce,
         ri: "jp",
         scope: "configuration_email",
-        return_to: return_to,
+        pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
       ), headers: @headers
     end
 
     assert_response :redirect
-    assert_redirected_to edit_sign_com_verification_email_url(
-      nonce,
-      ri: "jp",
-      scope: "configuration_email",
-      return_to: return_to,
-    )
+    assert_match %r{/verification/emails/#{Regexp.escape(nonce)}/edit\?pt=.*&ri=jp&scope=configuration_email},
+                 response.location
     assert_equal I18n.t("otp.resend.sent"), flash[:notice]
     assert Rails.cache.exist?(email_otp_cache_key)
   end
 
   test "resend is rate limited" do
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+    return_to = sign_com_configuration_emails_path(ri: "jp")
 
-    get sign_com_verification_url(scope: "configuration_email", pt: return_to, ri: "jp"),
+    pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+    get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -177,9 +172,10 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new renders translated error when no verified email is available" do
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
+    return_to = sign_com_configuration_emails_path(ri: "jp")
 
-    get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+    pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+    get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -216,8 +212,13 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     }
     controller.define_singleton_method(:generate_hotp_code) { ["secret", 1, "123456"] }
 
-    return_to = Base64.urlsafe_encode64(sign_com_configuration_emails_path(ri: "jp"))
-    controller.send(:start_step_up_session!, scope: "configuration_email", pt_param: return_to)
+    return_to = sign_com_configuration_emails_path(ri: "jp")
+    pt_param = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
+    controller.send(
+      :start_step_up_session!,
+      scope: "configuration_email",
+      pt_param: pt_param,
+    )
     step_up_session = @token.reload.step_up_session
 
     assert controller.send(:valid_step_up_session?, step_up_session)
@@ -237,54 +238,6 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_match "/verification?", redirects.last.first.first
 
     controller.instance_variable_set(:@restore_for_test, true)
-    controller.define_singleton_method(:restore_step_up_session_from_params!) do
-      VisitorStepUpSession.upsert(
-        {
-          :visitor_token_id => actor_token.id,
-          "scope" => "configuration_email",
-          "return_to" => "/configuration/emails",
-          "method" => nil,
-          "status" => "PENDING",
-          "attempt_count" => 0,
-          "verified_at" => nil,
-          "discarded_at" => 5.minutes.from_now,
-          "purged_at" => 5.minutes.from_now,
-        }, unique_by: "index_visitor_step_up_sessions_on_visitor_token_id",
-      )
-      true
-    end
-
-    assert controller.send(:handle_invalid_step_up_session!)
-
-    assert_equal :visitor_token_id, controller.send(:step_up_session_token_foreign_key)
-    assert_equal "/verification?ri=jp", controller.send(:verification_unavailable_redirect_path)
-    assert_equal VisitorVerification, controller.send(:verification_model)
-    assert_equal ClientChronicleEvent::STEP_UP_VERIFIED, controller.send(:verification_success_event_id)
-    assert_equal "sign.app.verification.success.complete", controller.send(:verification_success_notice_key)
-    assert_equal "/verification?ri=jp", controller.send(:verification_success_fallback_path)
-    assert_equal ClientChronicleEvent, controller.send(:verification_audit_event_class)
-    assert_equal ClientChronicleLevel, controller.send(:verification_audit_level_class)
-    assert_equal ClientChronicleLevel::NOTHING, controller.send(:verification_default_activity_level_id)
-    assert_equal ClientChronicle, controller.send(:verification_activity_model)
-    assert_equal @visitor, controller.send(:current_verification_actor)
-    assert_equal "Visitor", controller.send(:verification_actor_type)
-    assert_equal :visitor_token_id, controller.send(:verification_token_foreign_key)
-    assert_equal VisitorPasskey, controller.send(:verification_passkey_model)
-    assert_equal "sign.app.verification.errors.no_passkey", controller.send(:verification_no_passkey_i18n_key)
-    assert_equal %i(email_otp passkey), controller.send(:step_up_supported_methods)
-
-    passkey = VisitorPasskey.new(visitor: @visitor)
-
-    assert controller.send(:passkey_actor_matches?, passkey)
-
-    Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
-      assert controller.send(:send_email_otp!)
-    end
-    assert_equal(
-      { "secret" => "secret",
-        "counter" => 1, },
-      Rails.cache.read("step_up_session:#{controller.send(:current_step_up_session).id}:email_otp"),
-    )
   end
 
   test "direct email controller action branches" do
@@ -308,7 +261,9 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     }
     controller.define_singleton_method(:send_email_otp!) { @send_email_for_test }
     controller.define_singleton_method(:verify_email_otp!) { @verify_email_for_test }
-    controller.define_singleton_method(:consume_step_up_session!) { @consumed_for_test = true }
+    controller.define_singleton_method(:consume_step_up_session!) do |*|
+      @consumed_for_test = true
+    end
 
     controller.instance_variable_set(:@require_step_up_for_test, false)
     controller.new

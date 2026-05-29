@@ -259,7 +259,7 @@ module Common
       remote_ip = req.remote_ip if req&.respond_to?(:remote_ip)
       cf_connecting_ip = headers["CF-Connecting-IP"] if headers
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "jump_rt.issued",
           request_id: request_id,
           namespace: namespace,
@@ -287,7 +287,7 @@ module Common
     def log_jump_rt_fallback_internal(namespace:, dst:, replay_policy:, url:, reason:, gateway_failure: nil)
       request_id = request.request_id if respond_to?(:request, true) && request.respond_to?(:request_id)
       Rails.logger.warn(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "jump_rt.fallback_internal",
           request_id: request_id,
           namespace: namespace,
@@ -312,7 +312,7 @@ module Common
 
       request_id = request.request_id if respond_to?(:request, true) && request.respond_to?(:request_id)
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "redirect_target.rejected",
           kind: result.kind,
           source: result.source,

@@ -32,7 +32,7 @@ module Sign
         end
       rescue StandardError => e
         Rails.logger.error(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "sign.risk.emitter.persist_failed",
             error_class: e.class.name,
             message: e.message,

@@ -140,12 +140,12 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     }
 
     assert_equal "configuration_email", harness.send(:incoming_scope)
-    assert_equal return_to, harness.send(:incoming_pt)
+    assert_equal "/configuration/secrets", harness.send(:incoming_pt)
     assert_equal(
-      { ri: "jp", scope: "configuration_email", return_to: return_to },
+      { ri: "jp", scope: "configuration_email", pt: "/configuration/secrets" },
       harness.send(:verification_recovery_redirect_params),
     )
-    assert_equal %w(scope return_to), harness.app_call(:verification_params).keys
+    assert_equal %w(scope), harness.app_call(:verification_params).keys
   end
 
   test "email otp session active and nonce helpers use step_up session" do
@@ -195,11 +195,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     return_to = "/configuration/emails"
     harness.params_hash = { scope: "configuration_email", return_to: return_to }
 
-    assert harness.app_call(:restore_step_up_session_from_params!)
-    restored = token.reload.step_up_session
-
-    assert_equal "configuration_email", restored.scope
-    assert_equal "/configuration/emails", restored.return_to
+    assert_not harness.app_call(:restore_step_up_session_from_params!)
 
     harness.params_hash = {}
 

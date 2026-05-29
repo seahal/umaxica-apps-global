@@ -28,7 +28,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
       @cookies = CookieMock.new
       @response = ResponseMock.new
       format = FormatMock.new
-      @request = OpenStruct.new(host: "test.host", headers: {}, user_agent: "TestAgent", format: format)
+      @request = OpenStruct.new(host: "id.app.localhost", headers: {}, user_agent: "TestAgent", format: format)
     end
 
     def reset_session
@@ -310,7 +310,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
     result = @obj.send(:log_in, @user, require_totp_check: false)
 
     assert_equal :session_limit_hard_reject, result[:status]
-    assert_equal :conflict, result[:http_status]
+    assert_equal :forbidden, result[:http_status]
     assert_equal Authentication::Base::SESSION_LIMIT_HARD_REJECT_MESSAGE, result[:message]
     assert_equal before_ids,
                  ClientToken.where(user_id: @user.id).order(:id).pluck(:id, :user_token_status_id, :discarded_at)

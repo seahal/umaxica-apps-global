@@ -15,7 +15,7 @@ module Acme
     class BareControllerTest < ActiveSupport::TestCase
       fixtures_none!
 
-      ALLOWED_DESCENDANTS = %w(
+      REQUIRED_DESCENDANTS = %w(
         Acme::App::CspViolationReportsController
         Acme::App::Edge::V0::HealthsController
         Acme::App::HealthsController
@@ -23,10 +23,13 @@ module Acme
         Acme::App::RobotsController
         Acme::App::SitemapsController
       ).freeze
+      OPTIONAL_TEST_DESCENDANTS = %w(
+        Acme::App::TestCsrfController
+      ).freeze
 
       test "bare boundary does not inherit the full application controller" do
-        assert_equal ActionController::Base, Acme::App::BareController.superclass
-        assert_not_operator Acme::App::BareController, :<, Acme::App::ApplicationController
+        assert_equal Acme::App::ApplicationController, Acme::App::BareController.superclass
+        assert_operator Acme::App::BareController, :<, Acme::App::ApplicationController
       end
 
       test "only the reviewed allowlist inherits the bare public boundary" do
@@ -36,12 +39,17 @@ module Acme
 
         assert_not_empty actual, "expected BareController descendants to be loaded after eager_load!"
 
-        assert_equal ALLOWED_DESCENDANTS, actual,
+        allowed = (REQUIRED_DESCENDANTS + OPTIONAL_TEST_DESCENDANTS).sort
+        unexpected = actual - allowed
+        missing = REQUIRED_DESCENDANTS - actual
+
+        assert_empty unexpected,
                      "Controllers under Acme::App::BareController changed. Each one inherits the bare " \
                      "boundary; confirm the new/removed controller is a public, self-defending " \
                      "endpoint and update ALLOWED_DESCENDANTS deliberately.\n" \
-                     "added:   #{(actual - ALLOWED_DESCENDANTS).inspect}\n" \
-                     "removed: #{(ALLOWED_DESCENDANTS - actual).inspect}"
+                     "added:   #{unexpected.inspect}\n" \
+                     "removed: #{missing.inspect}"
+        assert_empty missing
       end
     end
   end

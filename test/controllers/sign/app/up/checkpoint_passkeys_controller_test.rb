@@ -202,8 +202,8 @@ module Sign::App::Up
 
       get sign_app_configuration_url(ri: "jp")
 
-      assert_match %r{\Ahttp://#{Regexp.escape(ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"))}/sign/in/new\?},
-                   response.location
+      assert_equal "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}#{new_sign_app_in_path(ri: "jp")}",
+                   jump_rt_url_from_location(response.location)
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 
@@ -236,7 +236,7 @@ module Sign::App::Up
       end
 
       assert_response :created
-      assert_equal sign_app_up_checkpoint_path(ri: "jp", pt: pt),
+      assert_equal sign_app_up_checkpoint_path(ri: "jp"),
                    response.parsed_body["redirect_url"]
     end
 

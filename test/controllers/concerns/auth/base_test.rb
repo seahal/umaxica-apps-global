@@ -650,9 +650,9 @@ module Auth
     end
 
     test "JwtConfiguration.issuer respects resource_type" do
-      assert_equal "umaxica-auth:client", Authentication::Base::JwtConfiguration.issuer("client")
-      assert_equal "umaxica-auth:operator", Authentication::Base::JwtConfiguration.issuer("operator")
-      assert_equal "umaxica-auth", Authentication::Base::JwtConfiguration.issuer("invalid")
+      assert_equal "urn:umaxica:test:auth:client", Authentication::Base::JwtConfiguration.issuer("client")
+      assert_equal "urn:umaxica:test:auth:operator", Authentication::Base::JwtConfiguration.issuer("operator")
+      assert_equal "urn:umaxica:test:auth", Authentication::Base::JwtConfiguration.issuer("invalid")
     end
 
     test "JwtConfiguration.audiences respects resource_type specific env" do

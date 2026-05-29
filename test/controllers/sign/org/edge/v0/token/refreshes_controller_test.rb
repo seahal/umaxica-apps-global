@@ -63,7 +63,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       refresh_plain = token_record.rotate_refresh_token!
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
-      with_cookie_domain_credentials(COOKIE_DOMAIN_ORG: ".org.refresh.example.test") do
+      with_cookie_domain_credentials(COOKIE_DOMAIN_ORG: ".umaxica.org") do
         if true # Replaced STUB stub with real execution as per G1
           post "/edge/v0/token/refresh",
                headers: {
@@ -80,7 +80,7 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "preference_consented=0"
-    assert_includes set_cookie, "domain=.org.localhost"
+    assert_includes set_cookie, "domain=.umaxica.org"
     assert_includes set_cookie.downcase, "path=/"
     expires = response_cookie_expiry("preference_consented")
 

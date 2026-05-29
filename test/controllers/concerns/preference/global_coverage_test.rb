@@ -146,7 +146,7 @@ class Preference::GlobalCoverageTest < ActiveSupport::TestCase
   test "set_timezone sets session and cookies" do
     @harness.send(:set_timezone)
 
-    assert_equal "UTC", @harness.session[:timezone]
+    assert_equal "Etc/UTC", @harness.session[:timezone]
   end
 
   test "set_locale calls write_preference_cookie" do

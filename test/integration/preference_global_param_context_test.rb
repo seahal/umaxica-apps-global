@@ -69,6 +69,22 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       assert_select "html[lang='en']"
     end
 
+    test "#{domain[:name]} timezone edit includes United States timezone options" do
+      host!(domain[:host])
+
+      surface = domain[:name].delete_prefix("sign_")
+      get public_send("edit_sign_#{surface}_preference_region_timezone_url", ri: "jp", lx: "ja")
+
+      assert_response :success
+      assert_select "html[lang='ja']"
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /東部時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /中部時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /山岳部時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /太平洋時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /アラスカ時間/
+      assert_select "select[name='preference_timezone[option_id]'] option", text: /ハワイ時間/
+    end
+
     test "#{domain[:name]} ri param is always included in default_url_options" do
       host!(domain[:host])
 
@@ -189,7 +205,19 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
 
       url_method = domain[:preference_url_method] || domain[:root_url_method]
-      get public_send(url_method, ri: "us", lx: "en", ct: "dr", tz: "utc")
+      get public_send(
+        url_method,
+        ri: "us",
+        lx: "en",
+        ct: "dr",
+        tz: "utc",
+        cu: "usd",
+        df: "us",
+        tf: "12",
+        mo: "rd",
+        dn: "cp",
+        pp: "50",
+      )
 
       assert_response :success
 
@@ -202,11 +230,30 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       links_with_all_params =
         links.select do |link|
           href = link["href"]
-          href.include?("lx=en") && href.include?("ct=dr") && href.include?("tz=utc")
+          %w(lx=en ct=dr tz=utc cu=usd df=us tf=12 mo=rd dn=cp pp=50).all? do |param|
+            href.include?(param)
+          end
         end
 
       assert_predicate links_with_all_params, :any?,
                        "Some preference links should have all optional params preserved"
+    end
+
+    test "#{domain[:name]} redirect target params are not preserved in navigation links by default" do
+      host!(domain[:host])
+
+      url_method = domain[:preference_url_method] || domain[:root_url_method]
+      get public_send(url_method, ri: "jp", pt: "signed-path-target", nt: "dashboard")
+
+      assert_response :success
+
+      links = css_select("a[href*='/preference']")
+      links.each do |link|
+        href = link["href"]
+
+        assert_no_match(/pt=/, href, "Preference link should not include pt by default: #{href}")
+        assert_no_match(/nt=/, href, "Preference link should not include nt by default: #{href}")
+      end
     end
 
     test "#{domain[:name]} invalid optional params are removed from request URL" do

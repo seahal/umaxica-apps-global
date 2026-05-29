@@ -84,12 +84,13 @@ module JumpRt
     end
 
     def env_sources(destination_env:, destination_default:, issuer_env:, issuer_default:)
-      [
+      sources = [
         env_origin(issuer_env, issuer_default),
         env_origin(destination_env, destination_default),
-      result = [].compact
-      result.uniq!
-      result
+      ]
+      sources.compact!
+      sources.uniq!
+      sources
     end
 
     def env_origin(key, fallback)

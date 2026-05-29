@@ -35,7 +35,7 @@ module Security
       # Allowlist entries document existing reviewed exceptions. They are not
       # blanket permission for new uses: the line snippet must still match.
       # Responsibility: owners of the named component must migrate to
-      # Rails.logger with LogEvent.format or a sanitized audit sink before
+      # Rails.logger with Jit::LogEvent.format or a sanitized audit sink before
       # removing the exception.
       ALLOWLIST = [
         {
@@ -54,19 +54,37 @@ module Security
           pattern: "csrf null_session",
           path: "app/controllers/sign/app/tokens_controller.rb",
           line: /protect_from_forgery with: :null_session, only: :create/,
-          reason: "OIDC token exchange is a protocol endpoint using client authentication and PKCE, not browser session CSRF.",
+          reason: "OIDC token exchange uses client auth and PKCE, not browser session CSRF.",
         },
         {
           pattern: "csrf null_session",
           path: "app/controllers/sign/com/tokens_controller.rb",
           line: /protect_from_forgery with: :null_session, only: :create/,
-          reason: "OIDC token exchange is a protocol endpoint using client authentication and PKCE, not browser session CSRF.",
+          reason: "OIDC token exchange uses client auth and PKCE, not browser session CSRF.",
         },
         {
           pattern: "csrf null_session",
           path: "app/controllers/sign/org/tokens_controller.rb",
           line: /protect_from_forgery with: :null_session, only: :create/,
-          reason: "OIDC token exchange is a protocol endpoint using client authentication and PKCE, not browser session CSRF.",
+          reason: "OIDC token exchange uses client auth and PKCE, not browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/app/oauth/base_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OAuth protocol endpoints use client auth or bearer tokens and skip Rails browser session state.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/com/oauth/base_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OAuth protocol endpoints use client auth or bearer tokens and skip Rails browser session state.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/org/oauth/base_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OAuth protocol endpoints use client auth or bearer tokens and skip Rails browser session state.",
         },
       ].freeze
 
@@ -109,7 +127,7 @@ module Security
             lines = content.lines
             lines.each_with_index.filter_map do |line, index|
               next unless line.match?(/\bRails\.logger\.error\b/)
-              next if lines[index, 4].join.include?("LogEvent.format(")
+              next if lines[index, 4].join.include?("Jit::LogEvent.format(")
               next if allowlisted?(LOGGER_ALLOWLIST, nil, relative_path, line)
 
               line_number = index + 1
@@ -118,7 +136,7 @@ module Security
           end.flatten
 
         assert_empty offenders,
-                     "Use Rails.logger.error(LogEvent.format(...)) or a sanitized audit sink instead:\n" \
+                     "Use Rails.logger.error(Jit::LogEvent.format(...)) or a sanitized audit sink instead:\n" \
                      "#{offenders.join("\n")}"
       end
 

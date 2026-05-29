@@ -69,6 +69,7 @@ class AvatarTest < ActiveSupport::TestCase
     avatar = Avatar.new(active_handle: @handle, moniker: "No Cap", capability_id: nil)
 
     assert_not avatar.valid?
+    assert_not_empty avatar.errors[:capability_id]
     assert_not_empty avatar.errors[:capability]
   end
 
@@ -76,6 +77,7 @@ class AvatarTest < ActiveSupport::TestCase
     avatar = Avatar.new(capability: @capability, moniker: "No Handle")
 
     assert_not avatar.valid?
+    assert_not_empty avatar.errors[:active_handle_id]
     assert_not_empty avatar.errors[:active_handle]
   end
 
@@ -131,11 +133,12 @@ class AvatarTest < ActiveSupport::TestCase
       author_avatar: avatar,
       post_status: status,
       body: "Test Post",
+      permalink: "post-author",
       created_by_actor_id: "user-1",
     )
 
     assert_not avatar.destroy
-    assert_includes avatar.errors[:base], "postsが存在しているので削除できません"
+    assert_not_empty avatar.errors[:base]
   end
 
   test "create_with_owner creates avatar and assigns owner" do

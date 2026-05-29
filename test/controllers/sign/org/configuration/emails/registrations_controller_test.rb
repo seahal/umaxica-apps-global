@@ -55,7 +55,7 @@ class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, "turnstile.execute"
+    assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
   test "create sends OTP email and stores notification preference" do

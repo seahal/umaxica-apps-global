@@ -9,8 +9,6 @@ export default class extends Controller {
 
   connect() {
     this.completed = false;
-    this.scheduleChallenge = this.scheduleChallenge.bind(this);
-    this.reportScriptError = this.reportScriptError.bind(this);
 
     this.apiScript = document.querySelector(
       "script[src*='challenges.cloudflare.com/turnstile/v0/api.js']",
@@ -38,7 +36,7 @@ export default class extends Controller {
     document.removeEventListener("DOMContentLoaded", this.scheduleChallenge);
   }
 
-  scheduleChallenge() {
+  scheduleChallenge = () => {
     if (
       this.completed ||
       !window.turnstile ||
@@ -55,7 +53,7 @@ export default class extends Controller {
     }
 
     window.turnstile.render(this.containerTarget, this.challengeOptions());
-  }
+  };
 
   challengeOptions() {
     return {
@@ -66,6 +64,7 @@ export default class extends Controller {
       },
       "error-callback": (errorCode) => {
         this.responseTarget.value = "";
+        // eslint-disable-next-line no-console
         console.error("Turnstile error occurred:", errorCode);
         this.dispatchTurnstileEvent("error", { errorCode });
         return true;
@@ -76,11 +75,13 @@ export default class extends Controller {
       },
       "timeout-callback": () => {
         this.responseTarget.value = "";
+        // eslint-disable-next-line no-console
         console.error("Turnstile challenge timed out");
         this.dispatchTurnstileEvent("timeout");
       },
       "unsupported-callback": () => {
         this.responseTarget.value = "";
+        // eslint-disable-next-line no-console
         console.error("Turnstile client is unsupported");
         this.dispatchTurnstileEvent("unsupported");
       },
@@ -95,7 +96,8 @@ export default class extends Controller {
     );
   }
 
-  reportScriptError() {
+  reportScriptError = () => {
+    // eslint-disable-next-line no-console
     console.error("Turnstile script failed to load");
-  }
+  };
 }

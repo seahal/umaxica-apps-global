@@ -41,7 +41,7 @@ module Sign
                  headers: as_staff_headers(@staff, host: @host)
 
           assert_response :see_other
-          assert_equal "../", response.location
+          assert_redirected_to sign_org_preference_path
 
           @staff.staff_preference.reload
 
@@ -52,6 +52,14 @@ module Sign
           assert_equal "jp", @staff.staff_preference.region
           assert_equal "Asia/Tokyo", @staff.staff_preference.timezone
           assert_equal "sy", @staff.staff_preference.theme
+        end
+
+        test "DELETE destroy redirects anonymous reset to org preference index" do
+          delete sign_org_preference_reset_path,
+                 params: { confirm_reset: "1" }
+
+          assert_response :see_other
+          assert_redirected_to sign_org_preference_path
         end
       end
     end

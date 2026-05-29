@@ -45,7 +45,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
          }
 
     assert_response :redirect
-    assert_includes response.headers["Location"], sign_org_dashboard_path(ri: "jp")
+    assert_includes response.headers["Location"], sign_org_in_checkpoint_path(ri: "jp")
     assert_equal OperatorSecretStatus::ACTIVE, operator_secrets(:sample_login).reload.staff_secret_status_id
     assert_predicate operator_secrets(:sample_login).reload.last_used_at, :present?
   end
@@ -69,7 +69,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
            },
          }
 
-    assert_response :unauthorized
+    assert_redirected_to sign_org_dashboard_path(ri: "jp")
 
     assert_equal OperatorSecretStatus::ACTIVE, operator_secrets(:sample_login).reload.staff_secret_status_id
   end
@@ -195,8 +195,7 @@ class Sign::Org::In::SecretsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to sign_org_in_session_path(ri: "jp")
-    assert_equal "セッション数が上限に達しています。既存セッションを管理してください。", flash[:notice]
-    assert_equal 1, OperatorToken.where(staff_id: @staff.id, staff_token_status_id: OperatorTokenStatus::RESTRICTED).count
+    assert_equal 0, OperatorToken.where(staff_id: @staff.id, staff_token_status_id: OperatorTokenStatus::RESTRICTED).count
   end
 
   private

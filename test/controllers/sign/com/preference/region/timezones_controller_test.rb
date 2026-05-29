@@ -11,14 +11,16 @@ module Sign
         class TimezonesControllerTest < ActionDispatch::IntegrationTest
           include PreferenceJwtHelper
 
-          fixtures :clients, :client_telephone_statuses, :com_preferences
+          fixtures :com_preferences
 
           setup do
             @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-            @user = clients(:one)
-            @user.client_telephones.create!(
-              number: "+819012340003",
-              user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+            @visitor = create_verified_visitor_with_email(
+              email_address: "preference-timezone-#{SecureRandom.hex(4)}@example.com",
+            )
+            @visitor.visitor_telephones.create!(
+              number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
+              visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
             )
             host! @host
           end
@@ -38,10 +40,10 @@ module Sign
 
               patch sign_com_preference_region_timezone_path,
                     params: { preference_timezone: { option_id: ComPreferenceTimezoneOption::ETC_UTC } },
-                    headers: as_user_headers(@user, host: @host)
+                    headers: as_visitor_headers(@visitor, host: @host)
             end
 
-            assert_redirected_to edit_sign_com_preference_region_timezone_url
+            assert_redirected_to edit_sign_com_preference_region_timezone_url(ri: "jp")
 
             preference.reload
 

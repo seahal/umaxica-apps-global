@@ -39,11 +39,13 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_app_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
     assert_response :success
-    assert_select "form[action=?]",
+    assert_select "form[action=?][data-turbo=?]",
                   continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp", entry: "sign_up"),
+                  "false",
                   count: 1
-    assert_select "form[action=?]",
+    assert_select "form[action=?][data-turbo=?]",
                   continue_sign_app_social_authentication_path(provider: "apple", ri: "jp", entry: "sign_up"),
+                  "false",
                   count: 1
   end
 

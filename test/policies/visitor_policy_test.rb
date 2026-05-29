@@ -43,6 +43,62 @@ class VisitorPolicyTest < ActiveSupport::TestCase
     assert_not policy.purge_sessions?
   end
 
+  def test_purge_sessions_denies_nil_user
+    policy = VisitorPolicy.new(MockRecord.new(1), user: nil)
+
+    assert_not policy.purge_sessions?
+  end
+
+  def test_purge_session_denies_client
+    client = build_actor(Client, 1)
+    policy = VisitorPolicy.new(MockRecord.new(1), user: client)
+
+    assert_not policy.purge_sessions?
+  end
+
+  def test_revoke_all_denies_nil_user
+    policy = VisitorPolicy.new(MockRecord.new(1), user: nil)
+
+    assert_not policy.revoke_all?
+  end
+
+  def test_revoke_all_denies_operator
+    operator = build_actor(Operator, 10)
+    policy = VisitorPolicy.new(MockRecord.new(10), user: operator)
+
+    assert_not policy.revoke_all?
+  end
+
+  def test_index_denied_by_default
+    policy = VisitorPolicy.new(MockRecord.new(1), user: build_actor(Visitor, 1))
+
+    assert_not policy.index?
+  end
+
+  def test_show_denied_by_default
+    policy = VisitorPolicy.new(MockRecord.new(1), user: build_actor(Visitor, 1))
+
+    assert_not policy.show?
+  end
+
+  def test_create_denied_by_default
+    policy = VisitorPolicy.new(MockRecord.new(1), user: build_actor(Visitor, 1))
+
+    assert_not policy.create?
+  end
+
+  def test_update_denied_by_default
+    policy = VisitorPolicy.new(MockRecord.new(1), user: build_actor(Visitor, 1))
+
+    assert_not policy.update?
+  end
+
+  def test_destroy_denied_by_default
+    policy = VisitorPolicy.new(MockRecord.new(1), user: build_actor(Visitor, 1))
+
+    assert_not policy.destroy?
+  end
+
   private
 
   def build_actor(type_class, id)

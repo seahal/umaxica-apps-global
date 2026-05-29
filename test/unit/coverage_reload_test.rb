@@ -5,27 +5,27 @@ require "test_helper"
 
 class CoverageReloadTest < ActiveSupport::TestCase
   test "reloads utility files under coverage" do
-    load(Rails.root.join("lib/host_origin_env.rb"))
-    load(Rails.root.join("lib/id_host_env.rb"))
-    load(Rails.root.join("lib/session_cookie_config.rb"))
+    load(Rails.root.join("lib/jit/host_origin_env.rb"))
+    load(Rails.root.join("lib/jit/id_host_env.rb"))
+    load(Rails.root.join("lib/jit/session_cookie_config.rb"))
     load(Rails.root.join("app/services/analytics_consent_guard.rb"))
     load(Rails.root.join("app/subscribers/jwt_anomaly_subscriber.rb"))
 
-    assert_equal ["http://example.test", "https://example.test"], HostOriginEnv.trusted_origins("example.test")
-    assert_equal ["http://example.test", "https://example.test"], HostOriginEnv.origins_for("example.test")
+    assert_equal ["http://example.test", "https://example.test"], Jit::HostOriginEnv.trusted_origins("example.test")
+    assert_equal ["http://example.test", "https://example.test"], Jit::HostOriginEnv.origins_for("example.test")
 
     with_env(
       "ID_SERVICE_URL" => "id.app.example.test",
       "ID_CORPORATE_URL" => "id.com.example.test",
       "ID_STAFF_URL" => "id.org.example.test",
     ) do
-      assert_equal "id.app.example.test", IdHostEnv.service_url
-      assert_nil IdHostEnv.validate!
+      assert_equal "id.app.example.test", Jit::IdHostEnv.service_url
+      assert_nil Jit::IdHostEnv.validate!
     end
 
-    assert_equal "session", SessionCookieConfig.cookie_key(force_secure: false)
-    assert_not SessionCookieConfig.partitioned?(rails_env: ActiveSupport::EnvironmentInquirer.new("test"))
-    assert_not SessionCookieConfig.force_secure?(id_service_host: "localhost", rails_env: ActiveSupport::EnvironmentInquirer.new("development"))
+    assert_equal "session", Jit::SessionCookieConfig.cookie_key(force_secure: false)
+    assert_not Jit::SessionCookieConfig.partitioned?(rails_env: ActiveSupport::EnvironmentInquirer.new("test"))
+    assert_not Jit::SessionCookieConfig.force_secure?(id_service_host: "localhost", rails_env: ActiveSupport::EnvironmentInquirer.new("development"))
 
     Actor.install_context!(preferences: Actor::Preference::NULL)
 

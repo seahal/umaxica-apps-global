@@ -21,8 +21,8 @@ At boot, `Jit::Security::Jwt::Registry` builds immutable issuer/key records:
 - current public JWK is derived once from the current private key;
 - legacy/grace public JWKs are loaded from `JWT_<NAMESPACE>_PUBLIC_KEYSET`;
 - revoked kids are loaded from `JWT_<NAMESPACE>_REVOKED_KIDS`;
-- malformed JWKs, private JWK fields, wrong `alg`, wrong `kty`, wrong `crv`, active/public
-  mismatch, and non-default duplicate kids fail boot.
+- malformed JWKs, private JWK fields, wrong `alg`, wrong `kty`, wrong `crv`, active/public mismatch,
+  and non-default duplicate kids fail boot.
 
 The JWKS endpoint must only render the prebuilt public JWKS. It must not read private keys,
 credentials, files, KMS, or the network while serving a request.
@@ -62,7 +62,8 @@ also be retained while its public key is in `grace`.
 1. Generate a new P-384 private key.
 2. Choose a globally unique `kid`, for example `sign-app-jump-rt-es384-prod-2026-06-a`.
 3. Store the new private key as the issuer surface `JWT_<NAMESPACE>_PRIVATE_KEY` secret version.
-4. Add the new public JWK to `JWT_<NAMESPACE>_PUBLIC_KEYSET` while keeping the old active public JWK.
+4. Add the new public JWK to `JWT_<NAMESPACE>_PUBLIC_KEYSET` while keeping the old active public
+   JWK.
 5. Deploy and confirm boot validation passes.
 6. Change `JWT_<NAMESPACE>_ACTIVE_KID` to the new `kid`.
 7. Deploy issuer instances.

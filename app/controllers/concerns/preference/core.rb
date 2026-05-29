@@ -54,6 +54,7 @@ module Preference::Core
 
   def set_timezone_preferences_edit
     with_preference_connection(:writing) do
+      ensure_model_defaults!(Preference::ClassRegistry.option_class(preference_prefix, :timezone))
       @preference_timezone = load_or_refresh_preference_child("Timezone", option_id: nil)
     end
 
@@ -68,6 +69,7 @@ module Preference::Core
     submitted_timezone = preference_timezone_params[Preference::IoKeys::Params::OPTION_ID]
 
     with_preference_connection(:writing) do
+      ensure_model_defaults!(Preference::ClassRegistry.option_class(preference_prefix, :timezone))
       @preference_timezone = load_or_refresh_preference_child("Timezone", option_id: nil)
 
       begin
@@ -373,7 +375,7 @@ module Preference::Core
 
   def record_preference_write_error(event_name, error, target:)
     Rails.logger.info(
-      LogEvent.format(
+      Jit::LogEvent.format(
         event_name,
         error: error.class.name,
         message: error.message,
@@ -403,15 +405,15 @@ module Preference::Core
   end
 
   def preference_edit_url(screen, params_hash = {})
-    public_send(preference_edit_url_helper_name(screen), params_hash)
+    public_send(preference_edit_url_helper_name(screen), compact_url_params(params_hash))
   end
 
   def preference_update_url(screen, params_hash = {})
-    public_send(preference_url_helper_name(screen), params_hash)
+    public_send(preference_url_helper_name(screen), compact_url_params(params_hash))
   end
 
   def preference_index_url(params_hash = {})
-    public_send("sign_#{preference_surface_key}_preference_url", params_hash)
+    public_send("sign_#{preference_surface_key}_preference_url", compact_url_params(params_hash))
   end
 
   def preference_update_notice
@@ -432,10 +434,16 @@ module Preference::Core
     end
   end
 
-  def language_preference_redirect_params
-    return {} if params[:lx].blank? || @preference_language&.option_id.blank?
+  def preference_write_redirect_params(except: nil)
+    except_keys = Array(except).compact.map(&:to_sym)
+    preference_context_redirect_params.except(*except_keys).tap do |redirect_params|
+      except_keys.each { |key| redirect_params[key] = nil }
+      redirect_params[:ri] = params[:ri].presence || get_region
+    end
+  end
 
-    { lx: option_id_to_language(@preference_language.option_id, preference_prefix) }
+  def language_preference_redirect_params
+    preference_write_redirect_params(except: :lx)
   end
 
   def apply_language_preference_to_session
@@ -447,7 +455,24 @@ module Preference::Core
   def updated_region_redirect_params
     return {} if @preference_region&.option_id.blank?
 
-    { ri: option_id_to_region(@preference_region.option_id, preference_prefix) }
+    preference_context_redirect_params.merge(
+      ri: option_id_to_region(@preference_region.option_id, preference_prefix),
+    )
+  end
+
+  def compact_url_params(params_hash)
+    params_hash.to_h
+  end
+
+  def preference_context_key_for_screen(screen)
+    {
+      currency: :cu,
+      date_format: :df,
+      time_format: :tf,
+      motion: :mo,
+      density: :dn,
+      items_per_page: :pp,
+    }[screen.to_sym]
   end
 
   def delete_preference_cookie

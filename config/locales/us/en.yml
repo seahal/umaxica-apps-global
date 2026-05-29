@@ -1631,6 +1631,7 @@ en:
         motion_settings: Motion Settings
         density_settings: Density Settings
         items_per_page_settings: Items Per Page
+        r18_display_stopper_settings: R18 Display Stopper
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.
@@ -1767,6 +1768,7 @@ en:
         motion_settings: Motion Settings
         density_settings: Density Settings
         items_per_page_settings: Items Per Page
+        r18_display_stopper_settings: R18 Display Stopper
         theme_settings: Theme Settings
         reset_settings: Reset Settings
         email_settings: Email Settings
@@ -2698,6 +2700,12 @@ en:
             timezone_options:
               UTC: Coordinated Universal Time (UTC)
               JST: Japan Standard Time (JST)
+              AMERICA_NEW_YORK: Eastern Time (US & Canada)
+              AMERICA_CHICAGO: Central Time (US & Canada)
+              AMERICA_DENVER: Mountain Time (US & Canada)
+              AMERICA_LOS_ANGELES: Pacific Time (US & Canada)
+              AMERICA_ANCHORAGE: Alaska Time
+              PACIFIC_HONOLULU: Hawaii Time
             submit: Update Settings
             cancel: Cancel
         theme:

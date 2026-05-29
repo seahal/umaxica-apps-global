@@ -96,11 +96,11 @@ module Sign
             options: creation_options,
           }, status: :ok
         rescue Sign::Webauthn::OriginValidationError => e
-          Rails.logger.error(LogEvent.format("webauthn.origin_validation_failed", message: e.message))
+          Rails.logger.error(Jit::LogEvent.format("webauthn.origin_validation_failed", message: e.message))
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
         rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
           Rails.logger.error(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "webauthn.registration_options_failed", error_class: e.class.name,
                                                       message: e.message,
             ),

@@ -49,7 +49,7 @@ module Sign
         def failure
           message = params[:message] || "unknown_error"
           clear_social_auth_intent!
-          Rails.logger.info(LogEvent.format("sign.social.org.omniauth_failure", message: message))
+          Rails.logger.info(Jit::LogEvent.format("sign.social.org.omniauth_failure", message: message))
           redirect_to(
             new_sign_org_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),
@@ -76,13 +76,13 @@ module Sign
 
         def find_staff_from_auth(auth)
           staff = find_active_staff_by_google_identity(auth, intent: current_social_auth_intent)
-          Rails.logger.debug(LogEvent.format("sign.social.org.omniauth.staff_found", staff_id: staff&.id)) if staff
+          Rails.logger.debug(Jit::LogEvent.format("sign.social.org.omniauth.staff_found", staff_id: staff&.id)) if staff
           staff
         end
 
         def redirect_staff_not_found(auth)
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.org.omniauth.staff_not_found",
               provider: auth.provider,
               uid_present: OperatorSocialGoogle.extract_uid(auth).present?,
@@ -194,7 +194,7 @@ module Sign
 
         def handle_unexpected_error(error, auth)
           Rails.logger.error(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.org.omniauth.unexpected_error",
               error_class: error.class.name,
               error_message: error.message,
@@ -221,7 +221,7 @@ module Sign
         def reject_social_callback!(reason:, provider:, details: {})
           clear_social_state!
           Rails.logger.warn(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "social_callback.rejected",
               source: "SocialCallbackGuard",
               surface: "org",

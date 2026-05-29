@@ -44,7 +44,7 @@ class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, "turnstile.render"
+    assert_includes response.body, 'data-turnstile-mode-value="render"'
 
     post sign_com_in_secret_path(ri: "jp"),
          params: {

@@ -136,6 +136,8 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
 
     assert_equal "Etc/UTC", @harness.send(:option_id_to_timezone, option_class::ETC_UTC, prefix)
     assert_equal "Asia/Tokyo", @harness.send(:option_id_to_timezone, option_class::ASIA_TOKYO, prefix)
+    assert_equal "America/New_York",
+                 @harness.send(:option_id_to_timezone, option_class::AMERICA_NEW_YORK, prefix)
   end
 
   test "handle_preference_refresh_replay! updates discarded_at" do

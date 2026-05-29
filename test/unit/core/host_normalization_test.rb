@@ -75,4 +75,40 @@ class CoreHostNormalizationTest < ActiveSupport::TestCase
   test "fallback_host removes port" do
     assert_equal "example.com", Core::HostNormalization.send(:fallback_host, "example.com:8080")
   end
+
+  test "normalize handles http URL with path" do
+    assert_equal "example.com", Core::HostNormalization.normalize("http://example.com/some/path")
+  end
+
+  test "normalize handles https URL with path" do
+    assert_equal "example.com", Core::HostNormalization.normalize("https://example.com/some/path")
+  end
+
+  test "normalize handles IP address" do
+    assert_equal "127.0.0.1", Core::HostNormalization.normalize("127.0.0.1")
+  end
+
+  test "normalize handles IP address with scheme" do
+    assert_equal "127.0.0.1", Core::HostNormalization.normalize("https://127.0.0.1")
+  end
+
+  test "normalize removes path component from plain host with slash" do
+    assert_equal "example.com", Core::HostNormalization.normalize("example.com/path")
+  end
+
+  test "normalize handles host with non-standard port" do
+    assert_equal "example.com", Core::HostNormalization.normalize("example.com:3000")
+  end
+
+  test "fallback_host strips http scheme" do
+    assert_equal "example.com", Core::HostNormalization.send(:fallback_host, "http://example.com")
+  end
+
+  test "fallback_host strips https scheme" do
+    assert_equal "example.com", Core::HostNormalization.send(:fallback_host, "https://example.com")
+  end
+
+  test "parsed_host returns nil for empty string" do
+    assert_nil Core::HostNormalization.send(:parsed_host, "")
+  end
 end

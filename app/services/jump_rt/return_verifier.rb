@@ -128,8 +128,7 @@ module JumpRt
       Rails.cache.write(cache_key, fresh, expires_in: CACHE_TTL)
       Rails.cache.write(stale_cache_key, fresh, expires_in: STALE_CACHE_TTL)
       fresh
-    rescue JWT::DecodeError, JSON::ParserError, SocketError, SystemCallError, Net::OpenTimeout, Net::ReadTimeout,
-           Timeout::Error
+    rescue JWT::DecodeError, JSON::ParserError, SocketError, SystemCallError, Net::OpenTimeout, Net::ReadTimeout
       stale = Rails.cache.read(stale_cache_key)
       raise JWT::DecodeError, "jwks fetch failed" unless stale
 
@@ -170,8 +169,7 @@ module JumpRt
       raise JWT::DecodeError, "jwks response too large" if response.body.to_s.bytesize > MAX_JWKS_BYTES
 
       JSON.parse(response.body.presence || "{}")
-    rescue JSON::ParserError, URI::InvalidURIError, SocketError, SystemCallError, Net::OpenTimeout, Net::ReadTimeout,
-           Timeout::Error
+    rescue JSON::ParserError, URI::InvalidURIError, SocketError, SystemCallError, Net::OpenTimeout, Net::ReadTimeout
       raise JWT::DecodeError, "jwks fetch failed"
     end
 

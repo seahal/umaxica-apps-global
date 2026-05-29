@@ -84,7 +84,7 @@ module Authentication
 
     def raise_logout_resolution_error!(component, exception)
       Rails.logger.warn(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.logout.resolution.failed",
           component: component,
           error_class: exception.class.name,

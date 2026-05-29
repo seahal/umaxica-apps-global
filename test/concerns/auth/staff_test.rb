@@ -27,7 +27,7 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
       @cookies = CookieMock.new
       @response = ResponseMock.new
       @request = OpenStruct.new(
-        host: "test.host", headers: {}, user_agent: "TestAgent",
+        host: "id.org.localhost", headers: {}, user_agent: "TestAgent",
         format: FormatMock.new,
       )
     end

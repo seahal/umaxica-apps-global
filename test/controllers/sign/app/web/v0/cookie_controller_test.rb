@@ -8,7 +8,7 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    @host = IdHostEnv.service_url || "id.app.localhost"
+    @host = Jit::IdHostEnv.service_url || "id.app.localhost"
     host! @host
   end
 
@@ -32,7 +32,7 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
       host: @host,
       public_id: "pref-app-public-id",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[Preference::CookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
       get sign_app_web_v0_cookie_path, as: :json
@@ -64,7 +64,7 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
       host: @host,
       public_id: preference.public_id,
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[Preference::CookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
       patch sign_app_web_v0_cookie_path, params: { consented: true }, as: :json

@@ -32,7 +32,7 @@ class JumpRt::IssuerTest < ActiveSupport::TestCase
 
         assert_equal "JWT", header["typ"]
         assert_equal "ES384", header["alg"]
-        assert_equal "sign-app-es384-test-a", header["kid"]
+        assert_equal Jit::Security::Jwt::Registry.surface("SIGN_APP").current_kid, header["kid"]
         assert_equal 1, payload["schema"]
         assert_equal "jump-redirect", payload["sub"]
         assert_equal "internal", payload["dst"]

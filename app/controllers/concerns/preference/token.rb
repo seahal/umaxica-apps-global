@@ -25,7 +25,7 @@ module Preference
           { kid: jwt_active_kid(issuer_id), typ: TOKEN_TYPE },
         )
       rescue StandardError => e
-        Rails.logger.error(LogEvent.format("preference.token.encoding_failed", error_class: e.class.name))
+        Rails.logger.error(Jit::LogEvent.format("preference.token.encoding_failed", error_class: e.class.name))
         nil
       end
 
@@ -39,6 +39,14 @@ module Preference
         return JwtConfiguration.private_key_for_active if issuer_id == "preference"
 
         JwtConfiguration.private_key_for_active(issuer_id)
+      end
+
+      def resolve_public_key(header, issuer_id)
+        if issuer_id == "preference"
+          JwtConfiguration.public_key_for(header["kid"])
+        else
+          JwtConfiguration.public_key_for(header["kid"], issuer_id: issuer_id)
+        end
       end
 
       def decode(token, host:, jwt_issuer_id: nil)
@@ -86,7 +94,7 @@ module Preference
         Rails.logger.debug { "PreferenceToken.decode invalid token: #{e.message}" }
         nil
       rescue StandardError => e
-        Rails.logger.error(LogEvent.format("preference.token.decoding_failed", error_class: e.class.name))
+        Rails.logger.error(Jit::LogEvent.format("preference.token.decoding_failed", error_class: e.class.name))
         nil
       end
 

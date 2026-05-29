@@ -61,7 +61,7 @@ module SignUp
       return result unless terminal_status_reached?
 
       run_artifact_cleanup
-      Result.build(status: result.status, ticket: cycle.reload, cleanup_required: true)
+      Result.build(status: (event == :cancel) ? :ok : result.status, ticket: cycle.reload, cleanup_required: true)
     end
 
     private

@@ -27,7 +27,7 @@
 #  fk_rails_...  (chronicle_id => chronicles.id)
 #
 class ChronicleOutboxEntry < ChronicleRecord
-  belongs_to :chronicle
+  belongs_to :chronicle, optional: true
 
   validates :event_uuid, presence: true
   validates :event, presence: true, length: { maximum: 128 }

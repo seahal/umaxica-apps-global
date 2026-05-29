@@ -162,7 +162,7 @@ class R18GateTest < ActionDispatch::IntegrationTest
 
     get "/test/r18"
 
-    assert_redirected_to "/test/r18_gate"
+    assert_redirected_to "/test/r18_gate?pt=%2Ftest%2Fr18"
   end
 
   test "logged in adult with token preference stopper is redirected to stopped page" do

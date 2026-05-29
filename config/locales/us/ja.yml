@@ -2108,6 +2108,12 @@ ja:
             timezone_options:
               UTC: 協定世界時 (UTC)
               JST: 日本標準時 (JST)
+              AMERICA_NEW_YORK: 東部時間 (米国・カナダ)
+              AMERICA_CHICAGO: 中部時間 (米国・カナダ)
+              AMERICA_DENVER: 山岳部時間 (米国・カナダ)
+              AMERICA_LOS_ANGELES: 太平洋時間 (米国・カナダ)
+              AMERICA_ANCHORAGE: アラスカ時間
+              PACIFIC_HONOLULU: ハワイ時間
             language_section: 言語設定
             language_prompt: 言語を選択してください…
             timezone_section: タイムゾーン設定
@@ -2214,6 +2220,7 @@ ja:
         motion_settings: モーション設定
         density_settings: 表示密度設定
         items_per_page_settings: 1ページあたりの表示件数
+        r18_display_stopper_settings: R18表示設定
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2290,6 +2297,7 @@ ja:
         motion_settings: モーション設定
         density_settings: 表示密度設定
         items_per_page_settings: 1ページあたりの表示件数
+        r18_display_stopper_settings: R18表示設定
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2323,6 +2331,12 @@ ja:
             timezone_options:
               UTC: 協定世界時 (UTC)
               JST: 日本標準時 (JST)
+              AMERICA_NEW_YORK: 東部時間 (米国・カナダ)
+              AMERICA_CHICAGO: 中部時間 (米国・カナダ)
+              AMERICA_DENVER: 山岳部時間 (米国・カナダ)
+              AMERICA_LOS_ANGELES: 太平洋時間 (米国・カナダ)
+              AMERICA_ANCHORAGE: アラスカ時間
+              PACIFIC_HONOLULU: ハワイ時間
             language_section: 言語設定
             language_prompt: 言語を選択してください…
             timezone_section: タイムゾーン設定
@@ -2457,6 +2471,12 @@ ja:
             timezone_options:
               UTC: 協定世界時 (UTC)
               JST: 日本標準時 (JST)
+              AMERICA_NEW_YORK: 東部時間 (米国・カナダ)
+              AMERICA_CHICAGO: 中部時間 (米国・カナダ)
+              AMERICA_DENVER: 山岳部時間 (米国・カナダ)
+              AMERICA_LOS_ANGELES: 太平洋時間 (米国・カナダ)
+              AMERICA_ANCHORAGE: アラスカ時間
+              PACIFIC_HONOLULU: ハワイ時間
             language_section: 言語設定
             language_prompt: 言語を選択してください…
             timezone_section: タイムゾーン設定

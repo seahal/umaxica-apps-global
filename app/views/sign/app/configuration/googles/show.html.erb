@@ -50,7 +50,7 @@
               <%= button_to t('actions.connect'),
                             continue_sign_app_social_authentication_path(provider: "google_app", intent: "link", ri: params[:ri]),
                             method: :post,
-                            data: { turbo: false } %>
+                            form: { data: { turbo: false } } %>
             <% end %>
           </div>
         </div>

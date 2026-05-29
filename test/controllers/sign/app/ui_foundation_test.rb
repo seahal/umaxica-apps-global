@@ -68,7 +68,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "html.dark"
+    assert_select "html.theme-system"
 
     headers = as_user_headers(@user, host: @host)
     get sign_app_configuration_url(ct: "light"), headers: headers

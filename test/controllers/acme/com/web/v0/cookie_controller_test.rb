@@ -82,7 +82,7 @@ class Acme::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "preference_consented=0"
-    assert_includes set_cookie, "domain=.com.localhost"
+    assert_includes set_cookie, "domain=.umaxica.com"
     assert_includes set_cookie.downcase, "path=/"
     expires = response_cookie_expiry("preference_consented")
 

@@ -63,7 +63,7 @@ class OrgPreferenceTest < ActiveSupport::TestCase
     preference = OrgPreference.new(public_id: "a" * 22)
 
     assert_not preference.valid?
-    assert_includes preference.errors[:public_id], "は21文字以内で入力してください"
+    assert preference.errors.of_kind?(:public_id, :too_long)
   end
 
   test "does not overwrite existing public_id" do

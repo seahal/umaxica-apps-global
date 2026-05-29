@@ -44,6 +44,7 @@ module Security
           discarded_at: 2.hours.ago,
           purged_at: 1.hour.ago,
           terminated_at: 30.minutes.ago,
+          withdrawn_at: 30.minutes.ago,
         )
 
         assert_not_refreshable resource

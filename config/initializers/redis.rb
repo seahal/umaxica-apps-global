@@ -4,7 +4,8 @@
 # Redis configuration for the application
 default_redis_url = Rails.app.creds.option(:REDIS_NORMAL_URL, default: "redis://localhost:6379/0")
 
-# Configure SSL for production Redis (Upstash requires SSL)
+# TLS is negotiated automatically when REDIS_NORMAL_URL uses the rediss:// scheme
+# (required by managed providers such as Upstash). No explicit ssl_params needed here.
 redis_config = { url: default_redis_url }
 
 REDIS_CLIENT = Redis.new(redis_config)

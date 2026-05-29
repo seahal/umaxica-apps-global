@@ -30,14 +30,8 @@ module Sign::App::Configuration
       get sign_app_configuration_apple_url(ri: "jp")
 
       assert_response :redirect
-      uri = URI.parse(response.location)
-      query = Rack::Utils.parse_nested_query(uri.query)
-      expected_host = ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")
-
-      assert_equal expected_host, uri.host
-      assert_equal "/sign/in/new", uri.path
-      assert_equal "jp", query["ri"]
-      assert_predicate query["pt"], :present?
+      assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/new\?ri=jp(?:&pt=.*)?\z},
+                   jump_rt_url_from_location(response.location)
     end
 
     test "show treats revoked apple identity as unlinked" do

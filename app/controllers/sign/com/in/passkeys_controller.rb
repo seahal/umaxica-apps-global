@@ -98,7 +98,7 @@ module Sign
           return true if passkey.visitor.has_verified_pii?
 
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "authentication.passkey.failed",
               reason: "verified_pii_missing",
               visitor_id: passkey.visitor_id,

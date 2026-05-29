@@ -21,7 +21,7 @@ module Sign
                   params: { preference_timezone: { option_id: OrgPreferenceTimezoneOption::ETC_UTC } },
                   headers: as_staff_headers(@staff, host: @host)
 
-            assert_redirected_to edit_sign_org_preference_region_timezone_url
+            assert_redirected_to edit_sign_org_preference_region_timezone_url(ri: "jp")
 
             @staff.staff_preference.reload
 

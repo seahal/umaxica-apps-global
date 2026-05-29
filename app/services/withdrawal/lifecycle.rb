@@ -233,7 +233,7 @@ module Withdrawal
 
     def notify(state, payload = {})
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{actor_event_prefix}.withdrawal.#{state}",
           actor_id_key => actor.id,
           :ip_address => request&.remote_ip,

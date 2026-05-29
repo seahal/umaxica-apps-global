@@ -23,7 +23,7 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     get sign_app_configuration_activities_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_match(/ri=jp/, response.headers["Location"])
+    assert_match(/ri=jp/, jump_rt_url_from_location(response.location))
   end
 
   test "shows only current user activity logs" do

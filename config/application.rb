@@ -8,8 +8,6 @@ require "rails/all"
 Bundler.require(*Rails.groups)
 
 # Ensure custom middleware is loaded only if present
-subdomain_static_files_path = File.expand_path("../lib/subdomain_static_files.rb", __dir__)
-require_relative "../lib/subdomain_static_files" if File.exist?(subdomain_static_files_path)
 surface_middleware_path = File.expand_path("../app/middleware/core/surface_middleware.rb", __dir__)
 require_relative "../app/middleware/core/surface_middleware" if File.exist?(surface_middleware_path)
 require_relative "../lib/jit/security/active_record_encryption_key_provider"
@@ -65,35 +63,12 @@ module Jit
     config.active_record.default_timezone = :utc
     config.active_record.schema_format = :sql
 
-    # ActiveJob
-    # Use Solid Queue for job processing
-    config.active_job.queue_adapter = :solid_queue
-    config.solid_queue.connects_to = { database: { writing: :queue, reading: :queue_replica } }
-
     # SMS Provider Configuration
     config.sms_provider = ENV.fetch("SMS_PROVIDER", "aws_sns")
     config.aws_region = ENV.fetch("AWS_REGION", "ap-northeast-1")
 
-    locale_files =
-      %w(
-        config/locales/jp/en.yml
-        config/locales/jp/ja.yml
-        config/locales/us/en.yml
-        config/locales/us/ja.yml
-      ).map { |path| Rails.root.join(path).to_s }
-
-    locale_roots = [
-      Rails.root.join("config/locales").to_s,
-      Rails.root.join("lib/locale").to_s,
-    ]
-
-    # Load only supported region/language locale bundles.
-    config.i18n.load_path =
-      config.i18n.load_path.reject do |path|
-        locale_roots.any? { |root| path.to_s.start_with?(root) }
-      end
-    config.i18n.load_path += locale_files
-    config.i18n.default_locale = :ja
+    # i18n locale bundles and default locale are configured in
+    # config/initializers/locale.rb (single source of truth, includes fallbacks).
 
     # Set bigserial as default primary key for new tables
     config.generators do |g|
@@ -137,9 +112,12 @@ module Jit
       "MAIN_CORPORATE_URL" => "main.com.localhost",
       "MAIN_SERVICE_URL" => "main.app.localhost",
       "MAIN_STAFF_URL" => "main.org.localhost",
-      "SIDE_CORPORATE_URL" => "news.com.localhost",
-      "SIDE_SERVICE_URL" => "news.app.localhost",
-      "SIDE_STAFF_URL" => "news.org.localhost",
+      "NEWS_CORPORATE_URL" => "news.com.localhost",
+      "NEWS_SERVICE_URL" => "news.app.localhost",
+      "NEWS_STAFF_URL" => "news.org.localhost",
+      "HELP_CORPORATE_URL" => "help.com.localhost",
+      "HELP_SERVICE_URL" => "help.app.localhost",
+      "HELP_STAFF_URL" => "help.org.localhost",
       "DOCS_CORPORATE_URL" => "docs.com.localhost",
       "DOCS_SERVICE_URL" => "docs.app.localhost",
       "DOCS_STAFF_URL" => "docs.org.localhost",

@@ -199,7 +199,7 @@ module ActorSupport
 
   def raise_actor_resolution_error!(component, exception)
     Rails.logger.warn(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "actor.resolution.failed",
         component: component,
         error_class: exception.class.name,
@@ -302,7 +302,7 @@ module ActorSupport
     return preference if context.blank?
 
     Actor::Preference.new(
-      language: context[:lx] || locale_from_request_region(context[:ri]) || preference.language,
+      language: overlay_language(context, preference),
       region: context[:ri] || preference.region,
       timezone: context[:tz] || preference.timezone,
       theme: context[:ct] || preference.theme,
@@ -316,6 +316,22 @@ module ActorSupport
       cookie: preference.cookie,
       null: preference.null?,
     )
+  end
+
+  # Resolve the request-overlay language.
+  #
+  # Priority:
+  #   1. explicit `lx` param  - the user asked for this language directly
+  #   2. saved language        - an explicit preference must not be overridden
+  #                              by a region context param (e.g. ?ri=jp)
+  #   3. region-derived locale - only seeds the language for guests / first
+  #                              visits that have no saved preference yet
+  #   4. preference default    - final fallback (NULL preference returns "ja")
+  def overlay_language(context, preference)
+    context[:lx] ||
+      (preference.null? ? nil : preference.language) ||
+      locale_from_request_region(context[:ri]) ||
+      preference.language
   end
 
   def locale_from_request_region(region)

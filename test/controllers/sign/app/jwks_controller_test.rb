@@ -50,7 +50,7 @@ class Sign::App::JwksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "does not touch credentials while rendering jwks" do
-    Rails.app.creds.stub(:option, ->(*) { raise "credentials access during jwks render" }) do
+    Rails.app.creds.stub(:option, ->(*) { raise RuntimeError, "credentials access during jwks render" }) do
       get sign_app_oauth_jwks_url(host: @host, ri: "jp"), headers: browser_headers
     end
 

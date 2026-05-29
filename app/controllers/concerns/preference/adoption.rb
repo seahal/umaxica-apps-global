@@ -22,7 +22,7 @@ module Preference
 
       sync_preferences!(resource_pref)
     rescue StandardError => e
-      Rails.logger.info(LogEvent.format("preference.adoption.error", error: e.class.name, message: e.message))
+      Rails.logger.info(Jit::LogEvent.format("preference.adoption.error", error: e.class.name, message: e.message))
     end
 
     # Called during preference rotation to keep ClientPreference/OperatorPreference in sync.
@@ -37,7 +37,12 @@ module Preference
 
       copy_preference_values!(@preferences, resource_pref, resource_pref_prefix)
     rescue StandardError => e
-      Rails.logger.info(LogEvent.format("preference.adoption.rotation_error", error: e.class.name, message: e.message))
+      Rails.logger.info(
+        Jit::LogEvent.format(
+          "preference.adoption.rotation_error", error: e.class.name,
+                                                message: e.message,
+        ),
+      )
     end
 
     def adoptable_preference_class?

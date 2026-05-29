@@ -18,7 +18,19 @@ documents still contain them.
 `*_PUBLIC_KEYSET` must be public JWK Set JSON:
 
 ```json
-{"keys":[{"kty":"EC","crv":"P-384","kid":"...","alg":"ES384","use":"sig","x":"...","y":"..."}]}
+{
+  "keys": [
+    {
+      "kty": "EC",
+      "crv": "P-384",
+      "kid": "...",
+      "alg": "ES384",
+      "use": "sig",
+      "x": "...",
+      "y": "..."
+    }
+  ]
+}
 ```
 
 Do not store private DER, private PEM, or private JWK fields in public keysets.

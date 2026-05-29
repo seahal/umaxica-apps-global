@@ -43,7 +43,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
 
     assert_equal "google", cycle.entry_method
     assert_equal "google", cycle.social_provider
-    assert_equal "/after-social", cycle.return_to
+    assert_nil cycle.return_to
     assert_equal "social_callback", cycle.step
   end
 

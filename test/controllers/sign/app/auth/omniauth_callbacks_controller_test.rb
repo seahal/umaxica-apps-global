@@ -281,7 +281,6 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       identity,
       existing_account: false,
       pt: "encoded-pt",
-      entry: "sign_up",
     )
 
     assert_match "/sign/up/guardrail?ri=jp&pt=encoded-pt", redirects.last.first.first
@@ -374,7 +373,6 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       identity,
       existing_account: true,
       pt: "encoded-pt",
-      entry: "sign_up",
     )
 
     assert_equal [user], controller.instance_variable_get(:@complete_sign_in_args_for_test)

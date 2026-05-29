@@ -48,6 +48,7 @@ class PostVersionTest < ActiveSupport::TestCase
       post_status: status,
       body: "Valid post body content",
       created_by_actor_id: 1,
+      permalink: "post-version-test-#{SecureRandom.hex(4)}",
     )
   end
 

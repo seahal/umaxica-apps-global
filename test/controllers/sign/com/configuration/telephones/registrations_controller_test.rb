@@ -87,7 +87,7 @@ class Sign::Com::Configuration::Telephones::RegistrationsControllerTest < Action
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, "turnstile.execute"
+    assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
   test "update successfully verifies telephone" do

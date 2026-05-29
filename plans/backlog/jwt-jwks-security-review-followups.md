@@ -14,8 +14,8 @@ review.
 ## Deployment Blockers
 
 - Fix Jump RT issuance before deployment. `JumpRt::Surface.normalize_namespace` currently references
-  an undefined `HOST_ENV`, and `Common::Redirect#redirect_to_jump_url` only rescues
-  `ArgumentError`, so this can become a 500 instead of a controlled fallback.
+  an undefined `HOST_ENV`, and `Common::Redirect#redirect_to_jump_url` only rescues `ArgumentError`,
+  so this can become a 500 instead of a controlled fallback.
 - Make Auth and OIDC issuer/audience/leeway verification use the boot-time JWT registry, not
   per-request `ENV` reads through `Authentication::JwtConfiguration`.
 - Ensure Auth and Preference key registries load only the current private key. Legacy keys must be
@@ -24,8 +24,8 @@ review.
   for an exposed issuer should not be a valid production state.
 - Remove JWT/OpenSSL/config exception messages from auth/preference/anomaly logs. Log stable reason
   codes and classes only.
-- Stop silently returning `nil` for authentication token issuance failures. Use fail-hard behavior or
-  an explicit typed result.
+- Stop silently returning `nil` for authentication token issuance failures. Use fail-hard behavior
+  or an explicit typed result.
 
 ## Security Hardening Follow-ups
 
@@ -47,8 +47,8 @@ review.
 - Add registry tests for missing active kid, missing active private key, empty exposed JWKS,
   duplicate same-set `kid`, revoked active kid, mismatched active public/private key, and strict
   base64 decoding.
-- Add Auth/OIDC/Preference cross-token confusion tests for wrong `typ`, wrong issuer, wrong audience,
-  unknown kid, revoked kid, and wrong token family.
+- Add Auth/OIDC/Preference cross-token confusion tests for wrong `typ`, wrong issuer, wrong
+  audience, unknown kid, revoked kid, and wrong token family.
 - Add a JWKS endpoint test proving render does not touch credentials, private keys, files, KMS, or
   network.
 - Add logging tests proving JWT decode/config errors do not emit raw exception messages or token

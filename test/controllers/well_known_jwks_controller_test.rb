@@ -51,7 +51,7 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
       assert_includes response.parsed_body.keys, "keys"
       key = response.parsed_body.fetch("keys").first
 
-      assert_equal ENV.fetch("JWT_#{namespace}_ACTIVE_KID"), key.fetch("kid")
+      assert_equal Jit::Security::Jwt::Registry.surface(namespace).current_kid, key.fetch("kid")
       assert_equal "EC", key.fetch("kty")
       assert_equal "P-384", key.fetch("crv")
       assert_equal "ES384", key.fetch("alg")

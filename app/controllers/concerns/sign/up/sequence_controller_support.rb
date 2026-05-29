@@ -30,9 +30,10 @@ module Sign
         return if @sign_up_ticket
 
         sign_up_session_state.clear_all!
+        session_missing_key = "sign.#{sign_up_surface}.registration.session_missing"
         redirect_to(
           sign_up_restart_path,
-          alert: I18n.t("sign.%{surface}.registration.session_missing", surface: sign_up_surface),
+          alert: I18n.t(session_missing_key),
         )
       end
 

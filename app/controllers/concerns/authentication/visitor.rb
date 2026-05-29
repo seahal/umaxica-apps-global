@@ -102,7 +102,7 @@ module Authentication
       defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
     rescue StandardError => e
       Rails.logger.error(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "authentication.visitor.audit_write_failed",
           error_class: e.class.name,
           message: e.message,

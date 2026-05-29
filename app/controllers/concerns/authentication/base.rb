@@ -439,7 +439,7 @@ module Authentication
 
     def session_limit_hard_reject_result(resource)
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "session.limit.hard_reject",
           "#{resource_type}_id": resource.id,
           ip_address: request_ip_address,
@@ -475,7 +475,7 @@ module Authentication
 
     def notify_restricted_session_issued(resource, token_record, restricted_expires_at)
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "session.restricted.issued",
           "#{resource_type}_id": resource.id,
           user_token_id: token_record.public_id,
@@ -558,7 +558,7 @@ module Authentication
       )
     rescue StandardError => e
       Rails.logger.error(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.token.refresh.error",
           error_class: e.class.name,
           message: e.message,
@@ -589,13 +589,13 @@ module Authentication
 
       refresh_result = attempt_transparent_refresh!(refresh_plain)
       unless refresh_result
-        Rails.logger.debug(LogEvent.format("auth.transparent_refresh.failed"))
+        Rails.logger.debug(Jit::LogEvent.format("auth.transparent_refresh.failed"))
         clear_auth_cookies!
         return
       end
 
       Rails.logger.debug(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.transparent_refresh.success",
           user_present: refresh_result[:user].present?,
         ),
@@ -821,7 +821,7 @@ module Authentication
       return unless resource && event_id
 
       Rails.logger.debug(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.audit.recording",
           event_id: event_id,
           resource_id: resource&.id,
@@ -864,7 +864,7 @@ module Authentication
       )
     rescue StandardError => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.occurrence.write_failed",
           event_type: event_type,
           reason: reason,
@@ -895,7 +895,7 @@ module Authentication
       set_refresh_failure!(:unauthorized, "invalid_refresh_token")
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.token.refresh.failed",
           refresh_token_id: refresh_public_id,
           reason: "token_not_found",
@@ -934,7 +934,7 @@ module Authentication
 
     def notify_inactive_resource_refresh_failed(resource, refresh_public_id)
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.token.refresh.failed",
           "#{resource_type}_id": resource&.id,
           refresh_token_id: refresh_public_id,
@@ -1016,7 +1016,7 @@ module Authentication
 
     def notify_token_refreshed(resource, token_record, previous_token_record)
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.token.refreshed",
           "#{resource_type}_id": resource.id,
           old_refresh_token_id: previous_token_record&.public_id || token_record.public_id,
@@ -1064,7 +1064,7 @@ module Authentication
       end
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.token.refresh.failed",
           refresh_token_id: refresh_public_id,
           reason: log_reason,
@@ -1108,7 +1108,7 @@ module Authentication
       reset_session if @refresh_dbsc_reason.present? && respond_to?(:reset_session)
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.token.refresh.failed",
           refresh_token_id: refresh_public_id,
           reason: binding_failure_reason(reason, token_record),
@@ -1123,7 +1123,7 @@ module Authentication
       set_refresh_failure!(:unauthorized, "invalid_refresh_token")
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.token.refresh.error",
           "#{resource_type}_id": resource&.id,
           refresh_token_id: refresh_public_id,
@@ -1154,7 +1154,7 @@ module Authentication
           token_record.revoke!
         end
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "session.restricted.expired",
             user_token_id: token_record.public_id,
             "#{resource_type}_id": token_record.public_send("#{token_resource_prefix}_id"),
@@ -1165,7 +1165,7 @@ module Authentication
       set_refresh_failure!(:forbidden, "restricted_session")
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.token.refresh.failed",
           refresh_token_id: refresh_public_id,
           reason: expired ? "restricted_expired" : "restricted_session",
@@ -1305,7 +1305,7 @@ module Authentication
       end
     rescue ActiveRecord::ActiveRecordError => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.refresh.dbsc_logout_failed",
           token_id: token_record&.try(:public_id),
           error_class: e.class.name,
@@ -1460,7 +1460,7 @@ module Authentication
       sub = Token.extract_subject(payload)
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "authentication.actor_mismatch",
           expected: resource_type,
           actual: act,
@@ -1515,7 +1515,7 @@ module Authentication
       )
     rescue ActiveRecord::RecordNotDestroyed => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "#{resource_type}.token.destroy.failed",
           token_id: public_id,
           error_message: e.message,
@@ -1548,7 +1548,7 @@ module Authentication
       context = access_policy_context(policy, options)
 
       Rails.logger.debug(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.policy.resolved",
           authentication_mode: mode,
           policy: policy,
@@ -1632,7 +1632,7 @@ module Authentication
       rule = resolve_access_policy_for(action_name)
 
       if rule.nil?
-        Rails.logger.warn(LogEvent.format("auth.policy.missing", controller: self.class.name, action: action_name))
+        Rails.logger.warn(Jit::LogEvent.format("auth.policy.missing", controller: self.class.name, action: action_name))
         raise MissingPolicyError,
               "Missing access_policy for #{self.class.name}##{action_name}. " \
               "Declare one of: #{VALID_POLICIES.join(", ")}"
@@ -1663,7 +1663,7 @@ module Authentication
       return true unless authentication_credentials_invalid?
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.open.invalid_credentials",
           reason: @current_authentication_failure_reason,
           controller: self.class.name,
@@ -1780,7 +1780,7 @@ module Authentication
           return kind_model.find_by!(code: raw_kind_id).id
         rescue ActiveRecord::RecordNotFound
           Rails.logger.error(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "auth.token.kind_missing",
               kind_model: kind_model.name,
               code: raw_kind_id,
@@ -1823,7 +1823,7 @@ module Authentication
       end
     rescue ActiveRecord::RecordNotFound
       Rails.logger.error(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.token.kind_missing",
           kind_model: kind_model.name,
           id: token_kind_id,
@@ -2355,7 +2355,7 @@ module Authentication
       yield
     rescue StandardError => e
       Rails.logger.warn(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.transparent_refresh.side_effect_failed",
           error_class: e.class.name,
           message: e.message,

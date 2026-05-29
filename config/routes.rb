@@ -8,7 +8,10 @@ Rails.application.routes.draw do
   # sign in / up
   draw :sign
   # Regional application entrypoints
+  # main page
   draw :core
+  # direct message
   draw :line
+  # entrypoint for post
   draw :post
 end

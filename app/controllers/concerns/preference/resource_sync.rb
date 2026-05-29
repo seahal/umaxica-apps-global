@@ -26,7 +26,12 @@ module Preference
     rescue Preference::ResolutionError
       raise
     rescue StandardError => e
-      Rails.logger.info(LogEvent.format("preference.sync_to_resource.error", error: e.class.name, message: e.message))
+      Rails.logger.info(
+        Jit::LogEvent.format(
+          "preference.sync_to_resource.error", error: e.class.name,
+                                               message: e.message,
+        ),
+      )
     end
 
     def sync_resource_preference_children!(resource_pref)

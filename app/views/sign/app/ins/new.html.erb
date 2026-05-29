@@ -13,13 +13,13 @@
 
 <%= button_to continue_sign_app_social_authentication_path(provider: "google_app", ri: params[:ri]),
               method: :post,
-              data: { turbo: false } do %>
+              form: { data: { turbo: false } } do %>
   <%= t("sign.app.authentication.new.links.google") %>
 <% end %>
 
 <%= button_to continue_sign_app_social_authentication_path(provider: "apple", ri: params[:ri]),
               method: :post,
-              data: { turbo: false } do %>
+              form: { data: { turbo: false } } do %>
   <%= t("sign.app.authentication.new.links.apple") %>
 <% end %>
 

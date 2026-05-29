@@ -42,7 +42,9 @@ module PublisherPostDocument
   end
 
   def ensure_permalink
-    self.permalink = public_id if permalink.blank? && public_id.present?
+    return if permalink.present? || public_id.blank?
+
+    self.permalink = public_id.match?(/\A[A-Za-z0-9_]/) ? public_id : "_#{public_id}"
   end
 
   def ensure_publication_window

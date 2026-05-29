@@ -58,6 +58,12 @@ module RequestContext
       assert_equal "en", Contract.normalize(:lx, "EN")
       assert_equal "dark", Contract.normalize(:ct, "Dark")
       assert_equal "Asia/Tokyo", Contract.normalize(:tz, "Asia/Tokyo")
+      assert_equal "12", Contract.normalize(:tf, "hour_12")
+      assert_equal "24", Contract.normalize(:tf, "24")
+      assert_equal "rd", Contract.normalize(:mo, "reduced")
+      assert_equal "st", Contract.normalize(:mo, "st")
+      assert_equal "cp", Contract.normalize(:dn, "compact")
+      assert_equal "st", Contract.normalize(:dn, "standard")
       assert_equal "Opaque.Token-Value_123", Contract.normalize(:pt, "Opaque.Token-Value_123")
       assert_equal "Dashboard", Contract.normalize(:nt, "Dashboard")
     end

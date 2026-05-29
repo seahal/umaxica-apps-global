@@ -29,6 +29,8 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_nil response.headers["Content-Security-Policy-Report-Only"]
     assert_includes response.headers["Content-Security-Policy"], "default-src 'self'"
     assert_includes response.headers["Content-Security-Policy"], "object-src 'none'"
+    assert_includes response.headers["Content-Security-Policy"],
+                    "form-action 'self' https://accounts.google.com https://appleid.apple.com"
     assert_includes response.headers["Content-Security-Policy"], "script-src 'self' https://challenges.cloudflare.com"
     assert_no_match(/script-src[^;]*\shttps:(?:\s|;|$)/, response.headers["Content-Security-Policy"])
     assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"

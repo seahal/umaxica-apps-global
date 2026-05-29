@@ -8,11 +8,16 @@ module Oidc
         def success? = success
       end
 
-    def initialize(access_token:, resource_type:, host:)
+    def initialize(access_token:, resource_type:, host:, authorization_scheme: nil, dpop_proof: nil,
+                   request_method: nil, request_uri: nil)
       super()
       @access_token = access_token
       @resource_type = Oidc::Subject.normalize_resource_type(resource_type)
       @host = host
+      @authorization_scheme = authorization_scheme
+      @dpop_proof = dpop_proof
+      @request_method = request_method
+      @request_uri = request_uri
     end
 
     def call
@@ -27,6 +32,7 @@ module Oidc
         jwt_issuer_id: Oidc::Issuer.jwt_issuer_id_for_resource_type(resource_type),
       )
       return failure("invalid_token") unless payload
+      return failure("invalid_token") unless dpop_valid?(payload)
 
       token = find_token(payload)
       return failure("invalid_token") unless token&.active?
@@ -43,7 +49,30 @@ module Oidc
 
     private
 
-    attr_reader :access_token, :resource_type, :host
+    attr_reader :access_token, :resource_type, :host, :authorization_scheme, :dpop_proof,
+                :request_method, :request_uri
+
+    # Enforce DPoP sender-constraint, mirroring
+    # Authentication::CurrentResourceResolver#dpop_valid?. A DPoP-bound access
+    # token (one carrying cnf.jkt) must be presented with the DPoP scheme and a
+    # valid proof; it must never be accepted as a plain Bearer token.
+    def dpop_valid?(payload)
+      token_jkt = payload.dig("cnf", "jkt")
+      scheme_dpop = authorization_scheme.to_s.casecmp?("DPoP")
+
+      return true if token_jkt.blank? && !scheme_dpop && dpop_proof.blank?
+      return false unless scheme_dpop
+      return false if token_jkt.blank?
+
+      Dpop::RequestVerifier.new(
+        access_token_payload: payload,
+        proof_jwt: dpop_proof,
+        request_method: request_method,
+        request_uri: request_uri,
+        access_token: access_token,
+        resource_type: resource_type,
+      ).call.valid?
+    end
 
     def find_token(payload)
       token_class = token_class_for_resource_type

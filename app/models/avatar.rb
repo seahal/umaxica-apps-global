@@ -128,6 +128,7 @@ class Avatar < AvatarRecord
            class_name: "AvatarAssignment",
            inverse_of: :avatar,
            dependent: :destroy
+
   has_many :viewers,
            through: :viewer_assignments,
            source: :user,
@@ -177,6 +178,10 @@ class Avatar < AvatarRecord
            source: :muted_avatar
 
   validates :public_id, presence: true, uniqueness: true
+  validates :capability_id, numericality: { only_integer: true, greater_than: 0 }
+  validates :active_handle_id, presence: true
+  validates :capability, presence: true
+  validates :active_handle, presence: true
   validates :moniker, presence: true
 
   # Create avatar with owner assigned in a transaction

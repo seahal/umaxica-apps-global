@@ -56,14 +56,14 @@ module HasBirthdate
 
   def birthdate_format
     return if birthdate.blank?
-    return if birthdate.match?(BirthdateFormat::PATTERN)
+    return if birthdate.match?(Jit::Utils::BirthdateFormat::PATTERN)
 
     errors.add(:birthdate, :birthdate_format)
   end
 
   def birthdate_not_future
     return if birthdate.blank?
-    return unless birthdate.match?(BirthdateFormat::PATTERN)
+    return unless birthdate.match?(Jit::Utils::BirthdateFormat::PATTERN)
 
     today = Time.zone.today.strftime("%Y-%m-%d")
     errors.add(:birthdate, :birthdate_before_today) if birthdate >= today

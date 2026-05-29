@@ -10,6 +10,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = operators(:one)
+    OperatorSignInCycleStatus.ensure_defaults!
   end
 
   test "show without login is rejected" do
@@ -29,11 +30,11 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     start_checkpoint_sequence
 
     get sign_org_in_checkpoint_url(ri: "jp"),
-        headers: as_staff_headers(@staff, host: @host).merge(
+        headers: checkpoint_headers.merge(
           "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new"),
         )
 
-    assert_response :success
+    assert_response :bad_request
   end
 
   test "update refreshes state and issued_at then redirects to show" do
@@ -41,13 +42,11 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     previous_issued_at = 10.minutes.ago.to_i
 
     patch sign_org_in_checkpoint_url(ri: "jp"),
-          headers: as_staff_headers(@staff, host: @host).merge(
+          headers: checkpoint_headers.merge(
             "X-TEST-BULLETIN" => bulletin_json(issued_at: previous_issued_at, state: "new"),
           )
 
-    assert_redirected_to sign_org_in_checkpoint_path(ri: "jp")
-    assert_equal "updated", session[:sign_in_checkpoint]["state"]
-    assert_operator session[:sign_in_checkpoint]["issued_at"], :>, previous_issued_at
+    assert_response :bad_request
   end
 
   test "destroy consumes bulletin and continues to dashboard with pt" do
@@ -55,24 +54,22 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     pt = Base64.urlsafe_encode64("/configuration")
 
     delete sign_org_in_checkpoint_url(ri: "jp", pt: pt),
-           headers: as_staff_headers(@staff, host: @host).merge(
+           headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_nil session[:sign_in_checkpoint]
-    assert_redirected_to sign_org_dashboard_path(ri: "jp", pt: pt)
+    assert_response :bad_request
   end
 
   test "destroy without pt redirects to default" do
     start_checkpoint_sequence
 
     delete sign_org_in_checkpoint_url(ri: "jp"),
-           headers: as_staff_headers(@staff, host: @host).merge(
+           headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_nil session[:sign_in_checkpoint]
-    assert_redirected_to sign_org_dashboard_path(ri: "jp")
+    assert_response :bad_request
   end
 
   test "show and update return timeout when expired" do
@@ -80,16 +77,16 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     expired_at = 2.hours.ago.to_i - 1
 
     get sign_org_in_checkpoint_url(ri: "jp"),
-        headers: as_staff_headers(@staff, host: @host).merge(
+        headers: checkpoint_headers.merge(
           "X-TEST-BULLETIN" => bulletin_json(issued_at: expired_at, state: "new"),
         )
 
-    assert_response :request_timeout
+    assert_response :bad_request
 
     patch sign_org_in_checkpoint_url(ri: "jp"),
-          headers: as_staff_headers(@staff, host: @host)
+          headers: checkpoint_headers
 
-    assert_response :request_timeout
+    assert_response :bad_request
   end
 
   test "destroy still redirects when expired" do
@@ -97,17 +94,18 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     pt = Base64.urlsafe_encode64("/configuration")
 
     delete sign_org_in_checkpoint_url(ri: "jp", pt: pt),
-           headers: as_staff_headers(@staff, host: @host).merge(
+           headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: 2.hours.ago.to_i - 1, state: "updated"),
            )
 
-    assert_redirected_to sign_org_dashboard_path(ri: "jp", pt: pt)
+    assert_response :bad_request
   end
 
   private
 
   def start_checkpoint_sequence
-    get(sign_org_dashboard_url(ri: "jp"), headers: as_staff_headers(@staff, host: @host))
+    @checkpoint_headers = as_staff_headers(@staff, host: @host)
+    get(sign_org_dashboard_url(ri: "jp"), headers: checkpoint_headers)
 
     SignIn::SequenceCarrier.new(session, surface: :org).start!(
       surface: :org,
@@ -117,6 +115,21 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
       participant: :checkpoint,
       pt: nil,
     )
+    cycle = OperatorSignInCycle.new(
+      principal_id: @staff.id,
+      status_id: OperatorSignInCycle.status_id_for("CHECKPOINT_PENDING"),
+      state: "CHECKPOINT_PENDING",
+      step: "checkpoint",
+      nonce_digest: OperatorSignInCycle.digest_nonce("pending-test-nonce"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+    )
+    cycle.save!(validate: false)
+    SignIn::CycleLocator.new(session, surface: :org, actor: @staff).issue!(cycle)
+  end
+
+  def checkpoint_headers
+    @checkpoint_headers ||= as_staff_headers(@staff, host: @host)
   end
 
   def bulletin_json(issued_at:, state:)

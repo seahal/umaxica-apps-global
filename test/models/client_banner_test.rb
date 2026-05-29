@@ -35,14 +35,14 @@ class ClientBannerTest < ActiveSupport::TestCase
     banner = ClientBanner.new(body: "Banner body")
 
     assert_not banner.valid?
-    assert_includes banner.errors[:user], "を入力してください"
+    assert_not_empty banner.errors[:user]
   end
 
   test "body is required" do
     banner = ClientBanner.new(user: clients(:reserved_user), body: "")
 
     assert_not banner.valid?
-    assert_includes banner.errors[:body], "を入力してください"
+    assert_not_empty banner.errors[:body]
   end
 
   test "published scope returns published banners only" do

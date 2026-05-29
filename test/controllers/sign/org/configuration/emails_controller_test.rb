@@ -80,7 +80,7 @@ class Sign::Org::Configuration::EmailsControllerTest < ActionDispatch::Integrati
     assert_select "input[type=checkbox][name='staff_email[promotional]'][checked]", count: 0
     assert_select "input[type=checkbox][name='staff_email[notifiable]'][checked]", count: 1
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, "turnstile.execute"
+    assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
   test "update changes optional email preferences only" do

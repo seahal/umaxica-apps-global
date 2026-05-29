@@ -80,6 +80,28 @@ class VisitorStepUpSessionTest < ActiveSupport::TestCase
     end
   end
 
+  test "attempt count cannot be negative" do
+    session = VisitorStepUpSession.new(@valid_params.merge(attempt_count: -1))
+
+    assert_not session.valid?
+    assert_not_empty session.errors[:attempt_count]
+  end
+
+  test "database rejects retention order when validations are bypassed" do
+    session = VisitorStepUpSession.new(
+      @valid_params.merge(
+        discarded_at: 2.days.from_now,
+        purged_at: 1.day.from_now,
+      ),
+    )
+    exception_classes = [ActiveRecord::StatementInvalid]
+    exception_classes << ActiveRecord::CheckConstraintViolation if defined?(ActiveRecord::CheckConstraintViolation)
+
+    assert_raises(*exception_classes) do
+      ActiveRecord::Base.logger.silence { session.save!(validate: false) }
+    end
+  end
+
   test "belongs to token" do
     session = VisitorStepUpSession.create!(@valid_params)
 

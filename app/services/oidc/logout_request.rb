@@ -90,7 +90,7 @@ module Oidc
         # already consumed rather than risk allowing replay. Operators
         # see the failure via application logs.
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "oidc.logout_request.replay_store_unavailable",
             op: "exist?",
             error_class: e.class.name,
@@ -104,7 +104,7 @@ module Oidc
         replay_store.write(replay_cache_key(jti), true, expires_in: REPLAY_TRACKING_TTL)
       rescue StandardError => e
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "oidc.logout_request.replay_store_unavailable",
             op: "write",
             error_class: e.class.name,

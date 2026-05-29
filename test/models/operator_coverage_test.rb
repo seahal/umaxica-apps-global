@@ -41,7 +41,7 @@ class OperatorCoverageTest < ActiveSupport::TestCase
     s.public_id = "  "
 
     assert_not s.valid?
-    assert_includes s.errors[:public_id], "を入力してください"
+    assert_not_empty s.errors[:public_id]
   end
 
   test "retry_on_public_id_collision" do

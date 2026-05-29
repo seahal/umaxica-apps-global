@@ -78,7 +78,7 @@ module Sign
           end
         rescue StandardError => e
           Rails.logger.error(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.com.authentication.secret.error",
               error_class: e.class.name,
               message: e.message,
@@ -183,7 +183,7 @@ module Sign
           @secret_form.errors.add(:base, invalid_secret_message)
 
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.com.authentication.secret.failed",
               reason: reason,
               identifier_type: detect_identifier_type(identifier.to_s),

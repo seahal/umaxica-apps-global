@@ -41,16 +41,16 @@ module Sign
         end
 
         def handle_omniauth_callback(auth)
-          Rails.logger.debug(LogEvent.format("sign.social.omniauth.validating_state"))
+          Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.validating_state"))
           validate_social_auth_state!
 
           intent = current_social_auth_intent
-          Rails.logger.debug(LogEvent.format("sign.social.omniauth.processing_callback", intent: intent))
+          Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.processing_callback", intent: intent))
           result = process_social_auth_callback
           user = result[:user]
 
           Rails.logger.debug(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.omniauth.callback_processed",
               user_id: user&.id,
               intent: intent,
@@ -75,7 +75,7 @@ module Sign
           strategy = params[:strategy] || "unknown"
 
           Rails.logger.debug(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.omniauth.failure_callback",
               message: message,
               strategy: strategy,
@@ -86,7 +86,7 @@ module Sign
 
           if duplicate_google_callback_failure_after_success?(message, strategy)
             Rails.logger.info(
-              LogEvent.format(
+              Jit::LogEvent.format(
                 "sign.social.omniauth.duplicate_callback_failure_ignored",
                 message: message,
                 strategy: strategy,
@@ -96,7 +96,7 @@ module Sign
           end
 
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.omniauth_failure",
               message: message,
               strategy: strategy,
@@ -129,9 +129,10 @@ module Sign
           )
         end
 
-        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, pt: nil)
+        def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, pt: nil, entry: nil)
+          _ = entry
           Rails.logger.debug(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.omniauth.handle_successful_auth",
               intent: intent,
               user_id: user&.id,
@@ -220,7 +221,7 @@ module Sign
 
         def handle_link_intent(provider_name)
           Rails.logger.debug(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.omniauth.link_intent",
               message: "Redirecting to configuration",
             ),
@@ -241,7 +242,7 @@ module Sign
         end
 
         def handle_login_intent(user, provider_name, existing_account, pt: nil)
-          Rails.logger.debug(LogEvent.format("sign.social.omniauth.login_intent", message: "Signing in user"))
+          Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.login_intent", message: "Signing in user"))
           unless user&.login_allowed?
             return redirect_to(
               new_sign_app_in_path,
@@ -253,7 +254,7 @@ module Sign
 
           if login_result.is_a?(Hash) && login_result[:status] != :success
             Rails.logger.warn(
-              LogEvent.format(
+              Jit::LogEvent.format(
                 "sign.social.omniauth.login_failed",
                 status: login_result[:status],
                 user_id: user.id,
@@ -270,7 +271,7 @@ module Sign
           end
 
           Rails.logger.debug(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.omniauth.login_successful",
               message: "Redirecting after login",
             ),
@@ -309,7 +310,7 @@ module Sign
                   audit_context: social_login_audit_context,
           )
           Rails.logger.debug(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.social.omniauth.sign_in_result",
               **social_login_result_log_payload(result),
             ),
@@ -400,20 +401,20 @@ module Sign
               http_status: sign_in_result.response_status,
             )
           when :session_limit_pending
-            Rails.logger.debug(LogEvent.format("sign.social.omniauth.session_limit_exceeded"))
+            Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.session_limit_exceeded"))
             redirect_to(
               sign_in_result.redirect_to,
               notice: I18n.t("sign.app.in.session.restricted_notice"),
             )
           when :mfa_required
-            Rails.logger.debug(LogEvent.format("sign.social.omniauth.mfa_required"))
+            Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.mfa_required"))
             safe_redirect_to(
               sign_in_result.redirect_to,
               fallback: new_sign_app_in_path,
               notice: I18n.t("sign.app.in.mfa.required"),
             )
           else
-            Rails.logger.warn(LogEvent.format("sign.social.omniauth.unknown_login_failure", status: status))
+            Rails.logger.warn(Jit::LogEvent.format("sign.social.omniauth.unknown_login_failure", status: status))
             redirect_to(
               new_sign_app_in_path,
               alert: I18n.t("sign.app.social.sessions.create.failure"),

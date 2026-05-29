@@ -57,6 +57,8 @@ module Acme
     class ActorSupportController < ApplicationController
       include ActorSupportLifecycle
 
+      declare_authentication_mode! :open
+
       def show
         render json: actor_support_snapshot
       end
@@ -67,6 +69,8 @@ module Acme
     class ActorSupportController < ApplicationController
       include ActorSupportLifecycle
 
+      declare_authentication_mode! :open
+
       def show
         render json: actor_support_snapshot
       end
@@ -76,6 +80,8 @@ module Acme
   module Com
     class ActorSupportController < ApplicationController
       include ActorSupportLifecycle
+
+      declare_authentication_mode! :open
 
       def show
         render json: actor_support_snapshot

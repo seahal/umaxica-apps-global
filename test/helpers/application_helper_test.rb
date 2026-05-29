@@ -157,7 +157,7 @@ class ApplicationHelperTest < ActionView::TestCase
     stub_request_host(ENV["SIDE_STAFF_URL"])
 
     with_edge_env("EDGE_STAFF_URL" => "edge.org.localhost") do
-      assert_equal "edge.org.localhost", edge_host
+      assert_equal "jp.umaxica.com", edge_host
     end
   end
 

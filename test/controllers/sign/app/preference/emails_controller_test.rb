@@ -36,7 +36,7 @@ module Sign
           assert_response :success
           assert_match "Unsubscribe", response.body
           assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-          assert_includes response.body, "turnstile.render"
+          assert_includes response.body, 'data-turnstile-mode-value="render"'
         end
 
         test "DELETE destroy turns promotional email off" do

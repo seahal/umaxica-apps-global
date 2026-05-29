@@ -131,9 +131,9 @@ belong to the step-up gate and return-target primitives.
 
 AAL2 has two separate states:
 
-| owner                                                  | state                                   | meaning                                              |
-| ------------------------------------------------------ | --------------------------------------- | ---------------------------------------------------- |
-| actor (`Client`, `Visitor`, `Operator`)                | `multi_factor_status_id`                | Whether any registered AAL2 credential exists.       |
+| owner                                                  | state                                                                 | meaning                                              |
+| ------------------------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------- |
+| actor (`Client`, `Visitor`, `Operator`)                | `multi_factor_status_id`                                              | Whether any registered AAL2 credential exists.       |
 | token (`ClientToken`, `VisitorToken`, `OperatorToken`) | `last_step_up_at`, `last_step_up_scope`, method, AAL, session binding | Whether this session recently completed scoped AAL2. |
 
 The actor availability state must stay true when AAL2 credentials are created, removed, revoked, or

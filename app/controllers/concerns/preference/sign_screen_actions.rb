@@ -39,12 +39,12 @@ module Preference::SignScreenActions
   def update_timezone_preference_screen
     set_timezone_preferences_update
     redirect_to(
-      preference_edit_url(:timezone),
+      preference_edit_url(:timezone, preference_write_redirect_params(except: :tz)),
       notice: preference_update_notice,
     )
   rescue PreferenceOperationError
     redirect_to(
-      preference_edit_url(:timezone),
+      preference_edit_url(:timezone, preference_write_redirect_params(except: :tz)),
       alert: preference_operation_failed_alert,
     )
   end
@@ -60,7 +60,7 @@ module Preference::SignScreenActions
     return render_preference_update_response if request.format.json?
 
     redirect_to(
-      safe_pt_path || preference_edit_url(:theme),
+      safe_pt_path || preference_edit_url(:theme, preference_write_redirect_params(except: :ct)),
       notice: preference_update_notice,
     )
   end
@@ -93,10 +93,7 @@ module Preference::SignScreenActions
     end
 
     reset_preference_to_defaults!
-    flash[:notice] = preference_reset_destroyed_notice
-    response.set_header("Location", "../")
-    self.status = :see_other
-    self.response_body = ""
+    redirect_to(preference_index_path, notice: preference_reset_destroyed_notice, status: :see_other)
   end
 
   def edit_selectable_preference_screen(screen)
@@ -110,13 +107,21 @@ module Preference::SignScreenActions
     return render_preference_update_response if request.format.json?
 
     redirect_to(
-      preference_edit_url(screen),
+      preference_edit_url(screen, preference_write_redirect_params(except: preference_context_key_for_screen(screen))),
       notice: preference_update_notice,
     )
   rescue PreferenceOperationError
     redirect_to(
-      preference_edit_url(screen),
+      preference_edit_url(screen, preference_write_redirect_params(except: preference_context_key_for_screen(screen))),
       alert: preference_operation_failed_alert,
     )
+  end
+
+  def preference_index_path
+    return sign_app_preference_path if respond_to?(:sign_app_preference_path, true)
+    return sign_com_preference_path if respond_to?(:sign_com_preference_path, true)
+    return sign_org_preference_path if respond_to?(:sign_org_preference_path, true)
+
+    raise NotImplementedError, "preference index path is not configured for this surface"
   end
 end

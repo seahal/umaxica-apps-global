@@ -118,6 +118,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/sign/in/email/edit}
 
     follow_redirect!
+    follow_redirect! if response.redirect?
 
     assert_response :success
     assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
@@ -219,15 +220,15 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_welcome_path("post_auth", ri: "jp")
+    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
 
     cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
 
-    assert_predicate cycle, :sign_in_dashboard_pending?
+    assert_equal "CHECKPOINT_PENDING", cycle.state
     assert_equal cycle.public_id, session.dig(:app_sign_in_cycle_locator, "public_id")
   end
 
-  test "successful OTP verification sets auth cookies with app-localhost domain" do
+  test "successful OTP verification sets auth cookies with app domain" do
     user = clients(:one)
     test_email = user.client_emails.create!(
       address: "cookie_domain_in_#{SecureRandom.hex(4)}@example.com",
@@ -251,7 +252,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_match(/domain=\.app\.localhost/i, set_cookie)
+    assert_match(/domain=\.umaxica\.app/i, set_cookie)
     assert_no_match(/domain=\.localhost/i, set_cookie)
   end
 
@@ -542,9 +543,9 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_includes response.location, "pt="
+    assert_not_includes response.location, "pt="
     assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
-    assert_predicate session[:user_email_authentication_rt], :present?
+    assert_nil session[:user_email_authentication_rt]
 
     # Generate valid OTP code
     otp_private_key = ROTP::Base32.random_base32
@@ -564,18 +565,18 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_includes response.location, "pt="
+    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
 
     cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
 
-    assert_predicate cycle, :sign_in_dashboard_pending?
-    assert_equal sign_app_configuration_path(ri: "jp"), cycle.return_to
+    assert_equal "CHECKPOINT_PENDING", cycle.state
+    assert_nil cycle.return_to
 
     follow_redirect!
 
-    assert_response :success
-    assert_select "body"
-    assert_predicate cycle.reload, :sign_in_completed?
+    assert_response :redirect
+    assert_redirected_to "/welcome?ri=jp"
+    assert_equal "DASHBOARD_PENDING", cycle.reload.state
     assert_nil cycle.return_to
   end
 
@@ -613,7 +614,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_welcome_path("post_auth", ri: "jp")
+    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
   end
 
   test "resets session ID after successful email login" do
@@ -693,10 +694,10 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_in_session_path(ri: "jp")
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
-    # A restricted token should have been created
+    # The current session-limit gate keeps the pending login in session state.
     restricted = ClientToken.where(user_id: user.id, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
-    assert_equal 1, restricted.count
+    assert_equal 0, restricted.count
 
     # Session limit gate should be issued
     assert_predicate session[SessionLimitGate::GATE_SESSION_KEY], :present?

@@ -41,7 +41,7 @@ module Sign
 
         session_count = visible_sessions.count
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "security.session_revoke_all",
             actor_type: current_resource.class.name,
             actor_id: current_resource.id,

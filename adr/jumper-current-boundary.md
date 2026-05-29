@@ -22,8 +22,8 @@ would couple surfaces that have different runtime needs.
 - it is host-constrained by `JUMP_CORPORATE_URL`, `JUMP_SERVICE_URL`, and `JUMP_STAFF_URL`
 - it has no authenticated session requirement
 - it intentionally skips cookie session state
-- legacy app-hosted JumpLink redirects have since been retired in favor of the
-  external Jump gateway and signed `rt` tokens
+- legacy app-hosted JumpLink redirects have since been retired in favor of the external Jump gateway
+  and signed `rt` tokens
 
 At the same time, jump still needs request-local state that is thread-safe under Rails' executor and
 Puma's concurrent request model.

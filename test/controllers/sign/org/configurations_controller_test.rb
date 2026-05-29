@@ -32,8 +32,7 @@ class Sign::Org::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
 
   test "should redirect show when not logged in" do
     get sign_org_configuration_url(ri: "jp")
-    pt = Base64.strict_encode64(sign_org_configuration_url(ri: "jp"))
 
-    assert_redirected_to new_sign_org_in_url(pt: pt, host: @host)
+    assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
   end
 end

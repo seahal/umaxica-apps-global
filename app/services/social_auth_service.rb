@@ -98,7 +98,7 @@ class SocialAuthService
       identity.destroy!
 
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "social_auth.unlinked",
           user_id: @current_client.id,
           provider: provider,

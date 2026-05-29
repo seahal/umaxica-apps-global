@@ -71,7 +71,8 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
          headers: browser_headers.merge("X-CSRF-Token" => "test_csrf_token")
 
     assert_response :redirect
-    assert_includes response.location, "/sign/in/new"
+    assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/new\?ri=jp(?:&pt=.*)?\z},
+                 jump_rt_url_from_location(response.location)
   end
 
   # Case D-2: Logged in -> JSON options

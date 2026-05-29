@@ -49,7 +49,7 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: "id.org.localhost",
+      host: ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"),
       path: :sign_org_root_path,
       label: "sign org root",
       ri: "jp",
@@ -59,7 +59,8 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   test "GET / redirects to dashboard when logged in" do
     staff = operators(:one)
 
-    get sign_org_root_url(ri: "jp"), headers: as_staff_headers(staff, host: "id.org.localhost")
+    get sign_org_root_url(ri: "jp"),
+        headers: as_staff_headers(staff, host: ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"))
 
     assert_redirected_to sign_org_dashboard_url(ri: "jp")
   end

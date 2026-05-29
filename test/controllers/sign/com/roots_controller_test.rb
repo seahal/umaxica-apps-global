@@ -47,7 +47,7 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: "id.com.localhost",
+      host: ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"),
       path: :sign_com_root_path,
       label: "sign com root",
       ri: "jp",
@@ -61,7 +61,8 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    get sign_com_root_url(ri: "jp"), headers: as_visitor_headers(visitor, host: "id.com.localhost")
+    get sign_com_root_url(ri: "jp"),
+        headers: as_visitor_headers(visitor, host: ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"))
 
     assert_redirected_to sign_com_dashboard_url(ri: "jp")
   end

@@ -10,6 +10,7 @@ class Sign::App::Configuration::ConnectionsControllerTest < ActionDispatch::Inte
     @user = clients(:one)
     @current_token = create_user_token!
     @current_token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_connection")
+    mark_token_step_up_satisfied_for_test(@current_token, scope: "configuration_connection")
     @headers = as_user_headers(@user, host: @host, session_public_id: @current_token.public_id)
     @connection = ClientOidcConnection.create!(
       user: @user,
@@ -29,7 +30,7 @@ class Sign::App::Configuration::ConnectionsControllerTest < ActionDispatch::Inte
 
     assert_response :success
     assert_select "td", text: "Core App"
-    assert_select "td", text: /main\.app\.localhost/
+    assert_select "td", text: /first_party_session/
     assert_select "td", text: /openid, profile/
     assert_select "a[href=?]", sign_app_configuration_connection_path(@connection.public_id, ri: "jp")
   end

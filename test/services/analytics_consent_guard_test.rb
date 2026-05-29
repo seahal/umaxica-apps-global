@@ -77,13 +77,13 @@ class AnalyticsConsentGuardTest < ActiveSupport::TestCase
     blocked_preference = preference_without_performant
     allowed_preference = preference_with_performant
 
-    Actor.stub(:preference, blocked_preference) do
+    Actor.stub(:preferences, blocked_preference) do
       Rails.logger.stub(:debug, nil) do
         assert_nil reporter_class.new.notify("product.page_view", path: "/")
       end
     end
 
-    Actor.stub(:preference, allowed_preference) do
+    Actor.stub(:preferences, allowed_preference) do
       assert_equal [:base, "product.page_view", { path: "/" }],
                    reporter_class.new.notify("product.page_view", path: "/")
     end

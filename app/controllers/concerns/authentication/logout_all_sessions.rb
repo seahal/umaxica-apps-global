@@ -48,7 +48,7 @@ module Authentication
       resource.save!
     rescue ActiveRecord::ActiveRecordError => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.logout_all_sessions.session_version_failed",
           reason: reason,
           resource_class: resource&.class&.name,
@@ -96,7 +96,7 @@ module Authentication
       # event name so operators can distinguish "one token failed inside
       # a bulk revoke" from "the only session-revoke failed".
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.logout_all_sessions.token_failed",
           reason: reason,
           resource_class: resource&.class&.name,

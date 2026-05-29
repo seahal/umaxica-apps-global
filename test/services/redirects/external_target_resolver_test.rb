@@ -64,6 +64,40 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
     end
   end
 
+  test "raw user supplied external urls require exact normalized origin allowlist" do
+    allowed = ["https://safe.example/callback"]
+
+    accepted = Redirects::ExternalTargetResolver.url(
+      "https://safe.example/after?ok=1",
+      allowed_urls: allowed,
+      source: :user_input,
+    )
+    denied = Redirects::ExternalTargetResolver.url(
+      "https://safe.example.evil.test/after",
+      allowed_urls: allowed,
+      source: :user_input,
+    )
+
+    assert_predicate accepted, :ok?
+    assert_equal "https://safe.example/after?ok=1", accepted.value
+    assert_not denied.ok?
+    assert_equal "origin_denied", denied.failure_reason
+  end
+
+  test "registry derived targets do not treat user input as an origin" do
+    with_env("RP_APP_URL" => "https://rp.example") do
+      result = Redirects::ExternalTargetResolver.call(
+        :rp_app,
+        path: "/signed-out",
+        query: { "url" => "https://evil.example", "ok" => "1" },
+        source: :registry,
+      )
+
+      assert_predicate result, :ok?
+      assert_equal "https://rp.example/signed-out?ok=1", result.value
+    end
+  end
+
   private
 
   def with_env(values)

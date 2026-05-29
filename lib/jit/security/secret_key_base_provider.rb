@@ -46,7 +46,7 @@ module Jit
         { current: current, previous: previous }
       rescue Aws::SecretsManager::Errors::ServiceError, JSON::ParserError, KeyError => e
         Rails.logger.error(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "secret_key_base.fetch_failed",
             error_class: e.class.name,
             message: e.message,

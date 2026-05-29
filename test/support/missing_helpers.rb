@@ -55,7 +55,7 @@ module PreferenceJwtHelper
     Preference::JwtConfiguration.stub(:private_key, key) do
       Preference::JwtConfiguration.stub(:public_key, key) do
         Preference::JwtConfiguration.stub(:private_key_for_active, key) do
-          Preference::JwtConfiguration.stub(:public_key_for, ->(_kid) { key }) do
+          Preference::JwtConfiguration.stub(:public_key_for, ->(_kid, **_options) { key }) do
             Preference::JwtConfiguration.stub(:active_kid, "default") do
               Preference::JwtConfiguration.stub(:issuer, "jit-preference") do
                 Preference::JwtConfiguration.stub(:audiences, audiences) do
@@ -97,6 +97,7 @@ module MissingHelpers
       expires_at: 1.hour.from_now,
       acr: "aal1",
       amr: ["test"],
+      jwt_issuer_id: jwt_issuer_id_for_test_host(host, auth_resource_type_for(resource)),
     )
 
     {
@@ -104,6 +105,64 @@ module MissingHelpers
       "Authorization" => "Bearer #{access_token}",
       "X-TEST-SESSION-PUBLIC-ID" => token_record.public_id,
     }.merge(headers)
+  end
+
+  def jwt_issuer_id_for_test_host(host, resource_type)
+    normalized = host.to_s
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      else
+        "SIGN"
+      end
+    surface =
+      if service == "SIGN"
+        case resource_type
+        when "operator" then "ORG"
+        when "visitor" then "COM"
+        else "APP"
+        end
+      elsif normalized.include?(".org") || normalized.include?("org.")
+        "ORG"
+      elsif normalized.include?(".com") || normalized.include?("com.")
+        "COM"
+      else
+        "APP"
+      end
+
+    "surface:#{service}_#{surface}"
+  end
+
+  def signed_step_up_pt_for(path, surface:, session_nonce:)
+    @signed_step_up_pt_cache ||= {}
+    cache_key = [path.to_s, surface.to_s, session_nonce.to_s]
+    return @signed_step_up_pt_cache[cache_key] if @signed_step_up_pt_cache.key?(cache_key)
+
+    safe_path = path.to_s
+    return nil if safe_path.blank?
+    return nil unless safe_path.start_with?("/")
+    return nil if safe_path.match?(/[\x00-\x1F\x7F]/)
+
+    verifier =
+      ActiveSupport::MessageVerifier.new(
+        Rails.application.key_generator.generate_key("path_target_token", 32),
+        digest: "SHA256",
+        serializer: JSON,
+        url_safe: true,
+      )
+
+    @signed_step_up_pt_cache[cache_key] = verifier.generate(
+      {
+        "flow" => "step_up.bootstrap",
+        "surface" => surface.to_s,
+        "session_nonce" => session_nonce.to_s,
+        "pt" => safe_path,
+      },
+      purpose: :path_target,
+      expires_in: 15.minutes,
+    )
   end
 
   def browser_headers
@@ -397,14 +456,6 @@ module MissingHelpers
     _verification, raw_token = VisitorVerification.issue_for_token!(token: visitor_token)
     cookies[VisitorVerification.cookie_name] = raw_token
     true
-  end
-
-  def step_up_test_audience_for_token(token)
-    case token.class.name
-    when "OperatorToken" then "step_up:org"
-    when "VisitorToken" then "step_up:com"
-    else "step_up:app"
-    end
   end
 
   private

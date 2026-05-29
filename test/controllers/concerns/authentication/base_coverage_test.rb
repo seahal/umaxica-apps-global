@@ -433,9 +433,12 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "issue_dbsc_challenge_for raises persistence errors" do
-    token = Object.new
+    token = Struct.new(:id).new(123)
     token.define_singleton_method(:update!) do |**|
       raise StandardError, "db write failed"
+    end
+    token.class.define_singleton_method(:find) do |id|
+      token if id == token.id
     end
 
     error =
@@ -474,7 +477,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
       Struct.new(:sign_in_path, :after_login_path).new("/main/sign_in", "/main/after")
     }
     @controller.define_singleton_method(:sign_in_url_with_pt) do |pt|
-      raise "return target must not be carried in sign-in URL" if pt.present?
+      raise RuntimeError, "return target must not be carried in sign-in URL" if pt.present?
 
       "/in"
     end

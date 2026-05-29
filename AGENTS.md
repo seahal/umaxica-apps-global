@@ -83,10 +83,25 @@ implementation path. If implementing an active plan changes stable behavior, upd
 
 - Use `notes/implementation/` for implementation decisions, plan deviations, compromises, and
   handoff context discovered while carrying out a plan.
+- Add or update `notes/` when implementation uncovers durable context that future agents should know
+  but that is not yet an accepted ADR, active plan, backlog item, or stable doc.
+- Prefer leaving a note over losing context when you find contradictions between comments, code,
+  tests, ADRs, docs, plans, or existing notes; record what was checked, the current interpretation,
+  and what still needs promotion or follow-up.
+- Use `notes/` for ADR-adjacent observations, handoff notes, gap notes, compatibility constraints,
+  rejected alternatives likely to be revisited, and implementation caveats discovered during work.
 - Use `memos/` for provisional analysis, investigation notes, and draft observations that do not
   affect implementation.
 - Do not treat `notes/` or `memos/` as source of truth; promote stable or actionable content to
   `adr/`, `plans/`, or `docs/`.
+- Never commit secrets, tokens, cookies, authorization headers, full request parameters, private
+  keys, real credentials, or sensitive local environment details into `docs/`, `adr/`, `memos/`,
+  `notes/`, or `plans/`.
+- If sensitive context is needed during work, either keep it only in ephemeral working memory, write
+  a masked/redacted version, or place local scratch material under the ignored `local/`, `private/`,
+  or `tmp/` subdirectories for that documentation area.
+- When preserving a finding without the sensitive value, describe the type of secret, the affected
+  component, and the follow-up needed, but omit or mask the value itself.
 
 ## Non-Negotiable Rules
 
@@ -118,6 +133,21 @@ skips hide partial migrations and corrupt schema_dump files over time.
 - Do not hardcode absolute URLs in application code.
 - Prefer existing project patterns over new abstractions.
 - Keep changes scoped to the requested behavior.
+
+## Code Comments
+
+When implementing or changing code:
+
+- Read nearby comments before editing and verify that they still match the code, tests, ADRs, docs,
+  and active plans.
+- If a comment conflicts with the implementation or current source-of-truth material, fix the
+  comment or call out the conflict before choosing an implementation path.
+- Leave concise comments above classes, constants, variables, methods, and functions when the name
+  or surrounding code does not fully explain the intent, constraint, lifecycle, security boundary,
+  domain meaning, or non-obvious tradeoff.
+- Keep comments factual and maintainable. Do not add comments that merely restate the code.
+- After implementation, review the comments touched or made stale by the change and update them
+  before finishing.
 
 ## Testing Commands
 

@@ -141,7 +141,7 @@ module Sign
 
         def handle_successful_mfa(user, secret)
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "authentication.mfa.succeeded", user_id: user.id, ip_address: request.remote_ip,
                                               method: "secret", secret_id: secret.id,
             ),
@@ -165,7 +165,7 @@ module Sign
 
         def handle_failed_mfa(user, reason, details = {})
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "authentication.totp.failed", user_id: user&.id, ip_address: request.remote_ip,
                                             method: "secret",
             ),
@@ -294,7 +294,7 @@ module Sign
 
         def report_authentication_error(error, flow:)
           Rails.logger.error(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.authentication.secret.error",
               flow: flow,
               error_class: error.class.name,
@@ -311,7 +311,7 @@ module Sign
 
           # Detailed failure logging (failure_reason=...) as requested
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.authentication.secret.failed",
               reason: reason,
               identifier_type: detect_identifier_type(identifier.to_s),

@@ -68,9 +68,13 @@ module Jit
         def configure!
           records = build_issuers
           validate!(records)
+          # rubocop:disable ThreadSafety/ClassInstanceVariable
           @issuers = records
+          # rubocop:enable ThreadSafety/ClassInstanceVariable
         rescue ConfigurationError => e
-          Rails.logger.fatal("jwt.registry.configuration_invalid error_class=#{e.class.name} reason=#{e.message.inspect}")
+          Rails.logger.fatal(
+            "jwt.registry.configuration_invalid error_class=#{e.class.name} reason=#{e.message.inspect}",
+          )
           raise
         end
 
@@ -93,7 +97,9 @@ module Jit
         def preference = issuer("preference")
 
         def issuers
+          # rubocop:disable ThreadSafety/ClassInstanceVariable
           @issuers ||= configure!
+          # rubocop:enable ThreadSafety/ClassInstanceVariable
         end
 
         def private_key_for(id, kid = nil)
@@ -188,7 +194,8 @@ module Jit
           revoked_kids = split_csv(ENV["JWT_#{namespace}_REVOKED_KIDS"]).to_set
           public_jwks = {}
           legacy_jwks.each { |kid, jwk| public_jwks[kid] = jwk }
-          if active_kid && current_public_jwk && public_jwks[active_kid] && public_jwks[active_kid].except("state") != current_public_jwk
+          if active_kid && current_public_jwk && public_jwks[active_kid] &&
+              public_jwks[active_kid].except("state") != current_public_jwk
             raise ConfigurationError, "surface:#{namespace} active public JWK does not match active private key"
           end
 
@@ -228,12 +235,18 @@ module Jit
         def validate_record!(record)
           return if record.current_kid.blank? && record.keys.empty?
           raise ConfigurationError, "#{record.id} active kid is missing" if record.current_kid.blank?
-          raise ConfigurationError,
-                "#{record.id} active kid must not be #{DEFAULT_KID.inspect}" if insecure_default_kid?(record.current_kid)
-          raise ConfigurationError,
-                "#{record.id} active key #{record.current_kid.inspect} is missing" unless record.keys.key?(record.current_kid)
-          raise ConfigurationError,
-                "#{record.id} active key #{record.current_kid.inspect} is revoked" if record.revoked_kids.include?(record.current_kid)
+          if insecure_default_kid?(record.current_kid)
+            raise ConfigurationError,
+                  "#{record.id} active kid must not be #{DEFAULT_KID.inspect}"
+          end
+          unless record.keys.key?(record.current_kid)
+            raise ConfigurationError,
+                  "#{record.id} active key #{record.current_kid.inspect} is missing"
+          end
+          if record.revoked_kids.include?(record.current_kid)
+            raise ConfigurationError,
+                  "#{record.id} active key #{record.current_kid.inspect} is revoked"
+          end
 
           current = record.keys.fetch(record.current_kid)
           raise ConfigurationError, "#{record.id} active private key is missing" if current.private_key.nil?
@@ -252,8 +265,10 @@ module Jit
             record.keys.each_key do |kid|
               previous = seen[kid]
               next if previous && previous != record.id && insecure_default_kid_allowed?(kid)
-              raise ConfigurationError,
-                    "duplicate JWT kid #{kid.inspect} in #{previous} and #{record.id}" if previous && previous != record.id
+              if previous && previous != record.id
+                raise ConfigurationError,
+                      "duplicate JWT kid #{kid.inspect} in #{previous} and #{record.id}"
+              end
 
               seen[kid] = record.id
             end
@@ -344,10 +359,10 @@ module Jit
           raise ConfigurationError, "#{source} entry must be a JSON object" unless entry.is_a?(Hash)
 
           source_hash = entry.stringify_keys
-          raise ConfigurationError,
-                "#{source} entry #{source_hash["kid"].inspect} contains private JWK material" if PRIVATE_JWK_FIELDS.any? { |field|
-                                                                                                   source_hash.key?(field)
-                                                                                                 }
+          if PRIVATE_JWK_FIELDS.any? { |field| source_hash.key?(field) }
+            raise ConfigurationError,
+                  "#{source} entry #{source_hash["kid"].inspect} contains private JWK material"
+          end
 
           jwk = source_hash.slice(*(REQUIRED_JWK_FIELDS + ["state"]))
           validate_public_jwk!(jwk, source: source)
@@ -398,7 +413,9 @@ module Jit
         end
 
         def split_csv(value)
-          value.to_s.split(",").map(&:strip).reject(&:empty?).freeze
+          list = value.to_s.split(",").map(&:strip)
+          list.reject!(&:empty?)
+          list.freeze
         end
 
         def key_state_for(kid:, current_kid:, configured_state:, revoked_kids:)

@@ -43,9 +43,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response']", count: 1
-    assert_includes response.body, "turnstile.execute"
-    assert_includes response.body, "turbo:load"
-    assert_includes response.body, "DOMContentLoaded"
+    assert_includes response.body, 'data-turnstile-mode-value="execute"'
     assert_select "a[href=?]", sign_app_configuration_emails_path(ri: "jp")
     assert_select "input[type=checkbox][name='user_email[promotional]']", count: 1
     assert_select "input[type=checkbox][name='user_email[notifiable]']", count: 1
@@ -111,7 +109,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, "turnstile.execute"
+    assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
   test "create accepts browser submitted client email params without pass code validation" do
@@ -316,7 +314,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     end
 
     assert_response :redirect
-    assert_redirected_to edit_sign_app_configuration_emails_registration_url(ri: "jp", pt: pt)
+    assert_redirected_to edit_sign_app_configuration_emails_registration_url(ri: "jp")
 
     user_email = @user.client_emails.order(:created_at).last
     otp_data = user_email.get_otp
@@ -366,9 +364,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     get edit_sign_app_configuration_emails_registration_url(ri: "jp", pt: pt), headers: request_headers
 
     assert_response :success
-    assert_select "form[action=?][method=?]",
-                  resend_sign_app_configuration_emails_registration_path(ri: "jp", pt: pt),
-                  "post"
+    assert_select "form[action^='#{resend_sign_app_configuration_emails_registration_path(ri: "jp")}'][method='post']"
     assert_select "button", text: I18n.t("otp.resend.button")
   end
 

@@ -27,6 +27,21 @@ class VisitorPreferenceTimezoneOptionTest < ActiveSupport::TestCase
     assert_equal "Asia/Tokyo", option.name
   end
 
+  test "name returns United States timezones" do
+    expectations = {
+      VisitorPreferenceTimezoneOption::AMERICA_NEW_YORK => "America/New_York",
+      VisitorPreferenceTimezoneOption::AMERICA_CHICAGO => "America/Chicago",
+      VisitorPreferenceTimezoneOption::AMERICA_DENVER => "America/Denver",
+      VisitorPreferenceTimezoneOption::AMERICA_LOS_ANGELES => "America/Los_Angeles",
+      VisitorPreferenceTimezoneOption::AMERICA_ANCHORAGE => "America/Anchorage",
+      VisitorPreferenceTimezoneOption::PACIFIC_HONOLULU => "Pacific/Honolulu",
+    }
+
+    expectations.each do |id, timezone|
+      assert_equal timezone, VisitorPreferenceTimezoneOption.new(id: id).name
+    end
+  end
+
   test "name returns nil for unknown id" do
     option = VisitorPreferenceTimezoneOption.new(id: 99)
 

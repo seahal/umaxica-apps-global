@@ -75,7 +75,7 @@ class Sign::Com::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
     assert_response :success
     assert_includes response.body, "MFA settings"
     assert_includes response.body, I18n.t("sign.app.configuration.mfa.show.reset_unavailable")
-    assert_select "form", count: 0
+    assert_select "form", count: 1
   end
 
   test "update route is not exposed" do

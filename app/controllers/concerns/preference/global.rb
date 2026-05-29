@@ -7,8 +7,8 @@ module Preference::Global
   include Preference::Localization
 
   PUBLIC_CONTEXT_KEYS = RequestContext::Contract.public_keys
-  PARAM_CONTEXT_KEYS = %i(ri lx ct tz).freeze
-  OPTIONAL_PARAM_KEYS = %i(lx ct tz).freeze
+  PARAM_CONTEXT_KEYS = (RequestContext::Contract.required_keys + RequestContext::Contract.optional_overlay_keys).freeze
+  OPTIONAL_PARAM_KEYS = RequestContext::Contract.optional_overlay_keys
   ALLOWED_REGION_VALUES = RequestContext::Contract.allowed_regions
 
   DEFAULT_CONTEXT =
@@ -179,7 +179,18 @@ module Preference::Global
   end
 
   def allowed_requested_timezone_values
-    %w(utc etc/utc jst asia/tokyo).freeze
+    %w(
+      utc
+      etc/utc
+      jst
+      asia/tokyo
+      america/new_york
+      america/chicago
+      america/denver
+      america/los_angeles
+      america/anchorage
+      pacific/honolulu
+    ).freeze
   end
 
   def allowed_region_values

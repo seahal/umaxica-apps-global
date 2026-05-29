@@ -65,7 +65,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     json = response.parsed_body
 
     assert_not json["authenticated"]
-    assert_equal({ "authenticated" => false }, json)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   test "GET check with expired JWT returns 401" do
@@ -95,7 +95,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     json = response.parsed_body
 
     assert_not json["authenticated"]
-    assert_equal({ "authenticated" => false }, json)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   test "GET check with wrong resource type returns 401" do
@@ -121,7 +121,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     json = response.parsed_body
 
     assert_not json["authenticated"]
-    assert_equal({ "authenticated" => false }, json)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   test "GET check includes Cache-Control no-store header" do
@@ -232,7 +232,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :unauthorized
     assert_predicate response.headers["DPoP-Nonce"], :present?
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   test "GET check rejects DPoP-bound token without proof" do
@@ -257,7 +257,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :unauthorized
     assert_predicate response.headers["DPoP-Nonce"], :present?
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   test "GET check rejects DPoP proof with wrong ath" do
@@ -287,7 +287,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
     assert_response :unauthorized
     assert_predicate response.headers["DPoP-Nonce"], :present?
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   test "GET check rejects when access token cnf jkt differs from stored token JKT" do
@@ -319,7 +319,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
         as: :json
 
     assert_response :unauthorized
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   test "GET check with missing sid returns 401" do
@@ -339,7 +339,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
         as: :json
 
     assert_response :unauthorized
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   test "logout destroys token record so old Bearer access fails" do
@@ -371,7 +371,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
         as: :json
 
     assert_response :unauthorized
-    assert_equal({ "authenticated" => false }, response.parsed_body)
+    assert_equal "セッションの有効期限が切れました。もう一度サインインしてください。", response.body
   end
 
   private

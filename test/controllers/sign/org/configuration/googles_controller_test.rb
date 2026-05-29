@@ -68,12 +68,7 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
     get sign_org_configuration_google_url(ri: "jp")
 
     assert_response :redirect
-    uri = URI.parse(response.location)
-    query = Rack::Utils.parse_nested_query(uri.query)
-
-    assert_equal "/sign/in/new", uri.path
-    assert_equal "jp", query["ri"]
-    assert_predicate query["pt"], :present?
+    assert_equal "/", URI.parse(response.location).path
   end
 
   private

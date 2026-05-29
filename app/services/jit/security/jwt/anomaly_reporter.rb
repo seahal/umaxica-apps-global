@@ -72,7 +72,7 @@ module Jit
           return if context.blank? || reason.blank?
 
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "jwt.anomaly.detected",
               {
                 code: "#{context}_#{reason}",
@@ -91,7 +91,7 @@ module Jit
           )
         rescue StandardError => e
           Rails.logger.error(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "jwt.anomaly.reporting_failed",
               error_class: e.class.name,
               message: e.message,

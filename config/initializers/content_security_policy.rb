@@ -13,7 +13,7 @@ Rails.application.configure do
     policy.base_uri(:self)
     policy.connect_src(:self, :https)
     policy.font_src(:self, :https, :data)
-    policy.form_action(:self)
+    policy.form_action(:self, "https://accounts.google.com", "https://appleid.apple.com")
     policy.frame_ancestors(:self)
     policy.frame_src(:self, "https://challenges.cloudflare.com")
     policy.img_src(:self, :https, :data)
@@ -22,6 +22,11 @@ Rails.application.configure do
     policy.script_src(:self, "https://challenges.cloudflare.com")
     policy.style_src(:self, :https)
     policy.worker_src(:none)
+
+    # Wire violation reports to the existing same-origin endpoint (one per surface).
+    # The path is a fixed external contract (browsers cache report-uri); do not rename.
+    # Endpoint: resource :csp_violation_report, path: "csp-violation-report" (see config/routes/*).
+    policy.report_uri("/csp-violation-report")
   end
 
   config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }

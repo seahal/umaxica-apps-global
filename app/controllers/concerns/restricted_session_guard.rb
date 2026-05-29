@@ -62,7 +62,7 @@ module RestrictedSessionGuard
     end
 
     Rails.logger.info(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "session.restricted.expired",
         user_token_id: session.public_id,
         user_id: session.respond_to?(:user_id) ? session.user_id : nil,
@@ -74,7 +74,7 @@ module RestrictedSessionGuard
 
   def handle_restricted_session_block
     Rails.logger.info(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "session.restricted.blocked_route",
         path: request.path,
         method: request.request_method,

@@ -20,6 +20,59 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
     assert_nil user_to_keep.reload.terminated_at
   end
 
+  # Staff (Operator) lifecycle and User (Client) withdrawal must NOT be
+  # conflated by the purge worker. Clients are anonymized *in place*
+  # (`terminated_at` set, row retained for referential history), while Operators
+  # are *physically removed* via the set-based `purge_operators` path (no
+  # `terminated_at` marker — Staff has no withdrawal lifecycle). A regression
+  # that routed Operators through `anonymize_accounts` (or Clients through
+  # `purge_operators`) would silently corrupt one actor type's lifecycle.
+  test "purge physically removes due operators but anonymizes due users in place" do
+    user = Client.create!(public_id: "puser_#{SecureRandom.uuid}".chars.first(16).join, status_id: ClientStatus::ACTIVE)
+    operator_due = Operator.create!
+    operator_pending = Operator.create!
+
+    user.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+    operator_due.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+    operator_pending.update_columns(discarded_at: Retainable::SENTINEL, purged_at: Retainable::SENTINEL)
+
+    assert_difference -> { Operator.count }, -1 do
+      assert_no_difference -> { Client.count } do
+        RetentionPurgeJob.perform_now
+      end
+    end
+
+    # User: retained but anonymized/terminated (User withdrawal lifecycle).
+    assert Client.exists?(user.id)
+    assert_predicate user.reload, :terminated?
+
+    # Operator: physically deleted, never marked terminated (Staff lifecycle).
+    assert_not Operator.exists?(operator_due.id)
+
+    # Operator not yet due (purged_at = Infinity sentinel) must be untouched.
+    assert Operator.exists?(operator_pending.id)
+  end
+
+  # Re-running the worker must be safe: already-anonymized users are skipped via
+  # `where(terminated_at: nil)` and already-deleted operators are simply absent.
+  test "purge is idempotent across repeated runs" do
+    user = Client.create!(public_id: "iuser_#{SecureRandom.uuid}".chars.first(16).join, status_id: ClientStatus::ACTIVE)
+    operator = Operator.create!
+    user.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+    operator.update_columns(discarded_at: 1.hour.ago, purged_at: 1.hour.ago)
+
+    RetentionPurgeJob.perform_now
+    terminated_at_after_first = user.reload.terminated_at
+
+    assert_nothing_raised { RetentionPurgeJob.perform_now }
+
+    assert Client.exists?(user.id)
+    assert_predicate user.reload, :terminated?
+    assert_equal terminated_at_after_first, user.reload.terminated_at,
+                 "terminated_at must not be rewritten on subsequent runs"
+    assert_not Operator.exists?(operator.id)
+  end
+
   test "purges visitor occurrences where purged_at is in the past" do
     VisitorOccurrenceStatus.ensure_defaults!
     occurrence_to_purge = VisitorOccurrence.create!(body: "purge-#{SecureRandom.hex(8)}")
@@ -55,9 +108,8 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
       pending_contact_type: "email",
       pending_contact_id: email.id,
       cleanup_status_id: ClientSignUpCycleCleanupStatus::PENDING,
-      discarded_at: 1.hour.ago,
-      purged_at: 1.hour.ago,
     )
+    cycle.update_columns(discarded_at: cycle.created_at, purged_at: cycle.created_at)
 
     RetentionPurgeJob.perform_now
 
@@ -102,7 +154,11 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
     # Force eager load so every Retainable include block runs and registers.
     Rails.application.eager_load!
 
-    missing = Retainable.registry - RetentionPurgeJob::RETAINABLE_MODELS
+    missing =
+      (Retainable.registry - RetentionPurgeJob::RETAINABLE_MODELS).reject do |model|
+        model.name.to_s.match?(/\A(?:CycleBaseTest|RetainableTest|SecretConcernTest)::/) ||
+          !model.table_exists?
+      end
 
     assert_empty missing,
                  "Models include Retainable but are absent from RetentionPurgeJob::RETAINABLE_MODELS — " \

@@ -14,6 +14,12 @@ class OrgPreferenceTimezoneOption < OrgSettingRecord
   # Fixed IDs - do not modify these values
   ETC_UTC = 1
   ASIA_TOKYO = 2
+  AMERICA_NEW_YORK = 3
+  AMERICA_CHICAGO = 4
+  AMERICA_DENVER = 5
+  AMERICA_LOS_ANGELES = 6
+  AMERICA_ANCHORAGE = 7
+  PACIFIC_HONOLULU = 8
 
   has_many :org_preference_timezones,
            class_name: "OrgPreferenceTimezone",
@@ -25,10 +31,25 @@ class OrgPreferenceTimezoneOption < OrgSettingRecord
     case id
     when ETC_UTC then "Etc/UTC"
     when ASIA_TOKYO then "Asia/Tokyo"
+    when AMERICA_NEW_YORK then "America/New_York"
+    when AMERICA_CHICAGO then "America/Chicago"
+    when AMERICA_DENVER then "America/Denver"
+    when AMERICA_LOS_ANGELES then "America/Los_Angeles"
+    when AMERICA_ANCHORAGE then "America/Anchorage"
+    when PACIFIC_HONOLULU then "Pacific/Honolulu"
     end
   end
 
-  DEFAULTS = [ETC_UTC, ASIA_TOKYO].freeze
+  DEFAULTS = [
+    ETC_UTC,
+    ASIA_TOKYO,
+    AMERICA_NEW_YORK,
+    AMERICA_CHICAGO,
+    AMERICA_DENVER,
+    AMERICA_LOS_ANGELES,
+    AMERICA_ANCHORAGE,
+    PACIFIC_HONOLULU,
+  ].freeze
 
   def self.ensure_defaults!
     insert_missing_fixed_ids!(DEFAULTS)

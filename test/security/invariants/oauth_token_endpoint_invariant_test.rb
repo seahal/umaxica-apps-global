@@ -19,9 +19,15 @@ module Security
           TOKEN_CONTROLLERS.filter_map do |path, controller|
             content = Rails.root.join(path).read
             issues = []
-            issues << "missing null_session create boundary" unless content.include?("protect_from_forgery with: :null_session, only: :create")
-            issues << "missing transparent refresh skip" unless content.include?("skip_before_action :transparent_refresh_access_token")
-            issues << "missing create rate limit" unless content.match?(/\brate_limit\s+to:\s*\d+,\s*within:\s*1\.minute,\s*only:\s*:create\b/)
+            unless content.include?("protect_from_forgery with: :null_session, only: :create")
+              issues << "missing null_session create boundary"
+            end
+            unless content.include?("skip_before_action :transparent_refresh_access_token")
+              issues << "missing transparent refresh skip"
+            end
+            unless content.match?(/\brate_limit\s+to:\s*\d+,\s*within:\s*1\.minute,\s*only:\s*:create\b/)
+              issues << "missing create rate limit"
+            end
             issues << "not open protocol endpoint" unless controller.authentication_mode_for(:create) == :open
             next if issues.empty?
 

@@ -23,7 +23,7 @@ module Sign
       }, status: :ok
     rescue Sign::Webauthn::OriginValidationError => e
       Rails.logger.error(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "sign.webauthn.registration.origin_validation_failed", message: e.message,
                                                                  exception: e,
         ),
@@ -31,7 +31,7 @@ module Sign
       render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
     rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
       Rails.logger.error(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "sign.webauthn.registration.options_failed", error_class: e.class.name,
                                                        message: e.message,
         ),
@@ -62,18 +62,18 @@ module Sign
     rescue Sign::Webauthn::ChallengeNotFoundError,
            Sign::Webauthn::ChallengeExpiredError,
            Sign::Webauthn::ChallengePurposeMismatchError => e
-      Rails.logger.warn(LogEvent.format("sign.webauthn.registration.challenge_error", message: e.message))
+      Rails.logger.warn(Jit::LogEvent.format("sign.webauthn.registration.challenge_error", message: e.message))
       render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
       nil
     rescue WebAuthn::Error => e
-      Rails.logger.warn(LogEvent.format("sign.webauthn.registration.failed", message: e.message))
+      Rails.logger.warn(Jit::LogEvent.format("sign.webauthn.registration.failed", message: e.message))
       render json: { error: I18n.t("errors.webauthn.verification_failed") }, status: :unprocessable_content
       nil
     rescue ActiveRecord::RecordNotUnique
       render json: { error: I18n.t("errors.webauthn.credential_already_registered") }, status: :conflict
       nil
     rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.warn(LogEvent.format("sign.webauthn.registration.persist_failed", message: e.message))
+      Rails.logger.warn(Jit::LogEvent.format("sign.webauthn.registration.persist_failed", message: e.message))
       render json: { error: e.record.errors.full_messages.to_sentence }, status: :unprocessable_content
       nil
     end

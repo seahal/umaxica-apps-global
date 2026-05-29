@@ -157,12 +157,34 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
         patch public_send("sign_#{domain[:name]}_preference_region_timezone_url", state),
               params: { preference_timezone: { option_id: "Etc/UTC" } }
 
-        assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_region_timezone_url", state)
+        assert_redirected_to public_send(
+          "edit_sign_#{domain[:name]}_preference_region_timezone_url",
+          default_state.merge(tz: nil),
+        )
       end
 
       pref.reload
 
       assert_equal 1, pref.try("#{domain[:name]}_preference_timezone").option_id
+    end
+
+    test "#{domain[:name]} domain timezone update removes only timezone overlay from redirect" do
+      host!(domain[:host])
+
+      assert_preference_created(domain)
+
+      state = default_state.merge(lx: "en", tz: "Asia/Tokyo")
+
+      patch public_send("sign_#{domain[:name]}_preference_region_timezone_url", state),
+            params: { preference_timezone: { option_id: "Pacific/Honolulu" } }
+
+      location = URI.parse(response.headers.fetch("Location"))
+      query = Rack::Utils.parse_query(location.query)
+
+      assert_equal "/preference/region/timezone/edit", location.path
+      assert_equal "jp", query["ri"]
+      assert_equal "en", query["lx"]
+      assert_not query.key?("tz")
     end
 
     test "#{domain[:name]} domain updates language" do
@@ -196,7 +218,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
         patch public_send("sign_#{domain[:name]}_preference_region_language_url", state),
               params: { preference_language: { option_id: "EN" } }
 
-        assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_region_language_url", state)
+        assert_redirected_to public_send(
+          "edit_sign_#{domain[:name]}_preference_region_language_url",
+          default_state.merge(lx: nil),
+        )
       end
 
       pref.reload
@@ -420,7 +445,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
              params: { confirm_reset: "1" }
 
       assert_response :see_other
-      assert_equal "../", response.location
+      assert_equal public_send("sign_#{domain[:name]}_preference_url", ri: "jp"), response.location
 
       assert_equal I18n.t("acme." + domain[:name] + ".preference.resets.destroyed"), flash[:notice]
 
@@ -445,7 +470,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
                params: { confirm_reset: "1" }
 
         assert_response :see_other
-        assert_equal "../", response.location
+        assert_equal public_send("sign_#{domain[:name]}_preference_url", ri: "us"), response.location
       end
 
       pref.reload
@@ -670,7 +695,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
              params: { confirm_reset: "1" }
 
       assert_response :see_other
-      assert_equal "../", response.location
+      assert_equal public_send("sign_#{domain[:name]}_preference_url", ri: "jp"), response.location
 
       # Verify database changes; preference stays active after reset to defaults.
       pref.reload
@@ -808,12 +833,18 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
     patch(public_send("sign_#{domain[:name]}_preference_#{suffix}_url", state), params: params)
 
-    assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_#{suffix}_url", state)
+    assert_redirected_to public_send(
+      "edit_sign_#{domain[:name]}_preference_#{suffix}_url",
+      preference_write_redirect_state(kind, state),
+    )
     follow_redirect!
 
     expect_notice = true
     if expect_notice
-      assert_equal I18n.t(domain[:scope] + ".update_success"), flash[:notice]
+      assert_includes(
+        I18n.available_locales.map { |locale| I18n.t(domain[:scope] + ".update_success", locale: locale) },
+        flash[:notice],
+      )
     else
       assert_nil flash[:notice]
     end
@@ -832,5 +863,25 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     else
       kind.to_s
     end
+  end
+
+  def preference_write_redirect_state(kind, state)
+    return state if kind == :region
+
+    state.slice(:ri).merge(preference_context_key_for_kind(kind) => nil)
+  end
+
+  def preference_context_key_for_kind(kind)
+    {
+      language: :lx,
+      timezone: :tz,
+      theme: :ct,
+      currency: :cu,
+      date_format: :df,
+      time_format: :tf,
+      motion: :mo,
+      density: :dn,
+      items_per_page: :pp,
+    }[kind]
   end
 end

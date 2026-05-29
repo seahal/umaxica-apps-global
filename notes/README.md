@@ -9,6 +9,9 @@ Use it for:
 - Implementation notes that record decisions made while carrying out a plan.
 - Handoff notes, gap notes, and follow-up observations that may later become `adr/`, `plans/`, or
   `docs/` material.
+- Contradictions found between comments, code, tests, ADRs, docs, plans, or existing notes.
+- Compatibility constraints, lifecycle constraints, security boundaries, and implementation caveats
+  that future agents are likely to miss.
 
 Do not use it for:
 
@@ -21,12 +24,22 @@ Implementation notes belong under `notes/implementation/` and should record only
 
 - decisions not written in the original spec or plan
 - changes, compromises, or deferrals made during implementation
+- comments, code paths, or tests checked for consistency
+- contradictions or stale guidance found during implementation
 - alternatives rejected and why
 - constraints reviewers or future agents need to know
 - follow-up items that should be promoted to `plans/`
 
+When in doubt, prefer a short implementation note over losing context that affects future work. Keep
+scratch investigation in `memos/`, then promote the implementation-relevant part into `notes/`
+before finishing.
+
 Do not record chain-of-thought, raw command history, secrets, tokens, cookies, authorization
 headers, full request parameters, or other sensitive payloads.
+
+If sensitive implementation context is needed during local work, do not commit it here. Keep it in
+ephemeral working memory, write only a masked/redacted summary, or place local scratch material
+under ignored `notes/local/`, `notes/private/`, or `notes/tmp/`.
 
 Return-target note hygiene:
 

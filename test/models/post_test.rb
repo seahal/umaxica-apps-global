@@ -61,6 +61,7 @@ class PostTest < ActiveSupport::TestCase
       post_status: @status,
       body: "Valid post body content",
       created_by_actor_id: "user-1",
+      permalink: "post-test-#{SecureRandom.hex(4)}",
     }.freeze
   end
 

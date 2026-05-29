@@ -8,7 +8,7 @@ class Sign::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    @host = IdHostEnv.corporate_url || "id.com.localhost"
+    @host = Jit::IdHostEnv.corporate_url || "id.com.localhost"
     host! @host
   end
 

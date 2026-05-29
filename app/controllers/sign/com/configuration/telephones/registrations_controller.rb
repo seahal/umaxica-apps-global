@@ -225,7 +225,7 @@ module Sign
             return unless count && count > TELEPHONE_VERIFICATION_RATE_LIMIT
 
             Rails.logger.info(
-              LogEvent.format(
+              Jit::LogEvent.format(
                 "telephone.verification.rate_limited",
                 ip: request.remote_ip,
                 retry_after: TELEPHONE_VERIFICATION_RATE_WINDOW,

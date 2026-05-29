@@ -110,7 +110,7 @@ module SocialAuthConcern
   def validate_intent_presence!(intent, provider)
     return if intent == "link" && session[SOCIAL_FLOW_ID_SESSION_KEY].present?
 
-    Rails.logger.info(LogEvent.format("social_auth.state_missing", provider: provider))
+    Rails.logger.info(Jit::LogEvent.format("social_auth.state_missing", provider: provider))
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.state_missing")
   end
 
@@ -159,7 +159,7 @@ module SocialAuthConcern
     return unless last_step_up.blank? || last_step_up < ttl.ago
 
     Rails.logger.info(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "social_auth.step_up_required",
         user_id: current_resource.id,
         last_step_up_at: last_step_up&.iso8601,
@@ -223,7 +223,7 @@ module SocialAuthConcern
     provider = @social_auth_provider_snapshot || omniauth_provider
 
     Rails.logger.info(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "social_auth.error",
         error_class: error.class.name,
         error_message: error.message,
@@ -249,7 +249,7 @@ module SocialAuthConcern
     provider = @social_auth_provider_snapshot || omniauth_provider
 
     Rails.logger.info(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "social_auth.record_not_unique",
         error_message: error.message,
       ),
@@ -284,7 +284,7 @@ module SocialAuthConcern
     return if Time.current <= Time.zone.at(Integer(started_at.to_s, 10)) + STATE_TTL
 
     Rails.logger.info(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "social_auth.intent_expired",
         provider: provider,
         started_at: started_at,

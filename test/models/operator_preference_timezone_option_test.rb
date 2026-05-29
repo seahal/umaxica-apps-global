@@ -25,6 +25,21 @@ class OperatorPreferenceTimezoneOptionTest < ActiveSupport::TestCase
     assert_equal "Asia/Tokyo", option.name
   end
 
+  test "returns United States timezone names" do
+    expectations = {
+      america_new_york: "America/New_York",
+      america_chicago: "America/Chicago",
+      america_denver: "America/Denver",
+      america_los_angeles: "America/Los_Angeles",
+      america_anchorage: "America/Anchorage",
+      pacific_honolulu: "Pacific/Honolulu",
+    }
+
+    expectations.each do |fixture_name, timezone|
+      assert_equal timezone, operator_preference_timezone_options(fixture_name).name
+    end
+  end
+
   test "returns nil for unknown id" do
     option = OperatorPreferenceTimezoneOption.new(id: 999)
 
@@ -73,7 +88,7 @@ class OperatorPreferenceTimezoneOptionTest < ActiveSupport::TestCase
   end
 
   test "DEFAULTS constant exists" do
-    assert_equal [1, 2], OperatorPreferenceTimezoneOption::DEFAULTS
+    assert_equal [1, 2, 3, 4, 5, 6, 7, 8], OperatorPreferenceTimezoneOption::DEFAULTS
   end
 
   test "has_many operator_preference_timezones association" do

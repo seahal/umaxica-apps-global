@@ -70,6 +70,51 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_nil session[:step_up_email_otp]
   end
 
+  test "successful totp consumes the step-up session and cannot be replayed" do
+    private_key = "JBSWY3DPEHPK3PXP"
+    ClientOneTimePassword.create!(
+      user: @user,
+      private_key: private_key,
+      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      last_otp_at: Time.zone.at(0),
+    )
+    pt = signed_step_up_pt(sign_app_configuration_emails_path(ri: "jp"))
+
+    with_prosopite_paused do
+      get sign_app_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+          headers: @headers
+    end
+
+    assert_response :success
+    assert_equal 1, ClientStepUpSession.where(user_token: @token).count
+
+    code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
+
+    assert_difference -> { ClientVerification.count }, 1 do
+      with_prosopite_paused do
+        post sign_app_verification_totp_url(ri: "jp"),
+             params: { verification: { code: code } },
+             headers: @headers
+      end
+    end
+
+    assert_response :redirect
+    assert_equal 0, ClientStepUpSession.where(user_token: @token).count
+    first_step_up_at = @token.reload.last_step_up_at
+
+    assert_no_difference -> { ClientVerification.count } do
+      with_prosopite_paused do
+        post sign_app_verification_totp_url(ri: "jp"),
+             params: { verification: { code: code } },
+             headers: @headers
+      end
+    end
+
+    assert_response :redirect
+    assert_redirected_to sign_app_configuration_url(ri: "jp")
+    assert_equal first_step_up_at.to_i, @token.reload.last_step_up_at.to_i
+  end
+
   test "renders new on failure" do
     private_key = "JBSWY3DPEHPK3PXP"
     ClientOneTimePassword.create!(

@@ -13,8 +13,15 @@ class RetentionPurgeJob < ApplicationJob
   # must precede ClientToken/VisitorToken. Verified by
   # `test/jobs/retention_purge_job_test.rb`.
   RETAINABLE_MODELS = %w(
-    Client Visitor Operator AppPreference OrgPreference ComPreference
-    ClientSignUpCycle VisitorSignUpCycle
+    AppPreferenceChronicle ComPreferenceChronicle OrgPreferenceChronicle
+    ClientChronicle OperatorChronicle
+    ClientSignInCycle VisitorSignInCycle OperatorSignInCycle
+    ClientSignOutCycle VisitorSignOutCycle OperatorSignOutCycle
+    ClientWithdrawalCycle VisitorWithdrawalCycle
+    ClientSignUpCycle VisitorSignUpCycle OperatorSignUpCycle
+    ClientSecret VisitorSecret OperatorSecret
+    Avatar Member OperatorWorkspaceAccount
+    AppPreference OrgPreference ComPreference
     ClientEmail VisitorEmail ClientTelephone VisitorTelephone
     ClientPasskey VisitorPasskey ClientSocialGoogle ClientSocialApple
     ClientToken OperatorToken VisitorToken
@@ -23,6 +30,7 @@ class RetentionPurgeJob < ApplicationJob
     ClientStepUpSession OperatorStepUpSession VisitorStepUpSession
     AreaOccurrence ClientOccurrence VisitorOccurrence OperatorOccurrence ZipOccurrence
     DomainOccurrence IpOccurrence EmailOccurrence JwtOccurrence TelephoneOccurrence
+    Client Visitor Operator
   ).filter_map(&:safe_constantize).freeze
 
   def perform(batch_size: 500)
@@ -39,6 +47,8 @@ class RetentionPurgeJob < ApplicationJob
         purge_operators(now: now, batch_size: batch_size)
         next
       end
+
+      next unless klass.column_names.include?("purged_at")
 
       klass.where(purged_at: ..now).in_batches(of: batch_size).delete_all
     end
@@ -64,6 +74,7 @@ class RetentionPurgeJob < ApplicationJob
       batch.find_each do |actor|
         Withdrawal::PersonalDataAnonymizer.call(actor: actor)
         if actor.respond_to?(:terminated_at=)
+          actor.withdrawn_at = now if actor.respond_to?(:withdrawn_at=)
           actor.terminated_at = now
           actor.save!(validate: false)
         end

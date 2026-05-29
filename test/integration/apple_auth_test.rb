@@ -111,10 +111,9 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
-    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
 
-    assert_equal I18n.t("sign.app.social.sessions.create.already_registered", provider: "Apple"),
-                 flash[:notice]
+    assert_equal "Appleで登録を開始しました", flash[:notice]
   end
 
   # ============================================================================

@@ -42,7 +42,7 @@ module Sign
         new_sign_app_up_url(
           ri: params[:ri].presence,
           host: sign_app_redirect_host,
-          protocol: request.protocol,
+          protocol: "https",
         )
       end
     end

@@ -10,6 +10,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = operators(:one)
     @host = ENV["ID_STAFF_URL"] || "id.org.localhost"
+    load_jump_rt_env!
   end
 
   test "should get edit raises error without session" do
@@ -17,8 +18,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    assert_equal new_sign_org_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
-    assert_equal edit_sign_org_out_path(ri: "jp"), verified_redirect_return_to(response.location, "org")
+    assert_equal new_sign_org_in_url(ri: "jp", host: @host, protocol: "https"), redirect_without_rt(response.location)
   end
 
   test "edit page renders a direct logout form" do
@@ -73,8 +73,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
   test "destroy without session redirects to sign in" do
     delete sign_org_out_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_equal new_sign_org_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
-    assert_equal sign_org_out_path(ri: "jp"), verified_redirect_return_to(response.location, "org")
+    assert_equal new_sign_org_in_url(ri: "jp", host: @host, protocol: "https"), redirect_without_rt(response.location)
   end
 
   test "stale tab cannot complete logout after another tab already cleared cookies" do
@@ -100,8 +99,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
 
     post sign_org_out_url(ri: "jp"), headers: { "Host" => @host }, params: { confirm: "1" }
 
-    assert_equal new_sign_org_in_url(ri: "jp", host: @host), redirect_without_rt(response.location)
-    assert_equal sign_org_out_path(ri: "jp"), verified_redirect_return_to(response.location, "org")
+    assert_equal new_sign_org_in_url(ri: "jp", host: @host, protocol: "https"), redirect_without_rt(response.location)
   end
 
   test "should destroy with staff session even without step-up verification" do
@@ -137,11 +135,15 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_sign_org_out_path(ri: "jp")
   end
 
-  test "destroy redirects to safe pt after logout" do
-    get edit_sign_org_out_url(ri: "jp"), headers: { "Host" => @host }
+  test "destroy rejects pt after logout" do
     token = OperatorToken.create!(staff: @staff)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    get edit_sign_org_out_url(ri: "jp"),
+        headers: { "Host" => @host,
+                   "X-TEST-CURRENT-STAFF" => @staff.id,
+                   "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+    session[:authentication_return_target_nonce] = SecureRandom.urlsafe_base64(16)
     pt = signed_return_target(sign_org_configuration_path(ri: "jp"), surface: "org")
 
     delete sign_org_out_url(ri: "jp", pt: pt),
@@ -149,7 +151,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
                       "X-TEST-CURRENT-STAFF" => @staff.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
 
-    assert_redirected_to sign_org_configuration_path(ri: "jp")
+    assert_response :unprocessable_content
     assert_predicate token.reload, :revoked?
   end
 
@@ -304,6 +306,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def redirect_without_rt(location)
+    location = jump_rt_url_from_location(location) if URI.parse(location).host == "jump.umaxica.net"
     uri = URI.parse(location)
     query = Rack::Utils.parse_nested_query(uri.query).except("pt")
     uri.query = query.presence&.to_query
@@ -311,6 +314,7 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def rt_from_location(location)
+    location = jump_rt_url_from_location(location) if URI.parse(location).host == "jump.umaxica.net"
     Rack::Utils.parse_nested_query(URI.parse(location).query).fetch("pt")
   end
 end

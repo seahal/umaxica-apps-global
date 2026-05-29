@@ -92,7 +92,7 @@ module SignIn
 
     def actor_binding_valid?(cycle)
       return true if cycle.principal_id.blank?
-      return true if actor.blank?
+      return false if actor.blank?
       return false unless actor.is_a?(ACTOR_CLASSES.fetch(surface))
 
       actor.id == cycle.principal_id

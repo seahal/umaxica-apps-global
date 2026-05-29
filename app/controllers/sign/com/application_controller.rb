@@ -37,7 +37,7 @@ module Sign
       helper Sign::Com::ApplicationHelper
 
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: HostOriginEnv.trusted_origins(
+                           trusted_origins: Jit::HostOriginEnv.trusted_origins(
                              ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
                            ),
                            with: :exception

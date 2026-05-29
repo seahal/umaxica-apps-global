@@ -1,0 +1,88 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class SignUp::EmailPendingGuardTest < ActiveSupport::TestCase
+  self.fixture_table_names = []
+
+  test "lock_key produces deterministic signed 64-bit value" do
+    key1 = SignUp::EmailPendingGuard.lock_key("ns", "digest123")
+    key2 = SignUp::EmailPendingGuard.lock_key("ns", "digest123")
+
+    assert_equal key1, key2
+  end
+
+  test "lock_key produces different values for different inputs" do
+    key1 = SignUp::EmailPendingGuard.lock_key("ns1", "abc")
+    key2 = SignUp::EmailPendingGuard.lock_key("ns2", "abc")
+
+    assert_not_equal key1, key2
+  end
+
+  test "lock_key produces different values for different digests" do
+    key1 = SignUp::EmailPendingGuard.lock_key("ns", "abc")
+    key2 = SignUp::EmailPendingGuard.lock_key("ns", "def")
+
+    assert_not_equal key1, key2
+  end
+
+  test "lock_key produces negative values for large hashes" do
+    key = SignUp::EmailPendingGuard.lock_key("ns", "a" * 100)
+
+    assert_kind_of Integer, key
+  end
+
+  test "resolve_digest_and_namespace returns email namespace for address_digest" do
+    digest, ns = SignUp::EmailPendingGuard.resolve_digest_and_namespace("abc123", nil, nil)
+
+    assert_equal "abc123", digest
+    assert_equal SignUp::EmailPendingGuard::EMAIL_NAMESPACE, ns
+  end
+
+  test "resolve_digest_and_namespace returns telephone namespace for number_digest" do
+    digest, ns = SignUp::EmailPendingGuard.resolve_digest_and_namespace(nil, "xyz789", nil)
+
+    assert_equal "xyz789", digest
+    assert_equal SignUp::EmailPendingGuard::TELEPHONE_NAMESPACE, ns
+  end
+
+  test "resolve_digest_and_namespace prefers address_digest over number_digest" do
+    digest, ns = SignUp::EmailPendingGuard.resolve_digest_and_namespace("abc", "xyz", nil)
+
+    assert_equal "abc", digest
+    assert_equal SignUp::EmailPendingGuard::EMAIL_NAMESPACE, ns
+  end
+
+  test "resolve_digest_and_namespace uses custom namespace when provided" do
+    digest, ns = SignUp::EmailPendingGuard.resolve_digest_and_namespace("abc", nil, "custom:ns")
+
+    assert_equal "abc", digest
+    assert_equal "custom:ns", ns
+  end
+
+  test "resolve_digest_and_namespace returns nil digest when no digest provided" do
+    digest, ns = SignUp::EmailPendingGuard.resolve_digest_and_namespace(nil, nil, nil)
+
+    assert_nil digest
+    assert_nil ns
+  end
+
+  test "with_lock raises ArgumentError when digest is blank" do
+    assert_raises(ArgumentError) do
+      SignUp::EmailPendingGuard.with_lock(address_digest: nil, number_digest: nil) { }
+    end
+  end
+
+  test "with_lock raises ArgumentError when no block given and model_class provided" do
+    assert_raises(ArgumentError) do
+      SignUp::EmailPendingGuard.with_lock(address_digest: "abc", model_class: Class.new)
+    end
+  end
+
+  test "with_lock raises ArgumentError when model_class and connection are both nil" do
+    assert_raises(ArgumentError) do
+      SignUp::EmailPendingGuard.with_lock(address_digest: "abc", model_class: nil, connection: nil) { }
+    end
+  end
+end

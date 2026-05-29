@@ -88,7 +88,7 @@ class OrganizationInvitationTest < ActiveSupport::TestCase
     )
 
     assert_not invitation.valid?
-    assert_not_empty invitation.errors[:invited_by_id]
+    assert_not_empty invitation.errors[:invited_by]
   end
 
   test "code uniqueness validation" do

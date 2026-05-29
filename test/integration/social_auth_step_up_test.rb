@@ -20,10 +20,9 @@ class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
          headers: as_user_headers(@user, host: @host)
 
     assert_response :redirect
-    assert_redirected_to new_sign_app_in_url(ri: "jp")
-    assert_equal I18n.t("errors.social_auth.invalid_intent"), flash[:alert]
-    assert_nil session[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY]
-    assert_nil session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY]
+    assert_match %r{/auth/google_app}, response.location
+    assert_equal "step_up", session[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY]
+    assert_predicate session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY], :present?
     assert_nil @user.reload.last_step_up_at
   end
 

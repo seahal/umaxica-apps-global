@@ -57,7 +57,7 @@ module Preference::Transport
     raise
   rescue StandardError => e
     Rails.logger.info(
-      LogEvent.format(
+      Jit::LogEvent.format(
         "preference.restore_from_resource.error", error: e.class.name,
                                                   message: e.message,
       ),

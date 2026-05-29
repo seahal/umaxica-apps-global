@@ -4,49 +4,83 @@
 require "test_helper"
 
 class OperatorPolicyTest < ActiveSupport::TestCase
-  class MockOperator
-    def initialize
-    end
-  end
-
-  def setup
-    @user = nil
-    @record = MockOperator.new
-    @policy = OperatorPolicy.new(@record, user: @user)
-  end
-
-  def test_policy_initializes_with_user_and_record
-    policy = OperatorPolicy.new(@record, user: @user)
-
-    assert_nil policy.user
-    assert_equal @record, policy.record
-  end
-
   def test_index_returns_false_by_default
-    assert_not @policy.send(:index?)
+    policy = OperatorPolicy.new(Operator.new, user: nil)
+
+    assert_not policy.index?
   end
 
   def test_show_returns_false_by_default
-    assert_not @policy.send(:show?)
+    policy = OperatorPolicy.new(Operator.new, user: nil)
+
+    assert_not policy.show?
   end
 
   def test_create_returns_false_by_default
-    assert_not @policy.send(:create?)
-  end
+    policy = OperatorPolicy.new(Operator.new, user: nil)
 
-  def test_new_delegates_to_create
-    assert_equal @policy.send(:create?), @policy.send(:new?)
+    assert_not policy.create?
   end
 
   def test_update_returns_false_by_default
-    assert_not @policy.send(:update?)
-  end
+    policy = OperatorPolicy.new(Operator.new, user: nil)
 
-  def test_edit_delegates_to_update
-    assert_equal @policy.send(:update?), @policy.send(:edit?)
+    assert_not policy.update?
   end
 
   def test_destroy_returns_false_by_default
-    assert_not @policy.send(:destroy?)
+    policy = OperatorPolicy.new(Operator.new, user: nil)
+
+    assert_not policy.destroy?
+  end
+
+  def test_revoke_all_allows_owner_operator
+    owner = Operator.new(id: 1)
+    policy = OperatorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :revoke_all?
+  end
+
+  def test_revoke_all_denies_different_operator
+    owner = Operator.new(id: 1)
+    other = Operator.new(id: 2)
+    policy = OperatorPolicy.new(owner, user: other)
+
+    assert_not policy.revoke_all?
+  end
+
+  def test_revoke_all_denies_nil_user
+    operator = Operator.new(id: 1)
+    policy = OperatorPolicy.new(operator, user: nil)
+
+    assert_not policy.revoke_all?
+  end
+
+  def test_revoke_all_denies_non_operator_user
+    client = Client.new(id: 1)
+    operator = Operator.new(id: client.id)
+    policy = OperatorPolicy.new(operator, user: client)
+
+    assert_not policy.revoke_all?
+  end
+
+  def test_purge_sessions_allows_operator
+    operator = Operator.new(id: 1)
+    policy = OperatorPolicy.new(Operator.new, user: operator)
+
+    assert_predicate policy, :purge_sessions?
+  end
+
+  def test_purge_sessions_denies_nil_user
+    policy = OperatorPolicy.new(Operator.new, user: nil)
+
+    assert_not policy.purge_sessions?
+  end
+
+  def test_purge_sessions_denies_non_operator_user
+    client = Client.new(id: 1)
+    policy = OperatorPolicy.new(Operator.new, user: client)
+
+    assert_not policy.purge_sessions?
   end
 end

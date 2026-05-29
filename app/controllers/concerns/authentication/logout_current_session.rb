@@ -120,7 +120,7 @@ module Authentication
     rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed, ActiveRecord::StatementInvalid,
            ActiveRecord::ConnectionNotDefined => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.logout_current_session.device_session_failed",
           reason: reason,
           resource_class: resource&.class&.name,
@@ -146,7 +146,7 @@ module Authentication
       true
     rescue ActiveRecord::RecordNotFound, ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordInvalid => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.logout_current_session.failed",
           reason: reason,
           resource_class: resource&.class&.name,
@@ -183,7 +183,7 @@ module Authentication
       end
     rescue ActiveRecord::ActiveRecordError, ArgumentError => e
       Rails.logger.info(
-        LogEvent.format(
+        Jit::LogEvent.format(
           "auth.logout_current_session.cycle_unavailable",
           reason: reason,
           resource_class: resource&.class&.name,

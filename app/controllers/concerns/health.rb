@@ -40,7 +40,7 @@ module Health
       [503, "UNHEALTHY", errors, Rails.app.revision.to_s]
     end
   rescue StandardError => e
-    Rails.logger.info(LogEvent.format("health_check.failed", error_class: e.class.name, error_message: e.message))
+    Rails.logger.info(Jit::LogEvent.format("health_check.failed", error_class: e.class.name, error_message: e.message))
     [503, "ERROR"]
   end
 
@@ -61,7 +61,7 @@ module Health
           klass.with_connection { |conn| conn.execute("SELECT 1") }
         rescue StandardError => e
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "health_check.database_failed", database: klass.name, role: role.to_s,
                                               error_class: e.class.name, error_message: e.message,
             ),
@@ -81,7 +81,7 @@ module Health
         REDIS_CLIENT.ping
       rescue StandardError => e
         Rails.logger.info(
-          LogEvent.format(
+          Jit::LogEvent.format(
             "health_check.redis_failed", error_class: e.class.name,
                                          error_message: e.message,
           ),

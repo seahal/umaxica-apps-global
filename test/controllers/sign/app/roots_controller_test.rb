@@ -63,7 +63,7 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: "id.app.localhost",
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       path: :sign_app_root_path,
       label: "sign app root",
       ri: "jp",
@@ -72,7 +72,8 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "GET / redirects to dashboard when logged in" do
     user = clients(:one)
-    get sign_app_root_url(ri: "jp"), headers: as_user_headers(user, host: "id.app.localhost")
+    get sign_app_root_url(ri: "jp"),
+        headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
     assert_redirected_to sign_app_dashboard_url(ri: "jp")
   end

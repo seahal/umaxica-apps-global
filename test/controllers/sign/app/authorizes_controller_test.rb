@@ -5,6 +5,7 @@ require "test_helper"
 
 class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   setup do
+    load_jump_rt_env!
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = clients(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
@@ -32,7 +33,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
     ), headers: browser_headers
 
     assert_response :redirect
-    uri = URI.parse(response.location)
+    uri = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(uri.query)
 
     assert_equal "/sign/up/new", uri.path
@@ -47,7 +48,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     location = response.headers["Location"]
-    uri = URI.parse(location)
+    uri = URI.parse(jump_rt_url_from_location(location))
     query = URI.decode_www_form(uri.query).to_h
 
     assert_predicate query["code"], :present?, "Should include authorization code"
@@ -125,6 +126,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
       redirect_uri: @redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
+      scope: "openid profile",
       state: "test_state",
       nonce: "test_nonce",
       ri: "jp",

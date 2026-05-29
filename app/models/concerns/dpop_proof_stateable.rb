@@ -14,14 +14,16 @@ module DpopProofStateable
     def record_jti!(jti:, jkt:, htm:, htu:, now: Time.current)
       return false if jti.blank?
 
-      create!(
-        jti: jti,
-        jkt: jkt,
-        htm: htm,
-        htu: htu,
-        seen_at: now,
-        expires_at: now + TTL_SECONDS.seconds,
-      )
+      ActiveRecord::Base.connected_to(role: :writing) do
+        create!(
+          jti: jti,
+          jkt: jkt,
+          htm: htm,
+          htu: htu,
+          seen_at: now,
+          expires_at: now + TTL_SECONDS.seconds,
+        )
+      end
       true
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
       false
@@ -29,17 +31,24 @@ module DpopProofStateable
 
     def issue_nonce!(now: Time.current)
       nonce = SecureRandom.urlsafe_base64(32)
-      create!(nonce: nonce, seen_at: now, expires_at: now + TTL_SECONDS.seconds)
+      ActiveRecord::Base.connected_to(role: :writing) do
+        create!(nonce: nonce, seen_at: now, expires_at: now + TTL_SECONDS.seconds)
+      end
       nonce
     end
 
     def consume_nonce!(nonce, now: Time.current)
       return false if nonce.blank?
 
-      state = active_at(now).lock.find_by(nonce: nonce, nonce_used_at: nil)
+      state =
+        ActiveRecord::Base.connected_to(role: :writing) do
+          active_at(now).lock.find_by(nonce: nonce, nonce_used_at: nil)
+        end
       return false unless state
 
-      state.update!(nonce_used_at: now)
+      ActiveRecord::Base.connected_to(role: :writing) do
+        state.update!(nonce_used_at: now)
+      end
       true
     end
   end

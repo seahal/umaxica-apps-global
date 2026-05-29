@@ -211,11 +211,9 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     uri = URI.parse(response.location)
-    query = Rack::Utils.parse_nested_query(uri.query)
 
     assert_equal "/login", uri.path
-    assert_predicate query["pt"], :present?
-    assert_match(/--/, query["pt"])
+    assert_empty Rack::Utils.parse_nested_query(uri.query)["pt"].to_s
   end
 
   test "check auth allows authenticated" do

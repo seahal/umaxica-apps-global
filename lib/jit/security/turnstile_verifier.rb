@@ -79,7 +79,7 @@ module Jit
         # Decoupled notification: only if Rails event system exists
         if defined?(Rails) && Rails.respond_to?(:event)
           Rails.logger.info(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "turnstile.verify.failed", error_class: e.class.name,
                                          error_message: e.message,
             ),

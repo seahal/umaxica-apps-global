@@ -80,7 +80,7 @@ module Sign
           )
         rescue ActiveRecord::RecordInvalid => e
           Rails.logger.error(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.signup.telephone.audit_save_failed",
               user_id: user&.id,
               event_id: event_id,

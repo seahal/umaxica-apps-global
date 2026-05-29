@@ -382,7 +382,7 @@ module Sign
           return unless @user_telephone&.errors&.any?
 
           Rails.logger.warn(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.signup.telephone.validation_failed",
               errors: @user_telephone.errors.full_messages,
             ),
@@ -436,7 +436,7 @@ module Sign
           return if result.status == :advanced
 
           Rails.logger.warn(
-            LogEvent.format(
+            Jit::LogEvent.format(
               "sign.signup.telephone.sequence_advance_failed",
               cycle_id: cycle.public_id,
               result_status: result.status,

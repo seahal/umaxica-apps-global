@@ -55,4 +55,31 @@ class OrgPreferenceTimezoneOptionTest < ActiveSupport::TestCase
 
     assert_nil option.name
   end
+
+  test "name returns Etc/UTC for ETC_UTC id" do
+    option = OrgPreferenceTimezoneOption.new(id: OrgPreferenceTimezoneOption::ETC_UTC)
+
+    assert_equal "Etc/UTC", option.name
+  end
+
+  test "name returns Asia/Tokyo for ASIA_TOKYO id" do
+    option = OrgPreferenceTimezoneOption.new(id: OrgPreferenceTimezoneOption::ASIA_TOKYO)
+
+    assert_equal "Asia/Tokyo", option.name
+  end
+
+  test "name returns United States timezones" do
+    expectations = {
+      OrgPreferenceTimezoneOption::AMERICA_NEW_YORK => "America/New_York",
+      OrgPreferenceTimezoneOption::AMERICA_CHICAGO => "America/Chicago",
+      OrgPreferenceTimezoneOption::AMERICA_DENVER => "America/Denver",
+      OrgPreferenceTimezoneOption::AMERICA_LOS_ANGELES => "America/Los_Angeles",
+      OrgPreferenceTimezoneOption::AMERICA_ANCHORAGE => "America/Anchorage",
+      OrgPreferenceTimezoneOption::PACIFIC_HONOLULU => "Pacific/Honolulu",
+    }
+
+    expectations.each do |id, timezone|
+      assert_equal timezone, OrgPreferenceTimezoneOption.new(id: id).name
+    end
+  end
 end

@@ -47,7 +47,8 @@ class PreferenceJwtConfigurationTest < ActiveSupport::TestCase
       "PREFERENCE_JWT_ISSUER" => "jit-test",
       "PREFERENCE_JWT_AUDIENCES" => "app.localhost, org.localhost , ,com.localhost",
     ) do
-      assert_equal "kid-1", Preference::JwtConfiguration.active_kid
+      assert_equal Jit::Security::Jwt::Registry.issuer("preference").current_kid,
+                   Preference::JwtConfiguration.active_kid
       assert_equal 45, Preference::JwtConfiguration.leeway_seconds
       assert_equal "jit-test", Preference::JwtConfiguration.issuer
       assert_equal %w(app.localhost org.localhost com.localhost), Preference::JwtConfiguration.audiences

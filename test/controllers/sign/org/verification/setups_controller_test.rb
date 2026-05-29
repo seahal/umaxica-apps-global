@@ -30,7 +30,7 @@ class Sign::Org::Verification::SetupsControllerTest < ActionDispatch::Integratio
     get new_sign_org_verification_setup_url(ri: "jp", pt: pt), headers: @headers
 
     assert_response :success
-    assert_select "a[href=?]", sign_org_configuration_path(ri: "jp"), text: I18n.t("actions.back")
-    assert_operator response.body.index(I18n.t("actions.back")), :<, response.body.index("<ul>")
+    assert_select "a[href=?]", sign_org_configuration_path(ri: "jp"), count: 0
+    assert_select "ul"
   end
 end

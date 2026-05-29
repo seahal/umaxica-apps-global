@@ -10,14 +10,16 @@ module Sign
       class ResetsControllerTest < ActionDispatch::IntegrationTest
         include PreferenceJwtHelper
 
-        fixtures :clients, :client_telephone_statuses, :com_preferences
+        fixtures :com_preferences
 
         setup do
           @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-          @user = clients(:one)
-          @user.client_telephones.create!(
-            number: "+819012340004",
-            user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+          @visitor = create_verified_visitor_with_email(
+            email_address: "preference-reset-#{SecureRandom.hex(4)}@example.com",
+          )
+          @visitor.visitor_telephones.create!(
+            number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
+            visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
           )
           host! @host
         end
@@ -49,11 +51,11 @@ module Sign
 
             delete sign_com_preference_reset_path,
                    params: { confirm_reset: "1" },
-                   headers: as_user_headers(@user, host: @host)
+                   headers: as_visitor_headers(@visitor, host: @host)
           end
 
           assert_response :see_other
-          assert_equal "../", response.location
+          assert_redirected_to sign_com_preference_path
 
           [preference, cookie, region, timezone, theme].each(&:reload)
 
@@ -64,6 +66,14 @@ module Sign
           assert_equal ComPreferenceRegionOption::JP, region.option_id
           assert_equal ComPreferenceTimezoneOption::ASIA_TOKYO, timezone.option_id
           assert_equal ComPreferenceThemeOption::SYSTEM, theme.option_id
+        end
+
+        test "DELETE destroy redirects anonymous reset to com preference index" do
+          delete sign_com_preference_reset_path,
+                 params: { confirm_reset: "1" }
+
+          assert_response :see_other
+          assert_redirected_to sign_com_preference_path
         end
       end
     end

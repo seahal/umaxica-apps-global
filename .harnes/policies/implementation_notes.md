@@ -12,8 +12,13 @@ Write an implementation note when a non-trivial task involves any of the followi
 - a decision not written in the original spec, plan, ADR, or docs
 - a change, compromise, or deferral from the accepted plan
 - an interpretation of ambiguous existing code or tests
+- a contradiction between comments, code, tests, ADRs, docs, plans, or existing notes
+- a compatibility constraint, lifecycle constraint, or security boundary that is easy to miss
 - a rejected alternative that future maintainers are likely to revisit
 - a constraint reviewers or future agents need to know
+
+When in doubt, prefer a short note over losing durable context. Keep exploratory scratch work in
+`memos/`, but promote implementation-relevant observations into `notes/` before finishing.
 
 Use `notes/implementation/YYYY-MM-DD-<task-slug>.md`.
 
@@ -23,8 +28,10 @@ Include:
 
 - original plan or spec reference
 - related ADRs, docs, plans, or notes
+- comments, code paths, or tests that were checked for consistency
 - decisions made during implementation and why
 - deviations from the plan and their risk
+- contradictions or stale guidance found, and the current interpretation
 - follow-up work that should be promoted to `plans/`
 - tests run and tests not run
 

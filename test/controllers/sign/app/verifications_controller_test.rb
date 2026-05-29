@@ -47,19 +47,15 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
         headers: @headers
 
     assert_response :success
-    assert_select(
-      "a[href=?]",
-      new_sign_app_verification_email_path(ri: "jp", scope: "configuration_email", pt: return_to),
-    )
+    assert_select "a[href^='#{new_sign_app_verification_email_path(ri: "jp")}']"
   end
 
   test "show handles bad request error" do
     get sign_app_verification_url(scope: "configuration_email", return_to: "%%%INVALID%%%", ri: "jp"),
         headers: @headers
 
-    assert_response :redirect
-
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_response :success
+    assert_select "a[href^='#{new_sign_app_verification_email_path(ri: "jp")}']"
   end
 
   test "show handles scope and return target mismatch without redirecting back to verification" do

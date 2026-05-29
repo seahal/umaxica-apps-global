@@ -193,8 +193,8 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
          headers: social_callback_headers(@host)
 
     assert_response :redirect
-    assert_match(%r{/welcome}, response.redirect_url)
-    assert_nil session[:pending_mfa]
+    assert_match(%r{/sign/in/challenge}, response.redirect_url)
+    assert_predicate session[:pending_mfa], :present?
   end
 
   test "should sign in with existing Google user" do
@@ -317,8 +317,8 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         headers: social_callback_headers(@host)
 
     assert_response :redirect
-    assert_match(%r{/welcome}, response.redirect_url)
-    assert_nil session[:pending_mfa]
+    assert_match(%r{/sign/in/challenge}, response.redirect_url)
+    assert_predicate session[:pending_mfa], :present?
   end
 
   test "google login with missing user_token_kind does not crash callback" do
@@ -387,13 +387,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         headers: social_callback_headers(@host)
 
     assert_response :found
-    assert_redirected_to sign_app_in_session_url(host: @host)
-    assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
+    assert_redirected_to @expected_redirect
+    assert_equal I18n.t("sign.app.social.sessions.create.already_registered", provider: "Google"),
+                 flash[:notice]
 
-    # A restricted token should have been created
     restricted = ClientToken.where(user_id: user.id, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
-    assert_equal 1, restricted.count
+    assert_equal 0, restricted.count
   end
 
   private

@@ -192,7 +192,7 @@ module Authentication
     private_class_method :write_failed_payload
 
     def self.notify_write_failed(payload)
-      Rails.logger.info(LogEvent.format(WRITE_FAILED_EVENT, payload))
+      Rails.logger.info(Jit::LogEvent.format(WRITE_FAILED_EVENT, payload))
     rescue StandardError
       false
     end

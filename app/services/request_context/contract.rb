@@ -9,6 +9,24 @@ module RequestContext
     PUBLIC_KEYS = (REQUIRED_KEYS + RETURN_TARGET_KEYS + OPTIONAL_OVERLAY_KEYS).freeze
     ALLOWED_REGIONS = %w(jp us).freeze
     DEFAULT_REGION = "jp"
+    TIME_FORMAT_SHORT_MAP = {
+      "12" => "12",
+      "24" => "24",
+      "hour_12" => "12",
+      "hour_24" => "24",
+    }.freeze
+    MOTION_SHORT_MAP = {
+      "rd" => "rd",
+      "st" => "st",
+      "reduced" => "rd",
+      "standard" => "st",
+    }.freeze
+    DENSITY_SHORT_MAP = {
+      "cp" => "cp",
+      "st" => "st",
+      "compact" => "cp",
+      "standard" => "st",
+    }.freeze
 
     INTERNAL_NAMES = {
       ri: :region,
@@ -72,7 +90,13 @@ module RequestContext
       return value.to_s if redirect_target_key?(key)
       return value.to_s if key.to_sym == :tz
 
-      value.to_s.downcase
+      normalized = value.to_s.downcase
+      case key.to_sym
+      when :tf then TIME_FORMAT_SHORT_MAP.fetch(normalized, normalized)
+      when :mo then MOTION_SHORT_MAP.fetch(normalized, normalized)
+      when :dn then DENSITY_SHORT_MAP.fetch(normalized, normalized)
+      else normalized
+      end
     end
 
     def normalize_region(value)

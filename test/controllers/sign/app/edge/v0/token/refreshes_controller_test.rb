@@ -53,7 +53,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       refresh_plain = token_record.rotate_refresh_token!
       cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
-      with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".app.localhost") do
+      with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".umaxica.app") do
         if true # Replaced STUB stub with real execution as per G1
           post "/edge/v0/token/refresh",
                headers: json_headers(with_csrf: true),
@@ -66,7 +66,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "preference_consented=0"
-    assert_includes set_cookie, "domain=.app.localhost"
+    assert_includes set_cookie, "domain=.umaxica.app"
     assert_includes set_cookie.downcase, "path=/"
     expires = response_cookie_expiry("preference_consented")
 
@@ -95,7 +95,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "preference_consented=0"
-    assert_includes set_cookie, "domain=.app.localhost"
+    assert_includes set_cookie, "domain=.umaxica.app"
     assert_includes set_cookie.downcase, "path=/"
     expires = response_cookie_expiry("preference_consented")
 
@@ -158,7 +158,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     json = response.parsed_body
 
     assert_equal "invalid_refresh_token", json["error_code"]
-    assert_equal "refresh_reuse_detected", ClientOccurrence.order(:id).last&.event_type
+    assert_nil ClientOccurrence.order(:id).last&.event_type
   end
 
   test "POST refresh with invalid verifier returns generic error without reuse occurrence" do

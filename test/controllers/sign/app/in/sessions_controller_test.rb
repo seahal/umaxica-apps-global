@@ -45,14 +45,14 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       )
 
       assert_response :redirect
-      location = URI.parse(response.location)
+      location = URI.parse(jump_rt_url_from_location(response.location))
       params = Rack::Utils.parse_query(location.query)
 
       assert_equal "https", location.scheme
       assert_equal "id.umaxica.app", location.host
       assert_equal "/sign/in/new", location.path
       assert_equal "jp", params["ri"]
-      assert_match(/--/, params.fetch("pt"))
+      assert_not params.key?("pt")
     end
   ensure
     Rails.application.reload_routes!

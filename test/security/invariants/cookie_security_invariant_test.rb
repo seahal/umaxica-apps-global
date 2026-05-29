@@ -44,18 +44,18 @@ module Security
       end
 
       test "production session cookie is secure httponly lax and host-prefixed" do
-        assert SessionCookieConfig.force_secure?(
+        assert Jit::SessionCookieConfig.force_secure?(
           id_service_host: "id.app.example",
           rails_env: ActiveSupport::StringInquirer.new("production"),
         )
-        assert_equal "__Host-session", SessionCookieConfig.cookie_key(force_secure: true)
-        assert SessionCookieConfig.partitioned?(rails_env: ActiveSupport::StringInquirer.new("production"))
+        assert_equal "__Host-session", Jit::SessionCookieConfig.cookie_key(force_secure: true)
+        assert Jit::SessionCookieConfig.partitioned?(rails_env: ActiveSupport::StringInquirer.new("production"))
 
         session_options = Rails.application.config.session_options
 
         assert session_options[:httponly]
         assert_equal :lax, session_options[:same_site]
-        assert SessionCookieConfig.force_secure?(
+        assert Jit::SessionCookieConfig.force_secure?(
           id_service_host: "id.app.example",
           rails_env: ActiveSupport::StringInquirer.new("production"),
         )

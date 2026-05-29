@@ -57,7 +57,7 @@ module Acme
 
       # FIXME: Resolve the URL issues before deploying.
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: HostOriginEnv.trusted_origins(
+                           trusted_origins: Jit::HostOriginEnv.trusted_origins(
                              ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
                            ),
                            with: :exception
