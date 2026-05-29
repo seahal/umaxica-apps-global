@@ -40,11 +40,11 @@ Completed (2026-05-07).
 ## Summary
 
 Introduce `Jumper < ActiveSupport::CurrentAttributes` for the jump surface only. Do not change sign
-or apex Current behavior in this pass. Share actor helper behavior through a concern so that
+or acme Current behavior in this pass. Share actor helper behavior through a concern so that
 `Current` and `Jumper` can expose the same actor contract without inheritance.
 
 `Jumper` is a provisional implementation name. Keep it for this pass, but keep the surface area
-small so a later naming refactor can rename it together with any future sign/apex CurrentAttributes
+small so a later naming refactor can rename it together with any future sign/acme CurrentAttributes
 classes.
 
 ## Scope
@@ -59,8 +59,8 @@ In:
 
 Out:
 
-- Splitting `Current` for sign or apex.
-- Choosing names for future sign or apex CurrentAttributes classes.
+- Splitting `Current` for sign or acme.
+- Choosing names for future sign or acme CurrentAttributes classes.
 - Moving `Current::Preference`.
 - Adding token, session, preference, or observability fields to `Jumper`.
 - Changing jump redirector DB behavior, allowed-host policy, public URL shape, or cookie-session
@@ -97,8 +97,8 @@ Update `Current` to include this concern and keep its existing attributes:
 Add `Jumper < ActiveSupport::CurrentAttributes`.
 
 Use `Jumper` as the class name for this implementation pass. Do not create aliases or alternate
-names. Do not introduce `Signature`, `Signer`, `Apexer`, `ApexCurrent`, `Sign::Current`, or
-`Apex::Current` in this pass.
+names. Do not introduce `Signature`, `Signer`, `Acmeer`, `AcmeCurrent`, `Sign::Current`, or
+`Acme::Current` in this pass.
 
 Attributes:
 
@@ -202,8 +202,8 @@ bin/rails test test/unit/current/current_support_test.rb \
 ## Acceptance
 
 - Jump uses `Jumper`, not `CurrentSupport`.
-- Sign and apex behavior is unchanged.
-- No sign or apex CurrentAttributes class is introduced.
+- Sign and acme behavior is unchanged.
+- No sign or acme CurrentAttributes class is introduced.
 - `Jumper` has only actor and domain request state.
 - Shared actor helper behavior lives in a concern, not in a `Jumper < Current` inheritance chain.
 - Existing jump redirector behavior is unchanged.

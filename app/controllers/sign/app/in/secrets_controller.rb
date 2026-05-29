@@ -190,7 +190,7 @@ module Sign
             redirect_to(sign_in_result.redirect_to, notice: I18n.t("sign.app.in.session.restricted_notice"))
           else
             redirect_to_sign_in_sequence!(
-              pt: path_target_value,
+              pt: signed_pt_param,
               notice: t("sign.app.authentication.secret.create.success"),
             )
           end

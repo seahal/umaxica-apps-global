@@ -125,11 +125,19 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
   end
 
   test "preserve_pt stores pt in session" do
-    @harness.params_data[Auth::IoKeys::Params::PT] = "/dashboard"
+    @harness.params_data[Auth::IoKeys::Params::PT] = @harness.signed_pt_token("/dashboard")
     result = @harness.preserve_pt
 
     assert_match(/--/, result)
     assert_equal result, @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
+  end
+
+  test "preserve_pt rejects unsigned pt param" do
+    @harness.params_data[Auth::IoKeys::Params::PT] = "/dashboard"
+    result = @harness.preserve_pt
+
+    assert_nil result
+    assert_nil @harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
   end
 
   test "preserve_pt returns nil when no pt param" do
@@ -148,7 +156,7 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
   end
 
   test "retrieve_pt falls back to params" do
-    @harness.params_data[Auth::IoKeys::Params::PT] = "/dashboard"
+    @harness.params_data[Auth::IoKeys::Params::PT] = @harness.signed_pt_token("/dashboard")
     result = @harness.retrieve_pt
 
     assert_match(/--/, result)

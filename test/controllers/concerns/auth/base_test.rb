@@ -327,6 +327,21 @@ module Auth
       assert_equal 5, harness.session[:app_sign_in_welcome]["remaining"]
     end
 
+    test "checkpoint continuation advances db-backed cycle while request is readonly" do
+      user = create_db_sequence_client
+      token = ClientToken.create!(user: user)
+      cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
+      harness = db_sequence_harness(user, token)
+      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+
+      ActiveRecord::Base.connected_to(role: :reading, prevent_writes: true) do
+        harness.send(:continue_checkpoint_sequence_without_content!)
+      end
+
+      assert_predicate cycle.reload, :sign_in_dashboard_pending?
+      assert_equal "/welcome", URI.parse(harness.redirected.first).path
+    end
+
     test "checkpoint continuation can carry dashboard as pt" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
@@ -376,6 +391,30 @@ module Auth
       assert_nil cycle.return_to
       assert_nil harness.session[:app_sign_in_welcome]
       assert_nil harness.session[:app_sign_in_cycle_locator]
+    end
+
+    test "dashboard continuation binds current session before dashboard policy" do
+      user = create_db_sequence_client
+      token = ClientToken.create!(user: user)
+      cycle = ClientSignInCycle.create!(
+        principal_id: user.id,
+        status_id: ClientSignInCycle.status_id_for("DASHBOARD_PENDING"),
+        step: "dashboard",
+        return_to: "/after",
+        nonce_digest: ClientSignInCycle.digest_nonce("nonce"),
+        issued_at: Time.current,
+        expires_at: 15.minutes.from_now,
+      )
+      harness = db_sequence_harness(user, token)
+      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      harness.send(:issue_welcome_gate_and_path, pt: "/after", sequence_id: cycle.public_id)
+
+      harness.send(:continue_dashboard_sequence_without_content!)
+
+      assert_nil harness.redirected
+      assert_equal token.id, cycle.reload.token_id
+      assert_predicate cycle, :sign_in_completed?
+      assert_equal "/after", harness.instance_variable_get(:@welcome_next_path)
     end
 
     test "dashboard continuation falls back when persisted return path points to dashboard" do
@@ -557,7 +596,7 @@ module Auth
 
     test "redirect parameter helpers preserve peek retrieve and build params" do
       harness = HeaderKeyHarness.new
-      harness.params = { pt: "/target" }
+      harness.params = { pt: harness.signed_pt_token("/target") }
 
       result = harness.preserve_pt
 
@@ -567,6 +606,16 @@ module Auth
       assert_equal "/target", harness.path_from_signed_pt(harness.build_notice_params("ok")[:pt])
       assert_equal "/target", harness.path_from_signed_pt(harness.build_alert_params("ng")[:pt])
       assert_equal "/target", harness.path_from_signed_pt(harness.retrieve_pt)
+      assert_nil harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
+    end
+
+    test "redirect parameter helpers reject unsigned pt params" do
+      harness = HeaderKeyHarness.new
+      harness.params = { pt: "/target" }
+
+      assert_nil harness.preserve_pt
+      assert_nil harness.peek_pt
+      assert_nil harness.retrieve_pt
       assert_nil harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
     end
 

@@ -4,9 +4,17 @@
 module Sign
   module Com
     class TokensController < ApplicationController
+      include ::RateLimit
+
       AUTHENTICATION_MODE = :deny_all
 
       declare_authentication_mode! :open
+
+      protect_from_forgery with: :null_session, only: :create
+      skip_before_action :transparent_refresh_access_token, raise: false
+
+      # Protocol endpoint: protect client authentication and PKCE exchange from brute force.
+      rate_limit to: 10, within: 1.minute, only: :create
 
       def create
         result = ::Oidc::TokenExchangeService.call(

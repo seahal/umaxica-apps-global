@@ -1,5 +1,5 @@
 <% content_for :page_title, t("sign.app.authentication.new.page_title") %>
-<% pt = params[:pt].presence %>
+<% pt = signed_pt_param %>
 <h1><%= t("sign.app.authentication.new.page_title") %></h1>
 <p><%= t("sign.app.authentication.new.description") %></p>
 
@@ -23,6 +23,6 @@
   <%= t("sign.app.authentication.new.links.apple") %>
 <% end %>
 
-<%= link_to new_sign_app_up_path(ri: params[:ri], pt: params[:pt]) do %>
+<%= link_to new_sign_app_up_path(ri: params[:ri], pt: signed_pt_param) do %>
   <%= t("sign.app.authentication.new.links.registration") %>
 <% end %>

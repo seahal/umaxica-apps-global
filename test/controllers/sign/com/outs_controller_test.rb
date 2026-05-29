@@ -179,9 +179,9 @@ class Sign::Com::OutsControllerTest < ActionDispatch::IntegrationTest
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    legacy_rt = Base64.urlsafe_encode64(sign_com_configuration_path(ri: "jp"))
+    legacy_pt = Base64.urlsafe_encode64(sign_com_configuration_path(ri: "jp"))
 
-    delete sign_com_out_url(ri: "jp", pt: legacy_rt),
+    delete sign_com_out_url(ri: "jp", pt: legacy_pt),
            headers: { "Host" => @host,
                       "X-TEST-CURRENT-RESOURCE" => @visitor.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }

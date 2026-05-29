@@ -5,6 +5,7 @@ module Core
   module Org
     class ApplicationController < ActionController::Base
       include ::RateLimit
+      include ::JumpRt::ReturnVerification
 
       include ::Session
 

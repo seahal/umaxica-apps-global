@@ -45,7 +45,7 @@ module Sign
 
       redirect_params = build_notice_params(
         t("sign.app.registration.email.create.verification_code_sent"),
-        email_registration_rt_session_key,
+        email_registration_pt_session_key,
       )
       flash[:notice] = redirect_params.delete(:notice)
       sanitize_redirect_params!(redirect_params)
@@ -200,25 +200,25 @@ module Sign
     def new_registration_path_with_notice
       redirect_params = build_notice_params(
         t("sign.app.registration.email.edit.session_expired"),
-        email_registration_rt_session_key,
+        email_registration_pt_session_key,
       )
       flash[:notice] = redirect_params.delete(:notice)
       new_email_registration_path(redirect_params)
     end
 
     def email_registration_return_path(default_path)
-      encoded = retrieve_pt(email_registration_rt_session_key)
+      encoded = retrieve_pt(email_registration_pt_session_key)
       return default_path if encoded.blank?
 
       path_from_signed_pt(encoded) || default_path
     end
 
     def preserve_email_registration_redirect_parameter
-      preserve_pt(email_registration_rt_session_key)
+      preserve_pt(email_registration_pt_session_key)
     end
 
-    def email_registration_rt_session_key
-      :email_registration_rt
+    def email_registration_pt_session_key
+      :email_registration_pt
     end
 
     def sanitize_redirect_params!(redirect_params)
@@ -229,7 +229,7 @@ module Sign
     end
 
     def email_registration_edit_path_with_flash(message_key, message)
-      redirect_params = build_redirect_params(message_key, message, email_registration_rt_session_key)
+      redirect_params = build_redirect_params(message_key, message, email_registration_pt_session_key)
       flash[message_key] = redirect_params.delete(message_key)
       sanitize_redirect_params!(redirect_params)
       after_email_registration_started_path(redirect_params)

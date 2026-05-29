@@ -118,6 +118,36 @@ class ClientTest < ActiveSupport::TestCase
     assert_predicate @user, :login_allowed?
   end
 
+  test "multi_factor_enabled and multi_factor_id must describe the same requirement" do
+    user = Client.new(multi_factor_enabled: true, multi_factor_id: ClientMultiFactor::NOTHING)
+
+    assert_not user.valid?
+    assert_not_empty user.errors[:multi_factor_id]
+
+    user = Client.new(multi_factor_enabled: false, multi_factor_id: ClientMultiFactor::FULL)
+
+    assert_not user.valid?
+    assert_not_empty user.errors[:multi_factor_enabled]
+  end
+
+  test "termination requires finite withdrawal completion" do
+    user = Client.new(terminated_at: Time.current)
+
+    assert_not user.valid?
+    assert_not_empty user.errors[:terminated_at]
+
+    user.withdrawn_at = 1.minute.ago
+
+    assert_predicate user, :valid?
+  end
+
+  test "withdrawal completion cannot precede withdrawal start" do
+    user = Client.new(withdrawal_started_at: Time.current, withdrawn_at: 1.minute.ago)
+
+    assert_not user.valid?
+    assert_not_empty user.errors[:withdrawn_at]
+  end
+
   test "visibility association resolves to ClientVisibility with id 2 by default" do
     user = Client.create!
 

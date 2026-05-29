@@ -4,7 +4,7 @@
 module Sign
   module Com
     module R18
-      class GatesController < Sign::Com::OpenController
+      class GatesController < Sign::Com::ApplicationController
         include ::R18Gate
 
         AUTHENTICATION_MODE = :open

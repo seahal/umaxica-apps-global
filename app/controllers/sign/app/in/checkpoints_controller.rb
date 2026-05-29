@@ -23,7 +23,7 @@ module Sign
 
           refresh_bulletin_dimension!
           safe_redirect_to(
-            sign_app_in_checkpoint_path(pt: path_target_value, ri: params[:ri]),
+            sign_app_in_checkpoint_path(pt: signed_pt_param, ri: params[:ri]),
             fallback: sign_app_in_checkpoint_path(ri: params[:ri]),
           )
         end
@@ -34,7 +34,7 @@ module Sign
             policy_rule: :destroy_checkpoint?,
           )
 
-          pt_param = path_target_value
+          pt_param = signed_pt_param
           consume_bulletin!
           redirect_after_checkpoint_sequence!(pt: pt_param)
         end

@@ -2,186 +2,122 @@
 
 ## Purpose
 
-This runbook manages ES384 signing keys used by Rails issuer surfaces to issue Jump redirect tokens
-for `https://jump.umaxica.net/?rt=<JWT>`.
+This runbook manages ES384 signing keys for Jump redirect tokens.
 
-Jump redirect tokens are not authentication tokens. JWT key management may share one naming and
-rotation model, but the Jump RT signing key material is scoped to each issuer FQDN surface.
+Jump RT keys are issuer-surface scoped. Do not reuse one private key or `kid` across `app`, `com`,
+and `org`, or across `sign`, `acme`, and `core` issuer groups.
 
 Issuer surfaces:
 
-- `sign_app`
-- `sign_com`
-- `sign_org`
-- `acme_app`
-- `acme_com`
-- `acme_org`
-- `core_app`
-- `core_com`
-- `core_org`
+- `SIGN_APP`, `SIGN_COM`, `SIGN_ORG`
+- `ACME_APP`, `ACME_COM`, `ACME_ORG`
+- `CORE_APP`, `CORE_COM`, `CORE_ORG`
 
-## Key Material
+## Runtime Contract
 
-Development and test private keys must be stored in Rails credentials and read through
-`Rails.app.creds`. Production should read the same logical private key from the production secret
-backend, such as Cloud KMS or Secret Manager.
+At boot, `Jit::Security::Jwt::Registry` builds immutable issuer/key records:
 
-Active `kid` values and public JWKS arrays may be configured through environment variables.
-`docker/core/env` may contain those public values for local development, but it must not contain
-private keys.
+- current private key is loaded once from Rails credentials or the production secret backend;
+- current public JWK is derived once from the current private key;
+- legacy/grace public JWKs are loaded from `JWT_<NAMESPACE>_PUBLIC_KEYSET`;
+- revoked kids are loaded from `JWT_<NAMESPACE>_REVOKED_KIDS`;
+- malformed JWKs, private JWK fields, wrong `alg`, wrong `kty`, wrong `crv`, active/public
+  mismatch, and non-default duplicate kids fail boot.
 
-Environment variable naming:
-
-```text
-JWT_<SIGN|ACME|CORE>_<APP|COM|ORG>_ACTIVE_KID
-JWT_<SIGN|ACME|CORE>_<APP|COM|ORG>_PUBLIC_KEYSET
-```
-
-Private key credential naming:
-
-```text
-JWT_<SIGN|ACME|CORE>_<APP|COM|ORG>_PRIVATE_KEY
-```
-
-Example:
-
-```bash
-JWT_SIGN_APP_ACTIVE_KID=sign-app-es384-2026-05-a
-JWT_SIGN_APP_PUBLIC_KEYSET='[{"kty":"EC","crv":"P-384","kid":"sign-app-es384-2026-05-a","alg":"ES384","use":"sig","x":"...","y":"..."}]'
-```
-
-The corresponding development/test private key belongs in Rails credentials:
-
-```yaml
-JWT_SIGN_APP_PRIVATE_KEY: "<base64 DER or PEM private key>"
-```
-
-The exact private-key storage adapter may differ by environment, but the application-facing contract
-should stay the same:
-
-- find issuer surface;
-- read the issuer surface `ACTIVE_KID`;
-- read that issuer surface `PRIVATE_KEY` only when signing new `rt` JWTs;
-- expose the issuer surface `PUBLIC_KEYSET` from `/.well-known/jwks.json`.
+The JWKS endpoint must only render the prebuilt public JWKS. It must not read private keys,
+credentials, files, KMS, or the network while serving a request.
 
 ## Key States
 
-- `active`: used for new signing and exposed in JWKS.
-- `grace`: verification only; exposed in JWKS until old `rt` JWTs expire.
-- `retired`: removed from JWKS during normal operation.
-- `revoked`: rejected by `jump.umaxica.net` even if a stale JWKS cache still contains it.
+- `active`: used for new signing and included in JWKS.
+- `grace`: verification only; included in JWKS until all old tokens expire.
+- `retired`: removed from JWKS after the grace window.
+- `revoked`: rejected by verifiers even if a CDN or RP still has a stale JWKS copy.
 
-The active private key is a single value. Public keys are an array so active and grace keys can be
-published together. Retirement is removing a public key from `PUBLIC_KEYSET` after the grace window.
-Revocation is configured in the edge Jump issuer registry as `revoked_kids`.
+Revocation is not the same as retirement. Retirement handles normal rotation. Revocation handles
+suspected private-key compromise.
 
-## Manual Rotation
+## Environment and Secret Names
 
-1. Choose the issuer surface, for example `sign_app`.
-2. Generate a new P-384 private key for ES384 signing.
-3. Assign a unique `kid`, for example `sign-app-jump-rt-es384-2026-06-a`.
-4. Store the new private key in the issuer surface private-key secret.
-5. Keep the old `active_kid` unchanged and deploy, if a staged rollout is desired.
-6. Add the new public JWK to the issuer surface `PUBLIC_KEYSET` without removing the old public JWK.
-7. Update `active_kid` to the new `kid`.
-8. Deploy the issuer application.
-9. Issue a test Jump RT JWT and confirm its JWT header contains the new `kid` and `alg: ES384`.
-10. Confirm `jump.umaxica.net` accepts the new token.
-11. Keep the old key in JWKS for `max Jump RT TTL + clock leeway`.
-12. Remove the old public JWK from the issuer surface `PUBLIC_KEYSET`.
-13. Verify JWKS no longer exposes the old `kid`.
-14. Confirm new tokens are still signed with the new `kid`.
+```text
+JWT_<NAMESPACE>_ACTIVE_KID
+JWT_<NAMESPACE>_PUBLIC_KEYSET
+JWT_<NAMESPACE>_REVOKED_KIDS
+JWT_<NAMESPACE>_PRIVATE_KEY
+```
+
+`ACTIVE_KID`, `PUBLIC_KEYSET`, and `REVOKED_KIDS` are environment configuration. Private keys are
+secret values. In production they should come from the production secret backend, such as AWS KMS or
+Secrets Manager, exposed to the app through the same logical credential name.
+
+`PUBLIC_KEYSET` must be public JWK Set JSON or a JSON array of public JWKs. It must not contain
+private DER, private PEM, or private JWK fields.
+
+Keep old private keys available in the secret backend until rollback is no longer possible. The
+offline source copy should remain in controlled physical custody; the cloud secret version should
+also be retained while its public key is in `grace`.
+
+## Normal Rotation
+
+1. Generate a new P-384 private key.
+2. Choose a globally unique `kid`, for example `sign-app-jump-rt-es384-prod-2026-06-a`.
+3. Store the new private key as the issuer surface `JWT_<NAMESPACE>_PRIVATE_KEY` secret version.
+4. Add the new public JWK to `JWT_<NAMESPACE>_PUBLIC_KEYSET` while keeping the old active public JWK.
+5. Deploy and confirm boot validation passes.
+6. Change `JWT_<NAMESPACE>_ACTIVE_KID` to the new `kid`.
+7. Deploy issuer instances.
+8. Issue a smoke token and confirm its header has `alg: ES384` and the new `kid`.
+9. Confirm Jump accepts the new token.
+10. Keep the old public key in JWKS for `max token TTL + leeway + CDN max stale`.
+11. Remove the old public key from `PUBLIC_KEYSET`.
+12. Keep the old private key secret version until rollback is closed.
+
+## Rollback
+
+Rollback is safe only if the previous private key is still available.
+
+1. Restore `JWT_<NAMESPACE>_ACTIVE_KID` to the previous `kid`.
+2. Restore or select the previous `JWT_<NAMESPACE>_PRIVATE_KEY` secret version.
+3. Keep both previous and attempted-new public JWKs in `PUBLIC_KEYSET`.
+4. Deploy issuer instances.
+5. Confirm boot validation passes and new tokens use the previous `kid`.
+6. Do not remove the attempted-new public JWK until tokens already issued with it have expired.
 
 ## Emergency Revocation
 
 If a private key may be compromised:
 
-1. Add the compromised `kid` to the edge Jump issuer registry `revoked_kids`.
-2. Deploy edge Jump immediately.
-3. Generate a replacement P-384 key and assign a new `kid`.
-4. Store the replacement private key in the issuer surface private-key secret.
-5. Set `active_kid` to the replacement `kid`.
-6. Deploy the issuer application.
-7. Remove the compromised public JWK from the issuer surface `PUBLIC_KEYSET`.
-8. Confirm JWKS no longer exposes the compromised `kid`.
-9. Confirm `jump.umaxica.net` rejects a token signed with the compromised `kid`.
-10. Review logs by `kid`, issuer, destination host, and `jti`. Do not log full JWTs.
+1. Add the compromised `kid` to `JWT_<NAMESPACE>_REVOKED_KIDS`.
+2. Add the compromised Jump return signing `kid` to `JUMP_RETURN_REVOKED_KIDS` on Rails RPs when
+   revoking Jump's return-signing key.
+3. Deploy the verifier side first so stale JWKS cannot keep the key alive.
+4. Generate and install a replacement private key and `kid`.
+5. Set `ACTIVE_KID` to the replacement `kid`.
+6. Remove the compromised public JWK from `PUBLIC_KEYSET`.
+7. Purge CDN caches for the issuer JWKS URL.
+8. Confirm tokens signed with the compromised `kid` are rejected.
+9. Review logs by `kid`, issuer, destination host, and `jti`. Do not log full JWTs or key material.
 
-## JWKS Requirements
+## CDN Guidance
 
-`/.well-known/jwks.json` must return only public JWK values.
+JWKS may be cached publicly, but emergency revoke must not depend on CDN expiry.
 
-For Jump RT ES384 keys, each JWK should include:
-
-```json
-{
-  "kty": "EC",
-  "crv": "P-384",
-  "kid": "sign-app-jump-rt-es384-2026-06-a",
-  "alg": "ES384",
-  "use": "sig",
-  "x": "...",
-  "y": "..."
-}
-```
-
-The JWKS response must not contain private key fields such as `d`, PEM bodies, DER blobs, secret
-backend names, or raw credential values.
+- Keep `Cache-Control` short enough for normal rotation; current endpoint TTL is one hour.
+- CDN stale behavior must be less than the maximum acceptable revocation delay.
+- On emergency revoke, purge the exact JWKS URL for the issuer.
+- Verifiers must keep local revoked-kid configuration so a stale CDN JWKS cannot re-enable a
+  compromised key.
 
 ## Validation Checklist
 
-Before rotating in production:
+Before production deployment:
 
-- The new `kid` is unique across all issuer surfaces.
-- The new key is P-384 and signs with `ES384`.
-- The issuer FQDN JWKS exposes the new public key.
-- The edge Jump issuer registry points to the issuer FQDN JWKS URI.
-- The edge Jump verifier allows `ES384`.
-- The issuer surface `iss` claim exactly matches the registry issuer.
-- The token `aud` is `https://jump.umaxica.net`.
-- The token includes `schema`, `sub`, `iat`, `nbf`, `exp`, `jti`, `dst`, and `url`.
-- The destination URL is allowed by the edge Jump issuer policy.
-
-## OpenSSL Example
-
-Generate a P-384 private key:
-
-```bash
-openssl ecparam -name secp384r1 -genkey -noout -out jump-rt-private.pem
-openssl ec -in jump-rt-private.pem -pubout -out jump-rt-public.pem
-```
-
-Convert to DER and base64 if the configured secret format is base64 DER:
-
-```bash
-openssl ec -in jump-rt-private.pem -outform DER | base64
-```
-
-Keep the private key out of git, logs, tickets, screenshots, and chat.
-
-## Verification Flow
-
-```mermaid
-flowchart LR
-  issuer[Rails issuer surface] -->|sign rt with active kid| token[rt JWT]
-  token --> jump[jump.umaxica.net]
-  jump --> header[Read alg and kid]
-  header --> registry[Lookup issuer registry]
-  registry --> jwks[Fetch issuer JWKS]
-  jwks --> key[Select public key by kid]
-  key --> verify[Verify ES384 signature]
-  verify --> policy[Validate claims and destination policy]
-```
-
-## Rotation Flow
-
-```mermaid
-flowchart TB
-  gen[Generate new P-384 key] --> add[Add private key to issuer keyset]
-  add --> publish[Publish JWKS with old and new public keys]
-  publish --> activate[Set active_kid to new kid]
-  activate --> deploy[Deploy issuer]
-  deploy --> verify[Verify jump accepts new rt]
-  verify --> wait[Wait max RT TTL plus leeway]
-  wait --> retire[Remove old key from keyset and JWKS]
-```
+- `kid` is globally unique and includes token family, surface, environment, date, and sequence.
+- The key is P-384 and signs with ES384.
+- Active private key derives the active public JWK.
+- JWKS contains no private fields: `d`, PEM, DER, `k`, or secret backend names.
+- Revoked kids are absent from JWKS.
+- Issuer origin is the exact registered issuer for that surface.
+- Token `aud` is the Jump gateway origin.
+- Token TTL is no more than the verifier maximum.
+- Rollback private key versions are still available.

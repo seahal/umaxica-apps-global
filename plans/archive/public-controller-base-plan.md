@@ -6,7 +6,7 @@ Active draft (2026-05-06)
 
 ## Summary
 
-Introduce `Apex::PublicController`, `Sign::PublicController`, and `Jump::PublicController`, each
+Introduce `Acme::PublicController`, `Sign::PublicController`, and `Jump::PublicController`, each
 inheriting directly from `ActionController::Base`. Migrate the existing public endpoints
 (`HealthsController`, `RobotsController`, `SitemapsController`) to inherit from these new base
 classes instead of from the heavy `<Boundary>::<Tld>::ApplicationController` chain. Drop the
@@ -19,7 +19,7 @@ subclass is introduced.
 
 In:
 
-- New `Apex::PublicController`, `Sign::PublicController`, `Jump::PublicController`.
+- New `Acme::PublicController`, `Sign::PublicController`, `Jump::PublicController`.
 - Re-parenting of public endpoint controllers to the new bases.
 - Removal of now-redundant `skip_before_action` calls and module includes on the migrated
   controllers.
@@ -33,15 +33,15 @@ Out:
 - A dedicated public-endpoint rate limit profile.
 - `rack-attack` gem adoption.
 - Edge-layer (CDN/WAF) DDoS policy.
-- Migrating `apex/*/edge/v0/healths_controller.rb` and `sign/*/edge/v0/healths_controller.rb`
+- Migrating `acme/*/edge/v0/healths_controller.rb` and `sign/*/edge/v0/healths_controller.rb`
   (API-style health endpoints).
-- Adding public endpoints for `apex/dev` and `apex/net` TLDs that do not have them today.
+- Adding public endpoints for `acme/dev` and `acme/net` TLDs that do not have them today.
 
 ## Implementation
 
-### 1. Add `Apex::PublicController`
+### 1. Add `Acme::PublicController`
 
-File: `app/controllers/apex/public_controller.rb`.
+File: `app/controllers/acme/public_controller.rb`.
 
 Behavior:
 
@@ -59,7 +59,7 @@ Behavior:
 
 File: `app/controllers/sign/public_controller.rb`.
 
-Same shape as `Apex::PublicController`. Does not include the sign-specific helpers (`current_user`,
+Same shape as `Acme::PublicController`. Does not include the sign-specific helpers (`current_user`,
 `verification_*`, `identity_*`, `after_login_path`, etc.) from `Sign::<Tld>::ApplicationController`.
 
 ### 3. Add `Jump::PublicController`
@@ -72,24 +72,24 @@ Same shape as the others, with these differences:
 - Does not declare `jumper_actor_type`.
 - Does not inherit from `Jump::ApplicationController`.
 
-### 4. Migrate apex public endpoints
+### 4. Migrate acme public endpoints
 
 Re-parent and clean up:
 
-- `app/controllers/apex/healths_controller.rb`
-- `app/controllers/apex/com/healths_controller.rb`
-- `app/controllers/apex/com/robots_controller.rb`
-- `app/controllers/apex/com/sitemaps_controller.rb`
-- `app/controllers/apex/org/healths_controller.rb`
-- `app/controllers/apex/org/robots_controller.rb`
-- `app/controllers/apex/org/sitemaps_controller.rb`
-- `app/controllers/apex/app/healths_controller.rb`
-- `app/controllers/apex/app/robots_controller.rb`
-- `app/controllers/apex/app/sitemaps_controller.rb`
+- `app/controllers/acme/healths_controller.rb`
+- `app/controllers/acme/com/healths_controller.rb`
+- `app/controllers/acme/com/robots_controller.rb`
+- `app/controllers/acme/com/sitemaps_controller.rb`
+- `app/controllers/acme/org/healths_controller.rb`
+- `app/controllers/acme/org/robots_controller.rb`
+- `app/controllers/acme/org/sitemaps_controller.rb`
+- `app/controllers/acme/app/healths_controller.rb`
+- `app/controllers/acme/app/robots_controller.rb`
+- `app/controllers/acme/app/sitemaps_controller.rb`
 
 For each:
 
-- Change parent class to `Apex::PublicController`.
+- Change parent class to `Acme::PublicController`.
 - Remove `skip_before_action :canonicalize_query_params, raise: false`.
 - Remove `skip_before_action :set_region, raise: false`.
 - Keep the existing `Health` / `Robots` / `Sitemap` concern include.
@@ -152,10 +152,10 @@ For each of the three boundaries, add or extend tests that prove the following o
 Run the existing controller tests for the migrated endpoints unchanged. They should continue to
 pass:
 
-- `test/controllers/apex/healths_controller_test.rb`
-- `test/controllers/apex/<tld>/healths_controller_test.rb`
-- `test/controllers/apex/<tld>/robots_controller_test.rb`
-- `test/controllers/apex/<tld>/sitemaps_controller_test.rb`
+- `test/controllers/acme/healths_controller_test.rb`
+- `test/controllers/acme/<tld>/healths_controller_test.rb`
+- `test/controllers/acme/<tld>/robots_controller_test.rb`
+- `test/controllers/acme/<tld>/sitemaps_controller_test.rb`
 - `test/controllers/sign/<tld>/healths_controller_test.rb`
 - `test/controllers/sign/<tld>/robots_controller_test.rb`
 - `test/controllers/sign/<tld>/sitemaps_controller_test.rb`
@@ -168,10 +168,10 @@ match the new base behavior rather than restoring the callback.
 ## Verification
 
 ```bash
-bin/rails test test/controllers/apex/healths_controller_test.rb \
-               test/controllers/apex/com \
-               test/controllers/apex/org \
-               test/controllers/apex/app \
+bin/rails test test/controllers/acme/healths_controller_test.rb \
+               test/controllers/acme/com \
+               test/controllers/acme/org \
+               test/controllers/acme/app \
                test/controllers/sign/com \
                test/controllers/sign/org \
                test/controllers/sign/app \
@@ -188,7 +188,7 @@ bin/rails test test/controllers/concerns/rate_limit_test.rb
 
 ## Acceptance
 
-- Three new base classes exist: `Apex::PublicController`, `Sign::PublicController`,
+- Three new base classes exist: `Acme::PublicController`, `Sign::PublicController`,
   `Jump::PublicController`, each inheriting from `ActionController::Base`.
 - All listed public endpoint controllers inherit from the appropriate
   `<Boundary>::PublicController`.

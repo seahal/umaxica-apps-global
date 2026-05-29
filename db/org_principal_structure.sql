@@ -2420,6 +2420,22 @@ ALTER TABLE ONLY public.ar_internal_metadata
 
 
 --
+-- Name: operators chk_operators_mfa_requirement_consistency; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.operators
+    ADD CONSTRAINT chk_operators_mfa_requirement_consistency CHECK ((((multi_factor_enabled = false) AND (multi_factor_id = 0)) OR ((multi_factor_enabled = true) AND (multi_factor_id <> 0)))) NOT VALID;
+
+
+--
+-- Name: operators chk_operators_withdrawal_order; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.operators
+    ADD CONSTRAINT chk_operators_withdrawal_order CHECK (((withdrawal_started_at IS NULL) OR (withdrawn_at IS NULL) OR (withdrawal_started_at <= withdrawn_at))) NOT VALID;
+
+
+--
 -- Name: department_statuses department_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3986,6 +4002,7 @@ ALTER TABLE ONLY public.operator_secrets
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528162001'),
 ('20260526090000'),
 ('20260521120000'),
 ('20260520193000'),

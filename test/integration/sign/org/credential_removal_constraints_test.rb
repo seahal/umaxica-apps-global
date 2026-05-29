@@ -7,6 +7,13 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
+  end
+
+  teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   test "email removal preserves contactability even when aal methods remain" do
@@ -109,7 +116,7 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     token = OperatorToken.where(staff: operator).first ||
       OperatorToken.create!(staff: operator, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(token)
-    token.update!(last_step_up_at: Time.current, last_step_up_scope: scope)
+    mark_token_step_up_satisfied_for_test(token, scope: scope)
     {
       "Host" => @host,
       "X-TEST-CURRENT-STAFF" => operator.id.to_s,

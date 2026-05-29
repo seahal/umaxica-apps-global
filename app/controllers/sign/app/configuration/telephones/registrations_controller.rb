@@ -143,10 +143,6 @@ module Sign
           end
 
           def record_telephone_registration_step_up!
-            current_session_token&.update!(
-              last_step_up_at: Time.current,
-              last_step_up_scope: verification_scope,
-            )
             create_audit_event!(ClientChronicleEvent::TELEPHONE_REGISTERED)
           end
 

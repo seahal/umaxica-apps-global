@@ -61,10 +61,6 @@ module Sign
           end
 
           def on_email_registration_verified!(*)
-            current_session_token&.update!(
-              last_step_up_at: Time.current,
-              last_step_up_scope: verification_scope,
-            )
             create_audit_event!(ClientChronicleEvent::EMAIL_REGISTERED)
           end
 

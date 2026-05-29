@@ -40,7 +40,7 @@ class OperatorIdentityTest < ActiveSupport::TestCase
     identity = OperatorIdentity.create!(
       issuer: "https://id.example.test",
       subject: "staff-subject-1",
-      audience: "apex_org",
+      audience: "acme_org",
       source_record_id: 201,
       status_id: OperatorIdentityState::ACTIVE,
     )
@@ -64,7 +64,7 @@ class OperatorIdentityTest < ActiveSupport::TestCase
     OperatorIdentity.create!(
       issuer: "https://id.example.test",
       subject: "staff-subject-2",
-      audience: "apex_org",
+      audience: "acme_org",
       source_record_id: 202,
       status_id: OperatorIdentityState::ACTIVE,
     )
@@ -72,7 +72,7 @@ class OperatorIdentityTest < ActiveSupport::TestCase
     duplicate = OperatorIdentity.new(
       issuer: "https://id.example.test",
       subject: "staff-subject-2",
-      audience: "apex_org",
+      audience: "acme_org",
       source_record_id: 203,
       status_id: OperatorIdentityState::ACTIVE,
     )
@@ -85,7 +85,7 @@ class OperatorIdentityTest < ActiveSupport::TestCase
     OperatorIdentity.create!(
       issuer: "https://id.example.test",
       subject: "staff-subject-3",
-      audience: "apex_org",
+      audience: "acme_org",
       source_record_id: 204,
       status_id: OperatorIdentityState::ACTIVE,
     )
@@ -93,7 +93,7 @@ class OperatorIdentityTest < ActiveSupport::TestCase
     duplicate = OperatorIdentity.new(
       issuer: "https://id.example.test",
       subject: "staff-subject-4",
-      audience: "apex_org",
+      audience: "acme_org",
       source_record_id: 204,
       status_id: OperatorIdentityState::ACTIVE,
     )

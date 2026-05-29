@@ -48,6 +48,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app") => "core/app/auth/callbacks",
       ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com") => "core/com/auth/callbacks",
       ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org") => "core/org/auth/callbacks",
+      "core.app.localhost" => "core/app/auth/callbacks",
+      "core.com.localhost" => "core/com/auth/callbacks",
+      "core.org.localhost" => "core/org/auth/callbacks",
     }
 
     expectations.each do |host, controller|

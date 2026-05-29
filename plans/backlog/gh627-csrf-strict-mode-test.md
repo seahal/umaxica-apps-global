@@ -35,7 +35,7 @@ for per-test enablement. Global strict mode is not yet enabled.
   CSRF mode for repeatable failure inventory without changing the default test environment.
 - `test/support/csrf_test_helpers.rb` provides shared `with_forgery_protection`, `csrf_headers`, and
   `json_csrf_headers` helpers.
-- Apex, Sign, and Jump public controller CSRF tests now use the shared helper and cover both missing
+- Acme, Sign, and Jump public controller CSRF tests now use the shared helper and cover both missing
   token rejection and valid token success.
 
 Still open:

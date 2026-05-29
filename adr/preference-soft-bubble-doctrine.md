@@ -21,7 +21,7 @@
 > initialized, so edits made in another environment are visible on the edit screen.
 >
 > **Surface write-boundary update (2026-05-19):** Preference setting writes belong to the `sign`
-> surfaces. `apex` and `jump` consume the resolved runtime preference through `Actor.preferences`
+> surfaces. `acme` and `jump` consume the resolved runtime preference through `Actor.preferences`
 > and must treat preference state as read-only. Request context overlays, RP rendering, and jump
 > redirects are not preference write paths.
 
@@ -99,7 +99,7 @@ cross-database synchronization boundary.
 
 `Actor::Preference` is the only runtime read interface for preference values. Application code
 (controllers, views, services) reads preference state via `Actor.preferences.<field>` and never
-reaches into per-DB preference models for runtime reads. This includes `apex` and `jump`, which are
+reaches into per-DB preference models for runtime reads. This includes `acme` and `jump`, which are
 preference consumers, not preference setting writers. The differences between DB shapes are absorbed
 at the `ActorSupport` boundary, not pushed up into callers.
 
@@ -121,7 +121,7 @@ to the current surface preference, and issue a fresh access-token JWT. This exce
 for preference screen entry; it is not a generic database fallback for normal pages or broken JWTs.
 
 Explicit preference setting writes still go to the per-DB models (since the bubbles are real), but
-those writes are owned by the `sign` preference surfaces. `apex` and `jump` must not persist
+those writes are owned by the `sign` preference surfaces. `acme` and `jump` must not persist
 preference changes; they may only consume `Actor.preferences` and apply request-local overlays that
 do not write the database or reissue JWTs. Read-side coupling to the per-DB models is to be removed
 over time.
@@ -168,7 +168,7 @@ The following are explicitly out of scope of this ADR and will be addressed in s
 - **B3** — `Preference::Adoption` role re-evaluation and possible reduction
 - **C3** — `Preference::ClassRegistry` duplication reduction (App / Com / Org entries abstracted
   instead of dropped)
-- **A5** — per-subdomain `Current` (jump / apex / sign) design, if needed
+- **A5** — per-subdomain `Current` (jump / acme / sign) design, if needed
 
 ## Related
 

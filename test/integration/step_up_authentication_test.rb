@@ -70,7 +70,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   end
 
   test "scope mismatch redirects to verification" do
-    @token.update!(last_step_up_at: 3.minutes.ago, last_step_up_scope: "withdrawal")
+    mark_step_up_satisfied!(@token, at: 3.minutes.ago, scope: "withdrawal")
 
     get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
 
@@ -84,7 +84,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   end
 
   test "step-up older than 15 minutes redirects to verification" do
-    @token.update!(last_step_up_at: 15.minutes.ago, last_step_up_scope: "configuration_email")
+    mark_step_up_satisfied!(@token, at: 15.minutes.ago, scope: "configuration_email")
 
     get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
 
@@ -97,7 +97,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
   test "step-up within TTL and matching scope passes through" do
     satisfy_user_verification(@token)
-    @token.update!(last_step_up_at: 10.minutes.ago, last_step_up_scope: "configuration_email")
+    mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "configuration_email")
 
     get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
 
@@ -119,10 +119,22 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
   test "HEAD step-up within TTL and matching scope passes through" do
     satisfy_user_verification(@token)
-    @token.update!(last_step_up_at: 10.minutes.ago, last_step_up_scope: "configuration_email")
+    mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "configuration_email")
 
     head sign_app_configuration_emails_url(ri: "jp"), headers: @headers
 
     assert_response :success
+  end
+
+  private
+
+  def mark_step_up_satisfied!(token, at:, scope:, method: "passkey", aal: "aal2")
+    token.update!(
+      last_step_up_at: at,
+      last_step_up_scope: scope,
+      last_step_up_aal: aal,
+      last_step_up_method: method,
+      last_step_up_session_public_id: token.public_id,
+    )
   end
 end

@@ -18,6 +18,8 @@ ja:
     email_successfully_created: メールアドレスの確認コードを送信しました。
     telephone_successfully_created: 電話番号の確認コードを送信しました。
     sample_successfully_updated: 登録が完了しました。
+  auth:
+    session_expired: セッションの有効期限が切れました。もう一度サインインしてください。
   test:
     error:
       key: テストエラー
@@ -286,6 +288,7 @@ ja:
       header: "%{model}に%{count}個のエラーが発生しました"
   auth:
     unauthorized: 権限がありません
+    session_expired: セッションの有効期限が切れました。もう一度サインインしてください。
     step_up:
       required: 続行するには本人確認が必要です。再認証してください。
       session_expired: 認証が必要です。
@@ -428,6 +431,7 @@ ja:
     com:
       registration:
         cancelled_retry_later: 登録をキャンセルしました。しばらくしてから再度お試しください。
+        session_missing: 登録セッションの有効期限が切れました。最初からやり直してください。
         new:
           page_title: アカウント登録
           page_description: "%{product} の利用をはじめるための登録方法を選択してください。"
@@ -575,6 +579,7 @@ ja:
           cannot_revoke_current: この方法で現在のセッションを無効化できません。キャンセルでログアウトしてください。
       registration:
         cancelled_retry_later: 登録をキャンセルしました。しばらくしてから再度お試しください。
+        session_missing: 登録セッションの有効期限が切れました。最初からやり直してください。
         email:
           flow:
             invalid: セッションの有効期限が切れました。
@@ -743,7 +748,7 @@ ja:
             success: 連携を解除しました。
           invalid_provider: 無効なプロバイダーが指定されました
           create:
-            success: "%{provider}で登録しました"
+            success: "%{provider}で登録を開始しました"
             already_registered: おかえりなさい！%{provider}でログインしました
             failure: ログインに失敗しました。もう一度お試しください。
           link:
@@ -2057,7 +2062,7 @@ ja:
         themes:
           updated: "%{theme} にテーマを更新しました"
           invalid: 無効なテーマが選択されました
-    apex:
+    acme:
       org:
         preferences:
           themes:
@@ -2066,7 +2071,7 @@ ja:
   custom:
     error:
       key: カスタムエラー
-  apex:
+  acme:
     org:
       preference:
         cookie:
@@ -2741,7 +2746,7 @@ ja:
     page_header:
       up_label_fallback: もどる
     links:
-      apex_preference: Apexの設定
+      acme_preference: Acmeの設定
   root:
     app:
       preference:
@@ -3150,7 +3155,7 @@ ja:
         open_settings: 設定する
         accept_all: すべて許可
   views:
-    apex:
+    acme:
       app:
         roots:
           index:

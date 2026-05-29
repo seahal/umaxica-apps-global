@@ -4,6 +4,7 @@
 module Email::Com
   class ApplicationMailer < ActionMailer::Base
     include PromotionalEmailUnsubscribeHeaders
+    include SafePromotionalCtaUrl
 
     default from: ENV.fetch("SMTP_FROM_ADDRESS_COM", "from@umaxica.com")
     layout "mailer/com/mailer"

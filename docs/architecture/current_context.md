@@ -5,7 +5,7 @@
 This document records the current request-context model for this Rails application.
 
 The request-local current context container is `Actor`. Do not introduce or restore `Current`,
-`Jumper`, `Apexer`, `Signer`, or other surface-specific current containers.
+`Jumper`, `Acmeer`, `Signer`, or other surface-specific current containers.
 
 ## Status
 

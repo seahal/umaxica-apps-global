@@ -156,7 +156,7 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
     OperatorIdentity.create!(
       issuer: "https://id.example.test",
       subject: label,
-      audience: "apex_org",
+      audience: "acme_org",
       source_record_id: Zlib.crc32(label),
       status_id: OperatorIdentityState::ACTIVE,
     )

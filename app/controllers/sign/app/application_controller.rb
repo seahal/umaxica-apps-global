@@ -71,9 +71,10 @@ module Sign
 
       private
 
-      # FIXME: i want to kill these codes.
-      # Redirect logged-in users from guest-only pages to the configuration page.
-      # Overrides Authentication::Base#after_login_path. ri is added automatically via default_url_options.
+      # App surface lands signed-in users on the dashboard rather than the
+      # default root, so that an already-logged-in user opening /sign/in or
+      # /sign/up arrives at something useful. ri is appended via
+      # default_url_options.
       def after_login_path
         sign_app_dashboard_path
       end

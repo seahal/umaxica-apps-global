@@ -23,7 +23,6 @@ class RetentionPurgeJob < ApplicationJob
     ClientStepUpSession OperatorStepUpSession VisitorStepUpSession
     AreaOccurrence ClientOccurrence VisitorOccurrence OperatorOccurrence ZipOccurrence
     DomainOccurrence IpOccurrence EmailOccurrence JwtOccurrence TelephoneOccurrence
-    AppJumpLink ComJumpLink OrgJumpLink
   ).filter_map(&:safe_constantize).freeze
 
   def perform(batch_size: 500)

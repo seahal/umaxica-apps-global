@@ -16,6 +16,19 @@ module Security
 
       EXCEPTION_STRATEGY = ActionController::RequestForgeryProtection::ProtectionMethods::Exception
       NULL_SESSION_STRATEGY = ActionController::RequestForgeryProtection::ProtectionMethods::NullSession
+      NULL_SESSION_CONTROLLER_ALLOWLIST = {
+        "app/controllers/sign/app/tokens_controller.rb" =>
+          /\Aprotect_from_forgery with: :null_session, only: :create\z/,
+        "app/controllers/sign/com/tokens_controller.rb" =>
+          /\Aprotect_from_forgery with: :null_session, only: :create\z/,
+        "app/controllers/sign/org/tokens_controller.rb" =>
+          /\Aprotect_from_forgery with: :null_session, only: :create\z/,
+      }.freeze
+      NULL_SESSION_ROUTE_ALLOWLIST = [
+        ["sign/app/oauth/tokens", "create"],
+        ["sign/com/oauth/tokens", "create"],
+        ["sign/org/oauth/tokens", "create"],
+      ].freeze
 
       SURFACE_BASE_CONTROLLERS = [
         Sign::App::ApplicationController,
@@ -24,16 +37,16 @@ module Security
         Sign::App::BareController,
         Sign::Com::BareController,
         Sign::Org::BareController,
-        Apex::App::ApplicationController,
-        Apex::Com::ApplicationController,
-        Apex::Dev::ApplicationController,
-        Apex::Net::ApplicationController,
-        Apex::Org::ApplicationController,
-        Apex::App::BareController,
-        Apex::Com::BareController,
-        Apex::Dev::BareController,
-        Apex::Net::BareController,
-        Apex::Org::BareController,
+        Acme::App::ApplicationController,
+        Acme::Com::ApplicationController,
+        Acme::Dev::ApplicationController,
+        Acme::Net::ApplicationController,
+        Acme::Org::ApplicationController,
+        Acme::App::BareController,
+        Acme::Com::BareController,
+        Acme::Dev::BareController,
+        Acme::Net::BareController,
+        Acme::Org::BareController,
         Jump::App::ApplicationController,
         Jump::Com::ApplicationController,
         Jump::Org::ApplicationController,
@@ -63,6 +76,7 @@ module Security
 
             content.each_line.with_index(1).filter_map do |line, line_number|
               next unless line.match?(/\bskip_forgery_protection\b|\bwith:\s*:null_session\b/)
+              next if csrf_pattern_allowlisted?(relative_path, line.strip)
 
               "#{relative_path}:#{line_number}: #{line.strip}"
             end
@@ -79,6 +93,7 @@ module Security
         violations =
           targets.filter_map do |target|
             next unless target.fetch(:controller_class).forgery_protection_strategy == NULL_SESSION_STRATEGY
+            next if null_session_route_allowlisted?(target)
 
             "#{target.fetch(:verb)} #{target.fetch(:path)} -> " \
               "#{target.fetch(:controller)}##{target.fetch(:action)}"
@@ -89,6 +104,17 @@ module Security
 
       test "csrf route coverage test remains present in the suite" do
         assert_path_exists Rails.root.join("test/controllers/security/csrf_route_coverage_test.rb")
+      end
+
+      private
+
+      def csrf_pattern_allowlisted?(relative_path, line)
+        pattern = NULL_SESSION_CONTROLLER_ALLOWLIST[relative_path]
+        pattern.present? && pattern.match?(line)
+      end
+
+      def null_session_route_allowlisted?(target)
+        NULL_SESSION_ROUTE_ALLOWLIST.include?([target.fetch(:controller), target.fetch(:action)])
       end
     end
   end

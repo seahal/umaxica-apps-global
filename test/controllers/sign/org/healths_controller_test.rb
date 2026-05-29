@@ -9,8 +9,9 @@ class Sign::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal "text/plain; charset=utf-8", response.headers["Content-Type"]
-    assert_includes response.body, "OK"
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/, response.body)
+    assert_includes response.body, "status=OK"
+    assert_includes response.body, "service=sign"
+    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, response.body)
   end
 
   test "GET /health returns OK html response" do
@@ -18,16 +19,18 @@ class Sign::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal "text/plain; charset=utf-8", response.headers["Content-Type"]
-    assert_includes response.body, "OK"
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/, response.body)
+    assert_includes response.body, "status=OK"
+    assert_includes response.body, "service=sign"
+    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, response.body)
   end
 
   test "GET /health returns OK json response" do
     get sign_org_health_url(format: :json, ri: "jp")
 
     assert_response :success
-    assert_includes response.body, "OK"
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/, response.body)
-    assert_match(/\)\s+\S+\z/, response.body)
+    assert_equal "OK", response.parsed_body["status"]
+    assert_equal "sign", response.parsed_body["service"]
+    assert response.parsed_body.key?("version")
+    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, response.parsed_body["time"])
   end
 end

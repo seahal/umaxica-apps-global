@@ -4,10 +4,10 @@
 require "test_helper"
 
 class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
-  test "apex surfaces define public file helpers" do
+  test "acme surfaces define public file helpers" do
     assert_public_file_helpers(
-      robots: %i(apex_com_robots_path apex_app_robots_path apex_org_robots_path),
-      sitemap: %i(apex_com_sitemap_path apex_app_sitemap_path apex_org_sitemap_path),
+      robots: %i(acme_com_robots_path acme_app_robots_path acme_org_robots_path),
+      sitemap: %i(acme_com_sitemap_path acme_app_sitemap_path acme_org_sitemap_path),
     )
   end
 
@@ -20,15 +20,15 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
 
   test "public file endpoints respond without redirect" do
     endpoints = [
-      [method(:apex_com_robots_url), ENV["APEX_CORPORATE_URL"] || "www.com.localhost", "robots"],
-      [method(:apex_app_robots_url), ENV["APEX_SERVICE_URL"] || "www.app.localhost", "robots"],
-      [method(:apex_org_robots_url), ENV["APEX_STAFF_URL"] || "www.org.localhost", "robots"],
+      [method(:acme_com_robots_url), ENV["ACME_CORPORATE_URL"] || "www.com.localhost", "robots"],
+      [method(:acme_app_robots_url), ENV["ACME_SERVICE_URL"] || "www.app.localhost", "robots"],
+      [method(:acme_org_robots_url), ENV["ACME_STAFF_URL"] || "www.org.localhost", "robots"],
       [method(:sign_com_robots_url), ENV["ID_CORPORATE_URL"] || "id.com.localhost", "robots"],
       [method(:sign_app_robots_url), ENV["ID_SERVICE_URL"] || "id.app.localhost", "robots"],
       [method(:sign_org_robots_url), ENV["ID_STAFF_URL"] || "id.org.localhost", "robots"],
-      [method(:apex_com_sitemap_url), ENV["APEX_CORPORATE_URL"] || "www.com.localhost", "sitemap"],
-      [method(:apex_app_sitemap_url), ENV["APEX_SERVICE_URL"] || "www.app.localhost", "sitemap"],
-      [method(:apex_org_sitemap_url), ENV["APEX_STAFF_URL"] || "www.org.localhost", "sitemap"],
+      [method(:acme_com_sitemap_url), ENV["ACME_CORPORATE_URL"] || "www.com.localhost", "sitemap"],
+      [method(:acme_app_sitemap_url), ENV["ACME_SERVICE_URL"] || "www.app.localhost", "sitemap"],
+      [method(:acme_org_sitemap_url), ENV["ACME_STAFF_URL"] || "www.org.localhost", "sitemap"],
       [method(:sign_com_sitemap_url), ENV["ID_CORPORATE_URL"] || "id.com.localhost", "sitemap"],
       [method(:sign_app_sitemap_url), ENV["ID_SERVICE_URL"] || "id.app.localhost", "sitemap"],
       [method(:sign_org_sitemap_url), ENV["ID_STAFF_URL"] || "id.org.localhost", "sitemap"],

@@ -4,7 +4,7 @@
 
 > Superseded by `adr/actor-current-facade.md`.
 >
-> The provisional per-surface `CurrentAttributes` direction (`Jumper`, and later `Apexer` /
+> The provisional per-surface `CurrentAttributes` direction (`Jumper`, and later `Acmeer` /
 > `Signer`) is abandoned. Current request context will be exposed to application code through the
 > unified `Actor` facade instead. This document is historical only.
 
@@ -14,7 +14,7 @@ The old engine-era Current boundary ADR is obsolete. The current application sti
 `Current < ActiveSupport::CurrentAttributes` that mixes actor, token, session, preference, domain,
 and observability state.
 
-Using that one `Current` object across `jump`, `apex`, and `sign` would make the object larger and
+Using that one `Current` object across `jump`, `acme`, and `sign` would make the object larger and
 would couple surfaces that have different runtime needs.
 
 `jump` is the right first boundary because it is almost blank:
@@ -22,7 +22,8 @@ would couple surfaces that have different runtime needs.
 - it is host-constrained by `JUMP_CORPORATE_URL`, `JUMP_SERVICE_URL`, and `JUMP_STAFF_URL`
 - it has no authenticated session requirement
 - it intentionally skips cookie session state
-- it redirects through `AppJumpLink`, `ComJumpLink`, or `OrgJumpLink`
+- legacy app-hosted JumpLink redirects have since been retired in favor of the
+  external Jump gateway and signed `rt` tokens
 
 At the same time, jump still needs request-local state that is thread-safe under Rails' executor and
 Puma's concurrent request model.
@@ -33,7 +34,7 @@ Introduce a separate jump request context named `Jumper`.
 
 The name `Jumper` is a provisional implementation name for the jump-first pass. It is accepted for
 this pass so implementation can proceed, but it is not a permanent naming decision for the full
-`jump` / `sign` / `apex` CurrentAttributes family.
+`jump` / `sign` / `acme` CurrentAttributes family.
 
 `Jumper` will be an independent `ActiveSupport::CurrentAttributes` class:
 
@@ -42,7 +43,7 @@ class Jumper < ActiveSupport::CurrentAttributes
 end
 ```
 
-It must not inherit from `Current`. `Current` remains the existing sign/apex runtime context until a
+It must not inherit from `Current`. `Current` remains the existing sign/acme runtime context until a
 separate decision replaces or splits it.
 
 Actor helper behavior should be shared through a Rails concern, not inheritance. The shared concern
@@ -67,12 +68,12 @@ For the first implementation pass, `Jumper` is jump-only and minimal:
 
 `Jumper` remains the name for the first jump implementation.
 
-The broader naming scheme is deferred. We considered names such as `Signature`, `Signer`, `Apexer`,
-`ApexCurrent`, and namespace-based `Jump::Current` / `Sign::Current` / `Apex::Current`, but this ADR
+The broader naming scheme is deferred. We considered names such as `Signature`, `Signer`, `Acmeer`,
+`AcmeCurrent`, and namespace-based `Jump::Current` / `Sign::Current` / `Acme::Current`, but this ADR
 does not adopt any of them.
 
 Future work should revisit naming across all three surfaces together. Until that happens, do not
-introduce sign or apex CurrentAttributes classes and do not rename `Jumper` as part of unrelated
+introduce sign or acme CurrentAttributes classes and do not rename `Jumper` as part of unrelated
 work.
 
 ## Surface Scope
@@ -86,9 +87,9 @@ requests. Existing jump redirect behavior remains unchanged.
 
 ### Deferred
 
-`sign` and `apex` Current branching is intentionally deferred.
+`sign` and `acme` Current branching is intentionally deferred.
 
-Future work may decide whether sign and apex should:
+Future work may decide whether sign and acme should:
 
 - keep using the current `Current`
 - receive separate CurrentAttributes classes
@@ -100,8 +101,8 @@ This ADR does not decide that future shape.
 
 - Jump gets an isolated request-local context without growing the existing `Current`.
 - The actor helper contract can be reused without making `Jumper` a subclass of `Current`.
-- Sign and apex continue to behave as they do today.
-- Any future sign/apex split can be designed from observed usage instead of being forced by the jump
+- Sign and acme continue to behave as they do today.
+- Any future sign/acme split can be designed from observed usage instead of being forced by the jump
   implementation.
 
 ## Related

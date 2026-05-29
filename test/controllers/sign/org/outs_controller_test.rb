@@ -172,9 +172,9 @@ class Sign::Org::OutsControllerTest < ActionDispatch::IntegrationTest
     token = OperatorToken.create!(staff: @staff)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    legacy_rt = Base64.urlsafe_encode64(sign_org_configuration_path(ri: "jp"))
+    legacy_pt = Base64.urlsafe_encode64(sign_org_configuration_path(ri: "jp"))
 
-    delete sign_org_out_url(ri: "jp", pt: legacy_rt),
+    delete sign_org_out_url(ri: "jp", pt: legacy_pt),
            headers: { "Host" => @host,
                       "X-TEST-CURRENT-STAFF" => @staff.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }

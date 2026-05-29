@@ -62,23 +62,23 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
     assert_predicate CoreAppClientBridge.find_by!(client_id: client.id), :core?
   end
 
-  test "apex com callback provisioning records visitor identity without a core bridge" do
+  test "acme com callback provisioning records visitor identity without a core bridge" do
     visitor = Visitor.create!
     VisitorIdentity.where(source_record_id: visitor.id).delete_all
-    controller = Apex::Com::Auth::CallbacksController.new
+    controller = Acme::Com::Auth::CallbacksController.new
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
         "iss" => "umaxica-auth:visitor",
         "sub" => visitor.id.to_s,
-        "aud" => "apex_com",
+        "aud" => "acme_com",
       },
     )
 
     identity = VisitorIdentity.find_by!(source_record_id: visitor.id)
 
     assert_equal visitor, actor
-    assert_equal "apex_com", identity.audience
+    assert_equal "acme_com", identity.audience
     assert_equal VisitorIdentityState::ACTIVE, identity.status_id
     assert_nil CoreComVisitorBridge.find_by(visitor_id: visitor.id)
   end

@@ -87,6 +87,8 @@ module ActorSupport
 
     current_resource
   rescue StandardError => e
+    return nil if respond_to?(:authentication_credentials_invalid?, true) && authentication_credentials_invalid?
+
     raise_actor_resolution_error!(:current_resource, e)
   end
 

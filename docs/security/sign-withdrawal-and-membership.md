@@ -47,7 +47,7 @@ The user-visible sequence is distinct from the state-machine status names.
      state.
    - The cycle transitions through `CLOSING`.
    - RP/OIDC actions should reject the actor after this point.
-   - Normal sign/apex access should be constrained to withdrawal/status/recovery paths as
+   - Normal sign/acme access should be constrained to withdrawal/status/recovery paths as
      appropriate for the surface.
 
 3'. Logical deletion and recovery window

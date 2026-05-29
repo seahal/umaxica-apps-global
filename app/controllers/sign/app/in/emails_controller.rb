@@ -156,32 +156,35 @@ module Sign
         end
 
         def load_user_email
-          if session[:user_email_authentication_id].present?
-            @user_email = load_session_record(
-              :user_email_authentication_id,
-              ClientEmail,
-              check_otp_expiry: false,
-              custom: ->(email) { email.present? && !email.otp_expired? },
-              includes: %i(user_email_status user),
-            )
+          state = email_authentication_state
+          return redirect_to_email_session_expired if state.nil?
 
-            unless @user_email
-              flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-              redirect_to(new_sign_app_in_email_path(pt: peek_pt))
-              return
-            end
+          if state.existing?
+            @user_email = find_existing_email_for_verification(state.id)
+            return redirect_to_email_session_expired if @user_email.nil?
+
             @otp_resend_state = Sign::In::OtpResendState.issue(kind: :email, target: @user_email.address)
-          elsif session[:user_email_authentication_address].present?
-            @user_email = ClientEmail.new(address: session[:user_email_authentication_address])
-            @otp_resend_state = Sign::In::OtpResendState.issue(
-              kind: :email,
-              target: session[:user_email_authentication_address],
-            )
           else
-
-            flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-            redirect_to(new_sign_app_in_email_path(pt: peek_pt))
+            @user_email = ClientEmail.new(address: state.address)
+            @otp_resend_state = Sign::In::OtpResendState.issue(kind: :email, target: state.address)
           end
+        end
+
+        def email_authentication_state
+          Sign::App::In::EmailAuthenticationState.load(session)
+        end
+
+        def find_existing_email_for_verification(id)
+          scope = ClientEmail.includes(:user_email_status, :user)
+          email = defined?(Prosopite) ? Prosopite.pause { scope.find_by(id: id) } : scope.find_by(id: id)
+          return nil if email.blank? || email.otp_expired?
+
+          email
+        end
+
+        def redirect_to_email_session_expired
+          flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
+          redirect_to(new_sign_app_in_email_path(pt: peek_pt))
         end
 
         def process_email_authentication(normalized_address)
@@ -197,8 +200,7 @@ module Sign
               return
             end
 
-            session[:user_email_authentication_id] = existing_email.id
-            session[:user_email_authentication_address] = nil
+            Sign::App::In::EmailAuthenticationState.store_existing!(session, existing_email)
 
             return :ok if existing_email.locked?
             return :cooldown if otp_request_rate_limited?(existing_email)
@@ -213,15 +215,15 @@ module Sign
             # Dummy work to simulate OTP generation for timing attack protection
             perform_dummy_otp_generation
 
-            session[:user_email_authentication_id] = nil
-            session[:user_email_authentication_address] = normalized_address
+            Sign::App::In::EmailAuthenticationState.store_dummy!(session, normalized_address)
           end
 
           :ok
         end
 
         def verify_otp_and_login(user_email)
-          if session[:user_email_authentication_id].present?
+          state = email_authentication_state
+          if state&.existing?
             verify_existing_email_otp(user_email)
           else
             verify_dummy_otp(user_email)
@@ -238,7 +240,7 @@ module Sign
             end
 
             clear_otp(user_email)
-            session[:user_email_authentication_id] = nil
+            Sign::App::In::EmailAuthenticationState.clear!(session)
             pt = peek_pt
             result = establish_signed_in_session!(
               user, pt: pt, ri: params[:ri], auth_method: "email",

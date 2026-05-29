@@ -26,7 +26,9 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
     uri = URI.parse(result.redirect_url)
     query = URI.decode_www_form(uri.query).to_h
 
-    assert_equal @redirect_uri.split("?").first, "#{uri.scheme}://#{uri.host}:#{uri.port}#{uri.path}"
+    expected_uri = URI.parse(@redirect_uri)
+    assert_equal "#{expected_uri.scheme}://#{expected_uri.host}#{expected_uri.path}",
+                 "#{uri.scheme}://#{uri.host}#{uri.path}"
     assert_predicate query["code"], :present?
     assert_equal "test_state", query["state"]
   end

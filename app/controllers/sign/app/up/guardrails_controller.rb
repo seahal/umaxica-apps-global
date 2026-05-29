@@ -16,7 +16,7 @@ module Sign
           result = perform_sign_up_event(:enter_guardrail)
           return render_sign_up_result(result) unless result.status == :advanced
 
-          redirect_to(sign_app_up_checkpoint_path(ri: params[:ri], pt: params[:pt].presence))
+          redirect_to(sign_app_up_checkpoint_path(ri: params[:ri], pt: signed_pt_param))
         end
 
         private

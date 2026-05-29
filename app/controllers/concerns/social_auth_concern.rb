@@ -23,7 +23,7 @@ module SocialAuthConcern
   SOCIAL_STARTED_AT_SESSION_KEY = :social_auth_started_at
   SOCIAL_FLOW_ID_SESSION_KEY = :social_auth_flow_id
   SOCIAL_PROVIDER_SESSION_KEY = :social_auth_provider
-  SOCIAL_RT_SESSION_KEY = :social_auth_rt
+  SOCIAL_PT_SESSION_KEY = :social_auth_pt
   SOCIAL_ENTRY_SESSION_KEY = :social_auth_entry
   SOCIAL_RI_SESSION_KEY = :social_auth_ri
   STATE_TTL = 5.minutes
@@ -70,9 +70,9 @@ module SocialAuthConcern
     session[SOCIAL_ENTRY_SESSION_KEY] = entry if entry.present?
     session[SOCIAL_RI_SESSION_KEY] = ri if ri.present?
     if pt.present?
-      session[SOCIAL_RT_SESSION_KEY] = pt
+      session[SOCIAL_PT_SESSION_KEY] = pt
     else
-      session.delete(SOCIAL_RT_SESSION_KEY)
+      session.delete(SOCIAL_PT_SESSION_KEY)
     end
   end
 
@@ -122,8 +122,8 @@ module SocialAuthConcern
     session[SOCIAL_INTENT_SESSION_KEY] || "login"
   end
 
-  def current_social_auth_rt
-    session[SOCIAL_RT_SESSION_KEY].presence
+  def current_social_auth_pt
+    session[SOCIAL_PT_SESSION_KEY].presence
   end
 
   def current_social_auth_entry
@@ -140,7 +140,7 @@ module SocialAuthConcern
     session.delete(SOCIAL_STARTED_AT_SESSION_KEY)
     session.delete(SOCIAL_FLOW_ID_SESSION_KEY)
     session.delete(SOCIAL_PROVIDER_SESSION_KEY)
-    session.delete(SOCIAL_RT_SESSION_KEY)
+    session.delete(SOCIAL_PT_SESSION_KEY)
     session.delete(SOCIAL_ENTRY_SESSION_KEY)
     session.delete(SOCIAL_RI_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY)
@@ -172,7 +172,7 @@ module SocialAuthConcern
   def process_social_auth_callback
     auth_hash = omniauth_auth_hash
     intent = current_social_auth_intent
-    pt = current_social_auth_rt
+    pt = current_social_auth_pt
     entry = current_social_auth_entry
 
     result = SocialAuthService.handle_callback(

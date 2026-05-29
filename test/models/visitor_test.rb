@@ -49,6 +49,36 @@
 require "test_helper"
 
 class VisitorTest < ActiveSupport::TestCase
+  test "multi_factor_enabled and multi_factor_id must describe the same requirement" do
+    visitor = Visitor.new(multi_factor_enabled: true, multi_factor_id: VisitorMultiFactor::NOTHING)
+
+    assert_not visitor.valid?
+    assert_not_empty visitor.errors[:multi_factor_id]
+
+    visitor = Visitor.new(multi_factor_enabled: false, multi_factor_id: VisitorMultiFactor::FULL)
+
+    assert_not visitor.valid?
+    assert_not_empty visitor.errors[:multi_factor_enabled]
+  end
+
+  test "termination requires finite withdrawal completion" do
+    visitor = Visitor.new(terminated_at: Time.current)
+
+    assert_not visitor.valid?
+    assert_not_empty visitor.errors[:terminated_at]
+
+    visitor.withdrawn_at = 1.minute.ago
+
+    assert_predicate visitor, :valid?
+  end
+
+  test "withdrawal completion cannot precede withdrawal start" do
+    visitor = Visitor.new(withdrawal_started_at: Time.current, withdrawn_at: 1.minute.ago)
+
+    assert_not visitor.valid?
+    assert_not_empty visitor.errors[:withdrawn_at]
+  end
+
   def setup
     Prosopite.pause do
       VisitorMultiFactor.ensure_defaults!

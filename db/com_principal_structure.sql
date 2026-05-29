@@ -1739,6 +1739,30 @@ ALTER TABLE public.visitor_telephones
 
 
 --
+-- Name: visitors chk_visitors_mfa_requirement_consistency; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.visitors
+    ADD CONSTRAINT chk_visitors_mfa_requirement_consistency CHECK ((((multi_factor_enabled = false) AND (multi_factor_id = 0)) OR ((multi_factor_enabled = true) AND (multi_factor_id <> 0)))) NOT VALID;
+
+
+--
+-- Name: visitors chk_visitors_terminated_requires_withdrawn; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.visitors
+    ADD CONSTRAINT chk_visitors_terminated_requires_withdrawn CHECK (((terminated_at IS NULL) OR ((withdrawn_at IS NOT NULL) AND (withdrawn_at < 'infinity'::timestamp without time zone)))) NOT VALID;
+
+
+--
+-- Name: visitors chk_visitors_withdrawal_order; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.visitors
+    ADD CONSTRAINT chk_visitors_withdrawal_order CHECK (((withdrawal_started_at IS NULL) OR (withdrawn_at IS NULL) OR (withdrawn_at = 'infinity'::timestamp without time zone) OR (withdrawal_started_at <= withdrawn_at))) NOT VALID;
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2957,6 +2981,7 @@ ALTER TABLE ONLY public.visitor_preference_themes
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528162002'),
 ('20260526090000'),
 ('20260525131000'),
 ('20260525120000'),

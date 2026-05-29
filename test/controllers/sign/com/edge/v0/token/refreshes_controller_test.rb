@@ -74,6 +74,22 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_equal "restricted_session", response.parsed_body["error_code"]
   end
 
+  test "POST refresh with cookie token and missing CSRF is rejected when forgery protection is enabled" do
+    token_record = VisitorToken.create!(visitor: @visitor)
+    refresh_plain = token_record.rotate_refresh_token!
+
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    with_forgery_protection do
+      post "/edge/v0/token/refresh",
+           headers: json_headers_without_csrf,
+           as: :json
+    end
+
+    assert_response :unprocessable_content
+    assert_nil token_record.reload.rotated_at
+  end
+
   private
 
   def json_headers
@@ -81,6 +97,13 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       "Host" => @host,
       "Accept" => "application/json",
       "X-CSRF-Token" => @csrf_token,
+    }
+  end
+
+  def json_headers_without_csrf
+    {
+      "Host" => @host,
+      "Accept" => "application/json",
     }
   end
 

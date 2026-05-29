@@ -53,6 +53,13 @@ class Sign::Com::UpsControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
+  test "checkpoint without active registration redirects to sign up start" do
+    get sign_com_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+    assert_redirected_to new_sign_com_up_url(ri: "jp")
+    assert_equal I18n.t("sign.com.registration.session_missing"), flash[:alert]
+  end
+
   private
 
   def default_headers

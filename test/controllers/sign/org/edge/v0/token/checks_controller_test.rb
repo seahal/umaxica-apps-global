@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "support/auth_helpers"
 
 class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_tokens, :clients

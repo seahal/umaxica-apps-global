@@ -33,12 +33,10 @@ module Auth
       RI = :ri
       PT = :pt
       NT = :nt
-      XT = :xt
 
       public_constant :RI
       public_constant :PT
       public_constant :NT
-      public_constant :XT
     end
 
     module Session

@@ -97,7 +97,7 @@ class VisitorIdentityTest < ActiveSupport::TestCase
     identity = VisitorIdentity.create!(
       issuer: "https://id.example.test",
       subject: "client-subject-1",
-      audience: "apex_com",
+      audience: "acme_com",
       source_record_id: 301,
       status_id: VisitorIdentityState::ACTIVE,
     )
@@ -121,7 +121,7 @@ class VisitorIdentityTest < ActiveSupport::TestCase
     VisitorIdentity.create!(
       issuer: "https://id.example.test",
       subject: "client-subject-2",
-      audience: "apex_com",
+      audience: "acme_com",
       source_record_id: 302,
       status_id: VisitorIdentityState::ACTIVE,
     )
@@ -129,7 +129,7 @@ class VisitorIdentityTest < ActiveSupport::TestCase
     duplicate = VisitorIdentity.new(
       issuer: "https://id.example.test",
       subject: "client-subject-2",
-      audience: "apex_com",
+      audience: "acme_com",
       source_record_id: 303,
       status_id: VisitorIdentityState::ACTIVE,
     )
@@ -142,7 +142,7 @@ class VisitorIdentityTest < ActiveSupport::TestCase
     VisitorIdentity.create!(
       issuer: "https://id.example.test",
       subject: "client-subject-3",
-      audience: "apex_com",
+      audience: "acme_com",
       source_record_id: 304,
       status_id: VisitorIdentityState::ACTIVE,
     )
@@ -150,7 +150,7 @@ class VisitorIdentityTest < ActiveSupport::TestCase
     duplicate = VisitorIdentity.new(
       issuer: "https://id.example.test",
       subject: "client-subject-4",
-      audience: "apex_com",
+      audience: "acme_com",
       source_record_id: 304,
       status_id: VisitorIdentityState::ACTIVE,
     )

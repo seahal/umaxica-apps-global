@@ -118,9 +118,14 @@ not the public internal-return contract. Existing OIDC protocol fields named `re
 protocol inputs, but they must resolve through the OIDC client registry and external-target boundary
 before any cross-host redirect.
 
-Remaining `rt` and `return_to` uses in sign-in, sign-up, step-up, logout, social, and jump flows are
-migration debt. They must either move to `pt`, `nt`, or `xt`, or be isolated with an owning-flow
-reason until that flow is rebuilt.
+Jump URL `?rt=` is the only allowed replacement for legacy `return_to` handoff across a jump
+boundary. The `rt` value is never a raw URL. It must be a signed, short-lived redirect token with
+issuer, purpose, and audience validation. Raw `return_to`, raw `redirect_uri`, and raw external URLs
+must not be copied into `?rt=`.
+
+Remaining raw `rt` and `return_to` uses in sign-in, sign-up, step-up, logout, social, and jump flows
+are migration debt. They must either issue a signed Jump URL `rt` token or be isolated with an
+owning-flow reason until that flow is rebuilt.
 
 ## Audit
 

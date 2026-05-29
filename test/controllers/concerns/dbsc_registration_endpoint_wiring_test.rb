@@ -9,10 +9,10 @@ class DbscRegistrationEndpointWiringTest < ActiveSupport::TestCase
     assert_includes Sign::Org::Edge::V0::Token::DbscController, Sign::DbscRegistrationEndpoint
   end
 
-  test "apex dbsc controllers use shared preference registration endpoint concern" do
-    assert_includes Apex::App::Edge::V0::DbscController, Preference::DbscRegistrationEndpoint
-    assert_includes Apex::Org::Edge::V0::DbscController, Preference::DbscRegistrationEndpoint
-    assert_includes Apex::Com::Edge::V0::DbscController, Preference::DbscRegistrationEndpoint
+  test "acme dbsc controllers use shared preference registration endpoint concern" do
+    assert_includes Acme::App::Edge::V0::DbscController, Preference::DbscRegistrationEndpoint
+    assert_includes Acme::Org::Edge::V0::DbscController, Preference::DbscRegistrationEndpoint
+    assert_includes Acme::Com::Edge::V0::DbscController, Preference::DbscRegistrationEndpoint
   end
 
   test "controllers do not redefine dbsc registration internals locally" do
@@ -20,13 +20,13 @@ class DbscRegistrationEndpointWiringTest < ActiveSupport::TestCase
       Sign::App::Edge::V0::Token::DbscController,
       Sign::Org::Edge::V0::Token::DbscController,
     ]
-    apex_controllers = [
-      Apex::App::Edge::V0::DbscController,
-      Apex::Org::Edge::V0::DbscController,
-      Apex::Com::Edge::V0::DbscController,
+    acme_controllers = [
+      Acme::App::Edge::V0::DbscController,
+      Acme::Org::Edge::V0::DbscController,
+      Acme::Com::Edge::V0::DbscController,
     ]
 
-    (sign_controllers + apex_controllers).each do |controller|
+    (sign_controllers + acme_controllers).each do |controller|
       assert_not_includes controller.instance_methods(false), :handle_registration
       assert_not_includes controller.instance_methods(false), :handle_bound_cookie_refresh
       assert_not_includes controller.instance_methods(false), :dbsc_cookie_attributes_string

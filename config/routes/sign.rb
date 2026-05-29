@@ -56,7 +56,7 @@ scope module: :sign, as: :sign do
         # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
         namespace :__dev, module: :dev, path: "__dev" do
           namespace :r18 do
-            resource :open, only: %i(show create), controller: "open"
+            resource :open, only: %i(show create), controller: "open_smokes"
             resource :private, only: %i(show create), controller: "private"
           end
         end

@@ -41,7 +41,8 @@ module Jit
         private
 
         def test_override_allowed?
-          defined?(Rails) && Rails.env.test?
+          defined?(Rails) &&
+            Rails.configuration.x.security.try(:allow_turnstile_validation_override) == true
         end
 
         def assert_test_override_allowed!

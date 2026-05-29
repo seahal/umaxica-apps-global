@@ -5,13 +5,13 @@
   </div>
 
   <h1>
-    <%= t("apex.app.preference.timezone.edit.heading") %>
+    <%= t("acme.app.preference.timezone.edit.heading") %>
   </h1>
   <p>
-    <%= t("apex.app.preference.timezone.edit.description") %>
+    <%= t("acme.app.preference.timezone.edit.description") %>
   </p>
 
-  <% timezone_labels = I18n.t("apex.app.preference.locale.edit.timezone_options") %>
+  <% timezone_labels = I18n.t("acme.app.preference.locale.edit.timezone_options") %>
   <% timezone_options = AppPreferenceTimezoneOption.order(:id).map do |option|
     label_key = case option.name
                 when "Etc/UTC" then "UTC"
@@ -24,7 +24,7 @@
   <%= form_with model: @preference_timezone, scope: :preference_timezone, url: sign_app_preference_region_timezone_path, method: :patch do |f| %>
     <div>
       <%= f.label :option_id,
-                  t("apex.app.preference.timezone.edit.timezone_label") %>
+                  t("acme.app.preference.timezone.edit.timezone_label") %>
       <div>
         <%= f.select :option_id,
                      options_for_select(timezone_options, @preference_timezone.option_id),
@@ -34,9 +34,9 @@
     </div>
 
     <div>
-      <%= f.submit t("apex.app.preferences.update_settings"),
-                   data: { turbo_submits_with: t("apex.app.preferences.submitting") } %>
-      <%= link_to t("apex.app.preferences.region_settings"), edit_sign_app_preference_region_path %>
+      <%= f.submit t("acme.app.preferences.update_settings"),
+                   data: { turbo_submits_with: t("acme.app.preferences.submitting") } %>
+      <%= link_to t("acme.app.preferences.region_settings"), edit_sign_app_preference_region_path %>
     </div>
   <% end %>
 

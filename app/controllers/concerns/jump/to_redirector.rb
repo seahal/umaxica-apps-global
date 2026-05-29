@@ -16,41 +16,15 @@ module Jump::ToRedirector
   end
 
   def show
-    if params[:jt].present?
-      destination = verified_jump_target(params[:jt])
-      return render_not_found if destination.blank?
+    return render_not_found if params[:jt].blank?
 
-      response.set_header("Referrer-Policy", "no-referrer")
-      return Rails.logger.silence do
-        redirect_to_xt_url(destination.fetch("url"), allowed_urls: [destination.fetch("url")])
-      end
-    end
-
-    jump_link_model = self.class::JUMP_LINK_MODEL
-    jump_link = jump_link_model.find_by(public_id: params[:public_id])
-    return render_not_found if jump_link.blank?
-
-    destination_url =
-      RedirectorRecord.connected_to(role: :writing) do
-        jump_link.consume_destination_for(user: nil)
-      end
-    return render_not_found if destination_url.blank?
-
-    # Validate destination URL against allowlist
-    unless validate_destination_url!(destination_url)
-      Rails.logger.info(
-        LogEvent.format(
-          "redirect.blocked", host: extract_host(destination_url),
-                              public_id: params[:public_id],
-        ),
-      )
-      return render_not_found
-    end
+    destination = verified_jump_target(params[:jt])
+    return render_not_found if destination.blank?
 
     response.set_header("Referrer-Policy", "no-referrer")
 
     Rails.logger.silence do
-      redirect_to_xt_url(destination_url, allowed_urls: [destination_url])
+      redirect_to_external_jump_url(destination.fetch("url"), allowed_urls: [destination.fetch("url")])
     end
   end
 
@@ -62,17 +36,6 @@ module Jump::ToRedirector
 
   def disable_cookie_session
     request.session_options[:skip] = true
-  end
-
-  # Validates destination URL scheme and host against allowlist
-  def validate_destination_url!(url)
-    safe_jump_destination(url).present?
-  end
-
-  def extract_host(url)
-    URI.parse(url).host
-  rescue URI::InvalidURIError
-    nil
   end
 
   # Check if the URI's host is in the allowed list

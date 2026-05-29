@@ -175,9 +175,14 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_select "input[type=date][name=birthdate]"
 
+    cycle = ClientSignUpCycle.find_by!(principal_id: user.id)
     patch(
       sign_app_up_checkpoint_birthdate_url(ri: "jp"),
-      params: { requirement: "birthdate", birthdate: "2000-02-03" },
+      params: {
+        requirement: "birthdate",
+        birthdate: "2000-02-03",
+        checkpoint_version: cycle.checkpoint_version,
+      },
       headers: browser_headers.merge(@callback_headers),
     )
 
@@ -211,10 +216,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
+    assert_redirected_to sign_app_in_checkpoint_url(ri: "jp")
     follow_redirect!
 
-    assert_response :success
+    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
     identity.reload
 
     assert_equal user.id, identity.user_id
@@ -329,7 +334,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   def delete_with_verified_session(user, config)
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(token)
-    token.update!(last_step_up_at: Time.current, last_step_up_scope: "social_unlink")
+    mark_token_step_up_satisfied_for_test(token, scope: "social_unlink")
 
     delete(
       sign_app_social_authentication_url(provider: config.fetch(:provider), ri: "jp"),

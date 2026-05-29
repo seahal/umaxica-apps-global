@@ -20,7 +20,7 @@ if should_smoke_test && !Rails.env.test?
   begin
     REDIS_CLIENT.ping
   rescue StandardError => e
-    Rails.logger.error("❌ Redis connection failed: #{e.class}: #{e.message} (url=#{default_redis_url})")
+    Rails.logger.error("❌ Redis connection failed: #{e.class}: #{e.message}")
     raise e if fail_fast
   end
 end

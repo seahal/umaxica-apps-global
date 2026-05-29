@@ -95,10 +95,18 @@ module Authentication
           end
         return if result.blocking?
 
-        cycle.reload.update!(
-          status_id: cycle.status_id_for("DASHBOARD_PENDING"),
-          step: "dashboard",
-        )
+        with_sign_in_cycle_writing(cycle) do
+          changes = {
+            status_id: cycle.status_id_for("DASHBOARD_PENDING"),
+            state: "DASHBOARD_PENDING",
+            step: "dashboard",
+          }
+          changes[:token] =
+            current_session if cycle.has_attribute?(:token_id) && cycle.token_id.blank? && current_session
+          changes[:session_issued_at] = Time.current if cycle.has_attribute?(:session_issued_at)
+
+          cycle.reload.update!(changes)
+        end
         redirect_to(issue_welcome_gate_and_path(pt: cycle.return_to, sequence_id: cycle.public_id))
         return
       end
@@ -112,7 +120,7 @@ module Authentication
 
       return if bulletin_state.present?
 
-      redirect_after_checkpoint_sequence!(pt: path_target_value)
+      redirect_after_checkpoint_sequence!(pt: signed_pt_param)
     end
 
     # rubocop:disable Metrics/AbcSize
@@ -137,6 +145,8 @@ module Authentication
       return reject_invalid_sign_in_sequence! unless cycle.sign_in_dashboard_pending? || cycle.sign_in_return_pending?
       return redirect_to(after_welcome_path) unless welcome_gate_available?
       return redirect_to(after_welcome_path) unless consume_welcome_gate!(sequence_id: cycle.public_id)
+
+      bind_current_session_to_sign_in_cycle!(cycle)
       return reject_invalid_sign_in_sequence! unless allowed_to?(:show_dashboard?, cycle)
 
       if cycle.sign_in_dashboard_pending?
@@ -169,7 +179,7 @@ module Authentication
       sign_in_sequence_carrier.complete! if sign_in_sequence_carrier.current.participant == "dashboard"
       return redirect_to(after_welcome_path) unless consume_welcome_gate!
 
-      destination = path_from_signed_pt(signed_pt_token(path_target_value)) || after_welcome_path
+      destination = path_from_signed_pt(path_target_value) || after_welcome_path
       clear_welcome_gate!
       sign_in_sequence_carrier.clear!
       @welcome_next_path = destination
@@ -468,6 +478,18 @@ module Authentication
       end
       sign_in_cycle_locator_for(actor: resource).issue!(cycle.reload)
       result
+    end
+
+    def bind_current_session_to_sign_in_cycle!(cycle)
+      return unless cycle.has_attribute?(:token_id)
+      return if cycle.token_id.present?
+      return unless current_session
+
+      with_sign_in_cycle_writing(cycle) do
+        changes = { token: current_session }
+        changes[:session_issued_at] = Time.current if cycle.has_attribute?(:session_issued_at)
+        cycle.reload.update!(changes)
+      end
     end
 
     def advance_cycle_to_checkpoint_after_active_session!(cycle, resource, token)

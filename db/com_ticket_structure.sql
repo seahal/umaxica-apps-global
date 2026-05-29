@@ -742,6 +742,11 @@ CREATE UNLOGGED TABLE public.visitor_tokens (
     oidc_sid uuid DEFAULT gen_random_uuid(),
     oidc_jti uuid DEFAULT gen_random_uuid(),
     device_session_id bigint,
+    last_step_up_aal character varying,
+    last_step_up_method character varying,
+    last_step_up_purpose character varying,
+    last_step_up_audience character varying,
+    last_step_up_session_public_id character varying,
     CONSTRAINT chk_customer_tokens_kind_id_positive CHECK ((visitor_token_kind_id >= 0)),
     CONSTRAINT chk_customer_tokens_status_id_positive CHECK ((visitor_token_status_id >= 0))
 );
@@ -924,6 +929,50 @@ ALTER TABLE ONLY public.visitor_verifications ALTER COLUMN id SET DEFAULT nextva
 
 ALTER TABLE ONLY public.ar_internal_metadata
     ADD CONSTRAINT ar_internal_metadata_pkey PRIMARY KEY (key);
+
+
+--
+-- Name: visitor_sign_in_cycles chk_visitor_sign_in_cycles_status_state; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.visitor_sign_in_cycles
+    ADD CONSTRAINT chk_visitor_sign_in_cycles_status_state CHECK (((state)::text =
+CASE status_id
+    WHEN 10 THEN 'PRIMARY_PENDING'::text
+    WHEN 20 THEN 'MFA_PENDING'::text
+    WHEN 30 THEN 'SESSION_LIMIT_PENDING'::text
+    WHEN 40 THEN 'GUARDRAIL_PENDING'::text
+    WHEN 50 THEN 'SESSION_ISSUANCE_PENDING'::text
+    WHEN 60 THEN 'CHECKPOINT_PENDING'::text
+    WHEN 65 THEN 'SELECTOR_PENDING'::text
+    WHEN 70 THEN 'DASHBOARD_PENDING'::text
+    WHEN 80 THEN 'RETURN_PENDING'::text
+    WHEN 100 THEN 'COMPLETED'::text
+    WHEN 900 THEN 'FAILED'::text
+    ELSE NULL::text
+END)) NOT VALID;
+
+
+--
+-- Name: visitor_sign_in_cycles chk_visitor_sign_in_cycles_status_step; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.visitor_sign_in_cycles
+    ADD CONSTRAINT chk_visitor_sign_in_cycles_status_step CHECK (((step)::text =
+CASE status_id
+    WHEN 10 THEN 'primary'::text
+    WHEN 20 THEN 'mfa'::text
+    WHEN 30 THEN 'session_limit'::text
+    WHEN 40 THEN 'guardrail'::text
+    WHEN 50 THEN 'session_issuance'::text
+    WHEN 60 THEN 'checkpoint'::text
+    WHEN 65 THEN 'selector'::text
+    WHEN 70 THEN 'dashboard'::text
+    WHEN 80 THEN 'return_to'::text
+    WHEN 100 THEN 'completed'::text
+    WHEN 900 THEN 'failed'::text
+    ELSE NULL::text
+END)) NOT VALID;
 
 
 --
@@ -1668,6 +1717,8 @@ ALTER TABLE ONLY public.visitor_sign_up_cycles
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528183002'),
+('20260528162102'),
 ('20260526120102'),
 ('20260526120002'),
 ('20260525233000'),

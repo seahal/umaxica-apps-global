@@ -6,22 +6,55 @@ require "test_helper"
 class Redirects::JumpGatewayUrlTest < ActiveSupport::TestCase
   test "builds jump gateway url with rt query" do
     with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
-      result = Redirects::JumpGatewayUrl.call("aaa.bbb.ccc")
+      token = "#{"a" * 22}.#{"b" * 22}.#{"c" * 22}"
+      result = Redirects::JumpGatewayUrl.call(token)
 
       assert_predicate result, :ok?
-      assert_equal "https://jump.umaxica.net/?rt=aaa.bbb.ccc", result.value
+      assert_equal "https://jump.umaxica.net/?rt=#{token}", result.value
+      query = Rack::Utils.parse_query(URI.parse(result.value).query)
+
+      assert_equal token, query.fetch("rt")
     end
   end
 
   test "rejects malformed tokens" do
+    assert_not Redirects::JumpGatewayUrl.call("xxx").ok?
+    assert_not Redirects::JumpGatewayUrl.call("").ok?
     assert_not Redirects::JumpGatewayUrl.call("aaa.bbb").ok?
+    assert_not Redirects::JumpGatewayUrl.call("aaa..ccc").ok?
     assert_not Redirects::JumpGatewayUrl.call("aaa.bbb.ccc=").ok?
+    assert_not Redirects::JumpGatewayUrl.call("aaa.bbb.ccc+").ok?
+    assert_not Redirects::JumpGatewayUrl.call("aaa.bbb.ccc/").ok?
     assert_not Redirects::JumpGatewayUrl.call("aaa.bbb.ccc\n").ok?
+  end
+
+  test "rejects extremely short three-part tokens" do
+    result = Redirects::JumpGatewayUrl.call("aaa.bbb.ccc")
+
+    assert_not result.ok?
+    assert_equal "token_too_short", result.failure_reason
+  end
+
+  test "accepts rails issued jwt" do
+    private_key = OpenSSL::PKey::EC.generate("secp384r1")
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
+      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+    ) do
+      JumpRt::Keyring.stub(:private_key, private_key) do
+        token = JumpRt::Issuer.call(namespace: "SIGN_APP", url: "https://www.umaxica.app/dashboard")
+        result = Redirects::JumpGatewayUrl.call(token)
+
+        assert_predicate result, :ok?
+        assert_equal token, Rack::Utils.parse_query(URI.parse(result.value).query).fetch("rt")
+      end
+    end
   end
 
   test "rejects unsafe gateway origins" do
     with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
-      result = Redirects::JumpGatewayUrl.call("aaa.bbb.ccc")
+      result = Redirects::JumpGatewayUrl.call("#{"a" * 22}.#{"b" * 22}.#{"c" * 22}")
 
       assert_not result.ok?
       assert_equal "https_required", result.failure_reason

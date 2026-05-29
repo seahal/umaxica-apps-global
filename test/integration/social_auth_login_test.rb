@@ -120,7 +120,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_not_nil identity.user
     assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, identity.user.status_id
     assert_not_nil identity.last_authenticated_at
-    assert_equal "Googleで登録しました", flash[:notice]
+    assert_equal "Googleで登録を開始しました", flash[:notice]
 
     follow_redirect!
 

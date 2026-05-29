@@ -7,7 +7,7 @@ Accepted on 2026-05-17.
 ## Context
 
 `Core::CookieDomain.for` can return an apex-scoped domain (e.g. `.example.com`). A cookie set with
-that domain is readable by **every subdomain** on the apex. A cookie set with no `domain` attribute
+that domain is readable by **every subdomain** on the acme. A cookie set with no `domain` attribute
 is **host-only** and is readable only by the exact host that set it.
 
 `Core::CookieOptions.for` controls this through the `domain:` keyword:
@@ -46,7 +46,7 @@ decision: authentication is isolated per host; preference is shared for SSO.
 ## Evidence
 
 - `app/lib/core/cookie_options.rb:8-24` — `domain:` keyword gates `Core::CookieDomain.for`.
-- `app/lib/core/cookie_domain.rb:71-81` — apex scoping and the accepted-risk note.
+- `app/lib/core/cookie_domain.rb:71-81` — acme scoping and the accepted-risk note.
 - `app/controllers/concerns/authentication/cookie_service.rb:56-66` — authentication cookies use
   `domain: false`.
 - `app/controllers/concerns/authentication/base.rb:1199-1217` — authentication cookie / deletion
@@ -62,7 +62,7 @@ decision: authentication is isolated per host; preference is shared for SSO.
 
 - An XSS on any subdomain cannot read the authentication access/refresh tokens (host-only).
 - An XSS on any subdomain still cannot read the preference token cookies because they are
-  `httponly: true`, but a subdomain compromise widens exposure for the apex-shared preference
+  `httponly: true`, but a subdomain compromise widens exposure for the acme-shared preference
   cookies, as documented in `cookie_domain.rb`.
 - Any future SSO requirement for the authentication surface must be designed explicitly; it must not
   be obtained by flipping authentication cookies to `domain: true`.

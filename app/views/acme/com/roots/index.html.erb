@@ -1,0 +1,24 @@
+<% page_title t("acme.com.preferences.footer.home") %>
+
+<section>
+  <h1>
+    Welcome to <%= ENV["BRAND_NAME"] %> (com)
+  </h1>
+  <p>
+    <%= t("views.acme.com.roots.index.redirect_prompt", preference: t("acme.com.preferences.footer.preference")) %>
+  </p>
+
+  <ul>
+    <li>
+      <a
+        href="https://<%= ENV['EDGE_CORPORATE_URL'] %>"
+        data-turbo-frame="_top">
+        <%= t("acme.com.preferences.footer.home") %>
+      </a>
+    </li>
+    <li>
+      <%= link_to t("acme.com.preferences.footer.preference"), sign_com_preference_url,
+                  data: { turbo_frame: "_top" } %>
+    </li>
+  </ul>
+</section>

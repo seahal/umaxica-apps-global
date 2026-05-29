@@ -27,7 +27,7 @@ module Common
 
     private
 
-    def redirect_to_pt(default:, pt: params[:pt], **)
+    def redirect_to_pt(default:, pt: nil, **)
       result = Redirects::PathTargetResolver.call(pt, source: :raw_pt)
       log_redirect_target_failure(result) unless result.ok? || pt.blank?
 
@@ -48,18 +48,18 @@ module Common
              status: :unprocessable_content
     end
 
-    def redirect_to_xt(key, path: "/", query: {}, **)
+    def redirect_to_external_jump(key, path: "/", query: {}, **)
       result = Redirects::ExternalTargetResolver.call(key, path: path, query: query)
-      return redirect_to(result.value, allow_other_host: true, **) if result.ok?
+      return redirect_to_jump_url(result.value, dst: "external", **) if result.ok?
 
       log_redirect_target_failure(result)
       render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
              status: :unprocessable_content
     end
 
-    def redirect_to_xt_url(url, allowed_urls:, **)
+    def redirect_to_external_jump_url(url, allowed_urls:, **)
       result = Redirects::ExternalTargetResolver.url(url, allowed_urls: allowed_urls)
-      return redirect_to(result.value, allow_other_host: true, **) if result.ok?
+      return redirect_to_jump_url(result.value, dst: "external", **) if result.ok?
 
       log_redirect_target_failure(result)
       render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
@@ -75,12 +75,50 @@ module Common
              status: :unprocessable_content
     end
 
-    def redirect_to_jump_url(url, namespace: jump_rt_issuer_namespace, dst: "internal", **)
-      token = JumpRt::Issuer.call(namespace: namespace, url: url, dst: dst)
-      return redirect_to_jump_rt(token, **) if token.present?
+    def redirect_to_jump_url(
+      url,
+      namespace: jump_rt_issuer_namespace,
+      dst: "internal",
+      replay_policy: "reuse",
+      fallback_internal: false,
+      **
+    )
+      token =
+        begin
+          JumpRt::Issuer.call(namespace: namespace, url: url, dst: dst, replay_policy: replay_policy)
+        rescue ArgumentError
+          nil
+        end
+      if token.present?
+        log_jump_rt_issued(token: token, namespace: namespace, dst: dst, replay_policy: replay_policy, url: url)
+        result = Redirects::JumpGatewayUrl.call(token)
+        return redirect_to(result.value, allow_other_host: true, **) if result.ok?
+
+        fallback_path = safe_return_path(url) if fallback_internal
+        if fallback_path.present?
+          log_jump_rt_fallback_internal(
+            namespace: namespace, dst: dst, replay_policy: replay_policy, url: url,
+            reason: :gateway_url_failed, gateway_failure: result.failure_reason,
+          )
+          return redirect_to(fallback_path, allow_other_host: false, **)
+        end
+
+        log_redirect_target_failure(result)
+        return render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
+                      status: :unprocessable_content
+      end
+
+      fallback_path = safe_return_path(url) if fallback_internal
+      if fallback_path.present?
+        log_jump_rt_fallback_internal(
+          namespace: namespace, dst: dst, replay_policy: replay_policy, url: url,
+          reason: :issuance_failed,
+        )
+        return redirect_to(fallback_path, allow_other_host: false, **)
+      end
 
       result = Redirects::TargetResult.failure(
-        kind: :xt, source: :jump_rt_issue, reason: :invalid_jump_rt_url,
+        kind: :external, source: :jump_rt_issue, reason: :invalid_jump_rt_url,
         unsafe_value: url,
       )
       log_redirect_target_failure(result)
@@ -210,6 +248,63 @@ module Common
 
     def jump_rt_issuer_namespace
       JumpRt::Surface.namespace_for_controller(self.class.name)
+    end
+
+    def log_jump_rt_issued(token:, namespace:, dst:, replay_policy:, url:)
+      req = request if respond_to?(:request, true)
+      headers = req.headers if req&.respond_to?(:headers)
+      request_id = req.request_id if req&.respond_to?(:request_id)
+      referer = req.referer if req&.respond_to?(:referer)
+      user_agent = req.user_agent if req&.respond_to?(:user_agent)
+      remote_ip = req.remote_ip if req&.respond_to?(:remote_ip)
+      cf_connecting_ip = headers["CF-Connecting-IP"] if headers
+      Rails.logger.info(
+        LogEvent.format(
+          "jump_rt.issued",
+          request_id: request_id,
+          namespace: namespace,
+          dst: dst,
+          rpl: replay_policy,
+          rt_length: token.to_s.bytesize,
+          rt_parts: token.to_s.split(".").size,
+          rt_digest12: Digest::SHA256.hexdigest(token.to_s)[0, 12],
+          target_url_digest: Digest::SHA256.hexdigest(url.to_s)[0, 12],
+          referer_digest12: digest12(referer),
+          user_agent_digest12: digest12(user_agent),
+          remote_ip_digest12: digest12(remote_ip),
+          cf_connecting_ip_digest12: digest12(cf_connecting_ip),
+          cf_ray: headers&.[]("CF-Ray").presence,
+          cf_asn: headers&.[]("CF-ASN").presence,
+          cf_ipcountry: headers&.[]("CF-IPCountry").presence,
+        ),
+      )
+    end
+
+    # Emitted when redirect_to_jump_url could not push the user through the
+    # Jump gateway and silently downgraded to a same-host redirect via
+    # fallback_internal. Surfaces key-config and gateway-issuance regressions
+    # that would otherwise be invisible in production.
+    def log_jump_rt_fallback_internal(namespace:, dst:, replay_policy:, url:, reason:, gateway_failure: nil)
+      request_id = request.request_id if respond_to?(:request, true) && request.respond_to?(:request_id)
+      Rails.logger.warn(
+        LogEvent.format(
+          "jump_rt.fallback_internal",
+          request_id: request_id,
+          namespace: namespace,
+          dst: dst,
+          rpl: replay_policy,
+          reason: reason,
+          gateway_failure: gateway_failure,
+          target_url_digest: Digest::SHA256.hexdigest(url.to_s)[0, 12],
+        ),
+      )
+    end
+
+    def digest12(value)
+      raw = value.to_s
+      return nil if raw.blank?
+
+      Digest::SHA256.hexdigest(raw)[0, 12]
     end
 
     def log_redirect_target_failure(result)

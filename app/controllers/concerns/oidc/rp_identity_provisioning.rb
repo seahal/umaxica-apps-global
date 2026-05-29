@@ -40,14 +40,16 @@ module Oidc
     end
 
     def actor_from_existing_identity(claims)
-      identity = rp_identity_class.find_by(claims)
+      identity = record_context_for(rp_identity_class).connected_to(role: :reading) do
+        rp_identity_class.find_by(claims)
+      end
       return unless identity
 
-      rp_actor_class.find(identity.source_record_id)
+      find_rp_actor(identity.source_record_id)
     end
 
     def actor_from_subject_claim(claims)
-      rp_actor_class.find(claims.fetch(:subject))
+      find_rp_actor(claims.fetch(:subject))
     end
 
     def ensure_rp_identity_for(actor, claims)
@@ -93,6 +95,12 @@ module Oidc
       return identity_state_class::ACTIVE if identity_state_class&.const_defined?(:ACTIVE, false)
 
       1
+    end
+
+    def find_rp_actor(id)
+      record_context_for(rp_actor_class).connected_to(role: :reading) do
+        rp_actor_class.find(id)
+      end
     end
 
     def record_context_for(model_class)

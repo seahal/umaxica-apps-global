@@ -3,57 +3,68 @@
 
 require "test_helper"
 
-class SignAppTestCsrfController < Sign::App::PublicController
-  def show
-    render plain: form_authenticity_token
-  end
+module Sign
+  module App
+    class TestCsrfController < BareController
+      AUTHENTICATION_MODE = :bare
 
-  def create
-    head :ok
+      def show
+        render plain: form_authenticity_token
+      end
+
+      def create
+        head :ok
+      end
+    end
   end
 end
 
 class SignPublicControllerTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
 
-  test "surface public bases inherit from surface bare bases" do
-    assert_operator Sign::App::PublicController, :<, Sign::App::BareController
-    assert_operator Sign::Com::PublicController, :<, Sign::Com::BareController
-    assert_operator Sign::Org::PublicController, :<, Sign::Org::BareController
+  test "legacy public and static bases are retired" do
+    [
+      Sign::App,
+      Sign::Com,
+      Sign::Org,
+    ].each do |namespace|
+      assert_not namespace.const_defined?(:PublicController, false), namespace.name
+      assert_not namespace.const_defined?(:StaticController, false), namespace.name
+    end
   end
 
   test "health endpoint returns successfully" do
-    host! ENV["SIGN_SERVICE_URL"]
-    get "/health"
+    host! ENV.fetch("SIGN_SERVICE_URL").delete_suffix("/")
+    get "/health", params: { ri: "jp" }
 
     assert_response :success
   end
 
   test "robots.txt endpoint returns successfully" do
-    host! ENV["SIGN_SERVICE_URL"]
-    get "/robots.txt"
+    host! ENV.fetch("SIGN_SERVICE_URL").delete_suffix("/")
+    get "/robots.txt", params: { ri: "jp" }
 
     assert_response :success
   end
 
   test "sitemap.xml endpoint returns successfully" do
-    host! ENV["SIGN_SERVICE_URL"]
-    get "/sitemap.xml"
+    host! ENV.fetch("SIGN_SERVICE_URL").delete_suffix("/")
+    get "/sitemap.xml", params: { ri: "jp" }
 
     assert_response :success
   end
 
   test "rate limit returns 429 when exceeded" do
-    host! ENV["SIGN_SERVICE_URL"]
+    host! ENV.fetch("SIGN_SERVICE_URL").delete_suffix("/")
 
     # Default limit is 300/min
     300.times do
-      get "/health"
+      get "/health", params: { ri: "jp" }
 
       assert_response :success
     end
 
-    get "/health"
+    get "/health", params: { ri: "jp" }
 
     assert_response :too_many_requests
     assert_predicate response.headers["Retry-After"], :present?
@@ -62,8 +73,8 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
   test "no Actor state leaks into response" do
     original_authentication = Actor.authn
 
-    host! ENV["SIGN_SERVICE_URL"]
-    get "/health"
+    host! ENV.fetch("SIGN_SERVICE_URL").delete_suffix("/")
+    get "/health", params: { ri: "jp" }
 
     assert_response :success
 
@@ -72,12 +83,12 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "POST without CSRF token returns 422" do
     Rails.application.routes.draw do
-      get("/test_csrf", to: "sign_app_test_csrf#show")
-      post("/test_csrf", to: "sign_app_test_csrf#create")
+      get("/test_csrf", to: "sign/app/test_csrf#show")
+      post("/test_csrf", to: "sign/app/test_csrf#create")
     end
-    host!(ENV["SIGN_SERVICE_URL"])
+    host!(ENV.fetch("SIGN_SERVICE_URL").delete_suffix("/"))
     with_forgery_protection do
-      post("/test_csrf")
+      post("/test_csrf", params: { ri: "jp" })
     end
 
     assert_response :unprocessable_content
@@ -87,12 +98,12 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "POST with CSRF token returns successfully" do
     Rails.application.routes.draw do
-      get("/test_csrf", to: "sign_app_test_csrf#show")
-      post("/test_csrf", to: "sign_app_test_csrf#create")
+      get("/test_csrf", to: "sign/app/test_csrf#show")
+      post("/test_csrf", to: "sign/app/test_csrf#create")
     end
-    host!(ENV["SIGN_SERVICE_URL"])
+    host!(ENV.fetch("SIGN_SERVICE_URL").delete_suffix("/"))
     with_forgery_protection do
-      post("/test_csrf", headers: csrf_headers(fetch_csrf_token("/test_csrf")))
+      post("/test_csrf", params: { ri: "jp" }, headers: csrf_headers(fetch_csrf_token("/test_csrf?ri=jp")))
     end
 
     assert_response :success
@@ -101,10 +112,10 @@ class SignPublicControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "no preference state leaks on public endpoints" do
-    host! ENV["SIGN_SERVICE_URL"]
+    host! ENV.fetch("SIGN_SERVICE_URL").delete_suffix("/")
     original_preference = Actor.preferences
 
-    get "/health"
+    get "/health", params: { ri: "jp" }
 
     assert_response :success
 

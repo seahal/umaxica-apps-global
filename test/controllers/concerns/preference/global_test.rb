@@ -106,7 +106,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
       controller.request_context,
     )
     assert_equal "us", controller.send(:request_context_ri)
-    assert_equal "opaque-token", controller.send(:request_context_rt)
+    assert_equal "opaque-token", controller.send(:request_context_pt)
     assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "Asia/Tokyo" }, controller.requested_context)
   end
 

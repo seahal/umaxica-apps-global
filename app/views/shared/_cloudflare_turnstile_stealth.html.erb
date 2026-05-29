@@ -2,82 +2,8 @@
 <% widget_id = "cf-turnstile-stealth-#{SecureRandom.hex(8)}" %>
 <% response_id = "#{widget_id}-response" %>
 
-<div id="<%= widget_id %>" class="cf-turnstile" data-sitekey="<%= site_key %>"></div>
-<input id="<%= response_id %>" type="hidden" name="cf-turnstile-response" autocomplete="off" />
-<script>
-  (function() {
-    var executed = false;
-    var responseInput = document.currentScript.previousElementSibling;
-    var container = responseInput ? responseInput.previousElementSibling : null;
-    var widgetId = container ? container.id : null;
-
-    function executeTurnstile() {
-      if (executed || !window.turnstile || !container || !responseInput) {
-        return;
-      }
-
-      executed = true;
-      window.turnstile.execute(container, {
-        sitekey: container.dataset.sitekey,
-        callback: function(token) {
-          responseInput.value = token;
-          window.dispatchEvent(
-            new CustomEvent("turnstile:success", { detail: { widgetId: widgetId } }),
-          );
-        },
-        "error-callback": function(errorCode) {
-          responseInput.value = "";
-          console.error("Turnstile error occurred:", errorCode);
-          window.dispatchEvent(
-            new CustomEvent("turnstile:error", { detail: { errorCode: errorCode, widgetId: widgetId } }),
-          );
-          return true;
-        },
-        "expired-callback": function() {
-          responseInput.value = "";
-          window.dispatchEvent(
-            new CustomEvent("turnstile:expired", { detail: { widgetId: widgetId } }),
-          );
-        },
-        "timeout-callback": function() {
-          responseInput.value = "";
-          console.error("Turnstile challenge timed out");
-          window.dispatchEvent(
-            new CustomEvent("turnstile:timeout", { detail: { widgetId: widgetId } }),
-          );
-        },
-        "unsupported-callback": function() {
-          responseInput.value = "";
-          console.error("Turnstile client is unsupported");
-          window.dispatchEvent(
-            new CustomEvent("turnstile:unsupported", { detail: { widgetId: widgetId } }),
-          );
-        },
-      });
-    }
-
-    function scheduleExecute() {
-      if (executed) {
-        return;
-      }
-
-      executeTurnstile();
-    }
-
-    var apiScript = document.querySelector("script[src*='challenges.cloudflare.com/turnstile/v0/api.js']");
-    if (apiScript) {
-      apiScript.addEventListener("load", scheduleExecute, { once: true });
-      apiScript.addEventListener("error", function() {
-        console.error("Turnstile script failed to load");
-      }, { once: true });
-    }
-
-    document.addEventListener("turbo:load", scheduleExecute, { once: true });
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", scheduleExecute, { once: true });
-    } else {
-      scheduleExecute();
-    }
-  })();
-</script>
+<%= render "layouts/shared/cloudflare_turnstile_api" %>
+<div data-controller="turnstile" data-turnstile-mode-value="execute">
+  <div id="<%= widget_id %>" class="cf-turnstile" data-sitekey="<%= site_key %>" data-turnstile-target="container"></div>
+  <input id="<%= response_id %>" type="hidden" name="cf-turnstile-response" autocomplete="off" data-turnstile-target="response" />
+</div>

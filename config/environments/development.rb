@@ -108,11 +108,11 @@ Rails.application.configure do
   # Enable DNS rebinding protection for hosts used in route constraints.
   config.hosts.concat(
     ENV.values_at(
-      "APEX_CORPORATE_URL",
-      "APEX_SERVICE_URL",
-      "APEX_STAFF_URL",
-      "APEX_NETWORK_URL",
-      "APEX_DEVELOPER_URL",
+      "ACME_CORPORATE_URL",
+      "ACME_SERVICE_URL",
+      "ACME_STAFF_URL",
+      "ACME_NETWORK_URL",
+      "ACME_DEVELOPER_URL",
       "SIGN_CORPORATE_URL",
       "SIGN_SERVICE_URL",
       "SIGN_STAFF_URL",
@@ -124,7 +124,11 @@ Rails.application.configure do
       "DOCS_SERVICE_URL", "DOCS_STAFF_URL", "DOCS_CORPORATE_URL",
       "NEWS_SERVICE_URL", "NEWS_STAFF_URL", "NEWS_CORPORATE_URL",
       "HELP_SERVICE_URL", "HELP_STAFF_URL", "HELP_CORPORATE_URL",
-    ).compact_blank,
+    ).compact_blank + [
+      "core.app.localhost",
+      "core.com.localhost",
+      "core.org.localhost",
+    ],
   )
 
   ## file watcher

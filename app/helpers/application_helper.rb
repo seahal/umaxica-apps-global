@@ -81,14 +81,14 @@ module ApplicationHelper
 
   def validate_banner_args!(tld:, region:, domain:)
     allowed_tlds = %i(app org com)
-    allowed_domains = %i(sign core apex docs news help)
+    allowed_domains = %i(sign core acme docs news help)
 
     raise ArgumentError, "Invalid tld: #{tld}" unless allowed_tlds.include?(tld&.to_sym)
     raise ArgumentError, "Invalid domain: #{domain}" unless allowed_domains.include?(domain&.to_sym)
 
     allowed_regions =
       case domain.to_sym
-      when :sign, :apex then [:ww]
+      when :sign, :acme then [:ww]
       else [:jp, :us]
       end
 

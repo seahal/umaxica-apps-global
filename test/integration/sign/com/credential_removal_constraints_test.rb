@@ -20,6 +20,13 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
       VisitorTokenStatus.ensure_defaults!
       VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
     end
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
+  end
+
+  teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   test "email removal preserves aal methods when contactability remains" do
@@ -110,7 +117,7 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     headers = as_visitor_headers(visitor, host: @host)
     token = VisitorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
     satisfy_visitor_verification(token)
-    token.update!(last_step_up_at: Time.current, last_step_up_scope: scope)
+    mark_token_step_up_satisfied_for_test(token, scope: scope)
     headers
   end
 

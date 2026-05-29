@@ -93,19 +93,38 @@ module Health
   end
 
   def show_plain_text
+    return show_json if request.format.json?
+
     @status, @body, @errors, @revision = get_status
-    timestamp = Time.now.utc.iso8601
+    response_body = health_response_body(@body, @revision)
     if @errors.present?
-      render plain: "#{@body}: #{@errors.join(", ")} (#{timestamp}) #{@revision}", status: @status
+      render plain: "#{health_plain_text(response_body)} errors=#{@errors.join(", ")}", status: @status
     else
-      render plain: "#{@body} (#{timestamp})  #{@revision}", status: @status
+      render plain: health_plain_text(response_body), status: @status
     end
   end
 
   def show_json
-    @status, @body, @errors = get_status
-    response_body = { status: @body, timestamp: Time.now.utc.iso8601, revision: @revision }
+    @status, @body, @errors, @revision = get_status
+    response_body = health_response_body(@body, @revision)
     response_body[:errors] = @errors if @errors.present?
     render json: response_body, status: @status
+  end
+
+  def health_response_body(status, revision)
+    {
+      status: status,
+      service: health_service_name,
+      version: revision,
+      time: Time.now.utc.iso8601(3),
+    }
+  end
+
+  def health_plain_text(response_body)
+    response_body.map { |key, value| "#{key}=#{value}" }.join(" ")
+  end
+
+  def health_service_name
+    self.class.name.deconstantize.split("::").first.underscore
   end
 end

@@ -65,8 +65,8 @@ module Authentication
     end
 
     def sign_in_url_with_pt(return_to)
+      _ = return_to
       new_sign_app_in_url(
-        pt: return_to,
         host: sign_app_redirect_host,
         protocol: "https",
       )

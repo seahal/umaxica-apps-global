@@ -12,12 +12,15 @@ end
 
 core_app_host = core_exact_host_constraint(
   ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"),
+  "core.app.localhost",
 )
 core_com_host = core_exact_host_constraint(
   ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
+  "core.com.localhost",
 )
 core_org_host = core_exact_host_constraint(
   ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
+  "core.org.localhost",
 )
 
 scope module: :core, as: :core do

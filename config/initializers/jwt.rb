@@ -1,6 +1,34 @@
 # typed: false
 # frozen_string_literal: true
 
+require "base64"
+require "json"
+require "jit/security/jwt/registry"
+require "openssl"
+
+if Rails.env.test?
+  require "jwt"
+
+  def install_test_jwt_keyset!(prefix, kid)
+    key = OpenSSL::PKey::EC.generate("secp384r1")
+    public_jwk = JWT::JWK.new(key, kid).export.transform_keys(&:to_s).merge(
+      "alg" => "ES384",
+      "use" => "sig",
+      "state" => "active",
+    )
+    ENV["#{prefix}_JWT_ACTIVE_KID"] = kid
+    ENV["#{prefix}_JWT_PRIVATE_KEYSET"] = JSON.generate(kid => Base64.strict_encode64(key.to_der))
+    ENV["#{prefix}_JWT_PUBLIC_KEYSET"] = JSON.generate("keys" => [public_jwk])
+  end
+
+  install_test_jwt_keyset!("AUTH", "auth-test-es384-a")
+  install_test_jwt_keyset!("PREFERENCE", "preference-test-es384-a")
+  ENV["AUTH_JWT_ISSUER"] ||= "urn:umaxica:test:auth"
+  ENV["PREFERENCE_JWT_ISSUER"] ||= "urn:umaxica:test:preference"
+end
+
+Jit::Security::Jwt::Registry.configure!
+
 module JwtConfig
   def self.private_key
     Jit::Security::Jwt::Keyring.private_key_for_active

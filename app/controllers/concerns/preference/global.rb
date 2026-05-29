@@ -153,10 +153,6 @@ module Preference::Global
     end
   end
 
-  def request_context_rt
-    request_context_pt
-  end
-
   def valid_ri_value?(value)
     value.present? && allowed_region_values.include?(value)
   end
@@ -279,9 +275,20 @@ module Preference::Global
   def set_timezone
     timezone = effective_context[:tz]
     timezone = Actor.preferences.timezone if timezone.blank? && defined?(Actor)
-    timezone_value = timezone.presence || Time.zone&.name
+    timezone_value = normalize_timezone_value(timezone.presence || Time.zone&.name)
     Time.zone = timezone_value if timezone_value.present?
     session[:timezone] = timezone_value if timezone_value.present?
     write_preference_cookie(Preference::Base::TIMEZONE_COOKIE_KEY, timezone_value) if timezone_value.present?
+  end
+
+  def normalize_timezone_value(value)
+    case value.to_s.downcase
+    when "jst"
+      "Asia/Tokyo"
+    when "utc", "etc/utc"
+      "Etc/UTC"
+    else
+      value.presence
+    end
   end
 end

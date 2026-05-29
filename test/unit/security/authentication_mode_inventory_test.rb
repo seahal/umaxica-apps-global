@@ -71,9 +71,9 @@ module Security
 
     test "surface application controllers default to deny_all" do
       [
-        Apex::App::ApplicationController,
-        Apex::Com::ApplicationController,
-        Apex::Org::ApplicationController,
+        Acme::App::ApplicationController,
+        Acme::Com::ApplicationController,
+        Acme::Org::ApplicationController,
         Sign::App::ApplicationController,
         Sign::Com::ApplicationController,
         Sign::Org::ApplicationController,
@@ -105,16 +105,16 @@ module Security
       assert_empty legacy, "Controllers must use AUTHENTICATION_MODE instead of legacy DSL:\n#{legacy.join("\n")}"
     end
 
-    test "bare controllers do not inherit surface application controllers" do
+    test "bare controllers inherit their surface application controllers" do
       violations =
         Rails.root.glob("app/controllers/**/bare_controller.rb").filter_map do |path|
           relative_path = path.relative_path_from(Rails.root).to_s
           content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
-          relative_path if content.match?(/class\s+BareController\s+<\s+ApplicationController\b/)
+          relative_path unless content.match?(/class\s+BareController\s+<\s+ApplicationController\b/)
         end
 
       assert_empty violations,
-                   "Bare controllers must inherit a bare base, not ApplicationController:\n#{violations.join("\n")}"
+                   "Bare controllers must inherit their surface ApplicationController:\n#{violations.join("\n")}"
     end
 
     test "routes resolve to controllers with local authentication mode declarations" do
@@ -140,7 +140,7 @@ module Security
     private
 
     def application_controller_class?(controller_class)
-      controller_class.name.start_with?("Apex::", "Jump::", "Sign::", "Inertia")
+      controller_class.name.start_with?("Acme::", "Jump::", "Sign::", "Inertia")
     end
   end
 end

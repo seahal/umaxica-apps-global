@@ -4,13 +4,13 @@
 require "test_helper"
 
 class EdgeHealthRoutesTest < ActionDispatch::IntegrationTest
-  test "apex edge health routes resolve" do
+  test "acme edge health routes resolve" do
     [
-      ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost"),
-      ENV.fetch("APEX_SERVICE_URL", "www.app.localhost"),
-      ENV.fetch("APEX_STAFF_URL", "www.org.localhost"),
+      ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
     ].each do |host|
-      get "/edge/v0/health", headers: { "Host" => host }
+      get "/edge/v0/health?ri=jp", headers: { "Host" => host }
 
       assert_response :success
       assert_equal "OK", response.parsed_body["status"]

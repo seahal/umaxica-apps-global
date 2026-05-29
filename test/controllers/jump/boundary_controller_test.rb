@@ -5,7 +5,9 @@ require "test_helper"
 
 module Jump
   module App
-    class OpenBoundaryTestController < OpenController
+    class OpenBoundaryTestController < ApplicationController
+      AUTHENTICATION_MODE = :open
+
       def show
         render json: {
           actor_type: Actor.actor_type.to_s,
@@ -25,24 +27,23 @@ class JumpBoundaryControllerTest < ActionDispatch::IntegrationTest
     Actor.reset
   end
 
-  test "jump bare controllers inherit directly from ActionController base" do
+  test "jump bare controllers inherit from their surface application controller" do
     [
       Jump::App::BareController,
       Jump::Com::BareController,
       Jump::Org::BareController,
     ].each do |controller|
-      assert_equal ActionController::Base, controller.superclass
-      assert_not_operator controller, :<, controller.module_parent::ApplicationController
+      assert_equal controller.module_parent::ApplicationController, controller.superclass
     end
   end
 
-  test "jump open controllers provide anonymous actor context only" do
+  test "jump application controllers provide anonymous actor context only for open actions" do
     [
-      Jump::App::OpenController,
-      Jump::Com::OpenController,
-      Jump::Org::OpenController,
+      Jump::App::ApplicationController,
+      Jump::Com::ApplicationController,
+      Jump::Org::ApplicationController,
     ].each do |controller|
-      assert_equal controller.module_parent::ApplicationController, controller.superclass
+      assert_equal ActionController::Base, controller.superclass
       assert_includes controller.ancestors, ActorSupport
       assert_includes controller.ancestors, RateLimit
       assert_not_includes controller.ancestors, Authentication::Client
@@ -94,6 +95,7 @@ class JumpBoundaryControllerTest < ActionDispatch::IntegrationTest
       Jump::Com,
       Jump::Org,
     ].each do |namespace|
+      assert_not namespace.const_defined?(:OpenController, false)
       assert_not namespace.const_defined?(:PrivateController, false)
       assert_not namespace.const_defined?(:GuestController, false)
     end

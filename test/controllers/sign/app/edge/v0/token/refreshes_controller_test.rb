@@ -420,6 +420,21 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert json["refreshed"]
   end
 
+  test "POST refresh with cookie token and missing CSRF is rejected when forgery protection is enabled" do
+    token_record = ClientToken.create!(user: @user)
+    refresh_plain = token_record.rotate_refresh_token!
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    with_forgery_protection do
+      post "/edge/v0/token/refresh",
+           headers: json_headers(with_csrf: false),
+           as: :json
+    end
+
+    assert_response :unprocessable_content
+    assert_nil token_record.reload.rotated_at
+  end
+
   test "POST refresh rejects deactivated user even with valid refresh token" do
     @user.update!(
       deactivated_at: Time.current, withdrawal_started_at: 1.hour.ago,

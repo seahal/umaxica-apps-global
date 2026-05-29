@@ -188,7 +188,7 @@ module Sign
           redirect_to(
             sign_app_up_guardrail_path(
               ri: params[:ri],
-              pt: params[:pt].presence,
+              pt: signed_pt_token(path_target_value),
             ),
             notice: t("sign.app.registration.email.update.success"),
           )
@@ -266,8 +266,6 @@ module Sign
         def prepare_email_for_checkpoint!(user_email)
           user_email.save!
         end
-
-        private
 
         def log_signup_email_errors
           return unless @user_email&.errors&.any?

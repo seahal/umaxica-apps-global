@@ -13,7 +13,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     {
       name: "app",
       host: ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app"),
-      scope: "apex.app.preferences",
+      scope: "acme.app.preferences",
       preference_model: AppPreference,
       audit_class: AppPreferenceChronicle,
       audit_event_class: AppPreferenceChronicleEvent,
@@ -21,7 +21,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     {
       name: "org",
       host: ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"),
-      scope: "apex.org.preferences",
+      scope: "acme.org.preferences",
       preference_model: OrgPreference,
       audit_class: OrgPreferenceChronicle,
       audit_event_class: OrgPreferenceChronicleEvent,
@@ -29,7 +29,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     {
       name: "com",
       host: ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"),
-      scope: "apex.com.preferences",
+      scope: "acme.com.preferences",
       preference_model: ComPreference,
       audit_class: ComPreferenceChronicle,
       audit_event_class: ComPreferenceChronicleEvent,
@@ -222,7 +222,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       # Check that the locale was set to English
       assert_equal :en, I18n.locale
       # Verify the page content is in English
-      translation_key = "apex.#{domain[:name]}.preferences.title"
+      translation_key = "acme.#{domain[:name]}.preferences.title"
       english_title = I18n.t(translation_key, locale: :en)
 
       assert_select "h1", text: english_title
@@ -422,7 +422,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       assert_response :see_other
       assert_equal "../", response.location
 
-      assert_equal I18n.t("apex." + domain[:name] + ".preference.resets.destroyed"), flash[:notice]
+      assert_equal I18n.t("acme." + domain[:name] + ".preference.resets.destroyed"), flash[:notice]
 
       pref.reload
 
@@ -652,7 +652,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       assert_equal "もどる", links.first.text
       assert_includes links.first["href"], public_send("sign_#{domain[:name]}_preference_path")
       assert_includes links.first["href"], "ri=jp"
-      assert_select "a", text: I18n.t(["apex", domain[:name], "preference.resets.back"].join(".")), count: 0
+      assert_select "a", text: I18n.t(["acme", domain[:name], "preference.resets.back"].join(".")), count: 0
       assert_select "input[type='checkbox'][name='confirm_reset'][required]"
       assert_select "label[for='confirm_reset']"
     end

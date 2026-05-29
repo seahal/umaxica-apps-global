@@ -89,9 +89,9 @@ module Preference
         begin
           endpoint_url = nil
           %i(
-            apex_app_web_v0_cookie_url
-            apex_com_web_v0_cookie_url
-            apex_org_web_v0_cookie_url
+            acme_app_web_v0_cookie_url
+            acme_com_web_v0_cookie_url
+            acme_org_web_v0_cookie_url
           ).each do |helper_name|
             next unless respond_to?(helper_name, true)
 
@@ -107,9 +107,9 @@ module Preference
     def cookie_banner_endpoint_available_for_request?
       expected_host =
         case ::Core::Surface.current(request)
-        when :app then ENV["APEX_SERVICE_URL"]
-        when :com then ENV["APEX_CORPORATE_URL"]
-        when :org then ENV["APEX_STAFF_URL"]
+        when :app then ENV["ACME_SERVICE_URL"]
+        when :com then ENV["ACME_CORPORATE_URL"]
+        when :org then ENV["ACME_STAFF_URL"]
         end
       return false if expected_host.blank?
 
@@ -591,11 +591,11 @@ module Preference
     def preference_dbsc_path
       case preference_class.name
       when "AppPreference"
-        apex_app_edge_v0_dbsc_path if respond_to?(:apex_app_edge_v0_dbsc_path)
+        acme_app_edge_v0_dbsc_path if respond_to?(:acme_app_edge_v0_dbsc_path)
       when "OrgPreference"
-        apex_org_edge_v0_dbsc_path if respond_to?(:apex_org_edge_v0_dbsc_path)
+        acme_org_edge_v0_dbsc_path if respond_to?(:acme_org_edge_v0_dbsc_path)
       when "ComPreference"
-        apex_com_edge_v0_dbsc_path if respond_to?(:apex_com_edge_v0_dbsc_path)
+        acme_com_edge_v0_dbsc_path if respond_to?(:acme_com_edge_v0_dbsc_path)
       end
     end
 
@@ -893,7 +893,7 @@ module Preference
     end
 
     def access_token_cookie_name
-      if self.class.name.start_with?("Apex::App::Preference")
+      if self.class.name.start_with?("Acme::App::Preference")
         Authentication::Base::ACCESS_COOKIE_KEY
       else
         Preference::CookieName.access(surface: preference_cookie_surface)

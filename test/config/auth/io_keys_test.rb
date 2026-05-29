@@ -16,7 +16,6 @@ class AuthIoKeysTest < ActiveSupport::TestCase
     assert_equal "Authorization", Auth::IoKeys::Headers::AUTHORIZATION
     assert_equal :pt, Auth::IoKeys::Params::PT
     assert_equal :nt, Auth::IoKeys::Params::NT
-    assert_equal :xt, Auth::IoKeys::Params::XT
     assert_equal :user_email_authentication_pt, Auth::IoKeys::Session::DEFAULT_PT
   end
 

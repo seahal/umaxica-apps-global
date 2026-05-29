@@ -4,6 +4,8 @@
 require "test_helper"
 
 class Sign::App::JwksControllerTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
   end
@@ -43,6 +45,14 @@ class Sign::App::JwksControllerTest < ActionDispatch::IntegrationTest
 
   test "accessible without authentication" do
     get sign_app_oauth_jwks_url(host: @host, ri: "jp"), headers: browser_headers
+
+    assert_response :ok
+  end
+
+  test "does not touch credentials while rendering jwks" do
+    Rails.app.creds.stub(:option, ->(*) { raise "credentials access during jwks render" }) do
+      get sign_app_oauth_jwks_url(host: @host, ri: "jp"), headers: browser_headers
+    end
 
     assert_response :ok
   end

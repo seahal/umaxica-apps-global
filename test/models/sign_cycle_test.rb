@@ -34,7 +34,11 @@ class SignCycleTest < ActiveSupport::TestCase
       statuses = cycle_class::STATUS_MODEL.where(id: cycle_class::STATUS_IDS).index_by(&:id)
 
       cycle_class::STATUS_IDS.each do |status_id|
-        cycle = build_cycle(cycle_class, status: statuses.fetch(status_id))
+        cycle = build_cycle(
+          cycle_class,
+          status: statuses.fetch(status_id),
+          step: step_for_status(cycle_class.status_name_for(status_id)),
+        )
         cycle.completed_at = Time.current if status_id == cycle_class.completed_status_id
 
         assert_predicate cycle, :valid?, "#{cycle_class.name} #{status_id}"
@@ -218,6 +222,30 @@ class SignCycleTest < ActiveSupport::TestCase
         cycle.transition_to!("PRIMARY_PENDING", step: "primary")
       end
     assert_match(/invalid transition/, error.message)
+  end
+
+  test "sign-in cycles reject legacy state that disagrees with status" do
+    cycle = build_cycle(
+      ClientSignInCycle,
+      status_id: ClientSignInCycleStatus::MFA_PENDING,
+      state: "PRIMARY_PENDING",
+      step: "mfa",
+    )
+
+    assert_not cycle.valid?
+    assert_not_empty cycle.errors[:state]
+  end
+
+  test "sign-in cycles reject step that disagrees with status" do
+    cycle = build_cycle(
+      ClientSignInCycle,
+      status_id: ClientSignInCycleStatus::MFA_PENDING,
+      state: "MFA_PENDING",
+      step: "primary",
+    )
+
+    assert_not cycle.valid?
+    assert_not_empty cycle.errors[:step]
   end
 
   test "sign-in transition_to ignores mismatched step input and keeps canonical step" do

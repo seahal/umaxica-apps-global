@@ -66,6 +66,19 @@ class VisitorSignInCycle < ComTicketRecord
   STATUS_IDS = STATUSES.values.freeze
   STEPS = %w(primary mfa session_limit guardrail checkpoint selector session_issuance dashboard return_to completed
              failed).freeze
+  STEP_BY_STATUS_ID = {
+    STATUS_MODEL::PRIMARY_PENDING => "primary",
+    STATUS_MODEL::MFA_PENDING => "mfa",
+    STATUS_MODEL::SESSION_LIMIT_PENDING => "session_limit",
+    STATUS_MODEL::GUARDRAIL_PENDING => "guardrail",
+    STATUS_MODEL::SESSION_ISSUANCE_PENDING => "session_issuance",
+    STATUS_MODEL::CHECKPOINT_PENDING => "checkpoint",
+    STATUS_MODEL::SELECTOR_PENDING => "selector",
+    STATUS_MODEL::DASHBOARD_PENDING => "dashboard",
+    STATUS_MODEL::RETURN_PENDING => "return_to",
+    STATUS_MODEL::COMPLETED => "completed",
+    STATUS_MODEL::FAILED => "failed",
+  }.freeze
   TRANSITIONS = {
     STATUS_MODEL::PRIMARY_PENDING => [
       STATUS_MODEL::MFA_PENDING,

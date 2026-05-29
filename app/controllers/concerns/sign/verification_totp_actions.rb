@@ -24,7 +24,7 @@ module Sign
       end
 
       if verify_totp!
-        consume_step_up_session!
+        consume_step_up_session!(method: :totp)
       else
         record_failed_step_up_attempt!(:totp)
         render :new, status: :unprocessable_content

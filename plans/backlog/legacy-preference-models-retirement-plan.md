@@ -156,7 +156,7 @@ tracked as a follow-up.
 - `ClassRegistry` redesign (C3 — separate plan)
 - Actor-side schema asymmetry decision (B2 — separate plan)
 - `Preference::Adoption` role re-evaluation (B3 — separate plan)
-- Per-subdomain `Current` (jump / apex / sign) design (A5 — separate ADR)
+- Per-subdomain `Current` (jump / acme / sign) design (A5 — separate ADR)
 - JWT `prf` claim format changes
 - Cookie consent / token rotation behavior changes
 

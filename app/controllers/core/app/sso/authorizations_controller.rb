@@ -4,7 +4,7 @@
 module Core
   module App
     module Sso
-      class AuthorizationsController < OpenController
+      class AuthorizationsController < Core::App::ApplicationController
         AUTHENTICATION_MODE = :open
 
         skip_before_action :set_region, raise: false

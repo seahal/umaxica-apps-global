@@ -3,6 +3,7 @@
 
 module Redirects
   class JumpGatewayUrl
+    MIN_TOKEN_LENGTH = 64
     TOKEN_PATTERN = /\A[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\z/
 
     def self.call(token, source: :jump_rt)
@@ -17,6 +18,7 @@ module Redirects
     def call
       return failure(:blank_token) if token.blank?
       return failure(:control_char) if token.match?(/[\x00-\x1F\x7F]/)
+      return failure(:token_too_short) if token.bytesize < MIN_TOKEN_LENGTH
       return failure(:malformed_token) unless token.match?(TOKEN_PATTERN)
 
       uri = URI.parse(gateway_origin)
@@ -29,7 +31,7 @@ module Redirects
       uri.user = nil
       uri.password = nil
 
-      Redirects::TargetResult.ok(kind: :xt, source: source, value: uri.to_s)
+      Redirects::TargetResult.ok(kind: :external, source: source, value: uri.to_s)
     rescue URI::InvalidURIError
       failure(:invalid_uri)
     end
@@ -48,7 +50,7 @@ module Redirects
     end
 
     def failure(reason)
-      Redirects::TargetResult.failure(kind: :xt, source: source, reason: reason, unsafe_value: token)
+      Redirects::TargetResult.failure(kind: :external, source: source, reason: reason, unsafe_value: token)
     end
   end
 end

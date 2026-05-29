@@ -14,17 +14,22 @@ module Sign
       false
     end
 
-    def consume_step_up_session!
+    def consume_step_up_session!(method: nil)
       rs = current_step_up_session
       return_to = rs.return_to
       scope = rs.scope
+      method = method.presence || rs.try(:method).presence
 
       now = Time.current
       ActiveRecord::Base.connected_to(role: :writing) do
         verification, raw_token = verification_model.issue_for_token!(token: actor_token)
-        actor_token.update!(last_step_up_at: now, last_step_up_scope: scope)
+        actor_token.update!(step_up_token_attributes(now: now, scope: scope, method: method))
         Actor.install_context!(
-          step_up: StepUp::Resolver.call(token: actor_token, scope: scope, now: now),
+          step_up: StepUp::Resolver.call(
+            token: actor_token,
+            requirement: step_up_requirement(scope: scope),
+            now: now,
+          ),
         ) if defined?(Actor)
         set_verification_cookie!(raw_token, expires_at: verification.discarded_at)
         create_audit_event!(verification_success_event_id, subject: current_verification_actor)
@@ -68,6 +73,25 @@ module Sign
         end
       end
       StepUp::CooldownStamp.call(current_verification_actor, method) if current_verification_actor.present?
+    end
+
+    def step_up_token_attributes(now:, scope:, method:)
+      attributes = {
+        last_step_up_at: now,
+        last_step_up_scope: scope,
+      }
+      attributes[:last_step_up_aal] = "aal2" if token_has_attribute?(:last_step_up_aal)
+      attributes[:last_step_up_method] = method.to_s if method.present? && token_has_attribute?(:last_step_up_method)
+      attributes[:last_step_up_purpose] = "step_up" if token_has_attribute?(:last_step_up_purpose)
+      attributes[:last_step_up_audience] = step_up_audience if token_has_attribute?(:last_step_up_audience)
+      if token_has_attribute?(:last_step_up_session_public_id)
+        attributes[:last_step_up_session_public_id] = actor_token.public_id
+      end
+      attributes
+    end
+
+    def token_has_attribute?(attribute)
+      actor_token.respond_to?(:has_attribute?) && actor_token.has_attribute?(attribute.to_s)
     end
 
     def verification_model

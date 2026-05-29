@@ -61,7 +61,7 @@ Therefore, the scope of this task is **Do not reduce the number of routes or URL
 
 ### current situation
 
-- Route definition: `config/routes/apex.rb:15,60,109,157,165`,
+- Route definition: `config/routes/acme.rb:15,60,109,157,165`,
   `config/routes/sign.rb:16,185,312,461,473`, All to `config/routes/jump.rb:11,21,31`
   `post "/csp-violation-report", to: "/csp_violations#create"` is described individually (= 13
   locations).
@@ -74,14 +74,14 @@ Therefore, the scope of this task is **Do not reduce the number of routes or URL
 ### Problem (= leftover cleanup target)
 
 1. Controller reference `to: "/csp_violations#create"` is written with a leading slash to pass
-   through the apex/sign/jump scope. You can turn off this special dispatch by simply placing a
+   through the acme/sign/jump scope. You can turn off this special dispatch by simply placing a
    controller inside each surface.
 2. `app/controllers/csp_violations_controller.rb` does not live on any surface and is a top-level
    Inherits from `ApplicationController`. This is based on the “surface independence” principle of
    AGENTS.md and the ADR `three-tier-controller-base.md` (public endpoint is `PublicController`
    (inherited from).
-3. The `APEX_NETWORK_URL` / `APEX_DEVELOPER_URL` constraints of `apex.rb:152-170` are
-   `constraints host: ENV["APEX_STAFF_URL"]` It is nested within the block, and the host cannot
+3. The `ACME_NETWORK_URL` / `ACME_DEVELOPER_URL` constraints of `acme.rb:152-170` are
+   `constraints host: ENV["ACME_STAFF_URL"]` It is nested within the block, and the host cannot
    reach it unless it matches both STAFF and DEV/NET at the same time (currently the route is almost
    dead). This will be fixed in Task 5, so it is excluded from this task.
 
@@ -92,14 +92,14 @@ Therefore, the scope of this task is **Do not reduce the number of routes or URL
   surface. Rails to keep hyphen separated URL Using the `path:` option of `resource` DSL:
 
   ```ruby
-  # In each TLD block (common to apex/sign/jump)
+  # In each TLD block (common to acme/sign/jump)
   resource :csp_violation_report, only: :create, path: "csp-violation-report"
   ```
 
   Now:
   - URL: `POST /csp-violation-report` (word-for-word unchanged)
-  - Controller: `Apex::Com::CspViolationReportsController` etc. by scope resolution
-  - Path helper: `apex_com_csp_violation_report_path` (generated)
+  - Controller: `Acme::Com::CspViolationReportsController` etc. by scope resolution
+  - Path helper: `acme_com_csp_violation_report_path` (generated)
   - Write in one line and use Rails CRUD convention (`#create`)
 
   Legacy `post "/csp-violation-report", to: "/csp_violations#create"` may maintain its shape. The
@@ -110,28 +110,28 @@ Therefore, the scope of this task is **Do not reduce the number of routes or URL
   `public-controller-base.md` / `three-tier-controller-base.md` and the "shallow nesting first"
   principle (`PublicController` design time decision: Instead of using 11 per-TLD bases, we used 3
   boundary bases):
-  - `Apex::CspViolationReportsController < Apex::PublicController`
+  - `Acme::CspViolationReportsController < Acme::PublicController`
   - `Sign::CspViolationReportsController < Sign::PublicController`
   - `Jump::CspViolationReportsController < Jump::PublicController`
 
   The routing side references the same controller in each TLD scope. Rails scope resolution is I go
   to search for the controller in the **last namespace that overlaps `scope module:`**, but I can't
   specify the controller. Either move the scope back one step and call it like
-  `controller: "/apex/csp_violation_reports"`, or
+  `controller: "/acme/csp_violation_reports"`, or
   `resource :csp_violation_report, only: :create, path: "csp-violation-report", module: nil` Use the
   syntax to remove TLD from the namespace, like:
 
   ```ruby
-  # Example: In apex.rb, in each TLD block (com/app/org/dev/net)
+  # Example: In acme.rb, in each TLD block (com/app/org/dev/net)
   resource :csp_violation_report, only: :create, path: "csp-violation-report",
-           controller: "/apex/csp_violation_reports"
+           controller: "/acme/csp_violation_reports"
   ```
 
   > **Alternatives (can be determined by the implementation AI)**: ADR `public-controller-base.md`,
-  > `HealthController`, etc. If written as **per-TLD**, `Apex::Com::Csp...` to match the current
+  > `HealthController`, etc. If written as **per-TLD**, `Acme::Com::Csp...` to match the current
   > design. You can also align them with per-TLD like this. However, rather than increasing the
   > number of new nests, priority should be given to aligning them to the shallower existing ones.
-  > Before implementation `app/controllers/apex/{com,app,org}/health_controller.rb` Check the
+  > Before implementation `app/controllers/acme/{com,app,org}/health_controller.rb` Check the
   > structure of and keep it consistent whether it is per-boundary or per-TLD.
 
 - Common normalization logic is `app/controllers/concerns/csp_violation_report.rb` , and `include`
@@ -142,8 +142,8 @@ Therefore, the scope of this task is **Do not reduce the number of routes or URL
 
 ```
 app/controllers/
-├── apex/
-│   └── csp_violation_reports_controller.rb     (Apex::CspViolationReportsController)
+├── acme/
+│   └── csp_violation_reports_controller.rb     (Acme::CspViolationReportsController)
 ├── sign/
 │   └── csp_violation_reports_controller.rb     (Sign::CspViolationReportsController)
 └── jump/
@@ -151,8 +151,8 @@ app/controllers/
 app/controllers/concerns/
 └── csp_violation_report.rb (maintain status quo)
 config/routes/
-├── apex.rb (resource :csp_violation_report for each TLD ...
-│                                                 controller: "/apex/csp_violation_reports")
+├── acme.rb (resource :csp_violation_report for each TLD ...
+│                                                 controller: "/acme/csp_violation_reports")
 ├── sign.rb (same as above)
 └── jump.rb (same as above)
 ```
@@ -162,11 +162,11 @@ Total of 3 files (per-boundary). 13 files (current Align to the structure of
 
 ### Implementation steps
 
-1. Create a new controller, one for each surface (`Apex::CspViolationReportsController`,
+1. Create a new controller, one for each surface (`Acme::CspViolationReportsController`,
    `Sign::CspViolationReportsController`, `Jump::CspViolationReportsController`). correspond to each
    Inherit `<Boundary>::PublicController`, include `CspViolationReport`, and `create` Call
    `record_csp_violation!` and return `head :no_content`.
-2. `config/routes/{apex,sign,jump}.rb` `post "/csp-violation-report", to: "/csp_violations#create"`
+2. `config/routes/{acme,sign,jump}.rb` `post "/csp-violation-report", to: "/csp_violations#create"`
    in each TLD scope (all 13 locations):
 
    ```ruby
@@ -176,24 +176,24 @@ Total of 3 files (per-boundary). 13 files (current Align to the structure of
 
 3. Delete old `app/controllers/csp_violations_controller.rb`.
 4. Test: For per-boundary proposals
-   `test/controllers/{apex,sign,jump}/csp_violation_reports_controller_test.rb` Create 3 new files
+   `test/controllers/{acme,sign,jump}/csp_violation_reports_controller_test.rb` Create 3 new files
    to cover 204 returned when executing POST on each TLD host. existing Migrate and integrate
    `test/controllers/csp_violations_controller_test.rb`.
 5. `report_uri` values ​​for `config/initializers/content_security_policy.rb` **do not change** (URL
    remains unchanged).
 6. `bin/rails routes | grep csp-violation-report` remains at 13 lines and each line is a
-   per-boundary controller (e.g. `apex/csp_violation_reports#create`).
+   per-boundary controller (e.g. `acme/csp_violation_reports#create`).
 
 ### Acceptance conditions
 
 - URL in the output of `bin/rails routes | grep csp-violation-report` **all
   `/csp-violation-report`** As is (not a single word has changed).
 - Similarly, in the output, the controller for each row is inside the surface (for per-boundary
-  plans, `apex/csp_violation_reports`, per-TLD Alternatives `apex/com/csp_violation_reports`).
+  plans, `acme/csp_violation_reports`, per-TLD Alternatives `acme/com/csp_violation_reports`).
   `/csp_violations` with leading slash No inscription remains.
 - The old top level `CspViolationsController` has been deleted.
 - Existing browsers (those caching the old CSP policy) 204 is still returned (for each combination
-  of apex/sign/jump × com/app/org/dev/net).
+  of acme/sign/jump × com/app/org/dev/net).
 - Event firing of `Rails.event.record("security.csp_violation", ...)` continues to work.
 
 ---
@@ -428,7 +428,7 @@ Since there are a large number of tables, we will go through the dual write peri
    `app/views/sign/{app,com,org}/up/**`, `app/views/sign/{app,com,org}/ins/new.html.erb`.
 2. Setting system (medium frequency): `app/views/sign/{app,com,org}/configuration/**`.
 3. Preferences: `app/views/sign/{app,com,org}/preference/**`.
-4. Root view: `app/views/sign/{app,com,org}/roots/**`, `app/views/apex/{app,com,org}/roots/**`,
+4. Root view: `app/views/sign/{app,com,org}/roots/**`, `app/views/acme/{app,com,org}/roots/**`,
    `app/views/sign/{dev,net}/roots/**` (integrated with task 5).
 
 ### ERB helper (new)
@@ -469,45 +469,45 @@ end
 - `sign` on surfaces `Sign::Dev::RootsController` / `Sign::Net::RootsController` and view
   (`app/views/sign/{dev,net}/roots/index.html.erb`) **already exists** is only a placeholder
   (`<h1>Sign::Dev::Roots#index</h1>`).
-- For the `apex` surface:
-  - `app/controllers/apex/{dev,net}/roots_controller.rb` **does not exist**.
-  - `app/views/apex/{dev,net}/roots/` **does not exist**.
-  - `APEX_NETWORK_URL` / `APEX_DEVELOPER_URL` constraints of `config/routes/apex.rb:152-170`
-    **Nested** in `constraints host: ENV["APEX_STAFF_URL"]` Written (bug). This will not match
+- For the `acme` surface:
+  - `app/controllers/acme/{dev,net}/roots_controller.rb` **does not exist**.
+  - `app/views/acme/{dev,net}/roots/` **does not exist**.
+  - `ACME_NETWORK_URL` / `ACME_DEVELOPER_URL` constraints of `config/routes/acme.rb:152-170`
+    **Nested** in `constraints host: ENV["ACME_STAFF_URL"]` Written (bug). This will not match
     unless the host matches both STAFF and DEV/NET, so `root to: "roots#index", as: :network_root`
     etc. is effectively a route to death.
   - In addition, `scope module: :dev` / `scope module: :net` is not specified, so the controller
     name is plain. Resolves to `RootsController`.
-- `MissionControl::Jobs::Engine` and `RailsDb::Engine` are `apex.rb:167-169` It is mounted on the
+- `MissionControl::Jobs::Engine` and `RailsDb::Engine` are `acme.rb:167-169` It is mounted on the
   DEVELOPER block, and it is clear that the intention is to consolidate the operational tools on the
   dev surface.
 
 ### problem
 
-- Since dev/net root does not work on the apex side, even if you hit `https://www.dev.localhost/`,
+- Since dev/net root does not work on the acme side, even if you hit `https://www.dev.localhost/`,
   routing error (need to check for error screen/static page/authentication error).
 - The sign side moves but remains a placeholder.
 
 ### decision
 
-- **Add a new set of `dev` and `net` roots on the apex surface**:
-  - `app/controllers/apex/dev/roots_controller.rb` (inherits from Apex::PublicController).
-  - `app/controllers/apex/net/roots_controller.rb` (inherits from Apex::PublicController).
-  - Newly created `app/views/apex/{dev,net}/roots/index.html.erb`.
-- **Fix routing nesting bug in apex** (simultaneous support in task 1):
-  - `constraints host: ENV["APEX_NETWORK_URL"]` and `constraints host: ENV["APEX_DEVELOPER_URL"]` to
+- **Add a new set of `dev` and `net` roots on the acme surface**:
+  - `app/controllers/acme/dev/roots_controller.rb` (inherits from Acme::PublicController).
+  - `app/controllers/acme/net/roots_controller.rb` (inherits from Acme::PublicController).
+  - Newly created `app/views/acme/{dev,net}/roots/index.html.erb`.
+- **Fix routing nesting bug in acme** (simultaneous support in task 1):
+  - `constraints host: ENV["ACME_NETWORK_URL"]` and `constraints host: ENV["ACME_DEVELOPER_URL"]` to
     the **outside** of the STAFF block, respectively `scope module: :net, as: :net` / Surround with
     `scope module: :dev, as: :dev`.
-  - `MissionControl::Jobs::Engine` / `RailsDb::Engine` mount is `apex.dev` Relocated within the new
+  - `MissionControl::Jobs::Engine` / `RailsDb::Engine` mount is `acme.dev` Relocated within the new
     scope (functionality remains the same).
 - **On the sign side, replace the placeholder ERB with "Purposeful Landing"**:
   - `dev`: Developer portal. The link destination is the development support page provided by `dev`
-    surface (`/jobs`, `/db` External links/host help to things mounted on the apex side, such as
-    those mounted on the apex side.
+    surface (`/jobs`, `/db` External links/host help to things mounted on the acme side, such as
+    those mounted on the acme side.
   - `net`: Landing for internal networks. `adr/split-into-regional-and-global-repos.md` A page that
     clearly states the policy that ``API/health is mainly for machines, and pages for humans are
     minimal'' in a manner consistent with the above.
-  - Both `Apex::PublicController` / `Sign::PublicController` and does not pass the authentication
+  - Both `Acme::PublicController` / `Sign::PublicController` and does not pass the authentication
     stack (conforms to ADR `three-tier-controller-base.md`).
 
 ### Minimum requirements for each page (contract to implementation AI)
@@ -522,23 +522,23 @@ end
 
 ### Implementation steps
 
-1. Move the `APEX_NETWORK_URL` / `APEX_DEVELOPER_URL` constraints in `apex.rb` out of the STAFF
+1. Move the `ACME_NETWORK_URL` / `ACME_DEVELOPER_URL` constraints in `acme.rb` out of the STAFF
    nesting. Added `scope module: :net` / `scope module: :dev`. `MissionControl` / `RailsDb` mount is
-   Maintain under `apex.dev`.
-2. Create a new `app/controllers/apex/{dev,net}/roots_controller.rb` (inherited from
-   `Apex::PublicController`).
-3. Create a new `app/views/apex/{dev,net}/roots/index.html.erb`.
+   Maintain under `acme.dev`.
+2. Create a new `app/controllers/acme/{dev,net}/roots_controller.rb` (inherited from
+   `Acme::PublicController`).
+3. Create a new `app/views/acme/{dev,net}/roots/index.html.erb`.
 4. Replace `app/views/sign/{dev,net}/roots/index.html.erb` from placeholder to actual content.
-5. Added routing tests (`test/integration/apex/dev_routing_test.rb`, etc.).
-6. If you have a footer/header in layout sharing, change the apex layout to `dev` / `net` But check
+5. Added routing tests (`test/integration/acme/dev_routing_test.rb`, etc.).
+6. If you have a footer/header in layout sharing, change the acme layout to `dev` / `net` But check
    if it can be shared. If the footer link contains a page that requires authentication,
    `PublicController` Since it cannot be called under the command, consider branching the layout or
    using a dedicated layout.
 
 ### Acceptance conditions
 
-- `https://www.dev.localhost/` (= `APEX_DEVELOPER_URL`) and `https://www.net.localhost/` (=
-  `APEX_NETWORK_URL`) returns 200 (integration test in test environment).
+- `https://www.dev.localhost/` (= `ACME_DEVELOPER_URL`) and `https://www.net.localhost/` (=
+  `ACME_NETWORK_URL`) returns 200 (integration test in test environment).
 - `https://id.dev.localhost/` (= `SIGN_DEVELOPER_URL`) and `https://id.net.localhost/` (=
   `SIGN_NETWORK_URL`) returns 200.
 - `<h1>` text for each page is provided via translation file (`config/locales/`).
@@ -583,7 +583,7 @@ end
 | All definition keys (en ∪ ja)                                                   | 2,362   |
 
 > Examples of keys only found in en: `actions.actions`, `actions.destroy`,
-> `apex.com.configurations.title`, `controller.app.preferences.footer.privacy` etc. Key example only
+> `acme.com.configurations.title`, `controller.app.preferences.footer.privacy` etc. Key example only
 > found in ja: `actions.cancel`, `actions.delete`, `actions.submit`,
 > `activerecord.attributes.customer_email.address` etc.
 
@@ -648,7 +648,7 @@ end
        - config/locales/%{locale}.yml
        - config/locales/**/%{locale}.yml
      write:
-       - ["{apex,sign,jump,common,actions,errors}.*", "config/locales/%{locale}.yml"]
+       - ["{acme,sign,jump,common,actions,errors}.*", "config/locales/%{locale}.yml"]
        - config/locales/%{locale}.yml
    search:
      paths:
@@ -775,8 +775,8 @@ end
 ## Overall test policy
 
 - Each task is an **independent PR**. There are dependencies between tasks:
-  - `apex.dev` / `apex.net` out of task 1 Adding a new controller fixes the DEV/NET routing nesting
-    bug in apex in task 5. I set up `scope module: :dev` / `scope module: :net` **later** conduct.
+  - `acme.dev` / `acme.net` out of task 1 Adding a new controller fixes the DEV/NET routing nesting
+    bug in acme in task 5. I set up `scope module: :dev` / `scope module: :net` **later** conduct.
     Others (11 locations on com/app/org) can be started without waiting for task 5.
   - Phase 2 (inline `default:` eradication) of Task 6 (i18n) is Task 4 (WAI-ARIA) If you finish
     before a new key is referenced, there will be fewer collisions.
@@ -788,7 +788,7 @@ end
 
 ## Merge order (recommended)
 
-1. Task 5 (`apex.dev` / `apex.net` roots maintenance + apex.rb nested bug fix) — Base maintenance
+1. Task 5 (`acme.dev` / `acme.net` roots maintenance + acme.rb nested bug fix) — Base maintenance
 2. Task 1 (Surface independence of CSP report, URL remains unchanged) — Also put it on the DEV/NET
    scope set up in task 5
 3. Task 6 Phase 1-2 (i18n-tasks introduction + inline `default:` eradication) — CI guard early

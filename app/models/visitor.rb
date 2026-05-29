@@ -56,6 +56,7 @@ class Visitor < ComPrincipalRecord
   include Authentication::CredentialInventoryOwner
   include MultiFactorConfigurable
   include MultiFactorStatusTrackable
+  include Actor::LifecycleConsistency
 
   LOGIN_BLOCKED_STATUS_IDS = [VisitorStatus::RESERVED].freeze
   VERIFIED_RECOVERY_EMAIL_STATUS_IDS = [

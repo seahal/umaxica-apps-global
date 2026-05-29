@@ -88,24 +88,24 @@ module Oidc
 
     def build_clients
       {
-        # Apex
-        "apex_app" => {
-          redirect_uris: build_redirect_uris("APEX_SERVICE_URL", "www.app.localhost"),
-          aud: "umaxica-apex-app",
+        # Acme
+        "acme_app" => {
+          redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost"),
+          aud: "umaxica-acme-app",
           resource_type: "client",
-          name: "Apex App",
+          name: "Acme App",
         },
-        "apex_org" => {
-          redirect_uris: build_redirect_uris("APEX_STAFF_URL", "www.org.localhost"),
-          aud: "umaxica-apex-org",
+        "acme_org" => {
+          redirect_uris: build_redirect_uris("ACME_STAFF_URL", "www.org.localhost"),
+          aud: "umaxica-acme-org",
           resource_type: "operator",
-          name: "Apex Org",
+          name: "Acme Org",
         },
-        "apex_com" => {
-          redirect_uris: build_redirect_uris("APEX_CORPORATE_URL", "www.com.localhost"),
-          aud: "umaxica-apex-com",
+        "acme_com" => {
+          redirect_uris: build_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost"),
+          aud: "umaxica-acme-com",
           resource_type: "visitor",
-          name: "Apex Com",
+          name: "Acme Com",
         },
         # Core
         "core_app" => {

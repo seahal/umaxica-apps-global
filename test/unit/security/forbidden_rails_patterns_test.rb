@@ -70,13 +70,18 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
     /skip_before_action\s+:(?:enforce_verification_if_required|enforce_step_up_prereqs!|authenticate_client!)/
 
   SENSITIVE_SKIP_ALLOWLIST = %w(
-    app/controllers/apex/app/edge/v0/cookies_controller.rb
-    app/controllers/apex/app/edge/v0/dbsc_controller.rb
-    app/controllers/apex/com/edge/v0/cookies_controller.rb
-    app/controllers/apex/com/edge/v0/dbsc_controller.rb
-    app/controllers/apex/org/edge/v0/cookies_controller.rb
-    app/controllers/apex/org/edge/v0/dbsc_controller.rb
-    app/controllers/concerns/sign/com_verification_base.rb
+    app/controllers/acme/app/edge/v0/cookies_controller.rb
+    app/controllers/acme/app/edge/v0/dbsc_controller.rb
+    app/controllers/acme/com/edge/v0/cookies_controller.rb
+    app/controllers/acme/com/edge/v0/dbsc_controller.rb
+    app/controllers/acme/org/edge/v0/cookies_controller.rb
+    app/controllers/acme/org/edge/v0/dbsc_controller.rb
+    app/controllers/core/app/edge/v0/cookies_controller.rb
+    app/controllers/core/app/edge/v0/dbsc_controller.rb
+    app/controllers/core/com/edge/v0/cookies_controller.rb
+    app/controllers/core/com/edge/v0/dbsc_controller.rb
+    app/controllers/core/org/edge/v0/cookies_controller.rb
+    app/controllers/core/org/edge/v0/dbsc_controller.rb
     app/controllers/sign/app/verification/base_controller.rb
     app/controllers/sign/app/verification/emails_controller.rb
     app/controllers/sign/com/verification/base_controller.rb

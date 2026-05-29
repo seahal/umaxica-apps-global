@@ -32,23 +32,5 @@ module Sign::App
         assert_operator before_filters.index(first), :<, before_filters.index(second)
       end
     end
-
-    test "open controller reflects theme after actor context is set" do
-      callbacks = OpenController._process_action_callbacks
-      before_filters = callbacks.select { |callback| callback.kind == :before }.map(&:filter)
-
-      expected_before_filters = %i(
-        set_current_context
-        set_preferences_cookie
-        transparent_refresh_access_token
-        set_current_actor
-        apply_localization_preferences
-        set_color_theme
-      )
-
-      expected_before_filters.each_cons(2) do |first, second|
-        assert_operator before_filters.index(first), :<, before_filters.index(second)
-      end
-    end
   end
 end

@@ -94,7 +94,7 @@ module SignUpCycleTicket
   end
 
   def complete_sign_up!(step: "completed", now: Time.current)
-    changes = { step: step }
+    changes = { step: step, state: "COMPLETED" }
     changes[:completed_at] = now if has_attribute?(:completed_at)
 
     transition_cycle_to!(

@@ -87,7 +87,7 @@ mismatch.
    - Switch both reading and writing to `com_preference` side.
    - Added migration to `db/guests_migrate/` to delete the guest side table after switching.
 5. **verification**:
-   - Sign / Apex Edit preferences for each surface (region / language / timezone / colortheme /
+   - Sign / Acme Edit preferences for each surface (region / language / timezone / colortheme /
      cookie) consent) integration test is green.
    - Com → Customer synchronization of `Preference::Core#sync_to_resource_preference!` does not
      regress.

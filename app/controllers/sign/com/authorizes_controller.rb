@@ -15,7 +15,7 @@ module Sign
         )
 
         if result.success?
-          redirect_to_xt_url(result.redirect_url, allowed_urls: [params[:redirect_uri]])
+          redirect_to_external_jump_url(result.redirect_url, allowed_urls: [result.redirect_uri])
         else
           render json: { error: result.error, error_description: result.error_description },
                  status: :bad_request
@@ -34,8 +34,8 @@ module Sign
       def sign_in_url_with_pt(return_to)
         return super unless params[:screen_hint].to_s == "signup"
 
+        _ = return_to
         new_sign_com_up_url(
-          pt: return_to,
           ri: params[:ri].presence,
           host: sign_com_redirect_host,
           protocol: request.protocol,

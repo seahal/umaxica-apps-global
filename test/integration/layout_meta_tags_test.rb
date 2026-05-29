@@ -7,12 +7,9 @@ class LayoutMetaTagsTest < ActionDispatch::IntegrationTest
   def setup
     # Map of Namespace => [Host ENV Name, Path]
     @targets = {
-      "Apex::Com" => ["APEX_CORPORATE_URL", "/"],
-      "Apex::App" => ["APEX_SERVICE_URL", "/"],
-      "Apex::Org" => ["APEX_STAFF_URL", "/"],
-      "Jump::App" => ["JUMP_SERVICE_URL", "/"],
-      "Jump::Org" => ["JUMP_STAFF_URL", "/"],
-      "Jump::Com" => ["JUMP_CORPORATE_URL", "/"],
+      "Acme::Com" => ["ACME_CORPORATE_URL", "/"],
+      "Acme::App" => ["ACME_SERVICE_URL", "/"],
+      "Acme::Org" => ["ACME_STAFF_URL", "/"],
       "Sign::App" => ["ID_SERVICE_URL", "/"],
       "Sign::Org" => ["ID_STAFF_URL", "/"],
       "Sign::Com" => ["ID_CORPORATE_URL", "/"],

@@ -46,7 +46,7 @@ This active plan supersedes older CurrentAttribute and compatibility-reader clea
 - Do not flatten configuration namespace values into awkward third-layer names such as
   `Actor.configuration.sign_value`; use `Actor.configuration.sign.value` when the namespace carries
   meaning.
-- If a previous plan expects `Current.*`, `Jumper`, `Apexer`, `Signer`, `Actor.surface`, or
+- If a previous plan expects `Current.*`, `Jumper`, `Acmeer`, `Signer`, `Actor.surface`, or
   `Actor.domain`, treat that part of the plan as obsolete.
 - Preserve only ideas that still fit the accepted Actor API, such as lifecycle reset coverage,
   preference fallback coverage, and explicit open-controller leak checks.

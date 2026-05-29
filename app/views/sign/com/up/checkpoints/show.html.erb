@@ -8,8 +8,8 @@
     <p><%= t("sign.com.registration.checkpoint.show.birthdate.description") %></p>
 
     <%= form_with url: sign_com_up_checkpoint_birthdate_path(ri: params[:ri]), method: :patch do %>
-      <% if params[:pt].present? %>
-        <%= hidden_field_tag :pt, params[:pt] %>
+      <% if signed_pt_param.present? %>
+        <%= hidden_field_tag :pt, signed_pt_param %>
       <% end %>
       <%= hidden_field_tag :requirement, "birthdate" %>
       <%= hidden_field_tag :checkpoint_version, @sign_up_ticket.checkpoint_version %>
@@ -31,7 +31,7 @@
     <%= link_to t("sign.com.registration.checkpoint.show.passkey.action"),
                 new_sign_com_up_checkpoint_passkey_path(
                   ri: params[:ri],
-                  pt: params[:pt].presence,
+                  pt: signed_pt_param,
                   checkpoint_version: @sign_up_ticket.checkpoint_version,
                 ) %>
   </section>
@@ -44,7 +44,7 @@
     <%= link_to t("sign.com.registration.checkpoint.show.passcode.action"),
                 new_sign_com_up_checkpoint_passcode_path(
                   ri: params[:ri],
-                  pt: params[:pt].presence,
+                  pt: signed_pt_param,
                   checkpoint_version: @sign_up_ticket.checkpoint_version,
                 ) %>
   </section>

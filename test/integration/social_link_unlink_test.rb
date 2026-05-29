@@ -45,7 +45,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
     satisfy_user_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "social_unlink")
+    mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
 
     delete(
       sign_app_social_authentication_url(provider: "apple", ri: "jp"),
@@ -70,7 +70,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       token: "t", token_expires_at: 1.hour.from_now.to_i,
     )
     satisfy_user_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "social_unlink")
+    mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
 
     # Try to unlink Apple
     delete(

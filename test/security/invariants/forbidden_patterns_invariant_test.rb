@@ -48,7 +48,25 @@ module Security
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/concerns/common/redirect.rb",
           line: /redirect_to\(result\.value, allow_other_host: true/,
-          reason: "Only the xt redirect facade may enable cross-host redirects after resolver validation.",
+          reason: "Only the Jump gateway facade may enable cross-host redirects after token URL validation.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/app/tokens_controller.rb",
+          line: /protect_from_forgery with: :null_session, only: :create/,
+          reason: "OIDC token exchange is a protocol endpoint using client authentication and PKCE, not browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/com/tokens_controller.rb",
+          line: /protect_from_forgery with: :null_session, only: :create/,
+          reason: "OIDC token exchange is a protocol endpoint using client authentication and PKCE, not browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/org/tokens_controller.rb",
+          line: /protect_from_forgery with: :null_session, only: :create/,
+          reason: "OIDC token exchange is a protocol endpoint using client authentication and PKCE, not browser session CSRF.",
         },
       ].freeze
 

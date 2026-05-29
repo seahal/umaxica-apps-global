@@ -7,7 +7,7 @@ module Core
       AUTHENTICATION_MODE = :private
 
       def index
-        render template: "apex/app/accounts/index"
+        render template: "acme/app/accounts/index"
       end
     end
   end

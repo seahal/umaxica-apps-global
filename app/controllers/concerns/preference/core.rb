@@ -419,7 +419,7 @@ module Preference::Core
   end
 
   def preference_reset_destroyed_notice
-    t(["apex", preference_surface_key, "preference.resets.destroyed"].join("."))
+    t(["acme", preference_surface_key, "preference.resets.destroyed"].join("."))
   end
 
   def preference_operation_failed_alert
@@ -555,7 +555,7 @@ module Preference::Core
   end
 
   def preference_translation_scope
-    "apex.#{preference_surface_key}.preferences"
+    "acme.#{preference_surface_key}.preferences"
   end
 
   def preference_edit_url_helper_name(screen)
@@ -592,7 +592,7 @@ module Preference::Core
   end
 
   def preference_option_label(type, value)
-    key = "apex.#{preference_surface_key}.preference.#{type}.options.#{value}"
+    key = "acme.#{preference_surface_key}.preference.#{type}.options.#{value}"
     default = value.to_s.tr("_", " ").titleize
     I18n.t(key, default: default)
   end

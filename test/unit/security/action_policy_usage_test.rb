@@ -7,21 +7,12 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
   fixtures_none!
 
   SURFACE_AUTHORIZATION_CONTEXTS = {
-    Apex::App::ApplicationController => :current_policy_user,
-    Apex::Com::ApplicationController => :current_policy_user,
-    Apex::Org::ApplicationController => :current_policy_user,
+    Acme::App::ApplicationController => :current_policy_user,
+    Acme::Com::ApplicationController => :current_policy_user,
+    Acme::Org::ApplicationController => :current_policy_user,
     Sign::App::ApplicationController => :current_policy_user,
     Sign::Com::ApplicationController => :current_policy_user,
     Sign::Org::ApplicationController => :current_policy_user,
-  }.freeze
-
-  OPEN_AUTHORIZATION_CONTEXTS = {
-    Apex::App::OpenController => :current_policy_user,
-    Apex::Com::OpenController => :current_policy_user,
-    Apex::Org::OpenController => :current_policy_user,
-    Sign::App::OpenController => :current_policy_user,
-    Sign::Com::OpenController => :current_policy_user,
-    Sign::Org::OpenController => :current_policy_user,
   }.freeze
 
   test "authenticated surface controllers use Action Policy with explicit user context" do
@@ -34,29 +25,6 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
         controller_class.instance_variable_get(:@authorization_targets),
         "#{controller_class.name} must configure Action Policy user context",
       )
-    end
-  end
-
-  test "authentication-aware open controllers expose Action Policy user context" do
-    OPEN_AUTHORIZATION_CONTEXTS.each do |controller_class, current_actor_method|
-      assert_includes controller_class.ancestors,
-                      ActionPolicy::Controller,
-                      "#{controller_class.name} must include ActionPolicy::Controller"
-      assert_equal(
-        { user: current_actor_method },
-        controller_class.instance_variable_get(:@authorization_targets),
-        "#{controller_class.name} must configure Action Policy user context",
-      )
-    end
-  end
-
-  test "jump open controllers do not configure Action Policy user context" do
-    [
-      Jump::App::OpenController,
-      Jump::Com::OpenController,
-      Jump::Org::OpenController,
-    ].each do |controller_class|
-      assert_nil controller_class.instance_variable_get(:@authorization_targets)
     end
   end
 

@@ -8,19 +8,19 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   SURFACES = [
     { host: "www.app.localhost",
-      client_id: "apex_app",
+      client_id: "acme_app",
       sign_host: ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"),
       resource: -> {
         clients(:one)
       }, },
     { host: "www.org.localhost",
-      client_id: "apex_org",
+      client_id: "acme_org",
       sign_host: ENV.fetch("ID_STAFF_URL", "id.umaxica.org"),
       resource: -> {
         operators(:one)
       }, },
     { host: "www.com.localhost",
-      client_id: "apex_com",
+      client_id: "acme_com",
       sign_host: ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com"),
       resource: -> {
         create_visitor!
@@ -110,7 +110,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
     id_token = Oidc::IdTokenIssuer.call(
       resource: clients(:one),
-      client: Oidc::ClientRegistry.find!("apex_app"),
+      client: Oidc::ClientRegistry.find!("acme_app"),
       nonce: "wrong_nonce",
     )
     token_result = Oidc::RpTokenClient::Result.new(

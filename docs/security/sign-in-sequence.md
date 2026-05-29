@@ -173,7 +173,7 @@ active actor, region, persona, and surface. Ordinary dashboard access must not c
 
 ## Relying-Party Entry
 
-The apex relying-party surfaces (`www.*`) expose one browser entry point for authentication:
+The acme relying-party surfaces (`www.*`) expose one browser entry point for authentication:
 `GET /sso/authorize`. The RP starts OIDC Authorization Code + PKCE from that route without a sign-up
 screen hint. Sign-in and sign-up selection belongs to the IdP (`id.*`) sign surface.
 

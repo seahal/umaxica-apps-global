@@ -111,8 +111,7 @@ class RetentionPurgeJob < ApplicationJob
     UserAuthorizationCode, OperatorAuthorizationCode, CustomerAuthorizationCode,
     ClientStepUpSession, OperatorStepUpSession, VisitorStepUpSession,
     AreaOccurrence, UserOccurrence, OperatorOccurrence, ZipOccurrence,
-    DomainOccurrence, IpOccurrence, EmailOccurrence, JwtOccurrence, TelephoneOccurrence,
-    AppJumpLink, ComJumpLink, OrgJumpLink
+    DomainOccurrence, IpOccurrence, EmailOccurrence, JwtOccurrence, TelephoneOccurrence
   ].freeze
 
   def perform(batch_size: 500)
@@ -123,6 +122,9 @@ class RetentionPurgeJob < ApplicationJob
   end
 end
 ```
+
+DB-backed JumpLink records were removed when redirect handling moved to the
+external Jump gateway and signed `rt` tokens.
 
 ## reason
 

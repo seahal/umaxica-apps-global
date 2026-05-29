@@ -1,0 +1,15 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
+  test "should get index" do
+    host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    get acme_app_root_url(ri: "jp")
+
+    assert_response :success
+    assert_select "title",
+                  "#{ENV.fetch("BRAND_NAME", "UMAXICA").upcase} (app) | #{I18n.t("acme.app.preferences.footer.home")}"
+  end
+end

@@ -12,7 +12,12 @@ module Sign
     end
 
     def set_actor_token
-      @actor_token = token_class.find_by!(public_id: current_session_public_id)
+      @actor_token =
+        if respond_to?(:current_session, true) && current_session.present?
+          current_session
+        else
+          token_class.find_by!(public_id: current_session_public_id)
+        end
     end
 
     def actor_token

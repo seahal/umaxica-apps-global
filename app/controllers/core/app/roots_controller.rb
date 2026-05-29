@@ -3,11 +3,11 @@
 
 module Core
   module App
-    class RootsController < OpenController
+    class RootsController < Core::App::ApplicationController
       AUTHENTICATION_MODE = :open
 
       def index
-        render template: "apex/app/roots/index"
+        render template: "acme/app/roots/index"
       end
     end
   end

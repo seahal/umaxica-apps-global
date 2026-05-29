@@ -21,9 +21,9 @@ All must be resolved before production deployment.
 
 | #   | Location                                                |
 | --- | ------------------------------------------------------- |
-| 3   | `app/controllers/apex/app/application_controller.rb:39` |
-| 4   | `app/controllers/apex/com/application_controller.rb:39` |
-| 5   | `app/controllers/apex/org/application_controller.rb:37` |
+| 3   | `app/controllers/acme/app/application_controller.rb:39` |
+| 4   | `app/controllers/acme/com/application_controller.rb:39` |
+| 5   | `app/controllers/acme/org/application_controller.rb:37` |
 | 6   | `app/controllers/core/app/application_controller.rb:21` |
 | 7   | `app/controllers/core/com/application_controller.rb:21` |
 | 8   | `app/controllers/core/org/application_controller.rb:21` |
@@ -79,7 +79,7 @@ All must be resolved before production deployment.
 
 ### FIXME: URL Issues Before Deploy (18 controllers)
 
-All `*_application_controller.rb` files across apex/core/docs/help/news/sign contain:
+All `*_application_controller.rb` files across acme/core/docs/help/news/sign contain:
 `# FIXME: Resolve the URL issues before deploying`
 
 ---

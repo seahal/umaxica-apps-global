@@ -43,6 +43,9 @@ services:
           - www.jp.umaxica.app
           - www.jp.umaxica.com
           - www.jp.umaxica.org
+          - core.app.localhost
+          - core.com.localhost
+          - core.org.localhost
           - www.app.localhost
           - www.com.localhost
           - www.org.localhost

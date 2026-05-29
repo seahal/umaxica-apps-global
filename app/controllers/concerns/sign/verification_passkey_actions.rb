@@ -19,7 +19,7 @@ module Sign
       return unless require_method_available!(:passkey)
 
       if verify_passkey!
-        consume_step_up_session!
+        consume_step_up_session!(method: :passkey)
       else
         record_failed_step_up_attempt!(:passkey)
         prepare_passkey_challenge!

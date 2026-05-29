@@ -153,7 +153,7 @@ explicit assertions where there is no system. Where redirects are expected Make 
 
 ### scope estimate
 
-- Target test file: 141 (`test/controllers/{apex,sign,jump}/`)
+- Target test file: 141 (`test/controllers/{acme,sign,jump}/`)
 - Methods to be modified: Approximately 50–100
 - Existing pattern: Host setting with `host!`, inheriting `ActionDispatch::IntegrationTest` from
   `test_helper.rb`
@@ -163,7 +163,7 @@ explicit assertions where there is no system. Where redirects are expected Make 
 1. Extract all GET routes with `bin/rails routes` → List them (as checklist for test completion)
 2. Extract `^\s+get\s` by greping under `test/controllers/`, and add `assert_response` to the
    subsequent line. List the things that don't have
-3. Cycle through each file for each surface (apex/sign/jump) and use `assert_response :success` or
+3. Cycle through each file for each surface (acme/sign/jump) and use `assert_response :success` or
    Reinforce `:redirect`
 4. At the same time as augmentation, ensure that the host! settings for each test are correct after
    resolving ENV (existing (via helper of `test/support/auto_headers.rb`)
@@ -179,7 +179,7 @@ explicit assertions where there is no system. Where redirects are expected Make 
 
 ### important file
 
-- Target of modification: `test/controllers/apex/**/*_test.rb` (29 files)
+- Target of modification: `test/controllers/acme/**/*_test.rb` (29 files)
 - Target of modification: `test/controllers/sign/**/*_test.rb` (141 files) — Main scope
 - Target of modification: `test/controllers/jump/**/*_test.rb` (5 files)
 - Utilize existing helpers: `test/support/auto_headers.rb`, `test/test_helper.rb`

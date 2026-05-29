@@ -3,18 +3,19 @@
 
 require "base64"
 require "openssl"
+require "jit/security/jwt/registry"
 
 module JumpRt
   module Keyring
     module_function
 
     def active_kid(namespace)
-      ENV["JWT_#{JumpRt::Surface.normalize_namespace(namespace)}_ACTIVE_KID"].presence
+      Jit::Security::Jwt::Registry.surface(namespace).current_kid
     end
 
     def private_key(namespace)
-      key = Rails.app.creds.option("JWT_#{JumpRt::Surface.normalize_namespace(namespace)}_PRIVATE_KEY")
-      decode_private_key(key)
+      issuer = Jit::Security::Jwt::Registry.surface(namespace)
+      Jit::Security::Jwt::Registry.private_key_for(issuer.id, issuer.current_kid)
     end
 
     def decode_private_key(value)

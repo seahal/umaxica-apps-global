@@ -1,0 +1,78 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class SurfaceRootsControllerTest < ActionDispatch::IntegrationTest
+  test "acme app root responds successfully" do
+    get "/", headers: { "Host" => "app.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "acme app www root responds successfully with ri parameter" do
+    get "/?ri=jp", headers: { "Host" => "www.app.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "acme com root responds successfully" do
+    get "/", headers: { "Host" => "com.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "acme org root responds successfully" do
+    get "/", headers: { "Host" => "org.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "acme org www root responds successfully with ri parameter" do
+    get "/?ri=jp", headers: { "Host" => "www.org.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+end
+
+class SurfaceHealthControllerTest < ActionDispatch::IntegrationTest
+  test "acme app health responds successfully" do
+    get "/health", headers: { "Host" => "app.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "acme com health responds successfully" do
+    get "/health", headers: { "Host" => "com.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "acme org health responds successfully" do
+    get "/health", headers: { "Host" => "org.localhost" }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "sign app health responds successfully" do
+    get "/health", headers: { "Host" => ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app") }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+
+  test "sign org health responds successfully" do
+    get "/health", headers: { "Host" => ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org") }
+    follow_redirect! if response.redirect?
+
+    assert_response :success
+  end
+end

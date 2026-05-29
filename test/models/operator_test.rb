@@ -98,6 +98,25 @@ class OperatorTest < ActiveSupport::TestCase
     assert_predicate staff, :login_allowed?
   end
 
+  test "multi_factor_enabled and multi_factor_id must describe the same requirement" do
+    staff = Operator.new(multi_factor_enabled: true, multi_factor_id: OperatorMultiFactor::NOTHING)
+
+    assert_not staff.valid?
+    assert_not_empty staff.errors[:multi_factor_id]
+
+    staff = Operator.new(multi_factor_enabled: false, multi_factor_id: OperatorMultiFactor::FULL)
+
+    assert_not staff.valid?
+    assert_not_empty staff.errors[:multi_factor_enabled]
+  end
+
+  test "withdrawal completion cannot precede withdrawal start" do
+    staff = Operator.new(withdrawal_started_at: Time.current, withdrawn_at: 1.minute.ago)
+
+    assert_not staff.valid?
+    assert_not_empty staff.errors[:withdrawn_at]
+  end
+
   test "visibility association resolves to OperatorVisibility with id 2 by default" do
     staff = Operator.create!
 

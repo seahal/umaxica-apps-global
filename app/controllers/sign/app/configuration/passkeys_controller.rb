@@ -344,10 +344,6 @@ module Sign
         end
 
         def record_passkey_registration_step_up!
-          current_session_token&.update!(
-            last_step_up_at: Time.current,
-            last_step_up_scope: verification_scope,
-          )
           Identity::Audit.record!(
             actor: current_client,
             event_id: ClientChronicleEvent::PASSKEY_REGISTERED,

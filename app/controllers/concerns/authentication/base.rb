@@ -620,10 +620,11 @@ module Authentication
           path: request&.fullpath,
           method: request&.request_method,
         )
-        pt = issue_authentication_path_target_token(request.fullpath)
-        url = sign_in_url_with_pt(pt)
+        store_authentication_return_target!(request.fullpath)
+        url = sign_in_url_with_pt(nil)
         redirect_to_jump_url(
           url,
+          fallback_internal: true,
           alert: I18n.t("errors.messages.login_required"),
         )
       end
@@ -652,6 +653,12 @@ module Authentication
 
     def sign_in_url_with_pt(return_to)
       raise NotImplementedError, "sign_in_url_with_pt must be implemented"
+    end
+
+    def store_authentication_return_target!(return_to)
+      token = issue_authentication_path_target_token(return_to)
+      session[DEFAULT_PT_SESSION_KEY] = token if token.present?
+      token
     end
 
     # Authorization abstract methods - RBAC / ABAC placeholders
@@ -1344,6 +1351,7 @@ module Authentication
       return nil unless respond_to?(:request, true) && request.present?
 
       resource = load_from_token
+      return nil if authentication_credentials_invalid?
       return @current_resource if resource.blank? && @current_resource.present?
       return nil if resource_withdrawn?(resource)
       return resource if resource.present?
@@ -1385,12 +1393,27 @@ module Authentication
         response.headers["DPoP-Nonce"] = Dpop::NonceService.generate(resource_type: resource_type) if defined?(Dpop::NonceService)
       end
 
+      remember_authentication_resolution!(result, authorization_scheme: authorization_scheme, access_token: access_token)
       emit_actor_mismatch_event(result.payload) if result.failure_reason == :actor_mismatch
       @current_session_public_id = result.session_public_id if result.session_public_id.present?
+      @current_token_public_id = result.token_public_id if result.token_public_id.present?
 
       populate_current_attributes!(result.resource, result.payload) if result.resource.present?
 
       result.resource
+    end
+
+    def remember_authentication_resolution!(result, authorization_scheme:, access_token:)
+      @current_authentication_failure_reason = result.failure_reason
+      @current_authentication_credentials_present =
+        access_token.present? ||
+        authorization_scheme.present? ||
+        result.failure_reason != :blank_access_token ||
+        result.payload.present?
+    end
+
+    def authentication_credentials_invalid?
+      @current_authentication_credentials_present && @current_authentication_failure_reason.present?
     end
 
     # Populate Actor.* attributes from JWT payload after successful authentication
@@ -1504,8 +1527,8 @@ module Authentication
     def handle_session_expiry(redirect_path, message_key)
       redirect_params = { notice: t(message_key) }
       # Preserve redirect parameter if present
-      default_rt_key = DEFAULT_PT_SESSION_KEY
-      redirect_params[Auth::IoKeys::Params::PT] = session[default_rt_key] if session[default_rt_key].present?
+      default_pt_key = DEFAULT_PT_SESSION_KEY
+      redirect_params[Auth::IoKeys::Params::PT] = session[default_pt_key] if session[default_pt_key].present?
       redirect_to(redirect_path, redirect_params)
     end
 
@@ -1535,7 +1558,11 @@ module Authentication
       case mode
       when :deny_all
         enforce_authentication_deny_all!(options)
-      when :bare, :open
+      when :bare
+        access_policy_allows?(:public_strict?, context)
+      when :open
+        return enforce_authentication_open!(options) if authentication_credentials_invalid?
+
         access_policy_allows?(:public_strict?, context)
       when :private
         return true if access_policy_allows?(:auth_required?, context)
@@ -1629,9 +1656,18 @@ module Authentication
     # --- Behavior implementation (align with your auth stack) ---
 
     def enforce_authentication_open!(_options = {})
-      # If you avoid touching current_user/current_resource here,
-      # the safest default is to do nothing.
-      true
+      return true unless authentication_credentials_invalid?
+
+      Rails.logger.info(
+        LogEvent.format(
+          "auth.open.invalid_credentials",
+          reason: @current_authentication_failure_reason,
+          controller: self.class.name,
+          action: action_name,
+        ),
+      )
+      render plain: I18n.t("auth.session_expired"), status: :unauthorized
+      false
     end
 
     def enforce_authentication_deny_all!(_options = {})
@@ -2326,7 +2362,12 @@ module Authentication
 
     def issue_dbsc_challenge_for!(token_record)
       challenge = SecureRandom.urlsafe_base64(32)
-      token_record.update!(dbsc_challenge: challenge, dbsc_challenge_issued_at: Time.current)
+      ActiveRecord::Base.connected_to(role: :writing) do
+        token_record.class.find(token_record.id).update!(
+          dbsc_challenge: challenge,
+          dbsc_challenge_issued_at: Time.current,
+        )
+      end
       challenge
     end
 
@@ -2419,18 +2460,18 @@ module Authentication
       end
     end
 
-    # Auth methods that imply the user already presented strong evidence
+    # Auth methods that imply the user already presented local strong evidence
     # of presence, so a second TOTP factor would be redundant:
     #   - passkey: phishing-resistant authenticator possession
-    #   - social / google / apple: IDP-managed authentication, including
-    #     the IDP's own MFA enforcement
+    # Social providers remain AAL1 here. Do not treat an external IdP assertion
+    # as local MFA unless an explicit trust policy is introduced.
     # Email and telephone OTPs are *not* in this set — OTP-only logins
     # still escalate to TOTP if the actor has enrolled an authenticator.
     # The "sign_up" fallback auth_method is intentionally absent too; in
     # practice it only fires for a freshly minted actor that has no MFA
     # enrolled yet, so the gate naturally passes via mfa_required_for?.
     def mfa_bypassed_for_auth_method?(auth_method)
-      %w(passkey social google apple).include?(auth_method.to_s)
+      auth_method.to_s == "passkey"
     end
 
     def resolve_mfa_pt(raw_value)
@@ -2472,8 +2513,8 @@ module Authentication
     def handle_auth_required_html(options)
       path =
         if respond_to?(:sign_in_url_with_pt, true)
-          pt = issue_authentication_path_target_token(request.fullpath)
-          sign_in_url_with_pt(pt)
+          store_authentication_return_target!(request.fullpath)
+          sign_in_url_with_pt(nil)
         elsif main_app.respond_to?(:sign_in_path)
           main_app.sign_in_path
         else

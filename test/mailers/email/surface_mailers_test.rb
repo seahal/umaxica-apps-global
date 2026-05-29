@@ -120,6 +120,43 @@ class Email::SurfaceMailersTest < ActionMailer::TestCase
     end
   end
 
+  test "promotional mailers omit unsafe cta urls" do
+    [
+      Email::App::PromotionalMailer,
+      Email::Com::PromotionalMailer,
+      Email::Org::PromotionalMailer,
+    ].each do |mailer|
+      mail = mailer.with(
+        email_address: "target@example.com",
+        title: "Promotion title",
+        body: "Promotion body",
+        cta_url: "javascript:alert(1)",
+      ).notice
+
+      assert_match "Promotion body", mail.text_part.body.decoded
+      assert_not_includes mail.text_part.body.decoded, "javascript:alert"
+      assert_not_includes mail.html_part.body.decoded, "javascript:alert"
+    end
+  end
+
+  test "promotional mailers omit cta urls with credentials" do
+    [
+      Email::App::PromotionalMailer,
+      Email::Com::PromotionalMailer,
+      Email::Org::PromotionalMailer,
+    ].each do |mailer|
+      mail = mailer.with(
+        email_address: "target@example.com",
+        title: "Promotion title",
+        body: "Promotion body",
+        cta_url: "https://user:pass@example.com/campaign",
+      ).notice
+
+      assert_not_includes mail.text_part.body.decoded, "user:pass"
+      assert_not_includes mail.html_part.body.decoded, "user:pass"
+    end
+  end
+
   test "promotional mailers can set unsubscribe headers per surface" do
     [
       [Email::App::PromotionalMailer, ClientEmail.new(public_id: "app-email-public-id"), "promotion@umaxica.app"],

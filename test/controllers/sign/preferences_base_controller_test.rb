@@ -6,13 +6,13 @@ require "test_helper"
 class SignPreferencesBaseControllerTest < ActiveSupport::TestCase
   fixtures_none!
 
-  test "preference bases use OpenController and ActorSupport" do
+  test "preference bases use surface application controllers and ActorSupport" do
     [
       Sign::App::PreferencesBaseController,
       Sign::Com::PreferencesBaseController,
       Sign::Org::PreferencesBaseController,
     ].each do |controller|
-      assert_operator controller, :<, controller.module_parent::OpenController
+      assert_equal controller.module_parent::ApplicationController, controller.superclass
       assert_includes controller.included_modules, ActorSupport
       assert_includes controller.included_modules, ActionPolicy::Controller
     end

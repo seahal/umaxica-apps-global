@@ -50,7 +50,7 @@ class Sign::Org::InsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "a[href=?]", apex_org_root_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_root_path(ri: "jp")
   end
 
   test "redirects to dashboard when logged in" do

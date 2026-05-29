@@ -14,7 +14,7 @@ module Sign::App::Configuration
       @user.update!(birthdate: "2000-02-03")
       @headers = as_user_headers(@user, host: @host)
       @token = ClientToken.find_by!(public_id: @headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
-      @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_birthdate")
+      mark_token_step_up_satisfied_for_test(@token, scope: "configuration_birthdate")
     end
 
     test "shows birthdate to signed in client" do
@@ -71,9 +71,8 @@ module Sign::App::Configuration
       uri = URI.parse(response.location)
       query = Rack::Utils.parse_nested_query(uri.query)
 
-      assert_equal "/sign/in/new", uri.path
-      assert_equal "jp", query["ri"]
-      assert_predicate query["pt"], :present?
+      assert_equal "jump.umaxica.net", uri.host
+      assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
     end
 
     test "does not route mutation or edit actions" do

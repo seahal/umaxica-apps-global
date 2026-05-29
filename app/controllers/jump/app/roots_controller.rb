@@ -8,12 +8,9 @@ module Jump
 
       AUTHENTICATION_MODE = :deny_all
 
-      JUMP_LINK_MODEL = AppJumpLink
-
       def index
-        return if params[:to].blank? && params[:jt].blank?
+        return render_not_found if params[:jt].blank?
 
-        params[:public_id] = params[:to]
         show
       end
     end

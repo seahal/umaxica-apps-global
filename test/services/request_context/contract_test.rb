@@ -7,7 +7,7 @@ module RequestContext
   class ContractTest < ActiveSupport::TestCase
     test "public key families partition the public key set" do
       assert_equal %i(ri), Contract.required_keys
-      assert_equal %i(pt nt xt), Contract.redirect_target_keys
+      assert_equal %i(pt nt), Contract.redirect_target_keys
       assert_equal %i(lx ct tz cu df tf mo dn pp), Contract.optional_overlay_keys
 
       union = Contract.required_keys + Contract.redirect_target_keys + Contract.optional_overlay_keys
@@ -21,7 +21,6 @@ module RequestContext
         ri: :region,
         pt: :path_target,
         nt: :navigation_target,
-        xt: :external_target,
         lx: :language,
         ct: :theme,
         tz: :timezone,
@@ -42,15 +41,14 @@ module RequestContext
       assert_equal :required, Contract.family(:ri)
       assert_equal :path_target, Contract.family(:pt)
       assert_equal :navigation_target, Contract.family(:nt)
-      assert_equal :external_target, Contract.family(:xt)
       assert_equal :optional_overlay, Contract.family(:lx)
       assert_equal :optional_overlay, Contract.family(:pp)
     end
 
-    test "redirect_target_key? recognizes only pt nt and xt" do
+    test "redirect_target_key? recognizes only pt and nt" do
       assert Contract.redirect_target_key?(:pt)
       assert Contract.redirect_target_key?("nt")
-      assert Contract.redirect_target_key?(:xt)
+      assert_not Contract.redirect_target_key?(:xt)
       assert_not Contract.redirect_target_key?(:rt)
       assert_not Contract.redirect_target_key?(:ri)
       assert_not Contract.redirect_target_key?(:lx)
@@ -62,7 +60,6 @@ module RequestContext
       assert_equal "Asia/Tokyo", Contract.normalize(:tz, "Asia/Tokyo")
       assert_equal "Opaque.Token-Value_123", Contract.normalize(:pt, "Opaque.Token-Value_123")
       assert_equal "Dashboard", Contract.normalize(:nt, "Dashboard")
-      assert_equal "External.Key", Contract.normalize(:xt, "External.Key")
     end
 
     test "internal_name raises on unknown key" do

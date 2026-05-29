@@ -143,13 +143,14 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "redirect_to_jump_rt redirects through dedicated jump gateway" do
     controller = redirect_helper
     redirects = []
+    token = "#{"a" * 22}.#{"b" * 22}.#{"c" * 22}"
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
     with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
-      controller.send(:redirect_to_jump_rt, "aaa.bbb.ccc")
+      controller.send(:redirect_to_jump_rt, token)
     end
 
-    assert_equal [["https://jump.umaxica.net/?rt=aaa.bbb.ccc", { allow_other_host: true }]], redirects
+    assert_equal [["https://jump.umaxica.net/?rt=#{token}", { allow_other_host: true }]], redirects
   end
 
   test "redirect_to_jump_rt rejects malformed token" do
@@ -188,14 +189,327 @@ class Common::RedirectTest < ActiveSupport::TestCase
     uri = URI.parse(location)
     token = Rack::Utils.parse_query(uri.query).fetch("rt")
     payload, header = JWT.decode(token, nil, false)
+    parts = token.split(".")
 
     assert_equal "https", uri.scheme
     assert_equal "jump.umaxica.net", uri.host
+    assert_operator token.bytesize, :>, 64
+    assert_equal 3, parts.size
+    assert parts.all?(&:present?)
+    assert parts.all? { |part| part.match?(/\A[A-Za-z0-9_-]+\z/) }
+    assert_no_match(/[=+\/]/, token)
+    assert_equal "JWT", header["typ"]
     assert_equal "ES384", header["alg"]
     assert_equal "sign-app-es384-test-a", header["kid"]
     assert_equal "https://id.umaxica.app", payload["iss"]
+    assert_equal "reuse", payload["rpl"]
     assert_equal "https://www.umaxica.app/dashboard", payload["url"]
     assert_equal({ allow_other_host: true }, redirects.first.last)
+  end
+
+  test "redirect_to_jump_url logs only safe token metadata" do
+    controller =
+      Class.new(ApplicationController) do
+        include Common::Redirect
+
+        def self.name = "Sign::App::HarnessController"
+      end.new
+    redirects = []
+    logs = []
+    private_key = OpenSSL::PKey::EC.generate("secp384r1")
+    logger = Struct.new(:logs) do
+      def info(message)
+        logs << message
+      end
+    end.new(logs)
+    request = Struct.new(:request_id, :referer, :user_agent, :remote_ip, :headers).new(
+      "request-id",
+      "https://www.umaxica.app/source?private=1",
+      "Test Browser",
+      "203.0.113.10",
+      {
+        "CF-Connecting-IP" => "198.51.100.20",
+        "CF-Ray" => "ray-test",
+        "CF-ASN" => "64500",
+        "CF-IPCountry" => "JP",
+      },
+    )
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+    controller.define_singleton_method(:request) { request }
+
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
+      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+    ) do
+      JumpRt::Keyring.stub(:private_key, private_key) do
+        Rails.stub(:logger, logger) do
+          controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard?secret=hidden")
+        end
+      end
+    end
+
+    token = Rack::Utils.parse_query(URI.parse(redirects.first.first).query).fetch("rt")
+    parsed = JSON.parse(logs.find { |entry| entry.include?("jump_rt.issued") })
+    data = parsed.fetch("data")
+
+    assert_equal "jump_rt.issued", parsed.fetch("event")
+    assert_equal token.bytesize, data.fetch("rt_length")
+    assert_equal 3, data.fetch("rt_parts")
+    assert_equal Digest::SHA256.hexdigest(token)[0, 12], data.fetch("rt_digest12")
+    assert_equal Digest::SHA256.hexdigest("https://www.umaxica.app/source?private=1")[0, 12],
+                 data.fetch("referer_digest12")
+    assert_equal Digest::SHA256.hexdigest("Test Browser")[0, 12], data.fetch("user_agent_digest12")
+    assert_equal Digest::SHA256.hexdigest("203.0.113.10")[0, 12], data.fetch("remote_ip_digest12")
+    assert_equal Digest::SHA256.hexdigest("198.51.100.20")[0, 12], data.fetch("cf_connecting_ip_digest12")
+    assert_equal "ray-test", data.fetch("cf_ray")
+    assert_equal "64500", data.fetch("cf_asn")
+    assert_equal "JP", data.fetch("cf_ipcountry")
+    assert_not_includes logs.join, token
+    assert_not_includes logs.join, "secret=hidden"
+    assert_not_includes logs.join, "private=1"
+    assert_not_includes logs.join, "203.0.113.10"
+    assert_not_includes logs.join, "198.51.100.20"
+  end
+
+  test "redirect_to_external_jump_url validates then redirects through jump as external destination" do
+    controller =
+      Class.new(ApplicationController) do
+        include Common::Redirect
+
+        def self.name = "Sign::App::HarnessController"
+      end.new
+    redirects = []
+    private_key = OpenSSL::PKey::EC.generate("secp384r1")
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
+      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+    ) do
+      JumpRt::Keyring.stub(:private_key, private_key) do
+        controller.send(
+          :redirect_to_external_jump_url,
+          "https://rp.example/callback?ok=1",
+          allowed_urls: ["https://rp.example/callback"],
+        )
+      end
+    end
+
+    location = redirects.first.first
+    uri = URI.parse(location)
+    token = Rack::Utils.parse_query(uri.query).fetch("rt")
+    payload, = JWT.decode(token, nil, false)
+
+    assert_equal "https://jump.umaxica.net", "#{uri.scheme}://#{uri.host}"
+    assert_equal "external", payload["dst"]
+    assert_equal "reuse", payload["rpl"]
+    assert_equal "https://rp.example/callback?ok=1", payload["url"]
+    assert_equal({ allow_other_host: true }, redirects.first.last)
+  end
+
+  test "redirect_to_external_jump validates registry target then redirects through jump as external destination" do
+    controller =
+      Class.new(ApplicationController) do
+        include Common::Redirect
+
+        def self.name = "Sign::App::HarnessController"
+      end.new
+    redirects = []
+    private_key = OpenSSL::PKey::EC.generate("secp384r1")
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
+      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "RP_APP_URL" => "https://rp.example",
+    ) do
+      JumpRt::Keyring.stub(:private_key, private_key) do
+        controller.send(:redirect_to_external_jump, :rp_app, path: "/signed-out", query: { ok: "1", rt: "drop.me" })
+      end
+    end
+
+    location = redirects.first.first
+    uri = URI.parse(location)
+    token = Rack::Utils.parse_query(uri.query).fetch("rt")
+    payload, = JWT.decode(token, nil, false)
+
+    assert_equal "https://jump.umaxica.net", "#{uri.scheme}://#{uri.host}"
+    assert_equal "external", payload["dst"]
+    assert_equal "reuse", payload["rpl"]
+    assert_equal "https://rp.example/signed-out?ok=1", payload["url"]
+    assert_equal({ allow_other_host: true }, redirects.first.last)
+  end
+
+  test "redirect_to_jump_url can fall back to same-host internal path when token cannot be issued" do
+    controller = redirect_helper
+    redirects = []
+    request = Struct.new(:host, :host_with_port, :request_id).new("id.umaxica.app", "id.umaxica.app", "request-id")
+    controller.define_singleton_method(:request) { request }
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => nil,
+      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+    ) do
+      controller.send(
+        :redirect_to_jump_url,
+        "https://id.umaxica.app/sign/in?ri=jp&pt=signed",
+        fallback_internal: true,
+        alert: "login required",
+      )
+    end
+
+    assert_equal(
+      [["/sign/in?ri=jp&pt=signed", { allow_other_host: false, alert: "login required" }]],
+      redirects,
+    )
+  end
+
+  test "redirect_to_jump_url can fall back to same-host internal path when gateway URL is invalid" do
+    controller = redirect_helper
+    redirects = []
+    request = Struct.new(:host, :host_with_port, :request_id).new("id.umaxica.app", "id.umaxica.app", "request-id")
+    controller.define_singleton_method(:request) { request }
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
+      JumpRt::Issuer.stub(:call, "aaa.bbb.ccc") do
+        controller.send(
+          :redirect_to_jump_url,
+          "https://id.umaxica.app/sign/in?ri=jp&pt=signed",
+          fallback_internal: true,
+          alert: "login required",
+        )
+      end
+    end
+
+    assert_equal(
+      [["/sign/in?ri=jp&pt=signed", { allow_other_host: false, alert: "login required" }]],
+      redirects,
+    )
+  end
+
+  test "redirect_to_jump_url emits jump_rt.fallback_internal warning when token cannot be issued" do
+    controller =
+      Class.new(ApplicationController) do
+        include Common::Redirect
+
+        def self.name = "Sign::App::HarnessController"
+      end.new
+    redirects = []
+    logs = []
+    logger = Struct.new(:logs) do
+      def info(message) = logs << message
+
+      def warn(message) = logs << message
+    end.new(logs)
+    request = Struct.new(:host, :host_with_port, :request_id).new("id.umaxica.app", "id.umaxica.app", "request-id")
+    controller.define_singleton_method(:request) { request }
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => nil,
+      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+    ) do
+      Rails.stub(:logger, logger) do
+        controller.send(
+          :redirect_to_jump_url,
+          "https://id.umaxica.app/sign/in?secret=hidden",
+          fallback_internal: true,
+        )
+      end
+    end
+
+    entry = logs.find { |line| line.include?("jump_rt.fallback_internal") }
+    parsed = JSON.parse(entry)
+    data = parsed.fetch("data")
+
+    assert_equal "jump_rt.fallback_internal", parsed.fetch("event")
+    assert_equal "issuance_failed", data.fetch("reason")
+    assert_equal "SIGN_APP", data.fetch("namespace")
+    assert_equal Digest::SHA256.hexdigest("https://id.umaxica.app/sign/in?secret=hidden")[0, 12],
+                 data.fetch("target_url_digest")
+    assert_not_includes logs.join, "secret=hidden"
+  end
+
+  test "redirect_to_jump_url emits jump_rt.fallback_internal warning when gateway url is invalid" do
+    controller =
+      Class.new(ApplicationController) do
+        include Common::Redirect
+
+        def self.name = "Sign::App::HarnessController"
+      end.new
+    redirects = []
+    logs = []
+    logger = Struct.new(:logs) do
+      def info(message) = logs << message
+
+      def warn(message) = logs << message
+    end.new(logs)
+    request = Struct.new(:host, :host_with_port, :request_id).new("id.umaxica.app", "id.umaxica.app", "request-id")
+    controller.define_singleton_method(:request) { request }
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+    fake_token = "#{"a" * 22}.#{"b" * 22}.#{"c" * 22}"
+
+    with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
+      Rails.stub(:logger, logger) do
+        JumpRt::Issuer.stub(:call, fake_token) do
+          controller.send(
+            :redirect_to_jump_url,
+            "https://id.umaxica.app/sign/in",
+            fallback_internal: true,
+          )
+        end
+      end
+    end
+
+    entry = logs.find { |line| line.include?("jump_rt.fallback_internal") }
+    parsed = JSON.parse(entry)
+    data = parsed.fetch("data")
+
+    assert_equal "gateway_url_failed", data.fetch("reason")
+    assert_equal "https_required", data.fetch("gateway_failure")
+  end
+
+  test "redirect_to_jump_url renders invalid request when token cannot be issued without fallback" do
+    controller = redirect_helper
+    renders = []
+    redirects = []
+    controller.define_singleton_method(:request) { Struct.new(:request_id).new("request-id") }
+    controller.define_singleton_method(:render) { |**kwargs| renders << kwargs }
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => nil,
+      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+    ) do
+      controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")
+    end
+
+    assert_empty redirects
+    assert_equal :unprocessable_content, renders.first.fetch(:status)
+  end
+
+  test "redirect_to_jump_url does not redirect to jump when gateway rejects issued token" do
+    controller = redirect_helper
+    renders = []
+    redirects = []
+    controller.define_singleton_method(:request) { Struct.new(:request_id).new("request-id") }
+    controller.define_singleton_method(:render) { |**kwargs| renders << kwargs }
+    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+
+    JumpRt::Issuer.stub(:call, "xxx") do
+      controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")
+    end
+
+    assert_empty redirects
+    assert_equal :unprocessable_content, renders.first.fetch(:status)
   end
 
   def with_env(values)

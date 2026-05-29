@@ -45,7 +45,8 @@ class ComPostVersion < ComPublisherRecord
           inverse_of: :latest_version_record
 
   validates :permalink, presence: true, length: { maximum: 200 }
-  validates :response_mode, presence: true
+  validates :response_mode, presence: true, inclusion: { in: PublisherPostDocument::RESPONSE_MODES }
   validates :publish_at, presence: true
   validates :expires_at, presence: true
+  validates :redirect_url, presence: true, if: -> { response_mode == "redirect" }
 end

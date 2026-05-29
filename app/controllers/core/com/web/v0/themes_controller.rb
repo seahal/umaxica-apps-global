@@ -5,7 +5,7 @@ module Core
   module Com
     module Web
       module V0
-        class ThemesController < Core::Com::OpenController
+        class ThemesController < Core::Com::ApplicationController
           include ::Preference::WebThemeEndpoint
 
           include ::Preference::WebThemeActions

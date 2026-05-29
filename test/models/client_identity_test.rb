@@ -40,7 +40,7 @@ class ClientIdentityTest < ActiveSupport::TestCase
     identity = ClientIdentity.create!(
       issuer: "https://id.example.test",
       subject: "user-subject-1",
-      audience: "apex_app",
+      audience: "acme_app",
       source_record_id: 101,
       status_id: ClientIdentityState::ACTIVE,
     )
@@ -64,7 +64,7 @@ class ClientIdentityTest < ActiveSupport::TestCase
     ClientIdentity.create!(
       issuer: "https://id.example.test",
       subject: "user-subject-2",
-      audience: "apex_app",
+      audience: "acme_app",
       source_record_id: 102,
       status_id: ClientIdentityState::ACTIVE,
     )
@@ -72,7 +72,7 @@ class ClientIdentityTest < ActiveSupport::TestCase
     duplicate = ClientIdentity.new(
       issuer: "https://id.example.test",
       subject: "user-subject-2",
-      audience: "apex_app",
+      audience: "acme_app",
       source_record_id: 103,
       status_id: ClientIdentityState::ACTIVE,
     )
@@ -85,7 +85,7 @@ class ClientIdentityTest < ActiveSupport::TestCase
     ClientIdentity.create!(
       issuer: "https://id.example.test",
       subject: "user-subject-3",
-      audience: "apex_app",
+      audience: "acme_app",
       source_record_id: 104,
       status_id: ClientIdentityState::ACTIVE,
     )
@@ -93,7 +93,7 @@ class ClientIdentityTest < ActiveSupport::TestCase
     duplicate = ClientIdentity.new(
       issuer: "https://id.example.test",
       subject: "user-subject-4",
-      audience: "apex_app",
+      audience: "acme_app",
       source_record_id: 104,
       status_id: ClientIdentityState::ACTIVE,
     )

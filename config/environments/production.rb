@@ -31,8 +31,14 @@ Rails.application.configure do
   # Force all access to the app over SSL and use secure cookies.
   config.force_ssl = true
 
-  # HSTS is managed by the CDN, not Rails.
-  config.ssl_options = { hsts: false }
+  # Rails emits HSTS as a safe default; the CDN may override or replace this header.
+  config.ssl_options = {
+    hsts: {
+      expires: 365.days,
+      subdomains: false,
+      preload: false,
+    },
+  }
 
   # Log application output to STDOUT for Cloud Run visibility.
   STDOUT.sync = true
@@ -113,11 +119,11 @@ Rails.application.configure do
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Collect all host ENV vars used in route constraints.
   config.hosts = ENV.values_at(
-    "APEX_CORPORATE_URL",
-    "APEX_SERVICE_URL",
-    "APEX_STAFF_URL",
-    "APEX_NETWORK_URL",
-    "APEX_DEVELOPER_URL",
+    "ACME_CORPORATE_URL",
+    "ACME_SERVICE_URL",
+    "ACME_STAFF_URL",
+    "ACME_NETWORK_URL",
+    "ACME_DEVELOPER_URL",
     "SIGN_CORPORATE_URL",
     "SIGN_SERVICE_URL",
     "SIGN_STAFF_URL",
@@ -131,8 +137,8 @@ Rails.application.configure do
     "HELP_SERVICE_URL", "HELP_STAFF_URL", "HELP_CORPORATE_URL",
   ).compact_blank
 
-  # Skip DNS rebinding protection for health checks and load balancer probes.
-  config.host_authorization = { exclude: ->(request) { request.path.start_with?("/health", "/sign/up") } }
+  # Skip DNS rebinding protection only for health checks and load balancer probes.
+  config.host_authorization = { exclude: ->(request) { request.path.start_with?("/health") } }
 
   ### Added by owner
   # We've configured this production environment to prevent the delivery of public static content.

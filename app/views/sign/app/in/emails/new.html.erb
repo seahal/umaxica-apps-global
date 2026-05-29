@@ -1,5 +1,5 @@
 <% title t("sign.app.authentication.email.new.page_title") %>
-<% pt = params[:pt].presence %>
+<% pt = signed_pt_param %>
 
 <div>
   <div>
@@ -56,23 +56,5 @@
       </div>
     </div>
   </div>
-
-  <style>
-      @keyframes shake {
-          0%, 100% {
-              transform: translateX(0);
-          }
-          25% {
-              transform: translateX(-4px);
-          }
-          75% {
-              transform: translateX(4px);
-          }
-      }
-
-      .animate-shake {
-          animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
-      }
-  </style>
 
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">

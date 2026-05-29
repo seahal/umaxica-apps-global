@@ -156,7 +156,7 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
     VisitorIdentity.create!(
       issuer: "https://id.example.test",
       subject: label,
-      audience: "apex_com",
+      audience: "acme_com",
       source_record_id: Zlib.crc32(label),
       status_id: VisitorIdentityState::ACTIVE,
     )

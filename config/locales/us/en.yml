@@ -32,6 +32,8 @@ en:
   jump:
     redirector:
       unavailable: This jump link is unavailable.
+  auth:
+    session_expired: Your session has expired. Please sign in again.
   session_limit:
     gate_expired: The operation has timed out. Please log in again.
     user_not_found: User not found. Please log in again.
@@ -102,6 +104,7 @@ en:
     com:
       registration:
         cancelled_retry_later: Registration cancelled. Please wait a while before registering again.
+        session_missing: Your registration session has expired. Please start again.
         new:
           page_title: Registration
           page_description: Select how you would like to begin using %{product}.
@@ -612,6 +615,7 @@ en:
           logout: Log Out
       registration:
         cancelled_retry_later: Registration cancelled. Please wait a while before registering again.
+        session_missing: Your registration session has expired. Please start again.
         new:
           page_title: Create your account
           page_description: Choose the sign-up method that works best for your %{product} account.
@@ -1174,6 +1178,7 @@ en:
         home_link: Go to home
   auth:
     unauthorized: You are not authorized to access this page.
+    session_expired: Your session has expired. Please sign in again.
     step_up:
       required: Step-up authentication is required to continue.
       session_expired: Verification required.
@@ -1559,7 +1564,7 @@ en:
         footer:
           preference: Preferences
           cookie: Cookie
-  apex:
+  acme:
     org:
       preference:
         cookie:
@@ -2340,7 +2345,7 @@ en:
               dark: Ideal for night shifts or reducing eye strain.
               system: Matches your operating system and switches automatically.
             submit: Save theme preference
-    apex:
+    acme:
     app:
       configurations:
         title: Configuration
@@ -2974,7 +2979,7 @@ en:
     page_header:
       up_label_fallback: Back
     links:
-      apex_preference: Apex preferences
+      acme_preference: Acme preferences
   docs:
     posts:
       index:
@@ -3064,7 +3069,7 @@ en:
         open_settings: Manage settings
         accept_all: Accept all
   views:
-    apex:
+    acme:
       app:
         roots:
           index:

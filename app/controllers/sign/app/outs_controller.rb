@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class OutsController < OpenController
+    class OutsController < Sign::App::ApplicationController
       include ::Verification::Client
 
       include ::Authentication::Logoutable
@@ -33,21 +33,26 @@ module Sign
           return
         end
 
-        destroy
+        perform_sign_out!
       end
 
       def destroy
-        pt = params[:pt].presence
+        perform_sign_out!
+      end
+
+      private
+
+      def perform_sign_out!
+        raw_pt = path_target_value
+        pt = signed_pt_param
         destination = path_from_signed_pt(pt) if pt.present?
 
         logout_current_session!(reason: "app_user_logout")
-        return render_invalid_return_target! if pt.present? && destination.blank?
+        return render_invalid_return_target! if raw_pt.present? && destination.blank?
         return redirect_to_pt_destination!(destination) if destination.present?
 
         render :show
       end
-
-      private
     end
   end
 end

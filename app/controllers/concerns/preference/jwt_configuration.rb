@@ -5,6 +5,7 @@ require "base64"
 require "json"
 require "jwt"
 require "openssl"
+require "jit/security/jwt/registry"
 
 module Preference
   # Resolves keysets, issuer, leeway and audience scoping for preference JWTs.
@@ -14,7 +15,8 @@ module Preference
     class MissingAudienceError < StandardError; end
 
     def self.active_kid
-      ENV.fetch("PREFERENCE_JWT_ACTIVE_KID", "default")
+      Jit::Security::Jwt::Registry.preference.current_kid ||
+        raise(Jit::Security::Jwt::Registry::ConfigurationError, "PREFERENCE_JWT_ACTIVE_KID is not configured")
     end
 
     def self.leeway_seconds
@@ -71,13 +73,11 @@ module Preference
     end
 
     def self.private_key_for(kid)
-      keyset = parse_keyset(Rails.app.creds.option(:PREFERENCE_JWT_PRIVATE_KEYSET))
-      decode_key(keyset[kid])
+      Jit::Security::Jwt::Registry.private_key_for("preference", kid)
     end
 
     def self.public_key_for(kid)
-      keyset = parse_keyset(Rails.app.creds.option(:PREFERENCE_JWT_PUBLIC_KEYSET))
-      decode_key(keyset[kid])
+      Jit::Security::Jwt::Registry.public_key_for("preference", kid)
     end
 
     def self.private_key
@@ -89,10 +89,7 @@ module Preference
     end
 
     def self.parse_header(token)
-      _payload, header = JWT.decode(token, nil, false)
-      header || {}
-    rescue JWT::DecodeError
-      {}
+      Jit::Security::Jwt::Registry.parse_header(token)
     end
 
     def self.parse_keyset(raw)

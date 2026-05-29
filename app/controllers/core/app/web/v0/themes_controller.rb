@@ -5,7 +5,7 @@ module Core
   module App
     module Web
       module V0
-        class ThemesController < Core::App::OpenController
+        class ThemesController < Core::App::ApplicationController
           include ::Preference::WebThemeEndpoint
 
           include ::Preference::WebThemeActions

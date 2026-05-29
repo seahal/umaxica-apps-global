@@ -3,7 +3,7 @@
 ## Context
 
 `adr/actor-current-facade.md` already made `Actor` the only current-context facade and rejected
-`Current`, `Jumper`, `Apexer`, and `Signer`. The remaining compatibility readers `Actor.session` and
+`Current`, `Jumper`, `Acmeer`, and `Signer`. The remaining compatibility readers `Actor.session` and
 `Actor.token` kept the ambiguous Rails-session name and exposed raw access-token claims as an
 application-facing API.
 

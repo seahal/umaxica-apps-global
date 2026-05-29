@@ -90,16 +90,17 @@ it is not counted as the remaining method for Google / Apple unlink.
 AAL2 is the current step-up boundary. It is used for sensitive signed-in actions and is implemented
 through the step-up authentication mechanism.
 
-Current AAL2 methods are surface-aware:
+Current default AAL2 methods are surface-aware:
 
-| surface | AAL2 methods             |
-| ------- | ------------------------ |
-| `app`   | email OTP, passkey, TOTP |
-| `com`   | email OTP, passkey       |
-| `org`   | passkey                  |
+| surface | default AAL2 methods |
+| ------- | -------------------- |
+| `app`   | passkey, TOTP        |
+| `com`   | passkey              |
+| `org`   | passkey              |
 
 AAL2 method preference is surface-aware. For `app`, prefer phishing-resistant methods first:
-passkey, then TOTP, then email OTP.
+passkey, then TOTP. Email OTP is not a default AAL2 method. A policy may allow it only through an
+explicit method set with issuer, purpose, audience, and credential-age constraints.
 
 AAL2 is recent, scoped authentication. A fresh sign-in does not automatically satisfy step-up, and
 refreshing an access token returns the session to the default AAL1 context.
@@ -107,9 +108,14 @@ refreshing an access token returns the session to the default AAL1 context.
 Passcodes, social login, and telephone credentials do not count as AAL2 methods.
 
 Step-up scope is exact. A token satisfies a sensitive action only when `last_step_up_scope` matches
-the action's required scope and `last_step_up_at` is still within the freshness window. A generic
-verification event must not satisfy scoped sensitive actions such as withdrawal, credential removal,
-or session revoke-all.
+the action's required scope, `last_step_up_at` is still within the freshness window, the recorded
+method is in the policy-allowed method set, and the recorded session/token binding matches the
+current request. A generic verification event must not satisfy scoped sensitive actions such as
+withdrawal, credential removal, or session revoke-all.
+
+Credential registration is not Step-Up satisfaction. Adding a new email, TOTP credential, passkey,
+telephone, or recovery secret may update method availability, but it must not update token Step-Up
+freshness. Sensitive actions must still complete a normal Step-Up challenge after bootstrap.
 
 The action's required AAL, method set, and step-up scope come from authorization policy. The policy
 answers what proof is required for this actor, action, and resource. The step-up gate answers
@@ -128,7 +134,7 @@ AAL2 has two separate states:
 | owner                                                  | state                                   | meaning                                              |
 | ------------------------------------------------------ | --------------------------------------- | ---------------------------------------------------- |
 | actor (`Client`, `Visitor`, `Operator`)                | `multi_factor_status_id`                | Whether any registered AAL2 credential exists.       |
-| token (`ClientToken`, `VisitorToken`, `OperatorToken`) | `last_step_up_at`, `last_step_up_scope` | Whether this session recently completed scoped AAL2. |
+| token (`ClientToken`, `VisitorToken`, `OperatorToken`) | `last_step_up_at`, `last_step_up_scope`, method, AAL, session binding | Whether this session recently completed scoped AAL2. |
 
 The actor availability state must stay true when AAL2 credentials are created, removed, revoked, or
 made inactive. Token freshness must remain session-scoped; it must not be stored on the actor,

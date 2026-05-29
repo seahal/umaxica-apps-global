@@ -4,7 +4,7 @@
 module Sign
   module Org
     module R18
-      class GatesController < Sign::Org::OpenController
+      class GatesController < Sign::Org::ApplicationController
         include ::R18Gate
 
         AUTHENTICATION_MODE = :open

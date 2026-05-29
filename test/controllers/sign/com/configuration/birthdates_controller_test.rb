@@ -18,7 +18,7 @@ module Sign::Com::Configuration
       @headers = as_visitor_headers(@visitor, host: @host)
       @token = VisitorToken.find_by!(public_id: @headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
       satisfy_visitor_verification(@token)
-      @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_birthdate")
+      mark_token_step_up_satisfied_for_test(@token, scope: "configuration_birthdate")
     end
 
     test "shows birthdate to signed in visitor" do
@@ -72,7 +72,10 @@ module Sign::Com::Configuration
       get sign_com_configuration_birthdate_url(ri: "jp"), headers: { "Host" => @host }
 
       assert_response :redirect
-      assert_redirected_to %r{/sign/in/new\?ri=jp}
+      uri = URI.parse(response.location)
+
+      assert_equal "jump.umaxica.net", uri.host
+      assert_match %r{\Ahttps://id\.umaxica\.com/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
     end
 
     test "does not route mutation or edit actions" do

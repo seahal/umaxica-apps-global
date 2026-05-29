@@ -2,7 +2,7 @@
 
 <h1><%= @bulletin&.title || t("sign.org.in.bulletins.show.title") %></h1>
 <p><%= @bulletin&.body || t("sign.org.in.bulletins.show.body") %></p>
-<% pt = params[:pt].presence %>
+<% pt = signed_pt_param %>
 
 <%= form_with url: sign_org_in_checkpoint_path(ri: params[:ri]), method: :patch do %>
   <%= hidden_field_tag :pt, pt %>

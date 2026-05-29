@@ -8,7 +8,7 @@ module Email::Org
     def notice
       @title = params.fetch(:title)
       @body = params.fetch(:body)
-      @cta_url = params[:cta_url]
+      @cta_url = safe_promotional_cta_url(params[:cta_url])
       email_record = params[:email_record]
       set_promotional_unsubscribe_headers(email_record) if email_record.present?
 

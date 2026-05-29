@@ -30,7 +30,10 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "turbo:load"
     assert_includes response.body, "DOMContentLoaded"
     assert_includes response.body, "callback: function(token)"
-    assert_nil response.headers["Content-Security-Policy"]
+    assert_select "script[nonce]", minimum: 1
+    assert_nil response.headers["Content-Security-Policy-Report-Only"]
+    assert_includes response.headers["Content-Security-Policy"], "default-src 'self'"
+    assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"
   end
 
   test "collection get is not routed" do
@@ -1098,6 +1101,52 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "2000-02-03", user_email.user.reload.birthdate
     assert cycle.reload.requirement_cleared?(:birthdate)
     assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.status_id
+  end
+
+  test "email signup checkpoint birthdate is idempotent after requirement is cleared" do
+    post sign_app_up_email_url(ri: "jp"),
+         params: {
+           user_email: {
+             raw_address: "email_birthdate_retry_#{SecureRandom.hex(4)}@example.com",
+             confirm_policy: "1",
+           },
+           "cf-turnstile-response": "test",
+         },
+         headers: default_headers
+
+    user_email = ClientEmail.order(:created_at).last
+    cycle = current_sign_up_cycle(user_email)
+    otp_data = user_email.get_otp
+    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+    patch sign_app_up_email_url(ri: "jp"),
+          params: { user_email: { pass_code: pass_code } },
+          headers: default_headers
+
+    get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
+    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+    user_email.user.update!(birthdate: "2000-02-03")
+    cycle.update!(
+      completed_requirements: {
+        "birthdate" => {
+          "cleared" => true,
+          "cleared_at" => Time.current.iso8601,
+        },
+      },
+      checkpoint_version: 1,
+    )
+
+    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+          params: {
+            requirement: "birthdate",
+            birthdate: "2000-02-03",
+            checkpoint_version: 0,
+          },
+          headers: default_headers
+
+    assert_response :redirect
+    assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.reload.status_id
   end
 
   test "email signup checkpoint blocks users before thirteenth birthday" do

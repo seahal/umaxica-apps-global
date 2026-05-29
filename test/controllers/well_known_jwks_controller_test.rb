@@ -4,14 +4,16 @@
 require "test_helper"
 
 class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   def self.normalized_host(value)
     value.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first
   end
 
   ENDPOINTS = [
-    ["apex app", "ACME_APP", normalized_host(ENV.fetch("APEX_SERVICE_URL", "app.localhost"))],
-    ["apex com", "ACME_COM", normalized_host(ENV.fetch("APEX_CORPORATE_URL", "com.localhost"))],
-    ["apex org", "ACME_ORG", normalized_host(ENV.fetch("APEX_STAFF_URL", "org.localhost"))],
+    ["acme app", "ACME_APP", normalized_host(ENV.fetch("ACME_SERVICE_URL", "app.localhost"))],
+    ["acme com", "ACME_COM", normalized_host(ENV.fetch("ACME_CORPORATE_URL", "com.localhost"))],
+    ["acme org", "ACME_ORG", normalized_host(ENV.fetch("ACME_STAFF_URL", "org.localhost"))],
     ["core app", "CORE_APP", normalized_host(ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"))],
     ["core com", "CORE_COM", normalized_host(ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"))],
     ["core org", "CORE_ORG", normalized_host(ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"))],
@@ -43,6 +45,8 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_equal "application/json", response.media_type
+      assert_nil response.headers["Location"]
+      assert_predicate response.headers["Set-Cookie"], :blank?
       assert_match(/max-age=3600/, response.headers["Cache-Control"])
       assert_includes response.parsed_body.keys, "keys"
       key = response.parsed_body.fetch("keys").first

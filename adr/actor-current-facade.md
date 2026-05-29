@@ -8,7 +8,7 @@ The app previously had multiple request-context experiments:
 
 - `Current < ActiveSupport::CurrentAttributes` stored actor, token, session, surface/domain,
   preference, and observability state.
-- `Jumper`, `Apexer`, and `Signer` are subdomain/surface-flavored `CurrentAttributes` classes.
+- `Jumper`, `Acmeer`, and `Signer` are subdomain/surface-flavored `CurrentAttributes` classes.
 - Application code read `Current.*` directly in some places.
 
 This creates two problems. First, request-local storage and the application-facing API are coupled.
@@ -97,7 +97,7 @@ configuration readers are not a source of truth for persistence or fallback beha
 The subdomain-specific current classes are removed:
 
 - `Jumper`
-- `Apexer`
+- `Acmeer`
 - `Signer`
 
 Do not restore these classes as compatibility shims. Do not introduce more surface-specific
@@ -116,7 +116,7 @@ current intent.
 - Future surface, tenant, region, and host growth should extend resolver output and `Actor` fields,
   not create more `CurrentAttributes` classes.
 - Existing direct reads of `Current.*` in application code are migrated to `Actor.*`.
-- Existing `Jumper` / `Apexer` / `Signer` tests and lifecycle wiring are removed with this
+- Existing `Jumper` / `Acmeer` / `Signer` tests and lifecycle wiring are removed with this
   direction.
 - Action Policy keeps its existing `:user` context name unless a later accepted ADR explicitly
   changes it.

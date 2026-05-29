@@ -5,7 +5,7 @@ module Core
   module App
     module Web
       module V0
-        class CookiesController < Core::App::OpenController
+        class CookiesController < Core::App::ApplicationController
           include ::Preference::WebCookieEndpoint
 
           include ::Preference::WebCookieActions

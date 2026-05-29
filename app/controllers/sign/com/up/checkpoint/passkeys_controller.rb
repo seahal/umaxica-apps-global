@@ -66,7 +66,7 @@ module Sign
           end
 
           def success_redirect_url
-            sign_com_up_checkpoint_path(ri: params[:ri], pt: params[:pt].presence)
+            sign_com_up_checkpoint_path(ri: params[:ri], pt: signed_pt_param)
           end
 
           def sign_up_requirement_context

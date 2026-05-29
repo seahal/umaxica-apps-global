@@ -24,7 +24,7 @@ module Preference
           { kid: JwtConfiguration.active_kid, typ: TOKEN_TYPE },
         )
       rescue StandardError => e
-        Rails.logger.error("PreferenceToken.encode failed: #{e.message}")
+        Rails.logger.error(LogEvent.format("preference.token.encoding_failed", error_class: e.class.name))
         nil
       end
 
@@ -47,7 +47,7 @@ module Preference
           return nil
         end
 
-        payload, = JWT.decode(token, public_key, true, decode_options)
+        payload, = JWT.decode(token, public_key, true, decode_options(host))
         validated_payload = validate_payload(payload, host)
         unless validated_payload
           report_invalid_payload(host: host, header: header, payload: payload)
@@ -72,7 +72,7 @@ module Preference
         Rails.logger.debug { "PreferenceToken.decode invalid token: #{e.message}" }
         nil
       rescue StandardError => e
-        Rails.logger.error("PreferenceToken.decode failed: #{e.message}")
+        Rails.logger.error(LogEvent.format("preference.token.decoding_failed", error_class: e.class.name))
         nil
       end
 
@@ -116,14 +116,15 @@ module Preference
         }
       end
 
-      def decode_options
+      def decode_options(host)
         {
           algorithms: [JWT_ALGORITHM],
           required_claims: %w(iss aud typ exp public_id jti preference_type),
           leeway: JwtConfiguration.leeway_seconds,
           verify_iss: true,
           iss: JwtConfiguration.issuer,
-          verify_aud: false,
+          verify_aud: true,
+          aud: JwtConfiguration.audience_for(host),
           verify_iat: true,
           verify_exp: true,
         }

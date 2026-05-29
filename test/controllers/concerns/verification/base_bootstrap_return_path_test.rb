@@ -194,9 +194,9 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
         path = signed_target_internal_path(return_to)
         claims = signed_target_claims(flow: flow, surface: surface, session_nonce: session_nonce)
         issue_signed_target_token(
-          payload: claims.merge("return_to" => path),
-          purpose: :return_target,
-          salt: "return_target_token",
+          payload: claims.merge("pt" => path),
+          purpose: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
+          salt: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_SALT,
           expires_in: expires_in,
         )
       end

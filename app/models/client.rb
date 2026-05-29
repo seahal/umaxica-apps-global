@@ -70,6 +70,7 @@ class Client < AppPrincipalRecord
   include Authentication::CredentialInventoryOwner
   include MultiFactorConfigurable
   include MultiFactorStatusTrackable
+  include Actor::LifecycleConsistency
 
   LOGIN_BLOCKED_STATUS_IDS = [ClientStatus::RESERVED].freeze
   # what is this?

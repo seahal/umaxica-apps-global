@@ -11,6 +11,14 @@ module SignUp
         requirement_still_pending?
     end
 
+    def continue_after_cleared_requirement?
+      mutable_ticket? &&
+        at_step?("checkpoint") &&
+        pending_actor_matches? &&
+        requirement_belongs_to_ticket? &&
+        requirement_cleared?
+    end
+
     def clear_birthdate?
       clear_named_requirement?(:birthdate)
     end
@@ -38,6 +46,13 @@ module SignUp
     def requirement_still_pending?
       registry = RequirementRegistry.for_ticket(ticket, surface: surface)
       !registry.requirement_cleared?(ticket.completed_requirements, context.requirement)
+    rescue ArgumentError
+      false
+    end
+
+    def requirement_cleared?
+      registry = RequirementRegistry.for_ticket(ticket, surface: surface)
+      registry.requirement_cleared?(ticket.completed_requirements, context.requirement)
     rescue ArgumentError
       false
     end

@@ -209,6 +209,30 @@ module MissingHelpers
     cookie_lines.any? { |line| line.start_with?("#{name}=") }
   end
 
+  def mark_token_step_up_satisfied_for_test(token, scope: nil)
+    return unless token.respond_to?(:update_columns)
+
+    attrs = {
+      last_step_up_at: Time.current,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
+  end
+
+  def step_up_test_audience_for_token(token)
+    case token.class.name
+    when "OperatorToken" then "step_up:org"
+    when "VisitorToken" then "step_up:com"
+    else "step_up:app"
+    end
+  end
+
   def response_set_cookie_lines
     raw = response.headers["Set-Cookie"] || response.headers["set-cookie"]
     lines =
@@ -339,28 +363,48 @@ module MissingHelpers
     _verification, raw_token = ClientVerification.issue_for_token!(token: token)
     cookies[ClientVerification.cookie_name] = raw_token
     verification_scope = scope.presence || token.last_step_up_scope.presence || "verification"
-    token.update_columns(
+    attrs = {
       last_step_up_at: Time.current,
       last_step_up_scope: verification_scope,
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
       updated_at: Time.current,
-    )
+    }.compact
+    token.update_columns(attrs)
   end
 
   def satisfy_staff_verification(token, scope: nil)
     _verification, raw_token = OperatorVerification.issue_for_token!(token: token)
     cookies[OperatorVerification.cookie_name] = raw_token
     verification_scope = scope.presence || token.last_step_up_scope.presence || "verification"
-    token.update_columns(
+    attrs = {
       last_step_up_at: Time.current,
       last_step_up_scope: verification_scope,
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
       updated_at: Time.current,
-    )
+    }.compact
+    token.update_columns(attrs)
   end
 
   def satisfy_visitor_verification(visitor_token)
     _verification, raw_token = VisitorVerification.issue_for_token!(token: visitor_token)
     cookies[VisitorVerification.cookie_name] = raw_token
     true
+  end
+
+  def step_up_test_audience_for_token(token)
+    case token.class.name
+    when "OperatorToken" then "step_up:org"
+    when "VisitorToken" then "step_up:com"
+    else "step_up:app"
+    end
   end
 
   private

@@ -4,6 +4,7 @@
 require "base64"
 require "openssl"
 require "json"
+require "jit/security/jwt/registry"
 
 module Jit
   module Security
@@ -12,7 +13,7 @@ module Jit
         module_function
 
         def active_kid
-          ENV.fetch("AUTH_JWT_ACTIVE_KID", "default")
+          Registry.auth.current_kid || raise(Registry::ConfigurationError, "AUTH_JWT_ACTIVE_KID is not configured")
         end
 
         def private_key_for_active
@@ -24,28 +25,23 @@ module Jit
         end
 
         def private_key_for(kid)
-          keyset = parse_keyset(Rails.app.creds.option(:AUTH_JWT_PRIVATE_KEYSET))
-          decode_key(keyset[kid])
+          Registry.private_key_for("auth", kid)
         end
 
         def public_key_for(kid)
-          keyset = parse_keyset(Rails.app.creds.option(:AUTH_JWT_PUBLIC_KEYSET))
-          decode_key(keyset[kid])
+          Registry.public_key_for("auth", kid)
         end
 
         def encode(payload)
           kid = active_kid
           pk = private_key_for(kid)
-          raise StandardError, "Missing private key for kid: #{kid}" if pk.nil?
+          raise Registry::ConfigurationError, "Missing private key for kid: #{kid}" if pk.nil?
 
           JWT.encode(payload, pk, "ES384", { kid: kid, typ: payload["typ"] })
         end
 
         def parse_header(token)
-          _payload, header = JWT.decode(token, nil, false)
-          header || {}
-        rescue JWT::DecodeError
-          {}
+          Registry.parse_header(token)
         end
 
         def parse_keyset(raw)

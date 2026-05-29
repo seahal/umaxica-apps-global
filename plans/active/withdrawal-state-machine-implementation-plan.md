@@ -121,7 +121,7 @@ when confirmation advances the procedure through `CLOSING` to `DISCARDED`.
 After `withdrawal_started_at`:
 
 - RP/OIDC actions reject the actor.
-- Normal sign/apex access is constrained to allowed withdrawal/status/recovery surfaces.
+- Normal sign/acme access is constrained to allowed withdrawal/status/recovery surfaces.
 - Other sessions are revoked.
 - The current MFA-verified session may continue only as the withdrawal-continuation session until a
   separate withdrawal ticket exists.

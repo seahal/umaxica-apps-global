@@ -95,8 +95,10 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "peek_pt" do
-    @controller.stub(:session, { "pt" => "/foo" }) do
-      assert_equal "/foo", @controller.peek_pt("pt")
+    token = @controller.signed_pt_token("/foo")
+
+    @controller.stub(:session, { "pt" => token }) do
+      assert_equal token, @controller.peek_pt("pt")
     end
   end
 
@@ -446,7 +448,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
   test "mfa and base64 helpers" do
     assert @controller.mfa_bypassed_for_auth_method?("passkey")
-    assert @controller.mfa_bypassed_for_auth_method?(:google)
+    assert_not @controller.mfa_bypassed_for_auth_method?(:google)
+    assert_not @controller.mfa_bypassed_for_auth_method?(:social)
+    assert_not @controller.mfa_bypassed_for_auth_method?(:apple)
     assert_not @controller.mfa_bypassed_for_auth_method?("email")
 
     assert_equal "/safe/path", @controller.resolve_mfa_pt(Base64.urlsafe_encode64("/safe/path"))
@@ -469,7 +473,11 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:main_app) {
       Struct.new(:sign_in_path, :after_login_path).new("/main/sign_in", "/main/after")
     }
-    @controller.define_singleton_method(:sign_in_url_with_pt) { |pt| "/in?pt=#{pt}" }
+    @controller.define_singleton_method(:sign_in_url_with_pt) do |pt|
+      raise "return target must not be carried in sign-in URL" if pt.present?
+
+      "/in"
+    end
 
     @controller.handle_auth_required_json(message: "login", status: :forbidden)
     @controller.handle_guest_only_json(message: "guest", status: :unauthorized)
@@ -480,7 +488,8 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_equal [{ error: "login" }, { error: "guest" }], rendered.first(2).map { |r| r.last[:json] }
     assert_equal [:forbidden, :unauthorized], rendered.first(2).map { |r| r.last[:status] }
-    assert_match %r{\A/in\?pt=}, redirected.first.first.first
+    assert_equal "/in", redirected.first.first.first
+    assert_predicate @session_hash[Authentication::Base::DEFAULT_PT_SESSION_KEY], :present?
     assert_equal ["/"], redirected.last.first
     assert_equal 2, rendered.size
     assert_equal 4, redirected.size

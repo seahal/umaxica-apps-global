@@ -7,6 +7,10 @@ module Authentication
     include Common::Redirect
     include ::Redirects::SignedTargetSupport
 
+    included do
+      helper_method :signed_pt_param if respond_to?(:helper_method)
+    end
+
     DEFAULT_PT_SESSION_KEY = Auth::IoKeys::Session::DEFAULT_PT
     PATH_TARGET_TOKEN_SALT = "path_target_token"
     PATH_TARGET_TOKEN_PURPOSE = :path_target
@@ -17,7 +21,7 @@ module Authentication
     # @param session_key [Symbol] The session key to store pt parameter in
     # @return [String, nil] The pt parameter value if present
     def preserve_pt(session_key = DEFAULT_PT_SESSION_KEY)
-      value = signed_pt_token(path_target_value)
+      value = signed_pt_param
       return if value.blank?
 
       session[session_key] = value
@@ -25,12 +29,12 @@ module Authentication
     end
 
     # Retrieves and clears the redirect parameter from session
-    # Falls back to params[:pt] if session is empty
+    # Falls back to the signed params[:pt] if session is empty
     #
     # @param session_key [Symbol] The session key to retrieve from
     # @return [String, nil] The pt parameter value
     def retrieve_pt(session_key = DEFAULT_PT_SESSION_KEY)
-      pt_param = signed_pt_token(path_target_value).presence || session[session_key]
+      pt_param = signed_pt_param.presence || session[session_key]
       session[session_key] = nil
       pt_param
     end
@@ -40,7 +44,7 @@ module Authentication
     # @param session_key [Symbol] The session key to retrieve from
     # @return [String, nil] The pt parameter value
     def peek_pt(session_key = DEFAULT_PT_SESSION_KEY)
-      signed_pt_token(path_target_value).presence || session[session_key]
+      signed_pt_param.presence || session[session_key]
     end
 
     # Builds redirect params hash with optional pt parameter.
@@ -212,6 +216,16 @@ module Authentication
       params[Auth::IoKeys::Params::PT].presence
     end
 
+    def signed_pt_param
+      token = path_target_value.to_s.presence
+      return if token.blank?
+
+      return token if path_from_signed_pt(token).present?
+
+      log_signed_target_rejection("path_target.rejected", "invalid_signed_pt_param")
+      nil
+    end
+
     def resolved_path_or_navigation_target(scope: :authentication)
       navigation_target = params[Auth::IoKeys::Params::NT].presence
       if navigation_target.present?
@@ -227,7 +241,7 @@ module Authentication
         return nil
       end
 
-      path_from_signed_pt(signed_pt_token(path_target_value))
+      path_from_signed_pt(path_target_value)
     end
 
     def safe_non_welcome_return_path(path)

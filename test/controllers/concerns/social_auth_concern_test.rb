@@ -56,8 +56,8 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     assert_predicate state, :present?
     assert_equal "login", harness.session_hash[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY]
     assert_equal "google", harness.session_hash[SocialAuthConcern::SOCIAL_PROVIDER_SESSION_KEY]
-    assert_equal "encoded-pt", harness.session_hash[SocialAuthConcern::SOCIAL_RT_SESSION_KEY]
-    assert_equal "encoded-pt", harness.send(:current_social_auth_rt)
+    assert_equal "encoded-pt", harness.session_hash[SocialAuthConcern::SOCIAL_PT_SESSION_KEY]
+    assert_equal "encoded-pt", harness.send(:current_social_auth_pt)
     assert_equal "sign_up", harness.send(:current_social_auth_entry)
     assert_equal "jp", harness.send(:current_social_auth_ri)
     assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
@@ -118,7 +118,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness.send(:clear_social_auth_intent!)
 
     assert_equal "login", harness.send(:current_social_auth_intent)
-    assert_nil harness.send(:current_social_auth_rt)
+    assert_nil harness.send(:current_social_auth_pt)
     assert_nil harness.send(:current_social_auth_entry)
     assert_nil harness.send(:current_social_auth_ri)
     assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_FLOW_ID_SESSION_KEY]
@@ -134,6 +134,6 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
       assert_equal "encoded-pt", result[:pt]
     end
 
-    assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_RT_SESSION_KEY]
+    assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_PT_SESSION_KEY]
   end
 end

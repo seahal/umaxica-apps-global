@@ -38,6 +38,31 @@ module Security
         assert_empty offenders, "Actor writes must go through lifecycle installer code:\n#{offenders.join("\n")}"
       end
 
+      test "Actor install_context is limited to reviewed lifecycle boundaries" do
+        allowlist = [
+          "app/controllers/concerns/actor_support.rb",
+          "app/controllers/concerns/authentication/base.rb",
+          "app/controllers/concerns/authentication/jwt_tokens.rb",
+          "app/controllers/concerns/sign/verification_step_up_lifecycle.rb",
+          "app/controllers/concerns/verification/base.rb",
+        ]
+
+        offenders =
+          Rails.root.glob("app/**/*.rb").flat_map do |path|
+            relative_path = path.relative_path_from(Rails.root).to_s
+            next [] if allowlist.include?(relative_path)
+
+            content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
+            content.each_line.with_index(1).filter_map do |line, line_number|
+              next unless line.match?(/\bActor\.install_context!\b/)
+
+              "#{relative_path}:#{line_number}: #{line.strip}"
+            end
+          end
+
+        assert_empty offenders, "Actor.install_context! must stay inside request lifecycle boundaries:\n#{offenders.join("\n")}"
+      end
+
       test "old Actor authentication and preference APIs are not used" do
         offenders =
           Rails.root.glob("{app,test}/**/*").flat_map do |path|

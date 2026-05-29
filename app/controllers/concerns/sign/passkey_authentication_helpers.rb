@@ -19,7 +19,7 @@ module Sign
     end
 
     def retrieve_pt_for_checkpoint
-      params[:pt].presence
+      signed_pt_param
     end
 
     alias_method :retrieve_pt_for_bulletin, :retrieve_pt_for_checkpoint

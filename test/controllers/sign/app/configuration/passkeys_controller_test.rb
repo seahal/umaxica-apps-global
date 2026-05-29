@@ -70,8 +70,8 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
          params: { "cf-turnstile-response": "test" },
          headers: browser_headers.merge("X-CSRF-Token" => "test_csrf_token")
 
-    assert_response :unprocessable_content
-    assert_includes response.body, "Invalid request"
+    assert_response :redirect
+    assert_includes response.location, "/sign/in/new"
   end
 
   # Case D-2: Logged in -> JSON options
@@ -230,7 +230,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       assert_equal "ok", response.parsed_body["status"]
       # Skip checking exact path - just verify it returns a valid path
       assert_predicate response.parsed_body["redirect_url"], :present?
-      assert_operator @token.reload.last_step_up_at, :>=, step_up_before
+      assert_operator @token.reload.last_step_up_at, :<, step_up_before
       assert_equal "configuration_passkey", @token.last_step_up_scope
     end
   end

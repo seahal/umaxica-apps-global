@@ -53,7 +53,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
 
   test "all expected clients are registered" do
     expected = %w(
-      apex_app apex_org apex_com
+      acme_app acme_org acme_com
       core_app core_org core_com
       docs_app docs_org docs_com
       news_app news_org news_com
@@ -70,7 +70,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "org clients have operator resource_type" do
-    %w(apex_org core_org docs_org news_org help_org).each do |client_id|
+    %w(acme_org core_org docs_org news_org help_org).each do |client_id|
       client = Oidc::ClientRegistry.find(client_id)
 
       assert_equal "operator", client.resource_type, "#{client_id} should be operator type"
@@ -78,7 +78,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "app clients have client resource_type" do
-    %w(apex_app core_app docs_app news_app help_app).each do |client_id|
+    %w(acme_app core_app docs_app news_app help_app).each do |client_id|
       client = Oidc::ClientRegistry.find(client_id)
 
       assert_equal "client", client.resource_type, "#{client_id} should be client type"
@@ -86,7 +86,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "com clients have visitor resource_type" do
-    %w(apex_com core_com docs_com news_com help_com).each do |client_id|
+    %w(acme_com core_com docs_com news_com help_com).each do |client_id|
       client = Oidc::ClientRegistry.find(client_id)
 
       assert_equal "visitor", client.resource_type, "#{client_id} should be visitor type"
@@ -106,9 +106,9 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "authenticate uses flat credential key" do
-    with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_APEX_ORG: "apex-org-secret") do
-      assert Oidc::ClientRegistry.authenticate("apex_org", "apex-org-secret")
-      assert_not Oidc::ClientRegistry.authenticate("apex_org", "wrong-secret")
+    with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_ACME_ORG: "acme-org-secret") do
+      assert Oidc::ClientRegistry.authenticate("acme_org", "acme-org-secret")
+      assert_not Oidc::ClientRegistry.authenticate("acme_org", "wrong-secret")
     end
   end
 
@@ -121,7 +121,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     ids = Oidc::ClientRegistry.client_ids
 
     assert_includes ids, "core_app"
-    assert_includes ids, "apex_org"
+    assert_includes ids, "acme_org"
     assert_equal 15, ids.size
   end
 
@@ -156,21 +156,21 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     end
   end
 
-  test "apex clients are registered to same surface redirect hosts" do
+  test "acme clients are registered to same surface redirect hosts" do
     expectations = {
-      "apex_app" => {
-        host: ENV.fetch("APEX_SERVICE_URL", "www.app.localhost"),
-        aud: "umaxica-apex-app",
+      "acme_app" => {
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        aud: "umaxica-acme-app",
         resource_type: "client",
       },
-      "apex_com" => {
-        host: ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost"),
-        aud: "umaxica-apex-com",
+      "acme_com" => {
+        host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+        aud: "umaxica-acme-com",
         resource_type: "visitor",
       },
-      "apex_org" => {
-        host: ENV.fetch("APEX_STAFF_URL", "www.org.localhost"),
-        aud: "umaxica-apex-org",
+      "acme_org" => {
+        host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+        aud: "umaxica-acme-org",
         resource_type: "operator",
       },
     }

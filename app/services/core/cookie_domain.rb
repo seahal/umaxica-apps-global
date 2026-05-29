@@ -38,8 +38,8 @@ module Core
       return value if value.start_with?(".")
       return localhost_cookie_domain(normalized) if localhost_host?(normalized)
 
-      apex = best_effort_apex(normalized)
-      apex ? ".#{apex}" : nil
+      acme = best_effort_apex(normalized)
+      acme ? ".#{acme}" : nil
     end
     private_class_method :normalize_configured
 
@@ -48,8 +48,8 @@ module Core
       return nil if host.blank? || host == "localhost"
       return localhost_cookie_domain(host) if localhost_host?(host)
 
-      apex = best_effort_apex(host)
-      apex ? ".#{apex}" : nil
+      acme = best_effort_apex(host)
+      acme ? ".#{acme}" : nil
     end
     private_class_method :derive_from_host
 

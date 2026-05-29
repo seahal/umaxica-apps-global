@@ -461,6 +461,54 @@ ALTER TABLE ONLY public.ar_internal_metadata
 
 
 --
+-- Name: post_revisions chk_post_revisions_redirect_url_for_redirect; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.post_revisions
+    ADD CONSTRAINT chk_post_revisions_redirect_url_for_redirect CHECK ((((response_mode)::text <> 'redirect'::text) OR (redirect_url IS NOT NULL))) NOT VALID;
+
+
+--
+-- Name: post_revisions chk_post_revisions_response_mode; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.post_revisions
+    ADD CONSTRAINT chk_post_revisions_response_mode CHECK (((response_mode)::text = ANY ((ARRAY['html'::character varying, 'text'::character varying, 'pdf'::character varying, 'redirect'::character varying])::text[]))) NOT VALID;
+
+
+--
+-- Name: post_versions chk_post_versions_redirect_url_for_redirect; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.post_versions
+    ADD CONSTRAINT chk_post_versions_redirect_url_for_redirect CHECK ((((response_mode)::text <> 'redirect'::text) OR (redirect_url IS NOT NULL))) NOT VALID;
+
+
+--
+-- Name: post_versions chk_post_versions_response_mode; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.post_versions
+    ADD CONSTRAINT chk_post_versions_response_mode CHECK (((response_mode)::text = ANY ((ARRAY['html'::character varying, 'text'::character varying, 'pdf'::character varying, 'redirect'::character varying])::text[]))) NOT VALID;
+
+
+--
+-- Name: posts chk_posts_redirect_url_for_redirect; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.posts
+    ADD CONSTRAINT chk_posts_redirect_url_for_redirect CHECK ((((response_mode)::text <> 'redirect'::text) OR (redirect_url IS NOT NULL))) NOT VALID;
+
+
+--
+-- Name: posts chk_posts_response_mode; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.posts
+    ADD CONSTRAINT chk_posts_response_mode CHECK (((response_mode)::text = ANY ((ARRAY['html'::character varying, 'text'::character varying, 'pdf'::character varying, 'redirect'::character varying])::text[]))) NOT VALID;
+
+
+--
 -- Name: post_categories post_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -783,6 +831,7 @@ ALTER TABLE ONLY public.post_tags
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528162200'),
 ('20260525231100'),
 ('20260525231000');
 

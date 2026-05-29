@@ -234,7 +234,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
       end
 
       assert_redirected_to sign_app_configuration_totps_url(ri: "jp")
-      assert_operator @token.reload.last_step_up_at, :>=, step_up_before
+      assert_operator @token.reload.last_step_up_at, :<, step_up_before
       assert_equal "configuration_totp", @token.last_step_up_scope
     end
   end

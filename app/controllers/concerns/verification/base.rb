@@ -72,15 +72,16 @@ module Verification
     end
 
     def recorded_step_up_satisfied?(token, scope:, required_aal: verification_required_aal)
-      StepUp::Resolver.call(token: token, scope: scope, required_aal: required_aal, ttl: STEP_UP_TTL).satisfied?
+      StepUp::Resolver.call(
+        token: token,
+        requirement: step_up_requirement(scope: scope, required_aal: required_aal),
+      ).satisfied?
     end
 
     def step_up_satisfied?(scope:, required_aal: verification_required_aal)
       step_up = StepUp::Resolver.call(
         token: current_session_token,
-        scope: scope,
-        required_aal: required_aal,
-        ttl: STEP_UP_TTL,
+        requirement: step_up_requirement(scope: scope, required_aal: required_aal),
       )
       Actor.install_context!(step_up: step_up) if defined?(Actor)
       step_up.satisfied?
@@ -117,6 +118,19 @@ module Verification
       return true if step_up_bootstrap_unconfigured?
 
       require_step_up!(scope: scope, required_aal: required_aal)
+    end
+
+    def step_up_requirement(scope:, required_aal: verification_required_aal, allowed_methods: step_up_strong_methods)
+      StepUp::Requirement.new(
+        scope: scope,
+        required_aal: required_aal,
+        allowed_methods: allowed_methods,
+        session_binding: current_session_token&.public_id,
+        token_binding: current_session_token&.public_id,
+        ttl: STEP_UP_TTL,
+        purpose: :step_up,
+        audience: step_up_audience,
+      )
     end
 
     private
@@ -334,6 +348,7 @@ module Verification
 
     def current_session_token
       return @current_session_token if defined?(@current_session_token)
+      return @current_session_token = current_session if respond_to?(:current_session, true) && current_session.present?
       return @current_session_token = nil if current_session_public_id.blank?
 
       @current_session_token = token_class.find_by(public_id: current_session_public_id)
@@ -341,12 +356,19 @@ module Verification
 
     def current_actor_token
       return @current_actor_token if defined?(@current_actor_token)
+      if respond_to?(:current_session, true) && current_session&.currently_usable?
+        return @current_actor_token = current_session
+      end
       return @current_actor_token = nil if current_session_public_id.blank?
 
       token = token_class.find_by(public_id: current_session_public_id)
       return @current_actor_token = token if token&.currently_usable?
 
       @current_actor_token = nil
+    end
+
+    def step_up_strong_methods
+      StepUp::Requirement::DEFAULT_ALLOWED_METHODS
     end
 
     def verification_model
@@ -409,6 +431,11 @@ module Verification
 
     def step_up_supported_methods
       actor_operator? ? [:passkey] : %i(email_otp passkey totp)
+    end
+
+    def step_up_audience
+      surface = bootstrap_pt_surface.to_s.presence || "unknown"
+      "step_up:#{surface}"
     end
 
     def current_actor

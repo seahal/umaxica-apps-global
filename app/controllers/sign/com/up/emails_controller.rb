@@ -133,7 +133,7 @@ module Sign
           redirect_to(
             sign_com_up_guardrail_path(
               ri: params[:ri],
-              pt: params[:pt].presence,
+              pt: signed_pt_token(path_target_value),
             ),
             notice: t("sign.app.registration.email.update.success"),
           )

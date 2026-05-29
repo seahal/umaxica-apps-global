@@ -37,8 +37,8 @@ class Redirects::PriorityResolverTest < ActiveSupport::TestCase
     assert_not resolve([{ kind: :pt, value: "https://evil.example" }]).ok?
   end
 
-  test "xt is not part of internal priority chain" do
-    result = resolve([{ kind: :xt, value: :rp_app }, { kind: :pt, value: "/configuration" }])
+  test "external is not part of internal priority chain" do
+    result = resolve([{ kind: :external, value: :rp_app }, { kind: :pt, value: "/configuration" }])
 
     assert_equal "/configuration", result.value
   end

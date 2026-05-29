@@ -4,7 +4,7 @@
 module RequestContext
   module Contract
     REQUIRED_KEYS = %i(ri).freeze
-    RETURN_TARGET_KEYS = %i(pt nt xt).freeze
+    RETURN_TARGET_KEYS = %i(pt nt).freeze
     OPTIONAL_OVERLAY_KEYS = %i(lx ct tz cu df tf mo dn pp).freeze
     PUBLIC_KEYS = (REQUIRED_KEYS + RETURN_TARGET_KEYS + OPTIONAL_OVERLAY_KEYS).freeze
     ALLOWED_REGIONS = %w(jp us).freeze
@@ -14,7 +14,6 @@ module RequestContext
       ri: :region,
       pt: :path_target,
       nt: :navigation_target,
-      xt: :external_target,
       lx: :language,
       ct: :theme,
       tz: :timezone,
@@ -30,7 +29,6 @@ module RequestContext
       ri: :required,
       pt: :path_target,
       nt: :navigation_target,
-      xt: :external_target,
       lx: :optional_overlay,
       ct: :optional_overlay,
       tz: :optional_overlay,

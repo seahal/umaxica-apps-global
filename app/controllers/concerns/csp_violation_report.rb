@@ -4,6 +4,10 @@
 module CspViolationReport
   extend ActiveSupport::Concern
 
+  included do
+    rescue_from ActionDispatch::Http::Parameters::ParseError, with: :ignore_malformed_csp_report
+  end
+
   private
 
   def record_csp_violation!
@@ -13,5 +17,9 @@ module CspViolationReport
     Rails.logger.info(LogEvent.format("security.csp_violation", **payload.symbolize_keys))
   rescue JSON::ParserError
     nil
+  end
+
+  def ignore_malformed_csp_report
+    head :no_content
   end
 end

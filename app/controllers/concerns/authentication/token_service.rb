@@ -84,14 +84,12 @@ module Authentication
 
         header = Jit::Security::Jwt::Keyring.parse_header(token)
         unless valid_header?(header, resource_type)
-          # puts "DEBUG: valid_header? failed for typ #{header["typ"].inspect}"
           report_invalid_header(resource_type: resource_type, host: host, header: header)
           return nil
         end
 
         public_key = Jit::Security::Jwt::Keyring.public_key_for(header["kid"])
         if public_key.nil?
-          # puts "DEBUG: public_key_for failed for kid #{header["kid"].inspect}"
           Jit::Security::Jwt::AnomalyReporter.report_auth(
             resource_type: resource_type,
             host: host,
@@ -106,7 +104,6 @@ module Authentication
           decode_options(resource_type, issuer, audiences, verify_exp: verify_exp),
         )
         unless valid_payload_type?(payload, resource_type)
-          # puts "DEBUG: valid_payload_type? failed for typ #{payload["typ"].inspect}"
           Jit::Security::Jwt::AnomalyReporter.report_auth(
             resource_type: resource_type,
             host: host,
@@ -121,7 +118,6 @@ module Authentication
       rescue JWT::ExpiredSignature
         return nil unless verify_exp
 
-        # STDOUT.puts "DEBUG: token expired"
         Jit::Security::Jwt::AnomalyReporter.report_auth(
           resource_type: resource_type,
           host: host,
@@ -131,7 +127,6 @@ module Authentication
         Rails.logger.info(LogEvent.format("authentication.token.verification.expired", host: host))
         nil
       rescue JWT::InvalidIssuerError, JWT::InvalidAudError, JWT::InvalidIatError, JWT::ImmatureSignature => e
-        # STDOUT.puts "DEBUG: claim error: #{e.class} - #{e.message}"
         report_claim_error(resource_type: resource_type, host: host, header: header, error: e)
         Rails.logger.info(
           LogEvent.format(
@@ -142,7 +137,6 @@ module Authentication
         )
         nil
       rescue JWT::DecodeError, JWT::VerificationError => e
-        # STDOUT.puts "DEBUG: decode error: #{e.class} - #{e.message}"
         report_decode_error(resource_type: resource_type, host: host, header: header, error: e)
         Rails.logger.info(
           LogEvent.format(
@@ -153,7 +147,6 @@ module Authentication
         )
         nil
       rescue OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
-        # STDOUT.puts "DEBUG: general error: #{e.class} - #{e.message}"
         Rails.logger.info(
           LogEvent.format(
             "authentication.token.verification.error",

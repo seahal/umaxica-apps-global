@@ -26,11 +26,11 @@ Rails Engines.
 Host and origin environment variables should name the surface or service directly. Current route
 fragments use variables such as:
 
-- `APEX_SERVICE_URL`
-- `APEX_STAFF_URL`
-- `APEX_CORPORATE_URL`
-- `APEX_DEVELOPER_URL`
-- `APEX_NETWORK_URL`
+- `ACME_SERVICE_URL`
+- `ACME_STAFF_URL`
+- `ACME_CORPORATE_URL`
+- `ACME_DEVELOPER_URL`
+- `ACME_NETWORK_URL`
 
 Do not introduce engine-prefixed URL names such as `IDENTITY_SIGN_APP_URL`,
 `FOUNDATION_BASE_ORG_URL`, or `DISTRIBUTOR_POST_APP_URL` for new runtime code in this repository.

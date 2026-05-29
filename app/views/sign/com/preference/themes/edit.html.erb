@@ -1,4 +1,4 @@
-<% content_for :page_title, t("apex.com.preferences.theme_settings") %>
+<% content_for :page_title, t("acme.com.preferences.theme_settings") %>
 
 <section>
   <div>
@@ -6,22 +6,22 @@
   </div>
 
   <h1>
-    <%= t("apex.com.preference.theme.edit.title") %>
+    <%= t("acme.com.preference.theme.edit.title") %>
   </h1>
   <p>
-    <%= t("apex.com.preference.theme.edit.description") %>
+    <%= t("acme.com.preference.theme.edit.description") %>
   </p>
 
   <%= form_with model: @preference_theme, scope: :preference_theme, url: sign_com_preference_theme_path, method: :patch do |f| %>
     <div>
-      <%= f.label :option_id, t("apex.com.preferences.theme.select_theme") %>
+      <%= f.label :option_id, t("acme.com.preferences.theme.select_theme") %>
       <div>
         <%= f.select :option_id,
                      options_for_select(
                        [
-                         [t("apex.com.preference.theme.edit.options.light"), "light"],
-                         [t("apex.com.preference.theme.edit.options.dark"), "dark"],
-                         [t("apex.com.preference.theme.edit.options.system"), "system"]
+                         [t("acme.com.preference.theme.edit.options.light"), "light"],
+                         [t("acme.com.preference.theme.edit.options.dark"), "dark"],
+                         [t("acme.com.preference.theme.edit.options.system"), "system"]
                        ],
                        @preference_theme.option&.name || "system"),
                      {} %>
@@ -29,8 +29,8 @@
     </div>
 
     <div>
-      <%= f.submit t("apex.com.preferences.update_settings"),
-                   data: { turbo_submits_with: t("apex.com.preferences.submitting") } %>
+      <%= f.submit t("acme.com.preferences.update_settings"),
+                   data: { turbo_submits_with: t("acme.com.preferences.submitting") } %>
     </div>
   <% end %>
 </section>

@@ -10,6 +10,9 @@ module Sign
 
       declare_authentication_mode! :open
 
+      protect_from_forgery with: :null_session, only: :create
+      skip_before_action :transparent_refresh_access_token, raise: false
+
       # Limit token exchange attempts to prevent brute-force/DoS
       rate_limit to: 10, within: 1.minute, only: :create
 

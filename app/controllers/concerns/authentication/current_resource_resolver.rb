@@ -7,6 +7,7 @@ module Authentication
       Struct.new(
         :resource,
         :session_public_id,
+        :token_public_id,
         :payload,
         :failure_reason,
         keyword_init: true,
@@ -59,13 +60,15 @@ module Authentication
 
       resource = @resource_class.find_by(id: Authentication::Base::Token.extract_subject(payload))
       return failure(
-        :resource_not_found, payload: payload,
+          :resource_not_found, payload: payload,
                              session_public_id: current_session_public_id(token_record, sid),
+                             token_public_id: token_record_public_id(token_record),
       ) if resource.blank?
 
       Result.new(
         resource: resource,
         session_public_id: current_session_public_id(token_record, sid),
+        token_public_id: token_record_public_id(token_record),
         payload: payload,
         failure_reason: nil,
       )
@@ -124,6 +127,10 @@ module Authentication
 
     def current_session_public_id(token_record, session_identifier)
       token_record&.try(:device_session)&.public_id.presence || token_record&.public_id.presence || session_identifier
+    end
+
+    def token_record_public_id(token_record)
+      token_record&.public_id.presence
     end
 
     def token_jti_current?(token_record, payload)

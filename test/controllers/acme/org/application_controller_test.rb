@@ -1,0 +1,79 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+module Acme
+  module Org
+    class ApplicationControllerTest < ActionDispatch::IntegrationTest
+      test "includes expected concerns" do
+        controller = ApplicationController.new
+
+        assert_includes controller.class, RateLimit
+        assert_includes controller.class, ::Preference::Global
+        assert_includes controller.class, ::Preference::Adoption
+        assert_includes controller.class, ::Authentication::Operator
+        assert_includes controller.class, ::Authorization::Operator
+        assert_includes controller.class, ::Verification::Operator
+        assert_includes controller.class, ActionPolicy::Controller
+        assert_includes controller.class, ::Oidc::SsoInitiator
+        assert_includes controller.class, ::ActorSupport
+        assert_includes controller.class, ::Finisher
+      end
+
+      test "has preference-related before_action callbacks" do
+        callbacks = ApplicationController._process_action_callbacks
+        before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
+
+        assert_includes before_filters, :set_preferences_cookie
+        assert_includes before_filters, :resolve_param_context
+        assert_includes before_filters, :set_region
+        assert_includes before_filters, :set_color_theme
+      end
+
+      test "has correct callback order" do
+        callbacks = ApplicationController._process_action_callbacks
+        before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
+
+        expected_order = %i(
+          check_default_rate_limit
+          set_current_context
+          reset_flash
+          set_preferences_cookie
+          resolve_param_context
+          set_region
+          transparent_refresh_access_token
+          set_current_actor
+          apply_localization_preferences
+          set_color_theme
+          enforce_verification_if_required
+          enforce_access_policy!
+        )
+
+        expected_order.each_cons(2) do |first, second|
+          assert_operator before_filters.index(first), :<, before_filters.index(second)
+        end
+      end
+
+      test "clears actor context through around lifecycle" do
+        callbacks = ApplicationController._process_action_callbacks
+        around_filters = callbacks.select { |c| c.kind == :around }.map(&:filter)
+
+        assert_includes around_filters, :with_actor_lifecycle
+      end
+
+      test "has oidc_client_id method" do
+        controller = ApplicationController.new
+
+        assert_respond_to controller, :oidc_client_id
+        assert_equal "acme_org", controller.send(:oidc_client_id)
+      end
+
+      test "has oidc_sign_host method" do
+        controller = ApplicationController.new
+
+        assert_respond_to controller, :oidc_sign_host
+      end
+    end
+  end
+end

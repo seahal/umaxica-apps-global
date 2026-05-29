@@ -39,7 +39,7 @@ env:
   BUNDLE_FROZEN: "true"
   # Region Configuration
   REGION_CODE: all
-  APEX_REGION: true
+  ACME_REGION: true
 jobs:
   # ====================
   # FAST CHECKS (Lint & Security)
@@ -177,12 +177,12 @@ jobs:
       SINGLETON_DEFAULT_SALT: hoge
       IDENTIFIER_REGION_CODE: "392"
       IDENTIFIER_INSTANCE_ID: "0123456789"
-      # Domain URLs - APEX
-      APEX_CORPORATE_URL: www.com.localhost
-      APEX_SERVICE_URL: www.app.localhost
-      APEX_STAFF_URL: www.org.localhost
-      APEX_NETWORK_URL: www.net.localhost
-      APEX_DEVELOPER_URL: www.dev.localhost
+      # Domain URLs - ACME
+      ACME_CORPORATE_URL: www.com.localhost
+      ACME_SERVICE_URL: www.app.localhost
+      ACME_STAFF_URL: www.org.localhost
+      ACME_NETWORK_URL: www.net.localhost
+      ACME_DEVELOPER_URL: www.dev.localhost
       # Domain URLs - Auth
       SIGN_CORPORATE_URL: sign.com.localhost
       SIGN_SERVICE_URL: sign.app.localhost
@@ -211,7 +211,7 @@ jobs:
       STATUS_URL: status.localhost
       ASSET_URL: asset.localhost
       # Region
-      APEX_REGION: true
+      ACME_REGION: true
       GLOBAL_MODE: true
       REGION_CODE: all
       # Valkey

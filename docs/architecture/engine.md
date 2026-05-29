@@ -28,7 +28,7 @@ request state across surfaces unless the code already provides an explicit share
 
 ## Routing and Isolation
 
-- `config/routes.rb` draws root route fragments such as `apex`, `sign`, and `jump`.
+- `config/routes.rb` draws root route fragments such as `acme`, `sign`, and `jump`.
 - Route fragments use host constraints and surface-local modules to keep behavior separated.
 - Cross-surface navigation uses ordinary Rails route helpers and explicit allowed redirect policy.
 - There are no local Rails Engines, wrapper apps, `isolate_namespace` boundaries, or

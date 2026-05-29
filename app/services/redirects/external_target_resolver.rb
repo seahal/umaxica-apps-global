@@ -11,43 +11,43 @@ module Redirects
       jump: { env: "JUMP_GATEWAY_URL", default: "https://jump.umaxica.net" },
     }.freeze
 
-    def self.call(key, path: "/", query: {}, source: :explicit_xt)
+    def self.call(key, path: "/", query: {}, source: :explicit_external)
       new(key, path: path, query: query, source: source).call
     end
 
-    def self.url(value, allowed_urls:, source: :explicit_xt_url)
+    def self.url(value, allowed_urls:, source: :explicit_external_url)
       uri = URI.parse(value.to_s)
       return Redirects::TargetResult.failure(
-        kind: :xt, source: source, reason: :invalid_uri,
+        kind: :external, source: source, reason: :invalid_uri,
         unsafe_value: value,
       ) if uri.host.blank?
       return Redirects::TargetResult.failure(
-        kind: :xt, source: source, reason: :userinfo,
+        kind: :external, source: source, reason: :userinfo,
         unsafe_value: value,
       ) if uri.userinfo.present?
       return Redirects::TargetResult.failure(
-        kind: :xt, source: source, reason: :fragment,
+        kind: :external, source: source, reason: :fragment,
         unsafe_value: value,
       ) if uri.fragment.present?
       return Redirects::TargetResult.failure(
-        kind: :xt, source: source, reason: :control_char,
+        kind: :external, source: source, reason: :control_char,
         unsafe_value: value,
       ) if value.to_s.match?(/[\x00-\x1F\x7F]/)
       return Redirects::TargetResult.failure(
-        kind: :xt, source: source, reason: :https_required,
+        kind: :external, source: source, reason: :https_required,
         unsafe_value: value,
       ) unless uri.scheme == "https" || local_uri_allowed?(uri)
 
       allowed = Array(allowed_urls).filter_map { |url| normalized_origin(url) }
       origin = normalized_origin(uri.to_s)
       return Redirects::TargetResult.failure(
-        kind: :xt, source: source, reason: :origin_denied,
+        kind: :external, source: source, reason: :origin_denied,
         unsafe_value: value,
       ) unless allowed.include?(origin)
 
-      Redirects::TargetResult.ok(kind: :xt, source: source, value: uri.to_s)
+      Redirects::TargetResult.ok(kind: :external, source: source, value: uri.to_s)
     rescue URI::InvalidURIError
-      Redirects::TargetResult.failure(kind: :xt, source: source, reason: :invalid_uri, unsafe_value: value)
+      Redirects::TargetResult.failure(kind: :external, source: source, reason: :invalid_uri, unsafe_value: value)
     end
 
     def initialize(key, path:, query:, source:)
@@ -77,7 +77,7 @@ module Redirects
       uri.user = nil
       uri.password = nil
 
-      Redirects::TargetResult.ok(kind: :xt, source: source, value: uri.to_s)
+      Redirects::TargetResult.ok(kind: :external, source: source, value: uri.to_s)
     rescue URI::InvalidURIError
       failure(:invalid_uri)
     end
@@ -121,14 +121,19 @@ module Redirects
 
     def merged_query(path_value, raw_query)
       path_query = URI.parse(path_value).query
-      pairs = URI.decode_www_form(path_query.to_s).except(*DANGEROUS_QUERY_KEYS)
+      # decode_www_form returns an Array of [key, value] pairs, not a Hash, so
+      # filter_map is needed here — `.except` would raise NoMethodError.
+      pairs =
+        URI.decode_www_form(path_query.to_s).filter_map do |key, value|
+          [key, value] unless DANGEROUS_QUERY_KEYS.include?(key)
+        end
       safe_query = raw_query.stringify_keys.except(*DANGEROUS_QUERY_KEYS)
       pairs.concat(safe_query.to_a)
       pairs.present? ? URI.encode_www_form(pairs) : nil
     end
 
     def failure(reason)
-      Redirects::TargetResult.failure(kind: :xt, source: source, reason: reason, unsafe_value: key)
+      Redirects::TargetResult.failure(kind: :external, source: source, reason: reason, unsafe_value: key)
     end
   end
 end

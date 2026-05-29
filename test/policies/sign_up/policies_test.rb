@@ -149,6 +149,23 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
     assert_not_predicate SignUp::RequirementPolicy.new(context, user: nil), :clear_requirement?
   end
 
+  test "requirement policy allows continuing already-cleared requirement" do
+    ticket = build_ticket(
+      ClientSignUpCycle,
+      entry_method: "email",
+      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      principal_id: 42,
+      completed_requirements: { "birthdate" => { "cleared" => true } },
+    )
+    context = requirement_context(ticket, requirement: :birthdate, pending_actor: PendingActor.new(id: 42))
+
+    policy = SignUp::RequirementPolicy.new(context, user: nil)
+
+    assert_not_predicate policy, :clear_requirement?
+    assert_predicate policy, :continue_after_cleared_requirement?
+  end
+
   test "requirement policy rejects wrong pending actor" do
     ticket = build_ticket(
       ClientSignUpCycle,

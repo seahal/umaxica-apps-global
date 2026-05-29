@@ -65,7 +65,7 @@ class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseC
     return unless require_email_nonce!
 
     if verify_email_otp!
-      consume_step_up_session!
+      consume_step_up_session!(method: :email_otp)
     else
       record_failed_step_up_attempt!(:email_otp)
       render :edit, status: :unprocessable_content

@@ -4,7 +4,7 @@
 module Oidc
   class IdTokenIssuer < ApplicationService
     TOKEN_TTL = 5.minutes
-    TOKEN_TYPE = "JWT"
+    TOKEN_TYPE = "id-token+jwt"
 
     def initialize(resource:, client:, nonce:, issued_at: Time.current, expires_at: nil, acr: nil, amr: nil)
       super()

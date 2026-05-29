@@ -10,16 +10,16 @@ belong to the separate regional repository.
 
 | Boundary | Placement | Meaning                                                                      |
 | -------- | --------- | ---------------------------------------------------------------------------- |
-| `apex`   | Global    | Global RP surface for the primary application runtime.                       |
+| `acme`   | Global    | Global RP surface for the primary application runtime.                       |
 | `post`   | Global    | SNS-style or in-application posts. This does not mean docs/news publication. |
 | `notice` | Global    | Push notification and notification-delivery behavior.                        |
-| `core`   | Regional  | Regional RP surface, parallel in kind to `apex` but region-owned.            |
+| `core`   | Regional  | Regional RP surface, parallel in kind to `acme` but region-owned.            |
 | `line`   | Regional  | Direct message behavior.                                                     |
 | `docs`   | Regional  | Regional or locale-specific documentation delivery.                          |
 | `news`   | Regional  | Regional or locale-specific news delivery.                                   |
 | `help`   | Regional  | Regional or locale-specific help delivery.                                   |
 
-`apex` and `core` are both RP surfaces, but they do not share repository ownership: `apex` remains
+`acme` and `core` are both RP surfaces, but they do not share repository ownership: `acme` remains
 global, while `core` belongs to regional.
 
 ## Current Rule

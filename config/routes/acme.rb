@@ -10,21 +10,21 @@ def normalize_route_host(host)
   host.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first.presence
 end
 
-apex_app_host = exact_host_constraint(
-  ENV.fetch("APEX_SERVICE_URL", "app.localhost"), "app.localhost",
+acme_app_host = exact_host_constraint(
+  ENV.fetch("ACME_SERVICE_URL", "app.localhost"), "app.localhost",
   "www.app.localhost",
 )
-apex_com_host = exact_host_constraint(
-  ENV.fetch("APEX_CORPORATE_URL", "com.localhost"), "com.localhost",
+acme_com_host = exact_host_constraint(
+  ENV.fetch("ACME_CORPORATE_URL", "com.localhost"), "com.localhost",
   "www.com.localhost",
 )
-apex_org_host = exact_host_constraint(
-  ENV.fetch("APEX_STAFF_URL", "org.localhost"), "org.localhost",
+acme_org_host = exact_host_constraint(
+  ENV.fetch("ACME_STAFF_URL", "org.localhost"), "org.localhost",
   "www.org.localhost",
 )
 
-scope module: :apex, as: :apex do
-  constraints host: apex_app_host do
+scope module: :acme, as: :acme do
+  constraints host: acme_app_host do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -63,7 +63,7 @@ scope module: :apex, as: :apex do
               get :blocked
               get :stopped
             end
-            resource :open, only: %i(show create), controller: "open"
+            resource :open, only: %i(show create), controller: "open_smokes"
             resource :private, only: %i(show create), controller: "private"
           end
         end
@@ -77,7 +77,7 @@ scope module: :apex, as: :apex do
     end
   end
 
-  constraints host: apex_com_host do
+  constraints host: acme_com_host do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -117,7 +117,7 @@ scope module: :apex, as: :apex do
     end
   end
 
-  constraints host: apex_org_host do
+  constraints host: acme_org_host do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -157,7 +157,7 @@ scope module: :apex, as: :apex do
     end
   end
 
-  constraints host: ENV["APEX_NETWORK_URL"] do
+  constraints host: ENV["ACME_NETWORK_URL"] do
     scope module: :net, as: :network do
       root to: "roots#index", as: :root
       # Health
@@ -167,7 +167,7 @@ scope module: :apex, as: :apex do
     end
   end
 
-  constraints host: ENV["APEX_DEVELOPER_URL"] do
+  constraints host: ENV["ACME_DEVELOPER_URL"] do
     scope module: :dev, as: :developer do
       root to: "roots#index", as: :root
       # Health

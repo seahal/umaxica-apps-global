@@ -102,7 +102,7 @@ module Sign
         end
 
         def process_standard_login(staff)
-          pt = path_target_value
+          pt = signed_pt_param
           result = establish_signed_in_session!(
             staff, pt: pt, ri: params[:ri], auth_method: "secret",
           )

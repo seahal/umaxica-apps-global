@@ -55,6 +55,10 @@ module Security
 
         assert session_options[:httponly]
         assert_equal :lax, session_options[:same_site]
+        assert SessionCookieConfig.force_secure?(
+          id_service_host: "id.app.example",
+          rails_env: ActiveSupport::StringInquirer.new("production"),
+        )
       end
 
       private

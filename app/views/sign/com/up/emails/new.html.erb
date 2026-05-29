@@ -6,7 +6,7 @@
 
   <div>
     <%= form_with model: @user_email, url: sign_com_up_email_path, method: :post, data: { turbo: false } do |form| %>
-      <% pt = params[:pt].presence %>
+      <% pt = signed_pt_param %>
       <%= hidden_field_tag :pt, pt if pt.present? %>
 
       <% if @user_email.errors.any? %>

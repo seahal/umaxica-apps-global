@@ -4,7 +4,7 @@
 module Oidc
   class AuthorizeService < ApplicationService
     Result =
-      Data.define(:success, :redirect_url, :error, :error_description) do
+      Data.define(:success, :redirect_url, :redirect_uri, :error, :error_description) do
         def success? = success
       end
 
@@ -54,7 +54,7 @@ module Oidc
       query_params << ["state", code_record.state] if code_record.state.present?
       uri.query = URI.encode_www_form(query_params)
 
-      Result.new(success: true, redirect_url: uri.to_s, error: nil, error_description: nil)
+      Result.new(success: true, redirect_url: uri.to_s, redirect_uri: code_record.redirect_uri, error: nil, error_description: nil)
     end
 
     def normalize_default_port!(uri)
@@ -68,7 +68,7 @@ module Oidc
     end
 
     def failure(error, description)
-      Result.new(success: false, redirect_url: nil, error: error, error_description: description)
+      Result.new(success: false, redirect_url: nil, redirect_uri: nil, error: error, error_description: description)
     end
   end
 end

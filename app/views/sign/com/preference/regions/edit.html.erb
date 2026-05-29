@@ -1,9 +1,9 @@
-<% content_for :page_title, t('apex.com.preferences.regions.title') %>
+<% content_for :page_title, t('acme.com.preferences.regions.title') %>
 
 <section>
   <div>
     <div>
-      <%= link_to t("apex.com.preferences.regions.back_link"),
+      <%= link_to t("acme.com.preferences.regions.back_link"),
                   sign_com_preference_path(lx: params[:lx], ri: params[:ri]) %>
     </div>
 
@@ -11,10 +11,10 @@
 
     <div>
       <h1>
-        <%= t("apex.com.preferences.regions.title") %>
+        <%= t("acme.com.preferences.regions.title") %>
       </h1>
       <p>
-        <%= t("apex.com.preferences.regions.select_region_prompt") %>
+        <%= t("acme.com.preferences.regions.select_region_prompt") %>
       </p>
     </div>
 
@@ -24,24 +24,24 @@
 
       <div>
         <h2>
-          <%= t("apex.com.preferences.regions.region_section") %>
+          <%= t("acme.com.preferences.regions.region_section") %>
         </h2>
         <div>
-          <%= f.label :option_id, t("apex.com.preferences.regions.select_region") %>
+          <%= f.label :option_id, t("acme.com.preferences.regions.select_region") %>
           <div>
             <%= f.select :option_id,
                          options_for_select(
-                           ComPreferenceRegionOption.all.order(:id).map { |o| [t("apex.com.preferences.regions.select_region_selector.#{o.name}"), o.id] },
+                           ComPreferenceRegionOption.all.order(:id).map { |o| [t("acme.com.preferences.regions.select_region_selector.#{o.name}"), o.id] },
                            @preference_region.option_id
                           ),
-                         { prompt: t("apex.com.preferences.regions.select_region_prompt") } %>
+                         { prompt: t("acme.com.preferences.regions.select_region_prompt") } %>
           </div>
         </div>
       </div>
 
       <div>
-        <%= f.submit t("apex.com.preferences.update_settings"),
-                     data: { turbo_submits_with: t("apex.com.preferences.submitting") } %>
+        <%= f.submit t("acme.com.preferences.update_settings"),
+                     data: { turbo_submits_with: t("acme.com.preferences.submitting") } %>
       </div>
     <% end %>
 
@@ -49,31 +49,31 @@
       <div>
         <%= link_to edit_sign_com_preference_region_timezone_path(lx: params[:lx], ri: params[:ri]) do %>
           <div>
-            <span><%= t("apex.com.preferences.region.timezone.link") %></span>
+            <span><%= t("acme.com.preferences.region.timezone.link") %></span>
           </div>
         <% end %>
 
         <%= link_to edit_sign_com_preference_region_language_path(lx: params[:lx], ri: params[:ri]) do %>
           <div>
-            <span><%= t("apex.com.preferences.region.language.link") %></span>
+            <span><%= t("acme.com.preferences.region.language.link") %></span>
           </div>
         <% end %>
 
         <%= link_to edit_sign_com_preference_region_currency_path(lx: params[:lx], ri: params[:ri]) do %>
           <div>
-            <span><%= t("apex.com.preferences.region.currency.link", default: "Currency") %></span>
+            <span><%= t("acme.com.preferences.region.currency.link", default: "Currency") %></span>
           </div>
         <% end %>
 
         <%= link_to edit_sign_com_preference_region_date_path(lx: params[:lx], ri: params[:ri]) do %>
           <div>
-            <span><%= t("apex.com.preferences.region.date_format.link", default: "Date format") %></span>
+            <span><%= t("acme.com.preferences.region.date_format.link", default: "Date format") %></span>
           </div>
         <% end %>
 
         <%= link_to edit_sign_com_preference_region_time_path(lx: params[:lx], ri: params[:ri]) do %>
           <div>
-            <span><%= t("apex.com.preferences.region.time_format.link", default: "Time format") %></span>
+            <span><%= t("acme.com.preferences.region.time_format.link", default: "Time format") %></span>
           </div>
         <% end %>
       </div>

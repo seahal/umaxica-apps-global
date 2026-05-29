@@ -19,7 +19,7 @@ module Sign
       def self.define_route_aliases(base)
         {
           "sign_app_" => "sign_com_",
-          "apex_app_" => "apex_com_",
+          "acme_app_" => "acme_com_",
         }.each do |source_prefix, target_prefix|
           Rails.application.routes.url_helpers.public_instance_methods.grep(/^#{source_prefix}/).each do |helper_name|
             target_helper_name = helper_name.to_s.sub(source_prefix, target_prefix)

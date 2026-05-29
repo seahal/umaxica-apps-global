@@ -201,9 +201,9 @@ class Sign::App::OutsControllerTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user: @user)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    legacy_rt = Base64.urlsafe_encode64(sign_app_configuration_path(ri: "jp"))
+    legacy_pt = Base64.urlsafe_encode64(sign_app_configuration_path(ri: "jp"))
 
-    delete sign_app_out_url(ri: "jp", pt: legacy_rt),
+    delete sign_app_out_url(ri: "jp", pt: legacy_pt),
            headers: { "Host" => @host,
                       "X-TEST-CURRENT-USER" => @user.id,
                       "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }

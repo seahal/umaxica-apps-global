@@ -28,11 +28,6 @@ module Sign
           render plain: I18n.t("errors.messages.already_authenticated"), status: :unauthorized
         end
       end
-
-      # Redirect logged-in users from guest-only pages to the signed-in landing page.
-      def after_login_path
-        sign_app_dashboard_path
-      end
     end
   end
 end

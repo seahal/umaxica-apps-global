@@ -33,6 +33,7 @@ Current content-model references:
 - `docs/security/session-limit.md`
 - `docs/security/credential-abuse-rate-limits.md`
 - `docs/security/observability-boundary.md`
+- `docs/security/security-headers.md`
 - `docs/security/turnstile.md`
 - `docs/security/authentication-assurance-levels.md`
 - `docs/security/step-up-mfa-status.md`
@@ -48,6 +49,7 @@ Current content-model references:
 - `docs/security/sign-withdrawal-and-membership.md`
 - `docs/security/redirect_targets.md`
 - `docs/operations/jump-rt-key-rotation.md`
+- `docs/operations/jwt-key-rotation.md`
 - `docs/dictionary/README.md`
 - `docs/dictionary/access-terms.md`
 - `docs/dictionary/alphabet.md`

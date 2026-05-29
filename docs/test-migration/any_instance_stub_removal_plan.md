@@ -12,9 +12,9 @@ The tests using Controller's `any_instance.stub` are set to Classical/London. Sc
 | --- | ---------------------------------------------------------------------- | --------------- | --------------------------- |
 | 1   | `test/controllers/sign/app/edge/v0/token/refreshes_controller_test.rb` | 58, 62, 91, 95  | `:refresh_token_expires_at` |
 | 2   | `test/controllers/sign/org/edge/v0/token/refreshes_controller_test.rb` | 71, 75          | `:refresh_token_expires_at` |
-| 3   | `test/controllers/apex/app/web/v0/cookie_controller_test.rb`           | 71              | `:refresh_token_expires_at` |
-| 4   | `test/controllers/apex/com/web/v0/cookie_controller_test.rb`           | 52              | `:refresh_token_expires_at` |
-| 5   | `test/controllers/apex/org/web/v0/cookie_controller_test.rb`           | 57              | `:refresh_token_expires_at` |
+| 3   | `test/controllers/acme/app/web/v0/cookie_controller_test.rb`           | 71              | `:refresh_token_expires_at` |
+| 4   | `test/controllers/acme/com/web/v0/cookie_controller_test.rb`           | 52              | `:refresh_token_expires_at` |
+| 5   | `test/controllers/acme/org/web/v0/cookie_controller_test.rb`           | 57              | `:refresh_token_expires_at` |
 
 **Conversion method**: Use TimeHelpers' `freeze_time` or `travel_to`
 
@@ -58,7 +58,7 @@ response
 | #   | File path                                                             | Number of lines | stub target method                           |
 | --- | --------------------------------------------------------------------- | --------------- | -------------------------------------------- |
 | 1   | `test/controllers/sign/org/configuration/passkeys_controller_test.rb` | 103             | `OperatorPasskey.any_instance.stub(:valid?)` |
-| 2   | `test/controllers/apex/app/web/v0/cookie_controller_test.rb`          | 141             | `:issue_access_token_from`                   |
+| 2   | `test/controllers/acme/app/web/v0/cookie_controller_test.rb`          | 141             | `:issue_access_token_from`                   |
 
 ## conversion strategy
 
@@ -225,7 +225,7 @@ end
 
 - [ ] `sign/app/edge/v0/token/refreshes_controller_test.rb`
 - [ ] `sign/org/edge/v0/token/refreshes_controller_test.rb`
-- [ ] `apex/*/web/v0/cookie_controller_test.rb` (3 files)
+- [ ] `acme/*/web/v0/cookie_controller_test.rb` (3 files)
 
 **Review points**:
 
@@ -235,7 +235,7 @@ end
 ### Phase 3: Group 5 (individual case) (0.5 days)
 
 - [ ] `sign/org/configuration/passkeys_controller_test.rb` - stub to `OperatorPasskey`
-- [ ] `apex/app/web/v0/cookie_controller_test.rb` - line 141
+- [ ] `acme/app/web/v0/cookie_controller_test.rb` - line 141
 
 ### Phase 4: Group 4 (phone number registration) (1 day)
 

@@ -13,7 +13,7 @@ Rails.application.config.session_store(
   :cookie_store,
   expire_after: 14.days,
   key: SessionCookieConfig.cookie_key(force_secure: force_secure),
-  secure: Rails.env.production?,
+  secure: force_secure,
   httponly: true,
   same_site: :lax,
   partitioned: SessionCookieConfig.partitioned?,

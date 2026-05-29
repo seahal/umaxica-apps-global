@@ -100,6 +100,13 @@ class Sign::App::UpsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_dashboard_url(ri: "jp")
   end
 
+  test "checkpoint without active registration redirects to sign up start" do
+    get sign_app_up_checkpoint_url(ri: "jp"), headers: { "Host" => host }
+
+    assert_redirected_to new_sign_app_up_url(ri: "jp")
+    assert_equal I18n.t("sign.app.registration.session_missing"), flash[:alert]
+  end
+
   private
 
   def host

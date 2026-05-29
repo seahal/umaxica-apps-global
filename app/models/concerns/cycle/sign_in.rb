@@ -124,7 +124,7 @@ module Cycle
     end
 
     def complete_sign_in!(step: "completed", now: Time.current)
-      changes = { step: step }
+      changes = { step: step, state: "COMPLETED" }
       changes[:completed_at] = now if has_attribute?(:completed_at)
 
       transition_cycle_to!(
@@ -161,7 +161,10 @@ module Cycle
         raise ArgumentError, "invalid transition from #{status_id.inspect} to #{next_status_id.inspect}"
       end
 
-      changes = { step: canonical_sign_in_step_for(next_status_id) }
+      changes = {
+        step: canonical_sign_in_step_for(next_status_id),
+        state: status_name_for(next_status_id),
+      }
       changes[:completed_at] = now if next_status_id == status_id_for("COMPLETED")
 
       transition_cycle_to!(
@@ -182,7 +185,7 @@ module Cycle
       transition_cycle_to!(
         status_id_for(next_status_name),
         allowed_from: status_ids_for(*allowed_from),
-        changes: changes.merge(step: step),
+        changes: changes.merge(step: step, state: next_status_name),
         now: now,
       )
     end

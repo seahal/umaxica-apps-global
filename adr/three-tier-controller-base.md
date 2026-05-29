@@ -53,10 +53,10 @@ ActionController::Base
 └── PublicController          ← None (session never loaded)
 ```
 
-For each of the three boundaries (`apex`, `sign`, `jump`), all three tiers exist as siblings:
+For each of the three boundaries (`acme`, `sign`, `jump`), all three tiers exist as siblings:
 
-- `Apex::ApplicationController` family (per-TLD as today), `Apex::OpenController`,
-  `Apex::PublicController`.
+- `Acme::ApplicationController` family (per-TLD as today), `Acme::OpenController`,
+  `Acme::PublicController`.
 - `Sign::ApplicationController` family, `Sign::OpenController`, `Sign::PublicController`.
 - `Jump::ApplicationController`, `Jump::OpenController`, `Jump::PublicController`.
 
@@ -142,7 +142,7 @@ explicitly out of scope here.
 - A new `before_action` added to `ApplicationController` no longer leaks into open or public
   endpoints, because they no longer descend from `ApplicationController`.
 - The class graph gains two new bases per boundary (`OpenController` and `PublicController`), so six
-  new files in total across `apex`, `sign`, and `jump`.
+  new files in total across `acme`, `sign`, and `jump`.
 - Existing `public_strict!` and `guest_only!` call sites must eventually be migrated. Until that
   finishes, both the old flag pattern and the new tier pattern coexist. This is intentional.
 - The doctrine does not promise behavioral parity for migrated controllers. A `public_strict!`

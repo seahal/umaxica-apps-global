@@ -14,7 +14,7 @@ class PreferenceSanitizeTestController < ::ApplicationController
   end
 
   def controller_path
-    @test_controller_path || "apex/app/preferences"
+    @test_controller_path || "acme/app/preferences"
   end
 
   def params
@@ -911,15 +911,15 @@ module Preference
     end
 
     test "cookie banner endpoint resolves helper on expected host" do
-      old = ENV["APEX_SERVICE_URL"]
-      ENV["APEX_SERVICE_URL"] = "id.app.localhost"
+      old = ENV["ACME_SERVICE_URL"]
+      ENV["ACME_SERVICE_URL"] = "id.app.localhost"
       @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.app.localhost")
-      @controller.define_singleton_method(:apex_app_web_v0_cookie_url) { "https://id.app.localhost/web/v0/cookie" }
+      @controller.define_singleton_method(:acme_app_web_v0_cookie_url) { "https://id.app.localhost/web/v0/cookie" }
 
       assert @controller.send(:cookie_banner_endpoint_available_for_request?)
       assert_equal "https://id.app.localhost/web/v0/cookie", @controller.send(:cookie_banner_endpoint_url)
     ensure
-      ENV["APEX_SERVICE_URL"] = old
+      ENV["ACME_SERVICE_URL"] = old
     end
 
     test "preference class mapping and option fallback helpers cover unknown branches" do

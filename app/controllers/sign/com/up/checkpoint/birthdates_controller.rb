@@ -11,7 +11,7 @@ module Sign
           AUTHENTICATION_MODE = :guest
 
           before_action :load_sign_up_ticket
-          before_action -> { authorize_sign_up_requirement!(:clear_requirement?) }
+          before_action -> { authorize_sign_up_requirement_or_cleared_continue!(:clear_requirement?) }
 
           def update
             clear_sign_up_birthdate_requirement

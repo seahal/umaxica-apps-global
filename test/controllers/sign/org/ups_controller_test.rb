@@ -31,9 +31,9 @@ class Sign::Org::UpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    apex_host = ENV["APEX_CORPORATE_URL"].presence || "www.com.localhost"
+    acme_host = ENV["ACME_CORPORATE_URL"].presence || "www.com.localhost"
 
-    assert_select "div a[href^=?]", "http://#{apex_host}/",
+    assert_select "div a[href^=?]", "http://#{acme_host}/",
                   text: I18n.t("sign.org.ups.new.recruit_link_text")
 
     link = css_select("div a").find { |a| a.text == I18n.t("sign.org.ups.new.recruit_link_text") }

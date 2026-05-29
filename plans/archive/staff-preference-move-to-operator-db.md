@@ -142,7 +142,7 @@ is no DB-level FK to (only app-level since it is cross-DB).
      migration to drop tables.
    - Pay attention to the internal FK drop order (child table → parent table → option table).
 5. **verification**:
-   - Sign / Apex Edit preferences for each surface (org / sign-org) (region / language / timezone /
+   - Sign / Acme Edit preferences for each surface (org / sign-org) (region / language / timezone /
      colortheme) integration test is green.
    - Org→Staff synchronization of `Preference::Adoption` does not regress (when logging in with
      `org_preferences`) updated_at comparison and copy of `staff_preferences` is successful within

@@ -5,9 +5,9 @@ require "test_helper"
 
 class EdgeHealthsControllerTest < ActiveSupport::TestCase
   CONTROLLERS = [
-    Apex::App::Edge::V0::HealthsController,
-    Apex::Com::Edge::V0::HealthsController,
-    Apex::Org::Edge::V0::HealthsController,
+    Acme::App::Edge::V0::HealthsController,
+    Acme::Com::Edge::V0::HealthsController,
+    Acme::Org::Edge::V0::HealthsController,
     Sign::App::Edge::V0::HealthsController,
     Sign::Org::Edge::V0::HealthsController,
   ].freeze

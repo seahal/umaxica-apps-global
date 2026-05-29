@@ -8,12 +8,12 @@
 
 ## Context
 
-The `apex`, `sign`, and `jump` boundaries each expose a small number of fully public endpoints that
+The `acme`, `sign`, and `jump` boundaries each expose a small number of fully public endpoints that
 do not need authentication, authorization, session, preference, verification, or `Current`/`Actor`
 state:
 
 - `/health` exists in all three boundaries.
-- `/robots.txt` and `/sitemap.xml` exist in `apex` and `sign`.
+- `/robots.txt` and `/sitemap.xml` exist in `acme` and `sign`.
 
 These controllers currently inherit from the heavy `<Boundary>::<Tld>::ApplicationController` chain
 and opt out of the auth and preference machinery via
@@ -30,7 +30,7 @@ This pattern is fragile:
 
 The boundaries also have different surface counts and different request needs:
 
-- `apex` covers 5 TLDs (`com`, `org`, `app`, `dev`, `net`).
+- `acme` covers 5 TLDs (`com`, `org`, `app`, `dev`, `net`).
 - `sign` covers 3 TLDs (`com`, `org`, `app`).
 - `jump` covers 3 TLDs (`com`, `org`, `app`).
 
@@ -41,7 +41,7 @@ and excludes the entire auth/preference/Current stack by construction rather tha
 
 Introduce one `PublicController` per boundary, inheriting directly from `ActionController::Base`:
 
-- `Apex::PublicController`
+- `Acme::PublicController`
 - `Sign::PublicController`
 - `Jump::PublicController`
 
@@ -52,10 +52,10 @@ without an intermediate per-TLD base class.
 
 ```
 ActionController::Base
-├── Apex::Com::ApplicationController        (heavy, authenticated)
-├── Apex::Org::ApplicationController
-├── Apex::App::ApplicationController
-├── Apex::PublicController                  (light, unauthenticated)
+├── Acme::Com::ApplicationController        (heavy, authenticated)
+├── Acme::Org::ApplicationController
+├── Acme::App::ApplicationController
+├── Acme::PublicController                  (light, unauthenticated)
 ├── Sign::Com::ApplicationController
 ├── Sign::Org::ApplicationController
 ├── Sign::App::ApplicationController
@@ -130,7 +130,7 @@ The following are explicitly deferred and not part of this decision:
 - `Cache-Control` / `expires_in` headers on `/robots.txt` and `/sitemap.xml` for CDN caching.
 - A dedicated public-endpoint rate limit profile.
 - Edge-layer DDoS protection (CDN, WAF, `rack-attack`).
-- Migrating `apex/*/edge/v0/healths_controller.rb` and `sign/*/edge/v0/healths_controller.rb`
+- Migrating `acme/*/edge/v0/healths_controller.rb` and `sign/*/edge/v0/healths_controller.rb`
   (API-style health endpoints nested deeper) to `PublicController`.
 
 ## Consequences
@@ -139,7 +139,7 @@ The following are explicitly deferred and not part of this decision:
   `skip_before_action ..., raise: false`. They no longer inherit those callbacks at all.
 - New `before_action` lines added to a heavy `ApplicationController` no longer affect public
   endpoints by default.
-- The class hierarchy gains three new files (`apex/public_controller.rb`,
+- The class hierarchy gains three new files (`acme/public_controller.rb`,
   `sign/public_controller.rb`, `jump/public_controller.rb`).
 - Public endpoints lose access to TLD-specific helpers and configuration that lived on the heavy
   `ApplicationController`. This is intentional; any helper a public endpoint needs must be obtained

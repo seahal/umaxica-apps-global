@@ -3,6 +3,7 @@
 
 require "jwt"
 require "json"
+require "jit/security/jwt/registry"
 
 module Jit
   module Security
@@ -14,38 +15,13 @@ module Jit
         PRIVATE_JWK_FIELDS = %w(d p q dp dq qi oth k).freeze
 
         def jwk_set(namespace = nil)
-          return legacy_auth_jwk_set if namespace.blank?
+          return Registry.jwks_for("auth") if namespace.blank?
 
-          { keys: public_keys_for(namespace) }
+          Registry.jwks_for("surface:#{Registry.normalize_namespace(namespace)}")
         end
 
         def public_keys_for(namespace)
-          raw = ENV["JWT_#{namespace}_PUBLIC_KEYSET"].to_s
-          return [] if raw.blank?
-
-          parsed = JSON.parse(raw)
-          return [] unless parsed.is_a?(Array)
-
-          parsed.filter_map { |entry| normalized_public_jwk(entry) }
-        rescue JSON::ParserError
-          []
-        end
-
-        def active_kid_for(namespace)
-          ENV["JWT_#{namespace}_ACTIVE_KID"].presence
-        end
-
-        def legacy_auth_jwk_set
-          kid = Keyring.active_kid
-          public_key = Keyring.public_key_for(kid)
-          return { keys: [] } unless public_key
-
-          jwk = JWT::JWK.new(public_key, kid: kid)
-          exported = jwk.export
-          exported[:use] = "sig"
-          exported[:alg] = Authentication::TokenService::JWT_ALGORITHM
-
-          { keys: [exported] }
+          jwk_set(namespace).fetch(:keys)
         end
 
         def normalized_public_jwk(entry)
@@ -56,9 +32,12 @@ module Jit
           return nil if PRIVATE_JWK_FIELDS.any? { |field| entry.key?(field) || entry.key?(field.to_sym) }
           return nil unless jwk["alg"] == Authentication::TokenService::JWT_ALGORITHM
           return nil unless jwk["use"] == "sig"
+          return nil unless jwk["kty"] == "EC"
+          return nil unless jwk["crv"] == "P-384"
 
           jwk
         end
+
       end
     end
   end

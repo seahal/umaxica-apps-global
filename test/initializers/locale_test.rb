@@ -40,17 +40,17 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do
-      assert_equal "Language Settings", I18n.t("apex.app.preferences.language_settings")
+      assert_equal "Language Settings", I18n.t("acme.app.preferences.language_settings")
       assert_equal "Manage language, theme, and other preferences in one place.",
-                   I18n.t("apex.app.preferences.description")
-      assert_equal "Language Settings", I18n.t("apex.app.preference.language.edit.heading")
+                   I18n.t("acme.app.preferences.description")
+      assert_equal "Language Settings", I18n.t("acme.app.preference.language.edit.heading")
       assert_equal "Change the display language for the application.",
-                   I18n.t("apex.app.preference.language.edit.description")
-      assert_equal "Language", I18n.t("apex.app.preference.language.edit.language_label")
-      assert_equal "Update Settings", I18n.t("apex.app.preferences.update_settings")
-      assert_equal "Submitting...", I18n.t("apex.app.preferences.submitting")
-      assert_equal "Region & Language Settings", I18n.t("apex.app.preferences.region_settings")
-      assert_equal "Back to Preferences", I18n.t("apex.app.preferences.back_to_settings")
+                   I18n.t("acme.app.preference.language.edit.description")
+      assert_equal "Language", I18n.t("acme.app.preference.language.edit.language_label")
+      assert_equal "Update Settings", I18n.t("acme.app.preferences.update_settings")
+      assert_equal "Submitting...", I18n.t("acme.app.preferences.submitting")
+      assert_equal "Region & Language Settings", I18n.t("acme.app.preferences.region_settings")
+      assert_equal "Back to Preferences", I18n.t("acme.app.preferences.back_to_settings")
       assert_equal "日本語", I18n.t("languages.japanese")
       assert_equal "English", I18n.t("languages.english")
     end
@@ -60,17 +60,17 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do
-      assert_equal "Region & Language Settings", I18n.t("apex.app.preferences.regions.title")
-      assert_equal "Choose your region...", I18n.t("apex.app.preferences.regions.select_region_prompt")
-      assert_equal "Region Settings", I18n.t("apex.app.preferences.regions.region_section")
-      assert_equal "Select Region", I18n.t("apex.app.preferences.regions.select_region")
-      assert_equal "Japan", I18n.t("apex.app.preferences.regions.select_region_selector.JP")
-      assert_equal "United States", I18n.t("apex.app.preferences.regions.select_region_selector.US")
-      assert_equal "Timezone Settings", I18n.t("apex.app.preferences.region.timezone.link")
-      assert_equal "Language Settings", I18n.t("apex.app.preferences.region.language.link")
-      assert_equal "Currency", I18n.t("apex.app.preferences.region.currency.link")
-      assert_equal "Date Format", I18n.t("apex.app.preferences.region.date_format.link")
-      assert_equal "Time Format", I18n.t("apex.app.preferences.region.time_format.link")
+      assert_equal "Region & Language Settings", I18n.t("acme.app.preferences.regions.title")
+      assert_equal "Choose your region...", I18n.t("acme.app.preferences.regions.select_region_prompt")
+      assert_equal "Region Settings", I18n.t("acme.app.preferences.regions.region_section")
+      assert_equal "Select Region", I18n.t("acme.app.preferences.regions.select_region")
+      assert_equal "Japan", I18n.t("acme.app.preferences.regions.select_region_selector.JP")
+      assert_equal "United States", I18n.t("acme.app.preferences.regions.select_region_selector.US")
+      assert_equal "Timezone Settings", I18n.t("acme.app.preferences.region.timezone.link")
+      assert_equal "Language Settings", I18n.t("acme.app.preferences.region.language.link")
+      assert_equal "Currency", I18n.t("acme.app.preferences.region.currency.link")
+      assert_equal "Date Format", I18n.t("acme.app.preferences.region.date_format.link")
+      assert_equal "Time Format", I18n.t("acme.app.preferences.region.time_format.link")
     end
   end
 
@@ -78,13 +78,13 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:ja) do
-      assert_equal "日付形式", I18n.t("apex.app.preference.date_format.edit.heading")
+      assert_equal "日付形式", I18n.t("acme.app.preference.date_format.edit.heading")
       assert_equal "アプリケーションで表示する日付形式を選択します。",
-                   I18n.t("apex.app.preference.date_format.edit.description")
-      assert_equal "日付形式", I18n.t("apex.app.preference.date_format.edit.option_label")
-      assert_equal "ISO形式 (YYYY-MM-DD)", I18n.t("apex.app.preference.date_format.options.iso")
-      assert_equal "英国式 (DD/MM/YYYY)", I18n.t("apex.app.preference.date_format.options.uk")
-      assert_equal "米国式 (MM/DD/YYYY)", I18n.t("apex.app.preference.date_format.options.us")
+                   I18n.t("acme.app.preference.date_format.edit.description")
+      assert_equal "日付形式", I18n.t("acme.app.preference.date_format.edit.option_label")
+      assert_equal "ISO形式 (YYYY-MM-DD)", I18n.t("acme.app.preference.date_format.options.iso")
+      assert_equal "英国式 (DD/MM/YYYY)", I18n.t("acme.app.preference.date_format.options.uk")
+      assert_equal "米国式 (MM/DD/YYYY)", I18n.t("acme.app.preference.date_format.options.us")
     end
   end
 
@@ -92,17 +92,17 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:ja) do
-      assert_equal "地域・言語の設定", I18n.t("apex.com.preferences.regions.title")
-      assert_equal "地域を選択してください…", I18n.t("apex.com.preferences.regions.select_region_prompt")
-      assert_equal "地域設定", I18n.t("apex.com.preferences.regions.region_section")
-      assert_equal "地域を選択", I18n.t("apex.com.preferences.regions.select_region")
-      assert_equal "JP — にほん", I18n.t("apex.com.preferences.regions.select_region_selector.JP")
-      assert_equal "US — あめりかがっしゅうこく", I18n.t("apex.com.preferences.regions.select_region_selector.US")
-      assert_equal "タイムゾーン設定", I18n.t("apex.com.preferences.region.timezone.link")
-      assert_equal "言語設定", I18n.t("apex.com.preferences.region.language.link")
-      assert_equal "通貨設定", I18n.t("apex.com.preferences.region.currency.link")
-      assert_equal "日付形式", I18n.t("apex.com.preferences.region.date_format.link")
-      assert_equal "時刻形式", I18n.t("apex.com.preferences.region.time_format.link")
+      assert_equal "地域・言語の設定", I18n.t("acme.com.preferences.regions.title")
+      assert_equal "地域を選択してください…", I18n.t("acme.com.preferences.regions.select_region_prompt")
+      assert_equal "地域設定", I18n.t("acme.com.preferences.regions.region_section")
+      assert_equal "地域を選択", I18n.t("acme.com.preferences.regions.select_region")
+      assert_equal "JP — にほん", I18n.t("acme.com.preferences.regions.select_region_selector.JP")
+      assert_equal "US — あめりかがっしゅうこく", I18n.t("acme.com.preferences.regions.select_region_selector.US")
+      assert_equal "タイムゾーン設定", I18n.t("acme.com.preferences.region.timezone.link")
+      assert_equal "言語設定", I18n.t("acme.com.preferences.region.language.link")
+      assert_equal "通貨設定", I18n.t("acme.com.preferences.region.currency.link")
+      assert_equal "日付形式", I18n.t("acme.com.preferences.region.date_format.link")
+      assert_equal "時刻形式", I18n.t("acme.com.preferences.region.time_format.link")
     end
   end
 
@@ -110,17 +110,17 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:ja) do
-      assert_equal "地域・言語の設定", I18n.t("apex.app.preferences.regions.title")
-      assert_equal "地域を選択してください…", I18n.t("apex.app.preferences.regions.select_region_prompt")
-      assert_equal "地域設定", I18n.t("apex.app.preferences.regions.region_section")
-      assert_equal "地域を選択", I18n.t("apex.app.preferences.regions.select_region")
-      assert_equal "JP — にほん", I18n.t("apex.app.preferences.regions.select_region_selector.JP")
-      assert_equal "US — あめりかがっしゅうこく", I18n.t("apex.app.preferences.regions.select_region_selector.US")
-      assert_equal "タイムゾーン設定", I18n.t("apex.app.preferences.region.timezone.link")
-      assert_equal "言語設定", I18n.t("apex.app.preferences.region.language.link")
-      assert_equal "通貨設定", I18n.t("apex.app.preferences.region.currency.link")
-      assert_equal "日付形式", I18n.t("apex.app.preferences.region.date_format.link")
-      assert_equal "時刻形式", I18n.t("apex.app.preferences.region.time_format.link")
+      assert_equal "地域・言語の設定", I18n.t("acme.app.preferences.regions.title")
+      assert_equal "地域を選択してください…", I18n.t("acme.app.preferences.regions.select_region_prompt")
+      assert_equal "地域設定", I18n.t("acme.app.preferences.regions.region_section")
+      assert_equal "地域を選択", I18n.t("acme.app.preferences.regions.select_region")
+      assert_equal "JP — にほん", I18n.t("acme.app.preferences.regions.select_region_selector.JP")
+      assert_equal "US — あめりかがっしゅうこく", I18n.t("acme.app.preferences.regions.select_region_selector.US")
+      assert_equal "タイムゾーン設定", I18n.t("acme.app.preferences.region.timezone.link")
+      assert_equal "言語設定", I18n.t("acme.app.preferences.region.language.link")
+      assert_equal "通貨設定", I18n.t("acme.app.preferences.region.currency.link")
+      assert_equal "日付形式", I18n.t("acme.app.preferences.region.date_format.link")
+      assert_equal "時刻形式", I18n.t("acme.app.preferences.region.time_format.link")
     end
   end
 
@@ -129,30 +129,30 @@ class LocaleInitializerTest < ActiveSupport::TestCase
 
     %w(app com org).each do |surface|
       I18n.with_locale(:en) do
-        assert_equal "Motion Settings", I18n.t("apex.#{surface}.preferences.motion_settings")
-        assert_equal "Density Settings", I18n.t("apex.#{surface}.preferences.density_settings")
-        assert_equal "Items Per Page", I18n.t("apex.#{surface}.preferences.items_per_page_settings")
+        assert_equal "Motion Settings", I18n.t("acme.#{surface}.preferences.motion_settings")
+        assert_equal "Density Settings", I18n.t("acme.#{surface}.preferences.density_settings")
+        assert_equal "Items Per Page", I18n.t("acme.#{surface}.preferences.items_per_page_settings")
       end
 
       I18n.with_locale(:ja) do
-        assert_equal "モーション設定", I18n.t("apex.#{surface}.preferences.motion_settings")
-        assert_equal "表示密度設定", I18n.t("apex.#{surface}.preferences.density_settings")
-        assert_equal "1ページあたりの表示件数", I18n.t("apex.#{surface}.preferences.items_per_page_settings")
+        assert_equal "モーション設定", I18n.t("acme.#{surface}.preferences.motion_settings")
+        assert_equal "表示密度設定", I18n.t("acme.#{surface}.preferences.density_settings")
+        assert_equal "1ページあたりの表示件数", I18n.t("acme.#{surface}.preferences.items_per_page_settings")
       end
     end
 
     I18n.with_locale(:en) do
-      assert_equal "Reduced motion", I18n.t("apex.app.preference.motion.options.reduced")
-      assert_equal "Compact density", I18n.t("apex.app.preference.density.options.compact")
-      assert_equal "50 items", I18n.t("apex.app.preference.items_per_page.options.50")
-      assert_equal "Infinite items", I18n.t("apex.app.preference.items_per_page.options.infinity")
+      assert_equal "Reduced motion", I18n.t("acme.app.preference.motion.options.reduced")
+      assert_equal "Compact density", I18n.t("acme.app.preference.density.options.compact")
+      assert_equal "50 items", I18n.t("acme.app.preference.items_per_page.options.50")
+      assert_equal "Infinite items", I18n.t("acme.app.preference.items_per_page.options.infinity")
     end
 
     I18n.with_locale(:ja) do
-      assert_equal "控えめなモーション", I18n.t("apex.app.preference.motion.options.reduced")
-      assert_equal "コンパクト", I18n.t("apex.app.preference.density.options.compact")
-      assert_equal "50件", I18n.t("apex.app.preference.items_per_page.options.50")
-      assert_equal "無制限", I18n.t("apex.app.preference.items_per_page.options.infinity")
+      assert_equal "控えめなモーション", I18n.t("acme.app.preference.motion.options.reduced")
+      assert_equal "コンパクト", I18n.t("acme.app.preference.density.options.compact")
+      assert_equal "50件", I18n.t("acme.app.preference.items_per_page.options.50")
+      assert_equal "無制限", I18n.t("acme.app.preference.items_per_page.options.infinity")
     end
   end
 
@@ -166,7 +166,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       expectations.each do |locale, expected|
         I18n.with_locale(locale) do
           %w(app com org).each do |surface|
-            assert_equal expected, I18n.t("apex.#{surface}.preferences.regions.back_link")
+            assert_equal expected, I18n.t("acme.#{surface}.preferences.regions.back_link")
           end
         end
       end
@@ -185,7 +185,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
           keys = %w(timezone language currency date_format time_format)
 
           assert_equal expected,
-                       keys.map { |key| I18n.t("apex.org.preferences.region.#{key}.link") }
+                       keys.map { |key| I18n.t("acme.org.preferences.region.#{key}.link") }
         end
       end
     end
@@ -210,9 +210,9 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     expectations.each do |locale, surfaces|
       I18n.with_locale(locale) do
         surfaces.each do |surface, (heading, description, label)|
-          assert_equal heading, I18n.t("apex.#{surface}.preference.language.edit.heading")
-          assert_equal description, I18n.t("apex.#{surface}.preference.language.edit.description")
-          assert_equal label, I18n.t("apex.#{surface}.preference.language.edit.language_label")
+          assert_equal heading, I18n.t("acme.#{surface}.preference.language.edit.heading")
+          assert_equal description, I18n.t("acme.#{surface}.preference.language.edit.description")
+          assert_equal label, I18n.t("acme.#{surface}.preference.language.edit.language_label")
         end
       end
     end
@@ -222,24 +222,24 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:ja) do
-      assert_equal "通貨設定", I18n.t("apex.org.preference.currency.edit.heading")
-      assert_equal "表示に使う通貨を選択します。", I18n.t("apex.org.preference.currency.edit.description")
-      assert_equal "通貨", I18n.t("apex.org.preference.currency.edit.option_label")
-      assert_equal "米ドル (USD)", I18n.t("apex.org.preference.currency.options.usd")
-      assert_equal "日本円 (JPY)", I18n.t("apex.org.preference.currency.options.jpy")
+      assert_equal "通貨設定", I18n.t("acme.org.preference.currency.edit.heading")
+      assert_equal "表示に使う通貨を選択します。", I18n.t("acme.org.preference.currency.edit.description")
+      assert_equal "通貨", I18n.t("acme.org.preference.currency.edit.option_label")
+      assert_equal "米ドル (USD)", I18n.t("acme.org.preference.currency.options.usd")
+      assert_equal "日本円 (JPY)", I18n.t("acme.org.preference.currency.options.jpy")
 
-      assert_equal "日付形式", I18n.t("apex.org.preference.date_format.edit.heading")
-      assert_equal "表示する日付形式を選択します。", I18n.t("apex.org.preference.date_format.edit.description")
-      assert_equal "日付形式", I18n.t("apex.org.preference.date_format.edit.option_label")
-      assert_equal "ISO形式 (YYYY-MM-DD)", I18n.t("apex.org.preference.date_format.options.iso")
-      assert_equal "英国式 (DD/MM/YYYY)", I18n.t("apex.org.preference.date_format.options.uk")
-      assert_equal "米国式 (MM/DD/YYYY)", I18n.t("apex.org.preference.date_format.options.us")
+      assert_equal "日付形式", I18n.t("acme.org.preference.date_format.edit.heading")
+      assert_equal "表示する日付形式を選択します。", I18n.t("acme.org.preference.date_format.edit.description")
+      assert_equal "日付形式", I18n.t("acme.org.preference.date_format.edit.option_label")
+      assert_equal "ISO形式 (YYYY-MM-DD)", I18n.t("acme.org.preference.date_format.options.iso")
+      assert_equal "英国式 (DD/MM/YYYY)", I18n.t("acme.org.preference.date_format.options.uk")
+      assert_equal "米国式 (MM/DD/YYYY)", I18n.t("acme.org.preference.date_format.options.us")
 
-      assert_equal "時刻形式", I18n.t("apex.org.preference.time_format.edit.heading")
-      assert_equal "表示する時刻形式を選択します。", I18n.t("apex.org.preference.time_format.edit.description")
-      assert_equal "時刻形式", I18n.t("apex.org.preference.time_format.edit.option_label")
-      assert_equal "24時間表記", I18n.t("apex.org.preference.time_format.options.hour_24")
-      assert_equal "12時間表記", I18n.t("apex.org.preference.time_format.options.hour_12")
+      assert_equal "時刻形式", I18n.t("acme.org.preference.time_format.edit.heading")
+      assert_equal "表示する時刻形式を選択します。", I18n.t("acme.org.preference.time_format.edit.description")
+      assert_equal "時刻形式", I18n.t("acme.org.preference.time_format.edit.option_label")
+      assert_equal "24時間表記", I18n.t("acme.org.preference.time_format.options.hour_24")
+      assert_equal "12時間表記", I18n.t("acme.org.preference.time_format.options.hour_12")
     end
   end
 

@@ -10,7 +10,7 @@ implementation.
 
 ## Acceptance
 
-For each of the three `PublicController` bases (`Apex::PublicController`, `Sign::PublicController`,
+For each of the three `PublicController` bases (`Acme::PublicController`, `Sign::PublicController`,
 `Jump::PublicController`):
 
 - A test-only `POST` route (or an existing POST that hits the base) returns 4xx when no CSRF token
@@ -23,6 +23,6 @@ exercises the forgery protection directly.
 ## Related
 
 - `plans/archive/public-controller-base-plan.md` (original plan)
-- `app/controllers/apex/public_controller.rb`
+- `app/controllers/acme/public_controller.rb`
 - `app/controllers/sign/public_controller.rb`
 - `app/controllers/jump/public_controller.rb`

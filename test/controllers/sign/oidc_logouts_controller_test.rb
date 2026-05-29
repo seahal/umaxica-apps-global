@@ -13,7 +13,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
 
     get "/oidc/logout",
         params: {
-          client_id: "apex_app",
+          client_id: "acme_app",
           ri: "jp",
         },
         headers: browser_headers.merge("Host" => @host)
@@ -28,8 +28,8 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
 
     get "/oidc/logout",
         params: {
-          client_id: "apex_app",
-          logout_request: Oidc::LogoutRequest.issue(client_id: "apex_app", ri: "jp"),
+          client_id: "acme_app",
+          logout_request: Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp"),
           post_logout_redirect_uri: "https://evil.example/sign/out",
           ri: "jp",
         },
@@ -45,8 +45,8 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
 
     get "/oidc/logout",
         params: {
-          client_id: "apex_app",
-          logout_request: Oidc::LogoutRequest.issue(client_id: "apex_app", ri: "jp"),
+          client_id: "acme_app",
+          logout_request: Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp"),
           ri: "jp",
         },
         headers: browser_headers.merge("Host" => @host)
@@ -65,8 +65,8 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
 
     get "/oidc/logout",
         params: {
-          client_id: "apex_org",
-          logout_request: Oidc::LogoutRequest.issue(client_id: "apex_app", ri: "jp"),
+          client_id: "acme_org",
+          logout_request: Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp"),
           ri: "jp",
         },
         headers: browser_headers.merge("Host" => @host)
@@ -83,11 +83,11 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
   test "rejects replay of an already-consumed signed logout request" do
     Oidc::LogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     host!(@host)
-    token = Oidc::LogoutRequest.issue(client_id: "apex_app", ri: "jp")
+    token = Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp")
 
     get(
       "/oidc/logout",
-      params: { client_id: "apex_app", logout_request: token, ri: "jp" },
+      params: { client_id: "acme_app", logout_request: token, ri: "jp" },
       headers: browser_headers.merge("Host" => @host),
     )
 
@@ -95,7 +95,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
 
     get(
       "/oidc/logout",
-      params: { client_id: "apex_app", logout_request: token, ri: "jp" },
+      params: { client_id: "acme_app", logout_request: token, ri: "jp" },
       headers: browser_headers.merge("Host" => @host),
     )
 

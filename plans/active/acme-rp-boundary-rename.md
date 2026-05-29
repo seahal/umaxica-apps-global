@@ -2,33 +2,33 @@
 
 ## Summary
 
-Rename the RP-facing global Rails boundary from `apex` / `Apex` to `acme` / `Acme`.
+Rename the RP-facing global Rails boundary from `acme` / `Acme` to `acme` / `Acme`.
 
 This plan implements `adr/acme-rp-boundary-naming.md`. The rename covers application code,
 configuration, routing, OIDC client ids/audiences, i18n keys, tests, and documentation. It does not
-require DB schema changes because the inventory found no `apex` table, column, foreign key, index,
+require DB schema changes because the inventory found no `acme` table, column, foreign key, index,
 constraint, migration, schema dump, structure SQL, or database connection names.
 
 ## Scope
 
 Must rename:
 
-- `config/routes/apex.rb` to `config/routes/acme.rb`.
-- `draw :apex` to `draw :acme`.
-- route scope `module: :apex, as: :apex` to `module: :acme, as: :acme`.
-- generated route helper references from `apex_*` to `acme_*`.
-- `app/controllers/apex/**` to `app/controllers/acme/**`.
-- `Apex::*` constants to `Acme::*`.
-- `app/views/apex/**`, `app/views/layouts/apex/**`, and `app/assets/stylesheets/apex/**` to `acme`.
-- `layout "apex/..."` and `render template: "apex/..."` references to `acme`.
-- `Core::* < Apex::*` inheritance by giving Core its own `ActionController::Base`-backed controller
+- `config/routes/acme.rb` to `config/routes/acme.rb`.
+- `draw :acme` to `draw :acme`.
+- route scope `module: :acme, as: :acme` to `module: :acme, as: :acme`.
+- generated route helper references from `acme_*` to `acme_*`.
+- `app/controllers/acme/**` to `app/controllers/acme/**`.
+- `Acme::*` constants to `Acme::*`.
+- `app/views/acme/**`, `app/views/layouts/acme/**`, and `app/assets/stylesheets/acme/**` to `acme`.
+- `layout "acme/..."` and `render template: "acme/..."` references to `acme`.
+- `Core::* < Acme::*` inheritance by giving Core its own `ActionController::Base`-backed controller
   bases. Do not replace this with `Core::* < Acme::*`.
-- OIDC client ids `apex_app`, `apex_com`, and `apex_org` to `acme_app`, `acme_com`, and `acme_org`.
-- OIDC audiences such as `umaxica-apex-app` to `umaxica-acme-app`.
-- ENV/config names `APEX_SERVICE_URL`, `APEX_CORPORATE_URL`, `APEX_STAFF_URL`, `APEX_NETWORK_URL`,
-  and `APEX_DEVELOPER_URL` to `ACME_*`.
-- i18n keys under `apex.*` to `acme.*`.
-- exposed RP boundary labels such as `Apex preferences` to `Acme preferences`.
+- OIDC client ids `acme_app`, `acme_com`, and `acme_org` to `acme_app`, `acme_com`, and `acme_org`.
+- OIDC audiences such as `umaxica-acme-app` to `umaxica-acme-app`.
+- ENV/config names `ACME_SERVICE_URL`, `ACME_CORPORATE_URL`, `ACME_STAFF_URL`, `ACME_NETWORK_URL`,
+  and `ACME_DEVELOPER_URL` to `ACME_*`.
+- i18n keys under `acme.*` to `acme.*`.
+- exposed RP boundary labels such as `Acme preferences` to `Acme preferences`.
 - test paths, class names, test names, assertions, and fixtures that use the RP boundary name.
 - current docs and active/backlog plans that describe the RP boundary.
 
@@ -43,7 +43,7 @@ Must not rename:
 
 No DB schema migration is planned.
 
-The inventory found no `apex` names in:
+The inventory found no `acme` names in:
 
 - table names
 - column names
@@ -56,7 +56,7 @@ The inventory found no `apex` names in:
 - `config/database.yml`
 
 If implementation later discovers persisted data values containing OIDC `audience` or `client_id`
-values such as `apex_app`, handle that as an application-data compatibility decision, not as a
+values such as `acme_app`, handle that as an application-data compatibility decision, not as a
 schema rename. The current deployment state does not require staging or production compatibility for
 old OIDC names.
 
@@ -64,15 +64,15 @@ old OIDC names.
 
 The URL paths can remain stable. The public paths are currently `/`, `/health`, `/robots.txt`,
 `/sitemap.xml`, `/web/v0/*`, `/edge/v0/*`, `/auth/callback`, `/sso/*`, `/accounts`, `/jobs`, and
-`/db`; they do not expose `/apex` path segments.
+`/db`; they do not expose `/acme` path segments.
 
 The Rails helper and controller namespace interface changes:
 
-- `apex_app_*` to `acme_app_*`
-- `apex_com_*` to `acme_com_*`
-- `apex_org_*` to `acme_org_*`
-- `apex_network_*` to `acme_network_*`
-- `apex_developer_*` to `acme_developer_*`
+- `acme_app_*` to `acme_app_*`
+- `acme_com_*` to `acme_com_*`
+- `acme_org_*` to `acme_org_*`
+- `acme_network_*` to `acme_network_*`
+- `acme_developer_*` to `acme_developer_*`
 
 Because route helpers are widely referenced from sign, preference, DBSC, layout, and tests, route
 rename should happen before OIDC and i18n cleanup.
@@ -91,7 +91,7 @@ Update:
 - identity provisioning tests
 - model-layer tests that assert `audience`
 
-No long-lived compatibility alias is required for `apex_app`, `apex_com`, or `apex_org` because the
+No long-lived compatibility alias is required for `acme_app`, `acme_com`, or `acme_org` because the
 OIDC configuration is internal and there is no staging or production deployment to preserve.
 
 ## Implementation Order
@@ -102,10 +102,10 @@ OIDC configuration is internal and there is no staging or production deployment 
    `ActionController::Base`-backed bases instead of `Acme::*`.
 3. Rename route helper references across app, sign, preference, DBSC, layouts, and tests.
 4. Rename OIDC client ids, audiences, callback ids, and sign/RP links.
-5. Rename `APEX_*` environment/config names to `ACME_*`.
+5. Rename `ACME_*` environment/config names to `ACME_*`.
 6. Rename i18n keys and exposed labels.
 7. Rename test files/classes and update route, OIDC, i18n, and security assertions.
-8. Update current docs and remove stale current-plan references to `apex` as an RP boundary.
+8. Update current docs and remove stale current-plan references to `acme` as an RP boundary.
 
 ## Test Plan
 
@@ -143,8 +143,8 @@ bin/rails test
 - Missing a route helper reference in sign, preference, DBSC, or layouts.
 - Missing an OIDC `client_id` or `aud` expectation.
 - Breaking signed logout request verification during the rename.
-- Breaking host configuration by renaming `APEX_*` to `ACME_*` without updating CI and Docker env.
-- Replacing old Core-to-Apex inheritance with Core-to-Acme inheritance instead of removing the RP
+- Breaking host configuration by renaming `ACME_*` to `ACME_*` without updating CI and Docker env.
+- Replacing old Core-to-Acme inheritance with Core-to-Acme inheritance instead of removing the RP
   boundary dependency.
-- Leaving i18n views pointed at removed `apex.*` keys.
+- Leaving i18n views pointed at removed `acme.*` keys.
 - Confusing archived historical plans with current implementation guidance.

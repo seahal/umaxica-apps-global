@@ -9,7 +9,7 @@ module Sign
 
         AUTHENTICATION_MODE = :guest
 
-        before_action :load_sign_up_ticket, only: :show
+        before_action :load_sign_up_checkpoint_ticket, only: :show
         before_action :load_sign_up_ticket_for_destroy, only: :destroy
         before_action -> { authorize_sign_up_participant!(:enter_checkpoint?) }, only: :show
         before_action :authorize_sign_up_cancellation!, only: :destroy

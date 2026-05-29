@@ -5,10 +5,22 @@ require "test_helper"
 class RedirectTargetUsageTest < ActiveSupport::TestCase
   DIRECT_PARAM_REDIRECT = /redirect_to\s*\(?\s*params\[/.freeze
   DIRECT_ALLOW_OTHER_HOST = /allow_other_host:\s*true/.freeze
+  RAW_PT_PARAM = /\bparams\[:pt\]/.freeze
+  LEGACY_XT_REDIRECT = /\bredirect_to_xt(?:_url)?\b/.freeze
 
   ALLOW_OTHER_HOST_ALLOWLIST = %w(
     app/controllers/concerns/common/redirect.rb
   ).freeze
+
+  RAW_PT_ALLOWLIST_PATTERNS = [
+    %r{\Aapp/controllers/.*/r18/},
+    %r{\Aapp/controllers/acme/app/dev/r18/},
+    %r{\Aapp/controllers/.*/verification/},
+    %r{\Aapp/controllers/concerns/verification/},
+    %r{\Aapp/controllers/concerns/sign/.*verification},
+    %r{\Aapp/views/sign/.*/verification/},
+    %r{\Aapp/views/sign/app/verifications/},
+  ].freeze
 
   test "controllers do not redirect directly to params" do
     offenders =
@@ -19,12 +31,43 @@ class RedirectTargetUsageTest < ActiveSupport::TestCase
     assert_empty offenders
   end
 
-  test "allow_other_host true is limited to xt facade" do
+  test "allow_other_host true is limited to jump facade" do
     offenders =
       ruby_files.select do |path|
         next false if ALLOW_OTHER_HOST_ALLOWLIST.include?(path)
 
         File.read(path).match?(DIRECT_ALLOW_OTHER_HOST)
+      end
+
+    assert_empty offenders
+  end
+
+  test "legacy xt redirect facade is not used" do
+    offenders =
+      ruby_files.select do |path|
+        File.read(path).match?(LEGACY_XT_REDIRECT)
+      end
+
+    assert_empty offenders
+  end
+
+  test "sign in and sign up views do not propagate raw authentication pt" do
+    offenders =
+      Dir.glob("app/views/sign/**/*.{erb,haml,slim}").select do |path|
+        next false if RAW_PT_ALLOWLIST_PATTERNS.any? { |pattern| path.match?(pattern) }
+
+        File.read(path).match?(RAW_PT_PARAM)
+      end
+
+    assert_empty offenders
+  end
+
+  test "sign in and sign up controllers do not consume raw authentication pt directly" do
+    offenders =
+      Dir.glob("app/controllers/sign/**/*_controller.rb").select do |path|
+        next false if RAW_PT_ALLOWLIST_PATTERNS.any? { |pattern| path.match?(pattern) }
+
+        File.read(path).match?(RAW_PT_PARAM)
       end
 
     assert_empty offenders

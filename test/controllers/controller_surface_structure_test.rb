@@ -4,10 +4,10 @@
 require "test_helper"
 
 class ControllerSurfaceStructureTest < ActiveSupport::TestCase
-  ROOTS = %w(jump sign apex).freeze
+  ROOTS = %w(jump sign acme).freeze
   SURFACES = %w(app com org dev net).freeze
 
-  test "jump sign and apex do not keep top-level controller files" do
+  test "jump sign and acme do not keep top-level controller files" do
     offenders =
       ROOTS.flat_map do |root|
         Rails.root.glob("app/controllers/#{root}/*_controller.rb").map do |path|
@@ -18,7 +18,7 @@ class ControllerSurfaceStructureTest < ActiveSupport::TestCase
     assert_empty offenders
   end
 
-  test "jump sign and apex controller files live under known surface directories" do
+  test "jump sign and acme controller files live under known surface directories" do
     offenders =
       ROOTS.flat_map do |root|
         Rails.root.glob("app/controllers/#{root}/**/*_controller.rb").filter_map do |path|
@@ -31,10 +31,10 @@ class ControllerSurfaceStructureTest < ActiveSupport::TestCase
     assert_empty offenders
   end
 
-  test "apex developer and network hosts have surface-local controllers" do
+  test "acme developer and network hosts have surface-local controllers" do
     %w(dev net).each do |surface|
       %w(application roots healths csp_violation_reports bare).each do |controller|
-        assert_path_exists Rails.root.join("app/controllers/apex", surface, "#{controller}_controller.rb")
+        assert_path_exists Rails.root.join("app/controllers/acme", surface, "#{controller}_controller.rb")
       end
     end
   end

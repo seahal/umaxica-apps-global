@@ -117,11 +117,11 @@ module Jit
     # Ensure default host environment variables are set for route generation and constraints,
     # especially in test environment where they might not be loaded from external env files.
     {
-      "APEX_CORPORATE_URL" => "www.com.localhost",
-      "APEX_SERVICE_URL" => "www.app.localhost",
-      "APEX_STAFF_URL" => "www.org.localhost",
-      "APEX_NETWORK_URL" => "www.net.localhost",
-      "APEX_DEVELOPER_URL" => "www.dev.localhost",
+      "ACME_CORPORATE_URL" => "www.com.localhost",
+      "ACME_SERVICE_URL" => "www.app.localhost",
+      "ACME_STAFF_URL" => "www.org.localhost",
+      "ACME_NETWORK_URL" => "www.net.localhost",
+      "ACME_DEVELOPER_URL" => "www.dev.localhost",
       "CORE_CORPORATE_URL" => "www.jp.umaxica.com",
       "CORE_SERVICE_URL" => "www.jp.umaxica.app",
       "CORE_STAFF_URL" => "www.jp.umaxica.org",

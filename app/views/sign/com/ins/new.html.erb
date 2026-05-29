@@ -1,5 +1,5 @@
 <% content_for :page_title, t("sign.com.authentication.new.page_title") %>
-<% pt = params[:pt].presence %>
+<% pt = signed_pt_param %>
 <h1><%= t("sign.com.authentication.new.page_title") %></h1>
 <p><%= t("sign.com.authentication.new.description") %></p>
 
@@ -11,6 +11,6 @@
   </li>
 </ul>
 
-<%= link_to new_sign_com_up_path(ri: params[:ri], pt: params[:pt]) do %>
+<%= link_to new_sign_com_up_path(ri: params[:ri], pt: signed_pt_param) do %>
   <%= t("sign.com.authentication.new.links.registration") %>
 <% end %>

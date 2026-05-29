@@ -122,8 +122,8 @@ Target:
 Current shape:
 
 - `app/controllers/sign/*/edge/v0/token/*_controller.rb`
-- `app/controllers/apex/*/edge/v0/cookies_controller.rb`
-- `app/controllers/apex/*/edge/v0/dbsc_controller.rb`
+- `app/controllers/acme/*/edge/v0/cookies_controller.rb`
+- `app/controllers/acme/*/edge/v0/dbsc_controller.rb`
 - controllers including `app/controllers/concerns/preference/edge.rb`
 
 Why it is exceptional:

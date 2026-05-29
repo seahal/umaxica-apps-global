@@ -73,6 +73,25 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
     assert_predicate valid, :valid?
   end
 
+  test "response mode only accepts known values" do
+    post = build_post(Post, PostStatus, response_mode: "xml")
+
+    assert_not post.valid?
+    assert_not_empty post.errors[:response_mode]
+  end
+
+  test "post versions and revisions enforce response mode constraints" do
+    post = create_post(Post, PostStatus)
+
+    invalid_version = PostVersion.new(version_attributes(post, "invalid-version").merge(response_mode: "xml"))
+    invalid_revision = PostRevision.new(version_attributes(post, "invalid-revision").merge(response_mode: "redirect"))
+
+    assert_not invalid_version.valid?
+    assert_not_empty invalid_version.errors[:response_mode]
+    assert_not invalid_revision.valid?
+    assert_not_empty invalid_revision.errors[:redirect_url]
+  end
+
   test "published at must be before expires at" do
     post = build_post(Post, PostStatus, published_at: 1.day.from_now, expires_at: 1.day.ago)
 

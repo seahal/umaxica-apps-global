@@ -5,6 +5,7 @@ module Core
   module Com
     class ApplicationController < ActionController::Base
       include ::RateLimit
+      include ::JumpRt::ReturnVerification
 
       include ::Session
 

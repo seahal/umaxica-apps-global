@@ -37,7 +37,7 @@ directly:
 
 ## Decision
 
-Adopt these controller boundary names for `sign` and `apex`:
+Adopt these controller boundary names for `sign` and `acme`:
 
 - `OpenController` is the base for endpoints that are reachable with or without authentication.
   These endpoints may read session/authentication state when present, but they do not require a
@@ -50,7 +50,7 @@ Adopt these controller boundary names for `sign` and `apex`:
 - `GuestController` is the base for pages that must reject an already-authenticated actor, such as
   sign-up and sign-in entry flows.
 
-`sign` and `apex` should both use this pattern. The implementation may be phased, but the intended
+`sign` and `acme` should both use this pattern. The implementation may be phased, but the intended
 shape is the same for both boundaries.
 
 `ApplicationController` remains as a Rails compatibility entry point, not as a semantic access
@@ -194,7 +194,7 @@ This ADR refines and partially supersedes the naming and tier direction in:
 
 Those ADRs remain useful historical context for why separate controller bases exist, but their
 `PublicController` naming, the interim three-tier model, and the temporary `StaticController` naming
-are no longer the current direction for `sign` and `apex`.
+are no longer the current direction for `sign` and `acme`.
 
 ## Consequences
 
@@ -210,5 +210,5 @@ are no longer the current direction for `sign` and `apex`.
   incrementally from migrated controllers.
 - Compatibility constants such as `PublicController` and `StaticController` can be retired only
   after all references have moved to the four boundary names.
-- `sign` and `apex` should converge on the same controller boundary naming, even if migration timing
+- `sign` and `acme` should converge on the same controller boundary naming, even if migration timing
   differs by surface.

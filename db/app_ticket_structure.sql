@@ -697,6 +697,11 @@ CREATE UNLOGGED TABLE public.client_tokens (
     oidc_sid uuid DEFAULT gen_random_uuid(),
     oidc_jti uuid DEFAULT gen_random_uuid(),
     device_session_id bigint,
+    last_step_up_aal character varying,
+    last_step_up_method character varying,
+    last_step_up_purpose character varying,
+    last_step_up_audience character varying,
+    last_step_up_session_public_id character varying,
     CONSTRAINT chk_user_tokens_kind_id_positive CHECK ((user_token_kind_id >= 0)),
     CONSTRAINT chk_user_tokens_status_id_positive CHECK ((user_token_status_id >= 0))
 );
@@ -924,6 +929,50 @@ ALTER TABLE ONLY public.client_verifications ALTER COLUMN id SET DEFAULT nextval
 
 ALTER TABLE ONLY public.ar_internal_metadata
     ADD CONSTRAINT ar_internal_metadata_pkey PRIMARY KEY (key);
+
+
+--
+-- Name: client_sign_in_cycles chk_client_sign_in_cycles_status_state; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.client_sign_in_cycles
+    ADD CONSTRAINT chk_client_sign_in_cycles_status_state CHECK (((state)::text =
+CASE status_id
+    WHEN 10 THEN 'PRIMARY_PENDING'::text
+    WHEN 20 THEN 'MFA_PENDING'::text
+    WHEN 30 THEN 'SESSION_LIMIT_PENDING'::text
+    WHEN 40 THEN 'GUARDRAIL_PENDING'::text
+    WHEN 50 THEN 'SESSION_ISSUANCE_PENDING'::text
+    WHEN 60 THEN 'CHECKPOINT_PENDING'::text
+    WHEN 65 THEN 'SELECTOR_PENDING'::text
+    WHEN 70 THEN 'DASHBOARD_PENDING'::text
+    WHEN 80 THEN 'RETURN_PENDING'::text
+    WHEN 100 THEN 'COMPLETED'::text
+    WHEN 900 THEN 'FAILED'::text
+    ELSE NULL::text
+END)) NOT VALID;
+
+
+--
+-- Name: client_sign_in_cycles chk_client_sign_in_cycles_status_step; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.client_sign_in_cycles
+    ADD CONSTRAINT chk_client_sign_in_cycles_status_step CHECK (((step)::text =
+CASE status_id
+    WHEN 10 THEN 'primary'::text
+    WHEN 20 THEN 'mfa'::text
+    WHEN 30 THEN 'session_limit'::text
+    WHEN 40 THEN 'guardrail'::text
+    WHEN 50 THEN 'session_issuance'::text
+    WHEN 60 THEN 'checkpoint'::text
+    WHEN 65 THEN 'selector'::text
+    WHEN 70 THEN 'dashboard'::text
+    WHEN 80 THEN 'return_to'::text
+    WHEN 100 THEN 'completed'::text
+    WHEN 900 THEN 'failed'::text
+    ELSE NULL::text
+END)) NOT VALID;
 
 
 --
@@ -1668,6 +1717,8 @@ ALTER TABLE ONLY public.client_tokens
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528183000'),
+('20260528162100'),
 ('20260526120100'),
 ('20260526120000'),
 ('20260525233000'),

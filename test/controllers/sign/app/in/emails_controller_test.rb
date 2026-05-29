@@ -68,7 +68,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     # Should redirect to edit to prevent enumeration
     assert_response :found
     assert_redirected_to %r{/sign/in/email/edit}
-    assert_nil session[:user_email_authentication_id]
+    assert_nil Sign::App::In::EmailAuthenticationState.load(session)&.id
   end
 
   test "POST create responds the same for existing and missing emails" do
@@ -202,7 +202,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_equal test_email.id, session[:user_email_authentication_id]
+    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
 
     # Generate valid OTP code
     otp_private_key = ROTP::Base32.random_base32
@@ -431,7 +431,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: { "Host" => @host }
 
-    assert_equal test_email.id, session[:user_email_authentication_id]
+    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
 
     otp_private_key = ROTP::Base32.random_base32
     otp_counter = 12_345
@@ -465,7 +465,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: { "Host" => @host }
 
-    assert_equal test_email.id, session[:user_email_authentication_id]
+    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
 
     # Set up valid OTP but provide wrong code
     otp_private_key = ROTP::Base32.random_base32
@@ -495,7 +495,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: { "Host" => @host }
 
-    assert_equal test_email.id, session[:user_email_authentication_id]
+    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
 
     otp_private_key = ROTP::Base32.random_base32
     otp_counter = 56_789
@@ -543,7 +543,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :found
     assert_includes response.location, "pt="
-    assert_equal test_email.id, session[:user_email_authentication_id]
+    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
     assert_predicate session[:user_email_authentication_rt], :present?
 
     # Generate valid OTP code
@@ -632,7 +632,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_predicate session[:user_email_authentication_id], :present?
+    assert_predicate Sign::App::In::EmailAuthenticationState.load(session)&.id, :present?
 
     # Generate valid OTP code
     otp_private_key = ROTP::Base32.random_base32

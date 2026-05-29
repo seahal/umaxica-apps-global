@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class LogoutsController < OpenController
+    class LogoutsController < Sign::App::ApplicationController
       include Sign::OidcLogout
 
       AUTHENTICATION_MODE = :open

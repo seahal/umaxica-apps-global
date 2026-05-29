@@ -1,17 +1,17 @@
-<% content_for :page_title, t('apex.app.preference.resets.title') %>
+<% content_for :page_title, t('acme.app.preference.resets.title') %>
 
 <section>
   <div>
-    <%= link_to t("apex.app.preferences.regions.back_link"),
+    <%= link_to t("acme.app.preferences.regions.back_link"),
                 sign_app_preference_path(lx: params[:lx], ri: params[:ri]) %>
   </div>
 
   <h1>
-    <%= t("apex.app.preference.resets.title") %>
+    <%= t("acme.app.preference.resets.title") %>
   </h1>
 
   <p>
-    <%= t("apex.app.preference.resets.description") %>
+    <%= t("acme.app.preference.resets.description") %>
   </p>
 
   <%= form_with url: sign_app_preference_reset_path, method: :delete do |f| %>
@@ -27,13 +27,13 @@
 
     <div>
       <%= check_box_tag :confirm_reset, "1", @preference&.confirm_reset == "1", required: true %>
-      <%= label_tag :confirm_reset, t("apex.app.preference.resets.confirm") %>
+      <%= label_tag :confirm_reset, t("acme.app.preference.resets.confirm") %>
     </div>
 
     <div>
-      <%= f.submit t("apex.app.preference.resets.button"),
+      <%= f.submit t("acme.app.preference.resets.button"),
                    data: {
-                     turbo_submits_with: t("apex.app.preferences.submitting") } %>
+                     turbo_submits_with: t("acme.app.preferences.submitting") } %>
     </div>
   <% end %>
 </section>

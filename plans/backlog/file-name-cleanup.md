@@ -108,12 +108,12 @@ naming IS technically correct Rails. Renaming to `HealthController` requires add
 **Controller files to rename (16 files)**
 
 All `healths_controller.rb` -> `health_controller.rb`, class `HealthsController` ->
-`HealthController`. Boundaries are `apex`, `sign`, `jump` (no `core`, `acme`, `docs` — those were
+`HealthController`. Boundaries are `acme`, `sign`, `jump` (no `core`, `acme`, `docs` — those were
 retired per `adr/split-into-regional-and-global-repos.md`):
 
-- `app/controllers/apex/healths_controller.rb` (boundary-level shared base)
-- `app/controllers/apex/{app,com,org}/healths_controller.rb` (3)
-- `app/controllers/apex/{app,com,org}/edge/v0/healths_controller.rb` (3)
+- `app/controllers/acme/healths_controller.rb` (boundary-level shared base)
+- `app/controllers/acme/{app,com,org}/healths_controller.rb` (3)
+- `app/controllers/acme/{app,com,org}/edge/v0/healths_controller.rb` (3)
 - `app/controllers/jump/{app,com,org}/healths_controller.rb` (3)
 - `app/controllers/sign/{app,com,org}/healths_controller.rb` (3)
 - `app/controllers/sign/{app,org}/edge/v0/healths_controller.rb` (2)
@@ -121,7 +121,7 @@ retired per `adr/split-into-regional-and-global-repos.md`):
 
 **Route files to update (3 files, 19 route lines)**
 
-In `config/routes/apex.rb`, `config/routes/jump.rb`, `config/routes/sign.rb`, every occurrence of:
+In `config/routes/acme.rb`, `config/routes/jump.rb`, `config/routes/sign.rb`, every occurrence of:
 
 ```ruby
 resource :health, only: :show
@@ -239,10 +239,10 @@ references inside each file.
 
 - `app/views/sign/{app,com,org}/preference/themes/edit.html.erb`: `@preference_colortheme` ->
   `@preference_theme`, param scope names
-- `app/views/apex/{app,com,org}/preference/themes/edit.html.erb`: same (path is `apex/`, not `acme/`
+- `app/views/acme/{app,com,org}/preference/themes/edit.html.erb`: same (path is `acme/`, not `acme/`
   — earlier drafts referenced the old `acme/` path.)
 - `app/views/sign/shared/preference/_theme_form.html.erb` and
-  `app/views/apex/shared/preference/_theme_form.html.erb`: any `colortheme` references in the shared
+  `app/views/acme/shared/preference/_theme_form.html.erb`: any `colortheme` references in the shared
   partials.
 
 #### Step 8: Update rake task

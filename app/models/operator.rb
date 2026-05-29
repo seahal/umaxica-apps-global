@@ -57,6 +57,7 @@ class Operator < OrgPrincipalRecord
   include Authentication::CredentialInventoryOwner
   include MultiFactorConfigurable
   include MultiFactorStatusTrackable
+  include Actor::LifecycleConsistency
 
   LOGIN_BLOCKED_STATUS_IDS = [OperatorIdentityStatus::RESERVED].freeze
   PUBLIC_ID_LENGTH = 16

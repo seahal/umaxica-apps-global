@@ -21,10 +21,10 @@ The single Action Policy authorization context is still keyed `:user`:
   `authorize :user, through: :current_visitor`
 - `app/controllers/sign/org/application_controller.rb` —
   `authorize :user, through: :current_operator`
-- `app/controllers/apex/app/application_controller.rb` — `authorize :user, through: :current_client`
-- `app/controllers/apex/com/application_controller.rb` —
+- `app/controllers/acme/app/application_controller.rb` — `authorize :user, through: :current_client`
+- `app/controllers/acme/com/application_controller.rb` —
   `authorize :user, through: :current_visitor`
-- `app/controllers/apex/org/application_controller.rb` —
+- `app/controllers/acme/org/application_controller.rb` —
   `authorize :user, through: :current_operator`
 
 This is an Action Policy naming overlap, but the accepted direction is to keep the Action Policy

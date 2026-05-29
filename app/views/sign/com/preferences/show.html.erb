@@ -1,9 +1,9 @@
-<% content_for :page_title, t('apex.com.preferences.title') %>
+<% content_for :page_title, t('acme.com.preferences.title') %>
 
 <section class="animate-fade-in-up">
   <div>
     <%= link_to sign_com_root_path(ct: "dr", lx: "en", ri: "us", tz: "jst") do %>
-      <span><%= t("apex.com.preferences.up_link") %></span>
+      <span><%= t("acme.com.preferences.up_link") %></span>
     <% end %>
   </div>
 
@@ -12,10 +12,10 @@
       <div>
         <div>
           <h1>
-            <%= title t("apex.com.preferences.title") %>
+            <%= title t("acme.com.preferences.title") %>
           </h1>
           <p>
-            <%= t("apex.com.preferences.description") %>
+            <%= t("acme.com.preferences.description") %>
           </p>
         </div>
       </div>
@@ -25,60 +25,60 @@
       <!-- Region -->
       <%= link_to edit_sign_com_preference_region_path do %>
         <div>
-          <span><%= t("apex.com.preferences.region_settings") %></span>
+          <span><%= t("acme.com.preferences.region_settings") %></span>
         </div>
       <% end %>
 
       <!-- Timezone -->
       <%= link_to edit_sign_com_preference_region_timezone_path do %>
         <div>
-          <span><%= t("apex.com.preferences.timezone_settings") %></span>
+          <span><%= t("acme.com.preferences.timezone_settings") %></span>
         </div>
       <% end %>
 
       <!-- Language -->
       <%= link_to edit_sign_com_preference_region_language_path do %>
         <div>
-          <span><%= t("apex.com.preferences.language_settings") %></span>
+          <span><%= t("acme.com.preferences.language_settings") %></span>
         </div>
       <% end %>
 
       <%= link_to edit_sign_com_preference_accessibility_motion_path do %>
         <div>
-          <span><%= t("apex.com.preferences.motion_settings") %></span>
+          <span><%= t("acme.com.preferences.motion_settings") %></span>
         </div>
       <% end %>
 
       <%= link_to edit_sign_com_preference_accessibility_density_path do %>
         <div>
-          <span><%= t("apex.com.preferences.density_settings") %></span>
+          <span><%= t("acme.com.preferences.density_settings") %></span>
         </div>
       <% end %>
 
       <%= link_to edit_sign_com_preference_display_items_per_page_path do %>
         <div>
-          <span><%= t("apex.com.preferences.items_per_page_settings") %></span>
+          <span><%= t("acme.com.preferences.items_per_page_settings") %></span>
         </div>
       <% end %>
 
       <!-- Theme -->
       <%= link_to edit_sign_com_preference_theme_path do %>
         <div>
-          <span><%= t("apex.com.preferences.theme_settings") %></span>
+          <span><%= t("acme.com.preferences.theme_settings") %></span>
         </div>
       <% end %>
 
       <!-- Cookie -->
       <%= link_to edit_sign_com_preference_cookie_path do %>
         <div>
-          <span><%= t("apex.com.preferences.cookie_settings") %></span>
+          <span><%= t("acme.com.preferences.cookie_settings") %></span>
         </div>
       <% end %>
 
       <!-- Reset -->
       <%= link_to edit_sign_com_preference_reset_path do %>
         <div>
-          <span><%= t("apex.com.preferences.reset_settings") %></span>
+          <span><%= t("acme.com.preferences.reset_settings") %></span>
         </div>
       <% end %>
     </div>

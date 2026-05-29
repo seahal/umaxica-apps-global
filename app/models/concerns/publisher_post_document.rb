@@ -4,13 +4,15 @@
 module PublisherPostDocument
   extend ActiveSupport::Concern
 
+  RESPONSE_MODES = %w(html text pdf redirect).freeze
+
   included do
     enum :response_mode, {
       html: "html",
       text: "text",
       pdf: "pdf",
       redirect: "redirect",
-    }, suffix: true
+    }, suffix: true, validate: true
 
     before_validation :ensure_revision_key
     before_validation :ensure_permalink
@@ -25,6 +27,7 @@ module PublisherPostDocument
     validates :redirect_url, presence: true, if: :redirect_response_mode?
 
     validate :published_at_before_expires_at
+    validate :response_mode_columns_are_consistent
 
     scope :available, -> {
       now = Time.current
@@ -52,5 +55,12 @@ module PublisherPostDocument
     return if published_at < expires_at
 
     errors.add(:published_at, "must be before expires_at")
+  end
+
+  def response_mode_columns_are_consistent
+    return if response_mode != "redirect"
+    return if redirect_url.present?
+
+    errors.add(:redirect_url, "must be present for redirect response mode")
   end
 end

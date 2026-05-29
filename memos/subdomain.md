@@ -1,6 +1,6 @@
 # What each stands for
 
-- apex -> Jump page or surface for various configuration changes
+- acme -> Jump page or surface for various configuration changes
 - sign -> Authentication and authorization
 - api -> Primary access point for browser and app executions
 - asset -> Static assets

@@ -6,24 +6,12 @@ require "test_helper"
 class ControllerBaseInheritanceTest < ActiveSupport::TestCase
   fixtures_none!
 
-  OPEN_CONTROLLERS = [
-    Apex::App::OpenController,
-    Apex::Com::OpenController,
-    Apex::Org::OpenController,
-    Sign::App::OpenController,
-    Sign::Com::OpenController,
-    Sign::Org::OpenController,
-    Jump::App::OpenController,
-    Jump::Com::OpenController,
-    Jump::Org::OpenController,
-  ].freeze
-
   BARE_CONTROLLERS = [
-    Apex::App::BareController,
-    Apex::Com::BareController,
-    Apex::Dev::BareController,
-    Apex::Net::BareController,
-    Apex::Org::BareController,
+    Acme::App::BareController,
+    Acme::Com::BareController,
+    Acme::Dev::BareController,
+    Acme::Net::BareController,
+    Acme::Org::BareController,
     Sign::App::BareController,
     Sign::Com::BareController,
     Sign::Org::BareController,
@@ -33,11 +21,11 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
   ].freeze
 
   APPLICATION_CONTROLLERS = [
-    Apex::App::ApplicationController,
-    Apex::Com::ApplicationController,
-    Apex::Dev::ApplicationController,
-    Apex::Net::ApplicationController,
-    Apex::Org::ApplicationController,
+    Acme::App::ApplicationController,
+    Acme::Com::ApplicationController,
+    Acme::Dev::ApplicationController,
+    Acme::Net::ApplicationController,
+    Acme::Org::ApplicationController,
     Sign::App::ApplicationController,
     Sign::Com::ApplicationController,
     Sign::Org::ApplicationController,
@@ -46,17 +34,9 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     Jump::Org::ApplicationController,
   ].freeze
 
-  test "open controllers inherit from their surface application controller" do
-    OPEN_CONTROLLERS.each do |controller|
-      assert_equal controller.module_parent::ApplicationController, controller.superclass
-      assert_includes controller.ancestors, RateLimit
-    end
-  end
-
-  test "bare controllers inherit directly from ActionController base" do
+  test "bare controllers inherit from their surface application controller" do
     BARE_CONTROLLERS.each do |controller|
-      assert_equal ActionController::Base, controller.superclass
-      assert_not_operator controller, :<, controller.module_parent::ApplicationController
+      assert_equal controller.module_parent::ApplicationController, controller.superclass
       assert_includes controller.ancestors, RateLimit
     end
   end
@@ -65,6 +45,25 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     APPLICATION_CONTROLLERS.each do |controller|
       assert_equal ActionController::Base, controller.superclass
       assert_includes controller.ancestors, RateLimit
+    end
+  end
+
+  test "legacy open controller compatibility bases are retired" do
+    [
+      Acme::App,
+      Acme::Com,
+      Acme::Org,
+      Core::App,
+      Core::Com,
+      Core::Org,
+      Sign::App,
+      Sign::Com,
+      Sign::Org,
+      Jump::App,
+      Jump::Com,
+      Jump::Org,
+    ].each do |namespace|
+      assert_not namespace.const_defined?(:OpenController, false), namespace.name
     end
   end
 end

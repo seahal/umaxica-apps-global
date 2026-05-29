@@ -25,7 +25,7 @@ mismatched-redirect / replayed-code paths must reject with the correct error cod
 
 ## Adaptation notes
 
-The issuer URL is now `https://id.<apex>` (not `sign.*`). Update issuer, discovery URL, JWKS URL
+The issuer URL is now `https://id.<acme>` (not `sign.*`). Update issuer, discovery URL, JWKS URL
 fixtures.
 
 ## Related

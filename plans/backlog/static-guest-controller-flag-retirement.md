@@ -32,7 +32,7 @@ where it is no longer needed.
 
 ## Scope
 
-- Add or keep boundary-local `BareController` classes for `sign` and `apex`.
+- Add or keep boundary-local `BareController` classes for `sign` and `acme`.
 - Keep bare-tier behavior duplicated per boundary unless a small concern becomes clearly useful.
 - Migrate lightweight static-style endpoints from `PublicController`, `OpenController`, or
   `ApplicationController + public_strict!` to their boundary's `BareController`.

@@ -11,6 +11,13 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
+  end
+
+  teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
   end
 
   test "email removal preserves contactability even when aal methods remain" do
@@ -159,7 +166,7 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
   def client_headers(client, scope:)
     token = ClientToken.create!(user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(token)
-    token.update!(last_step_up_at: Time.current, last_step_up_scope: scope)
+    mark_token_step_up_satisfied_for_test(token, scope: scope)
 
     as_user_headers(client, host: @host, session_public_id: token.public_id)
   end
@@ -167,7 +174,7 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
   def client_browser_headers(client, scope:)
     token = ClientToken.create!(user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(token)
-    token.update!(last_step_up_at: Time.current, last_step_up_scope: scope)
+    mark_token_step_up_satisfied_for_test(token, scope: scope)
 
     headers = browser_headers.merge(
       "Host" => @host,

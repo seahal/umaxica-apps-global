@@ -21,6 +21,8 @@ module SignCycle
     validates :step, presence: true, inclusion: { in: ->(record) { record.class::STEPS } }
     validates :nonce_digest, presence: true
     validates :issued_at, :expires_at, presence: true
+    validate :legacy_state_matches_status
+    validate :step_matches_status
     validate :expires_after_issued_at
     validate :completed_state_has_completed_at
 
@@ -117,7 +119,9 @@ module SignCycle
     end
 
     attrs = { status_id: next_status_id }
-    attrs[:step] = step if step.present?
+    next_step = canonical_step_for_status(next_status_id) || step
+    attrs[:step] = next_step if next_step.present?
+    attrs[:state] = self.class::STATUS_NAMES[next_status_id] if has_attribute?(:state)
     attrs[:completed_at] = now if next_status_id == self.class.completed_status_id
     update!(attrs)
   end
@@ -134,6 +138,12 @@ module SignCycle
     self.class.status_id_for(status)
   end
 
+  def canonical_step_for_status(status_id)
+    return unless self.class.const_defined?(:STEP_BY_STATUS_ID, false)
+
+    self.class::STEP_BY_STATUS_ID[status_id]
+  end
+
   def ensure_sign_cycle_status_defaults
     self.class::STATUS_MODEL.ensure_defaults!
   end
@@ -144,9 +154,24 @@ module SignCycle
 
   def sync_legacy_state_from_status
     return unless has_attribute?(:state)
-    return if status_id.blank?
+    return if status_id.blank? || state.present?
 
     self.state = self.class::STATUS_NAMES[status_id]
+  end
+
+  def legacy_state_matches_status
+    return unless has_attribute?(:state) && status_id.present?
+
+    expected_state = self.class::STATUS_NAMES[status_id]
+    errors.add(:state, "must match status_id") if expected_state.present? && state != expected_state
+  end
+
+  def step_matches_status
+    return unless self.class.const_defined?(:STEP_BY_STATUS_ID, false)
+    return if status_id.blank? || step.blank?
+
+    expected_step = self.class::STEP_BY_STATUS_ID[status_id]
+    errors.add(:step, "must match status_id") if expected_step.present? && step != expected_step
   end
 
   def expires_after_issued_at

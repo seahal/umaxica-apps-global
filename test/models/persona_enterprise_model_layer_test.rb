@@ -220,7 +220,7 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
     ClientIdentity.create!(
       issuer: "https://id.example.test",
       subject: label,
-      audience: "apex_app",
+      audience: "acme_app",
       source_record_id: Zlib.crc32(label),
       status_id: ClientIdentityState::ACTIVE,
     )

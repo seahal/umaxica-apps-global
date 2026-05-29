@@ -10,7 +10,7 @@ The preference system has two different roles.
 
 The system must keep these roles separate.
 
-Preference setting writes are exposed through the `sign` surfaces. `apex` and `jump` consume
+Preference setting writes are exposed through the `sign` surfaces. `acme` and `jump` consume
 preference state as read-only runtime context through `Actor.preferences`.
 
 ## Scope
@@ -203,7 +203,7 @@ Do not reverse this flow.
 - Do not treat request context params as preference writes.
 - Do not copy request-local `lx`, `ct`, or `tz` overlays back to the database or JWT.
 
-`apex` and `jump` are runtime readers of this value. They must not persist preference settings, and
+`acme` and `jump` are runtime readers of this value. They must not persist preference settings, and
 they must not treat request context, RP rendering, jump redirects, or read-side token consumption as
 preference writes.
 
@@ -277,7 +277,7 @@ to the database or JWT.
 - Shared preference credential cookie names are scoped by surface (`app_preference_*`,
   `com_preference_*`, `org_preference_*`) even though their domain remains apex-scoped. This keeps
   `AppPreference`, `ComPreference`, and `OrgPreference` token lifecycles independent on the same
-  apex. The legacy unscoped access cookie is accepted only when its JWT `preference_type` matches
+  acme. The legacy unscoped access cookie is accepted only when its JWT `preference_type` matches
   the current surface.
 
 ## Remaining Follow-ups

@@ -106,7 +106,7 @@ module Oidc
     #
     # Mirrors the shape of Common::Redirect#safe_internal_path (path?query
     # only, no scheme / host / userinfo / control chars). Inlined here instead
-    # of delegated because Oidc::SsoInitiator is included on apex application
+    # of delegated because Oidc::SsoInitiator is included on acme application
     # controllers that already mix in Common::Redirect via other paths, and we
     # want this validator to be self-contained while the broader unification
     # is planned separately. Future work: share the helper.

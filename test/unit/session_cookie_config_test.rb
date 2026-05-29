@@ -89,11 +89,11 @@ class SessionCookieConfigTest < ActiveSupport::TestCase
            "production always forces secure regardless of host"
   end
 
-  test "force_secure is false with 0.0.0.0 host outside production without env override" do
+  test "force_secure is true outside development and test without env override" do
     env = ActiveSupport::EnvironmentInquirer.new("staging")
 
     with_env("FORCE_SECURE_COOKIES" => nil) do
-      assert_not SessionCookieConfig.force_secure?(id_service_host: "0.0.0.0", rails_env: env)
+      assert SessionCookieConfig.force_secure?(id_service_host: "0.0.0.0", rails_env: env)
     end
   end
 

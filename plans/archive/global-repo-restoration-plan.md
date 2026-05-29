@@ -183,7 +183,7 @@ is to land the design into the single-app layout.
   validator. Fixtures and integration tests for the callback path.
 - **Verification:** OIDC callback integration tests (the ADR notes call them out specifically). All
   invalid-PKCE / mismatched-redirect / replayed-code paths must reject with the correct error code.
-- **Adaptation notes:** The issuer URL is now `https://id.<apex>` (not `sign.*`). Update issuer,
+- **Adaptation notes:** The issuer URL is now `https://id.<acme>` (not `sign.*`). Update issuer,
   discovery URL, JWKS URL fixtures.
 
 #### A4. OIDC claims model

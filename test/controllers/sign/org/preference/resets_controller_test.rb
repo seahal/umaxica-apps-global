@@ -20,9 +20,9 @@ module Sign
               headers: as_staff_headers(@staff, host: @host)
 
           assert_response :success
-          assert_select "section > div:first-child > a", text: I18n.t("apex.org.preferences.regions.back_link"),
+          assert_select "section > div:first-child > a", text: I18n.t("acme.org.preferences.regions.back_link"),
                                                          count: 1
-          assert_select "a", text: I18n.t("apex.org.preference.resets.back"), count: 0
+          assert_select "a", text: I18n.t("acme.org.preference.resets.back"), count: 0
         end
 
         test "DELETE destroy resets staff preference defaults" do

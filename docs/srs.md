@@ -263,4 +263,4 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - Change log: tracked via Git history and PR descriptions
 
 > **Note:** This SRS is internal-facing and must be updated whenever routes, data stores, or
-> external integrations change. It supersedes the legacy Apex portal specifications.
+> external integrations change. It supersedes the legacy Acme portal specifications.

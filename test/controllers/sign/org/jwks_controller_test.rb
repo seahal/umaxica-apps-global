@@ -6,6 +6,8 @@ require "test_helper"
 module Sign
   module Org
     class JwksControllerTest < ActionDispatch::IntegrationTest
+      fixtures_none!
+
       test "GET jwks endpoint returns JSON with keys" do
         host! "id.org.localhost"
         get sign_org_oauth_jwks_url(ri: "jp")

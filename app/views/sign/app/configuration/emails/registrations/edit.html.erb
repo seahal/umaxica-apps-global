@@ -7,7 +7,7 @@
 
 <div>
   <%= button_to t("otp.resend.button"),
-                resend_sign_app_configuration_emails_registration_path(ri: params[:ri], pt: params[:pt]),
+                resend_sign_app_configuration_emails_registration_path(ri: params[:ri], pt: signed_pt_param),
                 method: :post %>
 </div>
 

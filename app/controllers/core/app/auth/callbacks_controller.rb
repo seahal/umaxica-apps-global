@@ -4,7 +4,7 @@
 module Core
   module App
     module Auth
-      class CallbacksController < OpenController
+      class CallbacksController < Core::App::ApplicationController
         include ::Oidc::Callback
         include ::Oidc::RpIdentityProvisioning
 

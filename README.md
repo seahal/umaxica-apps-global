@@ -105,7 +105,7 @@ needed.
 
 | Surface | URL                                        |
 | :------ | :----------------------------------------- |
-| Apex    | `http://www.{app,com,org}.localhost:3001`  |
+| Acme    | `http://www.{app,com,org}.localhost:3001`  |
 | Sign    | `http://id.{org,com,app}.localhost:3001`   |
 | Jump    | `http://jump.{app,com,org}.localhost:3001` |
 

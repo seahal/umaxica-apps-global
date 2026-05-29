@@ -52,7 +52,7 @@ module ActorSupportLifecycle
   end
 end
 
-module Apex
+module Acme
   module App
     class ActorSupportController < ApplicationController
       include ActorSupportLifecycle
@@ -88,9 +88,9 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   setup do
     Actor.reset
     Rails.application.routes.draw do
-      get "/actor-support/apex-app", to: "apex/app/actor_support#show"
-      get "/actor-support/apex-org", to: "apex/org/actor_support#show"
-      get "/actor-support/apex-com", to: "apex/com/actor_support#show"
+      get "/actor-support/acme-app", to: "acme/app/actor_support#show"
+      get "/actor-support/acme-org", to: "acme/org/actor_support#show"
+      get "/actor-support/acme-com", to: "acme/com/actor_support#show"
     end
   end
 
@@ -100,7 +100,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "sign app request does not use user preference record as runtime fallback and resets afterwards" do
-    host = ENV.fetch("APEX_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = Client.create!(
       status_id: ClientStatus::ACTIVE,
       public_id: SecureRandom.hex(10),
@@ -128,7 +128,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     )
 
     host!(host)
-    get "/actor-support/apex-app", params: { ri: "jp" }, headers: {
+    get "/actor-support/acme-app", params: { ri: "jp" }, headers: {
       "X-TEST-CURRENT-USER" => user.id.to_s,
     }
 
@@ -161,7 +161,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "sign org request does not use staff preference record as runtime fallback and resets afterwards" do
-    host = ENV.fetch("APEX_STAFF_URL", "www.org.localhost")
+    host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
     OperatorPreference.create!(
       staff: staff,
@@ -184,7 +184,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     )
 
     host!(host)
-    get "/actor-support/apex-org", params: { ri: "jp" }, headers: {
+    get "/actor-support/acme-org", params: { ri: "jp" }, headers: {
       "X-TEST-CURRENT-STAFF" => staff.id.to_s,
     }
 
@@ -217,12 +217,12 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "sign com request falls back to null preference when no db record or prf claim exists" do
-    host = ENV.fetch("APEX_CORPORATE_URL", "www.com.localhost")
+    host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     ensure_visitor_reference_records!
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
     host!(host)
-    get "/actor-support/apex-com", params: { ri: "jp" }, headers: {
+    get "/actor-support/acme-com", params: { ri: "jp" }, headers: {
       "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
     }
 

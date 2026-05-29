@@ -97,6 +97,7 @@ module Authentication
 
             assert_nil result.failure_reason
             assert_equal "token_public_id", result.session_public_id
+            assert_equal "token_public_id", result.token_public_id
             assert_equal 123, result.resource.id
             assert connection_calls.any? { |opts| opts[:role] == :writing }
           end

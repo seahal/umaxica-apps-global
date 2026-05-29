@@ -34,9 +34,9 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(sign_app_configuration_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+      get sign_app_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
@@ -79,9 +79,9 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(sign_app_configuration_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+      get sign_app_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
@@ -105,9 +105,9 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(sign_app_configuration_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+      get sign_app_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
@@ -122,7 +122,7 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_response :unprocessable_content
   end
 
-  test "new keeps scope and return_to in form hidden fields" do
+  test "new keeps scope and pt in form hidden fields" do
     private_key = "JBSWY3DPEHPK3PXP"
     ClientOneTimePassword.create!(
       user: @user,
@@ -131,9 +131,9 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(sign_app_configuration_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+      get sign_app_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
@@ -143,17 +143,17 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       get new_sign_app_verification_totp_url(
         ri: "jp",
         scope: "configuration_email",
-        return_to: return_to,
+        pt: pt,
       ), headers: @headers
     end
 
     assert_response :success
     assert_select "input[name='verification[scope]'][value='configuration_email']"
-    assert_select "input[name='verification[return_to]'][value='#{return_to}']"
+    assert_select "input[name='verification[pt]'][value='#{pt}']"
     assert_select "input[name='cf-turnstile-response']"
   end
 
-  test "configuration_totp flow keeps return_to through method selection and returns to totps" do
+  test "configuration_totp flow keeps pt through method selection and returns to totps" do
     private_key = "JBSWY3DPEHPK3PXP"
     ClientOneTimePassword.create!(
       user: @user,
@@ -162,36 +162,36 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_totps_path(ri: "jp"))
+    pt = signed_step_up_pt(sign_app_configuration_totps_path(ri: "jp"))
 
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "configuration_totp", return_to: return_to, ri: "jp"),
+      get sign_app_verification_url(scope: "configuration_totp", pt: pt, ri: "jp"),
           headers: @headers
     end
 
     assert_response :success
     assert_select(
       "a[href=?]",
-      new_sign_app_verification_totp_path(ri: "jp", scope: "configuration_totp", pt: return_to),
+      new_sign_app_verification_totp_path(ri: "jp", scope: "configuration_totp", pt: pt),
     )
 
     with_prosopite_paused do
       get new_sign_app_verification_totp_url(
         ri: "jp",
         scope: "configuration_totp",
-        pt: return_to,
+        pt: pt,
       ), headers: @headers
     end
 
     assert_response :success
     assert_select "input[name='verification[scope]'][value='configuration_totp']"
-    assert_select "input[name='verification[return_to]'][value='#{return_to}']"
+    assert_select "input[name='verification[pt]'][value='#{pt}']"
     assert_select "input[name='cf-turnstile-response']"
 
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
     with_prosopite_paused do
       post sign_app_verification_totp_url(ri: "jp"),
-           params: { verification: { code: code, scope: "configuration_totp", return_to: return_to } },
+           params: { verification: { code: code, scope: "configuration_totp", pt: pt } },
            headers: @headers
     end
 
@@ -208,9 +208,9 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(sign_app_configuration_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+      get sign_app_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
@@ -242,5 +242,28 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     assert_response :see_other
     assert_redirected_to %r{/verification/setup/new}
+  end
+
+  private
+
+  def signed_step_up_pt(return_to)
+    step_up_pt_issuer.issue(return_to: return_to, surface: "app", session_nonce: @token.public_id)
+  end
+
+  def step_up_pt_issuer
+    @step_up_pt_issuer ||= Class.new do
+      include ::Redirects::SignedTargetSupport
+
+      def issue(return_to:, surface:, session_nonce:)
+        path = signed_target_internal_path(return_to)
+        claims = signed_target_claims(flow: "step_up.bootstrap", surface: surface, session_nonce: session_nonce)
+        issue_signed_target_token(
+          payload: claims.merge("pt" => path),
+          purpose: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
+          salt: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_SALT,
+          expires_in: Verification::Base::STEP_UP_TTL,
+        )
+      end
+    end.new
   end
 end

@@ -114,10 +114,7 @@ module Sign
         end
 
         def record_secret_registration_step_up!
-          current_session_token&.update!(
-            last_step_up_at: Time.current,
-            last_step_up_scope: verification_scope,
-          )
+          true
         end
 
         def prepare_secret_turnstile_create_failure

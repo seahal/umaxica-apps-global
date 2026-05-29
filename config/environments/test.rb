@@ -96,6 +96,7 @@ Rails.application.configure do
 
   # SMS Provider Configuration - Use test provider in test environment
   config.sms_provider = "test"
+  config.x.security.allow_turnstile_validation_override = true
 
   # Use PostgreSQL unlogged tables for faster test performance
   ActiveSupport.on_load(:active_record_postgresqladapter) do

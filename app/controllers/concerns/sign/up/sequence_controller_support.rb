@@ -23,6 +23,19 @@ module Sign
         render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
       end
 
+      def load_sign_up_checkpoint_ticket
+        return render_sign_up_age_restricted if sign_up_session_state.age_restricted?
+
+        @sign_up_ticket = sign_up_cycle_locator.current
+        return if @sign_up_ticket
+
+        sign_up_session_state.clear_all!
+        redirect_to(
+          sign_up_restart_path,
+          alert: I18n.t("sign.#{sign_up_surface}.registration.session_missing"),
+        )
+      end
+
       def authorize_sign_up_participant!(rule)
         return if performed?
 
@@ -37,6 +50,18 @@ module Sign
 
         context = sign_up_requirement_context
         return if context && allowed_to?(rule, context, with: SignUp::RequirementPolicy)
+
+        render plain: I18n.t("errors.messages.not_authorized"), status: :forbidden
+      end
+
+      def authorize_sign_up_requirement_or_cleared_continue!(rule)
+        return if performed?
+
+        context = sign_up_requirement_context
+        return if context && (
+          allowed_to?(rule, context, with: SignUp::RequirementPolicy) ||
+            allowed_to?(:continue_after_cleared_requirement?, context, with: SignUp::RequirementPolicy)
+        )
 
         render plain: I18n.t("errors.messages.not_authorized"), status: :forbidden
       end
@@ -90,6 +115,8 @@ module Sign
           return render_sign_up_result(result) unless result.success?
         end
 
+        return finalize_sign_up_from_checkpoint! if sign_up_missing_requirements.empty?
+
         render_sign_up_checkpoint
       end
 
@@ -137,6 +164,15 @@ module Sign
         []
       end
 
+      def sign_up_requirement_cleared?(requirement)
+        SignUp::RequirementRegistry.for_ticket(
+          @sign_up_ticket,
+          surface: sign_up_surface,
+        ).requirement_cleared?(@sign_up_ticket.completed_requirements, requirement)
+      rescue ArgumentError
+        false
+      end
+
       def persist_sign_up_birthdate_requirement
         return true unless sign_up_requirement_param == "birthdate"
         return false unless validate_sign_up_checkpoint_version!
@@ -158,6 +194,8 @@ module Sign
 
       def clear_sign_up_birthdate_requirement
         return if performed?
+        return continue_after_cleared_sign_up_requirement if sign_up_requirement_cleared?(:birthdate)
+        return unless validate_sign_up_checkpoint_version!
 
         actor = sign_up_pending_actor
         unless actor
@@ -190,6 +228,12 @@ module Sign
         return finalize_sign_up_from_checkpoint! if result.success? && result.next_event == :finalize
 
         render_sign_up_result(result)
+      end
+
+      def continue_after_cleared_sign_up_requirement
+        return finalize_sign_up_from_checkpoint! if sign_up_missing_requirements.empty?
+
+        render_sign_up_checkpoint
       end
 
       def render_sign_up_age_restricted
@@ -476,7 +520,7 @@ module Sign
         # session issuance remains delayed until checkpoint and selector pass.
         result = establish_signed_in_session!(
           actor,
-          pt: params[:pt].presence || @sign_up_ticket.return_to.presence,
+          pt: signed_pt_param.presence || @sign_up_ticket.return_to.presence,
           ri: params[:ri],
           auth_method: sign_up_auth_method,
           audit_context: { flow: "sign_up", sign_up_cycle_id: @sign_up_ticket.public_id },
@@ -506,7 +550,7 @@ module Sign
 
         if sign_in_result.success?
           redirect_to_sign_in_sequence!(
-            pt: params[:pt].presence || @sign_up_ticket.return_to.presence,
+            pt: signed_pt_param.presence || @sign_up_ticket.return_to.presence,
             notice: I18n.t("sign.app.registration.email.update.success"),
           )
         elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
@@ -519,7 +563,7 @@ module Sign
 
       def sign_up_handoff_redirect_url(sign_in_result)
         if sign_in_result.success?
-          sign_in_sequence_redirect_path(pt: params[:pt].presence || @sign_up_ticket.return_to.presence)
+          sign_in_sequence_redirect_path(pt: signed_pt_param.presence || @sign_up_ticket.return_to.presence)
         elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
           sign_in_result.redirect_to
         else
@@ -561,6 +605,17 @@ module Sign
           new_sign_app_in_path(ri: params[:ri])
         when :com
           new_sign_com_in_path(ri: params[:ri])
+        else
+          "/"
+        end
+      end
+
+      def sign_up_restart_path
+        case sign_up_surface
+        when :app
+          new_sign_app_up_path(ri: params[:ri])
+        when :com
+          new_sign_com_up_path(ri: params[:ri])
         else
           "/"
         end

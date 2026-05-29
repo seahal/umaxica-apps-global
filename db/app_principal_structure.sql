@@ -2983,6 +2983,30 @@ ALTER TABLE public.client_telephones
 
 
 --
+-- Name: clients chk_clients_mfa_requirement_consistency; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.clients
+    ADD CONSTRAINT chk_clients_mfa_requirement_consistency CHECK ((((multi_factor_enabled = false) AND (multi_factor_id = 0)) OR ((multi_factor_enabled = true) AND (multi_factor_id <> 0)))) NOT VALID;
+
+
+--
+-- Name: clients chk_clients_terminated_requires_withdrawn; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.clients
+    ADD CONSTRAINT chk_clients_terminated_requires_withdrawn CHECK (((terminated_at IS NULL) OR ((withdrawn_at IS NOT NULL) AND (withdrawn_at < 'infinity'::timestamp without time zone)))) NOT VALID;
+
+
+--
+-- Name: clients chk_clients_withdrawal_order; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.clients
+    ADD CONSTRAINT chk_clients_withdrawal_order CHECK (((withdrawal_started_at IS NULL) OR (withdrawn_at IS NULL) OR (withdrawn_at = 'infinity'::timestamp without time zone) OR (withdrawal_started_at <= withdrawn_at))) NOT VALID;
+
+
+--
 -- Name: client_banners client_banners_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5160,6 +5184,7 @@ ALTER TABLE ONLY public.client_preference_timezones
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528162000'),
 ('20260526090000'),
 ('20260525200000'),
 ('20260525131000'),

@@ -2,30 +2,30 @@
 
 ## Summary
 
-This pass fixed the RP-to-IdP authorization endpoint mismatch for the apex/sign OIDC flow.
+This pass fixed the RP-to-IdP authorization endpoint mismatch for the acme/sign OIDC flow.
 
 ## Fixed
 
 - `sign` OAuth authorization routes now expose `/oauth/authorize` for app, com, and org.
-- `apex` app/com/org RP authorize redirects now land on an actual same-surface IdP route.
+- `acme` app/com/org RP authorize redirects now land on an actual same-surface IdP route.
 - OIDC browser-flow coverage now verifies `/oauth/authorize` exists and `/oauth/authorization` is
   not exposed.
-- Client registry coverage now pins apex app/com/org redirect hosts, audiences, and resource types
+- Client registry coverage now pins acme app/com/org redirect hosts, audiences, and resource types
   to prevent cross-surface client mixups.
 
 ## Verified
 
-- app: `apex_app` redirects to `ID_SERVICE_URL`, validates state/nonce, establishes an RP session,
+- app: `acme_app` redirects to `ID_SERVICE_URL`, validates state/nonce, establishes an RP session,
   and can reach `/accounts` after callback.
-- com: `apex_com` redirects to `ID_CORPORATE_URL`, validates state/nonce, establishes an RP session,
+- com: `acme_com` redirects to `ID_CORPORATE_URL`, validates state/nonce, establishes an RP session,
   and can reach `/accounts` after callback.
-- org: `apex_org` redirects to `ID_STAFF_URL`, validates state/nonce, establishes an RP session, and
+- org: `acme_org` redirects to `ID_STAFF_URL`, validates state/nonce, establishes an RP session, and
   can reach `/accounts` after callback. Org sign-up remains incomplete by product scope, but OIDC
   route/config/callback/logout connection points are present.
 
 ## Test Evidence
 
-- `PARALLEL_WORKERS=1 bin/rails test test/integration/oidc_rp_browser_flow_test.rb test/services/oidc/client_registry_test.rb test/services/oidc/authorize_service_test.rb test/services/oidc/token_exchange_service_test.rb test/controllers/concerns/oidc/sso_initiator_test.rb test/controllers/concerns/oidc/callback_test.rb test/controllers/sign/app/authorizes_controller_test.rb test/controllers/sign/org/authorizes_controller_test.rb test/controllers/sign/app/tokens_controller_test.rb test/controllers/sign/com/tokens_controller_test.rb test/controllers/sign/org/tokens_controller_test.rb test/controllers/sign/oidc_logouts_controller_test.rb test/controllers/apex/app/accounts_controller_test.rb test/controllers/apex/com/accounts_controller_test.rb test/controllers/apex/org/accounts_controller_test.rb test/controllers/apex/app/auth/callbacks_controller_test.rb test/controllers/apex/com/auth/callbacks_controller_test.rb test/controllers/apex/org/auth/callbacks_controller_test.rb`
+- `PARALLEL_WORKERS=1 bin/rails test test/integration/oidc_rp_browser_flow_test.rb test/services/oidc/client_registry_test.rb test/services/oidc/authorize_service_test.rb test/services/oidc/token_exchange_service_test.rb test/controllers/concerns/oidc/sso_initiator_test.rb test/controllers/concerns/oidc/callback_test.rb test/controllers/sign/app/authorizes_controller_test.rb test/controllers/sign/org/authorizes_controller_test.rb test/controllers/sign/app/tokens_controller_test.rb test/controllers/sign/com/tokens_controller_test.rb test/controllers/sign/org/tokens_controller_test.rb test/controllers/sign/oidc_logouts_controller_test.rb test/controllers/acme/app/accounts_controller_test.rb test/controllers/acme/com/accounts_controller_test.rb test/controllers/acme/org/accounts_controller_test.rb test/controllers/acme/app/auth/callbacks_controller_test.rb test/controllers/acme/com/auth/callbacks_controller_test.rb test/controllers/acme/org/auth/callbacks_controller_test.rb`
   passed: 129 runs, 549 assertions.
 
 ## Known Constraints Before 0.2.0

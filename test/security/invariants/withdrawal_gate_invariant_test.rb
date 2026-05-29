@@ -65,14 +65,14 @@ module Security
       test "application controllers do not skip the withdrawal gate" do
         allowlist = {
           # Edge cookie endpoints are reviewed self-defending preference/auth cookie APIs.
-          "app/controllers/apex/app/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
-          "app/controllers/apex/com/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
+          "app/controllers/acme/app/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
+          "app/controllers/acme/com/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
           # DBSC endpoints must process device-session challenge state before the normal withdrawal gate.
-          "app/controllers/apex/app/edge/v0/dbsc_controller.rb" =>
+          "app/controllers/acme/app/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
-          "app/controllers/apex/com/edge/v0/dbsc_controller.rb" =>
+          "app/controllers/acme/com/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
-          "app/controllers/apex/org/edge/v0/dbsc_controller.rb" =>
+          "app/controllers/acme/org/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
         }
 

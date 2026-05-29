@@ -3,8 +3,10 @@
 
 module Sign
   module Com
-    class PreferencesBaseController < OpenController
+    class PreferencesBaseController < Sign::Com::ApplicationController
       AUTHENTICATION_MODE = :open
+
+      layout "sign/com/application"
 
       before_action :authorize_preference_write!, if: :preference_write_request?
 
