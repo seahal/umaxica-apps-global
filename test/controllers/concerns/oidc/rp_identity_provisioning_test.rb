@@ -18,8 +18,8 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => "umaxica-auth:client",
-        "sub" => client.id.to_s,
+        "iss" => Oidc::Issuer.for_client(Oidc::ClientRegistry.find!("core_app")),
+        "sub" => Oidc::Subject.for(client, resource_type: "client"),
         "aud" => "core_app",
       },
     )
@@ -28,8 +28,8 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
     bridge = CoreAppClientBridge.find_by!(client_id: client.id)
 
     assert_equal client, actor
-    assert_equal "umaxica-auth:client", identity.issuer
-    assert_equal client.id.to_s, identity.subject
+    assert_equal Oidc::Issuer.for_client(Oidc::ClientRegistry.find!("core_app")), identity.issuer
+    assert_equal Oidc::Subject.for(client, resource_type: "client"), identity.subject
     assert_equal "core_app", identity.audience
     assert_equal ClientIdentityState::ACTIVE, identity.status_id
     assert_equal "core_app", bridge.rp_client_id
@@ -69,8 +69,8 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => "umaxica-auth:visitor",
-        "sub" => visitor.id.to_s,
+        "iss" => Oidc::Issuer.for_client(Oidc::ClientRegistry.find!("acme_com")),
+        "sub" => Oidc::Subject.for(visitor, resource_type: "visitor"),
         "aud" => "acme_com",
       },
     )

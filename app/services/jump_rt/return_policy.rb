@@ -87,7 +87,9 @@ module JumpRt
       [
         env_origin(issuer_env, issuer_default),
         env_origin(destination_env, destination_default),
-      ].compact.uniq
+      result = [].compact
+      result.uniq!
+      result
     end
 
     def env_origin(key, fallback)

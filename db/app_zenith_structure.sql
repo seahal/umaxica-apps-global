@@ -999,7 +999,7 @@ ALTER TABLE ONLY public.persona_memberships
 --
 
 ALTER TABLE ONLY public.persona_memberships
-    ADD CONSTRAINT fk_rails_0d7f5f74b1 FOREIGN KEY (revoke_reason_id) REFERENCES public.persona_membership_revoke_reasons(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_0d7f5f74b1 FOREIGN KEY (revoke_reason_id) REFERENCES public.persona_membership_revoke_reasons(id);
 
 
 --
@@ -1007,7 +1007,7 @@ ALTER TABLE ONLY public.persona_memberships
 --
 
 ALTER TABLE ONLY public.persona_memberships
-    ADD CONSTRAINT fk_rails_182816542a FOREIGN KEY (membership_state_id) REFERENCES public.persona_membership_states(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_182816542a FOREIGN KEY (membership_state_id) REFERENCES public.persona_membership_states(id);
 
 
 --
@@ -1015,7 +1015,7 @@ ALTER TABLE ONLY public.persona_memberships
 --
 
 ALTER TABLE ONLY public.client_identities
-    ADD CONSTRAINT fk_rails_3045b2b3f6 FOREIGN KEY (status_id) REFERENCES public.client_identity_states(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_3045b2b3f6 FOREIGN KEY (status_id) REFERENCES public.client_identity_states(id);
 
 
 --
@@ -1023,7 +1023,7 @@ ALTER TABLE ONLY public.client_identities
 --
 
 ALTER TABLE ONLY public.persona_memberships
-    ADD CONSTRAINT fk_rails_4f3c994599 FOREIGN KEY (membership_kind_id) REFERENCES public.persona_membership_kinds(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_4f3c994599 FOREIGN KEY (membership_kind_id) REFERENCES public.persona_membership_kinds(id);
 
 
 --
@@ -1031,7 +1031,7 @@ ALTER TABLE ONLY public.persona_memberships
 --
 
 ALTER TABLE ONLY public.client_profiles
-    ADD CONSTRAINT fk_rails_510843a98e FOREIGN KEY (client_status_id) REFERENCES public.visitor_account_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_510843a98e FOREIGN KEY (client_status_id) REFERENCES public.visitor_account_statuses(id);
 
 
 --
@@ -1047,7 +1047,7 @@ ALTER TABLE ONLY public.persona_memberships
 --
 
 ALTER TABLE ONLY public.persona_memberships
-    ADD CONSTRAINT fk_rails_529c28deb1 FOREIGN KEY (granted_by_persona_id) REFERENCES public.personas(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_529c28deb1 FOREIGN KEY (granted_by_persona_id) REFERENCES public.personas(id);
 
 
 --
@@ -1087,7 +1087,7 @@ ALTER TABLE ONLY public.enterprise_units
 --
 
 ALTER TABLE ONLY public.client_profiles
-    ADD CONSTRAINT fk_rails_c49c0906dc FOREIGN KEY (status_id) REFERENCES public.visitor_account_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_c49c0906dc FOREIGN KEY (status_id) REFERENCES public.visitor_account_statuses(id);
 
 
 --
@@ -1095,7 +1095,7 @@ ALTER TABLE ONLY public.client_profiles
 --
 
 ALTER TABLE ONLY public.persona_memberships
-    ADD CONSTRAINT fk_rails_cdfe640663 FOREIGN KEY (revoked_by_persona_id) REFERENCES public.personas(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_cdfe640663 FOREIGN KEY (revoked_by_persona_id) REFERENCES public.personas(id);
 
 
 --
@@ -1103,7 +1103,7 @@ ALTER TABLE ONLY public.persona_memberships
 --
 
 ALTER TABLE ONLY public.persona_memberships
-    ADD CONSTRAINT fk_rails_e031c03097 FOREIGN KEY (approved_by_persona_id) REFERENCES public.personas(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_e031c03097 FOREIGN KEY (approved_by_persona_id) REFERENCES public.personas(id);
 
 
 --

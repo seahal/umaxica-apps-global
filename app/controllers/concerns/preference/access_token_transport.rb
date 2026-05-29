@@ -75,7 +75,7 @@ module Preference::AccessTokenTransport
   end
 
   def decode_matching_access_token(token)
-    payload = Preference::Token.decode(token, host: request.host)
+    payload = Preference::Token.decode(token, host: request.host, jwt_issuer_id: preference_jwt_issuer_id)
     return if payload.blank?
     return if Preference::Token.extract_preference_type(payload) != preference_class.name
 

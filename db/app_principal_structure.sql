@@ -4646,7 +4646,7 @@ ALTER TABLE ONLY public.client_preference_date_formats
 --
 
 ALTER TABLE ONLY public.client_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_3721c60304 FOREIGN KEY (from_status_id) REFERENCES public.client_withdrawal_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_3721c60304 FOREIGN KEY (from_status_id) REFERENCES public.client_withdrawal_cycle_statuses(id);
 
 
 --
@@ -4670,7 +4670,7 @@ ALTER TABLE ONLY public.client_preference_currencies
 --
 
 ALTER TABLE ONLY public.client_withdrawal_cycles
-    ADD CONSTRAINT fk_rails_3a897cfb78 FOREIGN KEY (status_id) REFERENCES public.client_withdrawal_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_3a897cfb78 FOREIGN KEY (status_id) REFERENCES public.client_withdrawal_cycle_statuses(id);
 
 
 --
@@ -4934,7 +4934,7 @@ ALTER TABLE ONLY public.user_client_suspensions
 --
 
 ALTER TABLE ONLY public.client_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_a2aace221d FOREIGN KEY (to_status_id) REFERENCES public.client_withdrawal_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_a2aace221d FOREIGN KEY (to_status_id) REFERENCES public.client_withdrawal_cycle_statuses(id);
 
 
 --
@@ -4942,7 +4942,7 @@ ALTER TABLE ONLY public.client_withdrawal_cycle_events
 --
 
 ALTER TABLE ONLY public.client_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_a58c9bf0a2 FOREIGN KEY (client_id) REFERENCES public.clients(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_a58c9bf0a2 FOREIGN KEY (client_id) REFERENCES public.clients(id);
 
 
 --
@@ -4974,7 +4974,7 @@ ALTER TABLE ONLY public.user_client_impersonations
 --
 
 ALTER TABLE ONLY public.client_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_b55e5a56c4 FOREIGN KEY (client_withdrawal_cycle_id) REFERENCES public.client_withdrawal_cycles(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_b55e5a56c4 FOREIGN KEY (client_withdrawal_cycle_id) REFERENCES public.client_withdrawal_cycles(id);
 
 
 --
@@ -5046,7 +5046,7 @@ ALTER TABLE ONLY public.user_clients
 --
 
 ALTER TABLE ONLY public.client_withdrawal_cycles
-    ADD CONSTRAINT fk_rails_e5e99fd372 FOREIGN KEY (client_id) REFERENCES public.clients(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_e5e99fd372 FOREIGN KEY (client_id) REFERENCES public.clients(id);
 
 
 --

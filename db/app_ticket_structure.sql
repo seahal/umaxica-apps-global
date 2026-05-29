@@ -1603,7 +1603,7 @@ CREATE INDEX index_client_verifications_on_user_token_id ON public.client_verifi
 --
 
 ALTER TABLE ONLY public.client_verifications
-    ADD CONSTRAINT fk_rails_18a774c144 FOREIGN KEY (user_token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_18a774c144 FOREIGN KEY (user_token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -1611,7 +1611,7 @@ ALTER TABLE ONLY public.client_verifications
 --
 
 ALTER TABLE ONLY public.client_sign_out_cycles
-    ADD CONSTRAINT fk_rails_39d731f429 FOREIGN KEY (kind_id) REFERENCES public.client_sign_out_cycle_kinds(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_39d731f429 FOREIGN KEY (kind_id) REFERENCES public.client_sign_out_cycle_kinds(id);
 
 
 --
@@ -1619,7 +1619,7 @@ ALTER TABLE ONLY public.client_sign_out_cycles
 --
 
 ALTER TABLE ONLY public.client_sign_up_cycles
-    ADD CONSTRAINT fk_rails_42f9309ee5 FOREIGN KEY (status_id) REFERENCES public.client_sign_up_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_42f9309ee5 FOREIGN KEY (status_id) REFERENCES public.client_sign_up_cycle_statuses(id);
 
 
 --
@@ -1627,7 +1627,7 @@ ALTER TABLE ONLY public.client_sign_up_cycles
 --
 
 ALTER TABLE ONLY public.client_sign_out_cycles
-    ADD CONSTRAINT fk_rails_4bbbc632e2 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_4bbbc632e2 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -1635,7 +1635,7 @@ ALTER TABLE ONLY public.client_sign_out_cycles
 --
 
 ALTER TABLE ONLY public.client_sign_in_cycles
-    ADD CONSTRAINT fk_rails_4e35f66d42 FOREIGN KEY (status_id) REFERENCES public.client_sign_in_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_4e35f66d42 FOREIGN KEY (status_id) REFERENCES public.client_sign_in_cycle_statuses(id);
 
 
 --
@@ -1643,7 +1643,7 @@ ALTER TABLE ONLY public.client_sign_in_cycles
 --
 
 ALTER TABLE ONLY public.client_step_up_sessions
-    ADD CONSTRAINT fk_rails_64ec203fd3 FOREIGN KEY (user_token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_64ec203fd3 FOREIGN KEY (user_token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -1651,7 +1651,7 @@ ALTER TABLE ONLY public.client_step_up_sessions
 --
 
 ALTER TABLE ONLY public.client_sign_up_cycles
-    ADD CONSTRAINT fk_rails_9b0b63a0c6 FOREIGN KEY (cleanup_status_id) REFERENCES public.client_sign_up_cycle_cleanup_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_9b0b63a0c6 FOREIGN KEY (cleanup_status_id) REFERENCES public.client_sign_up_cycle_cleanup_statuses(id);
 
 
 --
@@ -1659,7 +1659,7 @@ ALTER TABLE ONLY public.client_sign_up_cycles
 --
 
 ALTER TABLE ONLY public.client_sign_up_cycles
-    ADD CONSTRAINT fk_rails_b973de6b70 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_b973de6b70 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id);
 
 
 --
@@ -1667,7 +1667,7 @@ ALTER TABLE ONLY public.client_sign_up_cycles
 --
 
 ALTER TABLE ONLY public.client_sign_out_cycles
-    ADD CONSTRAINT fk_rails_bbc7001388 FOREIGN KEY (status_id) REFERENCES public.client_sign_out_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_bbc7001388 FOREIGN KEY (status_id) REFERENCES public.client_sign_out_cycle_statuses(id);
 
 
 --
@@ -1675,7 +1675,7 @@ ALTER TABLE ONLY public.client_sign_out_cycles
 --
 
 ALTER TABLE ONLY public.client_sign_in_cycles
-    ADD CONSTRAINT fk_rails_bd772deef1 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_bd772deef1 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -1683,7 +1683,7 @@ ALTER TABLE ONLY public.client_sign_in_cycles
 --
 
 ALTER TABLE ONLY public.client_tokens
-    ADD CONSTRAINT fk_user_tokens_on_user_token_binding_method_id FOREIGN KEY (user_token_binding_method_id) REFERENCES public.client_token_binding_methods(id) NOT VALID;
+    ADD CONSTRAINT fk_user_tokens_on_user_token_binding_method_id FOREIGN KEY (user_token_binding_method_id) REFERENCES public.client_token_binding_methods(id);
 
 
 --
@@ -1691,7 +1691,7 @@ ALTER TABLE ONLY public.client_tokens
 --
 
 ALTER TABLE ONLY public.client_tokens
-    ADD CONSTRAINT fk_user_tokens_on_user_token_dbsc_status_id FOREIGN KEY (user_token_dbsc_status_id) REFERENCES public.client_token_dbsc_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_user_tokens_on_user_token_dbsc_status_id FOREIGN KEY (user_token_dbsc_status_id) REFERENCES public.client_token_dbsc_statuses(id);
 
 
 --
@@ -1699,7 +1699,7 @@ ALTER TABLE ONLY public.client_tokens
 --
 
 ALTER TABLE ONLY public.client_tokens
-    ADD CONSTRAINT fk_user_tokens_on_user_token_kind_id FOREIGN KEY (user_token_kind_id) REFERENCES public.client_token_kinds(id) NOT VALID;
+    ADD CONSTRAINT fk_user_tokens_on_user_token_kind_id FOREIGN KEY (user_token_kind_id) REFERENCES public.client_token_kinds(id);
 
 
 --
@@ -1707,7 +1707,7 @@ ALTER TABLE ONLY public.client_tokens
 --
 
 ALTER TABLE ONLY public.client_tokens
-    ADD CONSTRAINT fk_user_tokens_on_user_token_status_id FOREIGN KEY (user_token_status_id) REFERENCES public.client_token_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_user_tokens_on_user_token_status_id FOREIGN KEY (user_token_status_id) REFERENCES public.client_token_statuses(id);
 
 
 --

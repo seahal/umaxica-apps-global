@@ -14,9 +14,9 @@ module Preference
   module JwtConfiguration
     class MissingAudienceError < StandardError; end
 
-    def self.active_kid
-      Jit::Security::Jwt::Registry.preference.current_kid ||
-        raise(Jit::Security::Jwt::Registry::ConfigurationError, "PREFERENCE_JWT_ACTIVE_KID is not configured")
+    def self.active_kid(issuer_id = "preference")
+      Jit::Security::Jwt::Registry.issuer(issuer_id).current_kid ||
+        raise(Jit::Security::Jwt::Registry::ConfigurationError, "#{issuer_id} active kid is not configured")
     end
 
     def self.leeway_seconds
@@ -29,7 +29,8 @@ module Preference
 
     def self.audiences
       raw = ENV["PREFERENCE_JWT_AUDIENCES"].to_s
-      list = raw.split(",").map(&:strip).reject(&:empty?)
+      list = raw.split(",").map(&:strip)
+      list.reject!(&:empty?)
       raise MissingAudienceError, "PREFERENCE_JWT_AUDIENCES must be configured" if list.empty?
 
       list
@@ -68,16 +69,16 @@ module Preference
       matching_audience || host
     end
 
-    def self.private_key_for_active
-      private_key_for(active_kid)
+    def self.private_key_for_active(issuer_id = "preference")
+      private_key_for(active_kid(issuer_id), issuer_id: issuer_id)
     end
 
-    def self.private_key_for(kid)
-      Jit::Security::Jwt::Registry.private_key_for("preference", kid)
+    def self.private_key_for(kid, issuer_id: "preference")
+      Jit::Security::Jwt::Registry.private_key_for(issuer_id, kid)
     end
 
-    def self.public_key_for(kid)
-      Jit::Security::Jwt::Registry.public_key_for("preference", kid)
+    def self.public_key_for(kid, issuer_id: "preference")
+      Jit::Security::Jwt::Registry.public_key_for(issuer_id, kid)
     end
 
     def self.private_key

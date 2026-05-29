@@ -113,7 +113,36 @@ module AuthHelpers
       session_public_id: session_public_id,
       resource_type: resource_type,
       dpop_jkt: dpop_jkt,
+      jwt_issuer_id: jwt_issuer_id_for_test_host(host_value, resource_type),
     )
+  end
+
+  def jwt_issuer_id_for_test_host(host, resource_type)
+    normalized = host.to_s
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      else
+        "SIGN"
+      end
+    surface =
+      if service == "SIGN"
+        case resource_type
+        when "operator" then "ORG"
+        when "visitor" then "COM"
+        else "APP"
+        end
+      elsif normalized.include?(".org") || normalized.include?("org.")
+        "ORG"
+      elsif normalized.include?(".com") || normalized.include?("com.")
+        "COM"
+      else
+        "APP"
+      end
+
+    "surface:#{service}_#{surface}"
   end
 
   def set_access_cookie(token)

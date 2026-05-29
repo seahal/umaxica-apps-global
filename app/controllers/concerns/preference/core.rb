@@ -200,7 +200,7 @@ module Preference::Core
 
   # Resolves the timezone that may be persisted to Time.zone / session / cookie.
   # Only IANA names accepted by ActiveSupport::TimeZone may flow through; any
-  # raw submitted string must pass this whitelist before being trusted.
+  # raw submitted string must pass this allowlist before being trusted.
   def resolved_writable_timezone(preference_record, submitted_value)
     submitted = normalize_known_timezone(submitted_value)
     return submitted if submitted.present?

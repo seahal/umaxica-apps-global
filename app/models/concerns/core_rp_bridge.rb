@@ -7,11 +7,13 @@ module CoreRpBridge
   included do
     include ::PublicId
 
+    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
     class_attribute :core_actor_association_name, instance_accessor: false
     class_attribute :core_actor_foreign_key, instance_accessor: false
     class_attribute :core_default_client_id, instance_accessor: false
     class_attribute :core_default_audience, instance_accessor: false
     class_attribute :core_default_host, instance_accessor: false
+    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
 
     before_validation :assign_core_rp_defaults
 

@@ -37,7 +37,6 @@ module Jit
 
           jwk
         end
-
       end
     end
   end

@@ -18,7 +18,8 @@ module Authentication
       end
 
     def initialize(access_token:, request_host:, resource_type:, resource_class:, token_class:,
-                   authorization_scheme: nil, dpop_proof: nil, request_method: nil, request_uri: nil)
+                   authorization_scheme: nil, dpop_proof: nil, request_method: nil, request_uri: nil,
+                   jwt_issuer_id: nil)
       @access_token = access_token
       @request_host = request_host
       @resource_type = resource_type
@@ -28,17 +29,24 @@ module Authentication
       @dpop_proof = dpop_proof
       @request_method = request_method
       @request_uri = request_uri
+      @jwt_issuer_id = jwt_issuer_id
     end
 
     def call
       return failure(:blank_access_token) if @access_token.blank?
 
-      payload = Authentication::Base::Token.decode(@access_token, host: @request_host, resource_type: @resource_type)
+      payload = Authentication::Base::Token.decode(
+        @access_token,
+        host: @request_host,
+        resource_type: @resource_type,
+        jwt_issuer_id: @jwt_issuer_id,
+      )
       if payload.blank?
         sid = Authentication::Base::Token.extract_session_id_allow_expired(
           @access_token,
           host: @request_host,
           resource_type: @resource_type,
+          jwt_issuer_id: @jwt_issuer_id,
         )
         return failure(:token_decode_failed, session_public_id: sid) if sid.present?
 
@@ -60,7 +68,7 @@ module Authentication
 
       resource = @resource_class.find_by(id: Authentication::Base::Token.extract_subject(payload))
       return failure(
-          :resource_not_found, payload: payload,
+        :resource_not_found, payload: payload,
                              session_public_id: current_session_public_id(token_record, sid),
                              token_public_id: token_record_public_id(token_record),
       ) if resource.blank?

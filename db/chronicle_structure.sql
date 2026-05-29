@@ -3996,7 +3996,7 @@ CREATE INDEX index_user_activities_on_actor ON public.client_chronicles USING bt
 --
 
 ALTER TABLE ONLY public.app_document_audits
-    ADD CONSTRAINT fk_rails_04199ae3cc FOREIGN KEY (event_id) REFERENCES public.app_document_audit_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_04199ae3cc FOREIGN KEY (event_id) REFERENCES public.app_document_audit_events(id);
 
 
 --
@@ -4020,7 +4020,7 @@ ALTER TABLE ONLY public.app_timeline_behaviors
 --
 
 ALTER TABLE ONLY public.org_timeline_audits
-    ADD CONSTRAINT fk_rails_1c8eb96fbb FOREIGN KEY (level_id) REFERENCES public.org_timeline_audit_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_1c8eb96fbb FOREIGN KEY (level_id) REFERENCES public.org_timeline_audit_levels(id);
 
 
 --
@@ -4036,7 +4036,7 @@ ALTER TABLE ONLY public.org_document_behaviors
 --
 
 ALTER TABLE ONLY public.app_timeline_audits
-    ADD CONSTRAINT fk_rails_2babaf0d7d FOREIGN KEY (event_id) REFERENCES public.app_timeline_audit_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_2babaf0d7d FOREIGN KEY (event_id) REFERENCES public.app_timeline_audit_events(id);
 
 
 --
@@ -4052,7 +4052,7 @@ ALTER TABLE ONLY public.com_timeline_behaviors
 --
 
 ALTER TABLE ONLY public.org_preference_chronicles
-    ADD CONSTRAINT fk_rails_3829eb3d72 FOREIGN KEY (event_id) REFERENCES public.org_preference_chronicle_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_3829eb3d72 FOREIGN KEY (event_id) REFERENCES public.org_preference_chronicle_events(id);
 
 
 --
@@ -4068,7 +4068,7 @@ ALTER TABLE ONLY public.chronicle_visibilities
 --
 
 ALTER TABLE ONLY public.com_document_audits
-    ADD CONSTRAINT fk_rails_3f934103f6 FOREIGN KEY (event_id) REFERENCES public.com_document_audit_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_3f934103f6 FOREIGN KEY (event_id) REFERENCES public.com_document_audit_events(id);
 
 
 --
@@ -4076,7 +4076,7 @@ ALTER TABLE ONLY public.com_document_audits
 --
 
 ALTER TABLE ONLY public.operator_chronicles
-    ADD CONSTRAINT fk_rails_46a8075569 FOREIGN KEY (level_id) REFERENCES public.operator_chronicle_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_46a8075569 FOREIGN KEY (level_id) REFERENCES public.operator_chronicle_levels(id);
 
 
 --
@@ -4084,7 +4084,7 @@ ALTER TABLE ONLY public.operator_chronicles
 --
 
 ALTER TABLE ONLY public.org_document_audits
-    ADD CONSTRAINT fk_rails_46d3b866ce FOREIGN KEY (event_id) REFERENCES public.org_document_audit_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_46d3b866ce FOREIGN KEY (event_id) REFERENCES public.org_document_audit_events(id);
 
 
 --
@@ -4100,7 +4100,7 @@ ALTER TABLE ONLY public.chronicle_visibilities
 --
 
 ALTER TABLE ONLY public.com_preference_chronicles
-    ADD CONSTRAINT fk_rails_592279f49b FOREIGN KEY (level_id) REFERENCES public.com_preference_chronicle_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_592279f49b FOREIGN KEY (level_id) REFERENCES public.com_preference_chronicle_levels(id);
 
 
 --
@@ -4116,7 +4116,7 @@ ALTER TABLE ONLY public.scavenger_global_chronicles
 --
 
 ALTER TABLE ONLY public.com_timeline_audits
-    ADD CONSTRAINT fk_rails_683656739c FOREIGN KEY (level_id) REFERENCES public.com_timeline_audit_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_683656739c FOREIGN KEY (level_id) REFERENCES public.com_timeline_audit_levels(id);
 
 
 --
@@ -4148,7 +4148,7 @@ ALTER TABLE ONLY public.scavenger_regional_chronicles
 --
 
 ALTER TABLE ONLY public.com_timeline_audits
-    ADD CONSTRAINT fk_rails_7c9a165758 FOREIGN KEY (event_id) REFERENCES public.com_timeline_audit_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_7c9a165758 FOREIGN KEY (event_id) REFERENCES public.com_timeline_audit_events(id);
 
 
 --
@@ -4156,7 +4156,7 @@ ALTER TABLE ONLY public.com_timeline_audits
 --
 
 ALTER TABLE ONLY public.client_chronicles
-    ADD CONSTRAINT fk_rails_829f1830de FOREIGN KEY (event_id) REFERENCES public.client_chronicle_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_829f1830de FOREIGN KEY (event_id) REFERENCES public.client_chronicle_events(id);
 
 
 --
@@ -4164,7 +4164,7 @@ ALTER TABLE ONLY public.client_chronicles
 --
 
 ALTER TABLE ONLY public.com_document_audits
-    ADD CONSTRAINT fk_rails_851991baee FOREIGN KEY (level_id) REFERENCES public.com_document_audit_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_851991baee FOREIGN KEY (level_id) REFERENCES public.com_document_audit_levels(id);
 
 
 --
@@ -4172,7 +4172,7 @@ ALTER TABLE ONLY public.com_document_audits
 --
 
 ALTER TABLE ONLY public.client_chronicles
-    ADD CONSTRAINT fk_rails_868bedb021 FOREIGN KEY (level_id) REFERENCES public.client_chronicle_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_868bedb021 FOREIGN KEY (level_id) REFERENCES public.client_chronicle_levels(id);
 
 
 --
@@ -4212,7 +4212,7 @@ ALTER TABLE ONLY public.org_document_behaviors
 --
 
 ALTER TABLE ONLY public.app_document_audits
-    ADD CONSTRAINT fk_rails_a9e9b70220 FOREIGN KEY (level_id) REFERENCES public.app_document_audit_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_a9e9b70220 FOREIGN KEY (level_id) REFERENCES public.app_document_audit_levels(id);
 
 
 --
@@ -4228,7 +4228,7 @@ ALTER TABLE ONLY public.scavenger_regional_chronicles
 --
 
 ALTER TABLE ONLY public.app_timeline_audits
-    ADD CONSTRAINT fk_rails_b95cff528f FOREIGN KEY (level_id) REFERENCES public.app_timeline_audit_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_b95cff528f FOREIGN KEY (level_id) REFERENCES public.app_timeline_audit_levels(id);
 
 
 --
@@ -4236,7 +4236,7 @@ ALTER TABLE ONLY public.app_timeline_audits
 --
 
 ALTER TABLE ONLY public.com_preference_chronicles
-    ADD CONSTRAINT fk_rails_c194bd8de2 FOREIGN KEY (event_id) REFERENCES public.com_preference_chronicle_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_c194bd8de2 FOREIGN KEY (event_id) REFERENCES public.com_preference_chronicle_events(id);
 
 
 --
@@ -4252,7 +4252,7 @@ ALTER TABLE ONLY public.com_timeline_behaviors
 --
 
 ALTER TABLE ONLY public.app_preference_chronicles
-    ADD CONSTRAINT fk_rails_d693b46c45 FOREIGN KEY (event_id) REFERENCES public.app_preference_chronicle_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_d693b46c45 FOREIGN KEY (event_id) REFERENCES public.app_preference_chronicle_events(id);
 
 
 --
@@ -4260,7 +4260,7 @@ ALTER TABLE ONLY public.app_preference_chronicles
 --
 
 ALTER TABLE ONLY public.app_preference_chronicles
-    ADD CONSTRAINT fk_rails_da47dd8941 FOREIGN KEY (level_id) REFERENCES public.app_preference_chronicle_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_da47dd8941 FOREIGN KEY (level_id) REFERENCES public.app_preference_chronicle_levels(id);
 
 
 --
@@ -4284,7 +4284,7 @@ ALTER TABLE ONLY public.app_timeline_behaviors
 --
 
 ALTER TABLE ONLY public.org_timeline_audits
-    ADD CONSTRAINT fk_rails_eae8a241e3 FOREIGN KEY (event_id) REFERENCES public.org_timeline_audit_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_eae8a241e3 FOREIGN KEY (event_id) REFERENCES public.org_timeline_audit_events(id);
 
 
 --
@@ -4292,7 +4292,7 @@ ALTER TABLE ONLY public.org_timeline_audits
 --
 
 ALTER TABLE ONLY public.org_document_audits
-    ADD CONSTRAINT fk_rails_ed52fec6a9 FOREIGN KEY (level_id) REFERENCES public.org_document_audit_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_ed52fec6a9 FOREIGN KEY (level_id) REFERENCES public.org_document_audit_levels(id);
 
 
 --
@@ -4308,7 +4308,7 @@ ALTER TABLE ONLY public.scavenger_global_chronicles
 --
 
 ALTER TABLE ONLY public.operator_chronicles
-    ADD CONSTRAINT fk_rails_f0451c267b FOREIGN KEY (event_id) REFERENCES public.operator_chronicle_events(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_f0451c267b FOREIGN KEY (event_id) REFERENCES public.operator_chronicle_events(id);
 
 
 --
@@ -4324,7 +4324,7 @@ ALTER TABLE ONLY public.chronicles
 --
 
 ALTER TABLE ONLY public.org_preference_chronicles
-    ADD CONSTRAINT fk_rails_f932dbadd7 FOREIGN KEY (level_id) REFERENCES public.org_preference_chronicle_levels(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_f932dbadd7 FOREIGN KEY (level_id) REFERENCES public.org_preference_chronicle_levels(id);
 
 
 --

@@ -15,6 +15,7 @@ module Preference::AccessTokenIssuer
       preference_type: preference.class.name,
       public_id: preference.public_id,
       jti: preference.jti,
+      jwt_issuer_id: preference_jwt_issuer_id,
     )
     return if token.blank?
 
@@ -23,7 +24,7 @@ module Preference::AccessTokenIssuer
         value: token,
       )
 
-    @preference_payload = Preference::Token.decode(token, host: request.host)
+    @preference_payload = Preference::Token.decode(token, host: request.host, jwt_issuer_id: preference_jwt_issuer_id)
     return if @preference_payload.present?
 
     clear_preference_auth_cookies!
@@ -35,5 +36,18 @@ module Preference::AccessTokenIssuer
     with_preference_connection(:writing) do
       preference.update!(jti: Jit::Security::Jwt::JtiGenerator.generate)
     end
+  end
+
+  def preference_jwt_issuer_id
+    namespace = preference_jwt_namespace
+    namespace ? "surface:#{namespace}" : "preference"
+  end
+
+  def preference_jwt_namespace
+    service, surface = controller_path.to_s.split("/", 3)
+    return unless service == "sign"
+
+    namespace = "SIGN_#{surface.to_s.upcase}"
+    namespace if Jit::Security::Jwt::Registry::SURFACE_NAMESPACES.include?(namespace)
   end
 end

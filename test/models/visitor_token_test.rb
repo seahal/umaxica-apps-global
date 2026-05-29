@@ -12,7 +12,11 @@
 #  dbsc_public_key                 :jsonb
 #  discarded_at                    :datetime         default(Infinity), not null
 #  dpop_jkt                        :string
+#  last_step_up_aal                :string
 #  last_step_up_at                 :datetime
+#  last_step_up_audience           :string
+#  last_step_up_method             :string
+#  last_step_up_purpose            :string
 #  last_step_up_scope              :string
 #  last_used_at                    :datetime
 #  oidc_jti                        :uuid
@@ -26,6 +30,7 @@
 #  updated_at                      :datetime         not null
 #  dbsc_session_id                 :string
 #  device_session_id               :bigint
+#  last_step_up_session_public_id  :string
 #  oidc_client_id                  :string(64)
 #  oidc_connection_id              :bigint
 #  public_id                       :string(21)       default(""), not null

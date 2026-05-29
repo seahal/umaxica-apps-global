@@ -45,6 +45,29 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "encodes and decodes with a sign surface issuer without using legacy preference issuer" do
+    token = Preference::Token.encode(
+      @prefs,
+      host: "id.umaxica.app",
+      preference_type: @preference_type,
+      public_id: @public_id,
+      jti: @jti,
+      jwt_issuer_id: "surface:SIGN_APP",
+    )
+
+    assert_not_nil token
+    assert_nil Preference::Token.decode(token, host: "id.umaxica.app")
+
+    decoded = Preference::Token.decode(
+      token,
+      host: "id.umaxica.app",
+      jwt_issuer_id: "surface:SIGN_APP",
+    )
+
+    assert_equal "dr", decoded.dig("preferences", "ct")
+    assert_equal @jti, decoded["jti"]
+  end
+
   test "returns nil for invalid token" do
     with_jwt_keys do
       assert_nil Preference::Token.decode("invalid", host: @host)

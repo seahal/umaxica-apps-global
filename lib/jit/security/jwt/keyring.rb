@@ -12,29 +12,30 @@ module Jit
       module Keyring
         module_function
 
-        def active_kid
-          Registry.auth.current_kid || raise(Registry::ConfigurationError, "AUTH_JWT_ACTIVE_KID is not configured")
+        def active_kid(issuer_id = "auth")
+          Registry.issuer(issuer_id).current_kid ||
+            raise(Registry::ConfigurationError, "#{issuer_id} active kid is not configured")
         end
 
-        def private_key_for_active
-          private_key_for(active_kid)
+        def private_key_for_active(issuer_id = "auth")
+          private_key_for(active_kid(issuer_id), issuer_id: issuer_id)
         end
 
-        def public_key_for_active
-          public_key_for(active_kid)
+        def public_key_for_active(issuer_id = "auth")
+          public_key_for(active_kid(issuer_id), issuer_id: issuer_id)
         end
 
-        def private_key_for(kid)
-          Registry.private_key_for("auth", kid)
+        def private_key_for(kid, issuer_id: "auth")
+          Registry.private_key_for(issuer_id, kid)
         end
 
-        def public_key_for(kid)
-          Registry.public_key_for("auth", kid)
+        def public_key_for(kid, issuer_id: "auth")
+          Registry.public_key_for(issuer_id, kid)
         end
 
-        def encode(payload)
-          kid = active_kid
-          pk = private_key_for(kid)
+        def encode(payload, issuer_id: "auth")
+          kid = active_kid(issuer_id)
+          pk = private_key_for(kid, issuer_id: issuer_id)
           raise Registry::ConfigurationError, "Missing private key for kid: #{kid}" if pk.nil?
 
           JWT.encode(payload, pk, "ES384", { kid: kid, typ: payload["typ"] })

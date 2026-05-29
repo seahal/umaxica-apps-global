@@ -6,9 +6,11 @@ module Oidc
     extend ActiveSupport::Concern
 
     included do
+      # rubocop:disable ThreadSafety/ClassAndModuleAttributes
       class_attribute :oidc_rp_actor_class_name, instance_accessor: false
       class_attribute :oidc_rp_identity_class_name, instance_accessor: false
       class_attribute :oidc_rp_bridge_class_name, instance_accessor: false
+      # rubocop:enable ThreadSafety/ClassAndModuleAttributes
     end
 
     class_methods do
@@ -23,7 +25,7 @@ module Oidc
 
     def provision_rp_account_from_id_token!(payload)
       claims = rp_identity_claims(payload)
-      actor = actor_from_existing_identity(claims) || actor_from_subject_claim(claims)
+      actor = actor_from_existing_identity(claims) || actor_from_public_subject_claim(claims)
 
       ensure_rp_identity_for(actor, claims)
       ensure_rp_bridge_for(actor)
@@ -40,21 +42,28 @@ module Oidc
     end
 
     def actor_from_existing_identity(claims)
-      identity = record_context_for(rp_identity_class).connected_to(role: :reading) do
-        rp_identity_class.find_by(claims)
-      end
+      identity =
+        record_context_for(rp_identity_class).connected_to(role: :reading) do
+          rp_identity_class.find_by(claims)
+        end
       return unless identity
 
       find_rp_actor(identity.source_record_id)
     end
 
-    def actor_from_subject_claim(claims)
-      find_rp_actor(claims.fetch(:subject))
+    def actor_from_public_subject_claim(claims)
+      public_id = Oidc::Subject.public_id_from(
+        claims.fetch(:subject),
+        resource_type: rp_actor_resource_type,
+      )
+      raise ActiveRecord::RecordNotFound, "OIDC subject is not a valid RP subject" if public_id.blank?
+
+      find_rp_actor_by_public_id(public_id)
     end
 
     def ensure_rp_identity_for(actor, claims)
       record_context_for(rp_identity_class).connected_to(role: :writing) do
-        existing = rp_identity_class.find_by(source_record_id: actor.id)
+        existing = rp_identity_class.find_by(claims)
         return existing if existing
 
         rp_identity_class.create!(
@@ -65,7 +74,7 @@ module Oidc
       end
     rescue ActiveRecord::RecordNotUnique
       record_context_for(rp_identity_class).connected_to(role: :writing) do
-        rp_identity_class.find_by!(source_record_id: actor.id)
+        rp_identity_class.find_by!(claims)
       end
     end
 
@@ -100,6 +109,20 @@ module Oidc
     def find_rp_actor(id)
       record_context_for(rp_actor_class).connected_to(role: :reading) do
         rp_actor_class.find(id)
+      end
+    end
+
+    def find_rp_actor_by_public_id(public_id)
+      record_context_for(rp_actor_class).connected_to(role: :reading) do
+        rp_actor_class.find_by!(public_id: public_id)
+      end
+    end
+
+    def rp_actor_resource_type
+      case rp_actor_class.name
+      when "Operator" then "operator"
+      when "Visitor" then "visitor"
+      else "client"
       end
     end
 

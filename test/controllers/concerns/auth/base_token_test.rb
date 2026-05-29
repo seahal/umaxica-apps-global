@@ -126,6 +126,27 @@ module Auth
       assert_equal "auth-access-token;client", header["typ"]
     end
 
+    test "Token roundtrips with an explicit surface issuer and not the legacy auth issuer" do
+      token = Authentication::Base::Token.encode(
+        clients(:one),
+        host: "id.umaxica.app",
+        session_public_id: "sid",
+        resource_type: "client",
+        jwt_issuer_id: "surface:SIGN_APP",
+      )
+
+      assert_nil Authentication::Base::Token.decode(token, host: "id.umaxica.app", resource_type: "client")
+
+      payload = Authentication::Base::Token.decode(
+        token,
+        host: "id.umaxica.app",
+        resource_type: "client",
+        jwt_issuer_id: "surface:SIGN_APP",
+      )
+
+      assert_equal clients(:one).id, payload["sub"]
+    end
+
     test "Token.decode rejects unknown kid" do
       token = Authentication::Base::Token.encode(
         clients(:one), host: "example.com", session_public_id: "sid", resource_type: "client",

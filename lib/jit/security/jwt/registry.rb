@@ -41,27 +41,29 @@ module Jit
         DEFAULT_KID = "default"
 
         KeyRecord = Data.define(:kid, :private_key, :public_key, :public_jwk, :state)
-        IssuerRecord = Data.define(:id, :namespace, :issuer, :audiences, :current_kid, :keys, :revoked_kids) do
-          def current_key = keys.fetch(current_kid, nil)
-          def public_key_for(kid)
-            key = keys.fetch(kid.to_s, nil)
-            return nil unless key
-            return nil if revoked_kids.include?(kid.to_s)
-            return nil unless VERIFY_STATES.include?(key.state)
+        IssuerRecord =
+          Data.define(:id, :namespace, :issuer, :audiences, :current_kid, :keys, :revoked_kids) do
+            def current_key = keys.fetch(current_kid, nil)
 
-            key.public_key
+            def public_key_for(kid)
+              key = keys.fetch(kid.to_s, nil)
+              return nil unless key
+              return nil if revoked_kids.include?(kid.to_s)
+              return nil unless VERIFY_STATES.include?(key.state)
+
+              key.public_key
+            end
+
+            def jwks
+              {
+                keys: keys.values.filter_map do |key|
+                  next unless PUBLISH_STATES.include?(key.state)
+
+                  key.public_jwk
+                end,
+              }
+            end
           end
-
-          def jwks
-            {
-              keys: keys.values.filter_map do |key|
-                next unless PUBLISH_STATES.include?(key.state)
-
-                key.public_jwk
-              end,
-            }
-          end
-        end
 
         def configure!
           records = build_issuers
@@ -87,6 +89,7 @@ module Jit
         end
 
         def auth = issuer("auth")
+
         def preference = issuer("preference")
 
         def issuers
@@ -116,7 +119,8 @@ module Jit
 
         def normalize_namespace(namespace)
           value = namespace.to_s.upcase
-          raise ConfigurationError, "unsupported JWT issuer namespace: #{namespace.inspect}" unless SURFACE_NAMESPACES.include?(value)
+          raise ConfigurationError,
+                "unsupported JWT issuer namespace: #{namespace.inspect}" unless SURFACE_NAMESPACES.include?(value)
 
           value
         end
@@ -149,11 +153,15 @@ module Jit
           records.freeze
         end
 
-        def build_keyset_issuer(id:, private_keyset_name:, public_keyset_name:, active_kid:, issuer:, audiences:, revoked_kids:)
+        def build_keyset_issuer(id:, private_keyset_name:, public_keyset_name:, active_kid:, issuer:, audiences:,
+                                revoked_kids:)
           private_keys = parse_private_keyset(creds_option(private_keyset_name), source: private_keyset_name)
           public_keys = parse_public_jwk_collection(creds_option(public_keyset_name), source: public_keyset_name)
           current_kid = active_kid.presence || private_keys.keys.first
-          keys = merge_keys(private_keys: private_keys, public_jwks: public_keys, current_kid: current_kid, revoked_kids: revoked_kids)
+          keys = merge_keys(
+            private_keys: private_keys, public_jwks: public_keys, current_kid: current_kid,
+            revoked_kids: revoked_kids,
+          )
 
           IssuerRecord.new(
             id: id,
@@ -168,22 +176,32 @@ module Jit
 
         def build_surface_issuer(namespace)
           active_kid = ENV["JWT_#{namespace}_ACTIVE_KID"].presence
-          private_key = decode_private_key(creds_option("JWT_#{namespace}_PRIVATE_KEY"), source: "JWT_#{namespace}_PRIVATE_KEY")
-          current_public_jwk = active_kid && private_key ? export_public_jwk(private_key, kid: active_kid) : nil
-          legacy_jwks = parse_public_jwk_collection(ENV["JWT_#{namespace}_PUBLIC_KEYSET"], source: "JWT_#{namespace}_PUBLIC_KEYSET")
+          private_key = decode_private_key(
+            creds_option("JWT_#{namespace}_PRIVATE_KEY"),
+            source: "JWT_#{namespace}_PRIVATE_KEY",
+          )
+          current_public_jwk = (active_kid && private_key) ? export_public_jwk(private_key, kid: active_kid) : nil
+          legacy_jwks = parse_public_jwk_collection(
+            ENV["JWT_#{namespace}_PUBLIC_KEYSET"],
+            source: "JWT_#{namespace}_PUBLIC_KEYSET",
+          )
           revoked_kids = split_csv(ENV["JWT_#{namespace}_REVOKED_KIDS"]).to_set
           public_jwks = {}
           legacy_jwks.each { |kid, jwk| public_jwks[kid] = jwk }
           if active_kid && current_public_jwk && public_jwks[active_kid] && public_jwks[active_kid].except("state") != current_public_jwk
             raise ConfigurationError, "surface:#{namespace} active public JWK does not match active private key"
           end
+
           public_jwks[active_kid] = current_public_jwk.merge("state" => "active") if current_public_jwk
 
           keys = public_jwks.each_with_object({}) do |(kid, jwk), acc|
-            state = key_state_for(kid: kid, current_kid: active_kid, configured_state: jwk["state"], revoked_kids: revoked_kids)
+            state = key_state_for(
+              kid: kid, current_kid: active_kid, configured_state: jwk["state"],
+              revoked_kids: revoked_kids,
+            )
             acc[kid] = KeyRecord.new(
               kid: kid,
-              private_key: kid == active_kid ? private_key : nil,
+              private_key: (kid == active_kid) ? private_key : nil,
               public_key: JWT::JWK.import(jwk.except("state")).public_key,
               public_jwk: jwk.except("state"),
               state: state,
@@ -210,16 +228,21 @@ module Jit
         def validate_record!(record)
           return if record.current_kid.blank? && record.keys.empty?
           raise ConfigurationError, "#{record.id} active kid is missing" if record.current_kid.blank?
-          raise ConfigurationError, "#{record.id} active kid must not be #{DEFAULT_KID.inspect}" if insecure_default_kid?(record.current_kid)
-          raise ConfigurationError, "#{record.id} active key #{record.current_kid.inspect} is missing" unless record.keys.key?(record.current_kid)
-          raise ConfigurationError, "#{record.id} active key #{record.current_kid.inspect} is revoked" if record.revoked_kids.include?(record.current_kid)
+          raise ConfigurationError,
+                "#{record.id} active kid must not be #{DEFAULT_KID.inspect}" if insecure_default_kid?(record.current_kid)
+          raise ConfigurationError,
+                "#{record.id} active key #{record.current_kid.inspect} is missing" unless record.keys.key?(record.current_kid)
+          raise ConfigurationError,
+                "#{record.id} active key #{record.current_kid.inspect} is revoked" if record.revoked_kids.include?(record.current_kid)
 
           current = record.keys.fetch(record.current_kid)
           raise ConfigurationError, "#{record.id} active private key is missing" if current.private_key.nil?
 
           record.keys.each_value do |key|
             validate_public_jwk!(key.public_jwk, source: "#{record.id}:#{key.kid}")
-            raise ConfigurationError, "#{record.id}:#{key.kid} has invalid key state #{key.state.inspect}" unless %w(active grace retired revoked).include?(key.state)
+            raise ConfigurationError, "#{record.id}:#{key.kid} has invalid key state #{key.state.inspect}" unless %w(
+              active grace retired revoked
+            ).include?(key.state)
           end
         end
 
@@ -229,7 +252,8 @@ module Jit
             record.keys.each_key do |kid|
               previous = seen[kid]
               next if previous && previous != record.id && insecure_default_kid_allowed?(kid)
-              raise ConfigurationError, "duplicate JWT kid #{kid.inspect} in #{previous} and #{record.id}" if previous && previous != record.id
+              raise ConfigurationError,
+                    "duplicate JWT kid #{kid.inspect} in #{previous} and #{record.id}" if previous && previous != record.id
 
               seen[kid] = record.id
             end
@@ -244,7 +268,10 @@ module Jit
               private_key: nil,
               public_key: import_public_key(jwk),
               public_jwk: jwk.except("state"),
-              state: key_state_for(kid: kid, current_kid: current_kid, configured_state: jwk["state"], revoked_kids: revoked_kids),
+              state: key_state_for(
+                kid: kid, current_kid: current_kid, configured_state: jwk["state"],
+                revoked_kids: revoked_kids,
+              ),
             )
           end
 
@@ -253,7 +280,11 @@ module Jit
             if public_jwks[kid] && public_jwks[kid].except("state") != derived_jwk
               raise ConfigurationError, "active/private key #{kid.inspect} does not match configured public JWK"
             end
-            state = key_state_for(kid: kid, current_kid: current_kid, configured_state: public_jwks.dig(kid, "state"), revoked_kids: revoked_kids)
+
+            state = key_state_for(
+              kid: kid, current_kid: current_kid, configured_state: public_jwks.dig(kid, "state"),
+              revoked_kids: revoked_kids,
+            )
             merged[kid] = KeyRecord.new(
               kid: kid,
               private_key: private_key,
@@ -282,11 +313,12 @@ module Jit
             when Array
               parsed
             when Hash
-              if parsed["keys"].is_a?(Array)
-                parsed.fetch("keys")
-              else
+              unless parsed["keys"].is_a?(Array)
                 raise ConfigurationError, "#{source} must be a JWK Set object with keys array"
               end
+
+              parsed.fetch("keys")
+
             else
               raise ConfigurationError, "#{source} must be a JWK Set JSON object or array"
             end
@@ -312,7 +344,10 @@ module Jit
           raise ConfigurationError, "#{source} entry must be a JSON object" unless entry.is_a?(Hash)
 
           source_hash = entry.stringify_keys
-          raise ConfigurationError, "#{source} entry #{source_hash["kid"].inspect} contains private JWK material" if PRIVATE_JWK_FIELDS.any? { |field| source_hash.key?(field) }
+          raise ConfigurationError,
+                "#{source} entry #{source_hash["kid"].inspect} contains private JWK material" if PRIVATE_JWK_FIELDS.any? { |field|
+                                                                                                   source_hash.key?(field)
+                                                                                                 }
 
           jwk = source_hash.slice(*(REQUIRED_JWK_FIELDS + ["state"]))
           validate_public_jwk!(jwk, source: source)

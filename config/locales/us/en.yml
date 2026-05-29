@@ -17,6 +17,9 @@ en:
     support:
       fix_fk_dependency:
         apply: Applying FK Dependency Patch...
+  oidc:
+    rp_logout:
+      local_only: "This domain has been signed out. You are still signed in to sign. To sign out everywhere, use session management at %{idp_sessions_url}."
   tasks:
     preference_migration:
       warn_user: "  WARN: Failed to migrate user_id=%{user_id}: %{message}"

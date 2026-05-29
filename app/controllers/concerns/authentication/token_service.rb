@@ -13,7 +13,8 @@ module Authentication
     class << self
       def encode(resource, host:, resource_type: nil, dpop_jkt: nil, expires_at: nil,
                  session_public_id: nil, session_id: nil, oidc_sid: nil, oidc_jti: nil, preferences: nil,
-                 scopes: nil, acr: nil, amr: nil, access_token_ttl: 1.hour)
+                 scopes: nil, acr: nil, amr: nil, access_token_ttl: 1.hour, jwt_issuer_id: nil,
+                 issuer: nil, audiences: nil, subject: nil, auth_time: nil, step_up_until: nil)
         resource_type ||=
           case resource
           when ::Client then "client"
@@ -41,9 +42,15 @@ module Authentication
           acr: acr,
           amr: amr,
           dpop_jkt: dpop_jkt,
+          issuer: issuer,
+          audiences: audiences,
+          subject: subject,
+          auth_time: auth_time,
+          step_up_until: step_up_until,
         )
 
-        Jit::Security::Jwt::Keyring.encode(payload)
+        token_issuer_id = jwt_issuer_id.presence
+        token_issuer_id ? Jit::Security::Jwt::Keyring.encode(payload, issuer_id: token_issuer_id) : Jit::Security::Jwt::Keyring.encode(payload)
       rescue StandardError => e
         Rails.logger.error(
           LogEvent.format(
@@ -57,29 +64,31 @@ module Authentication
         nil
       end
 
-      def decode(token, host:, resource_type: nil, issuer: nil, audiences: nil)
+      def decode(token, host:, resource_type: nil, issuer: nil, audiences: nil, jwt_issuer_id: nil)
         decode_with_expiration(
           token, host: host, resource_type: resource_type, issuer: issuer,
-                 audiences: audiences, verify_exp: true,
+                 audiences: audiences, verify_exp: true, jwt_issuer_id: jwt_issuer_id,
         )
       end
 
-      def decode_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil)
+      def decode_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil, jwt_issuer_id: nil)
         decode_with_expiration(
           token, host: host, resource_type: resource_type, issuer: issuer,
-                 audiences: audiences, verify_exp: false,
+                 audiences: audiences, verify_exp: false, jwt_issuer_id: jwt_issuer_id,
         )
       end
 
-      def extract_session_id_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil)
+      def extract_session_id_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil,
+                                           jwt_issuer_id: nil)
         payload = decode_allow_expired(
           token, host: host, resource_type: resource_type,
-                 issuer: issuer, audiences: audiences,
+                 issuer: issuer, audiences: audiences, jwt_issuer_id: jwt_issuer_id,
         )
         Authorization::TokenClaims.session_id(payload) if payload.present?
       end
 
-      def decode_with_expiration(token, host:, resource_type: nil, issuer: nil, audiences: nil, verify_exp:)
+      def decode_with_expiration(token, host:, resource_type: nil, issuer: nil, audiences: nil, verify_exp:,
+                                 jwt_issuer_id: nil)
         return nil if token.blank? || host.blank?
 
         header = Jit::Security::Jwt::Keyring.parse_header(token)
@@ -88,7 +97,12 @@ module Authentication
           return nil
         end
 
-        public_key = Jit::Security::Jwt::Keyring.public_key_for(header["kid"])
+        public_key =
+          if jwt_issuer_id.present?
+            Jit::Security::Jwt::Keyring.public_key_for(header["kid"], issuer_id: jwt_issuer_id)
+          else
+            Jit::Security::Jwt::Keyring.public_key_for(header["kid"])
+          end
         if public_key.nil?
           Jit::Security::Jwt::AnomalyReporter.report_auth(
             resource_type: resource_type,

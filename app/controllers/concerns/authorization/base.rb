@@ -10,7 +10,7 @@ module Authorization
     # Action Policy is the authorization layer for this app. This legacy request
     # hook must never act as an implicit allow.
     def authorize_request!
-      raise "Authorization::Base#authorize_request! is disabled; authorize through Action Policy"
+      raise RuntimeError, "Authorization::Base#authorize_request! is disabled; authorize through Action Policy"
     end
   end
 end

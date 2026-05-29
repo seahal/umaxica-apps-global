@@ -66,11 +66,13 @@ module Oidc
         client_id: oidc_client_id,
         resource_type: oidc_resource_type,
         expected_nonce: session.delete(:oidc_nonce),
+        issuer: Oidc::Issuer.for_client(oidc_client),
+        jwt_issuer_id: Oidc::Issuer.jwt_issuer_id_for_client(oidc_client),
       )
     end
 
     def oidc_client_secret
-      Oidc::ClientRegistry.find(oidc_client_id)&.client_secret
+      oidc_client&.client_secret
     end
 
     def consume_oidc_pt
@@ -98,7 +100,11 @@ module Oidc
     end
 
     def oidc_resource_type
-      Oidc::ClientRegistry.find!(oidc_client_id).resource_type
+      Oidc::Issuer.resource_type_for_client(oidc_client)
+    end
+
+    def oidc_client
+      @oidc_client ||= Oidc::ClientRegistry.find!(oidc_client_id)
     end
 
     def oidc_client_id

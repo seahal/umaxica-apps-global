@@ -597,6 +597,51 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     assert_equal "invalid_request", result.error
   end
 
+  test "issues OIDC tokens with URL issuer public subject and split audiences" do
+    code_record = issue_code!(scope: "openid profile")
+
+    result =
+      with_authenticated_client do
+        Oidc::TokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core_app",
+          client_secret: @client_secret,
+          code_verifier: @code_verifier,
+        )
+      end
+
+    assert_predicate result, :success?
+
+    id_token = Oidc::IdTokenVerifier.call(
+      id_token: result.token_response.fetch(:id_token),
+      client_id: "core_app",
+      resource_type: "client",
+      expected_nonce: "test_nonce",
+      issuer: Oidc::Issuer.for_client(@client),
+      jwt_issuer_id: Oidc::Issuer.jwt_issuer_id_for_client(@client),
+    )
+    access_token = Authentication::TokenService.decode(
+      result.token_response.fetch(:access_token),
+      host: Oidc::Issuer.host_for_client(@client),
+      resource_type: "client",
+      issuer: Oidc::Issuer.for_client(@client),
+      audiences: [@client.aud],
+      jwt_issuer_id: Oidc::Issuer.jwt_issuer_id_for_client(@client),
+    )
+
+    assert_predicate id_token, :success?
+    assert_equal Oidc::Issuer.for_client(@client), id_token.payload.fetch("iss")
+    assert_equal Oidc::Subject.for(@user, resource_type: "client"), id_token.payload.fetch("sub")
+    assert_equal "core_app", id_token.payload.fetch("aud")
+    assert_equal Oidc::Issuer.for_client(@client), access_token.fetch("iss")
+    assert_equal Oidc::Subject.for(@user, resource_type: "client"), access_token.fetch("sub")
+    assert_equal [@client.aud], Array(access_token.fetch("aud"))
+    assert_equal %w(openid profile), access_token.fetch("scp")
+    assert_predicate access_token.fetch("auth_time"), :present?
+  end
+
   private
 
   def generate_dpop_jwk

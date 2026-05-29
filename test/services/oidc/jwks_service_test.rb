@@ -109,5 +109,4 @@ class Oidc::JwksServiceTest < ActiveSupport::TestCase
       y: "y-value",
     }
   end
-
 end

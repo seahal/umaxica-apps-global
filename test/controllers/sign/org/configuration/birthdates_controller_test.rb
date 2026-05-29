@@ -70,7 +70,7 @@ module Sign::Org::Configuration
 
       assert_response :redirect
       uri = URI.parse(response.location)
-      query = Rack::Utils.parse_nested_query(uri.query)
+      Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal "jump.umaxica.net", uri.host
       assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)

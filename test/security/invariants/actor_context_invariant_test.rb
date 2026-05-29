@@ -60,7 +60,8 @@ module Security
             end
           end
 
-        assert_empty offenders, "Actor.install_context! must stay inside request lifecycle boundaries:\n#{offenders.join("\n")}"
+        assert_empty offenders,
+                     "Actor.install_context! must stay inside request lifecycle boundaries:\n#{offenders.join("\n")}"
       end
 
       test "old Actor authentication and preference APIs are not used" do

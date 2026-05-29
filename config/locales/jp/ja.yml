@@ -21,6 +21,9 @@ ja:
   test:
     error:
       key: テストエラー
+  oidc:
+    rp_logout:
+      local_only: このドメインからログアウトしました。sign にはまだログイン中です。すべてのサービスからログアウトする場合は、sign のセッション管理で実行してください。%{idp_sessions_url}
   tasks:
     preference_migration:
       warn_user: "  WARN: user_id=%{user_id} の移行に失敗しました: %{message}"

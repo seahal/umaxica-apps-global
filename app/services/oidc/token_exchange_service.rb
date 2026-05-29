@@ -108,26 +108,29 @@ module Oidc
         refresh_plain = token_record.rotate_refresh_token!
         access_expires_at = now + Authentication::Base::ACCESS_TOKEN_TTL
 
-        id_host =
-          if operator_client?(client)
-            ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-          elsif visitor_client?(client)
-            ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-          else
-            ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-          end
+        resource_type = token_resource_type(client)
+        issuer = Oidc::Issuer.for_client(client)
+        subject = Oidc::Subject.for(resource, resource_type: resource_type)
+        oidc_sid = token_record_oidc_sid(token_record)
+        auth_time = authorization_code.created_at || now
 
         access_token = Authentication::TokenService.encode(
           resource,
-          host: id_host,
+          host: Oidc::Issuer.host_for_client(client),
           session_public_id: token_record.public_id,
-          oidc_sid: token_record_oidc_sid(token_record),
+          oidc_sid: oidc_sid,
           oidc_jti: token_record_oidc_jti(token_record),
-          resource_type: token_resource_type(client),
+          resource_type: resource_type,
           expires_at: access_expires_at,
+          scopes: authorization_code.scope.to_s.split,
           acr: authorization_code.acr,
           amr: Array(authorization_code.auth_method),
           dpop_jkt: dpop_jkt,
+          jwt_issuer_id: Oidc::Issuer.jwt_issuer_id_for_client(client),
+          issuer: issuer,
+          audiences: [client.aud],
+          subject: subject,
+          auth_time: auth_time,
         )
         id_token = Oidc::IdTokenIssuer.call(
           resource: resource,
@@ -136,6 +139,11 @@ module Oidc
           issued_at: now,
           acr: authorization_code.acr,
           amr: Array(authorization_code.auth_method),
+          jwt_issuer_id: Oidc::Issuer.jwt_issuer_id_for_client(client),
+          issuer: issuer,
+          subject: subject,
+          sid: oidc_sid,
+          auth_time: auth_time,
         )
 
         token_type = dpop_jkt.present? ? "DPoP" : "Bearer"
@@ -160,6 +168,8 @@ module Oidc
         oidc_connection_id: oidc_connection&.id,
         oidc_client_id: client.client_id,
         oidc_scope: oidc_scope,
+        oidc_sid: SecureRandom.uuid,
+        oidc_jti: SecureRandom.uuid,
       }
 
       if operator_client?(client)
@@ -209,11 +219,12 @@ module Oidc
 
     def token_record_oidc_sid(token_record)
       token_record_attribute(token_record, :oidc_sid).presence ||
-        token_record&.public_id
+        raise(ArgumentError, "OIDC token record is missing oidc_sid")
     end
 
     def token_record_oidc_jti(token_record)
-      token_record_attribute(token_record, :oidc_jti).presence
+      token_record_attribute(token_record, :oidc_jti).presence ||
+        raise(ArgumentError, "OIDC token record is missing oidc_jti")
     end
 
     def token_record_attribute(token_record, attribute)

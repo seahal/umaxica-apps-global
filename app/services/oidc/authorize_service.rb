@@ -54,7 +54,10 @@ module Oidc
       query_params << ["state", code_record.state] if code_record.state.present?
       uri.query = URI.encode_www_form(query_params)
 
-      Result.new(success: true, redirect_url: uri.to_s, redirect_uri: code_record.redirect_uri, error: nil, error_description: nil)
+      Result.new(
+        success: true, redirect_url: uri.to_s, redirect_uri: code_record.redirect_uri, error: nil,
+        error_description: nil,
+      )
     end
 
     def normalize_default_port!(uri)

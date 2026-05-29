@@ -1387,13 +1387,17 @@ module Authentication
         dpop_proof: dpop_proof,
         request_method: request.request_method,
         request_uri: request.original_url,
+        jwt_issuer_id: auth_jwt_issuer_id,
       ).call
 
       if result.resource.blank? && (authorization_scheme.to_s.casecmp?("DPoP") || dpop_proof.present?)
         response.headers["DPoP-Nonce"] = Dpop::NonceService.generate(resource_type: resource_type) if defined?(Dpop::NonceService)
       end
 
-      remember_authentication_resolution!(result, authorization_scheme: authorization_scheme, access_token: access_token)
+      remember_authentication_resolution!(
+        result, authorization_scheme: authorization_scheme,
+                access_token: access_token,
+      )
       emit_actor_mismatch_event(result.payload) if result.failure_reason == :actor_mismatch
       @current_session_public_id = result.session_public_id if result.session_public_id.present?
       @current_token_public_id = result.token_public_id if result.token_public_id.present?

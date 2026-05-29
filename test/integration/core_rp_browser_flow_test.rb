@@ -96,7 +96,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal surface[:sign_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
-      assert_equal Oidc::ClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
+      assert_nil query["redirect_uri"]
     end
   end
 
@@ -134,7 +134,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "regional core logout redirects to IdP logout" do
+  test "regional core logout clears only RP session and redirects locally with IdP guidance" do
     SURFACES.each do |surface|
       host! surface[:host]
       https!
@@ -142,14 +142,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       post "/sso/logout", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(jump_rt_url_from_location(response.location))
-      query = Rack::Utils.parse_nested_query(uri.query)
-
-      assert_equal surface[:sign_host], uri.host
-      assert_equal "/oidc/logout", uri.path
-      assert_equal surface[:client_id], query["client_id"]
-      assert_predicate query["logout_request"], :present?
-      assert_nil query["post_logout_redirect_uri"]
+      assert_equal "https://#{surface[:host]}/", response.location
+      assert_match "/configuration/sessions", flash[:notice]
+      assert_match surface[:sign_host], flash[:notice]
     end
   end
 

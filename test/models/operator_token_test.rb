@@ -6,35 +6,40 @@
 # Table name: operator_tokens
 # Database name: org_ticket
 #
-#  id                            :bigint           not null, primary key
-#  dbsc_challenge                :text
-#  dbsc_challenge_issued_at      :datetime
-#  dbsc_public_key               :jsonb
-#  discarded_at                  :datetime         default(Infinity), not null
-#  dpop_jkt                      :string
-#  last_step_up_at               :datetime
-#  last_step_up_scope            :string
-#  last_used_at                  :datetime
-#  oidc_jti                      :uuid
-#  oidc_scope                    :string
-#  oidc_sid                      :uuid
-#  purged_at                     :datetime         default(Infinity), not null
-#  refresh_token_digest          :binary
-#  refresh_token_generation      :integer          default(0), not null
-#  rotated_at                    :datetime
-#  created_at                    :datetime         not null
-#  updated_at                    :datetime         not null
-#  dbsc_session_id               :string
-#  device_session_id             :bigint
-#  oidc_client_id                :string(64)
-#  oidc_connection_id            :bigint
-#  public_id                     :string(21)       default(""), not null
-#  refresh_token_family_id       :string
-#  staff_id                      :bigint           not null
-#  staff_token_binding_method_id :bigint           default(0), not null
-#  staff_token_dbsc_status_id    :bigint           default(0), not null
-#  staff_token_kind_id           :bigint           default(1), not null
-#  staff_token_status_id         :bigint           default(1), not null
+#  id                             :bigint           not null, primary key
+#  dbsc_challenge                 :text
+#  dbsc_challenge_issued_at       :datetime
+#  dbsc_public_key                :jsonb
+#  discarded_at                   :datetime         default(Infinity), not null
+#  dpop_jkt                       :string
+#  last_step_up_aal               :string
+#  last_step_up_at                :datetime
+#  last_step_up_audience          :string
+#  last_step_up_method            :string
+#  last_step_up_purpose           :string
+#  last_step_up_scope             :string
+#  last_used_at                   :datetime
+#  oidc_jti                       :uuid
+#  oidc_scope                     :string
+#  oidc_sid                       :uuid
+#  purged_at                      :datetime         default(Infinity), not null
+#  refresh_token_digest           :binary
+#  refresh_token_generation       :integer          default(0), not null
+#  rotated_at                     :datetime
+#  created_at                     :datetime         not null
+#  updated_at                     :datetime         not null
+#  dbsc_session_id                :string
+#  device_session_id              :bigint
+#  last_step_up_session_public_id :string
+#  oidc_client_id                 :string(64)
+#  oidc_connection_id             :bigint
+#  public_id                      :string(21)       default(""), not null
+#  refresh_token_family_id        :string
+#  staff_id                       :bigint           not null
+#  staff_token_binding_method_id  :bigint           default(0), not null
+#  staff_token_dbsc_status_id     :bigint           default(0), not null
+#  staff_token_kind_id            :bigint           default(1), not null
+#  staff_token_status_id          :bigint           default(1), not null
 #
 # Indexes
 #

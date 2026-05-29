@@ -2675,7 +2675,7 @@ ALTER TABLE ONLY public.visitor_preference_languages
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_24dd59e35d FOREIGN KEY (from_status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_24dd59e35d FOREIGN KEY (from_status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id);
 
 
 --
@@ -2699,7 +2699,7 @@ ALTER TABLE ONLY public.visitor_secrets
 --
 
 ALTER TABLE ONLY public.visitor_banners
-    ADD CONSTRAINT fk_rails_329012d103 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_329012d103 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
 
 
 --
@@ -2739,7 +2739,7 @@ ALTER TABLE ONLY public.visitor_passkeys
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_cycles
-    ADD CONSTRAINT fk_rails_3e7b55d34f FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_3e7b55d34f FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
 
 
 --
@@ -2771,7 +2771,7 @@ ALTER TABLE ONLY public.visitor_preference_date_formats
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_55a6a6bfd5 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_55a6a6bfd5 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
 
 
 --
@@ -2787,7 +2787,7 @@ ALTER TABLE ONLY public.visitor_preference_themes
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_606617dd12 FOREIGN KEY (visitor_withdrawal_cycle_id) REFERENCES public.visitor_withdrawal_cycles(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_606617dd12 FOREIGN KEY (visitor_withdrawal_cycle_id) REFERENCES public.visitor_withdrawal_cycles(id);
 
 
 --
@@ -2827,7 +2827,7 @@ ALTER TABLE ONLY public.visitor_preference_regions
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_cycles
-    ADD CONSTRAINT fk_rails_8021cd7888 FOREIGN KEY (status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_8021cd7888 FOREIGN KEY (status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id);
 
 
 --
@@ -2891,7 +2891,7 @@ ALTER TABLE ONLY public.visitors
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_bb8f094ca9 FOREIGN KEY (to_status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_bb8f094ca9 FOREIGN KEY (to_status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id);
 
 
 --

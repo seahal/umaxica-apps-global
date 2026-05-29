@@ -160,21 +160,16 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "logout is full logout redirect to IdP logout" do
+  test "logout clears only RP session and redirects locally with IdP session-management guidance" do
     SURFACES.each do |surface|
       host! surface[:host]
 
       post "/sso/logout", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(jump_rt_url_from_location(response.location))
-      query = Rack::Utils.parse_nested_query(uri.query)
-
-      assert_equal surface[:sign_host], uri.host
-      assert_equal "/oidc/logout", uri.path
-      assert_equal surface[:client_id], query["client_id"]
-      assert_predicate query["logout_request"], :present?
-      assert_nil query["post_logout_redirect_uri"]
+      assert_equal "http://#{surface[:host]}/", response.location
+      assert_match "/configuration/sessions", flash[:notice]
+      assert_match surface[:sign_host], flash[:notice]
     end
   end
 

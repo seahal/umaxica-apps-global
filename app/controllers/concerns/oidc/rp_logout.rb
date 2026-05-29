@@ -11,24 +11,34 @@ module Oidc
 
     def create
       log_out
-      redirect_to_jump_url(oidc_logout_url)
+      redirect_to(
+        "/",
+        notice: rp_local_logout_notice,
+        allow_other_host: false,
+        status: :see_other,
+      )
     end
 
     private
 
-    def oidc_logout_url
+    def rp_local_logout_notice
+      I18n.t(
+        "oidc.rp_logout.local_only",
+        # rubocop:disable I18n/RailsI18n/DecorateString
+        default: "This domain has been signed out. You are still signed in to sign. To sign out everywhere, use session management at %{idp_sessions_url}.",
+        idp_sessions_url: idp_session_management_url,
+      )
+    end
+
+    def idp_session_management_url
       ri = params[:ri].presence || "jp"
       uri = URI::Generic.build(
         scheme: oidc_sign_scheme,
         host: oidc_sign_host,
         port: oidc_port,
-        path: "/oidc/logout",
+        path: "/configuration/sessions",
       )
-      uri.query = {
-        client_id: oidc_client_id,
-        logout_request: Oidc::LogoutRequest.issue(client_id: oidc_client_id, ri: ri),
-        ri: ri,
-      }.to_query
+      uri.query = { ri: ri }.to_query
       uri.to_s
     end
 

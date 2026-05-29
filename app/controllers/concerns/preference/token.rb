@@ -13,22 +13,35 @@ module Preference
     TOKEN_TYPE = "preference-access-token"
 
     class << self
-      def encode(preferences, host:, preference_type:, public_id:, jti:)
+      def encode(preferences, host:, preference_type:, public_id:, jti:, jwt_issuer_id: nil)
         return nil unless valid_encode_params?(preferences, host, preference_type, public_id, jti)
 
         payload = build_payload(preferences, host, preference_type, public_id, jti)
+        issuer_id = jwt_issuer_id.presence || "preference"
         JWT.encode(
           payload,
-          JwtConfiguration.private_key_for_active,
+          jwt_private_key_for_active(issuer_id),
           JWT_ALGORITHM,
-          { kid: JwtConfiguration.active_kid, typ: TOKEN_TYPE },
+          { kid: jwt_active_kid(issuer_id), typ: TOKEN_TYPE },
         )
       rescue StandardError => e
         Rails.logger.error(LogEvent.format("preference.token.encoding_failed", error_class: e.class.name))
         nil
       end
 
-      def decode(token, host:)
+      def jwt_active_kid(issuer_id)
+        return JwtConfiguration.active_kid if issuer_id == "preference"
+
+        JwtConfiguration.active_kid(issuer_id)
+      end
+
+      def jwt_private_key_for_active(issuer_id)
+        return JwtConfiguration.private_key_for_active if issuer_id == "preference"
+
+        JwtConfiguration.private_key_for_active(issuer_id)
+      end
+
+      def decode(token, host:, jwt_issuer_id: nil)
         return nil if token.blank? || host.blank?
 
         header = JwtConfiguration.parse_header(token)
@@ -37,7 +50,8 @@ module Preference
           return nil
         end
 
-        public_key = JwtConfiguration.public_key_for(header["kid"])
+        issuer_id = jwt_issuer_id.presence || "preference"
+        public_key = resolve_public_key(header, issuer_id)
         if public_key.nil?
           Jit::Security::Jwt::AnomalyReporter.report_preference(
             host: host,

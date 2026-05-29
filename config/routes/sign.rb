@@ -13,6 +13,11 @@ scope module: :sign, as: :sign do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      resource :openid_configuration,
+               only: :show,
+               path: ".well-known/openid-configuration",
+               controller: "openid_configurations",
+               format: false
 
       # Basic public endpoints
       resource :health, only: :show
@@ -207,6 +212,8 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
+        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
+        resource :revocation, only: :create, path: "revoke", controller: "revocations"
         resource :jwks, only: :show
       end
 
@@ -271,6 +278,11 @@ scope module: :sign, as: :sign do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      resource :openid_configuration,
+               only: :show,
+               path: ".well-known/openid-configuration",
+               controller: "openid_configurations",
+               format: false
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
@@ -421,6 +433,8 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
+        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
+        resource :revocation, only: :create, path: "revoke", controller: "revocations"
         resource :jwks, only: :show
       end
 
@@ -473,6 +487,11 @@ scope module: :sign, as: :sign do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      resource :openid_configuration,
+               only: :show,
+               path: ".well-known/openid-configuration",
+               controller: "openid_configurations",
+               format: false
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
@@ -626,6 +645,8 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
+        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
+        resource :revocation, only: :create, path: "revoke", controller: "revocations"
         resource :jwks, only: :show
       end
 

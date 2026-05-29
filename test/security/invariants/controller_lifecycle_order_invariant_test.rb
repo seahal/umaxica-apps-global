@@ -20,21 +20,21 @@ module Security
         Sign::Org::ApplicationController,
       ].freeze
 
-      REQUIRED_ORDER = [
-        :check_default_rate_limit,
-        :set_current_context,
-        :reset_flash,
-        :set_preferences_cookie,
-        :resolve_param_context,
-        :set_region,
-        :transparent_refresh_access_token,
-        :set_current_actor,
-        :apply_localization_preferences,
-        :set_color_theme,
-        :enforce_verification_if_required,
-        :enforce_access_policy!,
-        :set_current_observability,
-      ].freeze
+      REQUIRED_ORDER = %i(
+        check_default_rate_limit
+        set_current_context
+        reset_flash
+        set_preferences_cookie
+        resolve_param_context
+        set_region
+        transparent_refresh_access_token
+        set_current_actor
+        apply_localization_preferences
+        set_color_theme
+        enforce_verification_if_required
+        enforce_access_policy!
+        set_current_observability
+      ).freeze
 
       test "authenticated surface application controllers keep reviewed lifecycle order" do
         violations =
@@ -74,10 +74,11 @@ module Security
       end
 
       def out_of_order_filters(filters)
-        positions = REQUIRED_ORDER.filter_map do |filter|
-          index = filters.index(filter)
-          [filter, index] if index
-        end
+        positions =
+          REQUIRED_ORDER.filter_map do |filter|
+            index = filters.index(filter)
+            [filter, index] if index
+          end
 
         positions.each_cons(2).filter_map do |(left_filter, left_index), (right_filter, right_index)|
           next if left_index < right_index

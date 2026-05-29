@@ -43,7 +43,8 @@ module Security
             end
           end
 
-        assert_empty offenders, "OAuth token endpoints must not mutate browser session/cookies:\n#{offenders.join("\n")}"
+        assert_empty offenders,
+                     "OAuth token endpoints must not mutate browser session/cookies:\n#{offenders.join("\n")}"
       end
     end
   end

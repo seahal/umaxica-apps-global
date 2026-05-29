@@ -71,6 +71,16 @@ module Oidc
       clients.keys
     end
 
+    def audiences_for_resource_type(resource_type)
+      normalized_resource_type = normalize_resource_type(resource_type)
+
+      clients.values.filter_map do |config|
+        next unless normalize_resource_type(config[:resource_type]) == normalized_resource_type
+
+        config[:aud]
+      end.uniq
+    end
+
     # --- private ---
 
     def clients
@@ -216,7 +226,16 @@ module Oidc
       :"OIDC_CLIENT_SECRETS_#{client_id.to_s.upcase}"
     end
 
+    def normalize_resource_type(resource_type)
+      case resource_type.to_s
+      when "operator", "staff" then "operator"
+      when "visitor", "customer" then "visitor"
+      else "client"
+      end
+    end
+
     private_class_method :clients, :build_clients, :build_redirect_uris, :public_host?,
-                         :resolve_secret, :domains_from_redirect_uris, :credential_key_for
+                         :resolve_secret, :domains_from_redirect_uris, :credential_key_for,
+                         :normalize_resource_type
   end
 end

@@ -18,6 +18,7 @@ module Authentication
         preferences: build_auth_preference_snapshot(resource),
         acr: "aal1",
         amr: normalize_amr(token_kind_id),
+        jwt_issuer_id: auth_jwt_issuer_id,
       )
     end
 
@@ -36,6 +37,7 @@ module Authentication
         preferences: build_auth_preference_snapshot(resource),
         acr: "aal1",
         amr: nil,
+        jwt_issuer_id: auth_jwt_issuer_id,
       )
     end
 
@@ -48,6 +50,7 @@ module Authentication
         access_token,
         host: request.host,
         resource_type: resource_type,
+        jwt_issuer_id: auth_jwt_issuer_id,
       )
     end
 
@@ -114,6 +117,7 @@ module Authentication
         dpop_jkt: token_record_attribute(current_session, :dpop_jkt),
         expires_at: access_expires_at,
         preferences: build_auth_preference_snapshot(resource),
+        jwt_issuer_id: auth_jwt_issuer_id,
       )
       return unless new_access_token
 
@@ -128,6 +132,30 @@ module Authentication
 
     def access_token_expires_at_for(token_record, now: Time.current)
       [now + Authentication::Base::ACCESS_TOKEN_TTL, token_record_expiry_at(token_record)].compact.min
+    end
+
+    def auth_jwt_issuer_id
+      "surface:#{auth_jwt_namespace}"
+    end
+
+    def auth_jwt_namespace
+      return "SIGN_#{resource_surface_key.to_s.upcase}" unless respond_to?(:controller_path)
+
+      service, surface = controller_path.to_s.split("/", 3)
+      service = service.to_s.upcase
+      surface = surface.to_s.upcase
+      namespace = "#{service}_#{surface}"
+      return namespace if Jit::Security::Jwt::Registry::SURFACE_NAMESPACES.include?(namespace)
+
+      "SIGN_#{resource_surface_key.to_s.upcase}"
+    end
+
+    def resource_surface_key
+      case resource_type
+      when "operator" then "org"
+      when "visitor" then "com"
+      else "app"
+      end
     end
   end
 end

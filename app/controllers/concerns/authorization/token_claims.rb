@@ -7,7 +7,7 @@ module Authorization
 
     def build(resource:, session_id: nil, session_public_id: nil, oidc_sid: nil, oidc_jti: nil, resource_type:,
               issued_at:, access_token_ttl:, expires_at: nil, preferences: nil, scopes: nil, acr: nil, amr: nil,
-              dpop_jkt: nil)
+              dpop_jkt: nil, issuer: nil, audiences: nil, subject: nil, auth_time: nil, step_up_until: nil)
       sid = oidc_sid.presence || session_public_id || session_id
       issued_at_seconds = timestamp_value(issued_at)
       expires_at_seconds = timestamp_value(expires_at || (issued_at + access_token_ttl))
@@ -18,16 +18,18 @@ module Authorization
         "iat" => issued_at_seconds,
         "exp" => expires_at_seconds,
         "jti" => oidc_jti.presence || Jit::Security::Jwt::JtiGenerator.generate,
-        "sub" => resource.id,
+        "sub" => subject.presence || resource.id,
         "act" => resource_type,
         "typ" => token_type,
-        "iss" => Authentication::Base::JwtConfiguration.issuer(resource_type),
-        "aud" => Authentication::Base::JwtConfiguration.audiences(resource_type),
+        "iss" => issuer.presence || Authentication::Base::JwtConfiguration.issuer(resource_type),
+        "aud" => audiences.presence || Authentication::Base::JwtConfiguration.audiences(resource_type),
         "scp" => scopes_value,
         "acr" => normalize_acr(acr),
       }
       payload["amr"] = Array(amr) if amr.present?
       payload["sid"] = sid if sid.present?
+      payload["auth_time"] = timestamp_value(auth_time) if auth_time.present?
+      payload["step_up_until"] = timestamp_value(step_up_until) if step_up_until.present?
       payload["prf"] = preferences if preferences.is_a?(Hash) && preferences.present?
       payload["cnf"] = { "jkt" => dpop_jkt } if dpop_jkt.present?
       payload

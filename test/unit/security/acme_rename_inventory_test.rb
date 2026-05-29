@@ -35,19 +35,20 @@ module Security
     ].freeze
 
     test "old Apex RP boundary names are absent outside DNS apex terminology" do
-      offenders = scanned_files.flat_map do |path|
-        relative = path.relative_path_from(Rails.root).to_s
-        next [] if relative == "test/unit/security/acme_rename_inventory_test.rb"
+      offenders =
+        scanned_files.flat_map do |path|
+          relative = path.relative_path_from(Rails.root).to_s
+          next [] if relative == "test/unit/security/acme_rename_inventory_test.rb"
 
-        content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
+          content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
 
-        content.each_line.with_index(1).filter_map do |line, line_number|
-          next if dns_apex_line_allowed?(relative, line)
-          next unless OLD_BOUNDARY_PATTERNS.any? { |pattern| line.match?(pattern) }
+          content.each_line.with_index(1).filter_map do |line, line_number|
+            next if dns_apex_line_allowed?(relative, line)
+            next unless OLD_BOUNDARY_PATTERNS.any? { |pattern| line.match?(pattern) }
 
-          "#{relative}:#{line_number}: #{line.strip}"
+            "#{relative}:#{line_number}: #{line.strip}"
+          end
         end
-      end
 
       assert_empty offenders, "Old Apex RP boundary names remain:\n#{offenders.join("\n")}"
     end
@@ -58,6 +59,7 @@ module Security
       assert_respond_to Rails.application.routes.url_helpers, :acme_org_root_path
 
       client_ids = Oidc::ClientRegistry.client_ids
+
       assert_includes client_ids, "acme_app"
       assert_includes client_ids, "acme_com"
       assert_includes client_ids, "acme_org"

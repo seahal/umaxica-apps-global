@@ -32,7 +32,7 @@ module Sign
         sign_up_session_state.clear_all!
         redirect_to(
           sign_up_restart_path,
-          alert: I18n.t("sign.#{sign_up_surface}.registration.session_missing"),
+          alert: I18n.t("sign.%{surface}.registration.session_missing", surface: sign_up_surface),
         )
       end
 

@@ -1545,7 +1545,7 @@ CREATE INDEX index_com_preferences_on_used_at ON public.com_preferences USING bt
 --
 
 ALTER TABLE ONLY public.com_preference_languages
-    ADD CONSTRAINT fk_com_preference_languages_on_option_id FOREIGN KEY (option_id) REFERENCES public.com_preference_language_options(id) NOT VALID;
+    ADD CONSTRAINT fk_com_preference_languages_on_option_id FOREIGN KEY (option_id) REFERENCES public.com_preference_language_options(id);
 
 
 --
@@ -1553,7 +1553,7 @@ ALTER TABLE ONLY public.com_preference_languages
 --
 
 ALTER TABLE ONLY public.com_preference_regions
-    ADD CONSTRAINT fk_com_preference_regions_on_option_id FOREIGN KEY (option_id) REFERENCES public.com_preference_region_options(id) NOT VALID;
+    ADD CONSTRAINT fk_com_preference_regions_on_option_id FOREIGN KEY (option_id) REFERENCES public.com_preference_region_options(id);
 
 
 --
@@ -1561,7 +1561,7 @@ ALTER TABLE ONLY public.com_preference_regions
 --
 
 ALTER TABLE ONLY public.com_preference_themes
-    ADD CONSTRAINT fk_com_preference_themes_on_option_id FOREIGN KEY (option_id) REFERENCES public.com_preference_theme_options(id) NOT VALID;
+    ADD CONSTRAINT fk_com_preference_themes_on_option_id FOREIGN KEY (option_id) REFERENCES public.com_preference_theme_options(id);
 
 
 --
@@ -1569,7 +1569,7 @@ ALTER TABLE ONLY public.com_preference_themes
 --
 
 ALTER TABLE ONLY public.com_preference_timezones
-    ADD CONSTRAINT fk_com_preference_timezones_on_option_id FOREIGN KEY (option_id) REFERENCES public.com_preference_timezone_options(id) NOT VALID;
+    ADD CONSTRAINT fk_com_preference_timezones_on_option_id FOREIGN KEY (option_id) REFERENCES public.com_preference_timezone_options(id);
 
 
 --
@@ -1577,7 +1577,7 @@ ALTER TABLE ONLY public.com_preference_timezones
 --
 
 ALTER TABLE ONLY public.com_preferences
-    ADD CONSTRAINT fk_com_preferences_on_binding_method_id FOREIGN KEY (binding_method_id) REFERENCES public.com_preference_binding_methods(id) NOT VALID;
+    ADD CONSTRAINT fk_com_preferences_on_binding_method_id FOREIGN KEY (binding_method_id) REFERENCES public.com_preference_binding_methods(id);
 
 
 --
@@ -1585,7 +1585,7 @@ ALTER TABLE ONLY public.com_preferences
 --
 
 ALTER TABLE ONLY public.com_preferences
-    ADD CONSTRAINT fk_com_preferences_on_dbsc_status_id FOREIGN KEY (dbsc_status_id) REFERENCES public.com_preference_dbsc_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_com_preferences_on_dbsc_status_id FOREIGN KEY (dbsc_status_id) REFERENCES public.com_preference_dbsc_statuses(id);
 
 
 --
@@ -1593,7 +1593,7 @@ ALTER TABLE ONLY public.com_preferences
 --
 
 ALTER TABLE ONLY public.com_preferences
-    ADD CONSTRAINT fk_com_preferences_on_status_id FOREIGN KEY (status_id) REFERENCES public.com_preference_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_com_preferences_on_status_id FOREIGN KEY (status_id) REFERENCES public.com_preference_statuses(id);
 
 
 --
@@ -1601,7 +1601,7 @@ ALTER TABLE ONLY public.com_preferences
 --
 
 ALTER TABLE ONLY public.com_preference_languages
-    ADD CONSTRAINT fk_rails_0b04f4dc33 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_0b04f4dc33 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id);
 
 
 --
@@ -1617,7 +1617,7 @@ ALTER TABLE ONLY public.com_preference_items_per_pages
 --
 
 ALTER TABLE ONLY public.com_preferences
-    ADD CONSTRAINT fk_rails_1c704c910f FOREIGN KEY (replaced_by_id) REFERENCES public.com_preferences(id) ON DELETE SET NULL NOT VALID;
+    ADD CONSTRAINT fk_rails_1c704c910f FOREIGN KEY (replaced_by_id) REFERENCES public.com_preferences(id) ON DELETE SET NULL;
 
 
 --
@@ -1641,7 +1641,7 @@ ALTER TABLE ONLY public.com_preference_motions
 --
 
 ALTER TABLE ONLY public.com_preference_timezones
-    ADD CONSTRAINT fk_rails_2fe4a93e4f FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_2fe4a93e4f FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id);
 
 
 --
@@ -1737,7 +1737,7 @@ ALTER TABLE ONLY public.com_preference_densities
 --
 
 ALTER TABLE ONLY public.com_preference_regions
-    ADD CONSTRAINT fk_rails_da840219b9 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_da840219b9 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id);
 
 
 --
@@ -1745,7 +1745,7 @@ ALTER TABLE ONLY public.com_preference_regions
 --
 
 ALTER TABLE ONLY public.com_preference_cookies
-    ADD CONSTRAINT fk_rails_e59f447fe4 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_e59f447fe4 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id);
 
 
 --
@@ -1753,7 +1753,7 @@ ALTER TABLE ONLY public.com_preference_cookies
 --
 
 ALTER TABLE ONLY public.com_preference_themes
-    ADD CONSTRAINT fk_rails_ff9fc0eb33 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_ff9fc0eb33 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id);
 
 
 --

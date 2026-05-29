@@ -72,6 +72,7 @@ module Jit
 
             assert_nil Registry.public_key_for("surface:SIGN_APP", "legacy-kid")
             kids = Registry.jwks_for("surface:SIGN_APP").fetch(:keys).map { |jwk| jwk.fetch("kid") }
+
             assert_not_includes kids, "legacy-kid"
           end
         end
@@ -135,10 +136,20 @@ module Jit
             JSON.generate(keys: [Registry.export_public_jwk(@preference_legacy_key, kid: "pref-legacy-kid")])
 
           creds = {
-            AUTH_JWT_PRIVATE_KEYSET: JSON.generate((env["AUTH_JWT_ACTIVE_KID"] || "auth-kid") => base64_der(@auth_key)),
-            AUTH_JWT_PUBLIC_KEYSET: JSON.generate(keys: [Registry.export_public_jwk(@auth_legacy_key, kid: "auth-legacy-kid")]),
-            PREFERENCE_JWT_PRIVATE_KEYSET: JSON.generate((env["PREFERENCE_JWT_ACTIVE_KID"] || "pref-kid") => base64_der(@preference_key)),
-            PREFERENCE_JWT_PUBLIC_KEYSET: JSON.generate(keys: [Registry.export_public_jwk(@preference_legacy_key, kid: "pref-legacy-kid")]),
+            :AUTH_JWT_PRIVATE_KEYSET => JSON.generate((env["AUTH_JWT_ACTIVE_KID"] || "auth-kid") => base64_der(@auth_key)),
+            :AUTH_JWT_PUBLIC_KEYSET => JSON.generate(
+              keys: [Registry.export_public_jwk(
+                @auth_legacy_key,
+                kid: "auth-legacy-kid",
+              )],
+            ),
+            :PREFERENCE_JWT_PRIVATE_KEYSET => JSON.generate((env["PREFERENCE_JWT_ACTIVE_KID"] || "pref-kid") => base64_der(@preference_key)),
+            :PREFERENCE_JWT_PUBLIC_KEYSET => JSON.generate(
+              keys: [Registry.export_public_jwk(
+                @preference_legacy_key,
+                kid: "pref-legacy-kid",
+              )],
+            ),
             "JWT_SIGN_APP_PRIVATE_KEY" => base64_der(@surface_key),
           }
 
