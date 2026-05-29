@@ -5,7 +5,7 @@ module Sign
   module Com
     module Configuration
       module Emails
-        class RegistrationsController < PrivateController
+        class RegistrationsController < Sign::Com::ApplicationController
           include ::CloudflareTurnstile
 
           include Common::Otp

@@ -27,13 +27,14 @@ class JumpBoundaryControllerTest < ActionDispatch::IntegrationTest
     Actor.reset
   end
 
-  test "jump bare controllers inherit from their surface application controller" do
+  test "jump bare controllers inherit directly from ActionController base" do
     [
       Jump::App::BareController,
       Jump::Com::BareController,
       Jump::Org::BareController,
     ].each do |controller|
-      assert_equal controller.module_parent::ApplicationController, controller.superclass
+      assert_equal ActionController::Base, controller.superclass
+      assert_not_operator controller, :<, controller.module_parent::ApplicationController
     end
   end
 

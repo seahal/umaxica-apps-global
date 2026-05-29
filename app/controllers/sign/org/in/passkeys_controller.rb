@@ -16,7 +16,7 @@ module Sign
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, identifier is required to look up
       # the operator's registered passkeys.
-      class PasskeysController < GuestController
+      class PasskeysController < Sign::Org::ApplicationController
         include Sign::Webauthn
 
         include Sign::PasskeyAuthentication

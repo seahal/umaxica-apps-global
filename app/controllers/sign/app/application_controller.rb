@@ -71,6 +71,7 @@ module Sign
 
       private
 
+      # TODO: check this public method. I think we remove this method.
       # App surface lands signed-in users on the dashboard rather than the
       # default root, so that an already-logged-in user opening /sign/in or
       # /sign/up arrives at something useful. ri is appended via

@@ -63,7 +63,7 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   end
 
   test "update rejects generic verification step-up scope" do
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "verification")
+    mark_token_step_up_satisfied_for_test(@token, scope: "verification")
 
     patch sign_app_configuration_withdrawal_url(ri: "jp"),
           params: { ack_deactivate_today: "1" },
@@ -75,7 +75,7 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   end
 
   test "update rejects unrelated step-up scope" do
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
+    mark_token_step_up_satisfied_for_test(@token, scope: "configuration_email")
 
     patch sign_app_configuration_withdrawal_url(ri: "jp"),
           params: { ack_deactivate_today: "1" },
@@ -87,7 +87,7 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   end
 
   test "update rejects expired withdrawal step-up" do
-    @token.update!(last_step_up_at: 16.minutes.ago, last_step_up_scope: "withdrawal")
+    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal", at: 16.minutes.ago)
 
     patch sign_app_configuration_withdrawal_url(ri: "jp"),
           params: { ack_deactivate_today: "1" },
@@ -174,7 +174,7 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
       discarded_at: 1.day.from_now,
       purged_at: 21.days.from_now,
     )
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_email")
+    mark_token_step_up_satisfied_for_test(@token, scope: "configuration_email")
 
     post sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
 
@@ -190,7 +190,7 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
       discarded_at: 1.day.from_now,
       purged_at: 23.days.from_now,
     )
-    @token.update!(last_step_up_at: 16.minutes.ago, last_step_up_scope: "withdrawal")
+    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal", at: 16.minutes.ago)
 
     delete sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
 
@@ -280,7 +280,7 @@ class Sign::App::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
   private
 
   def perform_withdrawal_step_up!
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
+    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
   end
 
   def clear_withdrawal_step_up!

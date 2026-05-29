@@ -1,5 +1,7 @@
 # typed: false
 # frozen_string_literal: true
+# TODO: what is this file? i think this file is so nasty for rails way.
+
 
 module Sign
   module App

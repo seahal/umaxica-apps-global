@@ -64,7 +64,7 @@ scope module: :acme, as: :acme do
               get :stopped
             end
             resource :open, only: %i(show create), controller: "open_smokes"
-            resource :private, only: %i(show create), controller: "private"
+            resource :private, only: %i(show create), controller: "private_smokes"
           end
         end
       end

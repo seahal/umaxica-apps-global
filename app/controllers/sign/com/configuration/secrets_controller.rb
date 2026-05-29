@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Configuration
-      class SecretsController < PrivateController
+      class SecretsController < Sign::Com::ApplicationController
         include ::Verification::Visitor
 
         include ::Sign::Configuration::SecretTurnstileGuard

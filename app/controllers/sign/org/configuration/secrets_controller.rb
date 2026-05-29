@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class SecretsController < PrivateController
+      class SecretsController < Sign::Org::ApplicationController
         include ::Verification::Operator
 
         include ::Sign::Configuration::SecretTurnstileGuard

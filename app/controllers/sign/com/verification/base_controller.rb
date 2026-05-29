@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Verification
-      class BaseController < Sign::Com::PrivateController
+      class BaseController < Sign::Com::ApplicationController
         include Sign::ComVerificationBase
 
         AUTHENTICATION_MODE = :private

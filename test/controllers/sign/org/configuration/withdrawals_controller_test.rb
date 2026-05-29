@@ -11,7 +11,7 @@ class Sign::Org::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff)
     satisfy_staff_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
+    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
   end
 
   def authenticated_headers

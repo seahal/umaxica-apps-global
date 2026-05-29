@@ -4,7 +4,7 @@
 module Sign
   module App
     module In
-      class SecretsController < GuestController
+      class SecretsController < Sign::App::ApplicationController
         include ::CloudflareTurnstile
 
         include EmailValidation

@@ -4,7 +4,7 @@
 module Sign
   module App
     module Configuration
-      class GooglesController < PrivateController
+      class GooglesController < Sign::App::ApplicationController
         include ::Verification::Client
 
         AUTHENTICATION_MODE = :private

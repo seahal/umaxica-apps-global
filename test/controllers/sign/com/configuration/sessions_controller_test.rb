@@ -97,7 +97,7 @@ class Sign::Com::Configuration::SessionsControllerTest < ActionDispatch::Integra
   # ===================================================================
 
   test "revoke_all revokes all sessions including current and clears cookies" do
-    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+    mark_token_step_up_satisfied_for_test(@token, scope: "session_revoke_all", at: 5.minutes.ago)
 
     delete revoke_all_sign_com_configuration_sessions_url(ri: "jp"), headers: request_headers
 
@@ -125,7 +125,7 @@ class Sign::Com::Configuration::SessionsControllerTest < ActionDispatch::Integra
   end
 
   test "revoke_all records audit event" do
-    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+    mark_token_step_up_satisfied_for_test(@token, scope: "session_revoke_all", at: 5.minutes.ago)
 
     logs = []
     Rails.logger.stub(:info, ->(message = nil, &) { logs << JSON.parse(message, symbolize_names: true) if message }) do

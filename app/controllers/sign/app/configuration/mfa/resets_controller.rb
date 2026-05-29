@@ -5,7 +5,7 @@ module Sign
   module App
     module Configuration
       module Mfa
-        class ResetsController < PrivateController
+        class ResetsController < Sign::App::ApplicationController
           AUTHENTICATION_MODE = :private
 
           before_action :authenticate_client!

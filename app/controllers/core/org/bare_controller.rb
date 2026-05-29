@@ -3,7 +3,7 @@
 
 module Core
   module Org
-    class BareController < ApplicationController
+    class BareController < ActionController::Base
       include ::RateLimit
 
       AUTHENTICATION_MODE = :bare

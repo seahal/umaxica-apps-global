@@ -4,7 +4,7 @@
 module Sign
   module App
     module In
-      class CheckpointsController < Sign::App::PrivateController
+      class CheckpointsController < Sign::App::ApplicationController
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!

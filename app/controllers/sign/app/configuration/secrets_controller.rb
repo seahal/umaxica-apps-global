@@ -4,7 +4,7 @@
 module Sign
   module App
     module Configuration
-      class SecretsController < PrivateController
+      class SecretsController < Sign::App::ApplicationController
         include ::Verification::Client
 
         include ::Sign::Configuration::SecretTurnstileGuard

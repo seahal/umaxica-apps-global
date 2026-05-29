@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Configuration
-      class EmailsController < PrivateController
+      class EmailsController < Sign::Com::ApplicationController
         include CloudflareTurnstile
 
         include ::Verification::Visitor

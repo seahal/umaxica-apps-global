@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Up
-      class InvitationsController < GuestController
+      class InvitationsController < Sign::Org::ApplicationController
         include CloudflareTurnstile
 
         AUTHENTICATION_MODE = :guest

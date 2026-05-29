@@ -3,7 +3,7 @@
 
 module Core
   module Com
-    class AccountsController < PrivateController
+    class AccountsController < Core::Com::ApplicationController
       AUTHENTICATION_MODE = :private
 
       def index

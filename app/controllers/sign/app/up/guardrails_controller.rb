@@ -4,7 +4,7 @@
 module Sign
   module App
     module Up
-      class GuardrailsController < GuestController
+      class GuardrailsController < Sign::App::ApplicationController
         include Sign::Up::SequenceControllerSupport
 
         AUTHENTICATION_MODE = :guest

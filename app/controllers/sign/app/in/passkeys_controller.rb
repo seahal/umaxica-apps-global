@@ -16,7 +16,7 @@ module Sign
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, email is required to look up
       # the user's registered passkeys.
-      class PasskeysController < GuestController
+      class PasskeysController < Sign::App::ApplicationController
         include Sign::Webauthn
 
         include Sign::PasskeyAuthentication

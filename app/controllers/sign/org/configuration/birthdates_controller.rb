@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class BirthdatesController < PrivateController
+      class BirthdatesController < Sign::Org::ApplicationController
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_operator!

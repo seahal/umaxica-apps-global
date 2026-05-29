@@ -4,7 +4,7 @@
 module Sign
   module Com
     module In
-      class PasskeysController < GuestController
+      class PasskeysController < Sign::Com::ApplicationController
         include Sign::Webauthn
 
         include Sign::PasskeyAuthentication

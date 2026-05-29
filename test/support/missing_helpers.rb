@@ -209,11 +209,11 @@ module MissingHelpers
     cookie_lines.any? { |line| line.start_with?("#{name}=") }
   end
 
-  def mark_token_step_up_satisfied_for_test(token, scope: nil)
+  def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
     attrs = {
-      last_step_up_at: Time.current,
+      last_step_up_at: at,
       last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
       last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
       last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),

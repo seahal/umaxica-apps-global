@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Configuration
-      class ActivitiesController < PrivateController
+      class ActivitiesController < Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :private
 
         LOGIN_EVENT_IDS = [ClientChronicleEvent::LOGGED_IN, ClientChronicleEvent::LOGIN_SUCCESS].freeze

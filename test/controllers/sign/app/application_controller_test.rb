@@ -55,26 +55,18 @@ module Sign::App
       end
     end
 
-    test "guest controller owns guest-only policy" do
-      rules = GuestController.local_authentication_mode_rules
-
-      assert_equal :guest, rules.last[:mode]
-      assert_equal({ status: :unauthorized }, rules.last[:options])
+    test "app surface does not define guest controller boundaries" do
+      assert_not Sign::App.const_defined?(:GuestController, false)
+      assert_not Sign::App::In.const_defined?(:GuestController, false)
+      assert_not Sign::App::Up.const_defined?(:GuestController, false)
     end
 
-    test "sign-in guest controller inherits guest-only policy" do
-      rules = In::GuestController.local_authentication_mode_rules
-
-      assert_equal :guest, rules.last[:mode]
-      assert rules.last[:options][:no_redirect]
+    test "sign-in controllers declare guest-only policy on concrete controller" do
+      assert_equal :guest, In::EmailsController.authentication_mode_for(:new)
     end
 
-    test "sign-up guest controller rejects signed-in actors without redirect" do
-      rules = Up::GuestController.local_authentication_mode_rules
-
-      assert_equal :guest, rules.last[:mode]
-      assert_equal :unauthorized, rules.last[:options][:status]
-      assert rules.last[:options][:no_redirect]
+    test "sign-up controllers declare guest-only policy on concrete controller" do
+      assert_equal :guest, Up::EmailsController.authentication_mode_for(:new)
     end
 
     test "email sign-in controller overrides guest-only response" do

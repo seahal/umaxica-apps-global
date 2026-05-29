@@ -6,7 +6,7 @@ require "rqrcode"
 module Sign
   module App
     module Configuration
-      class TotpsController < PrivateController
+      class TotpsController < Sign::App::ApplicationController
         include ::CloudflareTurnstile
 
         include ::Verification::Client

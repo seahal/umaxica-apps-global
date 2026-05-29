@@ -6,7 +6,7 @@
 module Sign
   module Com
     module Up
-      class EmailsController < GuestController
+      class EmailsController < Sign::Com::ApplicationController
         include ::CloudflareTurnstile
 
         include Common::Redirect

@@ -7,7 +7,7 @@ module Sign
       module V0
         module In
           module Telephone
-            class OtpsController < Sign::Com::In::GuestController
+            class OtpsController < Sign::Com::ApplicationController
               AUTHENTICATION_MODE = :guest
 
               def create

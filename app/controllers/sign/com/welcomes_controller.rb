@@ -3,7 +3,7 @@
 
 module Sign
   module Com
-    class WelcomesController < PrivateController
+    class WelcomesController < Sign::Com::ApplicationController
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate_visitor!

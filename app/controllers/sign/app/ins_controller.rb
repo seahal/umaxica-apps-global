@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Sign::App
-  class InsController < In::GuestController
+  class InsController < Sign::App::ApplicationController
     AUTHENTICATION_MODE = :guest
 
     def new

@@ -28,9 +28,9 @@ The current controller-base target is:
 They may remain temporarily as compatibility wrappers while routes are migrated, but they are not
 the request access contract.
 
-`BareController` is the named base for endpoints classified as bare. It inherits from the
-surface-local `ApplicationController` so every surface keeps a single local controller root and the
-application no longer depends on a global controller parent.
+`BareController` is the named base for endpoints classified as bare. It inherits directly from
+`ActionController::Base` so bare endpoints avoid the surface-local authentication-aware request
+lifecycle.
 
 Surface-local `ApplicationController` owns the application request lifecycle for every endpoint that
 uses authentication-aware request machinery. Endpoint access is declared by explicit

@@ -5,7 +5,7 @@ module Sign
   module Org
     module Configuration
       module Telephones
-        class RegistrationsController < ::Sign::Org::PrivateController
+        class RegistrationsController < Sign::Org::ApplicationController
           include CloudflareTurnstile
 
           include Sign::OperatorTelephoneRegistrable

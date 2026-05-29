@@ -4,7 +4,7 @@
 module Sign
   module App
     module Configuration
-      class ActivitiesController < PrivateController
+      class ActivitiesController < Sign::App::ApplicationController
         AUTHENTICATION_MODE = :private
 
         VISIBLE_EVENT_IDS = [

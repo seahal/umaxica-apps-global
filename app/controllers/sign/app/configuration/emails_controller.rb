@@ -4,7 +4,7 @@
 module Sign
   module App
     module Configuration
-      class EmailsController < PrivateController
+      class EmailsController < Sign::App::ApplicationController
         include CloudflareTurnstile
 
         include ::Verification::Client

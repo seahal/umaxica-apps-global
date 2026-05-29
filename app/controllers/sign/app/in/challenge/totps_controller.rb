@@ -5,7 +5,7 @@ module Sign
   module App
     module In
       module Challenge
-        class TotpsController < Sign::App::In::GuestController
+        class TotpsController < Sign::App::ApplicationController
           include SessionLimitGate
 
           include ::CloudflareTurnstile

@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Up
-      class CheckpointsController < GuestController
+      class CheckpointsController < Sign::Com::ApplicationController
         include Sign::Up::SequenceControllerSupport
 
         AUTHENTICATION_MODE = :guest

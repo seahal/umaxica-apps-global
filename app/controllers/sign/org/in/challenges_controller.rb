@@ -4,7 +4,7 @@
 module Sign
   module Org
     module In
-      class ChallengesController < GuestController
+      class ChallengesController < Sign::Org::ApplicationController
         AUTHENTICATION_MODE = :guest
 
         before_action :ensure_pending_mfa!

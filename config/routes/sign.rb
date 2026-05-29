@@ -57,7 +57,7 @@ scope module: :sign, as: :sign do
         namespace :__dev, module: :dev, path: "__dev" do
           namespace :r18 do
             resource :open, only: %i(show create), controller: "open_smokes"
-            resource :private, only: %i(show create), controller: "private"
+            resource :private, only: %i(show create), controller: "private_smokes"
           end
         end
       end

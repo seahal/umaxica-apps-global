@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Verification
-      class BaseController < Sign::Org::PrivateController
+      class BaseController < Sign::Org::ApplicationController
         include Sign::OrgVerificationBase
 
         AUTHENTICATION_MODE = :private

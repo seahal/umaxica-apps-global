@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Configuration
-      class ConnectionsController < PrivateController
+      class ConnectionsController < Sign::Com::ApplicationController
         include Sign::OidcConnectionsManagement
 
         AUTHENTICATION_MODE = :private

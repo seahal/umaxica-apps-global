@@ -6,7 +6,7 @@
 module Sign
   module App
     module Up
-      class TelephonesController < GuestController
+      class TelephonesController < Sign::App::ApplicationController
         include CloudflareTurnstile
 
         include Common::Redirect

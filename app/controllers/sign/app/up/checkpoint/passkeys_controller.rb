@@ -5,7 +5,7 @@ module Sign
   module App
     module Up
       module Checkpoint
-        class PasskeysController < GuestController
+        class PasskeysController < Sign::App::ApplicationController
           include Common::Redirect
 
           include Sign::PasskeyRegistrationFlow

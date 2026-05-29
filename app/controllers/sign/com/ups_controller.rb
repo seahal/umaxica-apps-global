@@ -3,7 +3,7 @@
 
 module Sign
   module Com
-    class UpsController < Up::GuestController
+    class UpsController < Sign::Com::ApplicationController
       AUTHENTICATION_MODE = :guest
 
       def new

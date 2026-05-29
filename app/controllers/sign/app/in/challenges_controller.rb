@@ -4,7 +4,7 @@
 module Sign
   module App
     module In
-      class ChallengesController < GuestController
+      class ChallengesController < Sign::App::ApplicationController
         AUTHENTICATION_MODE = :guest
 
         before_action :ensure_pending_mfa!

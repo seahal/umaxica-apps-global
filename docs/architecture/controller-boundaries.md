@@ -5,8 +5,8 @@ inheritance as the request access contract.
 
 The current controller inheritance contract is intentionally narrow:
 
-- `BareController` inherits from its surface-local `ApplicationController` and owns endpoints whose
-  concrete controller/action metadata classifies them as bare.
+- `BareController` inherits directly from `ActionController::Base` and owns endpoints whose concrete
+  controller/action metadata classifies them as bare.
 - Surface-local `ApplicationController` inherits from `ActionController::Base` and owns the
   authentication-aware request lifecycle.
 
@@ -22,9 +22,9 @@ separated.
 
 ### BareController
 
-`BareController` is the named base for endpoints classified as bare. It still stays inside the
-surface-local controller hierarchy, so app, org, and com behavior remains separated without a global
-controller parent.
+`BareController` is the named base for endpoints classified as bare. It is defined per surface, but
+does not inherit the surface-local `ApplicationController`, so it avoids authentication, preference,
+Actor, verification, authorization, and other application request lifecycle callbacks.
 
 Common examples:
 

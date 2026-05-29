@@ -15,9 +15,6 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     Sign::App::BareController,
     Sign::Com::BareController,
     Sign::Org::BareController,
-    Jump::App::BareController,
-    Jump::Com::BareController,
-    Jump::Org::BareController,
   ].freeze
 
   APPLICATION_CONTROLLERS = [
@@ -29,14 +26,12 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     Sign::App::ApplicationController,
     Sign::Com::ApplicationController,
     Sign::Org::ApplicationController,
-    Jump::App::ApplicationController,
-    Jump::Com::ApplicationController,
-    Jump::Org::ApplicationController,
   ].freeze
 
-  test "bare controllers inherit from their surface application controller" do
+  test "bare controllers inherit directly from ActionController base" do
     BARE_CONTROLLERS.each do |controller|
-      assert_equal controller.module_parent::ApplicationController, controller.superclass
+      assert_equal ActionController::Base, controller.superclass
+      assert_not_operator controller, :<, controller.module_parent::ApplicationController
       assert_includes controller.ancestors, RateLimit
     end
   end
@@ -59,9 +54,6 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
       Sign::App,
       Sign::Com,
       Sign::Org,
-      Jump::App,
-      Jump::Com,
-      Jump::Org,
     ].each do |namespace|
       assert_not namespace.const_defined?(:OpenController, false), namespace.name
     end

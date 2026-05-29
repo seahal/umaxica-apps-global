@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Configuration
-      class SessionsController < PrivateController
+      class SessionsController < Sign::Com::ApplicationController
         include Sign::Configuration::SessionManagement
 
         AUTHENTICATION_MODE = :private

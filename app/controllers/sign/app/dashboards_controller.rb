@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class DashboardsController < PrivateController
+    class DashboardsController < Sign::App::ApplicationController
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate_client!

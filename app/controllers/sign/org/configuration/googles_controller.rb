@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class GooglesController < PrivateController
+      class GooglesController < Sign::Org::ApplicationController
         include SocialAuthConcern
 
         AUTHENTICATION_MODE = :private

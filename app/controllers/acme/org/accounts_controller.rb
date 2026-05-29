@@ -3,7 +3,7 @@
 
 module Acme
   module Org
-    class AccountsController < PrivateController
+    class AccountsController < Acme::Org::ApplicationController
       AUTHENTICATION_MODE = :private
 
       def index

@@ -3,7 +3,7 @@
 
 module Core
   module Org
-    class AccountsController < PrivateController
+    class AccountsController < Core::Org::ApplicationController
       AUTHENTICATION_MODE = :private
 
       def index

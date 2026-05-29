@@ -1,15 +1,16 @@
 # typed: false
 # frozen_string_literal: true
 
-module Sign
+module Acme
   module App
     module Dev
       module R18
         # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
-        class PrivateController < Sign::App::PrivateController
+        class PrivateSmokesController < Acme::App::ApplicationController
           include ::R18Gate
 
-          AUTHENTICATION_MODE = :private
+          AUTHENTICATION_MODE = :open
+          prepend_before_action :require_dev_private_authentication!
 
           def show
             render plain: "private r18 ok"
@@ -21,8 +22,11 @@ module Sign
 
           private
 
-          def handle_auth_required_html(_options = {})
-            redirect_to(new_sign_app_in_path(ri: params[:ri]), allow_other_host: false)
+          def require_dev_private_authentication!
+            return if logged_in?
+
+            sign_in_url = new_sign_app_in_url(ri: params[:ri], host: oidc_sign_host)
+            redirect_to_jump_url(sign_in_url)
           end
 
           def r18_content_required?
@@ -30,19 +34,19 @@ module Sign
           end
 
           def r18_gate_path(pt:)
-            "/r18/gate?#{Rack::Utils.build_query(ri: params[:ri], pt: pt)}"
+            "/__dev/r18/gate?#{Rack::Utils.build_query(ri: params[:ri], pt: pt)}"
           end
 
           def r18_blocked_path
-            blocked_sign_app_r18_gate_path(ri: params[:ri])
+            blocked_acme_app___dev_r18_gate_path(ri: params[:ri])
           end
 
           def r18_stopped_path
-            stopped_sign_app_r18_gate_path(ri: params[:ri])
+            stopped_acme_app___dev_r18_gate_path(ri: params[:ri])
           end
 
           def r18_fallback_path
-            sign_app_dashboard_path(ri: params[:ri])
+            acme_app_root_path(ri: params[:ri])
           end
         end
       end

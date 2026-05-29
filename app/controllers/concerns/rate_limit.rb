@@ -1,5 +1,7 @@
 # typed: false
 # frozen_string_literal: true
+# TODO: please check is this file need us?
+
 
 # Rate limiting concern backed by Rails 8.1's built-in `rate_limit` DSL.
 #

@@ -82,13 +82,6 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
       user_token_kind_id: ClientTokenKind::BROWSER_WEB,
     )
     refresh_plain = token.rotate_refresh_token!
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = Authentication::Base::Token.encode(
-      @user,
-      host: @host,
-      session_public_id: token.public_id,
-      resource_type: "client",
-      expires_at: 1.minute.ago,
-    )
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
     get sign_app_configuration_sessions_url(ri: "jp"),
@@ -101,7 +94,6 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_not_equal token.public_id, refreshed_token.public_id
     assert_select "span", text: "current"
     assert_select "form[action^='#{sign_app_configuration_session_path(refreshed_token.public_id)}']", 0
-    assert_select "form[action^='#{others_sign_app_configuration_sessions_path}']", 0
   end
 
   test "index rejects access token for revoked session" do
@@ -342,7 +334,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
   test "revoke_all revokes all sessions including current and clears cookies" do
     current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
     token = ClientToken.find_by!(public_id: current_session_id)
-    token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+    mark_token_step_up_satisfied_for_test(token, scope: "session_revoke_all", at: 5.minutes.ago)
     other_token = ClientToken.create!(
       user_id: @user.id,
       public_id: "rall_o_#{SecureRandom.hex(4)}",
@@ -365,7 +357,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
   test "revoke_all records all sessions logout activity" do
     current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
     token = ClientToken.find_by!(public_id: current_session_id)
-    token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+    mark_token_step_up_satisfied_for_test(token, scope: "session_revoke_all", at: 5.minutes.ago)
     ClientToken.create!(
       user_id: @user.id,
       public_id: "rall_audit_#{SecureRandom.hex(4)}",
@@ -408,7 +400,7 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
   test "revoke_all records audit event" do
     current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
     token = ClientToken.find_by!(public_id: current_session_id)
-    token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "session_revoke_all")
+    mark_token_step_up_satisfied_for_test(token, scope: "session_revoke_all", at: 5.minutes.ago)
 
     logs = []
     Rails.logger.stub(

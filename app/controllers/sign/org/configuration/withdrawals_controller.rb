@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class WithdrawalsController < PrivateController
+      class WithdrawalsController < Sign::Org::ApplicationController
         include ::Verification::Operator
 
         AUTHENTICATION_MODE = :private

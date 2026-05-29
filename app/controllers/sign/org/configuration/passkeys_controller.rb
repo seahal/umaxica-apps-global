@@ -19,7 +19,7 @@ module Sign
       # - GET /configuration/passkeys/:id/edit (edit)
       # - PATCH /configuration/passkeys/:id (update - description only)
       # - DELETE /configuration/passkeys/:id (destroy)
-      class PasskeysController < PrivateController
+      class PasskeysController < Sign::Org::ApplicationController
         include ::Verification::Operator
 
         include Sign::Webauthn

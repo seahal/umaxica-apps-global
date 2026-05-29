@@ -2,8 +2,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "base64"
-
 class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_one_time_password_statuses, :client_chronicle_events, :client_chronicle_levels
 
@@ -97,9 +95,16 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_withdrawal_path(ri: "jp"))
+    get new_sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
 
-    get sign_app_verification_url(scope: "withdrawal", return_to: return_to, ri: "jp"), headers: @headers
+    assert_response :redirect
+    redirect_uri = URI.parse(response.location)
+    redirect_query = Rack::Utils.parse_query(redirect_uri.query)
+
+    assert_equal "/verification", redirect_uri.path
+    assert_equal "withdrawal", redirect_query["scope"]
+
+    get sign_app_verification_url(scope: "withdrawal", pt: redirect_query.fetch("pt"), ri: "jp"), headers: @headers
 
     assert_response :success
 
@@ -109,7 +114,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
          headers: @headers
 
     assert_response :redirect
-    assert_redirected_to sign_app_configuration_withdrawal_url(ri: "jp")
+    assert_redirected_to new_sign_app_configuration_withdrawal_url(ri: "jp")
     assert response_has_cookie?(ClientVerification.cookie_name)
 
     assert ClientVerification.active.exists?(user_token_id: @token.id)

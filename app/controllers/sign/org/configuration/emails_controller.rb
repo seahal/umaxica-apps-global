@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Configuration
-      class EmailsController < PrivateController
+      class EmailsController < Sign::Org::ApplicationController
         include CloudflareTurnstile
 
         include ::Verification::Operator

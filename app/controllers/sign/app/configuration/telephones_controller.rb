@@ -4,7 +4,7 @@
 module Sign
   module App
     module Configuration
-      class TelephonesController < PrivateController
+      class TelephonesController < Sign::App::ApplicationController
         include Sign::TelephoneRegistrable
 
         include ::Verification::Client

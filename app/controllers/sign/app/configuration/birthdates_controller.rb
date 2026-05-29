@@ -4,7 +4,7 @@
 module Sign
   module App
     module Configuration
-      class BirthdatesController < PrivateController
+      class BirthdatesController < Sign::App::ApplicationController
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!

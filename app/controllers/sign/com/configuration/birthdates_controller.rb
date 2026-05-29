@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Configuration
-      class BirthdatesController < PrivateController
+      class BirthdatesController < Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!

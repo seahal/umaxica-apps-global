@@ -27,7 +27,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       discarded_at: 1.day.from_now,
     )
     satisfy_user_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
+    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
 
     @headers = {
       "X-TEST-CURRENT-USER" => @deactivated_user.id.to_s,

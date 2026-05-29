@@ -7,7 +7,7 @@ module Sign
   module App
     module In
       module Challenge
-        class PasskeysController < Sign::App::In::GuestController
+        class PasskeysController < Sign::App::ApplicationController
           include Sign::Webauthn
 
           include SessionLimitGate

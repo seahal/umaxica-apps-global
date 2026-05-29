@@ -5,7 +5,7 @@ module Sign
   module App
     module Configuration
       module Emails
-        class RegistrationsController < ::Sign::App::PrivateController
+        class RegistrationsController < Sign::App::ApplicationController
           include Sign::EmailRegistrationFlow
 
           include ::Verification::Client

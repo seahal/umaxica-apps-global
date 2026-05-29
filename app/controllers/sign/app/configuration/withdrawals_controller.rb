@@ -4,7 +4,7 @@
 module Sign
   module App
     module Configuration
-      class WithdrawalsController < PrivateController
+      class WithdrawalsController < Sign::App::ApplicationController
         include ::Verification::Client
         include Common::Redirect
         include Sign::Configuration::WithdrawalFlow

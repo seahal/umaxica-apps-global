@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class SelectorsController < PrivateController
+    class SelectorsController < Sign::App::ApplicationController
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate_client!

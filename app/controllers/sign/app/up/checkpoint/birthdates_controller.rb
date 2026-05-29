@@ -5,7 +5,7 @@ module Sign
   module App
     module Up
       module Checkpoint
-        class BirthdatesController < GuestController
+        class BirthdatesController < Sign::App::ApplicationController
           include Sign::Up::SequenceControllerSupport
 
           AUTHENTICATION_MODE = :guest

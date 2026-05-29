@@ -3,7 +3,7 @@
 
 module Acme
   module Dev
-    class BareController < ApplicationController
+    class BareController < ActionController::Base
       include ::RateLimit
 
       AUTHENTICATION_MODE = :bare
