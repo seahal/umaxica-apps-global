@@ -4,7 +4,7 @@
 module Sign::Org::SignUpsHelper
   def sign_org_recruit_contact_link
     link_to(
-      t("sign.org.sign_ups.new.recruit_link_text"),
+      t("sign.org.ups.new.recruit_link_text"),
       sign_org_recruit_contact_url,
       class: "font-semibold text-slate-900 underline",
     )

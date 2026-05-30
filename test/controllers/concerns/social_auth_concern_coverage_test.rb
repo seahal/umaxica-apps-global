@@ -7,7 +7,8 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
   class Harness < ApplicationController
     include SocialAuthConcern
 
-    attr_accessor :session_hash, :request_obj, :flash_hash, :redirected, :rendered
+    attr_accessor :session_hash, :request_obj, :flash_hash, :redirected, :rendered,
+                  :current_session_token
 
     def initialize
       super
@@ -85,6 +86,28 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
     def sign_app_root_path = "/"
   end
 
+  StepUpToken = Struct.new(
+    :public_id,
+    :last_step_up_at,
+    :last_step_up_scope,
+    :last_step_up_method,
+    :last_step_up_session_public_id,
+    :last_step_up_purpose,
+    :last_step_up_audience,
+    keyword_init: true,
+  ) do
+    def currently_usable? = true
+
+    def has_attribute?(name)
+      %w(
+        last_step_up_method
+        last_step_up_session_public_id
+        last_step_up_purpose
+        last_step_up_audience
+      ).include?(name.to_s)
+    end
+  end
+
   setup do
     @harness = Harness.new
   end
@@ -120,9 +143,49 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
     end
   end
 
-  test "require_recent_step_up! raises if last step-up is old" do
+  test "require_recent_step_up! accepts current token-bound step-up" do
     @harness.current_resource = Client.new
-    @harness.current_resource.last_step_up_at = 1.hour.ago
+    @harness.current_session_token = step_up_token
+
+    assert_nothing_raised do
+      @harness.send(:require_recent_step_up!)
+    end
+  end
+
+  test "require_recent_step_up! rejects expired token-bound step-up" do
+    @harness.current_resource = Client.new
+    @harness.current_session_token = step_up_token(last_step_up_at: 1.hour.ago)
+
+    assert_raises(SocialAuth::StepUpRequiredError) do
+      @harness.send(:require_recent_step_up!)
+    end
+  end
+
+  test "require_recent_step_up! rejects resource-level step-up without token-bound step-up" do
+    @harness.current_resource = Client.new
+    @harness.current_resource.last_step_up_at = Time.current
+    @harness.current_session_token = nil
+
+    assert_raises(SocialAuth::StepUpRequiredError) do
+      @harness.send(:require_recent_step_up!)
+    end
+  end
+
+  test "require_recent_step_up! rejects step-up from another session token" do
+    @harness.current_resource = Client.new
+    @harness.current_session_token = step_up_token(
+      public_id: "current-session",
+      last_step_up_session_public_id: "other-session",
+    )
+
+    assert_raises(SocialAuth::StepUpRequiredError) do
+      @harness.send(:require_recent_step_up!)
+    end
+  end
+
+  test "require_recent_step_up! rejects login success without step-up" do
+    @harness.current_resource = Client.new
+    @harness.current_session_token = step_up_token(last_step_up_at: nil)
 
     assert_raises(SocialAuth::StepUpRequiredError) do
       @harness.send(:require_recent_step_up!)
@@ -163,5 +226,20 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
 
   def assert_response_redirected
     assert_predicate @harness.redirected, :present?
+  end
+
+  def step_up_token(public_id: "current-session", last_step_up_at: Time.current,
+                    last_step_up_scope: "verification", last_step_up_method: "passkey",
+                    last_step_up_session_public_id: public_id, last_step_up_purpose: "step_up",
+                    last_step_up_audience: nil)
+    StepUpToken.new(
+      public_id: public_id,
+      last_step_up_at: last_step_up_at,
+      last_step_up_scope: last_step_up_scope,
+      last_step_up_method: last_step_up_method,
+      last_step_up_session_public_id: last_step_up_session_public_id,
+      last_step_up_purpose: last_step_up_purpose,
+      last_step_up_audience: last_step_up_audience,
+    )
   end
 end

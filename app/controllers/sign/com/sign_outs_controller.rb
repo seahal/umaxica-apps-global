@@ -28,7 +28,7 @@ module Sign
         unless ActiveModel::Type::Boolean.new.cast(params[:confirm])
           redirect_to(
             edit_sign_com_sign_out_path(ri: params[:ri]),
-            alert: t("views.sign.sign_outs.edit.confirm_label"),
+            alert: t("views.sign.app.configuration.outs.edit.confirm_label"),
           )
           return
         end

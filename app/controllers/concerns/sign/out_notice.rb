@@ -73,7 +73,7 @@ module Sign
       token = extract_access_token(Authentication::Base::ACCESS_COOKIE_KEY)
       return if token.blank?
 
-      payload = Authentication::Base::Token.decode_allow_expired(
+      payload = Authentication::TokenService.decode_allow_expired(
         token,
         host: request.host,
         resource_type: resource_type,

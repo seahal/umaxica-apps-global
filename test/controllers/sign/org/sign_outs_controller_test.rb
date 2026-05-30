@@ -44,13 +44,14 @@ class Sign::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
          params: { confirm: "0" }
 
     assert_redirected_to edit_sign_org_sign_out_path(ri: "jp")
-    assert_equal I18n.t("views.sign.sign_outs.edit.confirm_label"), flash[:alert]
+    assert_equal I18n.t("views.sign.app.configuration.outs.edit.confirm_label"), flash[:alert]
   end
 
   test "create logs out with confirmed staff session" do
     token = OperatorToken.create!(staff: @staff)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    access_expires_at = issue_access_cookie!(resource: @staff, token: token)
 
     post sign_org_sign_out_url(ri: "jp"),
          headers: { "Host" => @host,
@@ -63,6 +64,10 @@ class Sign::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :revoked?
 
     assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+    assert_includes response.body, I18n.t(
+      "sign.shared.sign_out.completed_description",
+      expires_at: I18n.l(access_expires_at.in_time_zone("Asia/Tokyo"), format: :short),
+    )
   end
 
   test "signed out page requires a fresh logout notice" do
@@ -319,5 +324,20 @@ class Sign::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
   def rt_from_location(location)
     location = jump_rt_url_from_location(location) if URI.parse(location).host == "jump.umaxica.net"
     Rack::Utils.parse_nested_query(URI.parse(location).query).fetch("pt")
+  end
+
+  def issue_access_cookie!(resource:, token:)
+    access_expires_at = 10.minutes.from_now.change(usec: 0)
+    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = Authentication::Base::Token.encode(
+      resource,
+      host: @host,
+      session_public_id: token.public_id,
+      oidc_sid: token.public_id,
+      resource_type: "operator",
+      expires_at: access_expires_at,
+      acr: "aal1",
+      jwt_issuer_id: "surface:SIGN_ORG",
+    )
+    access_expires_at
   end
 end

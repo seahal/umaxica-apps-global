@@ -34,12 +34,12 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     acme_host = ENV["ACME_CORPORATE_URL"].presence || "www.com.localhost"
 
     assert_select "div a[href^=?]", "http://#{acme_host}/",
-                  text: I18n.t("sign.org.sign_ups.new.recruit_link_text")
+                  text: I18n.t("sign.org.ups.new.recruit_link_text")
 
-    link = css_select("div a").find { |a| a.text == I18n.t("sign.org.sign_ups.new.recruit_link_text") }
+    link = css_select("div a").find { |a| a.text == I18n.t("sign.org.ups.new.recruit_link_text") }
 
     assert_not_nil link,
-                   "Could not find link with text: #{I18n.t("sign.org.sign_ups.new.recruit_link_text").inspect}"
+                   "Could not find link with text: #{I18n.t("sign.org.ups.new.recruit_link_text").inspect}"
     href = link["href"]
 
     assert_match(/ri=jp/, href)

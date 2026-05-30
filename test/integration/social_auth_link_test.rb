@@ -60,7 +60,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     # Client two tries to link the same Google account
     # Start link flow as user_two
     post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
-         headers: as_user_headers(@user_two, host: @host)
+         headers: social_link_headers(@user_two)
 
     assert_response :redirect
 
@@ -98,7 +98,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     # Client two starts link flow
     post continue_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
-         headers: as_user_headers(@user_two, host: @host)
+         headers: social_link_headers(@user_two)
 
     assert_response :redirect
 
@@ -136,7 +136,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: "apple_state_expired_#{SecureRandom.hex(4)}")
 
     post continue_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
-         headers: as_user_headers(@user_one, host: @host)
+         headers: social_link_headers(@user_one)
 
     assert_response :redirect
 
@@ -174,7 +174,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_google_mock_auth(uid: old_uid)
 
     post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
-         headers: as_user_headers(@user_one, host: @host)
+         headers: social_link_headers(@user_one)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: social_auth_state_from_response },
@@ -200,7 +200,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     identity_count_before = ClientGoogleIdentity.count
 
     post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
-         headers: as_user_headers(@user_one, host: @host)
+         headers: social_link_headers(@user_one)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: social_auth_state_from_response },
@@ -235,6 +235,17 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:alert], :present?, "Should require login for link intent"
   end
 
+  test "link intent rejects resource-level step up without token-bound step up" do
+    @user_one.update!(last_step_up_at: Time.current)
+
+    post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: as_user_headers(@user_one, host: @host)
+
+    assert_response :redirect
+    assert_match %r{/configuration}, response.location
+    assert_nil session[SOCIAL_FLOW_ID_SESSION_KEY]
+  end
+
   # ============================================================================
   # Re-linking REVOKED identity (idempotency test)
   # ============================================================================
@@ -256,7 +267,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     # Client tries to link again
     post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
-         headers: as_user_headers(@user_one, host: @host)
+         headers: social_link_headers(@user_one)
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: social_auth_state_from_response },
@@ -290,7 +301,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: revoked_uid)
 
     post continue_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
-         headers: as_user_headers(@user_one, host: @host)
+         headers: social_link_headers(@user_one)
 
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: social_auth_state_from_response },
@@ -308,6 +319,13 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def social_link_headers(user)
+    headers = as_user_headers(user, host: @host)
+    token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
+    mark_token_step_up_satisfied_for_test(token)
+    headers
+  end
 
   # IMPORTANT: Social login authenticates by provider+uid ONLY, NOT email
   # We deliberately omit email from mock_auth to test this requirement

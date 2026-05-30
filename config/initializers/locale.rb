@@ -11,12 +11,8 @@ locale_files =
   %w(
     config/locales/jp/en.yml
     config/locales/jp/ja.yml
-    config/locales/jp/sign_route_names.en.yml
-    config/locales/jp/sign_route_names.ja.yml
     config/locales/us/en.yml
     config/locales/us/ja.yml
-    config/locales/us/sign_route_names.en.yml
-    config/locales/us/sign_route_names.ja.yml
   ).map { |path| Rails.root.join(path).to_s }
 locale_roots = [
   Rails.root.join("config/locales").to_s,

@@ -2,6 +2,8 @@
 
 <div>
   <h1><%= title t("sign.shared.sign_out.completed_title") %></h1>
-  <p><%= t("sign.shared.sign_out.completed_description") %></p>
+  <% if (description = sign_out_completed_description).present? %>
+    <p><%= description %></p>
+  <% end %>
   <p><%= link_to t("sign.shared.sign_out.home_link"), sign_com_root_path(ri: params[:ri]) %></p>
 </div>

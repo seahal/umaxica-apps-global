@@ -1678,9 +1678,9 @@ ja:
       sign_out:
         title: ログアウトしますか？
         button: ログアウトします
-        success: ログアウトしました
-        completed_title: ログアウトしました
-        completed_description: このログアウト確認は一度だけ表示されます。
+        success: ログアウトの予約を行いました。%{expires_at}以降には確実にアクセスが不可能となります。
+        completed_title: ログアウトの予約を行いました
+        completed_description: "%{expires_at}以降には確実にアクセスが不可能となります。"
         home_link: ホームへ戻る
   org_timeline_tags:
     "%{id}": org_timeline_tag_%{id}

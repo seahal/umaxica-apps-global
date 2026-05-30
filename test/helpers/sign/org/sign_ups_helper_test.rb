@@ -12,7 +12,7 @@ class Sign::Org::SignUpsHelperTest < ActionView::TestCase
     with_env("ORG_SIGN_UP_DIRECT_MESSAGE_URL" => "https://contact.example.test/recruit?team=org") do
       html = sign_org_recruit_contact_link
 
-      assert_includes html, I18n.t("sign.org.sign_ups.new.recruit_link_text")
+      assert_includes html, I18n.t("sign.org.ups.new.recruit_link_text")
       assert_includes html, "https://contact.example.test/recruit?team=org"
       assert_includes html, "font-semibold text-slate-900 underline"
     end
@@ -54,7 +54,7 @@ class Sign::Org::SignUpsHelperTest < ActionView::TestCase
     ) do
       html = sign_org_recruit_contact_link
 
-      assert_includes html, I18n.t("sign.org.sign_ups.new.recruit_link_text")
+      assert_includes html, I18n.t("sign.org.ups.new.recruit_link_text")
       assert_includes html, "https://com.example.test/?host=www.com.localhost&amp;lx=en&amp;ri=jp"
       assert_includes html, "font-semibold text-slate-900 underline"
       assert_not_includes html, "ignored"

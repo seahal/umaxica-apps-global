@@ -1084,9 +1084,9 @@ en:
       sign_out:
         title: Do you want to sign out?
         button: Sign out
-        success: You have been signed out.
-        completed_title: Signed out
-        completed_description: This sign-out confirmation is shown once.
+        success: Sign-out has been scheduled. Access will be unavailable after %{expires_at}.
+        completed_title: Sign-out has been scheduled
+        completed_description: Access will be unavailable after %{expires_at}.
         home_link: Go to home
   auth:
     unauthorized: You are not authorized to access this page.

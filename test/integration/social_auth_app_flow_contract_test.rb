@@ -232,6 +232,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   def assert_configuration_link_contract(config)
     uid = "#{config.fetch(:normalized)}_link_#{SecureRandom.hex(4)}"
     user = create_social_client
+    token = token_bound_step_up_for_social_link(user)
 
     setup_mock_auth(config, uid:, token: "linked_token")
     state = seed_social_auth_session(provider: config.fetch(:provider), intent: "link", user: user, ri: "jp")
@@ -241,7 +242,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
         perform_social_callback(
           config,
           params: { state: state },
-          headers: @callback_headers.merge(as_user_headers(user, host: @host)),
+          headers: @callback_headers.merge(as_user_headers(user, host: @host, session_public_id: token.public_id)),
         )
       end
     end
@@ -257,6 +258,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def assert_configuration_replacement_rejected(config)
     user = create_social_client
+    token = token_bound_step_up_for_social_link(user)
     existing = create_social_identity(config, user:, uid: "existing_#{config.fetch(:normalized)}", token: "keep_token")
 
     setup_mock_auth(config, uid: "different_#{config.fetch(:normalized)}", token: "wrong_token")
@@ -266,7 +268,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       perform_social_callback(
         config,
         params: { state: state },
-        headers: @callback_headers.merge(as_user_headers(user, host: @host)),
+        headers: @callback_headers.merge(as_user_headers(user, host: @host, session_public_id: token.public_id)),
       )
     end
 
@@ -343,6 +345,12 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
       params: { "cf-turnstile-response": "test" },
     )
+  end
+
+  def token_bound_step_up_for_social_link(user)
+    token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    mark_token_step_up_satisfied_for_test(token)
+    token
   end
 
   def create_login_secret_credential(user)

@@ -48,6 +48,11 @@ module SocialAuthConcern
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent") unless VALID_INTENTS.include?(intent)
 
     validate_social_auth_login_requirement!(intent)
+    if intent == "link"
+      @social_auth_intent_snapshot = intent
+      @social_auth_provider_snapshot = provider
+      require_recent_step_up!
+    end
 
     store_social_auth_intent_context(intent, provider: provider, pt: pt, entry: entry, ri: ri)
     store_oauth_callback_state(provider)
@@ -161,18 +166,51 @@ module SocialAuthConcern
   def require_recent_step_up!(ttl: STEP_UP_TTL)
     return unless current_resource
 
-    last_step_up = current_resource.last_step_up_at
-    return unless last_step_up.blank? || last_step_up < ttl.ago
+    step_up = recent_social_auth_step_up(ttl: ttl)
+    return if step_up.satisfied?
 
     Rails.logger.info(
       Jit::LogEvent.format(
         "social_auth.step_up_required",
         user_id: current_resource.id,
-        last_step_up_at: last_step_up&.iso8601,
+        last_step_up_at: step_up.satisfied_at&.iso8601,
         required_within: Integer(ttl.to_s, 10),
       ),
     )
     raise SocialAuth::StepUpRequiredError.new("errors.social_auth.step_up_required")
+  end
+
+  def recent_social_auth_step_up(ttl:)
+    token = social_auth_current_session_token
+    StepUp::Resolver.call(
+      token: token,
+      requirement: social_auth_step_up_requirement(token, ttl: ttl),
+    )
+  end
+
+  def social_auth_step_up_requirement(token, ttl:)
+    StepUp::Requirement.new(
+      scope: token&.last_step_up_scope,
+      session_binding: token&.public_id,
+      token_binding: token&.public_id,
+      ttl: ttl,
+      purpose: :step_up,
+      audience: social_auth_step_up_audience,
+    )
+  end
+
+  def social_auth_current_session_token
+    return current_session_token if respond_to?(:current_session_token, true)
+    return nil unless respond_to?(:current_session_public_id, true) && respond_to?(:token_class, true)
+
+    public_id = current_session_public_id
+    return nil if public_id.blank?
+
+    token_class.find_by(public_id: public_id)
+  end
+
+  def social_auth_step_up_audience
+    step_up_audience if respond_to?(:step_up_audience, true)
   end
 
   def process_social_auth_callback
