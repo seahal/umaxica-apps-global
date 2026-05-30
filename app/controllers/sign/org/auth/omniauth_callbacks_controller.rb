@@ -55,7 +55,7 @@ module Sign
           clear_social_auth_intent!
           Rails.logger.info(Jit::LogEvent.format("sign.social.org.omniauth_failure", message: message))
           redirect_to(
-            new_sign_org_in_path,
+            new_sign_org_sign_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),
           )
         end
@@ -89,12 +89,12 @@ module Sign
             Jit::LogEvent.format(
               "sign.social.org.omniauth.staff_not_found",
               provider: auth.provider,
-              uid_present: OperatorSocialGoogle.extract_uid(auth).present?,
+              uid_present: OperatorGoogleIdentity.extract_uid(auth).present?,
             ),
           )
           clear_social_auth_intent!
           redirect_to(
-            new_sign_org_in_path,
+            new_sign_org_sign_in_path,
             alert: I18n.t("sign.org.social.sessions.create.not_found"),
           )
         end
@@ -105,7 +105,7 @@ module Sign
                            reason: "social_login_not_allowed",
           )
           redirect_to(
-            new_sign_org_in_path,
+            new_sign_org_sign_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),
           )
         end
@@ -133,14 +133,14 @@ module Sign
         end
 
         def find_active_staff_by_google_identity(auth, intent: "login")
-          uid = OperatorSocialGoogle.extract_uid(auth)
-          provider = OperatorSocialGoogle.provider_from_auth(auth)
+          uid = OperatorGoogleIdentity.extract_uid(auth)
+          provider = OperatorGoogleIdentity.provider_from_auth(auth)
           return nil if uid.blank? || provider.blank?
 
           staff = nil
           OrgPrincipalRecord.connected_to(role: :writing) do
             OrgPrincipalRecord.transaction do
-              identity = OperatorSocialGoogle.lock.find_by(uid: uid, provider: provider)
+              identity = OperatorGoogleIdentity.lock.find_by(uid: uid, provider: provider)
               if intent.to_s == "link"
                 staff = link_google_identity!(identity, auth)
               elsif identity&.active?
@@ -150,7 +150,7 @@ module Sign
             end
           end
 
-          staff if staff&.status_id == OperatorIdentityStatus::ACTIVE
+          staff if staff&.status_id == OperatorStatus::ACTIVE
         end
 
         def link_google_identity!(identity, auth)
@@ -158,9 +158,9 @@ module Sign
           return nil unless staff
           return nil if identity && identity.staff_id != staff.id
 
-          identity ||= OperatorSocialGoogle.find_or_create_from_auth_hash(auth)
+          identity ||= OperatorGoogleIdentity.find_or_create_from_auth_hash(auth)
           identity.staff = staff
-          identity.status_id = OperatorSocialGoogleStatus::ACTIVE
+          identity.status_id = OperatorGoogleIdentityStatus::ACTIVE
           identity.save!
           staff
         end
@@ -185,7 +185,7 @@ module Sign
               )
             else
               redirect_to(
-                new_sign_org_in_path,
+                new_sign_org_sign_in_path,
                 alert: I18n.t("sign.org.social.sessions.create.failure"),
               )
             end
@@ -208,13 +208,13 @@ module Sign
           )
           clear_social_auth_intent!
           redirect_to(
-            new_sign_org_in_path,
+            new_sign_org_sign_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),
           )
         end
 
         def social_auth_failure_redirect_path
-          new_sign_org_in_path
+          new_sign_org_sign_in_path
         end
 
         def social_auth_success_redirect_path
@@ -236,7 +236,7 @@ module Sign
             ),
           )
           redirect_to(
-            new_sign_org_in_path,
+            new_sign_org_sign_in_path,
             alert: I18n.t("sign.org.social.sessions.create.failure"),
             status: :forbidden,
           )

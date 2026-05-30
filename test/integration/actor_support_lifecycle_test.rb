@@ -38,7 +38,7 @@ module ActorSupportLifecycle
         time_format: preference.time_format,
         motion: preference.motion,
         density: preference.density,
-        items_per_page: preference.items_per_page,
+        page_size: preference.page_size,
         cookie: {
           consented: cookie.consented?,
           functional: cookie.functional?,
@@ -124,7 +124,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
       time_format: "hour_12",
       motion: "reduced",
       density: "compact",
-      items_per_page: "50",
+      page_size: "50",
       consented: true,
       functional: true,
       performant: true,
@@ -161,7 +161,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal "hour_24", snapshot["preference"]["time_format"]
     assert_equal "standard", snapshot["preference"]["motion"]
     assert_equal "standard", snapshot["preference"]["density"]
-    assert_equal "20", snapshot["preference"]["items_per_page"]
+    assert_equal "20", snapshot["preference"]["page_size"]
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
@@ -173,7 +173,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
   test "sign org request does not use staff preference record as runtime fallback and resets afterwards" do
     host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
-    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     OperatorPreference.create!(
       staff: staff,
       language: "en",
@@ -185,7 +185,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
       time_format: "hour_12",
       motion: "reduced",
       density: "compact",
-      items_per_page: "50",
+      page_size: "50",
       consented: true,
       functional: true,
       performant: false,
@@ -221,7 +221,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal "hour_24", snapshot["preference"]["time_format"]
     assert_equal "standard", snapshot["preference"]["motion"]
     assert_equal "standard", snapshot["preference"]["density"]
-    assert_equal "20", snapshot["preference"]["items_per_page"]
+    assert_equal "20", snapshot["preference"]["page_size"]
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
@@ -263,7 +263,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal "hour_24", snapshot["preference"]["time_format"]
     assert_equal "standard", snapshot["preference"]["motion"]
     assert_equal "standard", snapshot["preference"]["density"]
-    assert_equal "20", snapshot["preference"]["items_per_page"]
+    assert_equal "20", snapshot["preference"]["page_size"]
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type

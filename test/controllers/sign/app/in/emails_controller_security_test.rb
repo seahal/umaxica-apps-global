@@ -147,12 +147,12 @@ module Sign
           assert_not_nil email.otp_counter
         end
 
-        test "cleans up OTP secrets after verification" do
+        test "cleans up OTP secret_credentials after verification" do
           user = clients(:one)
           # Create existing email
           email = ClientEmail.create!(user: user, address: "cleanup_test@example.com", confirm_policy: true)
 
-          # Request OTP to generate secrets
+          # Request OTP to generate secret_credentials
           post sign_app_in_email_url(ri: "jp"), params: {
             :user_email => { address: "cleanup_test@example.com" },
             "cf-turnstile-response" => "test_token",

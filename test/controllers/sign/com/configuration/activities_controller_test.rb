@@ -136,7 +136,7 @@ class Sign::Com::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
         user_agent: "Mozilla/5.0 Firefox/120.0",
         auth_method: "email",
         note: "keep-me",
-        secret_token: "hide-me",
+        secret_credential_token: "hide-me",
       },
     )
     unknown_activity = build_activity(event_id: 9999, ip_address: "", context: "bad")

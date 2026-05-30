@@ -10,7 +10,7 @@
 #   { "current": "the_current_key", "previous": ["old_key_1", "old_key_2"] }
 #
 # Required env var (production only):
-#   SECRET_KEY_BASE_SECRET_ID - The Secrets Manager secret ARN or name
+#   SECRET_KEY_BASE_SECRET_ID - The Secrets Manager secret_credential ARN or name
 #
 # Optional env var (dev/test only):
 #   SECRET_KEY_BASE_PREVIOUS  - JSON array or single string of previous keys

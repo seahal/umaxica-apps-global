@@ -70,7 +70,7 @@ class SignUp::EmailPendingGuardTest < ActiveSupport::TestCase
 
   test "with_lock raises ArgumentError when digest is blank" do
     assert_raises(ArgumentError) do
-      SignUp::EmailPendingGuard.with_lock(address_digest: nil, number_digest: nil) { }
+      SignUp::EmailPendingGuard.with_lock(address_digest: nil, number_digest: nil) { nil }
     end
   end
 
@@ -82,7 +82,7 @@ class SignUp::EmailPendingGuardTest < ActiveSupport::TestCase
 
   test "with_lock raises ArgumentError when model_class and connection are both nil" do
     assert_raises(ArgumentError) do
-      SignUp::EmailPendingGuard.with_lock(address_digest: "abc", model_class: nil, connection: nil) { }
+      SignUp::EmailPendingGuard.with_lock(address_digest: "abc", model_class: nil, connection: nil) { nil }
     end
   end
 end

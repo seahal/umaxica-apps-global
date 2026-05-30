@@ -219,9 +219,9 @@ module Authentication
     end
 
     # Regression for S-4: outbox payloads land in the chronicle DB and
-    # must not embed secrets. Context goes through
+    # must not embed secret_credentials. Context goes through
     # Chronicle::Recorder.sanitize, which filters forbidden keys.
-    test "write sanitizes secrets out of the outbox payload context" do
+    test "write sanitizes secret_credentials out of the outbox payload context" do
       invalid_event_id = "NONEXISTENT_SECRET_#{SecureRandom.hex(8).upcase}"
       ChronicleRecord.connected_to(role: :writing) do
         ClientChronicleEvent.where(id: invalid_event_id).delete_all
@@ -239,8 +239,8 @@ module Authentication
           actor: @user,
           ip_address: "127.0.0.1",
           context: {
-            auth_method: "secret",
-            raw_secret: "should-not-survive",
+            auth_method: "secret_credential",
+            raw_secret_credential: "should-not-survive",
             password: "nope",
             token: "token-should-not-survive",
             otp: "123456",
@@ -257,9 +257,9 @@ module Authentication
         end
       sanitized_context = entry.payload["context"] || {}
 
-      assert_equal "secret", sanitized_context["auth_method"]
-      assert_not sanitized_context.key?("raw_secret"),
-                 "raw_secret must be stripped from outbox payload"
+      assert_equal "secret_credential", sanitized_context["auth_method"]
+      assert_not sanitized_context.key?("raw_secret_credential"),
+                 "raw_secret_credential must be stripped from outbox payload"
       assert_not sanitized_context.key?("password"),
                  "password must be stripped from outbox payload"
       assert_not sanitized_context.key?("token"),
@@ -274,7 +274,7 @@ module Authentication
                  "raw_ip must be stripped from outbox payload"
     end
 
-    test "write sanitizes secrets out of the application log payload" do
+    test "write sanitizes secret_credentials out of the application log payload" do
       invalid_event_id = "NONEXISTENT_EVENT_SECRET_#{SecureRandom.hex(8).upcase}"
       logged = []
 
@@ -290,7 +290,7 @@ module Authentication
             token: "token-should-not-survive",
             otp: "123456",
             session_id: "session-should-not-survive",
-            raw_secret: "raw-secret-should-not-survive",
+            raw_secret_credential: "raw-secret_credential-should-not-survive",
             raw_email: "person@example.test",
             raw_ip: "203.0.113.10",
           },
@@ -304,7 +304,7 @@ module Authentication
       assert_not_includes payload_json, "token-should-not-survive"
       assert_not_includes payload_json, "123456"
       assert_not_includes payload_json, "session-should-not-survive"
-      assert_not_includes payload_json, "raw-secret-should-not-survive"
+      assert_not_includes payload_json, "raw-secret_credential-should-not-survive"
       assert_not_includes payload_json, "person@example.test"
       assert_not_includes payload_json, "203.0.113.10"
       assert_not_includes payload.keys, :error_message

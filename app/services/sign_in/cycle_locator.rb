@@ -4,15 +4,15 @@
 module SignIn
   class CycleLocator
     SESSION_KEYS = {
-      app: :app_sign_in_cycle_locator,
-      com: :com_sign_in_cycle_locator,
-      org: :org_sign_in_cycle_locator,
+      app: :app_sign_in_flow_locator,
+      com: :com_sign_in_flow_locator,
+      org: :org_sign_in_flow_locator,
     }.freeze
 
     CYCLE_CLASSES = {
-      app: ClientSignInCycle,
-      com: VisitorSignInCycle,
-      org: OperatorSignInCycle,
+      app: ClientSignInFlow,
+      com: VisitorSignInFlow,
+      org: OperatorSignInFlow,
     }.freeze
 
     ACTOR_CLASSES = {

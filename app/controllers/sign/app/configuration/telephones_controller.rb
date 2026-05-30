@@ -12,6 +12,11 @@ module Sign
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!
+        # Object-level authorization (ActionPolicy): index/new/create gate the actor type; edit/destroy
+        # authorize the owned record (find_by! is owner-scoped, so a non-owner gets 404 first).
+        # Verification guards remain in place.
+        before_action :authorize_telephones!, only: %i(index)
+        before_action :authorize_telephone_registration!, only: %i(new create)
 
         def index
           @client_telephones = current_client.client_telephones
@@ -23,6 +28,7 @@ module Sign
 
         def edit
           @user_telephone = current_client.client_telephones.find_by!(public_id: params(:id))
+          authorize!(@user_telephone)
         end
 
         def create
@@ -40,6 +46,7 @@ module Sign
 
         def destroy
           telephone = current_client.client_telephones.find_by!(public_id: params(:id))
+          authorize!(telephone)
 
           unless AuthMethodGuard.can_remove_telephone?(current_client, telephone)
             redirect_to(
@@ -60,6 +67,14 @@ module Sign
         end
 
         private
+
+        def authorize_telephones!
+          authorize!(ClientTelephone, to: :index?)
+        end
+
+        def authorize_telephone_registration!
+          authorize!(ClientTelephone, to: :create?)
+        end
 
         def create_audit_event!(event_id, subject:)
           ChronicleRecord.connected_to(role: :writing) do

@@ -38,14 +38,14 @@
 class VisitorPasskey < ComPrincipalRecord
   include PublicId
   include Retainable
-  include MultiFactorStatusCredential
+  include MfaStatusCredential
 
   MAX_PASSKEYS_PER_VISITOR = 4
 
   attribute :status_id, default: VisitorPasskeyStatus::ACTIVE
 
   belongs_to :visitor, inverse_of: :visitor_passkeys
-  multi_factor_status_owner :visitor
+  mfa_status_owner :visitor
   belongs_to :status, class_name: "VisitorPasskeyStatus"
 
   scope :active, -> { where(status_id: VisitorPasskeyStatus::ACTIVE) }

@@ -42,7 +42,7 @@ class Acme::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "private R18 smoke page allows logged in adult with allow preference" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
-    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::APPROVED)
+    create_r18_preference!(user, ClientPreferenceAdultContentGateOption::APPROVED)
 
     get acme_app___dev_r18_private_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
@@ -52,7 +52,7 @@ class Acme::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
 
   test "private R18 smoke page forbids logged in POST instead of redirecting" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
-    create_r18_preference!(user, ClientPreferenceR18DisplayStopperOption::APPROVED)
+    create_r18_preference!(user, ClientPreferenceAdultContentGateOption::APPROVED)
 
     post acme_app___dev_r18_private_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
@@ -62,9 +62,9 @@ class Acme::App::Dev::R18::SmokeTest < ActionDispatch::IntegrationTest
   private
 
   def create_r18_preference!(user, option_id)
-    ClientPreferenceR18DisplayStopperOption.ensure_defaults!
+    ClientPreferenceAdultContentGateOption.ensure_defaults!
     preference = ClientPreference.create!(user: user)
-    ClientPreferenceR18DisplayStopper.create!(preference: preference, option_id: option_id)
+    ClientPreferenceAdultContentGate.create!(preference: preference, option_id: option_id)
     preference
   end
 end

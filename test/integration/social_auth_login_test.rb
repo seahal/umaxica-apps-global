@@ -10,7 +10,7 @@ require "test_helper"
 # - New user creation via social login
 # - JWT/session tokens are issued on success
 class SocialAuthLoginTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_social_google_statuses, :client_social_apple_statuses
+  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -31,13 +31,13 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     # Create existing user with Google identity
     existing_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: "ex_#{SecureRandom.hex(4)}")
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
       provider: "google_app",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     setup_google_mock_auth(uid: existing_uid)
@@ -69,13 +69,13 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     existing_uid = "existing_apple_user_#{SecureRandom.hex(4)}"
 
     existing_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: "ex_ap_#{SecureRandom.hex(4)}")
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
       provider: "apple",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_apple_status: client_social_apple_statuses(:active),
+      user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
     setup_apple_mock_auth(uid: existing_uid)
@@ -99,7 +99,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     setup_google_mock_auth(uid: new_uid)
 
     user_count_before = Client.count
-    identity_count_before = ClientSocialGoogle.count
+    identity_count_before = ClientGoogleIdentity.count
 
     state = start_social_auth_flow(provider: "google_app", intent: "login")
 
@@ -112,9 +112,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     # New user created
     assert_equal user_count_before + 1, Client.count, "New user should be created"
-    assert_equal identity_count_before + 1, ClientSocialGoogle.count
+    assert_equal identity_count_before + 1, ClientGoogleIdentity.count
 
-    identity = ClientSocialGoogle.find_by(uid: new_uid)
+    identity = ClientGoogleIdentity.find_by(uid: new_uid)
 
     assert_not_nil identity
     assert_not_nil identity.user
@@ -138,13 +138,13 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
-    assert ClientSocialGoogle.exists?(uid: new_uid)
+    assert ClientGoogleIdentity.exists?(uid: new_uid)
 
     get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "google_app"),
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_equal new_sign_app_in_url(ri: "jp"), response.location
+    assert_equal new_sign_app_sign_in_url(ri: "jp"), response.location
   end
 
   test "provider failure returns to sign up when social auth started from sign up" do
@@ -154,7 +154,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_equal new_sign_app_up_url(ri: "jp"), response.location
+    assert_equal new_sign_app_sign_up_url(ri: "jp"), response.location
   end
 
   test "provider failure returns to sign in when social auth started from sign in" do
@@ -164,7 +164,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_equal new_sign_app_in_url(ri: "jp"), response.location
+    assert_equal new_sign_app_sign_in_url(ri: "jp"), response.location
   end
 
   test "Apple login with new uid creates new user and identity" do
@@ -172,7 +172,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: new_uid)
 
     user_count_before = Client.count
-    identity_count_before = ClientSocialApple.count
+    identity_count_before = ClientAppleIdentity.count
 
     state = start_social_auth_flow(provider: "apple", intent: "login")
 
@@ -184,9 +184,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
 
     assert_equal user_count_before + 1, Client.count
-    assert_equal identity_count_before + 1, ClientSocialApple.count
+    assert_equal identity_count_before + 1, ClientAppleIdentity.count
 
-    identity = ClientSocialApple.find_by(uid: new_uid)
+    identity = ClientAppleIdentity.find_by(uid: new_uid)
 
     assert_not_nil identity
     assert_not_nil identity.user
@@ -223,13 +223,13 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     old_auth_time = 1.week.ago
 
     existing_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: "at_#{SecureRandom.hex(4)}")
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
       provider: "google_app",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
       last_authenticated_at: old_auth_time,
     )
 

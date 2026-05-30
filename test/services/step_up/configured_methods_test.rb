@@ -56,7 +56,7 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
   end
 
   test "returns credential-backed staff methods" do
-    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
+    staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
     staff.operator_emails.create!(
       address: "configured-staff@example.com",
       staff_identity_email_status_id: OperatorEmailStatus::ACTIVE,
@@ -82,9 +82,9 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
 
   test "does not include inactive totp" do
     user = Client.create!
-    user.client_one_time_passwords.create!(
+    user.client_totp_credentials.create!(
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::INACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::INACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 

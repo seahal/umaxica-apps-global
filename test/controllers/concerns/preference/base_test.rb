@@ -941,7 +941,7 @@ module Preference
       assert_equal "xx", @controller.send(:option_id_to_region, "XX", "App")
       assert_equal "Mars/Base", @controller.send(:option_id_to_timezone, "Mars/Base", "App")
       assert_equal "contrast", @controller.send(:option_id_to_theme, "contrast", "App")
-      assert_equal "R18DisplayStopper", @controller.send(:preference_child_class_suffix, :r18_display_stopper)
+      assert_equal "AdultContentGate", @controller.send(:preference_child_class_suffix, :adult_content_gate)
     end
 
     test "refresh failure handlers and render error branches set state" do
@@ -1080,7 +1080,7 @@ module Preference
         :app_preference_language, :app_preference_region, :app_preference_timezone,
         :app_preference_theme, :app_preference_currency, :app_preference_date_format,
         :app_preference_time_format, :app_preference_motion, :app_preference_density,
-        :app_preference_items_per_page, :app_preference_cookie, keyword_init: true,
+        :app_preference_page_size, :app_preference_cookie, keyword_init: true,
       ) do
         def class
           AppPreference

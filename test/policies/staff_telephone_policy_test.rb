@@ -14,6 +14,16 @@ class OperatorTelephonePolicyTest < ActiveSupport::TestCase
     assert_not @policy.index?
   end
 
+  # index? gates the telephone listing to the owning actor type (Operator).
+  def test_index_allows_operator
+    assert_predicate OperatorTelephonePolicy.new(nil, user: Operator.new), :index?
+  end
+
+  def test_index_denies_other_actor_types
+    assert_not OperatorTelephonePolicy.new(nil, user: Client.new).index?
+    assert_not OperatorTelephonePolicy.new(nil, user: Visitor.new).index?
+  end
+
   def test_show
     assert_not @policy.show?
   end
@@ -36,5 +46,34 @@ class OperatorTelephonePolicyTest < ActiveSupport::TestCase
 
   def test_destroy
     assert_not @policy.destroy?
+  end
+
+  # create? gates registration (fresh record) to the owning actor type.
+  def test_create_allows_operator
+    assert_predicate OperatorTelephonePolicy.new(nil, user: Operator.new), :create?
+    assert_predicate OperatorTelephonePolicy.new(nil, user: Operator.new), :new?
+  end
+
+  def test_create_denies_other_actor_types
+    assert_not OperatorTelephonePolicy.new(nil, user: Client.new).create?
+    assert_not OperatorTelephonePolicy.new(nil, user: Visitor.new).create?
+  end
+
+  # update?/destroy? require ownership of the specific record (record.staff_id == operator.id).
+  def test_update_and_destroy_allow_owner
+    owner = Operator.new(id: 1)
+    record = OperatorTelephone.new(staff_id: 1)
+
+    assert_predicate OperatorTelephonePolicy.new(record, user: owner), :update?
+    assert_predicate OperatorTelephonePolicy.new(record, user: owner), :edit?
+    assert_predicate OperatorTelephonePolicy.new(record, user: owner), :destroy?
+  end
+
+  def test_update_and_destroy_deny_non_owner
+    owner = Operator.new(id: 1)
+    record = OperatorTelephone.new(staff_id: 2)
+
+    assert_not OperatorTelephonePolicy.new(record, user: owner).update?
+    assert_not OperatorTelephonePolicy.new(record, user: owner).destroy?
   end
 end

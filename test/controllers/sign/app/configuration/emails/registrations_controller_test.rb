@@ -63,7 +63,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     end
 
     assert_response :success
-    assert_equal ClientMultiFactorStatus::UNCONFIGURED, user.reload.multi_factor_status_id
+    assert_equal ClientMfaStatus::UNCONFIGURED, user.reload.mfa_status_id
   end
 
   test "registration new requires step up when multi factor status is active" do
@@ -90,7 +90,7 @@ class Sign::App::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_email", query["scope"]
-    assert_equal ClientMultiFactorStatus::ACTIVE, user.reload.multi_factor_status_id
+    assert_equal ClientMfaStatus::ACTIVE, user.reload.mfa_status_id
   end
 
   test "registration edit renders stealth turnstile" do

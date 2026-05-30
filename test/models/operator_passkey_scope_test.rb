@@ -5,7 +5,7 @@ require "test_helper"
 
 class OperatorPasskeyScopeTest < ActiveSupport::TestCase
   setup do
-    @staff = Operator.create!(public_id: "ABCDEFGH2345WXYZ", status_id: OperatorIdentityStatus::NOTHING)
+    @staff = Operator.create!(public_id: "ABCDEFGH2345WXYZ", status_id: OperatorStatus::NOTHING)
 
     @active_passkey = OperatorPasskey.create!(
       staff: @staff,

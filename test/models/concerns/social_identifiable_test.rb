@@ -22,9 +22,9 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
   end
 
   test "model_for_provider returns model class" do
-    assert_equal ClientSocialGoogle, SocialIdentifiable.model_for_provider("google")
-    assert_equal OperatorSocialGoogle, SocialIdentifiable.model_for_provider("google_org")
-    assert_equal ClientSocialApple, SocialIdentifiable.model_for_provider("apple")
+    assert_equal ClientGoogleIdentity, SocialIdentifiable.model_for_provider("google")
+    assert_equal OperatorGoogleIdentity, SocialIdentifiable.model_for_provider("google_org")
+    assert_equal ClientAppleIdentity, SocialIdentifiable.model_for_provider("apple")
   end
 
   test "model_for_provider raises on unknown provider" do
@@ -33,14 +33,14 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
   end
 
   test "find_by_uid_with_lock supports lock option" do
-    identity = ClientSocialApple.create!(
+    identity = ClientAppleIdentity.create!(
       user: clients(:one),
       uid: "lock-uid",
       token: "token",
       expires_at: 123,
     )
 
-    found = ClientSocialApple.find_by_uid_with_lock("lock-uid", lock: true)
+    found = ClientAppleIdentity.find_by_uid_with_lock("lock-uid", lock: true)
 
     assert_equal identity.id, found.id
   end

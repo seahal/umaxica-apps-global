@@ -39,9 +39,9 @@ module Outbound
 
     def encryptor(purpose)
       ENCRYPTOR_CACHE.compute_if_absent(purpose) do
-        secret = Rails.application.secret_key_base
+        secret_credential = Rails.application.secret_key_base
         key_len = ActiveSupport::MessageEncryptor.key_len
-        key = ActiveSupport::KeyGenerator.new(secret).generate_key(purpose, key_len)
+        key = ActiveSupport::KeyGenerator.new(secret_credential).generate_key(purpose, key_len)
         ActiveSupport::MessageEncryptor.new(key, cipher: "aes-256-gcm")
       end
     end

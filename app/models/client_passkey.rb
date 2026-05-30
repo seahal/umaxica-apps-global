@@ -39,13 +39,13 @@
 class ClientPasskey < AppPrincipalRecord
   include ::PublicId
   include Retainable
-  include MultiFactorStatusCredential
+  include MfaStatusCredential
 
   MAX_PASSKEYS_PER_USER = 4
   attribute :status_id, default: ClientPasskeyStatus::ACTIVE
 
   belongs_to :user, class_name: "Client", inverse_of: :client_passkeys
-  multi_factor_status_owner :user
+  mfa_status_owner :user
   belongs_to :status, class_name: "ClientPasskeyStatus"
 
   scope :active, -> { where(status_id: ClientPasskeyStatus::ACTIVE) }

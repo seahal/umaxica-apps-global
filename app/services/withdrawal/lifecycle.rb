@@ -32,7 +32,7 @@ module Withdrawal
 
       actor.class.transaction do
         actor.lock!
-        ensure_withdrawal_cycle_requested!(now: now)
+        ensure_withdrawal_flow_requested!(now: now)
       end
 
       notify("requested")
@@ -45,7 +45,7 @@ module Withdrawal
 
       actor.class.transaction do
         actor.lock!
-        ensure_withdrawal_cycle_discarded!(now: now)
+        ensure_withdrawal_flow_discarded!(now: now)
         actor.update!(
           withdrawal_started_at: actor.withdrawal_started_at.presence || now,
           deactivated_at: deactivated,
@@ -71,7 +71,7 @@ module Withdrawal
 
       actor.class.transaction do
         actor.lock!
-        ensure_withdrawal_cycle_recovered!(now: Time.current)
+        ensure_withdrawal_flow_recovered!(now: Time.current)
         actor.update!(
           withdrawal_started_at: nil,
           deactivated_at: nil,
@@ -90,7 +90,7 @@ module Withdrawal
 
       actor.class.transaction do
         actor.lock!
-        ensure_withdrawal_cycle_terminated!(now: Time.current)
+        ensure_withdrawal_flow_terminated!(now: Time.current)
         if actor.respond_to?(:terminated_at=)
           actor.terminated_at = Time.current
           actor.save!(validate: false)
@@ -107,24 +107,24 @@ module Withdrawal
 
     attr_reader :actor, :current_session_public_id, :request
 
-    def ensure_withdrawal_cycle_requested!(now:)
-      cycle = active_withdrawal_cycle || create_withdrawal_cycle!(status: "REQUESTED", now: now)
+    def ensure_withdrawal_flow_requested!(now:)
+      cycle = active_withdrawal_flow || create_withdrawal_flow!(status: "REQUESTED", now: now)
       return cycle if cycle.withdrawal_requested?
       return cycle if cycle.withdrawal_closing? || cycle.withdrawal_discarded?
 
-      raise Sign::InvalidWithdrawalStateError, withdrawal_cycle_class.status_name_for(cycle.status_id)
+      raise Sign::InvalidWithdrawalStateError, withdrawal_flow_class.status_name_for(cycle.status_id)
     end
 
-    def ensure_withdrawal_cycle_discarded!(now:)
-      cycle = active_withdrawal_cycle || create_withdrawal_cycle!(status: "REQUESTED", now: now)
+    def ensure_withdrawal_flow_discarded!(now:)
+      cycle = active_withdrawal_flow || create_withdrawal_flow!(status: "REQUESTED", now: now)
       cycle.confirm_withdrawal!(
-        **withdrawal_cycle_event_attrs(
+        **withdrawal_flow_event_attrs(
           now: now,
           reason: "confirmed",
         ),
       ) if cycle.withdrawal_requested?
       cycle.discard_withdrawal!(
-        **withdrawal_cycle_event_attrs(
+        **withdrawal_flow_event_attrs(
           now: now,
           reason: "discarded",
         ),
@@ -132,10 +132,10 @@ module Withdrawal
       cycle
     end
 
-    def ensure_withdrawal_cycle_recovered!(now:)
-      cycle = active_withdrawal_cycle || create_withdrawal_cycle!(status: "DISCARDED", now: now)
+    def ensure_withdrawal_flow_recovered!(now:)
+      cycle = active_withdrawal_flow || create_withdrawal_flow!(status: "DISCARDED", now: now)
       cycle.recover_withdrawal!(
-        **withdrawal_cycle_event_attrs(
+        **withdrawal_flow_event_attrs(
           now: now,
           reason: "recovered",
         ),
@@ -143,10 +143,10 @@ module Withdrawal
       cycle
     end
 
-    def ensure_withdrawal_cycle_terminated!(now:)
-      cycle = active_withdrawal_cycle || create_withdrawal_cycle!(status: "DISCARDED", now: now)
+    def ensure_withdrawal_flow_terminated!(now:)
+      cycle = active_withdrawal_flow || create_withdrawal_flow!(status: "DISCARDED", now: now)
       cycle.terminate_withdrawal!(
-        **withdrawal_cycle_event_attrs(
+        **withdrawal_flow_event_attrs(
           now: now,
           reason: "terminated",
         ),
@@ -154,41 +154,41 @@ module Withdrawal
       cycle
     end
 
-    def active_withdrawal_cycle
-      withdrawal_cycle_scope.active.recent_first.first
+    def active_withdrawal_flow
+      withdrawal_flow_scope.active.recent_first.first
     end
 
-    def create_withdrawal_cycle!(status:, now:)
-      withdrawal_cycle_class.create!(
-        withdrawal_cycle_actor_key => actor,
-        :status_id => withdrawal_cycle_class.status_id_for(status),
+    def create_withdrawal_flow!(status:, now:)
+      withdrawal_flow_class.create!(
+        withdrawal_flow_actor_key => actor,
+        :status_id => withdrawal_flow_class.status_id_for(status),
         :began_at => actor.withdrawal_started_at.presence || now,
       )
     end
 
-    def withdrawal_cycle_scope
-      actor.public_send(withdrawal_cycle_association)
+    def withdrawal_flow_scope
+      actor.public_send(withdrawal_flow_association)
     end
 
-    def withdrawal_cycle_class
+    def withdrawal_flow_class
       case actor.class.name
-      when "Client" then ClientWithdrawalCycle
-      when "Visitor" then VisitorWithdrawalCycle
+      when "Client" then ClientWithdrawalFlow
+      when "Visitor" then VisitorWithdrawalFlow
       else
         raise Sign::InvalidWithdrawalStateError, actor.class.name
       end
     end
 
-    def withdrawal_cycle_association
+    def withdrawal_flow_association
       case actor.class.name
-      when "Client" then :client_withdrawal_cycles
-      when "Visitor" then :visitor_withdrawal_cycles
+      when "Client" then :client_withdrawal_flows
+      when "Visitor" then :visitor_withdrawal_flows
       else
         raise Sign::InvalidWithdrawalStateError, actor.class.name
       end
     end
 
-    def withdrawal_cycle_actor_key
+    def withdrawal_flow_actor_key
       case actor.class.name
       when "Client" then :client
       when "Visitor" then :visitor
@@ -197,7 +197,7 @@ module Withdrawal
       end
     end
 
-    def withdrawal_cycle_event_attrs(now:, reason:)
+    def withdrawal_flow_event_attrs(now:, reason:)
       {
         now: now,
         token_public_id: current_session_public_id,

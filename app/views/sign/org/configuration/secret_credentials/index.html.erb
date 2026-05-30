@@ -1,0 +1,50 @@
+<% content_for :page_title, t('.title') %>
+<div>
+  <div>
+    <div>
+      <h1><%= t('.title') %></h1>
+      <p><%= t('.description') %></p>
+    </div>
+    <div>
+      <%= link_to t('.new'), new_sign_org_configuration_secret_credential_path %>
+    </div>
+  </div>
+  <div>
+    <div>
+      <div>
+        <div>
+          <table>
+            <thead>
+            <tr>
+              <th scope="col"><%= t('activerecord.attributes.staff_secret_credential.name') %></th>
+              <th scope="col"><%= t('activerecord.attributes.staff_secret_credential.created_at') %></th>
+              <th scope="col"><%= t('activerecord.attributes.staff_secret_credential.last_used_at') %></th>
+              <th scope="col">
+                <span>Actions</span>
+              </th>
+            </tr>
+            </thead>
+            <tbody>
+            <% @secret_credentials.each do |secret_credential| %>
+              <tr>
+                <td><%= secret_credential.name %></td>
+                <td><%= l(secret_credential.created_at, format: :short) %></td>
+                <td><%= secret_credential.last_used_at ? l(secret_credential.last_used_at, format: :short) : '-' %></td>
+                <td>
+                  <%= link_to t('actions.edit'), edit_sign_org_configuration_secret_credential_path(secret_credential) %>
+                  <%= form_with(url: sign_org_configuration_secret_credential_path(secret_credential),
+                                method: :delete,
+                                data: { turbo_confirm: t('messages.confirm_destroy') }) do |form| %>
+                    <%= render "shared/cloudflare_turnstile_stealth" %>
+                    <%= form.submit t('actions.destroy') %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

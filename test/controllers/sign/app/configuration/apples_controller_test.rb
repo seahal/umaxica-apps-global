@@ -5,7 +5,7 @@ require "test_helper"
 
 module Sign::App::Configuration
   class ApplesControllerTest < ActionDispatch::IntegrationTest
-    fixtures :clients, :client_statuses, :client_social_apple_statuses
+    fixtures :clients, :client_statuses, :client_apple_identity_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -35,13 +35,13 @@ module Sign::App::Configuration
     end
 
     test "show treats revoked apple identity as unlinked" do
-      ClientSocialApple.create!(
+      ClientAppleIdentity.create!(
         user: @user,
         uid: "revoked-apple-config",
         provider: "apple",
         token: "token",
         expires_at: 1.hour.from_now.to_i,
-        user_social_apple_status: client_social_apple_statuses(:revoked),
+        user_apple_identity_status: client_apple_identity_statuses(:revoked),
       )
 
       get sign_app_configuration_apple_url(ri: "jp"), headers: @headers

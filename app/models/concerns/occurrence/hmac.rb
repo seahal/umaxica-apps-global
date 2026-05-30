@@ -9,7 +9,7 @@ module Occurrence
 
     class MissingSecretError < ApplicationError
       def initialize
-        super("errors.occurrence.missing_hmac_secret")
+        super("errors.occurrence.missing_hmac_secret_credential")
       end
     end
 
@@ -39,14 +39,14 @@ module Occurrence
     end
 
     def digest(kind:, body:)
-      OpenSSL::HMAC.hexdigest("SHA256", secret, "#{kind}:#{body}")
+      OpenSSL::HMAC.hexdigest("SHA256", secret_credential, "#{kind}:#{body}")
     end
 
-    def secret
-      secret_value = Rails.app.creds.option(:OCCURRENCE_HMAC_SECRET)
-      raise MissingSecretError if secret_value.blank?
+    def secret_credential
+      secret_credential_value = Rails.app.creds.option(:OCCURRENCE_HMAC_SECRET)
+      raise MissingSecretError if secret_credential_value.blank?
 
-      secret_value
+      secret_credential_value
     end
   end
 end

@@ -1,0 +1,12 @@
+<% content_for :page_title, t("sign.shared.sign_out.title") %>
+
+<div>
+  <h1><%= title t("sign.shared.sign_out.title") %></h1>
+  <p><%= t("views.sign.sign_outs.edit.confirm_description") %></p>
+  <%= button_to t("sign.shared.sign_out.button"),
+                sign_com_sign_out_path(ri: params[:ri]),
+                method: :post,
+                params: { confirm: "1" },
+                form: { data: { turbo: false } } %>
+  <p><%= link_to t("sign.app.configuration.show.back"), sign_com_configuration_path(ri: params[:ri]) %></p>
+</div>

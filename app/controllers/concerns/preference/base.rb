@@ -405,7 +405,7 @@ module Preference
 
       # If option_id is already an integer, use it as-is
       option_id_key = Preference::IoKeys::Params::OPTION_ID
-      if option_type != :items_per_page &&
+      if option_type != :page_size &&
           (params[option_id_key].is_a?(Integer) || params[option_id_key].to_s.match?(/^\d+$/))
         params[option_id_key] = Integer(params[option_id_key].to_s, 10)
         return params
@@ -642,7 +642,7 @@ module Preference
 
     def preference_payload_option_ids(preference, association_prefix)
       %i(language region timezone theme currency date_format time_format motion density
-         items_per_page r18_display_stopper).index_with do |type|
+         page_size adult_content_gate).index_with do |type|
         association_name = "#{association_prefix}_#{type}"
         next unless preference.respond_to?(association_name)
 
@@ -657,11 +657,11 @@ module Preference
         "tf" => option_id_to_preference_value(option_ids[:time_format], option_prefix, :time_format) || "hour_24",
         "mo" => option_id_to_preference_value(option_ids[:motion], option_prefix, :motion) || "standard",
         "dn" => option_id_to_preference_value(option_ids[:density], option_prefix, :density) || "standard",
-        "ipp" => option_id_to_preference_value(option_ids[:items_per_page], option_prefix, :items_per_page) || "20",
+        "ps" => option_id_to_preference_value(option_ids[:page_size], option_prefix, :page_size) || "20",
         "r18s" => option_id_to_preference_value(
-          option_ids[:r18_display_stopper],
+          option_ids[:adult_content_gate],
           option_prefix,
-          :r18_display_stopper,
+          :adult_content_gate,
         ) || "nothing",
       }
     end
@@ -959,8 +959,8 @@ module Preference
         time_format: "TimeFormat",
         motion: "Motion",
         density: "Density",
-        items_per_page: "ItemsPerPage",
-        r18_display_stopper: "R18DisplayStopper",
+        page_size: "PageSize",
+        adult_content_gate: "AdultContentGate",
       }.fetch(type.to_sym)
     end
 
@@ -977,7 +977,7 @@ module Preference
         "#{prefix}_time_format",
         "#{prefix}_motion",
         "#{prefix}_density",
-        "#{prefix}_items_per_page",
+        "#{prefix}_page_size",
       ].map(&:to_sym)
     end
 

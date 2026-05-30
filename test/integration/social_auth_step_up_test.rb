@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_social_google_statuses
+  fixtures :client_statuses, :client_google_identity_statuses
 
   setup do
     @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
@@ -27,13 +27,13 @@ class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
   end
 
   test "social auth service rejects step_up intent even with a linked identity" do
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: @user,
       uid: "social_step_up_forbidden_google",
       provider: "google_app",
       token: "old_token",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
     auth_hash = OmniAuth::AuthHash.new(
       provider: "google_app",

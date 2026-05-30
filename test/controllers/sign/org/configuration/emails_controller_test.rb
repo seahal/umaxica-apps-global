@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Configuration::EmailsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_email_statuses, :operator_telephone_statuses
+  fixtures :operators, :operator_statuses, :operator_email_statuses, :operator_telephone_statuses
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -116,7 +116,7 @@ class Sign::Org::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "update requires step up" do
-    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     token = OperatorToken.create!(staff: staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     OperatorPasskey.create!(
       staff: staff,
@@ -170,7 +170,7 @@ class Sign::Org::Configuration::EmailsControllerTest < ActionDispatch::Integrati
   end
 
   test "update does not change another staff member's email" do
-    other_staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    other_staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     email = OperatorEmail.create!(
       address: "other-staff-preference@example.com",
       staff: other_staff,

@@ -95,7 +95,7 @@ class Sign::Com::Configuration::Telephones::RegistrationsControllerTest < Action
       visitor: @visitor,
       raw_number: "+19999999999",
       visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
 

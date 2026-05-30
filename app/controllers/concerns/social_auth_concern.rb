@@ -50,7 +50,7 @@ module SocialAuthConcern
     validate_social_auth_login_requirement!(intent)
 
     store_social_auth_intent_context(intent, provider: provider, pt: pt, entry: entry, ri: ri)
-    store_social_callback_state(provider)
+    store_oauth_callback_state(provider)
     store_social_auth_user_context(intent)
 
     session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY]
@@ -76,7 +76,7 @@ module SocialAuthConcern
     end
   end
 
-  def store_social_callback_state(provider)
+  def store_oauth_callback_state(provider)
     state = SecureRandom.hex(24)
     session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = state
     session[SocialCallbackGuard::SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
@@ -276,7 +276,7 @@ module SocialAuthConcern
 
   # Override this method to customize the failure redirect path
   def social_auth_failure_redirect_path
-    respond_to?(:new_sign_app_in_path) ? new_sign_app_in_path : "/"
+    respond_to?(:new_sign_app_sign_in_path) ? new_sign_app_sign_in_path : "/"
   end
 
   # Override this method to customize the success redirect path

@@ -29,7 +29,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    assert_redirected_to new_sign_app_in_url(ri: "jp")
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp")
   end
 
   test "show without authentication redirects to public sign host and preserves absolute return target" do
@@ -113,7 +113,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
             "HTTP_ORIGIN" => "http://#{@host}",
           )
 
-    assert_redirected_to new_sign_app_in_url(ri: "jp")
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp")
   end
 
   test "update with active session returns forbidden" do
@@ -390,7 +390,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
              "HTTP_ORIGIN" => "http://#{@host}",
            )
 
-    assert_redirected_to new_sign_app_in_url(ri: "jp")
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp")
   end
 
   test "destroy with active session returns forbidden" do
@@ -412,7 +412,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     delete sign_app_in_session_url(ri: "jp"), headers: headers
 
-    assert_redirected_to new_sign_app_in_url(ri: "jp")
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp")
 
     token.reload
 

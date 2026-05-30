@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_telephone_statuses
+  fixtures :operators, :operator_statuses, :operator_telephone_statuses
   include ActiveJob::TestHelper
 
   setup do
@@ -88,7 +88,7 @@ class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < Action
       staff: @staff,
       raw_number: "+19999999999",
       staff_telephone_status_id: OperatorTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
 
@@ -106,7 +106,7 @@ class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < Action
       staff: @staff,
       raw_number: "+19999999999",
       staff_telephone_status_id: OperatorTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
 
@@ -126,7 +126,7 @@ class Sign::Org::Configuration::Telephones::RegistrationsControllerTest < Action
       staff: @staff,
       raw_number: "+19999999998",
       staff_telephone_status_id: OperatorTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
     CloudflareTurnstile.test_validation_response = { "success" => false }

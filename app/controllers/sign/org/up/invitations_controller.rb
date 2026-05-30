@@ -26,7 +26,7 @@ module Sign
 
           if result.success?
             redirect_to(
-              new_sign_org_in_path,
+              new_sign_org_sign_in_path,
               notice: t(".success", public_id: result.operator.public_id),
             )
           else

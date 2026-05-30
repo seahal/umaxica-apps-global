@@ -186,8 +186,8 @@ module Sign
     end
 
     def active_totp_credentials
-      current_client.client_one_time_passwords
-        .where(user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
+      current_client.client_totp_credentials
+        .where(user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
         .order(created_at: :desc)
     end
 
@@ -201,10 +201,10 @@ module Sign
         return false
       end
 
-      secret, counter, pass_code = generate_hotp_code
+      secret_credential, counter, pass_code = generate_hotp_code
       Rails.cache.write(
         email_otp_cache_key, {
-          "secret" => secret,
+          "secret_credential" => secret_credential,
           "counter" => counter,
         }, expires_in: [current_step_up_session.discarded_at - Time.current, 0].max,
       )
@@ -247,7 +247,7 @@ module Sign
         return false
       end
 
-      ok = verify_hotp_code(secret: data["secret"], counter: data["counter"], pass_code: code)
+      ok = verify_hotp_code(secret_credential: data["secret_credential"], counter: data["counter"], pass_code: code)
       unless ok
         @verification_errors = [I18n.t("sign.app.verification.errors.incorrect_code")]
         return false

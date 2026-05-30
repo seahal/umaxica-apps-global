@@ -125,6 +125,34 @@ ALTER SEQUENCE public.client_identity_states_id_seq OWNED BY public.client_ident
 
 
 --
+-- Name: client_profile_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_profile_statuses (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: client_profile_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_profile_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_profile_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_profile_statuses_id_seq OWNED BY public.client_profile_statuses.id;
+
+
+--
 -- Name: client_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -472,34 +500,6 @@ CREATE UNLOGGED TABLE public.schema_migrations (
 
 
 --
--- Name: visitor_account_statuses; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.visitor_account_statuses (
-    id bigint NOT NULL
-);
-
-
---
--- Name: visitor_account_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.visitor_account_statuses_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: visitor_account_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.visitor_account_statuses_id_seq OWNED BY public.visitor_account_statuses.id;
-
-
---
 -- Name: client_accounts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -518,6 +518,13 @@ ALTER TABLE ONLY public.client_identities ALTER COLUMN id SET DEFAULT nextval('p
 --
 
 ALTER TABLE ONLY public.client_identity_states ALTER COLUMN id SET DEFAULT nextval('public.client_identity_states_id_seq'::regclass);
+
+
+--
+-- Name: client_profile_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_profile_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_profile_statuses_id_seq'::regclass);
 
 
 --
@@ -591,13 +598,6 @@ ALTER TABLE ONLY public.personas ALTER COLUMN id SET DEFAULT nextval('public.per
 
 
 --
--- Name: visitor_account_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_account_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_account_statuses_id_seq'::regclass);
-
-
---
 -- Name: ar_internal_metadata ar_internal_metadata_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -627,6 +627,14 @@ ALTER TABLE ONLY public.client_identities
 
 ALTER TABLE ONLY public.client_identity_states
     ADD CONSTRAINT client_identity_states_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_profile_statuses client_profile_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_profile_statuses
+    ADD CONSTRAINT client_profile_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -715,14 +723,6 @@ ALTER TABLE ONLY public.personas
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
-
-
---
--- Name: visitor_account_statuses visitor_account_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_account_statuses
-    ADD CONSTRAINT visitor_account_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -1031,7 +1031,7 @@ ALTER TABLE ONLY public.persona_memberships
 --
 
 ALTER TABLE ONLY public.client_profiles
-    ADD CONSTRAINT fk_rails_510843a98e FOREIGN KEY (client_status_id) REFERENCES public.visitor_account_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_510843a98e FOREIGN KEY (client_status_id) REFERENCES public.client_profile_statuses(id) NOT VALID;
 
 
 --
@@ -1087,7 +1087,7 @@ ALTER TABLE ONLY public.enterprise_units
 --
 
 ALTER TABLE ONLY public.client_profiles
-    ADD CONSTRAINT fk_rails_c49c0906dc FOREIGN KEY (status_id) REFERENCES public.visitor_account_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_c49c0906dc FOREIGN KEY (status_id) REFERENCES public.client_profile_statuses(id) NOT VALID;
 
 
 --
@@ -1121,6 +1121,7 @@ ALTER TABLE ONLY public.enterprise_unit_closures
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260530031000'),
 ('20260526130000'),
 ('20260520143100'),
 ('20260520143003'),

@@ -8,16 +8,19 @@
 #
 #  id :bigint           not null, primary key
 #
+
 class OperatorStatus < OrgPrincipalRecord
   include ReferenceRecord
 
   # Fixed IDs - do not modify these values
   ACTIVE = 1
   NOTHING = 2
-  DEFAULTS = [ACTIVE, NOTHING].freeze
-  has_many :operator_workspace_accounts,
-           class_name: "OperatorWorkspaceAccount",
+  RESERVED = 3
+
+  DEFAULTS = [ACTIVE, NOTHING, RESERVED].freeze
+  has_many :staffs,
+           class_name: "Operator",
            foreign_key: :status_id,
-           inverse_of: false,
-           dependent: :restrict_with_error
+           dependent: :restrict_with_error,
+           inverse_of: :staff_status
 end

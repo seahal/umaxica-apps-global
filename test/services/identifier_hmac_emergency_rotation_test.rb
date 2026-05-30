@@ -45,7 +45,7 @@ class IdentifierHmacEmergencyRotationTest < ActiveSupport::TestCase
       raw_number: "+1 (555) #{rand(100..999)}-#{rand(1000..9999)}",
       visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
 
     records = [

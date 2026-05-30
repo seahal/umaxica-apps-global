@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Configuration::Emails::RegistrationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_email_statuses
+  fixtures :operators, :operator_statuses, :operator_email_statuses
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")

@@ -151,7 +151,7 @@ class ActorContextTest < ActiveSupport::TestCase
       "tf" => "hour_12",
       "mo" => "reduced",
       "dn" => "compact",
-      "ipp" => "50",
+      "ps" => "50",
     }
     pref = Actor::Preference.from_jwt(claim)
 
@@ -164,7 +164,7 @@ class ActorContextTest < ActiveSupport::TestCase
     assert_equal "hour_12", pref.time_format
     assert_equal "reduced", pref.motion
     assert_equal "compact", pref.density
-    assert_equal "50", pref.items_per_page
+    assert_equal "50", pref.page_size
     assert_predicate pref, :dark_mode?
     assert_not pref.null?
   end

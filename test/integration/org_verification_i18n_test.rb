@@ -8,13 +8,13 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
     OrgPrincipalRecord.connected_to(role: :writing) do
-      OperatorIdentityStatus.insert_missing_fixed_ids!(
-        [OperatorIdentityStatus::ACTIVE,
-         OperatorIdentityStatus::NOTHING, OperatorIdentityStatus::RESERVED,],
+      OperatorStatus.insert_missing_fixed_ids!(
+        [OperatorStatus::ACTIVE,
+         OperatorStatus::NOTHING, OperatorStatus::RESERVED,],
       )
     end
 
-    @staff = Operator.create!(status_id: OperatorIdentityStatus::NOTHING, public_id: Operator.generate_public_id)
+    @staff = Operator.create!(status_id: OperatorStatus::NOTHING, public_id: Operator.generate_public_id)
     @token = OperatorToken.create!(
       staff: @staff,
       staff_token_status_id: OperatorTokenStatus::NOTHING,

@@ -59,7 +59,7 @@ module Sign::Com::Configuration
     end
 
     test "rejects unrelated step-up scope" do
-      @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret")
+      @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret_credential")
 
       get sign_com_configuration_birthdate_url(ri: "jp"), headers: @headers
 

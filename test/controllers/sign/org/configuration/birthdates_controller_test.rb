@@ -5,7 +5,7 @@ require "test_helper"
 
 module Sign::Org::Configuration
   class BirthdatesControllerTest < ActionDispatch::IntegrationTest
-    fixtures :operators, :operator_identity_statuses
+    fixtures :operators, :operator_statuses
 
     setup do
       @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -56,7 +56,7 @@ module Sign::Org::Configuration
     end
 
     test "rejects unrelated step-up scope" do
-      @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret")
+      @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_secret_credential")
 
       get sign_org_configuration_birthdate_url(ri: "jp"), headers: @headers
 

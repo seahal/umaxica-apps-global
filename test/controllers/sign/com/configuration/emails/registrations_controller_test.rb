@@ -50,7 +50,7 @@ class Sign::Com::Configuration::Emails::RegistrationsControllerTest < ActionDisp
     get new_sign_com_configuration_emails_registration_url(ri: "jp"), headers: headers
 
     assert_response :success
-    assert_equal VisitorMultiFactorStatus::UNCONFIGURED, visitor.reload.multi_factor_status_id
+    assert_equal VisitorMfaStatus::UNCONFIGURED, visitor.reload.mfa_status_id
   end
 
   test "new requires step up when visitor multi factor status is active" do
@@ -64,7 +64,7 @@ class Sign::Com::Configuration::Emails::RegistrationsControllerTest < ActionDisp
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_email", query["scope"]
-    assert_equal VisitorMultiFactorStatus::ACTIVE, @visitor.reload.multi_factor_status_id
+    assert_equal VisitorMfaStatus::ACTIVE, @visitor.reload.mfa_status_id
   end
 
   test "create sends OTP email and stores notification preference" do

@@ -34,7 +34,7 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
   end
 
   test "ticket policy requires sequence binding for existing tickets" do
-    ticket = build_ticket(ClientSignUpCycle, entry_method: "email", step: "start")
+    ticket = build_ticket(ClientSignUpFlow, entry_method: "email", step: "start")
     bound_context = policy_context(ticket, auth: auth(active_sign_sequence_id: ticket.public_id))
     unbound_context = policy_context(ticket, auth: auth(active_sign_sequence_id: "wrong-sequence"))
 
@@ -43,15 +43,15 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
   end
 
   test "ticket policy rejects signed-in actor from resuming sign-up" do
-    ticket = build_ticket(ClientSignUpCycle, entry_method: "email", step: "start")
+    ticket = build_ticket(ClientSignUpFlow, entry_method: "email", step: "start")
     context = policy_context(ticket, auth: auth(signed_in: true, active_sign_sequence_id: ticket.public_id))
 
     assert_not_predicate SignUp::TicketPolicy.new(context, user: Object.new), :resume?
   end
 
   test "ticket policy rejects binding to another ticket public id" do
-    ticket = build_ticket(ClientSignUpCycle, entry_method: "email", step: "start")
-    other_ticket = build_ticket(ClientSignUpCycle, entry_method: "email", step: "start")
+    ticket = build_ticket(ClientSignUpFlow, entry_method: "email", step: "start")
+    other_ticket = build_ticket(ClientSignUpFlow, entry_method: "email", step: "start")
     context = policy_context(ticket, auth: auth(active_sign_sequence_id: other_ticket.public_id))
 
     assert_not_predicate SignUp::TicketPolicy.new(context, user: nil), :show?
@@ -60,12 +60,12 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "ticket policy rejects terminal and expired tickets" do
     completed = build_ticket(
-      ClientSignUpCycle,
-      status_id: ClientSignUpCycleStatus::COMPLETED,
+      ClientSignUpFlow,
+      status_id: ClientSignUpFlowStatus::COMPLETED,
       step: "completed",
       completed_at: Time.current,
     )
-    expired = build_ticket(ClientSignUpCycle, issued_at: 2.minutes.ago, expires_at: 1.minute.ago)
+    expired = build_ticket(ClientSignUpFlow, issued_at: 2.minutes.ago, expires_at: 1.minute.ago)
 
     assert_not_predicate SignUp::TicketPolicy.new(policy_context(completed), user: nil), :show?
     assert_not_predicate SignUp::TicketPolicy.new(policy_context(expired), user: nil), :show?
@@ -73,18 +73,18 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "ticket policy allows cancel only for cancelable or already cancelled tickets" do
     checkpoint = build_ticket(
-      ClientSignUpCycle,
-      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      ClientSignUpFlow,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
     )
     finalizing = build_ticket(
-      ClientSignUpCycle,
-      status_id: ClientSignUpCycleStatus::FINALIZING,
+      ClientSignUpFlow,
+      status_id: ClientSignUpFlowStatus::FINALIZING,
       step: "finalizing",
     )
     cancelled = build_ticket(
-      ClientSignUpCycle,
-      status_id: ClientSignUpCycleStatus::CANCELLED,
+      ClientSignUpFlow,
+      status_id: ClientSignUpFlowStatus::CANCELLED,
       step: "cancelled",
     )
 
@@ -94,7 +94,7 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
   end
 
   test "ticket policy rejects cross-surface context" do
-    ticket = build_ticket(ClientSignUpCycle, entry_method: "email")
+    ticket = build_ticket(ClientSignUpFlow, entry_method: "email")
     context = SignUp::PolicyContext.build(
       surface: :com,
       actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
@@ -106,12 +106,12 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "participant policy allows checkpoint only from sign-up participant states" do
     contact_verified = build_ticket(
-      ClientSignUpCycle, status_id: ClientSignUpCycleStatus::CONTACT_VERIFIED,
-                         step: "contact_verified",
+      ClientSignUpFlow, status_id: ClientSignUpFlowStatus::CONTACT_VERIFIED,
+                        step: "contact_verified",
     )
     contact_pending = build_ticket(
-      ClientSignUpCycle, status_id: ClientSignUpCycleStatus::CONTACT_PENDING,
-                         step: "contact",
+      ClientSignUpFlow, status_id: ClientSignUpFlowStatus::CONTACT_PENDING,
+                        step: "contact",
     )
 
     assert_predicate SignUp::ParticipantPolicy.new(policy_context(contact_verified), user: nil), :enter_checkpoint?
@@ -120,9 +120,9 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "requirement policy allows only ticket-owned checkpoint requirements" do
     ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "telephone",
-      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
       principal_id: 42,
     )
@@ -137,9 +137,9 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "requirement policy rejects stale already-cleared requirement" do
     ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "email",
-      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
       principal_id: 42,
       completed_requirements: { "birthdate" => { "cleared" => true } },
@@ -151,9 +151,9 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "requirement policy allows continuing already-cleared requirement" do
     ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "email",
-      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
       principal_id: 42,
       completed_requirements: { "birthdate" => { "cleared" => true } },
@@ -168,9 +168,9 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "requirement policy rejects wrong pending actor" do
     ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "telephone",
-      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
       principal_id: 42,
     )
@@ -181,9 +181,9 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "finalization policy requires all requirements clear" do
     ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "telephone",
-      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
       principal_id: 42,
       completed_requirements: {
@@ -204,9 +204,9 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "finalization context rejects missing telephone requirements before policy evaluation" do
     ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "telephone",
-      status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
       principal_id: 42,
       completed_requirements: {
@@ -227,15 +227,15 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "social callback policy is app social only" do
     app_ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "google",
-      status_id: ClientSignUpCycleStatus::STARTED,
+      status_id: ClientSignUpFlowStatus::STARTED,
       step: "start",
     )
     com_ticket = build_ticket(
-      VisitorSignUpCycle,
+      VisitorSignUpFlow,
       entry_method: "email",
-      status_id: VisitorSignUpCycleStatus::STARTED,
+      status_id: VisitorSignUpFlowStatus::STARTED,
       step: "start",
     )
 
@@ -246,15 +246,15 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "social callback policy requires the matching social step" do
     start_ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "google",
-      status_id: ClientSignUpCycleStatus::STARTED,
+      status_id: ClientSignUpFlowStatus::STARTED,
       step: "start",
     )
     callback_ticket = build_ticket(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "google",
-      status_id: ClientSignUpCycleStatus::SOCIAL_CALLBACK_PENDING,
+      status_id: ClientSignUpFlowStatus::SOCIAL_CALLBACK_PENDING,
       step: "social_callback",
     )
 

@@ -8,13 +8,13 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
 
   setup do
     @user = clients(:one)
-    ClientSocialGoogle.where(user: @user).delete_all
-    ClientSocialApple.where(user: @user).delete_all
+    ClientGoogleIdentity.where(user: @user).delete_all
+    ClientAppleIdentity.where(user: @user).delete_all
     ClientEmail.where(user: @user).delete_all
     ClientTelephone.where(user: @user).delete_all
-    ClientSecret.where(user: @user).delete_all
+    ClientSecretCredential.where(user: @user).delete_all
     ClientPasskey.where(user: @user).delete_all
-    ClientOneTimePassword.where(user: @user).delete_all
+    ClientTotpCredential.where(user: @user).delete_all
   end
 
   test "remaining_count returns 0 for user with no methods" do
@@ -26,11 +26,11 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count includes active Google identity" do
     user = @user
 
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -41,11 +41,11 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count includes active Apple identity" do
     user = @user
 
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: user,
       uid: "test_apple_#{SecureRandom.hex(4)}",
       provider: "apple",
-      status_id: ClientSocialAppleStatus::ACTIVE,
+      status_id: ClientAppleIdentityStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -105,11 +105,11 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count excludes specified identity" do
     user = @user
 
-    google = ClientSocialGoogle.create!(
+    google = ClientGoogleIdentity.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -120,11 +120,11 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "last_method returns true when only one method exists" do
     user = @user
 
-    google = ClientSocialGoogle.create!(
+    google = ClientGoogleIdentity.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -136,11 +136,11 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "last_method returns false when multiple methods exist" do
     user = @user
 
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -157,20 +157,20 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count counts multiple methods correctly" do
     user = @user
 
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
 
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: user,
       uid: "test_apple_#{SecureRandom.hex(4)}",
       provider: "apple",
-      status_id: ClientSocialAppleStatus::ACTIVE,
+      status_id: ClientAppleIdentityStatus::ACTIVE,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -187,11 +187,11 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   test "remaining_count excludes inactive Google identity" do
     user = @user
 
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "test_google_#{SecureRandom.hex(4)}",
       provider: "google_app",
-      status_id: ClientSocialGoogleStatus::REVOKED,
+      status_id: ClientGoogleIdentityStatus::REVOKED,
       token: "token",
       expires_at: 1.week.from_now.to_i,
     )
@@ -245,10 +245,10 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
   end
 
   test "can_remove_totp preserves at least one aal2 method" do
-    totp = ClientOneTimePassword.create!(
+    totp = ClientTotpCredential.create!(
       user: @user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 

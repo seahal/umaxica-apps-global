@@ -97,10 +97,10 @@ module Sign::App::Up
 
       assert_redirected_to edit_sign_app_up_telephone_url
       assert_not_nil session[:user_telephone_registration]
-      assert_predicate session[:app_sign_up_cycle_locator], :present?
-      cycle = ClientSignUpCycle.find_by!(public_id: session.dig(:app_sign_up_cycle_locator, "public_id"))
+      assert_predicate session[:app_sign_up_flow_locator], :present?
+      cycle = ClientSignUpFlow.find_by!(public_id: session.dig(:app_sign_up_flow_locator, "public_id"))
 
-      assert_equal ClientSignUpCycleStatus::CONTACT_PENDING, cycle.status_id
+      assert_equal ClientSignUpFlowStatus::CONTACT_PENDING, cycle.status_id
       assert_equal "telephone", cycle.entry_method
       assert_equal registration_telephone.id, cycle.pending_contact_id
     end
@@ -245,14 +245,14 @@ module Sign::App::Up
       assert_redirected_to sign_app_up_guardrail_url(regional_defaults)
 
       telephone.reload
-      cycle = ClientSignUpCycle.find_by!(public_id: session.dig(:app_sign_up_cycle_locator, "public_id"))
+      cycle = ClientSignUpFlow.find_by!(public_id: session.dig(:app_sign_up_flow_locator, "public_id"))
 
       # OTP should be cleared (-infinity)
       expires = telephone.otp_expires_at
 
       assert expires.nil? || expires.to_s == "-infinity" || (expires.is_a?(Float) && expires == -Float::INFINITY)
       assert_equal [nil, nil], [telephone.confirm_policy, telephone.confirm_using_mfa]
-      assert_equal ClientSignUpCycleStatus::CONTACT_VERIFIED, cycle.status_id
+      assert_equal ClientSignUpFlowStatus::CONTACT_VERIFIED, cycle.status_id
       assert_equal "contact_verified", cycle.step
     end
 
@@ -340,7 +340,7 @@ module Sign::App::Up
       assert_select "input[type=number][name=birthdate_year][autocomplete=bday-year]"
       assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
       assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
-      cycle = ClientSignUpCycle.find_by!(principal_id: user.id)
+      cycle = ClientSignUpFlow.find_by!(principal_id: user.id)
 
       assert_select "a[href='#{new_sign_app_up_checkpoint_passkey_path(
         regional_defaults.merge(checkpoint_version: cycle.checkpoint_version),

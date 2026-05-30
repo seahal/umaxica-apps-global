@@ -6,42 +6,42 @@
 # Table name: visitors
 # Database name: com_principal
 #
-#  id                     :bigint           not null, primary key
-#  birthdate              :text
-#  deactivated_at         :datetime
-#  discarded_at           :datetime         default(Infinity), not null
-#  lock_version           :integer          default(0), not null
-#  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purged_at              :datetime         default(Infinity), not null
-#  terminated_at          :datetime
-#  withdrawal_started_at  :datetime
-#  withdrawn_at           :datetime         default(Infinity)
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  multi_factor_id        :bigint           default(0), not null
-#  multi_factor_status_id :bigint           default(5), not null
-#  public_id              :string           default(""), not null
-#  status_id              :bigint           default(2), not null
-#  visibility_id          :bigint           default(1), not null
+#  id                    :bigint           not null, primary key
+#  birthdate             :text
+#  deactivated_at        :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  lock_version          :integer          default(0), not null
+#  mfa_level_enabled     :boolean          default(FALSE), not null
+#  purged_at             :datetime         default(Infinity), not null
+#  terminated_at         :datetime
+#  withdrawal_started_at :datetime
+#  withdrawn_at          :datetime         default(Infinity)
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  mfa_level_id          :bigint           default(0), not null
+#  mfa_status_id         :bigint           default(5), not null
+#  public_id             :string           default(""), not null
+#  status_id             :bigint           default(2), not null
+#  visibility_id         :bigint           default(1), not null
 #
 # Indexes
 #
-#  index_visitors_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_visitors_on_discarded_at            (discarded_at)
-#  index_visitors_on_multi_factor_id         (multi_factor_id)
-#  index_visitors_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_visitors_on_public_id               (public_id) UNIQUE
-#  index_visitors_on_purged_at               (purged_at)
-#  index_visitors_on_status_id               (status_id)
-#  index_visitors_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
-#  index_visitors_on_visibility_id           (visibility_id)
-#  index_visitors_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_visitors_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_visitors_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_visitors_on_discarded_at           (discarded_at)
+#  index_visitors_on_mfa_level_id           (mfa_level_id)
+#  index_visitors_on_mfa_status_id          (mfa_status_id)
+#  index_visitors_on_public_id              (public_id) UNIQUE
+#  index_visitors_on_purged_at              (purged_at)
+#  index_visitors_on_status_id              (status_id)
+#  index_visitors_on_terminated_at          (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_visitors_on_visibility_id          (visibility_id)
+#  index_visitors_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_visitors_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => visitor_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => visitor_multi_factor_statuses.id)
+#  fk_rails_...  (mfa_level_id => visitor_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => visitor_mfa_statuses.id)
 #  fk_rails_...  (status_id => visitor_statuses.id)
 #  fk_rails_...  (visibility_id => visitor_visibilities.id)
 #
@@ -54,8 +54,8 @@ class Visitor < ComPrincipalRecord
   include ::PublicId
   include ::Identity
   include Authentication::CredentialInventoryOwner
-  include MultiFactorConfigurable
-  include MultiFactorStatusTrackable
+  include MfaLevelConfigurable
+  include MfaStatusTrackable
   include Actor::LifecycleConsistency
 
   LOGIN_BLOCKED_STATUS_IDS = [VisitorStatus::RESERVED].freeze
@@ -70,18 +70,18 @@ class Visitor < ComPrincipalRecord
   RECOVERY_IDENTITY_REQUIRED_MESSAGE = I18n.t("models.visitor.recovery_identity_required")
 
   attribute :status_id, default: VisitorStatus::NOTHING
-  multi_factor_reference VisitorMultiFactor
-  multi_factor_status_reference VisitorMultiFactorStatus
+  mfa_level_reference VisitorMfaLevel
+  mfa_status_reference VisitorMfaStatus
 
   belongs_to :visitor_status,
              class_name: "VisitorStatus",
              foreign_key: :status_id,
              inverse_of: :visitors
-  belongs_to :multi_factor,
-             class_name: "VisitorMultiFactor",
+  belongs_to :mfa_level,
+             class_name: "VisitorMfaLevel",
              inverse_of: :visitors
-  belongs_to :multi_factor_status,
-             class_name: "VisitorMultiFactorStatus",
+  belongs_to :mfa_status,
+             class_name: "VisitorMfaStatus",
              inverse_of: :visitors
   belongs_to :visibility,
              class_name: "VisitorVisibility",
@@ -92,13 +92,13 @@ class Visitor < ComPrincipalRecord
   has_many :visitor_emails,
            dependent: :destroy,
            inverse_of: :visitor
-  has_many :visitor_withdrawal_cycles,
+  has_many :visitor_withdrawal_flows,
            dependent: :restrict_with_error,
            inverse_of: :visitor
   has_many :visitor_telephones,
            dependent: :destroy,
            inverse_of: :visitor
-  has_many :visitor_secrets,
+  has_many :visitor_secret_credentials,
            dependent: :destroy,
            inverse_of: :visitor
   has_many :visitor_passkeys,
@@ -183,7 +183,7 @@ class Visitor < ComPrincipalRecord
 
   private
 
-  def configured_multi_factor_methods
+  def configured_mfa_level_methods
     step_up_methods
   end
 end

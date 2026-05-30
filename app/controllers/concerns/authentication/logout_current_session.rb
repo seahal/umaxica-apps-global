@@ -20,9 +20,9 @@ module Authentication
 
     def call
       token_record = resolved_token
-      return true if recent_completed_sign_out_cycle?(token_record)
+      return true if recent_completed_sign_out_flow?(token_record)
 
-      cycle = begin_sign_out_cycle(token_record)
+      cycle = begin_sign_out_flow(token_record)
       begin
         cycle&.mark_access_discarded!
         revoke_device_session!(token_record)
@@ -31,7 +31,7 @@ module Authentication
         cycle&.await_sign_out_expiry!
         cycle&.complete_sign_out!
       rescue StandardError
-        fail_sign_out_cycle(cycle)
+        fail_sign_out_flow(cycle)
         raise
       end
       true
@@ -166,8 +166,8 @@ module Authentication
         token_record.device_session.present?
     end
 
-    def begin_sign_out_cycle(token_record)
-      cycle_class = sign_out_cycle_class_for(token_record)
+    def begin_sign_out_flow(token_record)
+      cycle_class = sign_out_flow_class_for(token_record)
       return if cycle_class.blank?
 
       cycle_class.connection_class_for_self.connected_to(role: :writing) do
@@ -196,10 +196,10 @@ module Authentication
       nil
     end
 
-    def recent_completed_sign_out_cycle?(token_record)
+    def recent_completed_sign_out_flow?(token_record)
       return false unless token_record&.respond_to?(:revoked?) && token_record.revoked?
 
-      cycle_class = sign_out_cycle_class_for(token_record)
+      cycle_class = sign_out_flow_class_for(token_record)
       return false if cycle_class.blank?
 
       cycle_class.where(token_id: token_record.id)
@@ -210,21 +210,21 @@ module Authentication
       false
     end
 
-    def fail_sign_out_cycle(cycle)
+    def fail_sign_out_flow(cycle)
       return if cycle.blank? || cycle.sign_out_completed? || cycle.sign_out_failed?
 
       cycle.class.connection_class_for_self.connected_to(role: :writing) do
         cycle.reload.fail_sign_out!
       end
-    rescue ActiveRecord::ActiveRecordError, Cycle::InvalidTransition
+    rescue ActiveRecord::ActiveRecordError, Flow::InvalidTransition
       nil
     end
 
-    def sign_out_cycle_class_for(token_record)
+    def sign_out_flow_class_for(token_record)
       case token_record
-      when ClientToken then ClientSignOutCycle
-      when VisitorToken then VisitorSignOutCycle
-      when OperatorToken then OperatorSignOutCycle
+      when ClientToken then ClientSignOutFlow
+      when VisitorToken then VisitorSignOutFlow
+      when OperatorToken then OperatorSignOutFlow
       end
     end
 

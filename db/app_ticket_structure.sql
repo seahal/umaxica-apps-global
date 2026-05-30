@@ -180,6 +180,42 @@ ALTER SEQUENCE public.client_dpop_proof_states_id_seq OWNED BY public.client_dpo
 
 
 --
+-- Name: client_oauth_callback_states; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_oauth_callback_states (
+    id bigint NOT NULL,
+    state_digest character varying NOT NULL,
+    provider character varying NOT NULL,
+    intent character varying,
+    issued_at timestamp(6) with time zone NOT NULL,
+    expires_at timestamp(6) with time zone NOT NULL,
+    consumed_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: client_oauth_callback_states_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_oauth_callback_states_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_oauth_callback_states_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_oauth_callback_states_id_seq OWNED BY public.client_oauth_callback_states.id;
+
+
+--
 -- Name: client_oidc_connections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -216,19 +252,19 @@ ALTER SEQUENCE public.client_oidc_connections_id_seq OWNED BY public.client_oidc
 
 
 --
--- Name: client_sign_in_cycle_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: client_sign_in_flow_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_sign_in_cycle_statuses (
+CREATE UNLOGGED TABLE public.client_sign_in_flow_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_sign_in_cycle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_sign_in_flow_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_sign_in_cycle_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.client_sign_in_flow_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -237,17 +273,17 @@ CREATE UNLOGGED SEQUENCE public.client_sign_in_cycle_statuses_id_seq
 
 
 --
--- Name: client_sign_in_cycle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_sign_in_flow_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_sign_in_cycle_statuses_id_seq OWNED BY public.client_sign_in_cycle_statuses.id;
+ALTER SEQUENCE public.client_sign_in_flow_statuses_id_seq OWNED BY public.client_sign_in_flow_statuses.id;
 
 
 --
--- Name: client_sign_in_cycles; Type: TABLE; Schema: public; Owner: -
+-- Name: client_sign_in_flows; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_sign_in_cycles (
+CREATE UNLOGGED TABLE public.client_sign_in_flows (
     id bigint NOT NULL,
     public_id character varying(21) NOT NULL,
     principal_id bigint,
@@ -274,10 +310,10 @@ CREATE UNLOGGED TABLE public.client_sign_in_cycles (
 
 
 --
--- Name: client_sign_in_cycles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_sign_in_flows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_sign_in_cycles_id_seq
+CREATE UNLOGGED SEQUENCE public.client_sign_in_flows_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -286,26 +322,26 @@ CREATE UNLOGGED SEQUENCE public.client_sign_in_cycles_id_seq
 
 
 --
--- Name: client_sign_in_cycles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_sign_in_flows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_sign_in_cycles_id_seq OWNED BY public.client_sign_in_cycles.id;
+ALTER SEQUENCE public.client_sign_in_flows_id_seq OWNED BY public.client_sign_in_flows.id;
 
 
 --
--- Name: client_sign_out_cycle_kinds; Type: TABLE; Schema: public; Owner: -
+-- Name: client_sign_out_flow_kinds; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_sign_out_cycle_kinds (
+CREATE UNLOGGED TABLE public.client_sign_out_flow_kinds (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_sign_out_cycle_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_sign_out_flow_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_sign_out_cycle_kinds_id_seq
+CREATE UNLOGGED SEQUENCE public.client_sign_out_flow_kinds_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -314,26 +350,26 @@ CREATE UNLOGGED SEQUENCE public.client_sign_out_cycle_kinds_id_seq
 
 
 --
--- Name: client_sign_out_cycle_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_sign_out_flow_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_sign_out_cycle_kinds_id_seq OWNED BY public.client_sign_out_cycle_kinds.id;
+ALTER SEQUENCE public.client_sign_out_flow_kinds_id_seq OWNED BY public.client_sign_out_flow_kinds.id;
 
 
 --
--- Name: client_sign_out_cycle_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: client_sign_out_flow_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_sign_out_cycle_statuses (
+CREATE UNLOGGED TABLE public.client_sign_out_flow_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_sign_out_cycle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_sign_out_flow_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_sign_out_cycle_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.client_sign_out_flow_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -342,17 +378,17 @@ CREATE UNLOGGED SEQUENCE public.client_sign_out_cycle_statuses_id_seq
 
 
 --
--- Name: client_sign_out_cycle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_sign_out_flow_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_sign_out_cycle_statuses_id_seq OWNED BY public.client_sign_out_cycle_statuses.id;
+ALTER SEQUENCE public.client_sign_out_flow_statuses_id_seq OWNED BY public.client_sign_out_flow_statuses.id;
 
 
 --
--- Name: client_sign_out_cycles; Type: TABLE; Schema: public; Owner: -
+-- Name: client_sign_out_flows; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_sign_out_cycles (
+CREATE UNLOGGED TABLE public.client_sign_out_flows (
     id bigint NOT NULL,
     public_id character varying(21) NOT NULL,
     principal_id bigint,
@@ -379,10 +415,10 @@ CREATE UNLOGGED TABLE public.client_sign_out_cycles (
 
 
 --
--- Name: client_sign_out_cycles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_sign_out_flows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_sign_out_cycles_id_seq
+CREATE UNLOGGED SEQUENCE public.client_sign_out_flows_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -391,26 +427,26 @@ CREATE UNLOGGED SEQUENCE public.client_sign_out_cycles_id_seq
 
 
 --
--- Name: client_sign_out_cycles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_sign_out_flows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_sign_out_cycles_id_seq OWNED BY public.client_sign_out_cycles.id;
+ALTER SEQUENCE public.client_sign_out_flows_id_seq OWNED BY public.client_sign_out_flows.id;
 
 
 --
--- Name: client_sign_up_cycle_cleanup_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: client_sign_up_flow_cleanup_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_sign_up_cycle_cleanup_statuses (
+CREATE UNLOGGED TABLE public.client_sign_up_flow_cleanup_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_sign_up_cycle_cleanup_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_sign_up_flow_cleanup_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_sign_up_cycle_cleanup_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.client_sign_up_flow_cleanup_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -419,26 +455,26 @@ CREATE UNLOGGED SEQUENCE public.client_sign_up_cycle_cleanup_statuses_id_seq
 
 
 --
--- Name: client_sign_up_cycle_cleanup_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_sign_up_flow_cleanup_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_sign_up_cycle_cleanup_statuses_id_seq OWNED BY public.client_sign_up_cycle_cleanup_statuses.id;
+ALTER SEQUENCE public.client_sign_up_flow_cleanup_statuses_id_seq OWNED BY public.client_sign_up_flow_cleanup_statuses.id;
 
 
 --
--- Name: client_sign_up_cycle_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: client_sign_up_flow_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_sign_up_cycle_statuses (
+CREATE UNLOGGED TABLE public.client_sign_up_flow_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_sign_up_cycle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_sign_up_flow_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_sign_up_cycle_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.client_sign_up_flow_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -447,17 +483,17 @@ CREATE UNLOGGED SEQUENCE public.client_sign_up_cycle_statuses_id_seq
 
 
 --
--- Name: client_sign_up_cycle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_sign_up_flow_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_sign_up_cycle_statuses_id_seq OWNED BY public.client_sign_up_cycle_statuses.id;
+ALTER SEQUENCE public.client_sign_up_flow_statuses_id_seq OWNED BY public.client_sign_up_flow_statuses.id;
 
 
 --
--- Name: client_sign_up_cycles; Type: TABLE; Schema: public; Owner: -
+-- Name: client_sign_up_flows; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_sign_up_cycles (
+CREATE UNLOGGED TABLE public.client_sign_up_flows (
     id bigint NOT NULL,
     public_id character varying(21) NOT NULL,
     principal_id bigint,
@@ -494,10 +530,10 @@ CREATE UNLOGGED TABLE public.client_sign_up_cycles (
 
 
 --
--- Name: client_sign_up_cycles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_sign_up_flows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_sign_up_cycles_id_seq
+CREATE UNLOGGED SEQUENCE public.client_sign_up_flows_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -506,46 +542,10 @@ CREATE UNLOGGED SEQUENCE public.client_sign_up_cycles_id_seq
 
 
 --
--- Name: client_sign_up_cycles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_sign_up_flows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_sign_up_cycles_id_seq OWNED BY public.client_sign_up_cycles.id;
-
-
---
--- Name: client_social_callback_states; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_social_callback_states (
-    id bigint NOT NULL,
-    state_digest character varying NOT NULL,
-    provider character varying NOT NULL,
-    intent character varying,
-    issued_at timestamp(6) with time zone NOT NULL,
-    expires_at timestamp(6) with time zone NOT NULL,
-    consumed_at timestamp(6) with time zone,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: client_social_callback_states_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_social_callback_states_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_social_callback_states_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_social_callback_states_id_seq OWNED BY public.client_social_callback_states.id;
+ALTER SEQUENCE public.client_sign_up_flows_id_seq OWNED BY public.client_sign_up_flows.id;
 
 
 --
@@ -848,6 +848,13 @@ ALTER TABLE ONLY public.client_dpop_proof_states ALTER COLUMN id SET DEFAULT nex
 
 
 --
+-- Name: client_oauth_callback_states id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_oauth_callback_states ALTER COLUMN id SET DEFAULT nextval('public.client_oauth_callback_states_id_seq'::regclass);
+
+
+--
 -- Name: client_oidc_connections id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -855,66 +862,59 @@ ALTER TABLE ONLY public.client_oidc_connections ALTER COLUMN id SET DEFAULT next
 
 
 --
--- Name: client_sign_in_cycle_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_sign_in_flow_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_in_cycle_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_sign_in_cycle_statuses_id_seq'::regclass);
-
-
---
--- Name: client_sign_in_cycles id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_in_cycles ALTER COLUMN id SET DEFAULT nextval('public.client_sign_in_cycles_id_seq'::regclass);
+ALTER TABLE ONLY public.client_sign_in_flow_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_sign_in_flow_statuses_id_seq'::regclass);
 
 
 --
--- Name: client_sign_out_cycle_kinds id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_sign_in_flows id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_out_cycle_kinds ALTER COLUMN id SET DEFAULT nextval('public.client_sign_out_cycle_kinds_id_seq'::regclass);
-
-
---
--- Name: client_sign_out_cycle_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_out_cycle_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_sign_out_cycle_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.client_sign_in_flows ALTER COLUMN id SET DEFAULT nextval('public.client_sign_in_flows_id_seq'::regclass);
 
 
 --
--- Name: client_sign_out_cycles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_sign_out_flow_kinds id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_out_cycles ALTER COLUMN id SET DEFAULT nextval('public.client_sign_out_cycles_id_seq'::regclass);
-
-
---
--- Name: client_sign_up_cycle_cleanup_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_up_cycle_cleanup_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_sign_up_cycle_cleanup_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.client_sign_out_flow_kinds ALTER COLUMN id SET DEFAULT nextval('public.client_sign_out_flow_kinds_id_seq'::regclass);
 
 
 --
--- Name: client_sign_up_cycle_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_sign_out_flow_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_up_cycle_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_sign_up_cycle_statuses_id_seq'::regclass);
-
-
---
--- Name: client_sign_up_cycles id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_up_cycles ALTER COLUMN id SET DEFAULT nextval('public.client_sign_up_cycles_id_seq'::regclass);
+ALTER TABLE ONLY public.client_sign_out_flow_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_sign_out_flow_statuses_id_seq'::regclass);
 
 
 --
--- Name: client_social_callback_states id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_sign_out_flows id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_social_callback_states ALTER COLUMN id SET DEFAULT nextval('public.client_social_callback_states_id_seq'::regclass);
+ALTER TABLE ONLY public.client_sign_out_flows ALTER COLUMN id SET DEFAULT nextval('public.client_sign_out_flows_id_seq'::regclass);
+
+
+--
+-- Name: client_sign_up_flow_cleanup_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_sign_up_flow_cleanup_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_sign_up_flow_cleanup_statuses_id_seq'::regclass);
+
+
+--
+-- Name: client_sign_up_flow_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_sign_up_flow_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_sign_up_flow_statuses_id_seq'::regclass);
+
+
+--
+-- Name: client_sign_up_flows id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_sign_up_flows ALTER COLUMN id SET DEFAULT nextval('public.client_sign_up_flows_id_seq'::regclass);
 
 
 --
@@ -975,10 +975,10 @@ ALTER TABLE ONLY public.ar_internal_metadata
 
 
 --
--- Name: client_sign_in_cycles chk_client_sign_in_cycles_status_state; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_in_flows chk_client_sign_in_cycles_status_state; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.client_sign_in_cycles
+ALTER TABLE public.client_sign_in_flows
     ADD CONSTRAINT chk_client_sign_in_cycles_status_state CHECK (((state)::text =
 CASE status_id
     WHEN 10 THEN 'PRIMARY_PENDING'::text
@@ -997,10 +997,10 @@ END)) NOT VALID;
 
 
 --
--- Name: client_sign_in_cycles chk_client_sign_in_cycles_status_step; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_in_flows chk_client_sign_in_cycles_status_step; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.client_sign_in_cycles
+ALTER TABLE public.client_sign_in_flows
     ADD CONSTRAINT chk_client_sign_in_cycles_status_step CHECK (((step)::text =
 CASE status_id
     WHEN 10 THEN 'primary'::text
@@ -1051,6 +1051,14 @@ ALTER TABLE ONLY public.client_dpop_proof_states
 
 
 --
+-- Name: client_oauth_callback_states client_oauth_callback_states_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_oauth_callback_states
+    ADD CONSTRAINT client_oauth_callback_states_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: client_oidc_connections client_oidc_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1059,75 +1067,67 @@ ALTER TABLE ONLY public.client_oidc_connections
 
 
 --
--- Name: client_sign_in_cycle_statuses client_sign_in_cycle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_in_flow_statuses client_sign_in_flow_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_in_cycle_statuses
-    ADD CONSTRAINT client_sign_in_cycle_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_sign_in_cycles client_sign_in_cycles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_in_cycles
-    ADD CONSTRAINT client_sign_in_cycles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_sign_in_flow_statuses
+    ADD CONSTRAINT client_sign_in_flow_statuses_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_sign_out_cycle_kinds client_sign_out_cycle_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_in_flows client_sign_in_flows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_out_cycle_kinds
-    ADD CONSTRAINT client_sign_out_cycle_kinds_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_sign_out_cycle_statuses client_sign_out_cycle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_out_cycle_statuses
-    ADD CONSTRAINT client_sign_out_cycle_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_sign_in_flows
+    ADD CONSTRAINT client_sign_in_flows_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_sign_out_cycles client_sign_out_cycles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_out_flow_kinds client_sign_out_flow_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_out_cycles
-    ADD CONSTRAINT client_sign_out_cycles_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_sign_up_cycle_cleanup_statuses client_sign_up_cycle_cleanup_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_up_cycle_cleanup_statuses
-    ADD CONSTRAINT client_sign_up_cycle_cleanup_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_sign_out_flow_kinds
+    ADD CONSTRAINT client_sign_out_flow_kinds_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_sign_up_cycle_statuses client_sign_up_cycle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_out_flow_statuses client_sign_out_flow_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_up_cycle_statuses
-    ADD CONSTRAINT client_sign_up_cycle_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_sign_up_cycles client_sign_up_cycles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_up_cycles
-    ADD CONSTRAINT client_sign_up_cycles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_sign_out_flow_statuses
+    ADD CONSTRAINT client_sign_out_flow_statuses_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_social_callback_states client_social_callback_states_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_out_flows client_sign_out_flows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_social_callback_states
-    ADD CONSTRAINT client_social_callback_states_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_sign_out_flows
+    ADD CONSTRAINT client_sign_out_flows_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_sign_up_flow_cleanup_statuses client_sign_up_flow_cleanup_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_sign_up_flow_cleanup_statuses
+    ADD CONSTRAINT client_sign_up_flow_cleanup_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_sign_up_flow_statuses client_sign_up_flow_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_sign_up_flow_statuses
+    ADD CONSTRAINT client_sign_up_flow_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_sign_up_flows client_sign_up_flows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_sign_up_flows
+    ADD CONSTRAINT client_sign_up_flows_pkey PRIMARY KEY (id);
 
 
 --
@@ -1272,6 +1272,20 @@ CREATE UNIQUE INDEX index_client_dpop_proof_states_on_nonce ON public.client_dpo
 
 
 --
+-- Name: index_client_oauth_callback_states_on_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_oauth_callback_states_on_expires_at ON public.client_oauth_callback_states USING btree (expires_at);
+
+
+--
+-- Name: index_client_oauth_callback_states_on_state_digest; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_oauth_callback_states_on_state_digest ON public.client_oauth_callback_states USING btree (state_digest);
+
+
+--
 -- Name: index_client_oidc_connections_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1293,227 +1307,213 @@ CREATE UNIQUE INDEX index_client_oidc_connections_on_user_id_and_client_id ON pu
 
 
 --
--- Name: index_client_sign_in_cycles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_discarded_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_in_cycles_on_discarded_at ON public.client_sign_in_cycles USING btree (discarded_at);
-
-
---
--- Name: index_client_sign_in_cycles_on_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_in_cycles_on_expires_at ON public.client_sign_in_cycles USING btree (expires_at);
+CREATE INDEX index_client_sign_in_flows_on_discarded_at ON public.client_sign_in_flows USING btree (discarded_at);
 
 
 --
--- Name: index_client_sign_in_cycles_on_principal_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_expires_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_in_cycles_on_principal_id ON public.client_sign_in_cycles USING btree (principal_id);
-
-
---
--- Name: index_client_sign_in_cycles_on_public_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_client_sign_in_cycles_on_public_id ON public.client_sign_in_cycles USING btree (public_id);
+CREATE INDEX index_client_sign_in_flows_on_expires_at ON public.client_sign_in_flows USING btree (expires_at);
 
 
 --
--- Name: index_client_sign_in_cycles_on_selected_persona_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_principal_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_in_cycles_on_selected_persona_id ON public.client_sign_in_cycles USING btree (selected_persona_id);
-
-
---
--- Name: index_client_sign_in_cycles_on_selected_region_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_in_cycles_on_selected_region_id ON public.client_sign_in_cycles USING btree (selected_region_id);
+CREATE INDEX index_client_sign_in_flows_on_principal_id ON public.client_sign_in_flows USING btree (principal_id);
 
 
 --
--- Name: index_client_sign_in_cycles_on_state; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_in_cycles_on_state ON public.client_sign_in_cycles USING btree (state);
-
-
---
--- Name: index_client_sign_in_cycles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_in_cycles_on_status_id ON public.client_sign_in_cycles USING btree (status_id);
+CREATE UNIQUE INDEX index_client_sign_in_flows_on_public_id ON public.client_sign_in_flows USING btree (public_id);
 
 
 --
--- Name: index_client_sign_in_cycles_on_token_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_selected_persona_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_in_cycles_on_token_id ON public.client_sign_in_cycles USING btree (token_id);
-
-
---
--- Name: index_client_sign_out_cycles_on_access_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_out_cycles_on_access_expires_at ON public.client_sign_out_cycles USING btree (access_expires_at);
+CREATE INDEX index_client_sign_in_flows_on_selected_persona_id ON public.client_sign_in_flows USING btree (selected_persona_id);
 
 
 --
--- Name: index_client_sign_out_cycles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_selected_region_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_out_cycles_on_discarded_at ON public.client_sign_out_cycles USING btree (discarded_at);
-
-
---
--- Name: index_client_sign_out_cycles_on_kind_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_out_cycles_on_kind_id ON public.client_sign_out_cycles USING btree (kind_id);
+CREATE INDEX index_client_sign_in_flows_on_selected_region_id ON public.client_sign_in_flows USING btree (selected_region_id);
 
 
 --
--- Name: index_client_sign_out_cycles_on_principal_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_state; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_out_cycles_on_principal_id ON public.client_sign_out_cycles USING btree (principal_id);
-
-
---
--- Name: index_client_sign_out_cycles_on_public_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_client_sign_out_cycles_on_public_id ON public.client_sign_out_cycles USING btree (public_id);
+CREATE INDEX index_client_sign_in_flows_on_state ON public.client_sign_in_flows USING btree (state);
 
 
 --
--- Name: index_client_sign_out_cycles_on_purged_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_out_cycles_on_purged_at ON public.client_sign_out_cycles USING btree (purged_at);
-
-
---
--- Name: index_client_sign_out_cycles_on_refresh_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_out_cycles_on_refresh_expires_at ON public.client_sign_out_cycles USING btree (refresh_expires_at);
+CREATE INDEX index_client_sign_in_flows_on_status_id ON public.client_sign_in_flows USING btree (status_id);
 
 
 --
--- Name: index_client_sign_out_cycles_on_refresh_token_family_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_in_flows_on_token_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_out_cycles_on_refresh_token_family_id ON public.client_sign_out_cycles USING btree (refresh_token_family_id);
-
-
---
--- Name: index_client_sign_out_cycles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_out_cycles_on_status_id ON public.client_sign_out_cycles USING btree (status_id);
+CREATE INDEX index_client_sign_in_flows_on_token_id ON public.client_sign_in_flows USING btree (token_id);
 
 
 --
--- Name: index_client_sign_out_cycles_on_token_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_out_flows_on_access_expires_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_out_cycles_on_token_id ON public.client_sign_out_cycles USING btree (token_id);
-
-
---
--- Name: index_client_sign_up_cycles_on_cleanup_status_id_and_purged_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_up_cycles_on_cleanup_status_id_and_purged_at ON public.client_sign_up_cycles USING btree (cleanup_status_id, purged_at);
+CREATE INDEX index_client_sign_out_flows_on_access_expires_at ON public.client_sign_out_flows USING btree (access_expires_at);
 
 
 --
--- Name: index_client_sign_up_cycles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_out_flows_on_discarded_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_up_cycles_on_discarded_at ON public.client_sign_up_cycles USING btree (discarded_at);
-
-
---
--- Name: index_client_sign_up_cycles_on_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_up_cycles_on_expires_at ON public.client_sign_up_cycles USING btree (expires_at);
+CREATE INDEX index_client_sign_out_flows_on_discarded_at ON public.client_sign_out_flows USING btree (discarded_at);
 
 
 --
--- Name: index_client_sign_up_cycles_on_pending_contact_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_out_flows_on_kind_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_up_cycles_on_pending_contact_id ON public.client_sign_up_cycles USING btree (pending_contact_id);
-
-
---
--- Name: index_client_sign_up_cycles_on_pending_passkey_registration_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_up_cycles_on_pending_passkey_registration_id ON public.client_sign_up_cycles USING btree (pending_passkey_registration_id);
+CREATE INDEX index_client_sign_out_flows_on_kind_id ON public.client_sign_out_flows USING btree (kind_id);
 
 
 --
--- Name: index_client_sign_up_cycles_on_principal_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_out_flows_on_principal_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_up_cycles_on_principal_id ON public.client_sign_up_cycles USING btree (principal_id);
-
-
---
--- Name: index_client_sign_up_cycles_on_public_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_client_sign_up_cycles_on_public_id ON public.client_sign_up_cycles USING btree (public_id);
+CREATE INDEX index_client_sign_out_flows_on_principal_id ON public.client_sign_out_flows USING btree (principal_id);
 
 
 --
--- Name: index_client_sign_up_cycles_on_state; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_out_flows_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_up_cycles_on_state ON public.client_sign_up_cycles USING btree (state);
-
-
---
--- Name: index_client_sign_up_cycles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_up_cycles_on_status_id ON public.client_sign_up_cycles USING btree (status_id);
+CREATE UNIQUE INDEX index_client_sign_out_flows_on_public_id ON public.client_sign_out_flows USING btree (public_id);
 
 
 --
--- Name: index_client_sign_up_cycles_on_status_id_and_expires_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_out_flows_on_purged_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_sign_up_cycles_on_status_id_and_expires_at ON public.client_sign_up_cycles USING btree (status_id, expires_at);
-
-
---
--- Name: index_client_sign_up_cycles_on_token_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_sign_up_cycles_on_token_id ON public.client_sign_up_cycles USING btree (token_id);
+CREATE INDEX index_client_sign_out_flows_on_purged_at ON public.client_sign_out_flows USING btree (purged_at);
 
 
 --
--- Name: index_client_social_callback_states_on_expires_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_out_flows_on_refresh_expires_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_social_callback_states_on_expires_at ON public.client_social_callback_states USING btree (expires_at);
+CREATE INDEX index_client_sign_out_flows_on_refresh_expires_at ON public.client_sign_out_flows USING btree (refresh_expires_at);
 
 
 --
--- Name: index_client_social_callback_states_on_state_digest; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_sign_out_flows_on_refresh_token_family_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_client_social_callback_states_on_state_digest ON public.client_social_callback_states USING btree (state_digest);
+CREATE INDEX index_client_sign_out_flows_on_refresh_token_family_id ON public.client_sign_out_flows USING btree (refresh_token_family_id);
+
+
+--
+-- Name: index_client_sign_out_flows_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_out_flows_on_status_id ON public.client_sign_out_flows USING btree (status_id);
+
+
+--
+-- Name: index_client_sign_out_flows_on_token_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_out_flows_on_token_id ON public.client_sign_out_flows USING btree (token_id);
+
+
+--
+-- Name: index_client_sign_up_flows_on_cleanup_status_id_and_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_cleanup_status_id_and_purged_at ON public.client_sign_up_flows USING btree (cleanup_status_id, purged_at);
+
+
+--
+-- Name: index_client_sign_up_flows_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_discarded_at ON public.client_sign_up_flows USING btree (discarded_at);
+
+
+--
+-- Name: index_client_sign_up_flows_on_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_expires_at ON public.client_sign_up_flows USING btree (expires_at);
+
+
+--
+-- Name: index_client_sign_up_flows_on_pending_contact_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_pending_contact_id ON public.client_sign_up_flows USING btree (pending_contact_id);
+
+
+--
+-- Name: index_client_sign_up_flows_on_pending_passkey_registration_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_pending_passkey_registration_id ON public.client_sign_up_flows USING btree (pending_passkey_registration_id);
+
+
+--
+-- Name: index_client_sign_up_flows_on_principal_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_principal_id ON public.client_sign_up_flows USING btree (principal_id);
+
+
+--
+-- Name: index_client_sign_up_flows_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_sign_up_flows_on_public_id ON public.client_sign_up_flows USING btree (public_id);
+
+
+--
+-- Name: index_client_sign_up_flows_on_state; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_state ON public.client_sign_up_flows USING btree (state);
+
+
+--
+-- Name: index_client_sign_up_flows_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_status_id ON public.client_sign_up_flows USING btree (status_id);
+
+
+--
+-- Name: index_client_sign_up_flows_on_status_id_and_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_status_id_and_expires_at ON public.client_sign_up_flows USING btree (status_id, expires_at);
+
+
+--
+-- Name: index_client_sign_up_flows_on_token_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_sign_up_flows_on_token_id ON public.client_sign_up_flows USING btree (token_id);
 
 
 --
@@ -1672,35 +1672,35 @@ ALTER TABLE ONLY public.client_verifications
 
 
 --
--- Name: client_sign_out_cycles fk_rails_39d731f429; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_out_flows fk_rails_39d731f429; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_out_cycles
-    ADD CONSTRAINT fk_rails_39d731f429 FOREIGN KEY (kind_id) REFERENCES public.client_sign_out_cycle_kinds(id) NOT VALID;
-
-
---
--- Name: client_sign_up_cycles fk_rails_42f9309ee5; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_sign_up_cycles
-    ADD CONSTRAINT fk_rails_42f9309ee5 FOREIGN KEY (status_id) REFERENCES public.client_sign_up_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.client_sign_out_flows
+    ADD CONSTRAINT fk_rails_39d731f429 FOREIGN KEY (kind_id) REFERENCES public.client_sign_out_flow_kinds(id) NOT VALID;
 
 
 --
--- Name: client_sign_out_cycles fk_rails_4bbbc632e2; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_up_flows fk_rails_42f9309ee5; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_out_cycles
+ALTER TABLE ONLY public.client_sign_up_flows
+    ADD CONSTRAINT fk_rails_42f9309ee5 FOREIGN KEY (status_id) REFERENCES public.client_sign_up_flow_statuses(id) NOT VALID;
+
+
+--
+-- Name: client_sign_out_flows fk_rails_4bbbc632e2; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_sign_out_flows
     ADD CONSTRAINT fk_rails_4bbbc632e2 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE NOT VALID;
 
 
 --
--- Name: client_sign_in_cycles fk_rails_4e35f66d42; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_in_flows fk_rails_4e35f66d42; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_in_cycles
-    ADD CONSTRAINT fk_rails_4e35f66d42 FOREIGN KEY (status_id) REFERENCES public.client_sign_in_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.client_sign_in_flows
+    ADD CONSTRAINT fk_rails_4e35f66d42 FOREIGN KEY (status_id) REFERENCES public.client_sign_in_flow_statuses(id) NOT VALID;
 
 
 --
@@ -1712,34 +1712,34 @@ ALTER TABLE ONLY public.client_step_up_sessions
 
 
 --
--- Name: client_sign_up_cycles fk_rails_9b0b63a0c6; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_up_flows fk_rails_9b0b63a0c6; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_up_cycles
-    ADD CONSTRAINT fk_rails_9b0b63a0c6 FOREIGN KEY (cleanup_status_id) REFERENCES public.client_sign_up_cycle_cleanup_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.client_sign_up_flows
+    ADD CONSTRAINT fk_rails_9b0b63a0c6 FOREIGN KEY (cleanup_status_id) REFERENCES public.client_sign_up_flow_cleanup_statuses(id) NOT VALID;
 
 
 --
--- Name: client_sign_up_cycles fk_rails_b973de6b70; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_up_flows fk_rails_b973de6b70; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_up_cycles
+ALTER TABLE ONLY public.client_sign_up_flows
     ADD CONSTRAINT fk_rails_b973de6b70 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id) NOT VALID;
 
 
 --
--- Name: client_sign_out_cycles fk_rails_bbc7001388; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_out_flows fk_rails_bbc7001388; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_out_cycles
-    ADD CONSTRAINT fk_rails_bbc7001388 FOREIGN KEY (status_id) REFERENCES public.client_sign_out_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.client_sign_out_flows
+    ADD CONSTRAINT fk_rails_bbc7001388 FOREIGN KEY (status_id) REFERENCES public.client_sign_out_flow_statuses(id) NOT VALID;
 
 
 --
--- Name: client_sign_in_cycles fk_rails_bd772deef1; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_sign_in_flows fk_rails_bd772deef1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_sign_in_cycles
+ALTER TABLE ONLY public.client_sign_in_flows
     ADD CONSTRAINT fk_rails_bd772deef1 FOREIGN KEY (token_id) REFERENCES public.client_tokens(id) ON DELETE CASCADE NOT VALID;
 
 
@@ -1783,6 +1783,7 @@ SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
 ('20260530130000'),
+('20260530031000'),
 ('20260528183000'),
 ('20260528162100'),
 ('20260526120100'),

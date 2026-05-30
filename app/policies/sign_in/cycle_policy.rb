@@ -52,7 +52,7 @@ module SignIn
     end
 
     def fail?
-      return false unless sign_in_cycle?
+      return false unless sign_in_flow?
       return false if terminal?
       return false if actor_bound? && !actor_matches?
       return false if token_bound? && !token_matches?
@@ -63,7 +63,7 @@ module SignIn
     private
 
     def status_allowed?(status_name, actor_required: false, token_required: false)
-      return false unless sign_in_cycle?
+      return false unless sign_in_flow?
       return false unless record.status_id == record.status_id_for(status_name)
       return false if terminal?
       return false if actor_required && !actor_matches?
@@ -72,7 +72,7 @@ module SignIn
       true
     end
 
-    def sign_in_cycle?
+    def sign_in_flow?
       record.respond_to?(:status_id_for) &&
         record.respond_to?(:sign_in_completed?) &&
         record.respond_to?(:sign_in_failed?)
@@ -109,9 +109,9 @@ module SignIn
 
     def actor_class_matches?
       case record
-      when ClientSignInCycle then user.is_a?(Client)
-      when VisitorSignInCycle then user.is_a?(Visitor)
-      when OperatorSignInCycle then user.is_a?(Operator)
+      when ClientSignInFlow then user.is_a?(Client)
+      when VisitorSignInFlow then user.is_a?(Visitor)
+      when OperatorSignInFlow then user.is_a?(Operator)
       else false
       end
     end

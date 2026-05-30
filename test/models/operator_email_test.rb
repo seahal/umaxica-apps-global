@@ -41,7 +41,7 @@
 require "test_helper"
 
 class OperatorEmailTest < ActiveSupport::TestCase
-  fixtures :operators, :operator_identity_statuses, :operator_email_statuses
+  fixtures :operators, :operator_statuses, :operator_email_statuses
 
   setup do
     @staff = Operator.find_by!(public_id: "CDEF2345GHJK67NM")
@@ -169,7 +169,7 @@ class OperatorEmailTest < ActiveSupport::TestCase
   end
 
   test "enforces maximum emails per staff" do
-    staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
+    staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
     Prosopite.pause do
       OperatorEmail::MAX_EMAILS_PER_STAFF.times do |i|
         OperatorEmail.create!(

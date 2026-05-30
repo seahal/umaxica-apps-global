@@ -16,7 +16,7 @@ class RedisInitializerTest < ActiveSupport::TestCase
     env = ActiveSupport::StringInquirer.new("development")
 
     with_env(
-      "REDIS_NORMAL_URL" => "rediss://:secret@example.test/0",
+      "REDIS_NORMAL_URL" => "rediss://:secret_credential@example.test/0",
       "REDIS_SMOKE_TEST" => "1",
       "REDIS_FAIL_FAST" => "0",
     ) do
@@ -34,9 +34,9 @@ class RedisInitializerTest < ActiveSupport::TestCase
     message = logged.join("\n")
 
     assert_includes message, "Redis connection failed"
-    assert_no_match(/secret/, message)
+    assert_no_match(/secret_credential/, message)
     assert_no_match(/:\/\/[^\/\s]*@/, message)
-    assert_no_match(/:secret@/, message)
+    assert_no_match(/:secret_credential@/, message)
   end
 
   private

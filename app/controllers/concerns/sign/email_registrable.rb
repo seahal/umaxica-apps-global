@@ -257,8 +257,8 @@ module Sign
     def ensure_signup_reference_defaults!
       ClientStatus.ensure_defaults!
       ClientVisibility.ensure_defaults!
-      ClientMultiFactor.ensure_defaults!
-      ClientMultiFactorStatus.ensure_defaults!
+      ClientMfaLevel.ensure_defaults!
+      ClientMfaStatus.ensure_defaults!
       ClientEmailStatus.ensure_defaults!
     end
 

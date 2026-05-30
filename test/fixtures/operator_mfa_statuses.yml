@@ -1,0 +1,23 @@
+# == Schema Information
+#
+# Table name: operator_mfa_statuses
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+_fixture:
+  model_class: OperatorMfaStatus
+
+# Table name: staff_mfa_statuses
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 0
+
+active:
+  id: 1
+
+unconfigured:
+  id: 5

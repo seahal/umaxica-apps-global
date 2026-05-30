@@ -10,7 +10,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
     @previous_cache_store = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
     @user = Client.create!(status_id: ClientStatus::NOTHING)
-    @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    @staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
   end
 
   teardown do
@@ -130,9 +130,9 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
   end
 
   test "includes totp for active totp status" do
-    @user.client_one_time_passwords.create!(
+    @user.client_totp_credentials.create!(
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -141,9 +141,9 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
 
   test "does not include totp for inactive totp status" do
     user = Client.create!
-    user.client_one_time_passwords.create!(
+    user.client_totp_credentials.create!(
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::INACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::INACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 

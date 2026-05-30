@@ -62,10 +62,10 @@ class AppPost < AppPublisherRecord
   has_many :app_post_reviews, class_name: "AppPostReview", dependent: :restrict_with_error, inverse_of: :app_post
   has_many :app_post_versions, class_name: "AppPostVersion", dependent: :delete_all, inverse_of: :app_post
   has_many :app_post_revisions, class_name: "AppPostRevision", dependent: :delete_all, inverse_of: :app_post
-  has_many :app_post_tags, class_name: "AppPostTag", dependent: :delete_all, inverse_of: :app_post
-  has_many :app_post_tag_masters, through: :app_post_tags, source: :app_post_tag_master
-  has_one :app_post_category, class_name: "AppPostCategory", dependent: :delete, inverse_of: :app_post
-  has_one :app_post_category_master, through: :app_post_category, source: :app_post_category_master
+  has_many :app_post_taggings, class_name: "AppPostTagging", dependent: :delete_all, inverse_of: :app_post
+  has_many :app_post_tags, through: :app_post_taggings, source: :app_post_tag
+  has_one :app_post_categorization, class_name: "AppPostCategorization", dependent: :delete, inverse_of: :app_post
+  has_one :app_post_category, through: :app_post_categorization, source: :app_post_category
 
   validates :public_id, presence: true, uniqueness: true
   validates :body, presence: true

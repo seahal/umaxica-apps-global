@@ -12,8 +12,8 @@ module SignUp
 
       locator.issue!(cycle, nonce: "fresh-nonce")
 
-      assert_equal cycle.public_id, session.dig(:app_sign_up_cycle_locator, "public_id")
-      assert_equal "fresh-nonce", session.dig(:app_sign_up_cycle_locator, "nonce")
+      assert_equal cycle.public_id, session.dig(:app_sign_up_flow_locator, "public_id")
+      assert_equal "fresh-nonce", session.dig(:app_sign_up_flow_locator, "nonce")
       assert_equal cycle, locator.current
       assert cycle.reload.nonce_matches?("fresh-nonce")
       assert_not cycle.nonce_matches?("old-nonce")
@@ -25,10 +25,10 @@ module SignUp
       locator = CycleLocator.new(session, surface: :app)
       locator.issue!(cycle, nonce: "correct-nonce")
 
-      session[:app_sign_up_cycle_locator]["nonce"] = "bad-nonce"
+      session[:app_sign_up_flow_locator]["nonce"] = "bad-nonce"
 
       assert_nil locator.current
-      assert_equal ClientSignUpCycleStatus::STARTED, cycle.reload.status_id
+      assert_equal ClientSignUpFlowStatus::STARTED, cycle.reload.status_id
     end
 
     test "expired and terminal cycles reject" do
@@ -41,7 +41,7 @@ module SignUp
 
       completed = create_cycle(
         nonce: "completed",
-        status_id: ClientSignUpCycleStatus::COMPLETED,
+        status_id: ClientSignUpFlowStatus::COMPLETED,
         step: "completed",
         completed_at: Time.current,
       )
@@ -61,12 +61,12 @@ module SignUp
     private
 
     def create_cycle(nonce:, **overrides)
-      ClientSignUpCycle.create!(
+      ClientSignUpFlow.create!(
         {
           principal_id: nil,
-          status_id: ClientSignUpCycleStatus::STARTED,
+          status_id: ClientSignUpFlowStatus::STARTED,
           step: "start",
-          nonce_digest: ClientSignUpCycle.digest_nonce(nonce),
+          nonce_digest: ClientSignUpFlow.digest_nonce(nonce),
           issued_at: Time.current,
           expires_at: 15.minutes.from_now,
           entry_method: "telephone",

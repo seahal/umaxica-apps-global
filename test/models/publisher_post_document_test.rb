@@ -118,25 +118,25 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
     assert_not_empty post.revision_key
   end
 
-  test "app post relates app_post_category and tags through tree masters" do
+  test "app post relates app_post_categorization and tags through tree masters" do
     post = create_post(AppPost, AppPostStatus)
-    app_post_category_master = AppPostCategoryMaster.create!(id: 10, parent_id: AppPostCategoryMaster::NOTHING)
-    app_post_tag_master = AppPostTagMaster.create!(id: 11, parent_id: AppPostTagMaster::NOTHING)
+    app_post_category = AppPostCategory.create!(id: 10, parent_id: AppPostCategory::NOTHING)
+    app_post_tag = AppPostTag.create!(id: 11, parent_id: AppPostTag::NOTHING)
 
-    app_post_category = AppPostCategory.create!(app_post: post, app_post_category_master: app_post_category_master)
-    app_post_tag = AppPostTag.create!(app_post: post, app_post_tag_master: app_post_tag_master)
+    app_post_categorization = AppPostCategorization.create!(app_post: post, app_post_category: app_post_category)
+    app_post_tagging = AppPostTagging.create!(app_post: post, app_post_tag: app_post_tag)
 
+    assert_equal app_post_categorization, post.app_post_categorization
     assert_equal app_post_category, post.app_post_category
-    assert_equal app_post_category_master, post.app_post_category_master
+    assert_includes post.app_post_taggings, app_post_tagging
     assert_includes post.app_post_tags, app_post_tag
-    assert_includes post.app_post_tag_masters, app_post_tag_master
   end
 
-  test "post app_post_category and tag masters expose root and child hierarchy" do
-    root_category = AppPostCategoryMaster.create!(id: 20, parent_id: AppPostCategoryMaster::NOTHING)
-    child_category = AppPostCategoryMaster.create!(id: 21, parent: root_category)
-    root_tag = AppPostTagMaster.create!(id: 22, parent_id: AppPostTagMaster::NOTHING)
-    child_tag = AppPostTagMaster.create!(id: 23, parent: root_tag)
+  test "post app_post_categorization and tag masters expose root and child hierarchy" do
+    root_category = AppPostCategory.create!(id: 20, parent_id: AppPostCategory::NOTHING)
+    child_category = AppPostCategory.create!(id: 21, parent: root_category)
+    root_tag = AppPostTag.create!(id: 22, parent_id: AppPostTag::NOTHING)
+    child_tag = AppPostTag.create!(id: 23, parent: root_tag)
 
     assert_predicate root_category, :root?
     assert_equal root_category, child_category.parent

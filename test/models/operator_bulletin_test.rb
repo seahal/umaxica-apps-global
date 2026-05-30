@@ -27,11 +27,11 @@
 require "test_helper"
 
 class OperatorBulletinTest < ActiveSupport::TestCase
-  fixtures :operators, :operator_identity_statuses
+  fixtures :operators, :operator_statuses
 
   setup do
     @staff = operators(:one)
-    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    @staff.update!(status_id: OperatorStatus::ACTIVE)
   end
 
   test "belongs_to staff association" do
@@ -216,7 +216,7 @@ class OperatorBulletinTest < ActiveSupport::TestCase
   end
 
   test "dependent behavior on staff destroy" do
-    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     bulletin = OperatorBulletin.create!(
       staff: staff,
       title: "Test",

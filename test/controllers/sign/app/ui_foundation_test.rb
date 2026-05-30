@@ -40,13 +40,13 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
       sign_app_configuration_totps_path(ri: "jp"),
       sign_app_configuration_passkeys_path(ri: "jp"),
       sign_app_configuration_mfa_challenge_path(ri: "jp"),
-      sign_app_configuration_secrets_path(ri: "jp"),
+      sign_app_configuration_secret_credentials_path(ri: "jp"),
       sign_app_configuration_emails_path(ri: "jp"),
       sign_app_configuration_telephones_path(ri: "jp"),
       sign_app_configuration_sessions_path(ri: "jp"),
       sign_app_configuration_google_path(ri: "jp"),
       new_sign_app_configuration_withdrawal_path(ri: "jp"),
-      edit_sign_app_out_path(ri: "jp"),
+      edit_sign_app_sign_out_path(ri: "jp"),
     ]
 
     Prosopite.pause do

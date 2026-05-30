@@ -10,20 +10,20 @@ class HasBirthdateTest < ActiveSupport::TestCase
 
   setup do
     Prosopite.pause do
-      OperatorIdentityStatus.ensure_defaults!
+      OperatorStatus.ensure_defaults!
       OperatorVisibility.ensure_defaults!
-      OperatorMultiFactor.ensure_defaults!
-      OperatorMultiFactorStatus.ensure_defaults!
+      OperatorMfaLevel.ensure_defaults!
+      OperatorMfaStatus.ensure_defaults!
 
       VisitorStatus.ensure_defaults!
       VisitorVisibility.ensure_defaults!
-      VisitorMultiFactor.ensure_defaults!
-      VisitorMultiFactorStatus.ensure_defaults!
+      VisitorMfaLevel.ensure_defaults!
+      VisitorMfaStatus.ensure_defaults!
 
       ClientStatus.ensure_defaults!
       ClientVisibility.ensure_defaults!
-      ClientMultiFactor.ensure_defaults!
-      ClientMultiFactorStatus.ensure_defaults!
+      ClientMfaLevel.ensure_defaults!
+      ClientMfaStatus.ensure_defaults!
     end
   end
 

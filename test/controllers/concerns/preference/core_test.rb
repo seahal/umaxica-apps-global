@@ -48,11 +48,11 @@ class Preference::CoreTest < ActiveSupport::TestCase
   FakePreference =
     Struct.new(
       :language, :region, :timezone, :theme,
-      :currency, :date_format, :time_format, :motion, :density, :items_per_page,
+      :currency, :date_format, :time_format, :motion, :density, :page_size,
       :app_preference_language, :app_preference_region, :app_preference_timezone,
       :app_preference_theme, :app_preference_currency, :app_preference_date_format,
       :app_preference_time_format, :app_preference_motion, :app_preference_density,
-      :app_preference_items_per_page, :app_preference_cookie,
+      :app_preference_page_size, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -75,7 +75,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
       :app_preference_language, :app_preference_region, :app_preference_timezone,
       :app_preference_theme, :app_preference_currency, :app_preference_date_format,
       :app_preference_time_format, :app_preference_motion, :app_preference_density,
-      :app_preference_items_per_page, :app_preference_cookie,
+      :app_preference_page_size, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -125,7 +125,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
       app_preference_time_format: FakeAssociation.new(nil, FakeOption.new("hour_24")),
       app_preference_motion: FakeAssociation.new(nil, FakeOption.new("standard")),
       app_preference_density: FakeAssociation.new(nil, FakeOption.new("compact")),
-      app_preference_items_per_page: FakeAssociation.new(nil, FakeOption.new("50")),
+      app_preference_page_size: FakeAssociation.new(nil, FakeOption.new("50")),
       app_preference_cookie: FakeCookie.new(false, true, false, true),
     )
 
@@ -140,7 +140,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
         time_format: "hour_24",
         motion: "standard",
         density: "compact",
-        items_per_page: "50",
+        page_size: "50",
       },
       @controller.send(:resolved_preference_snapshot, preference),
     )

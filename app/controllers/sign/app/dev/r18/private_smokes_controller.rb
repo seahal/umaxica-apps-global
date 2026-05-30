@@ -22,7 +22,7 @@ module Sign
           private
 
           def handle_auth_required_html(_options = {})
-            redirect_to(new_sign_app_in_path(ri: params[:ri]), allow_other_host: false)
+            redirect_to(new_sign_app_sign_in_path(ri: params[:ri]), allow_other_host: false)
           end
 
           def r18_content_required?

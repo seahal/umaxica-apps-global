@@ -5,7 +5,7 @@ require "test_helper"
 
 # Test with ClientEmail which includes Email
 class EmailTest < ActiveSupport::TestCase
-  fixtures :clients, :operators, :client_statuses, :operator_identity_statuses
+  fixtures :clients, :operators, :client_statuses, :operator_statuses
 
   setup do
     @user = clients(:none_user)
@@ -378,7 +378,7 @@ class EmailTest < ActiveSupport::TestCase
 
     email.clear_otp
 
-    # otp_private_key is NOT cleared by clear_otp (it persists secret key? No, logic sets it to nil? No defaults now)
+    # otp_private_key is NOT cleared by clear_otp (persists secret_credential key? No, sets nil? No defaults now)
     # Wait, clear_otp implementation now DOES NOT set private_key.
     # Logic in Step 177: update!(otp_counter: "0", otp_expires_at: "-infinity", ...)
     # It does NOT touch otp_private_key!

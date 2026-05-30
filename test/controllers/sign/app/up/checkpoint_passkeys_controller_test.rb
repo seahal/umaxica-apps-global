@@ -36,7 +36,7 @@ module Sign::App::Up
 
     test "GET show returns 200 with passkey endpoint data attrs" do
       telephone = verify_telephone_via_otp!
-      cycle = current_sign_up_cycle(telephone)
+      cycle = current_sign_up_flow(telephone)
 
       get new_sign_app_up_checkpoint_passkey_url(ri: "jp")
 
@@ -122,7 +122,7 @@ module Sign::App::Up
 
     test "POST create saves passkey and returns checkpoint redirect on success" do
       telephone = verify_telephone_via_otp!
-      cycle = current_sign_up_cycle(telephone)
+      cycle = current_sign_up_flow(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -159,7 +159,7 @@ module Sign::App::Up
 
     test "POST create requires challenge id" do
       verify_telephone_via_otp!
-      cycle = current_sign_up_cycle(registration_telephone)
+      cycle = current_sign_up_flow(registration_telephone)
 
       post sign_app_up_checkpoint_passkey_url(ri: "jp"), params: {
         checkpoint_version: cycle.checkpoint_version,
@@ -175,7 +175,7 @@ module Sign::App::Up
 
     test "POST create does not establish login session before finalization" do
       telephone = verify_telephone_via_otp!
-      cycle = current_sign_up_cycle(telephone)
+      cycle = current_sign_up_flow(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -202,14 +202,14 @@ module Sign::App::Up
 
       get sign_app_configuration_url(ri: "jp")
 
-      assert_equal "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}#{new_sign_app_in_path(ri: "jp")}",
+      assert_equal "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}#{new_sign_app_sign_in_path(ri: "jp")}",
                    jump_rt_url_from_location(response.location)
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 
     test "POST create respects pt parameter for redirect" do
       telephone = verify_telephone_via_otp!
-      cycle = current_sign_up_cycle(telephone)
+      cycle = current_sign_up_flow(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -242,7 +242,7 @@ module Sign::App::Up
 
     test "POST create does not create signup or login audit before finalization" do
       telephone = verify_telephone_via_otp!
-      cycle = current_sign_up_cycle(telephone)
+      cycle = current_sign_up_flow(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -270,7 +270,7 @@ module Sign::App::Up
 
     test "POST create returns unprocessable on verifier error" do
       telephone = verify_telephone_via_otp!
-      cycle = current_sign_up_cycle(telephone)
+      cycle = current_sign_up_flow(telephone)
 
       post begin_sign_app_up_checkpoint_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
@@ -366,8 +366,8 @@ module Sign::App::Up
       telephone.reload
     end
 
-    def current_sign_up_cycle(telephone)
-      ClientSignUpCycle.order(:id).find_by!(
+    def current_sign_up_flow(telephone)
+      ClientSignUpFlow.order(:id).find_by!(
         principal_id: telephone.user_id,
         pending_contact_type: "telephone",
         pending_contact_id: telephone.id,

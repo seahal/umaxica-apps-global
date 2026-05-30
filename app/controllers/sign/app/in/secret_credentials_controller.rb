@@ -1,0 +1,365 @@
+# typed: false
+# frozen_string_literal: true
+
+module Sign
+  module App
+    module In
+      class SecretCredentialsController < Sign::App::ApplicationController
+        include ::CloudflareTurnstile
+
+        include EmailValidation
+
+        include IdentifierDetection
+
+        include Common::Redirect
+
+        include SessionLimitGate
+
+        AUTHENTICATION_MODE = :guest
+
+        class SecretLoginForm
+          include ActiveModel::Model
+
+          attr_accessor :identifier, :secret_credential_value, :turnstile_response
+
+          validates :secret_credential_value, presence: true
+          validate :identifier_present_and_valid
+
+          def self.model_name
+            ActiveModel::Name.new(self, nil, "secret_credential_login_form")
+          end
+
+          private
+
+          def identifier_present_and_valid
+            value = identifier.to_s.strip
+            return errors.add(:base, :blank) if value.blank?
+            return if value.include?("@") || value.include?("+")
+
+            errors.add(:identifier, :invalid)
+          end
+        end
+
+        class MfaSecretForm
+          include ActiveModel::Model
+
+          attr_accessor :secret_credential_value, :turnstile_response
+
+          validates :secret_credential_value, presence: true
+
+          def self.model_name
+            ActiveModel::Name.new(self, nil, "mfa_secret_credential_form")
+          end
+        end
+
+        SecretVerificationResult = Struct.new(:secret_credential, :reason, :details, keyword_init: true)
+
+        MFA_USER_SESSION_KEY = :mfa_user_id
+
+        def new
+          if mfa_user
+            @secret_credential_form = MfaSecretForm.new
+            @secret_credential_hints = active_secret_credential_hints_for(mfa_user)
+          else
+            @secret_credential_form = SecretLoginForm.new
+          end
+        end
+
+        def create
+          if mfa_user
+            handle_mfa_login
+          else
+            handle_standard_login
+          end
+        end
+
+        def handle_mfa_login
+          @secret_credential_form = MfaSecretForm.new(mfa_secret_credential_params)
+          @secret_credential_form.turnstile_response = turnstile_response_param
+          unless @secret_credential_form.valid?
+            return render_failed_login(
+              reason: :form_invalid,
+              user: mfa_user,
+              details: { errors: @secret_credential_form.errors.full_messages },
+            )
+          end
+          unless cloudflare_turnstile_validation["success"]
+            return render_failed_login(reason: :turnstile_failed, user: mfa_user)
+          end
+
+          user = mfa_user
+          verification = verify_secret_credential_for_sign_in(
+            user: user,
+            raw_secret_credential: @secret_credential_form.secret_credential_value,
+          )
+
+          if verification.secret_credential
+            handle_successful_mfa(user, verification.secret_credential)
+          else
+            handle_failed_mfa(user, verification.reason, verification.details)
+          end
+        rescue StandardError => e
+          report_authentication_error(e, flow: "mfa_secret_credential")
+          render_failed_login(reason: :internal_error, user: mfa_user, details: { error_class: e.class.name })
+        end
+
+        def handle_standard_login
+          @secret_credential_form = SecretLoginForm.new(secret_credential_params)
+          @secret_credential_form.turnstile_response = turnstile_response_param
+          unless @secret_credential_form.valid?
+            return render_failed_login(
+              reason: :form_invalid,
+              identifier: @secret_credential_form.identifier,
+              details: { errors: @secret_credential_form.errors.full_messages },
+            )
+          end
+          unless cloudflare_turnstile_validation["success"]
+            return render_failed_login(reason: :turnstile_failed, identifier: @secret_credential_form.identifier)
+          end
+
+          user = find_user_by_identifier(@secret_credential_form.identifier)
+          return render_session_limit_hard_reject if session_limit_hard_reject_for?(user)
+
+          verification = verify_secret_credential_for_sign_in(
+            user: user,
+            raw_secret_credential: @secret_credential_form.secret_credential_value,
+          )
+
+          if user && verification.secret_credential
+            process_standard_login(user)
+          else
+            failure_reason = verification.reason || :identifier_not_found
+            render_failed_login(
+              reason: failure_reason,
+              identifier: @secret_credential_form.identifier,
+              user: user,
+              details: verification.details,
+            )
+          end
+        rescue StandardError => e
+          report_authentication_error(e, flow: "secret_credential")
+          render_failed_login(
+            reason: :internal_error,
+            identifier: @secret_credential_form&.identifier,
+            details: { error_class: e.class.name },
+          )
+        end
+
+        def handle_successful_mfa(user, secret_credential)
+          Rails.logger.info(
+            Jit::LogEvent.format(
+              "authentication.mfa.succeeded", user_id: user.id, ip_address: request.remote_ip,
+                                              method: "secret_credential", secret_credential_id: secret_credential.id,
+            ),
+          )
+          clear_mfa_session!
+          result = finalize_mfa_login!(user)
+          case result[:status]
+          when :session_limit_hard_reject
+            render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
+          when :restricted
+            redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
+          when :success
+            redirect_to_sign_in_sequence!(
+              pt: result[:redirect_path],
+              notice: t("sign.app.authentication.secret_credential.create.success"),
+            )
+          else
+            render_failed_login(reason: result[:status], user: user)
+          end
+        end
+
+        def handle_failed_mfa(user, reason, details = {})
+          Rails.logger.info(
+            Jit::LogEvent.format(
+              "authentication.totp.failed", user_id: user&.id, ip_address: request.remote_ip,
+                                            method: "secret_credential",
+            ),
+          )
+          @secret_credential_hints = active_secret_credential_hints_for(user) if user
+          render_failed_login(reason: reason, user: user, details: details)
+        end
+
+        def process_standard_login(user)
+          result = establish_signed_in_session!(
+            user, pt: nil, ri: params[:ri], auth_method: "secret_credential",
+          )
+          sign_in_result = sign_in_result_from_session_result(result, actor: user)
+          if sign_in_result.mfa_required?
+            redirect_to(sign_in_result.redirect_to, notice: t("sign.app.in.mfa.required"))
+          elsif sign_in_result.status == :session_limit_hard_reject
+            render_session_limit_hard_reject(
+              message: sign_in_result.message,
+              http_status: sign_in_result.response_status,
+            )
+          elsif sign_in_result.session_limit_pending?
+            redirect_to(sign_in_result.redirect_to, notice: I18n.t("sign.app.in.session.restricted_notice"))
+          else
+            redirect_to_sign_in_sequence!(
+              pt: signed_pt_param,
+              notice: t("sign.app.authentication.secret_credential.create.success"),
+            )
+          end
+        end
+
+        private
+
+        def turnstile_response_param
+          params.expect("cf-turnstile-response").to_s
+        end
+
+        def mfa_user
+          return @mfa_user if defined?(@mfa_user)
+
+          user_id = session[MFA_USER_SESSION_KEY]
+          # Ensure user_id is clearly present before querying
+          if user_id.blank?
+            @mfa_user = nil
+            return nil
+          end
+
+          @mfa_user = Client.find_by(id: user_id)
+        end
+
+        def clear_mfa_session!
+          session[MFA_USER_SESSION_KEY] = nil
+        end
+
+        # Secret sign-in uses the most recently issued eligible secret_credential.
+        # This keeps verification deterministic and logging easier to reason about.
+        def verify_secret_credential_for_sign_in(user:, raw_secret_credential:)
+          return SecretVerificationResult.new(reason: :identifier_not_found, details: {}) unless user
+          return SecretVerificationResult.new(reason: :verified_pii_missing, details: {}) unless user.has_verified_pii?
+
+          latest_secret_credential = user.client_secret_credentials.order(created_at: :desc).first
+          return SecretVerificationResult.new(
+            reason: :secret_credential_not_found,
+            details: {},
+          ) unless latest_secret_credential
+
+          latest_eligible_secret_credential = user.client_secret_credentials
+            .allowed_for_secret_credential_sign_in
+            .order(created_at: :desc)
+            .first
+          unless latest_eligible_secret_credential
+            return SecretVerificationResult.new(
+              reason: :secret_credential_expired,
+              details: {
+                latest_secret_credential_id: latest_secret_credential.id,
+                latest_status_id: latest_secret_credential.user_secret_status_id,
+                latest_kind_id: latest_secret_credential.user_secret_kind_id,
+              },
+            )
+          end
+          unless latest_eligible_secret_credential.usable_for_secret_credential_sign_in?
+            return SecretVerificationResult.new(
+              reason: :secret_credential_expired,
+              details: {
+                secret_credential_id: latest_eligible_secret_credential.id,
+                uses_remaining: latest_eligible_secret_credential.uses_remaining,
+                expires_at: latest_eligible_secret_credential.expires_at,
+              },
+            )
+          end
+
+          unless latest_eligible_secret_credential.verify_for_secret_credential_sign_in!(raw_secret_credential.to_s)
+            return SecretVerificationResult.new(
+              reason: :secret_credential_mismatch,
+              details: { secret_credential_id: latest_eligible_secret_credential.id },
+            )
+          end
+
+          audit_recovery_secret_credential_if_recovery!(user, latest_eligible_secret_credential)
+          SecretVerificationResult.new(
+            secret_credential: latest_eligible_secret_credential,
+            reason: :success,
+            details: { secret_credential_id: latest_eligible_secret_credential.id },
+          )
+        end
+
+        def audit_recovery_secret_credential_if_recovery!(user, secret_credential)
+          audit_recovery_code_used!(user, secret_credential) if secret_credential.recovery_secret_credential?
+        end
+
+        def active_secret_credential_hints_for(user)
+          user.client_secret_credentials
+            .allowed_for_secret_credential_sign_in
+            .order(created_at: :desc)
+            .limit(10)
+            .filter_map { |s| s.name.to_s.first(4) if s.usable_for_secret_credential_sign_in? }
+        end
+
+        def secret_credential_params
+          params.fetch(:secret_credential_login_form, {}).permit(
+            :identifier,
+            :secret_credential_value,
+          )
+        end
+
+        def mfa_secret_credential_params
+          params.fetch(:mfa_secret_credential_form, {}).permit(:secret_credential_value)
+        end
+
+        def invalid_secret_credential_message
+          t("sign.app.authentication.secret_credential.create.invalid")
+        end
+
+        def report_authentication_error(error, flow:)
+          Rails.logger.error(
+            Jit::LogEvent.format(
+              "sign.authentication.secret_credential.error",
+              flow: flow,
+              error_class: error.class.name,
+              message: error.message,
+              user_id: mfa_user&.id,
+              ip: request.remote_ip,
+              exception: error,
+            ),
+          )
+        end
+
+        def render_failed_login(reason:, identifier: nil, user: nil, details: {})
+          @secret_credential_form.errors.add(:base, invalid_secret_credential_message)
+
+          # Detailed failure logging (failure_reason=...) as requested
+          Rails.logger.info(
+            Jit::LogEvent.format(
+              "sign.authentication.secret_credential.failed",
+              reason: reason,
+              identifier_type: detect_identifier_type(identifier.to_s),
+              identifier_present: identifier.present?,
+              user_id: user&.id,
+              ip: request.remote_ip,
+              errors: @secret_credential_form.errors.full_messages,
+              details: details,
+            ),
+          )
+
+          Sign::Risk::Emitter.emit("auth_failed", user_id: user&.id) if user
+
+          render_new_with_unprocessable_entity
+        end
+
+        def render_new_with_unprocessable_entity
+          render :new, status: :unprocessable_content, formats: :html
+        end
+
+        def audit_recovery_code_used!(user, secret_credential)
+          ChronicleRecord.connected_to(role: :writing) do
+            ClientChronicleEvent.find_or_create_by!(id: ClientChronicleEvent::RECOVERY_CODE_USED)
+            ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
+          end
+
+          ClientChronicle.create!(
+            actor_type: "Client",
+            actor_id: user.id,
+            event_id: ClientChronicleEvent::RECOVERY_CODE_USED,
+            subject_id: secret_credential.id.to_s,
+            subject_type: "ClientSecretCredential",
+            occurred_at: Time.current,
+          )
+        end
+      end
+    end
+  end
+end

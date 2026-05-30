@@ -81,7 +81,7 @@ module Outbound
         def require(key)
           {
             AWS_ACCESS_KEY_ID: "key",
-            AWS_SECRET_ACCESS_KEY: "secret",
+            AWS_SECRET_ACCESS_KEY: "secret_credential",
           }.fetch(key)
         end
 

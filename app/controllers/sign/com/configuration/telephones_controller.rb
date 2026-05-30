@@ -14,6 +14,11 @@ module Sign
         TELEPHONE_VERIFICATION_RATE_LIMIT = 5
         TELEPHONE_VERIFICATION_RATE_WINDOW = 60
         before_action :authenticate_visitor!
+        # Object-level authorization (ActionPolicy): index/new/create gate the actor type; edit/destroy
+        # authorize the owned record (find_by! is owner-scoped, so a non-owner gets 404 first).
+        # Verification/rate-limit guards remain in place.
+        before_action :authorize_telephones!, only: %i(index)
+        before_action :authorize_telephone_registration!, only: %i(new create)
 
         def index
           @client_telephones = current_visitor.visitor_telephones.order(created_at: :asc)
@@ -25,6 +30,7 @@ module Sign
 
         def edit
           @user_telephone = current_visitor.visitor_telephones.find_by!(public_id: params(:id))
+          authorize!(@user_telephone)
         end
 
         def create
@@ -42,6 +48,7 @@ module Sign
 
         def destroy
           telephone = current_visitor.visitor_telephones.find_by!(public_id: params(:id))
+          authorize!(telephone)
 
           unless AuthMethodGuard.can_remove_telephone?(current_visitor, telephone)
             redirect_to(
@@ -62,6 +69,14 @@ module Sign
         end
 
         private
+
+        def authorize_telephones!
+          authorize!(VisitorTelephone, to: :index?)
+        end
+
+        def authorize_telephone_registration!
+          authorize!(VisitorTelephone, to: :create?)
+        end
 
         def create_audit_event!(event_id, subject:)
           ChronicleRecord.connected_to(role: :writing) do

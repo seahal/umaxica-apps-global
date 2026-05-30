@@ -14,9 +14,9 @@
 #  date_format     :string           default("iso"), not null
 #  density         :string           default("standard"), not null
 #  functional      :boolean          default(FALSE), not null
-#  items_per_page  :string           default("20"), not null
 #  language        :string           default("ja"), not null
 #  motion          :string           default("standard"), not null
+#  page_size       :string           default("20"), not null
 #  performant      :boolean          default(FALSE), not null
 #  region          :string           default("jp"), not null
 #  targetable      :boolean          default(FALSE), not null
@@ -42,8 +42,8 @@ require "test_helper"
 class VisitorPreferenceTest < ActiveSupport::TestCase
   setup do
     Prosopite.pause do
-      VisitorMultiFactor.ensure_defaults!
-      VisitorMultiFactorStatus.ensure_defaults!
+      VisitorMfaLevel.ensure_defaults!
+      VisitorMfaStatus.ensure_defaults!
       VisitorStatus.ensure_defaults!
       VisitorVisibility.ensure_defaults!
       VisitorPreferenceLanguageOption.ensure_defaults!
@@ -55,7 +55,7 @@ class VisitorPreferenceTest < ActiveSupport::TestCase
       VisitorPreferenceTimeFormatOption.ensure_defaults!
       VisitorPreferenceMotionOption.ensure_defaults!
       VisitorPreferenceDensityOption.ensure_defaults!
-      VisitorPreferenceItemsPerPageOption.ensure_defaults!
+      VisitorPreferencePageSizeOption.ensure_defaults!
     end
   end
 
@@ -113,7 +113,7 @@ class VisitorPreferenceTest < ActiveSupport::TestCase
     time_format = VisitorPreferenceTimeFormat.create!(preference: preference)
     motion = VisitorPreferenceMotion.create!(preference: preference)
     density = VisitorPreferenceDensity.create!(preference: preference)
-    items_per_page = VisitorPreferenceItemsPerPage.create!(preference: preference)
+    page_size = VisitorPreferencePageSize.create!(preference: preference)
 
     assert_equal VisitorPreferenceLanguageOption::JA, language.option_id
     assert_equal VisitorPreferenceTimezoneOption::ASIA_TOKYO, timezone.option_id
@@ -124,8 +124,8 @@ class VisitorPreferenceTest < ActiveSupport::TestCase
     assert_equal VisitorPreferenceTimeFormatOption::HOUR_24, time_format.option_id
     assert_equal VisitorPreferenceMotionOption::STANDARD, motion.option_id
     assert_equal VisitorPreferenceDensityOption::STANDARD, density.option_id
-    assert_equal VisitorPreferenceItemsPerPageOption::PER_20, items_per_page.option_id
-    assert_equal "infinity", VisitorPreferenceItemsPerPageOption.new(id: VisitorPreferenceItemsPerPageOption::PER_INFINITY).name
+    assert_equal VisitorPreferencePageSizeOption::PER_20, page_size.option_id
+    assert_equal "infinity", VisitorPreferencePageSizeOption.new(id: VisitorPreferencePageSizeOption::PER_INFINITY).name
   end
 
   test "set_defaults fills nil booleans on new records" do

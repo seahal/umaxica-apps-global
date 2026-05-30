@@ -28,7 +28,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "guest can access login page" do
-    get new_sign_app_in_path, headers: { "Host" => @host }
+    get new_sign_app_sign_in_path, headers: { "Host" => @host }
     follow_redirect! while response.redirect? && response.location.include?("ri=jp")
 
     assert_response :ok
@@ -43,7 +43,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
 
     cookies[:auth_refresh] = refresh_plain
 
-    get new_sign_app_in_path, headers: { "Host" => @host }
+    get new_sign_app_sign_in_path, headers: { "Host" => @host }
 
     # First response should be a redirect (ri=jp or guest_only)
     assert_response :redirect
@@ -82,7 +82,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies_header = "auth_refresh=#{refresh_plain}"
-    get new_sign_app_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
+    get new_sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
 
     # First response should be a redirect
     assert_response :redirect
@@ -118,7 +118,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
           events << payload
         end
 
-      get new_sign_app_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
+      get new_sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
 
       # First response should be a redirect (auth succeeded despite audit failure)
       assert_response :redirect
@@ -146,7 +146,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
 
     Authentication::AuditWriter.stub(:write, false) do
       cookies_header = "auth_refresh=#{refresh_plain}"
-      get new_sign_app_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
+      get new_sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
 
       # First response should be a redirect
       assert_response :redirect
@@ -176,7 +176,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     token_id = token_record.id
 
     cookies_header = "auth_refresh=#{refresh_plain}"
-    get new_sign_app_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
+    get new_sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
 
     # Refresh should fail due to inactive user
     # But token should still exist (only revoked, not destroyed)

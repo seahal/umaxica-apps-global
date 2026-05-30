@@ -261,19 +261,19 @@ ALTER SEQUENCE public.visitor_oidc_connections_id_seq OWNED BY public.visitor_oi
 
 
 --
--- Name: visitor_sign_in_cycle_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_sign_in_flow_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_sign_in_cycle_statuses (
+CREATE UNLOGGED TABLE public.visitor_sign_in_flow_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_sign_in_cycle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_sign_in_flow_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_sign_in_cycle_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_sign_in_flow_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -282,17 +282,17 @@ CREATE UNLOGGED SEQUENCE public.visitor_sign_in_cycle_statuses_id_seq
 
 
 --
--- Name: visitor_sign_in_cycle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_sign_in_flow_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_sign_in_cycle_statuses_id_seq OWNED BY public.visitor_sign_in_cycle_statuses.id;
+ALTER SEQUENCE public.visitor_sign_in_flow_statuses_id_seq OWNED BY public.visitor_sign_in_flow_statuses.id;
 
 
 --
--- Name: visitor_sign_in_cycles; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_sign_in_flows; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_sign_in_cycles (
+CREATE UNLOGGED TABLE public.visitor_sign_in_flows (
     id bigint NOT NULL,
     public_id character varying(21) NOT NULL,
     principal_id bigint,
@@ -319,10 +319,10 @@ CREATE UNLOGGED TABLE public.visitor_sign_in_cycles (
 
 
 --
--- Name: visitor_sign_in_cycles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_sign_in_flows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_sign_in_cycles_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_sign_in_flows_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -331,26 +331,26 @@ CREATE UNLOGGED SEQUENCE public.visitor_sign_in_cycles_id_seq
 
 
 --
--- Name: visitor_sign_in_cycles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_sign_in_flows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_sign_in_cycles_id_seq OWNED BY public.visitor_sign_in_cycles.id;
+ALTER SEQUENCE public.visitor_sign_in_flows_id_seq OWNED BY public.visitor_sign_in_flows.id;
 
 
 --
--- Name: visitor_sign_out_cycle_kinds; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_kinds; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_sign_out_cycle_kinds (
+CREATE UNLOGGED TABLE public.visitor_sign_out_flow_kinds (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_sign_out_cycle_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_sign_out_cycle_kinds_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_sign_out_flow_kinds_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -359,26 +359,26 @@ CREATE UNLOGGED SEQUENCE public.visitor_sign_out_cycle_kinds_id_seq
 
 
 --
--- Name: visitor_sign_out_cycle_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_sign_out_cycle_kinds_id_seq OWNED BY public.visitor_sign_out_cycle_kinds.id;
+ALTER SEQUENCE public.visitor_sign_out_flow_kinds_id_seq OWNED BY public.visitor_sign_out_flow_kinds.id;
 
 
 --
--- Name: visitor_sign_out_cycle_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_sign_out_cycle_statuses (
+CREATE UNLOGGED TABLE public.visitor_sign_out_flow_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_sign_out_cycle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_sign_out_cycle_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_sign_out_flow_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -387,17 +387,17 @@ CREATE UNLOGGED SEQUENCE public.visitor_sign_out_cycle_statuses_id_seq
 
 
 --
--- Name: visitor_sign_out_cycle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_sign_out_cycle_statuses_id_seq OWNED BY public.visitor_sign_out_cycle_statuses.id;
+ALTER SEQUENCE public.visitor_sign_out_flow_statuses_id_seq OWNED BY public.visitor_sign_out_flow_statuses.id;
 
 
 --
--- Name: visitor_sign_out_cycles; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_sign_out_flows; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_sign_out_cycles (
+CREATE UNLOGGED TABLE public.visitor_sign_out_flows (
     id bigint NOT NULL,
     public_id character varying(21) NOT NULL,
     principal_id bigint,
@@ -424,10 +424,10 @@ CREATE UNLOGGED TABLE public.visitor_sign_out_cycles (
 
 
 --
--- Name: visitor_sign_out_cycles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_sign_out_flows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_sign_out_cycles_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_sign_out_flows_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -436,26 +436,26 @@ CREATE UNLOGGED SEQUENCE public.visitor_sign_out_cycles_id_seq
 
 
 --
--- Name: visitor_sign_out_cycles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_sign_out_flows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_sign_out_cycles_id_seq OWNED BY public.visitor_sign_out_cycles.id;
+ALTER SEQUENCE public.visitor_sign_out_flows_id_seq OWNED BY public.visitor_sign_out_flows.id;
 
 
 --
--- Name: visitor_sign_up_cycle_cleanup_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_sign_up_flow_cleanup_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_sign_up_cycle_cleanup_statuses (
+CREATE UNLOGGED TABLE public.visitor_sign_up_flow_cleanup_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_sign_up_cycle_cleanup_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_sign_up_flow_cleanup_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_sign_up_cycle_cleanup_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_sign_up_flow_cleanup_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -464,26 +464,26 @@ CREATE UNLOGGED SEQUENCE public.visitor_sign_up_cycle_cleanup_statuses_id_seq
 
 
 --
--- Name: visitor_sign_up_cycle_cleanup_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_sign_up_flow_cleanup_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_sign_up_cycle_cleanup_statuses_id_seq OWNED BY public.visitor_sign_up_cycle_cleanup_statuses.id;
+ALTER SEQUENCE public.visitor_sign_up_flow_cleanup_statuses_id_seq OWNED BY public.visitor_sign_up_flow_cleanup_statuses.id;
 
 
 --
--- Name: visitor_sign_up_cycle_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_sign_up_flow_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_sign_up_cycle_statuses (
+CREATE UNLOGGED TABLE public.visitor_sign_up_flow_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_sign_up_cycle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_sign_up_flow_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_sign_up_cycle_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_sign_up_flow_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -492,17 +492,17 @@ CREATE UNLOGGED SEQUENCE public.visitor_sign_up_cycle_statuses_id_seq
 
 
 --
--- Name: visitor_sign_up_cycle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_sign_up_flow_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_sign_up_cycle_statuses_id_seq OWNED BY public.visitor_sign_up_cycle_statuses.id;
+ALTER SEQUENCE public.visitor_sign_up_flow_statuses_id_seq OWNED BY public.visitor_sign_up_flow_statuses.id;
 
 
 --
--- Name: visitor_sign_up_cycles; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_sign_up_flows; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_sign_up_cycles (
+CREATE UNLOGGED TABLE public.visitor_sign_up_flows (
     id bigint NOT NULL,
     public_id character varying(21) NOT NULL,
     principal_id bigint,
@@ -539,10 +539,10 @@ CREATE UNLOGGED TABLE public.visitor_sign_up_cycles (
 
 
 --
--- Name: visitor_sign_up_cycles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_sign_up_flows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_sign_up_cycles_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_sign_up_flows_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -551,10 +551,10 @@ CREATE UNLOGGED SEQUENCE public.visitor_sign_up_cycles_id_seq
 
 
 --
--- Name: visitor_sign_up_cycles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_sign_up_flows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_sign_up_cycles_id_seq OWNED BY public.visitor_sign_up_cycles.id;
+ALTER SEQUENCE public.visitor_sign_up_flows_id_seq OWNED BY public.visitor_sign_up_flows.id;
 
 
 --
@@ -819,59 +819,59 @@ ALTER TABLE ONLY public.visitor_oidc_connections ALTER COLUMN id SET DEFAULT nex
 
 
 --
--- Name: visitor_sign_in_cycle_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_sign_in_flow_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_in_cycle_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_in_cycle_statuses_id_seq'::regclass);
-
-
---
--- Name: visitor_sign_in_cycles id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_sign_in_cycles ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_in_cycles_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_sign_in_flow_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_in_flow_statuses_id_seq'::regclass);
 
 
 --
--- Name: visitor_sign_out_cycle_kinds id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_sign_in_flows id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_out_cycle_kinds ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_out_cycle_kinds_id_seq'::regclass);
-
-
---
--- Name: visitor_sign_out_cycle_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_sign_out_cycle_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_out_cycle_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_sign_in_flows ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_in_flows_id_seq'::regclass);
 
 
 --
--- Name: visitor_sign_out_cycles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_kinds id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_out_cycles ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_out_cycles_id_seq'::regclass);
-
-
---
--- Name: visitor_sign_up_cycle_cleanup_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_sign_up_cycle_cleanup_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_up_cycle_cleanup_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_sign_out_flow_kinds ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_out_flow_kinds_id_seq'::regclass);
 
 
 --
--- Name: visitor_sign_up_cycle_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_up_cycle_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_up_cycle_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_sign_out_flow_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_out_flow_statuses_id_seq'::regclass);
 
 
 --
--- Name: visitor_sign_up_cycles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flows id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_up_cycles ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_up_cycles_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_sign_out_flows ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_out_flows_id_seq'::regclass);
+
+
+--
+-- Name: visitor_sign_up_flow_cleanup_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_sign_up_flow_cleanup_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_up_flow_cleanup_statuses_id_seq'::regclass);
+
+
+--
+-- Name: visitor_sign_up_flow_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_sign_up_flow_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_up_flow_statuses_id_seq'::regclass);
+
+
+--
+-- Name: visitor_sign_up_flows id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_sign_up_flows ALTER COLUMN id SET DEFAULT nextval('public.visitor_sign_up_flows_id_seq'::regclass);
 
 
 --
@@ -932,10 +932,10 @@ ALTER TABLE ONLY public.ar_internal_metadata
 
 
 --
--- Name: visitor_sign_in_cycles chk_visitor_sign_in_cycles_status_state; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_in_flows chk_visitor_sign_in_cycles_status_state; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.visitor_sign_in_cycles
+ALTER TABLE public.visitor_sign_in_flows
     ADD CONSTRAINT chk_visitor_sign_in_cycles_status_state CHECK (((state)::text =
 CASE status_id
     WHEN 10 THEN 'PRIMARY_PENDING'::text
@@ -954,10 +954,10 @@ END)) NOT VALID;
 
 
 --
--- Name: visitor_sign_in_cycles chk_visitor_sign_in_cycles_status_step; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_in_flows chk_visitor_sign_in_cycles_status_step; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.visitor_sign_in_cycles
+ALTER TABLE public.visitor_sign_in_flows
     ADD CONSTRAINT chk_visitor_sign_in_cycles_status_step CHECK (((step)::text =
 CASE status_id
     WHEN 10 THEN 'primary'::text
@@ -1024,67 +1024,67 @@ ALTER TABLE ONLY public.visitor_oidc_connections
 
 
 --
--- Name: visitor_sign_in_cycle_statuses visitor_sign_in_cycle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_in_flow_statuses visitor_sign_in_flow_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_in_cycle_statuses
-    ADD CONSTRAINT visitor_sign_in_cycle_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: visitor_sign_in_cycles visitor_sign_in_cycles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_sign_in_cycles
-    ADD CONSTRAINT visitor_sign_in_cycles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_sign_in_flow_statuses
+    ADD CONSTRAINT visitor_sign_in_flow_statuses_pkey PRIMARY KEY (id);
 
 
 --
--- Name: visitor_sign_out_cycle_kinds visitor_sign_out_cycle_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_in_flows visitor_sign_in_flows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_out_cycle_kinds
-    ADD CONSTRAINT visitor_sign_out_cycle_kinds_pkey PRIMARY KEY (id);
-
-
---
--- Name: visitor_sign_out_cycle_statuses visitor_sign_out_cycle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_sign_out_cycle_statuses
-    ADD CONSTRAINT visitor_sign_out_cycle_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_sign_in_flows
+    ADD CONSTRAINT visitor_sign_in_flows_pkey PRIMARY KEY (id);
 
 
 --
--- Name: visitor_sign_out_cycles visitor_sign_out_cycles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_kinds visitor_sign_out_flow_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_out_cycles
-    ADD CONSTRAINT visitor_sign_out_cycles_pkey PRIMARY KEY (id);
-
-
---
--- Name: visitor_sign_up_cycle_cleanup_statuses visitor_sign_up_cycle_cleanup_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_sign_up_cycle_cleanup_statuses
-    ADD CONSTRAINT visitor_sign_up_cycle_cleanup_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_sign_out_flow_kinds
+    ADD CONSTRAINT visitor_sign_out_flow_kinds_pkey PRIMARY KEY (id);
 
 
 --
--- Name: visitor_sign_up_cycle_statuses visitor_sign_up_cycle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flow_statuses visitor_sign_out_flow_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_up_cycle_statuses
-    ADD CONSTRAINT visitor_sign_up_cycle_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_sign_out_flow_statuses
+    ADD CONSTRAINT visitor_sign_out_flow_statuses_pkey PRIMARY KEY (id);
 
 
 --
--- Name: visitor_sign_up_cycles visitor_sign_up_cycles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flows visitor_sign_out_flows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_up_cycles
-    ADD CONSTRAINT visitor_sign_up_cycles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_sign_out_flows
+    ADD CONSTRAINT visitor_sign_out_flows_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_sign_up_flow_cleanup_statuses visitor_sign_up_flow_cleanup_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_sign_up_flow_cleanup_statuses
+    ADD CONSTRAINT visitor_sign_up_flow_cleanup_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_sign_up_flow_statuses visitor_sign_up_flow_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_sign_up_flow_statuses
+    ADD CONSTRAINT visitor_sign_up_flow_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_sign_up_flows visitor_sign_up_flows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_sign_up_flows
+    ADD CONSTRAINT visitor_sign_up_flows_pkey PRIMARY KEY (id);
 
 
 --
@@ -1242,213 +1242,213 @@ CREATE UNIQUE INDEX index_visitor_oidc_connections_on_visitor_id_and_client_id O
 
 
 --
--- Name: index_visitor_sign_in_cycles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_discarded_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_in_cycles_on_discarded_at ON public.visitor_sign_in_cycles USING btree (discarded_at);
-
-
---
--- Name: index_visitor_sign_in_cycles_on_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_in_cycles_on_expires_at ON public.visitor_sign_in_cycles USING btree (expires_at);
+CREATE INDEX index_visitor_sign_in_flows_on_discarded_at ON public.visitor_sign_in_flows USING btree (discarded_at);
 
 
 --
--- Name: index_visitor_sign_in_cycles_on_principal_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_expires_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_in_cycles_on_principal_id ON public.visitor_sign_in_cycles USING btree (principal_id);
-
-
---
--- Name: index_visitor_sign_in_cycles_on_public_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_visitor_sign_in_cycles_on_public_id ON public.visitor_sign_in_cycles USING btree (public_id);
+CREATE INDEX index_visitor_sign_in_flows_on_expires_at ON public.visitor_sign_in_flows USING btree (expires_at);
 
 
 --
--- Name: index_visitor_sign_in_cycles_on_selected_persona_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_principal_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_in_cycles_on_selected_persona_id ON public.visitor_sign_in_cycles USING btree (selected_persona_id);
-
-
---
--- Name: index_visitor_sign_in_cycles_on_selected_region_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_in_cycles_on_selected_region_id ON public.visitor_sign_in_cycles USING btree (selected_region_id);
+CREATE INDEX index_visitor_sign_in_flows_on_principal_id ON public.visitor_sign_in_flows USING btree (principal_id);
 
 
 --
--- Name: index_visitor_sign_in_cycles_on_state; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_in_cycles_on_state ON public.visitor_sign_in_cycles USING btree (state);
-
-
---
--- Name: index_visitor_sign_in_cycles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_in_cycles_on_status_id ON public.visitor_sign_in_cycles USING btree (status_id);
+CREATE UNIQUE INDEX index_visitor_sign_in_flows_on_public_id ON public.visitor_sign_in_flows USING btree (public_id);
 
 
 --
--- Name: index_visitor_sign_in_cycles_on_token_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_selected_persona_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_in_cycles_on_token_id ON public.visitor_sign_in_cycles USING btree (token_id);
-
-
---
--- Name: index_visitor_sign_out_cycles_on_access_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_out_cycles_on_access_expires_at ON public.visitor_sign_out_cycles USING btree (access_expires_at);
+CREATE INDEX index_visitor_sign_in_flows_on_selected_persona_id ON public.visitor_sign_in_flows USING btree (selected_persona_id);
 
 
 --
--- Name: index_visitor_sign_out_cycles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_selected_region_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_out_cycles_on_discarded_at ON public.visitor_sign_out_cycles USING btree (discarded_at);
-
-
---
--- Name: index_visitor_sign_out_cycles_on_kind_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_out_cycles_on_kind_id ON public.visitor_sign_out_cycles USING btree (kind_id);
+CREATE INDEX index_visitor_sign_in_flows_on_selected_region_id ON public.visitor_sign_in_flows USING btree (selected_region_id);
 
 
 --
--- Name: index_visitor_sign_out_cycles_on_principal_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_state; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_out_cycles_on_principal_id ON public.visitor_sign_out_cycles USING btree (principal_id);
-
-
---
--- Name: index_visitor_sign_out_cycles_on_public_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_visitor_sign_out_cycles_on_public_id ON public.visitor_sign_out_cycles USING btree (public_id);
+CREATE INDEX index_visitor_sign_in_flows_on_state ON public.visitor_sign_in_flows USING btree (state);
 
 
 --
--- Name: index_visitor_sign_out_cycles_on_purged_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_out_cycles_on_purged_at ON public.visitor_sign_out_cycles USING btree (purged_at);
-
-
---
--- Name: index_visitor_sign_out_cycles_on_refresh_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_out_cycles_on_refresh_expires_at ON public.visitor_sign_out_cycles USING btree (refresh_expires_at);
+CREATE INDEX index_visitor_sign_in_flows_on_status_id ON public.visitor_sign_in_flows USING btree (status_id);
 
 
 --
--- Name: index_visitor_sign_out_cycles_on_refresh_token_family_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_in_flows_on_token_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_out_cycles_on_refresh_token_family_id ON public.visitor_sign_out_cycles USING btree (refresh_token_family_id);
-
-
---
--- Name: index_visitor_sign_out_cycles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_out_cycles_on_status_id ON public.visitor_sign_out_cycles USING btree (status_id);
+CREATE INDEX index_visitor_sign_in_flows_on_token_id ON public.visitor_sign_in_flows USING btree (token_id);
 
 
 --
--- Name: index_visitor_sign_out_cycles_on_token_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_out_flows_on_access_expires_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_out_cycles_on_token_id ON public.visitor_sign_out_cycles USING btree (token_id);
+CREATE INDEX index_visitor_sign_out_flows_on_access_expires_at ON public.visitor_sign_out_flows USING btree (access_expires_at);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_out_flows_on_discarded_at ON public.visitor_sign_out_flows USING btree (discarded_at);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_kind_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_out_flows_on_kind_id ON public.visitor_sign_out_flows USING btree (kind_id);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_principal_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_out_flows_on_principal_id ON public.visitor_sign_out_flows USING btree (principal_id);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_sign_out_flows_on_public_id ON public.visitor_sign_out_flows USING btree (public_id);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_out_flows_on_purged_at ON public.visitor_sign_out_flows USING btree (purged_at);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_refresh_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_out_flows_on_refresh_expires_at ON public.visitor_sign_out_flows USING btree (refresh_expires_at);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_refresh_token_family_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_out_flows_on_refresh_token_family_id ON public.visitor_sign_out_flows USING btree (refresh_token_family_id);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_out_flows_on_status_id ON public.visitor_sign_out_flows USING btree (status_id);
+
+
+--
+-- Name: index_visitor_sign_out_flows_on_token_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_out_flows_on_token_id ON public.visitor_sign_out_flows USING btree (token_id);
 
 
 --
 -- Name: index_visitor_sign_up_cycles_on_cleanup_status_id_and_purged_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_up_cycles_on_cleanup_status_id_and_purged_at ON public.visitor_sign_up_cycles USING btree (cleanup_status_id, purged_at);
-
-
---
--- Name: index_visitor_sign_up_cycles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_up_cycles_on_discarded_at ON public.visitor_sign_up_cycles USING btree (discarded_at);
-
-
---
--- Name: index_visitor_sign_up_cycles_on_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_up_cycles_on_expires_at ON public.visitor_sign_up_cycles USING btree (expires_at);
-
-
---
--- Name: index_visitor_sign_up_cycles_on_pending_contact_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_up_cycles_on_pending_contact_id ON public.visitor_sign_up_cycles USING btree (pending_contact_id);
+CREATE INDEX index_visitor_sign_up_cycles_on_cleanup_status_id_and_purged_at ON public.visitor_sign_up_flows USING btree (cleanup_status_id, purged_at);
 
 
 --
 -- Name: index_visitor_sign_up_cycles_on_pending_passkey_registration_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_up_cycles_on_pending_passkey_registration_id ON public.visitor_sign_up_cycles USING btree (pending_passkey_registration_id);
+CREATE INDEX index_visitor_sign_up_cycles_on_pending_passkey_registration_id ON public.visitor_sign_up_flows USING btree (pending_passkey_registration_id);
 
 
 --
--- Name: index_visitor_sign_up_cycles_on_principal_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_up_flows_on_discarded_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_up_cycles_on_principal_id ON public.visitor_sign_up_cycles USING btree (principal_id);
-
-
---
--- Name: index_visitor_sign_up_cycles_on_public_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_visitor_sign_up_cycles_on_public_id ON public.visitor_sign_up_cycles USING btree (public_id);
+CREATE INDEX index_visitor_sign_up_flows_on_discarded_at ON public.visitor_sign_up_flows USING btree (discarded_at);
 
 
 --
--- Name: index_visitor_sign_up_cycles_on_state; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_up_flows_on_expires_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_up_cycles_on_state ON public.visitor_sign_up_cycles USING btree (state);
-
-
---
--- Name: index_visitor_sign_up_cycles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_sign_up_cycles_on_status_id ON public.visitor_sign_up_cycles USING btree (status_id);
+CREATE INDEX index_visitor_sign_up_flows_on_expires_at ON public.visitor_sign_up_flows USING btree (expires_at);
 
 
 --
--- Name: index_visitor_sign_up_cycles_on_status_id_and_expires_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_up_flows_on_pending_contact_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_up_cycles_on_status_id_and_expires_at ON public.visitor_sign_up_cycles USING btree (status_id, expires_at);
+CREATE INDEX index_visitor_sign_up_flows_on_pending_contact_id ON public.visitor_sign_up_flows USING btree (pending_contact_id);
 
 
 --
--- Name: index_visitor_sign_up_cycles_on_token_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_sign_up_flows_on_principal_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_sign_up_cycles_on_token_id ON public.visitor_sign_up_cycles USING btree (token_id);
+CREATE INDEX index_visitor_sign_up_flows_on_principal_id ON public.visitor_sign_up_flows USING btree (principal_id);
+
+
+--
+-- Name: index_visitor_sign_up_flows_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_sign_up_flows_on_public_id ON public.visitor_sign_up_flows USING btree (public_id);
+
+
+--
+-- Name: index_visitor_sign_up_flows_on_state; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_up_flows_on_state ON public.visitor_sign_up_flows USING btree (state);
+
+
+--
+-- Name: index_visitor_sign_up_flows_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_up_flows_on_status_id ON public.visitor_sign_up_flows USING btree (status_id);
+
+
+--
+-- Name: index_visitor_sign_up_flows_on_status_id_and_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_up_flows_on_status_id_and_expires_at ON public.visitor_sign_up_flows USING btree (status_id, expires_at);
+
+
+--
+-- Name: index_visitor_sign_up_flows_on_token_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_sign_up_flows_on_token_id ON public.visitor_sign_up_flows USING btree (token_id);
 
 
 --
@@ -1631,18 +1631,18 @@ ALTER TABLE ONLY public.visitor_tokens
 
 
 --
--- Name: visitor_sign_out_cycles fk_rails_0289bc0560; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flows fk_rails_0289bc0560; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_out_cycles
-    ADD CONSTRAINT fk_rails_0289bc0560 FOREIGN KEY (status_id) REFERENCES public.visitor_sign_out_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.visitor_sign_out_flows
+    ADD CONSTRAINT fk_rails_0289bc0560 FOREIGN KEY (status_id) REFERENCES public.visitor_sign_out_flow_statuses(id) NOT VALID;
 
 
 --
--- Name: visitor_sign_out_cycles fk_rails_173a30a232; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flows fk_rails_173a30a232; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_out_cycles
+ALTER TABLE ONLY public.visitor_sign_out_flows
     ADD CONSTRAINT fk_rails_173a30a232 FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE NOT VALID;
 
 
@@ -1655,42 +1655,42 @@ ALTER TABLE ONLY public.visitor_verifications
 
 
 --
--- Name: visitor_sign_up_cycles fk_rails_5339eed561; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_up_flows fk_rails_5339eed561; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_up_cycles
+ALTER TABLE ONLY public.visitor_sign_up_flows
     ADD CONSTRAINT fk_rails_5339eed561 FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) NOT VALID;
 
 
 --
--- Name: visitor_sign_in_cycles fk_rails_75353bbdcf; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_in_flows fk_rails_75353bbdcf; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_in_cycles
-    ADD CONSTRAINT fk_rails_75353bbdcf FOREIGN KEY (status_id) REFERENCES public.visitor_sign_in_cycle_statuses(id) NOT VALID;
-
-
---
--- Name: visitor_sign_up_cycles fk_rails_85f0f0531f; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_sign_up_cycles
-    ADD CONSTRAINT fk_rails_85f0f0531f FOREIGN KEY (status_id) REFERENCES public.visitor_sign_up_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.visitor_sign_in_flows
+    ADD CONSTRAINT fk_rails_75353bbdcf FOREIGN KEY (status_id) REFERENCES public.visitor_sign_in_flow_statuses(id) NOT VALID;
 
 
 --
--- Name: visitor_sign_out_cycles fk_rails_8ef47d5e3c; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_up_flows fk_rails_85f0f0531f; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_out_cycles
-    ADD CONSTRAINT fk_rails_8ef47d5e3c FOREIGN KEY (kind_id) REFERENCES public.visitor_sign_out_cycle_kinds(id) NOT VALID;
+ALTER TABLE ONLY public.visitor_sign_up_flows
+    ADD CONSTRAINT fk_rails_85f0f0531f FOREIGN KEY (status_id) REFERENCES public.visitor_sign_up_flow_statuses(id) NOT VALID;
 
 
 --
--- Name: visitor_sign_in_cycles fk_rails_9797ae40cc; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_out_flows fk_rails_8ef47d5e3c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_in_cycles
+ALTER TABLE ONLY public.visitor_sign_out_flows
+    ADD CONSTRAINT fk_rails_8ef47d5e3c FOREIGN KEY (kind_id) REFERENCES public.visitor_sign_out_flow_kinds(id) NOT VALID;
+
+
+--
+-- Name: visitor_sign_in_flows fk_rails_9797ae40cc; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_sign_in_flows
     ADD CONSTRAINT fk_rails_9797ae40cc FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE NOT VALID;
 
 
@@ -1703,11 +1703,11 @@ ALTER TABLE ONLY public.visitor_step_up_sessions
 
 
 --
--- Name: visitor_sign_up_cycles fk_rails_cf6ee54a77; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_sign_up_flows fk_rails_cf6ee54a77; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_sign_up_cycles
-    ADD CONSTRAINT fk_rails_cf6ee54a77 FOREIGN KEY (cleanup_status_id) REFERENCES public.visitor_sign_up_cycle_cleanup_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.visitor_sign_up_flows
+    ADD CONSTRAINT fk_rails_cf6ee54a77 FOREIGN KEY (cleanup_status_id) REFERENCES public.visitor_sign_up_flow_cleanup_statuses(id) NOT VALID;
 
 
 --
@@ -1717,6 +1717,7 @@ ALTER TABLE ONLY public.visitor_sign_up_cycles
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260530031000'),
 ('20260528183002'),
 ('20260528162102'),
 ('20260526120102'),

@@ -38,8 +38,8 @@ module Sign
 
             redirect_to(sign_com_up_checkpoint_path(ri: params[:ri], pt: signed_pt_param))
           rescue ActiveRecord::RecordInvalid => e
-            @secret = e.record
-            @raw_secret = session[passcode_registration_raw_session_key]
+            @secret_credential = e.record
+            @raw_secret_credential = session[passcode_registration_raw_session_key]
             render :new, status: :unprocessable_content
           end
 
@@ -52,25 +52,25 @@ module Sign
             render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
           end
 
-          def passcode_registration_secrets = @sign_up_actor.visitor_secrets
+          def passcode_registration_secret_credentials = @sign_up_actor.visitor_secret_credentials
 
-          def passcode_registration_secret_class = VisitorSecret
+          def passcode_registration_secret_credential_class = VisitorSecretCredential
 
           def passcode_registration_raw_session_key = :sign_com_up_passcode_raw
 
-          def passcode_registration_param_key = :visitor_secret
+          def passcode_registration_param_key = :visitor_secret_credential
 
-          def passcode_registration_create_secret!(raw_secret)
-            secret = @sign_up_actor.visitor_secrets.new(
-              passcode_registration_secret_params.merge(
-                password: raw_secret,
-                raw_secret: raw_secret,
-                visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
-                visitor_secret_kind_id: VisitorSecretKind::LOGIN,
+          def passcode_registration_create_secret_credential!(raw_secret_credential)
+            secret_credential = @sign_up_actor.visitor_secret_credentials.new(
+              passcode_registration_secret_credential_params.merge(
+                password: raw_secret_credential,
+                raw_secret_credential: raw_secret_credential,
+                visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE,
+                visitor_secret_credential_kind_id: VisitorSecretCredentialKind::LOGIN,
               ),
             )
-            secret.save!(validate: false)
-            secret
+            secret_credential.save!(validate: false)
+            secret_credential
           end
 
           def sign_up_requirement_context
@@ -87,7 +87,7 @@ module Sign
 
           def sign_up_surface = :com
 
-          def sign_up_ticket_class = VisitorSignUpCycle
+          def sign_up_ticket_class = VisitorSignUpFlow
 
           def sign_up_sequence_session_key = :sign_com_up_sequence_id
         end

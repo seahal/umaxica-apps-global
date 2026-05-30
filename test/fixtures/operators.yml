@@ -3,85 +3,85 @@
 # Table name: operators
 # Database name: org_principal
 #
-#  id                     :bigint           not null, primary key
-#  birthdate              :text
-#  deactivated_at         :datetime
-#  discarded_at           :datetime         default(Infinity), not null
-#  lock_version           :integer          default(0), not null
-#  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purged_at              :datetime         default(Infinity), not null
-#  withdrawal_started_at  :datetime
-#  withdrawn_at           :datetime
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  multi_factor_id        :bigint           default(0), not null
-#  multi_factor_status_id :bigint           default(5), not null
-#  public_id              :string(16)       not null
-#  status_id              :bigint           default(2), not null
-#  visibility_id          :bigint           default(2), not null
+#  id                    :bigint           not null, primary key
+#  birthdate             :text
+#  deactivated_at        :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  lock_version          :integer          default(0), not null
+#  mfa_level_enabled     :boolean          default(FALSE), not null
+#  purged_at             :datetime         default(Infinity), not null
+#  withdrawal_started_at :datetime
+#  withdrawn_at          :datetime
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  mfa_level_id          :bigint           default(0), not null
+#  mfa_status_id         :bigint           default(5), not null
+#  public_id             :string(16)       not null
+#  status_id             :bigint           default(2), not null
+#  visibility_id         :bigint           default(2), not null
 #
 # Indexes
 #
-#  index_operators_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_operators_on_discarded_at            (discarded_at)
-#  index_operators_on_multi_factor_id         (multi_factor_id)
-#  index_operators_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_operators_on_public_id               (public_id) UNIQUE
-#  index_operators_on_purged_at               (purged_at)
-#  index_operators_on_status_id               (status_id)
-#  index_operators_on_visibility_id           (visibility_id)
-#  index_operators_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_operators_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_operators_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_operators_on_discarded_at           (discarded_at)
+#  index_operators_on_mfa_level_id           (mfa_level_id)
+#  index_operators_on_mfa_status_id          (mfa_status_id)
+#  index_operators_on_public_id              (public_id) UNIQUE
+#  index_operators_on_purged_at              (purged_at)
+#  index_operators_on_status_id              (status_id)
+#  index_operators_on_visibility_id          (visibility_id)
+#  index_operators_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_operators_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => operator_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => operator_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => operator_identity_statuses.id)
+#  fk_rails_...  (mfa_level_id => operator_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => operator_mfa_statuses.id)
+#  fk_rails_...  (status_id => operator_statuses.id)
 #  fk_rails_...  (visibility_id => operator_visibilities.id)
 #
 _fixture:
   model_class: Operator
 
 placeholder:
-  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
-  status_id: <%= OperatorIdentityStatus::NOTHING %>
+  mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
+  mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
+  status_id: <%= OperatorStatus::NOTHING %>
   public_id: "ABCD2345EFGH67JK"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 one:
-  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
-  status_id: <%= OperatorIdentityStatus::NOTHING %>
+  mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
+  mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
+  status_id: <%= OperatorStatus::NOTHING %>
   public_id: "BCDE2345FGHJ67KM"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 none_staff:
-  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
-  status_id: <%= OperatorIdentityStatus::NOTHING %>
+  mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
+  mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
+  status_id: <%= OperatorStatus::NOTHING %>
   public_id: "CDEF2345GHJK67NM"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 two:
-  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
-  status_id: <%= OperatorIdentityStatus::NOTHING %>
+  mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
+  mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
+  status_id: <%= OperatorStatus::NOTHING %>
   public_id: "DEFG2345HJKP67MN"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 sample_staff:
-  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
-  status_id: <%= OperatorIdentityStatus::NOTHING %>
+  mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
+  mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
+  status_id: <%= OperatorStatus::NOTHING %>
   public_id: "TMPN2345WXYZ67AB"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 reserved_staff:
-  multi_factor_id: <%= OperatorMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= OperatorMultiFactorStatus::UNCONFIGURED %>
-  status_id: <%= OperatorIdentityStatus::RESERVED %>
+  mfa_level_id: <%= OperatorMfaLevel::NOTHING %>
+  mfa_status_id: <%= OperatorMfaStatus::UNCONFIGURED %>
+  status_id: <%= OperatorStatus::RESERVED %>
   public_id: "RZRV2345WXYZ67AB"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>

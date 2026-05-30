@@ -51,7 +51,7 @@ module Sign::App::In
       assert_select "[data-passkey-authentication-options-url-value=?]", options_sign_app_in_passkeys_path(ri: "jp")
       assert_select "[data-passkey-authentication-verification-url-value=?]",
                     verification_sign_app_in_passkeys_path(ri: "jp")
-      assert_select "a[href=?]", new_sign_app_in_path(ri: "jp")
+      assert_select "a[href=?]", new_sign_app_sign_in_path(ri: "jp")
     end
 
     # Case F-1: Identifier does not exist
@@ -256,7 +256,7 @@ module Sign::App::In
       mismatch_body = response.body
 
       # PII missing user with valid passkey credential
-      user_without_verified_pii = Client.create!(status_id: ClientStatus::NOTHING, multi_factor_enabled: false)
+      user_without_verified_pii = Client.create!(status_id: ClientStatus::NOTHING, mfa_level_enabled: false)
       email = user_without_verified_pii.client_emails.create!(
         address: "unverified_passkey_#{SecureRandom.hex(4)}@example.com",
         user_email_status_id: ClientEmailStatus::VERIFIED,

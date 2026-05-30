@@ -1,0 +1,59 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+# Object-level authorization for the org (operator) passkey listing.
+# index? allows any authenticated actor reaching the surface; nil is denied. Other defaults
+# stay deny-all (allowlist).
+class OperatorPasskeyPolicyTest < ActiveSupport::TestCase
+  def test_index_denied_for_nil_user
+    policy = OperatorPasskeyPolicy.new(OperatorPasskey.new, user: nil)
+
+    assert_not policy.index?
+  end
+
+  def test_index_allowed_for_authenticated_user
+    policy = OperatorPasskeyPolicy.new(OperatorPasskey.new, user: Operator.new(id: 1))
+
+    assert_predicate policy, :index?
+  end
+
+  def test_show_denied_by_default
+    policy = OperatorPasskeyPolicy.new(OperatorPasskey.new, user: Operator.new(id: 1))
+
+    assert_not policy.show?
+  end
+
+  # create? gates registration (fresh record) to any authenticated operator.
+  def test_create_allowed_for_authenticated_user
+    policy = OperatorPasskeyPolicy.new(OperatorPasskey.new, user: Operator.new(id: 1))
+
+    assert_predicate policy, :create?
+    assert_predicate policy, :new?
+  end
+
+  def test_create_denied_for_nil_user
+    assert_not OperatorPasskeyPolicy.new(OperatorPasskey.new, user: nil).create?
+  end
+
+  # show?/update?/destroy? require ownership (record.staff_id == operator.id).
+  def test_per_record_rules_allow_owner
+    owner = Operator.new(id: 1)
+    record = OperatorPasskey.new(staff_id: 1)
+
+    assert_predicate OperatorPasskeyPolicy.new(record, user: owner), :show?
+    assert_predicate OperatorPasskeyPolicy.new(record, user: owner), :update?
+    assert_predicate OperatorPasskeyPolicy.new(record, user: owner), :edit?
+    assert_predicate OperatorPasskeyPolicy.new(record, user: owner), :destroy?
+  end
+
+  def test_per_record_rules_deny_non_owner
+    owner = Operator.new(id: 1)
+    record = OperatorPasskey.new(staff_id: 2)
+
+    assert_not OperatorPasskeyPolicy.new(record, user: owner).show?
+    assert_not OperatorPasskeyPolicy.new(record, user: owner).update?
+    assert_not OperatorPasskeyPolicy.new(record, user: owner).destroy?
+  end
+end

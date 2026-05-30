@@ -23,23 +23,27 @@ module Sign
         end
 
         def index
-          @totps = current_client.client_one_time_passwords
+          authorize!(ClientTotpCredential, to: :index?)
+          @totps = current_client.client_totp_credentials
         end
 
         def new
-          if current_client.client_one_time_passwords.count >= MAX_TOTPS
+          authorize!(ClientTotpCredential, to: :new?)
+          if current_client.client_totp_credentials.count >= MAX_TOTPS
             return render plain: t("session_limit.totp_limit_reached", count: MAX_TOTPS)
           end
 
-          @totp = ClientOneTimePassword.new
+          @totp = ClientTotpCredential.new
           generate_totp_session
         end
 
         def edit
           @totp = find_totp
+          authorize!(@totp)
         end
 
         def create
+          authorize!(ClientTotpCredential, to: :create?)
           initialize_totp
 
           if @totp.private_key.blank?
@@ -67,10 +71,10 @@ module Sign
         end
 
         def initialize_totp
-          @totp = ClientOneTimePassword.new(totp_params)
+          @totp = ClientTotpCredential.new(totp_params)
           @totp.private_key = session[:private_key]
           @totp.user = current_client
-          @totp.user_one_time_password_status_id = ClientOneTimePasswordStatus::ACTIVE
+          @totp.user_totp_credential_status_id = ClientTotpCredentialStatus::ACTIVE
         end
 
         def handle_success(last_otp_at)
@@ -93,6 +97,7 @@ module Sign
 
         def update
           @totp = find_totp
+          authorize!(@totp)
           if @totp.update(update_params)
             redirect_to(
               sign_app_configuration_totps_path,
@@ -105,6 +110,7 @@ module Sign
 
         def destroy
           @totp = find_totp
+          authorize!(@totp)
           unless AuthMethodGuard.can_remove_totp?(current_client, @totp)
             redirect_to(
               sign_app_configuration_totps_path,
@@ -123,7 +129,7 @@ module Sign
         private
 
         def find_totp
-          current_client.client_one_time_passwords.find_by!(public_id: params(:id))
+          current_client.client_totp_credentials.find_by!(public_id: params(:id))
         end
 
         def generate_totp_session
@@ -149,11 +155,11 @@ module Sign
         end
 
         def totp_params
-          params(user_one_time_password: [:first_token, :title])
+          params(user_totp_credential: [:first_token, :title])
         end
 
         def update_params
-          params(user_one_time_password: [:title])
+          params(user_totp_credential: [:title])
         end
 
         def record_totp_registration_step_up!

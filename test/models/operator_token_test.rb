@@ -73,7 +73,7 @@ require "test_helper"
 
 class OperatorTokenTest < ActiveSupport::TestCase
   def setup
-    @staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
+    @staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
 
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
   end
@@ -152,7 +152,7 @@ class OperatorTokenTest < ActiveSupport::TestCase
   end
 
   test "enforces maximum concurrent sessions per staff" do
-    staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
+    staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
     token_status = OperatorTokenStatus.find(OperatorTokenStatus::ACTIVE)
     token_kind = OperatorTokenKind.find(OperatorTokenKind::BROWSER_WEB)
     binding_method = OperatorTokenBindingMethod.find(OperatorTokenBindingMethod::NOTHING)
@@ -288,7 +288,7 @@ class OperatorTokenTest < ActiveSupport::TestCase
   end
 
   test "purgeability query returns only tokens purgeable at or before now" do
-    staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
+    staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
     past_token = OperatorToken.create!(staff: staff, discarded_at: 20.minutes.ago, purged_at: 10.minutes.ago)
     future_token = OperatorToken.create!(staff: staff, discarded_at: 10.minutes.ago, purged_at: 10.minutes.from_now)
 
@@ -354,9 +354,9 @@ class OperatorTokenTest < ActiveSupport::TestCase
   end
 
   test "rotate_refresh! rejects revoked compromised and expired tokens" do
-    revoked_staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
-    compromised_staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
-    expired_staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
+    revoked_staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
+    compromised_staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
+    expired_staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
     revoked = OperatorToken.create!(
       staff: revoked_staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
     )

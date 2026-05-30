@@ -11,7 +11,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     token.rotate_refresh_token!
 
-    assert_difference -> { ClientSignOutCycle.count }, 1 do
+    assert_difference -> { ClientSignOutFlow.count }, 1 do
       Authentication::LogoutCurrentSession.call(
         resource: user,
         token_class: ClientToken,
@@ -22,10 +22,10 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
 
     assert_predicate token.reload, :revoked?
     assert_not token.currently_usable?
-    cycle = ClientSignOutCycle.recent_first.find_by!(token: token)
+    cycle = ClientSignOutFlow.recent_first.find_by!(token: token)
 
     assert_predicate cycle, :sign_out_completed?
-    assert_equal ClientSignOutCycle.kind_id_for("IDP_SIGN_OUT"), cycle.kind_id
+    assert_equal ClientSignOutFlow.kind_id_for("IDP_SIGN_OUT"), cycle.kind_id
     assert_equal user.id, cycle.principal_id
     assert_equal token.refresh_token_family_id, cycle.refresh_token_family_id
     assert_not_nil cycle.access_discarded_at
@@ -53,7 +53,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     token.revoke!
 
-    assert_difference -> { ClientSignOutCycle.count }, 1 do
+    assert_difference -> { ClientSignOutFlow.count }, 1 do
       Authentication::LogoutCurrentSession.call(
         resource: user,
         token_class: ClientToken,
@@ -63,11 +63,11 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     end
 
     assert_predicate token.reload, :revoked?
-    assert_predicate ClientSignOutCycle.recent_first.find_by!(token: token), :sign_out_completed?
+    assert_predicate ClientSignOutFlow.recent_first.find_by!(token: token), :sign_out_completed?
   end
 
   test "succeeds when token and session are nil" do
-    assert_no_difference -> { ClientSignOutCycle.count } do
+    assert_no_difference -> { ClientSignOutFlow.count } do
       Authentication::LogoutCurrentSession.call(
         resource: clients(:one),
         token_class: ClientToken,
@@ -81,11 +81,11 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     visitor = Visitor.create!(public_id: "v#{SecureRandom.hex(10)}", status_id: VisitorStatus::ACTIVE)
     visitor_token = VisitorToken.create!(visitor: visitor)
     visitor_token.rotate_refresh_token!
-    operator = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    operator = Operator.create!(status_id: OperatorStatus::ACTIVE)
     operator_token = OperatorToken.create!(staff: operator)
     operator_token.rotate_refresh_token!
 
-    assert_difference -> { VisitorSignOutCycle.count }, 1 do
+    assert_difference -> { VisitorSignOutFlow.count }, 1 do
       Authentication::LogoutCurrentSession.call(
         resource: visitor,
         token_class: VisitorToken,
@@ -93,7 +93,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
         reason: "visitor_logout",
       )
     end
-    assert_difference -> { OperatorSignOutCycle.count }, 1 do
+    assert_difference -> { OperatorSignOutFlow.count }, 1 do
       Authentication::LogoutCurrentSession.call(
         resource: operator,
         token_class: OperatorToken,
@@ -102,7 +102,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
       )
     end
 
-    assert_predicate VisitorSignOutCycle.recent_first.find_by!(token: visitor_token), :sign_out_completed?
-    assert_predicate OperatorSignOutCycle.recent_first.find_by!(token: operator_token), :sign_out_completed?
+    assert_predicate VisitorSignOutFlow.recent_first.find_by!(token: visitor_token), :sign_out_completed?
+    assert_predicate OperatorSignOutFlow.recent_first.find_by!(token: operator_token), :sign_out_completed?
   end
 end

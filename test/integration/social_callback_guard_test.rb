@@ -38,7 +38,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
         headers: callback_headers.merge(as_user_headers(user, host: @host))
 
     assert_response :forbidden
-    assert_equal new_sign_app_in_url(ri: "jp"), response.location
+    assert_equal new_sign_app_sign_in_url(ri: "jp"), response.location
   end
 
   test "callback phase rejects when state mismatches" do

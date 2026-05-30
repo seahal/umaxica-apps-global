@@ -6,41 +6,41 @@
 # Table name: operators
 # Database name: org_principal
 #
-#  id                     :bigint           not null, primary key
-#  birthdate              :text
-#  deactivated_at         :datetime
-#  discarded_at           :datetime         default(Infinity), not null
-#  lock_version           :integer          default(0), not null
-#  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purged_at              :datetime         default(Infinity), not null
-#  withdrawal_started_at  :datetime
-#  withdrawn_at           :datetime
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  multi_factor_id        :bigint           default(0), not null
-#  multi_factor_status_id :bigint           default(5), not null
-#  public_id              :string(16)       not null
-#  status_id              :bigint           default(2), not null
-#  visibility_id          :bigint           default(2), not null
+#  id                    :bigint           not null, primary key
+#  birthdate             :text
+#  deactivated_at        :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  lock_version          :integer          default(0), not null
+#  mfa_level_enabled     :boolean          default(FALSE), not null
+#  purged_at             :datetime         default(Infinity), not null
+#  withdrawal_started_at :datetime
+#  withdrawn_at          :datetime
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  mfa_level_id          :bigint           default(0), not null
+#  mfa_status_id         :bigint           default(5), not null
+#  public_id             :string(16)       not null
+#  status_id             :bigint           default(2), not null
+#  visibility_id         :bigint           default(2), not null
 #
 # Indexes
 #
-#  index_operators_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_operators_on_discarded_at            (discarded_at)
-#  index_operators_on_multi_factor_id         (multi_factor_id)
-#  index_operators_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_operators_on_public_id               (public_id) UNIQUE
-#  index_operators_on_purged_at               (purged_at)
-#  index_operators_on_status_id               (status_id)
-#  index_operators_on_visibility_id           (visibility_id)
-#  index_operators_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_operators_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_operators_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_operators_on_discarded_at           (discarded_at)
+#  index_operators_on_mfa_level_id           (mfa_level_id)
+#  index_operators_on_mfa_status_id          (mfa_status_id)
+#  index_operators_on_public_id              (public_id) UNIQUE
+#  index_operators_on_purged_at              (purged_at)
+#  index_operators_on_status_id              (status_id)
+#  index_operators_on_visibility_id          (visibility_id)
+#  index_operators_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_operators_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => operator_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => operator_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => operator_identity_statuses.id)
+#  fk_rails_...  (mfa_level_id => operator_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => operator_mfa_statuses.id)
+#  fk_rails_...  (status_id => operator_statuses.id)
 #  fk_rails_...  (visibility_id => operator_visibilities.id)
 #
 
@@ -55,27 +55,27 @@ class Operator < OrgPrincipalRecord
 
   include ::Identity
   include Authentication::CredentialInventoryOwner
-  include MultiFactorConfigurable
-  include MultiFactorStatusTrackable
+  include MfaLevelConfigurable
+  include MfaStatusTrackable
   include Actor::LifecycleConsistency
 
-  LOGIN_BLOCKED_STATUS_IDS = [OperatorIdentityStatus::RESERVED].freeze
+  LOGIN_BLOCKED_STATUS_IDS = [OperatorStatus::RESERVED].freeze
   PUBLIC_ID_LENGTH = 16
   PUBLIC_ID_ALPHABET = SecureRandom::BASE32_ALPHABET.join.freeze
   PUBLIC_ID_FORMAT = /\A[0-9A-FGHJKMNPQRSTVWXYZ]{16}\z/
   MAX_PUBLIC_ID_RETRIES = 5
 
-  attribute :status_id, default: OperatorIdentityStatus::NOTHING
-  multi_factor_reference OperatorMultiFactor
-  multi_factor_status_reference OperatorMultiFactorStatus
+  attribute :status_id, default: OperatorStatus::NOTHING
+  mfa_level_reference OperatorMfaLevel
+  mfa_status_reference OperatorMfaStatus
 
-  belongs_to :staff_status, class_name: "OperatorIdentityStatus", foreign_key: :status_id,
+  belongs_to :staff_status, class_name: "OperatorStatus", foreign_key: :status_id,
                             inverse_of: :staffs
-  belongs_to :multi_factor,
-             class_name: "OperatorMultiFactor",
+  belongs_to :mfa_level,
+             class_name: "OperatorMfaLevel",
              inverse_of: :staffs
-  belongs_to :multi_factor_status,
-             class_name: "OperatorMultiFactorStatus",
+  belongs_to :mfa_status,
+             class_name: "OperatorMfaStatus",
              inverse_of: :staffs
   belongs_to :visibility,
              class_name: "OperatorVisibility",
@@ -84,8 +84,8 @@ class Operator < OrgPrincipalRecord
                           inverse_of: :staff
   has_many :operator_emails, class_name: "OperatorEmail", foreign_key: :staff_id,
                              inverse_of: :staff
-  has_one :operator_social_google,
-          class_name: "OperatorSocialGoogle",
+  has_one :operator_google_identity,
+          class_name: "OperatorGoogleIdentity",
           foreign_key: :staff_id,
           dependent: :destroy,
           inverse_of: :staff
@@ -109,10 +109,10 @@ class Operator < OrgPrincipalRecord
   # Cross-database (chronicle DB), polymorphic audit history. See above.
   has_many :client_chronicles,
            as: :actor
-  has_many :staff_secrets, class_name: "OperatorSecret", dependent: :destroy,
-                           inverse_of: :staff
-  has_many :operator_secrets, class_name: "OperatorSecret", foreign_key: :staff_id,
-                              inverse_of: :staff
+  has_many :staff_secret_credentials, class_name: "OperatorSecretCredential", dependent: :destroy,
+                                      inverse_of: :staff
+  has_many :operator_secret_credentials, class_name: "OperatorSecretCredential", foreign_key: :staff_id,
+                                         inverse_of: :staff
   has_many :staff_tokens, class_name: "OperatorToken", dependent: :destroy,
                           inverse_of: :staff
   has_many :operator_device_sessions,
@@ -191,7 +191,7 @@ class Operator < OrgPrincipalRecord
 
   private
 
-  def configured_multi_factor_methods
+  def configured_mfa_level_methods
     step_up_methods
   end
 

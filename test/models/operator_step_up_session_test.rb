@@ -30,11 +30,11 @@
 require "test_helper"
 
 class OperatorStepUpSessionTest < ActiveSupport::TestCase
-  fixtures_only :operator_identity_statuses, :operator_visibilities, :operator_multi_factors,
-                :operator_multi_factor_statuses
+  fixtures_only :operator_statuses, :operator_visibilities, :operator_mfa_levels,
+                :operator_mfa_statuses
 
   setup do
-    @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
+    @staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
     @staff_token = OperatorToken.create!(staff: @staff)
     @valid_params = {
       staff_token: @staff_token,
@@ -120,8 +120,8 @@ class OperatorStepUpSessionTest < ActiveSupport::TestCase
   end
 
   test "scopes filter and order sessions" do
-    older_staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
-    newer_staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
+    older_staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
+    newer_staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
     older_token = OperatorToken.create!(staff: older_staff)
     newer_token = OperatorToken.create!(staff: newer_staff)
     older = OperatorStepUpSession.create!(

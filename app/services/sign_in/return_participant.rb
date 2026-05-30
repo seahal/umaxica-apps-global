@@ -25,7 +25,7 @@ module SignIn
     private
 
     def safe_pt_path(value)
-      result = Redirects::PathTargetResolver.call(value, source: :sign_in_cycle_return)
+      result = Redirects::PathTargetResolver.call(value, source: :sign_in_flow_return)
       result.value if result.ok?
     end
   end

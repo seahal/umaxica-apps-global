@@ -141,6 +141,22 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
     assert policy.send(:owner?)
   end
 
+  def test_owner_returns_true_for_visitor_owner
+    actor = build_actor(Visitor, 30)
+    record = Struct.new(:visitor_id).new(30)
+    policy = ApplicationPolicy.new(record, user: actor)
+
+    assert policy.send(:owner?)
+  end
+
+  def test_owner_returns_false_for_visitor_non_owner
+    actor = build_actor(Visitor, 30)
+    record = Struct.new(:visitor_id).new(31)
+    policy = ApplicationPolicy.new(record, user: actor)
+
+    assert_not policy.send(:owner?)
+  end
+
   def test_owner_returns_false_for_unknown_actor_type
     actor = build_actor(String, 1)
     record = Struct.new(:client_id, :staff_id).new(1, 1)

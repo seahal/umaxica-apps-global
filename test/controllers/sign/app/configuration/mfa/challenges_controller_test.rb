@@ -42,15 +42,15 @@ class Sign::App::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
   end
 
   test "update route is not exposed" do
-    @user.update!(multi_factor_id: ClientMultiFactor::NOTHING, multi_factor_enabled: false)
+    @user.update!(mfa_level_id: ClientMfaLevel::NOTHING, mfa_level_enabled: false)
 
     patch sign_app_configuration_mfa_challenge_url(ri: "jp"),
-          params: { user: { multi_factor_id: ClientMultiFactor::FULL.to_s } },
+          params: { user: { mfa_level_id: ClientMfaLevel::FULL.to_s } },
           headers: authenticated_headers
 
     assert_response :not_found
-    assert_equal ClientMultiFactor::NOTHING, @user.reload.multi_factor_id
-    assert_not_predicate @user, :multi_factor_enabled?
+    assert_equal ClientMfaLevel::NOTHING, @user.reload.mfa_level_id
+    assert_not_predicate @user, :mfa_level_enabled?
   end
 
   private

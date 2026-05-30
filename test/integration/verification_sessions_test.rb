@@ -5,7 +5,7 @@ require "test_helper"
 require "base64"
 
 class VerificationSessionsTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_statuses, :client_one_time_password_statuses, :client_token_statuses, :client_token_kinds
+  fixtures :clients, :client_statuses, :client_totp_credential_statuses, :client_token_statuses, :client_token_kinds
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
@@ -28,10 +28,10 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }.freeze
 
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
   end

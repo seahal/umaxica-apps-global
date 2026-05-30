@@ -688,7 +688,7 @@ CREATE UNLOGGED TABLE public.chronicles (
     changeset jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp(6) with time zone NOT NULL,
     updated_at timestamp(6) with time zone NOT NULL,
-    CONSTRAINT chk_chronicles_result CHECK (((result)::text = ANY ((ARRAY['intent'::character varying, 'succeeded'::character varying, 'failed'::character varying, 'audit_incomplete'::character varying, 'invalidated'::character varying, 'manual_recovery_required'::character varying])::text[])))
+    CONSTRAINT chk_chronicles_result CHECK (((result)::text = ANY (ARRAY[('intent'::character varying)::text, ('succeeded'::character varying)::text, ('failed'::character varying)::text, ('audit_incomplete'::character varying)::text, ('invalidated'::character varying)::text, ('manual_recovery_required'::character varying)::text])))
 );
 
 
@@ -1892,199 +1892,6 @@ ALTER SEQUENCE public.org_timeline_behaviors_id_seq OWNED BY public.org_timeline
 
 
 --
--- Name: scavenger_global_chronicle_events; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.scavenger_global_chronicle_events (
-    id bigint NOT NULL
-);
-
-
---
--- Name: scavenger_global_chronicle_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.scavenger_global_chronicle_events_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: scavenger_global_chronicle_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.scavenger_global_chronicle_events_id_seq OWNED BY public.scavenger_global_chronicle_events.id;
-
-
---
--- Name: scavenger_global_chronicle_statuses; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.scavenger_global_chronicle_statuses (
-    id bigint NOT NULL
-);
-
-
---
--- Name: scavenger_global_chronicle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.scavenger_global_chronicle_statuses_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: scavenger_global_chronicle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.scavenger_global_chronicle_statuses_id_seq OWNED BY public.scavenger_global_chronicle_statuses.id;
-
-
---
--- Name: scavenger_global_chronicles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.scavenger_global_chronicles (
-    id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    error_message text,
-    event_id bigint DEFAULT 0 NOT NULL,
-    finished_at timestamp(6) with time zone,
-    idempotency_key character varying(128) NOT NULL,
-    job_type character varying(64) NOT NULL,
-    occurred_at timestamp(6) with time zone,
-    payload jsonb,
-    retry_count integer,
-    started_at timestamp(6) with time zone,
-    status_id bigint DEFAULT 0 NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: scavenger_global_chronicles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.scavenger_global_chronicles_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: scavenger_global_chronicles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.scavenger_global_chronicles_id_seq OWNED BY public.scavenger_global_chronicles.id;
-
-
---
--- Name: scavenger_regional_chronicle_events; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.scavenger_regional_chronicle_events (
-    id bigint NOT NULL
-);
-
-
---
--- Name: scavenger_regional_chronicle_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.scavenger_regional_chronicle_events_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: scavenger_regional_chronicle_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.scavenger_regional_chronicle_events_id_seq OWNED BY public.scavenger_regional_chronicle_events.id;
-
-
---
--- Name: scavenger_regional_chronicle_statuses; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.scavenger_regional_chronicle_statuses (
-    id bigint NOT NULL
-);
-
-
---
--- Name: scavenger_regional_chronicle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.scavenger_regional_chronicle_statuses_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: scavenger_regional_chronicle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.scavenger_regional_chronicle_statuses_id_seq OWNED BY public.scavenger_regional_chronicle_statuses.id;
-
-
---
--- Name: scavenger_regional_chronicles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.scavenger_regional_chronicles (
-    id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    error_message text,
-    event_id bigint DEFAULT 0 NOT NULL,
-    finished_at timestamp(6) with time zone,
-    idempotency_key character varying(128) NOT NULL,
-    job_type character varying(64) NOT NULL,
-    occurred_at timestamp(6) with time zone,
-    payload jsonb,
-    region_id bigint NOT NULL,
-    retry_count integer,
-    started_at timestamp(6) with time zone,
-    status_id bigint DEFAULT 0 NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: scavenger_regional_chronicles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.scavenger_regional_chronicles_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: scavenger_regional_chronicles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.scavenger_regional_chronicles_id_seq OWNED BY public.scavenger_regional_chronicles.id;
-
-
---
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2483,48 +2290,6 @@ ALTER TABLE ONLY public.org_timeline_behavior_levels ALTER COLUMN id SET DEFAULT
 --
 
 ALTER TABLE ONLY public.org_timeline_behaviors ALTER COLUMN id SET DEFAULT nextval('public.org_timeline_behaviors_id_seq'::regclass);
-
-
---
--- Name: scavenger_global_chronicle_events id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_global_chronicle_events ALTER COLUMN id SET DEFAULT nextval('public.scavenger_global_chronicle_events_id_seq'::regclass);
-
-
---
--- Name: scavenger_global_chronicle_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_global_chronicle_statuses ALTER COLUMN id SET DEFAULT nextval('public.scavenger_global_chronicle_statuses_id_seq'::regclass);
-
-
---
--- Name: scavenger_global_chronicles id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_global_chronicles ALTER COLUMN id SET DEFAULT nextval('public.scavenger_global_chronicles_id_seq'::regclass);
-
-
---
--- Name: scavenger_regional_chronicle_events id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_regional_chronicle_events ALTER COLUMN id SET DEFAULT nextval('public.scavenger_regional_chronicle_events_id_seq'::regclass);
-
-
---
--- Name: scavenger_regional_chronicle_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_regional_chronicle_statuses ALTER COLUMN id SET DEFAULT nextval('public.scavenger_regional_chronicle_statuses_id_seq'::regclass);
-
-
---
--- Name: scavenger_regional_chronicles id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_regional_chronicles ALTER COLUMN id SET DEFAULT nextval('public.scavenger_regional_chronicles_id_seq'::regclass);
 
 
 --
@@ -2984,54 +2749,6 @@ ALTER TABLE ONLY public.org_timeline_behaviors
 
 
 --
--- Name: scavenger_global_chronicle_events scavenger_global_chronicle_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_global_chronicle_events
-    ADD CONSTRAINT scavenger_global_chronicle_events_pkey PRIMARY KEY (id);
-
-
---
--- Name: scavenger_global_chronicle_statuses scavenger_global_chronicle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_global_chronicle_statuses
-    ADD CONSTRAINT scavenger_global_chronicle_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: scavenger_global_chronicles scavenger_global_chronicles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_global_chronicles
-    ADD CONSTRAINT scavenger_global_chronicles_pkey PRIMARY KEY (id);
-
-
---
--- Name: scavenger_regional_chronicle_events scavenger_regional_chronicle_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_regional_chronicle_events
-    ADD CONSTRAINT scavenger_regional_chronicle_events_pkey PRIMARY KEY (id);
-
-
---
--- Name: scavenger_regional_chronicle_statuses scavenger_regional_chronicle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_regional_chronicle_statuses
-    ADD CONSTRAINT scavenger_regional_chronicle_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: scavenger_regional_chronicles scavenger_regional_chronicles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_regional_chronicles
-    ADD CONSTRAINT scavenger_regional_chronicles_pkey PRIMARY KEY (id);
-
-
---
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3051,13 +2768,6 @@ CREATE UNIQUE INDEX idx_chronicle_visibilities_unique_context ON public.chronicl
 --
 
 CREATE INDEX idx_on_chronicle_visibility_context_id_2c36ec5eab ON public.chronicle_visibilities USING btree (chronicle_visibility_context_id);
-
-
---
--- Name: idx_on_region_id_idempotency_key_2dd0f63eee; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_on_region_id_idempotency_key_2dd0f63eee ON public.scavenger_regional_chronicles USING btree (region_id, idempotency_key);
 
 
 --
@@ -3915,69 +3625,6 @@ CREATE INDEX index_org_timeline_behaviors_on_subject_type_and_subject_id ON publ
 
 
 --
--- Name: index_scavenger_global_chronicles_on_event_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_scavenger_global_chronicles_on_event_id ON public.scavenger_global_chronicles USING btree (event_id);
-
-
---
--- Name: index_scavenger_global_chronicles_on_idempotency_key; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_scavenger_global_chronicles_on_idempotency_key ON public.scavenger_global_chronicles USING btree (idempotency_key);
-
-
---
--- Name: index_scavenger_global_chronicles_on_job_type; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_scavenger_global_chronicles_on_job_type ON public.scavenger_global_chronicles USING btree (job_type);
-
-
---
--- Name: index_scavenger_global_chronicles_on_occurred_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_scavenger_global_chronicles_on_occurred_at ON public.scavenger_global_chronicles USING btree (occurred_at);
-
-
---
--- Name: index_scavenger_global_chronicles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_scavenger_global_chronicles_on_status_id ON public.scavenger_global_chronicles USING btree (status_id);
-
-
---
--- Name: index_scavenger_regional_chronicles_on_event_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_scavenger_regional_chronicles_on_event_id ON public.scavenger_regional_chronicles USING btree (event_id);
-
-
---
--- Name: index_scavenger_regional_chronicles_on_occurred_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_scavenger_regional_chronicles_on_occurred_at ON public.scavenger_regional_chronicles USING btree (occurred_at);
-
-
---
--- Name: index_scavenger_regional_chronicles_on_region_id_and_job_type; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_scavenger_regional_chronicles_on_region_id_and_job_type ON public.scavenger_regional_chronicles USING btree (region_id, job_type);
-
-
---
--- Name: index_scavenger_regional_chronicles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_scavenger_regional_chronicles_on_status_id ON public.scavenger_regional_chronicles USING btree (status_id);
-
-
---
 -- Name: index_staff_activities_on_actor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4104,14 +3751,6 @@ ALTER TABLE ONLY public.com_preference_chronicles
 
 
 --
--- Name: scavenger_global_chronicles fk_rails_641804ddaa; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_global_chronicles
-    ADD CONSTRAINT fk_rails_641804ddaa FOREIGN KEY (event_id) REFERENCES public.scavenger_global_chronicle_events(id);
-
-
---
 -- Name: com_timeline_audits fk_rails_683656739c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4133,14 +3772,6 @@ ALTER TABLE ONLY public.chronicle_outbox_entries
 
 ALTER TABLE ONLY public.org_timeline_behaviors
     ADD CONSTRAINT fk_rails_749b22f756 FOREIGN KEY (event_id) REFERENCES public.org_timeline_behavior_events(id);
-
-
---
--- Name: scavenger_regional_chronicles fk_rails_7b4f8f27d8; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_regional_chronicles
-    ADD CONSTRAINT fk_rails_7b4f8f27d8 FOREIGN KEY (event_id) REFERENCES public.scavenger_regional_chronicle_events(id);
 
 
 --
@@ -4216,14 +3847,6 @@ ALTER TABLE ONLY public.app_document_audits
 
 
 --
--- Name: scavenger_regional_chronicles fk_rails_ae6f6c1500; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_regional_chronicles
-    ADD CONSTRAINT fk_rails_ae6f6c1500 FOREIGN KEY (status_id) REFERENCES public.scavenger_regional_chronicle_statuses(id);
-
-
---
 -- Name: app_timeline_audits fk_rails_b95cff528f; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4296,14 +3919,6 @@ ALTER TABLE ONLY public.org_document_audits
 
 
 --
--- Name: scavenger_global_chronicles fk_rails_ef302ea7b4; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scavenger_global_chronicles
-    ADD CONSTRAINT fk_rails_ef302ea7b4 FOREIGN KEY (status_id) REFERENCES public.scavenger_global_chronicle_statuses(id);
-
-
---
 -- Name: operator_chronicles fk_rails_f0451c267b; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4334,6 +3949,7 @@ ALTER TABLE ONLY public.org_preference_chronicles
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260530031000'),
 ('20260520143004'),
 ('20260520072158'),
 ('20260520072019'),

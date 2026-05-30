@@ -8,10 +8,18 @@ module Sign
         include Sign::Configuration::SessionManagement
 
         AUTHENTICATION_MODE = :private
-
         before_action :authenticate_client!
+        # Object-level authorization (ActionPolicy) for the listing only. `destroy`/`others`/
+        # `revoke_all` are intentionally excluded — they stay gated by their existing checks
+        # (current-session guard, step-up), not this rollout.
+        before_action :authorize_sessions!, only: %i(index)
+        def index = super
 
         private
+
+        def authorize_sessions!
+          authorize!(ClientToken, to: :index?)
+        end
 
         def visible_sessions
           current_client.client_tokens.session_inventory

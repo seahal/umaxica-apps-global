@@ -4,12 +4,12 @@
 require "test_helper"
 
 class Sign::Org::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_token_statuses, :operator_token_kinds
+  fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = operators(:one)
-    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    @staff.update!(status_id: OperatorStatus::ACTIVE)
     @token = OperatorToken.create!(
       staff: @staff,
       staff_token_status_id: OperatorTokenStatus::ACTIVE,
@@ -37,14 +37,14 @@ class Sign::Org::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
   end
 
   test "update route is not exposed" do
-    @staff.update!(multi_factor_id: OperatorMultiFactor::NOTHING, multi_factor_enabled: false)
+    @staff.update!(mfa_level_id: OperatorMfaLevel::NOTHING, mfa_level_enabled: false)
 
     patch sign_org_configuration_mfa_challenge_url(ri: "jp"),
-          params: { user: { multi_factor_id: OperatorMultiFactor::FULL.to_s } },
+          params: { user: { mfa_level_id: OperatorMfaLevel::FULL.to_s } },
           headers: @headers
 
     assert_response :not_found
-    assert_equal OperatorMultiFactor::NOTHING, @staff.reload.multi_factor_id
-    assert_not_predicate @staff, :multi_factor_enabled?
+    assert_equal OperatorMfaLevel::NOTHING, @staff.reload.mfa_level_id
+    assert_not_predicate @staff, :mfa_level_enabled?
   end
 end

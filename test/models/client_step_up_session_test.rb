@@ -30,7 +30,7 @@
 require "test_helper"
 
 class ClientStepUpSessionTest < ActiveSupport::TestCase
-  fixtures_only :client_statuses, :client_visibilities, :client_multi_factors, :client_multi_factor_statuses
+  fixtures_only :client_statuses, :client_visibilities, :client_mfa_levels, :client_mfa_statuses
 
   setup do
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::BOTH)

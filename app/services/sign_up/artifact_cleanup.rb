@@ -30,7 +30,7 @@ module SignUp
     end
 
     def self.cleanup_pending!(now: Time.current, batch_size: BATCH_SIZE)
-      [ClientSignUpCycle, VisitorSignUpCycle].each do |cycle_class|
+      [ClientSignUpFlow, VisitorSignUpFlow].each do |cycle_class|
         cleanup_pending_for(cycle_class, now: now, batch_size: batch_size)
       end
     end
@@ -146,9 +146,9 @@ module SignUp
 
     def dependent_records
       case cycle
-      when ClientSignUpCycle
+      when ClientSignUpFlow
         client_dependent_records
-      when VisitorSignUpCycle
+      when VisitorSignUpFlow
         visitor_dependent_records
       else
         []
@@ -179,9 +179,9 @@ module SignUp
     def client_social_identity(actor)
       case cycle.social_provider.presence || cycle.entry_method
       when "google"
-        ClientSocialGoogle.find_by(id: cycle.pending_contact_id, user_id: actor.id)
+        ClientGoogleIdentity.find_by(id: cycle.pending_contact_id, user_id: actor.id)
       when "apple"
-        ClientSocialApple.find_by(id: cycle.pending_contact_id, user_id: actor.id)
+        ClientAppleIdentity.find_by(id: cycle.pending_contact_id, user_id: actor.id)
       end
     end
 
@@ -199,7 +199,7 @@ module SignUp
         contact.user_email_status_id == ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP
       when ClientTelephone
         contact.user_telephone_status_id == ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP
-      when ClientSocialGoogle, ClientSocialApple
+      when ClientGoogleIdentity, ClientAppleIdentity
         true
       else
         false
@@ -254,8 +254,8 @@ module SignUp
       when ClientEmail then deleted_status_id_for(ClientEmailStatus)
       when ClientTelephone then deleted_status_id_for(ClientTelephoneStatus)
       when ClientPasskey then deleted_status_id_for(ClientPasskeyStatus)
-      when ClientSocialGoogle then deleted_status_id_for(ClientSocialGoogleStatus)
-      when ClientSocialApple then deleted_status_id_for(ClientSocialAppleStatus)
+      when ClientGoogleIdentity then deleted_status_id_for(ClientGoogleIdentityStatus)
+      when ClientAppleIdentity then deleted_status_id_for(ClientAppleIdentityStatus)
       when VisitorEmail then deleted_status_id_for(VisitorEmailStatus)
       when VisitorTelephone then deleted_status_id_for(VisitorTelephoneStatus)
       when VisitorPasskey then deleted_status_id_for(VisitorPasskeyStatus)

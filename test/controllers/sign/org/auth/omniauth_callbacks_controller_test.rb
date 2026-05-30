@@ -35,7 +35,7 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     end
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
-    controller.define_singleton_method(:new_sign_org_in_path) { "/org/in/new" }
+    controller.define_singleton_method(:new_sign_org_sign_in_path) { "/org/in/new" }
     controller.define_singleton_method(:sign_org_in_session_path) { "/org/in/session" }
     controller.define_singleton_method(:sign_org_in_checkpoint_path) { |ri: nil| "/org/in/checkpoint?ri=#{ri}" }
     controller.define_singleton_method(:sign_org_dashboard_path) { |ri: nil, pt: nil|
@@ -194,8 +194,8 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
   test "find_active_staff_by_google_identity returns active staff for linked identity" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
-    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-    OperatorSocialGoogle.create!(
+    staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    OperatorGoogleIdentity.create!(
       staff: staff,
       uid: "google-staff-uid",
       provider: "google_org",
@@ -205,18 +205,18 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     auth = google_auth(uid: "google-staff-uid", token: "new-token")
 
     assert_equal staff, controller.send(:find_active_staff_by_google_identity, auth)
-    assert_equal "new-token", staff.reload.operator_social_google.token
+    assert_equal "new-token", staff.reload.operator_google_identity.token
   end
 
   test "find_active_staff_by_google_identity links current staff by provider uid" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
-    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
     controller.define_singleton_method(:social_auth_user) { staff }
     auth = google_auth(uid: "google-link-staff-uid")
 
     assert_equal staff,
                  controller.send(:find_active_staff_by_google_identity, auth, intent: "link")
-    assert_equal "google-link-staff-uid", staff.reload.operator_social_google.uid
+    assert_equal "google-link-staff-uid", staff.reload.operator_google_identity.uid
   end
 
   test "find_active_staff_by_google_identity rejects unlinked provider uid for login intent" do
@@ -227,8 +227,8 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
   test "find_active_staff_by_google_identity rejects missing and inactive staff identity" do
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
-    staff = Operator.create!(status_id: OperatorIdentityStatus::NOTHING, visibility_id: OperatorVisibility::STAFF)
-    OperatorSocialGoogle.create!(
+    staff = Operator.create!(status_id: OperatorStatus::NOTHING, visibility_id: OperatorVisibility::STAFF)
+    OperatorGoogleIdentity.create!(
       staff: staff,
       uid: "inactive-google-staff-uid",
       provider: "google_org",

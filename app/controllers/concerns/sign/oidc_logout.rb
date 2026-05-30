@@ -26,6 +26,7 @@ module Sign
       return render json: { error: "invalid_request", error_description: "unknown client" },
                     status: :bad_request unless client
 
+      prepare_sign_out_completion_notice!
       log_out
       issue_sign_out_notice!
       redirect_to(oidc_logout_completed_path(ri: logout_request[:ri]), status: :see_other)

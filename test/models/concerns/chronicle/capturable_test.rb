@@ -175,7 +175,7 @@ class Chronicle::CapturableTest < ActiveSupport::TestCase
     Chronicle.capture(
       action: "auth.sign_in.failed",
       request_id: "request-sanitized-text",
-      reason: "password=super-secret",
+      reason: "password=super-secret_credential",
       metadata: {
         note: "otp 123456 and Bearer abc.def.ghi",
         opaque: "a" * 40,

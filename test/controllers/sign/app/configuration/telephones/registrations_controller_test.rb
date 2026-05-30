@@ -137,7 +137,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user: @user,
       raw_number: "+19999999999",
       user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
@@ -164,7 +164,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user: @user,
       raw_number: "+19999999999",
       user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
@@ -181,7 +181,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user: @user,
       raw_number: "+19999999998",
       user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
     CloudflareTurnstile.test_validation_response = { "success" => false }
@@ -202,7 +202,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user: @user,
       raw_number: "+19999999999",
       user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
@@ -237,7 +237,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user: @user,
       raw_number: "+18888888888",
       user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
 
@@ -259,7 +259,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user: @user,
       raw_number: "+19999999999",
       user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
@@ -279,7 +279,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user: @user,
       raw_number: "+19999999999",
       user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do
@@ -299,7 +299,7 @@ class Sign::App::Configuration::Telephones::RegistrationsControllerTest < Action
       user: @user,
       raw_number: "+19999999999",
       user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
     set_registration_session(tel.id) do

@@ -11,7 +11,7 @@ require "base64"
 # - Email OTP is NOT available for Org (passkey only)
 # - High-risk operations require verification
 class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_passkeys, :operator_passkey_statuses
+  fixtures :operators, :operator_statuses, :operator_passkeys, :operator_passkey_statuses
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")

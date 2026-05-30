@@ -440,7 +440,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     rs = current_step_up_session
     Rails.cache.write(
       "step_up_session:#{rs.id}:email_otp",
-      { "secret" => "secret", "counter" => 0 },
+      { "secret_credential" => "secret_credential", "counter" => 0 },
       expires_in: 15.minutes,
     )
   end

@@ -34,7 +34,7 @@
 #
 
 class OperatorPasskey < OrgPrincipalRecord
-  include MultiFactorStatusCredential
+  include MfaStatusCredential
 
   self.ignored_columns += ["webauthn_id_binary"]
   MAX_PASSKEYS_PER_STAFF = 4
@@ -42,7 +42,7 @@ class OperatorPasskey < OrgPrincipalRecord
   alias_attribute :description, :name
 
   belongs_to :staff, inverse_of: :staff_passkeys, class_name: "Operator"
-  multi_factor_status_owner :staff
+  mfa_status_owner :staff
   belongs_to :status, class_name: "OperatorPasskeyStatus"
 
   scope :active, -> { where(status_id: OperatorPasskeyStatus::ACTIVE) }

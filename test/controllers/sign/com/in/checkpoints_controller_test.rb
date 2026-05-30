@@ -8,7 +8,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     ApplicationRecord.clear_fixed_id_seed_cache!
-    VisitorSignInCycleStatus.ensure_defaults!
+    VisitorSignInFlowStatus.ensure_defaults!
     @visitor = create_verified_visitor_with_email(email_address: "checkpoint-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
       number: "+10000000992",
@@ -29,7 +29,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "show with checkpoint notice state returns success" do
+  test "show with checkpoint notice state without sequence authorization is rejected" do
     start_checkpoint_sequence
 
     get sign_com_in_checkpoint_url(ri: "jp"),
@@ -40,7 +40,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "update refreshes checkpoint state and redirects to show" do
+  test "update with checkpoint notice state without sequence authorization is rejected" do
     start_checkpoint_sequence
     previous_issued_at = 10.minutes.ago.to_i
 
@@ -52,7 +52,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "destroy consumes checkpoint and continues to dashboard with pt" do
+  test "destroy with checkpoint notice state without sequence authorization is rejected" do
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/configuration?ri=jp")
 
@@ -100,12 +100,12 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
       participant: :checkpoint,
       pt: nil,
     )
-    cycle = VisitorSignInCycle.new(
+    cycle = VisitorSignInFlow.new(
       principal_id: @visitor.id,
-      status_id: VisitorSignInCycle.status_id_for("CHECKPOINT_PENDING"),
+      status_id: VisitorSignInFlow.status_id_for("CHECKPOINT_PENDING"),
       state: "CHECKPOINT_PENDING",
       step: "checkpoint",
-      nonce_digest: VisitorSignInCycle.digest_nonce("pending-test-nonce"),
+      nonce_digest: VisitorSignInFlow.digest_nonce("pending-test-nonce"),
       issued_at: Time.current,
       expires_at: 15.minutes.from_now,
     )

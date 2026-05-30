@@ -31,7 +31,7 @@ module Sign
 
           unless SUPPORTED_PROVIDERS.include?(provider)
             return redirect_to(
-              new_sign_org_in_path,
+              new_sign_org_sign_in_path,
               alert: I18n.t("sign.org.social.sessions.invalid_provider"),
             )
           end
@@ -40,7 +40,7 @@ module Sign
 
           safe_redirect_to(
             omniauth_authorize_path(provider, state: state),
-            fallback: new_sign_org_in_path,
+            fallback: new_sign_org_sign_in_path,
           )
         rescue SocialAuth::BaseError => e
           handle_social_auth_error(e)
@@ -68,7 +68,7 @@ module Sign
         private
 
         def unlink_google_org!
-          identity = current_operator.operator_social_google
+          identity = current_operator.operator_google_identity
 
           Operator.transaction do
             current_operator.lock!
@@ -99,7 +99,7 @@ module Sign
         end
 
         def social_auth_failure_redirect_path
-          new_sign_org_in_path
+          new_sign_org_sign_in_path
         end
       end
     end

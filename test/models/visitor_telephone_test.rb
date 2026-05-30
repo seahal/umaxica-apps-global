@@ -50,7 +50,7 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
       number: "090-1234-#{rand(1000..9999)}",
       visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
 
     assert_equal telephone.public_id, telephone.to_param
@@ -65,7 +65,7 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
         visitor_telephone_status: status,
         number: "090-2222-#{format("%04d", index)}",
         otp_counter: "0",
-        otp_private_key: "secret",
+        otp_private_key: "secret_credential",
       )
     end
 
@@ -74,7 +74,7 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
       visitor_telephone_status: status,
       number: "090-3333-0000",
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
 
     assert_not extra.valid?
@@ -87,14 +87,14 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
       number: "090-4444-0000",
       visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
     duplicate = VisitorTelephone.new(
       visitor: @visitor,
       number: "+819044440000",
       visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
 
     assert_equal existing.number_digest, duplicate.tap(&:valid?).number_digest
@@ -108,7 +108,7 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
       number: "+1 (555) 444-0001",
       visitor_telephone_status_id: VisitorTelephoneStatus::DELETED,
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
       discarded_at: 1.minute.ago,
       purged_at: 29.minutes.from_now,
     )
@@ -117,7 +117,7 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
       number: "+15554440001",
       visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
 
     assert_predicate retry_telephone, :valid?
@@ -132,7 +132,7 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
       number: "+1 (555) 765-4321",
       visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
 
     expected = IdentifierBlindIndex.bidx_for_telephone("+15557654321")

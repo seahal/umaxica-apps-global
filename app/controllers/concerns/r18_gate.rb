@@ -82,7 +82,7 @@ module R18Gate
     safe_internal_path(value).presence || r18_fallback_path
   end
 
-  def r18_display_stopper_enabled?(actor)
+  def adult_content_gate_enabled?(actor)
     r18_display_preference_state(actor) == :stopped
   end
 
@@ -114,10 +114,10 @@ module R18Gate
   def r18_preference_stopper(preference)
     return unless preference
 
-    association = "#{preference.class.name.underscore}_r18_display_stopper"
+    association = "#{preference.class.name.underscore}_adult_content_gate"
     return preference.public_send(association) if preference.respond_to?(association)
 
-    preference.public_send(:r18_display_stopper) if preference.respond_to?(:r18_display_stopper)
+    preference.public_send(:adult_content_gate) if preference.respond_to?(:adult_content_gate)
   end
 
   def r18_actor_preference(actor)

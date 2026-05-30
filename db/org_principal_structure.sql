@@ -386,19 +386,29 @@ ALTER SEQUENCE public.operator_emails_id_seq OWNED BY public.operator_emails.id;
 
 
 --
--- Name: operator_identity_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: operator_google_identities; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.operator_identity_statuses (
-    id bigint NOT NULL
+CREATE UNLOGGED TABLE public.operator_google_identities (
+    id bigint NOT NULL,
+    staff_id bigint NOT NULL,
+    provider character varying DEFAULT 'google_org'::character varying NOT NULL,
+    uid character varying DEFAULT ''::character varying NOT NULL,
+    token character varying DEFAULT ''::character varying NOT NULL,
+    refresh_token character varying DEFAULT ''::character varying NOT NULL,
+    token_expires_at integer NOT NULL,
+    status_id bigint DEFAULT 1 NOT NULL,
+    last_authenticated_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
 );
 
 
 --
--- Name: operator_identity_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: operator_google_identities_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.operator_identity_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.operator_google_identities_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -407,10 +417,38 @@ CREATE UNLOGGED SEQUENCE public.operator_identity_statuses_id_seq
 
 
 --
--- Name: operator_identity_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: operator_google_identities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.operator_identity_statuses_id_seq OWNED BY public.operator_identity_statuses.id;
+ALTER SEQUENCE public.operator_google_identities_id_seq OWNED BY public.operator_google_identities.id;
+
+
+--
+-- Name: operator_google_identity_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.operator_google_identity_statuses (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: operator_google_identity_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.operator_google_identity_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: operator_google_identity_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.operator_google_identity_statuses_id_seq OWNED BY public.operator_google_identity_statuses.id;
 
 
 --
@@ -462,19 +500,19 @@ ALTER SEQUENCE public.operator_lifecycle_requests_id_seq OWNED BY public.operato
 
 
 --
--- Name: operator_multi_factor_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: operator_mfa_levels; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.operator_multi_factor_statuses (
+CREATE UNLOGGED TABLE public.operator_mfa_levels (
     id bigint NOT NULL
 );
 
 
 --
--- Name: operator_multi_factor_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: operator_mfa_levels_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.operator_multi_factor_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.operator_mfa_levels_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -483,26 +521,26 @@ CREATE UNLOGGED SEQUENCE public.operator_multi_factor_statuses_id_seq
 
 
 --
--- Name: operator_multi_factor_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: operator_mfa_levels_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.operator_multi_factor_statuses_id_seq OWNED BY public.operator_multi_factor_statuses.id;
+ALTER SEQUENCE public.operator_mfa_levels_id_seq OWNED BY public.operator_mfa_levels.id;
 
 
 --
--- Name: operator_multi_factors; Type: TABLE; Schema: public; Owner: -
+-- Name: operator_mfa_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.operator_multi_factors (
+CREATE UNLOGGED TABLE public.operator_mfa_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: operator_multi_factors_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: operator_mfa_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.operator_multi_factors_id_seq
+CREATE UNLOGGED SEQUENCE public.operator_mfa_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -511,10 +549,10 @@ CREATE UNLOGGED SEQUENCE public.operator_multi_factors_id_seq
 
 
 --
--- Name: operator_multi_factors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: operator_mfa_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.operator_multi_factors_id_seq OWNED BY public.operator_multi_factors.id;
+ALTER SEQUENCE public.operator_mfa_statuses_id_seq OWNED BY public.operator_mfa_statuses.id;
 
 
 --
@@ -583,6 +621,66 @@ CREATE UNLOGGED SEQUENCE public.operator_passkeys_id_seq
 --
 
 ALTER SEQUENCE public.operator_passkeys_id_seq OWNED BY public.operator_passkeys.id;
+
+
+--
+-- Name: operator_preference_adult_content_gate_options; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.operator_preference_adult_content_gate_options (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: operator_preference_adult_content_gate_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.operator_preference_adult_content_gate_options_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: operator_preference_adult_content_gate_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.operator_preference_adult_content_gate_options_id_seq OWNED BY public.operator_preference_adult_content_gate_options.id;
+
+
+--
+-- Name: operator_preference_adult_content_gates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.operator_preference_adult_content_gates (
+    id bigint NOT NULL,
+    preference_id bigint NOT NULL,
+    option_id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: operator_preference_adult_content_gates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.operator_preference_adult_content_gates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: operator_preference_adult_content_gates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.operator_preference_adult_content_gates_id_seq OWNED BY public.operator_preference_adult_content_gates.id;
 
 
 --
@@ -766,66 +864,6 @@ ALTER SEQUENCE public.operator_preference_density_options_id_seq OWNED BY public
 
 
 --
--- Name: operator_preference_items_per_page_options; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.operator_preference_items_per_page_options (
-    id bigint NOT NULL
-);
-
-
---
--- Name: operator_preference_items_per_page_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.operator_preference_items_per_page_options_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: operator_preference_items_per_page_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.operator_preference_items_per_page_options_id_seq OWNED BY public.operator_preference_items_per_page_options.id;
-
-
---
--- Name: operator_preference_items_per_pages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.operator_preference_items_per_pages (
-    id bigint NOT NULL,
-    preference_id bigint NOT NULL,
-    option_id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: operator_preference_items_per_pages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.operator_preference_items_per_pages_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: operator_preference_items_per_pages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.operator_preference_items_per_pages_id_seq OWNED BY public.operator_preference_items_per_pages.id;
-
-
---
 -- Name: operator_preference_language_options; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -946,19 +984,19 @@ ALTER SEQUENCE public.operator_preference_motions_id_seq OWNED BY public.operato
 
 
 --
--- Name: operator_preference_r18_display_stopper_options; Type: TABLE; Schema: public; Owner: -
+-- Name: operator_preference_page_size_options; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.operator_preference_r18_display_stopper_options (
+CREATE UNLOGGED TABLE public.operator_preference_page_size_options (
     id bigint NOT NULL
 );
 
 
 --
--- Name: operator_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: operator_preference_page_size_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.operator_preference_r18_display_stopper_options_id_seq
+CREATE UNLOGGED SEQUENCE public.operator_preference_page_size_options_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -967,17 +1005,17 @@ CREATE UNLOGGED SEQUENCE public.operator_preference_r18_display_stopper_options_
 
 
 --
--- Name: operator_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: operator_preference_page_size_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.operator_preference_r18_display_stopper_options_id_seq OWNED BY public.operator_preference_r18_display_stopper_options.id;
+ALTER SEQUENCE public.operator_preference_page_size_options_id_seq OWNED BY public.operator_preference_page_size_options.id;
 
 
 --
--- Name: operator_preference_r18_display_stoppers; Type: TABLE; Schema: public; Owner: -
+-- Name: operator_preference_page_sizes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.operator_preference_r18_display_stoppers (
+CREATE UNLOGGED TABLE public.operator_preference_page_sizes (
     id bigint NOT NULL,
     preference_id bigint NOT NULL,
     option_id bigint NOT NULL,
@@ -987,10 +1025,10 @@ CREATE UNLOGGED TABLE public.operator_preference_r18_display_stoppers (
 
 
 --
--- Name: operator_preference_r18_display_stoppers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: operator_preference_page_sizes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.operator_preference_r18_display_stoppers_id_seq
+CREATE UNLOGGED SEQUENCE public.operator_preference_page_sizes_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -999,10 +1037,10 @@ CREATE UNLOGGED SEQUENCE public.operator_preference_r18_display_stoppers_id_seq
 
 
 --
--- Name: operator_preference_r18_display_stoppers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: operator_preference_page_sizes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.operator_preference_r18_display_stoppers_id_seq OWNED BY public.operator_preference_r18_display_stoppers.id;
+ALTER SEQUENCE public.operator_preference_page_sizes_id_seq OWNED BY public.operator_preference_page_sizes.id;
 
 
 --
@@ -1270,7 +1308,7 @@ CREATE UNLOGGED TABLE public.operator_preferences (
     time_format character varying DEFAULT 'hour_24'::character varying NOT NULL,
     motion character varying DEFAULT 'standard'::character varying NOT NULL,
     density character varying DEFAULT 'standard'::character varying NOT NULL,
-    items_per_page character varying DEFAULT '20'::character varying NOT NULL
+    page_size character varying DEFAULT '20'::character varying NOT NULL
 );
 
 
@@ -1294,19 +1332,19 @@ ALTER SEQUENCE public.operator_preferences_id_seq OWNED BY public.operator_prefe
 
 
 --
--- Name: operator_secret_kinds; Type: TABLE; Schema: public; Owner: -
+-- Name: operator_secret_credential_kinds; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.operator_secret_kinds (
+CREATE UNLOGGED TABLE public.operator_secret_credential_kinds (
     id bigint NOT NULL
 );
 
 
 --
--- Name: operator_secret_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: operator_secret_credential_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.operator_secret_kinds_id_seq
+CREATE UNLOGGED SEQUENCE public.operator_secret_credential_kinds_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1315,26 +1353,26 @@ CREATE UNLOGGED SEQUENCE public.operator_secret_kinds_id_seq
 
 
 --
--- Name: operator_secret_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: operator_secret_credential_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.operator_secret_kinds_id_seq OWNED BY public.operator_secret_kinds.id;
+ALTER SEQUENCE public.operator_secret_credential_kinds_id_seq OWNED BY public.operator_secret_credential_kinds.id;
 
 
 --
--- Name: operator_secret_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: operator_secret_credential_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.operator_secret_statuses (
+CREATE UNLOGGED TABLE public.operator_secret_credential_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: operator_secret_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: operator_secret_credential_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.operator_secret_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.operator_secret_credential_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1343,17 +1381,17 @@ CREATE UNLOGGED SEQUENCE public.operator_secret_statuses_id_seq
 
 
 --
--- Name: operator_secret_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: operator_secret_credential_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.operator_secret_statuses_id_seq OWNED BY public.operator_secret_statuses.id;
+ALTER SEQUENCE public.operator_secret_credential_statuses_id_seq OWNED BY public.operator_secret_credential_statuses.id;
 
 
 --
--- Name: operator_secrets; Type: TABLE; Schema: public; Owner: -
+-- Name: operator_secret_credentials; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.operator_secrets (
+CREATE UNLOGGED TABLE public.operator_secret_credentials (
     id bigint NOT NULL,
     staff_id bigint NOT NULL,
     password_digest character varying,
@@ -1371,10 +1409,10 @@ CREATE UNLOGGED TABLE public.operator_secrets (
 
 
 --
--- Name: operator_secrets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: operator_secret_credentials_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.operator_secrets_id_seq
+CREATE UNLOGGED SEQUENCE public.operator_secret_credentials_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1383,76 +1421,10 @@ CREATE UNLOGGED SEQUENCE public.operator_secrets_id_seq
 
 
 --
--- Name: operator_secrets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: operator_secret_credentials_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.operator_secrets_id_seq OWNED BY public.operator_secrets.id;
-
-
---
--- Name: operator_social_google_statuses; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.operator_social_google_statuses (
-    id bigint NOT NULL
-);
-
-
---
--- Name: operator_social_google_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.operator_social_google_statuses_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: operator_social_google_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.operator_social_google_statuses_id_seq OWNED BY public.operator_social_google_statuses.id;
-
-
---
--- Name: operator_social_googles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.operator_social_googles (
-    id bigint NOT NULL,
-    staff_id bigint NOT NULL,
-    provider character varying DEFAULT 'google_org'::character varying NOT NULL,
-    uid character varying DEFAULT ''::character varying NOT NULL,
-    token character varying DEFAULT ''::character varying NOT NULL,
-    refresh_token character varying DEFAULT ''::character varying NOT NULL,
-    token_expires_at integer NOT NULL,
-    status_id bigint DEFAULT 1 NOT NULL,
-    last_authenticated_at timestamp(6) with time zone,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: operator_social_googles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.operator_social_googles_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: operator_social_googles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.operator_social_googles_id_seq OWNED BY public.operator_social_googles.id;
+ALTER SEQUENCE public.operator_secret_credentials_id_seq OWNED BY public.operator_secret_credentials.id;
 
 
 --
@@ -1579,6 +1551,34 @@ ALTER SEQUENCE public.operator_visibilities_id_seq OWNED BY public.operator_visi
 
 
 --
+-- Name: operator_workspace_account_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.operator_workspace_account_statuses (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: operator_workspace_account_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.operator_workspace_account_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: operator_workspace_account_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.operator_workspace_account_statuses_id_seq OWNED BY public.operator_workspace_account_statuses.id;
+
+
+--
 -- Name: operators; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1590,13 +1590,13 @@ CREATE UNLOGGED TABLE public.operators (
     public_id character varying(16) NOT NULL,
     withdrawn_at timestamp(6) with time zone,
     status_id bigint DEFAULT 0 NOT NULL,
-    multi_factor_enabled boolean DEFAULT false NOT NULL,
+    mfa_level_enabled boolean DEFAULT false NOT NULL,
     lock_version integer DEFAULT 0 NOT NULL,
     visibility_id bigint DEFAULT 2 NOT NULL,
     purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
     discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
-    multi_factor_id bigint DEFAULT 0 NOT NULL,
-    multi_factor_status_id bigint DEFAULT 5 NOT NULL,
+    mfa_level_id bigint DEFAULT 0 NOT NULL,
+    mfa_status_id bigint DEFAULT 5 NOT NULL,
     withdrawal_started_at timestamp(6) with time zone,
     deactivated_at timestamp(6) with time zone,
     birthdate text,
@@ -2062,10 +2062,17 @@ ALTER TABLE ONLY public.operator_emails ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
--- Name: operator_identity_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: operator_google_identities id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_identity_statuses ALTER COLUMN id SET DEFAULT nextval('public.operator_identity_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.operator_google_identities ALTER COLUMN id SET DEFAULT nextval('public.operator_google_identities_id_seq'::regclass);
+
+
+--
+-- Name: operator_google_identity_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_google_identity_statuses ALTER COLUMN id SET DEFAULT nextval('public.operator_google_identity_statuses_id_seq'::regclass);
 
 
 --
@@ -2076,17 +2083,17 @@ ALTER TABLE ONLY public.operator_lifecycle_requests ALTER COLUMN id SET DEFAULT 
 
 
 --
--- Name: operator_multi_factor_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: operator_mfa_levels id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_multi_factor_statuses ALTER COLUMN id SET DEFAULT nextval('public.operator_multi_factor_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.operator_mfa_levels ALTER COLUMN id SET DEFAULT nextval('public.operator_mfa_levels_id_seq'::regclass);
 
 
 --
--- Name: operator_multi_factors id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: operator_mfa_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_multi_factors ALTER COLUMN id SET DEFAULT nextval('public.operator_multi_factors_id_seq'::regclass);
+ALTER TABLE ONLY public.operator_mfa_statuses ALTER COLUMN id SET DEFAULT nextval('public.operator_mfa_statuses_id_seq'::regclass);
 
 
 --
@@ -2101,6 +2108,20 @@ ALTER TABLE ONLY public.operator_passkey_statuses ALTER COLUMN id SET DEFAULT ne
 --
 
 ALTER TABLE ONLY public.operator_passkeys ALTER COLUMN id SET DEFAULT nextval('public.operator_passkeys_id_seq'::regclass);
+
+
+--
+-- Name: operator_preference_adult_content_gate_options id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_preference_adult_content_gate_options ALTER COLUMN id SET DEFAULT nextval('public.operator_preference_adult_content_gate_options_id_seq'::regclass);
+
+
+--
+-- Name: operator_preference_adult_content_gates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_preference_adult_content_gates ALTER COLUMN id SET DEFAULT nextval('public.operator_preference_adult_content_gates_id_seq'::regclass);
 
 
 --
@@ -2146,20 +2167,6 @@ ALTER TABLE ONLY public.operator_preference_density_options ALTER COLUMN id SET 
 
 
 --
--- Name: operator_preference_items_per_page_options id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.operator_preference_items_per_page_options ALTER COLUMN id SET DEFAULT nextval('public.operator_preference_items_per_page_options_id_seq'::regclass);
-
-
---
--- Name: operator_preference_items_per_pages id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.operator_preference_items_per_pages ALTER COLUMN id SET DEFAULT nextval('public.operator_preference_items_per_pages_id_seq'::regclass);
-
-
---
 -- Name: operator_preference_language_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2188,17 +2195,17 @@ ALTER TABLE ONLY public.operator_preference_motions ALTER COLUMN id SET DEFAULT 
 
 
 --
--- Name: operator_preference_r18_display_stopper_options id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: operator_preference_page_size_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_preference_r18_display_stopper_options ALTER COLUMN id SET DEFAULT nextval('public.operator_preference_r18_display_stopper_options_id_seq'::regclass);
+ALTER TABLE ONLY public.operator_preference_page_size_options ALTER COLUMN id SET DEFAULT nextval('public.operator_preference_page_size_options_id_seq'::regclass);
 
 
 --
--- Name: operator_preference_r18_display_stoppers id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: operator_preference_page_sizes id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_preference_r18_display_stoppers ALTER COLUMN id SET DEFAULT nextval('public.operator_preference_r18_display_stoppers_id_seq'::regclass);
+ALTER TABLE ONLY public.operator_preference_page_sizes ALTER COLUMN id SET DEFAULT nextval('public.operator_preference_page_sizes_id_seq'::regclass);
 
 
 --
@@ -2265,38 +2272,24 @@ ALTER TABLE ONLY public.operator_preferences ALTER COLUMN id SET DEFAULT nextval
 
 
 --
--- Name: operator_secret_kinds id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: operator_secret_credential_kinds id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_secret_kinds ALTER COLUMN id SET DEFAULT nextval('public.operator_secret_kinds_id_seq'::regclass);
-
-
---
--- Name: operator_secret_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.operator_secret_statuses ALTER COLUMN id SET DEFAULT nextval('public.operator_secret_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.operator_secret_credential_kinds ALTER COLUMN id SET DEFAULT nextval('public.operator_secret_credential_kinds_id_seq'::regclass);
 
 
 --
--- Name: operator_secrets id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: operator_secret_credential_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_secrets ALTER COLUMN id SET DEFAULT nextval('public.operator_secrets_id_seq'::regclass);
-
-
---
--- Name: operator_social_google_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.operator_social_google_statuses ALTER COLUMN id SET DEFAULT nextval('public.operator_social_google_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.operator_secret_credential_statuses ALTER COLUMN id SET DEFAULT nextval('public.operator_secret_credential_statuses_id_seq'::regclass);
 
 
 --
--- Name: operator_social_googles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: operator_secret_credentials id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_social_googles ALTER COLUMN id SET DEFAULT nextval('public.operator_social_googles_id_seq'::regclass);
+ALTER TABLE ONLY public.operator_secret_credentials ALTER COLUMN id SET DEFAULT nextval('public.operator_secret_credentials_id_seq'::regclass);
 
 
 --
@@ -2325,6 +2318,13 @@ ALTER TABLE ONLY public.operator_telephones ALTER COLUMN id SET DEFAULT nextval(
 --
 
 ALTER TABLE ONLY public.operator_visibilities ALTER COLUMN id SET DEFAULT nextval('public.operator_visibilities_id_seq'::regclass);
+
+
+--
+-- Name: operator_workspace_account_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_workspace_account_statuses ALTER COLUMN id SET DEFAULT nextval('public.operator_workspace_account_statuses_id_seq'::regclass);
 
 
 --
@@ -2424,7 +2424,7 @@ ALTER TABLE ONLY public.ar_internal_metadata
 --
 
 ALTER TABLE public.operators
-    ADD CONSTRAINT chk_operators_mfa_requirement_consistency CHECK ((((multi_factor_enabled = false) AND (multi_factor_id = 0)) OR ((multi_factor_enabled = true) AND (multi_factor_id <> 0)))) NOT VALID;
+    ADD CONSTRAINT chk_operators_mfa_requirement_consistency CHECK ((((mfa_level_enabled = false) AND (mfa_level_id = 0)) OR ((mfa_level_enabled = true) AND (mfa_level_id <> 0)))) NOT VALID;
 
 
 --
@@ -2508,11 +2508,19 @@ ALTER TABLE ONLY public.operator_emails
 
 
 --
--- Name: operator_identity_statuses operator_identity_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_google_identities operator_google_identities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_identity_statuses
-    ADD CONSTRAINT operator_identity_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.operator_google_identities
+    ADD CONSTRAINT operator_google_identities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: operator_google_identity_statuses operator_google_identity_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_google_identity_statuses
+    ADD CONSTRAINT operator_google_identity_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -2524,19 +2532,19 @@ ALTER TABLE ONLY public.operator_lifecycle_requests
 
 
 --
--- Name: operator_multi_factor_statuses operator_multi_factor_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_mfa_levels operator_mfa_levels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_multi_factor_statuses
-    ADD CONSTRAINT operator_multi_factor_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.operator_mfa_levels
+    ADD CONSTRAINT operator_mfa_levels_pkey PRIMARY KEY (id);
 
 
 --
--- Name: operator_multi_factors operator_multi_factors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_mfa_statuses operator_mfa_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_multi_factors
-    ADD CONSTRAINT operator_multi_factors_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.operator_mfa_statuses
+    ADD CONSTRAINT operator_mfa_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -2553,6 +2561,22 @@ ALTER TABLE ONLY public.operator_passkey_statuses
 
 ALTER TABLE ONLY public.operator_passkeys
     ADD CONSTRAINT operator_passkeys_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: operator_preference_adult_content_gate_options operator_preference_adult_content_gate_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_preference_adult_content_gate_options
+    ADD CONSTRAINT operator_preference_adult_content_gate_options_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: operator_preference_adult_content_gates operator_preference_adult_content_gates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_preference_adult_content_gates
+    ADD CONSTRAINT operator_preference_adult_content_gates_pkey PRIMARY KEY (id);
 
 
 --
@@ -2604,22 +2628,6 @@ ALTER TABLE ONLY public.operator_preference_density_options
 
 
 --
--- Name: operator_preference_items_per_page_options operator_preference_items_per_page_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.operator_preference_items_per_page_options
-    ADD CONSTRAINT operator_preference_items_per_page_options_pkey PRIMARY KEY (id);
-
-
---
--- Name: operator_preference_items_per_pages operator_preference_items_per_pages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.operator_preference_items_per_pages
-    ADD CONSTRAINT operator_preference_items_per_pages_pkey PRIMARY KEY (id);
-
-
---
 -- Name: operator_preference_language_options operator_preference_language_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2652,19 +2660,19 @@ ALTER TABLE ONLY public.operator_preference_motions
 
 
 --
--- Name: operator_preference_r18_display_stopper_options operator_preference_r18_display_stopper_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_preference_page_size_options operator_preference_page_size_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_preference_r18_display_stopper_options
-    ADD CONSTRAINT operator_preference_r18_display_stopper_options_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.operator_preference_page_size_options
+    ADD CONSTRAINT operator_preference_page_size_options_pkey PRIMARY KEY (id);
 
 
 --
--- Name: operator_preference_r18_display_stoppers operator_preference_r18_display_stoppers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_preference_page_sizes operator_preference_page_sizes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_preference_r18_display_stoppers
-    ADD CONSTRAINT operator_preference_r18_display_stoppers_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.operator_preference_page_sizes
+    ADD CONSTRAINT operator_preference_page_sizes_pkey PRIMARY KEY (id);
 
 
 --
@@ -2740,43 +2748,27 @@ ALTER TABLE ONLY public.operator_preferences
 
 
 --
--- Name: operator_secret_kinds operator_secret_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_secret_credential_kinds operator_secret_credential_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_secret_kinds
-    ADD CONSTRAINT operator_secret_kinds_pkey PRIMARY KEY (id);
-
-
---
--- Name: operator_secret_statuses operator_secret_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.operator_secret_statuses
-    ADD CONSTRAINT operator_secret_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.operator_secret_credential_kinds
+    ADD CONSTRAINT operator_secret_credential_kinds_pkey PRIMARY KEY (id);
 
 
 --
--- Name: operator_secrets operator_secrets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_secret_credential_statuses operator_secret_credential_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_secrets
-    ADD CONSTRAINT operator_secrets_pkey PRIMARY KEY (id);
-
-
---
--- Name: operator_social_google_statuses operator_social_google_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.operator_social_google_statuses
-    ADD CONSTRAINT operator_social_google_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.operator_secret_credential_statuses
+    ADD CONSTRAINT operator_secret_credential_statuses_pkey PRIMARY KEY (id);
 
 
 --
--- Name: operator_social_googles operator_social_googles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_secret_credentials operator_secret_credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_social_googles
-    ADD CONSTRAINT operator_social_googles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.operator_secret_credentials
+    ADD CONSTRAINT operator_secret_credentials_pkey PRIMARY KEY (id);
 
 
 --
@@ -2809,6 +2801,14 @@ ALTER TABLE ONLY public.operator_telephones
 
 ALTER TABLE ONLY public.operator_visibilities
     ADD CONSTRAINT operator_visibilities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: operator_workspace_account_statuses operator_workspace_account_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_workspace_account_statuses
+    ADD CONSTRAINT operator_workspace_account_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -2924,10 +2924,10 @@ ALTER TABLE ONLY public.workspaces
 
 
 --
--- Name: idx_on_preference_id_7d925420d9; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_on_staff_identity_secret_status_id_1e2bab9ca1; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_on_preference_id_7d925420d9 ON public.operator_preference_r18_display_stoppers USING btree (preference_id);
+CREATE INDEX idx_on_staff_identity_secret_status_id_1e2bab9ca1 ON public.operator_secret_credentials USING btree (staff_identity_secret_status_id);
 
 
 --
@@ -3050,6 +3050,27 @@ CREATE INDEX index_operator_emails_on_staff_identity_email_status_id ON public.o
 
 
 --
+-- Name: index_operator_google_identities_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_operator_google_identities_on_status_id ON public.operator_google_identities USING btree (status_id);
+
+
+--
+-- Name: index_operator_google_identities_on_token_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_operator_google_identities_on_token_expires_at ON public.operator_google_identities USING btree (token_expires_at);
+
+
+--
+-- Name: index_operator_google_identities_on_uid_and_provider; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_operator_google_identities_on_uid_and_provider ON public.operator_google_identities USING btree (uid, provider);
+
+
+--
 -- Name: index_operator_lifecycle_requests_on_action; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3127,6 +3148,20 @@ CREATE UNIQUE INDEX index_operator_passkeys_on_webauthn_id ON public.operator_pa
 
 
 --
+-- Name: index_operator_preference_adult_content_gates_on_option_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_operator_preference_adult_content_gates_on_option_id ON public.operator_preference_adult_content_gates USING btree (option_id);
+
+
+--
+-- Name: index_operator_preference_adult_content_gates_on_preference_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_operator_preference_adult_content_gates_on_preference_id ON public.operator_preference_adult_content_gates USING btree (preference_id);
+
+
+--
 -- Name: index_operator_preference_currencies_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3169,20 +3204,6 @@ CREATE UNIQUE INDEX index_operator_preference_densities_on_preference_id ON publ
 
 
 --
--- Name: index_operator_preference_items_per_pages_on_option_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_operator_preference_items_per_pages_on_option_id ON public.operator_preference_items_per_pages USING btree (option_id);
-
-
---
--- Name: index_operator_preference_items_per_pages_on_preference_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_operator_preference_items_per_pages_on_preference_id ON public.operator_preference_items_per_pages USING btree (preference_id);
-
-
---
 -- Name: index_operator_preference_languages_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3211,10 +3232,17 @@ CREATE UNIQUE INDEX index_operator_preference_motions_on_preference_id ON public
 
 
 --
--- Name: index_operator_preference_r18_display_stoppers_on_option_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_operator_preference_page_sizes_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_operator_preference_r18_display_stoppers_on_option_id ON public.operator_preference_r18_display_stoppers USING btree (option_id);
+CREATE INDEX index_operator_preference_page_sizes_on_option_id ON public.operator_preference_page_sizes USING btree (option_id);
+
+
+--
+-- Name: index_operator_preference_page_sizes_on_preference_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_operator_preference_page_sizes_on_preference_id ON public.operator_preference_page_sizes USING btree (preference_id);
 
 
 --
@@ -3288,59 +3316,31 @@ CREATE UNIQUE INDEX index_operator_preferences_on_staff_id ON public.operator_pr
 
 
 --
--- Name: index_operator_secrets_on_public_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_operator_secret_credentials_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_operator_secrets_on_public_id ON public.operator_secrets USING btree (public_id);
-
-
---
--- Name: index_operator_secrets_on_staff_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_operator_secrets_on_staff_id ON public.operator_secrets USING btree (staff_id);
+CREATE UNIQUE INDEX index_operator_secret_credentials_on_public_id ON public.operator_secret_credentials USING btree (public_id);
 
 
 --
--- Name: index_operator_secrets_on_staff_identity_secret_status_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_operator_secret_credentials_on_staff_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_operator_secrets_on_staff_identity_secret_status_id ON public.operator_secrets USING btree (staff_identity_secret_status_id);
+CREATE INDEX index_operator_secret_credentials_on_staff_id ON public.operator_secret_credentials USING btree (staff_id);
 
 
 --
--- Name: index_operator_secrets_on_staff_secret_kind_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_operator_secret_credentials_on_staff_secret_kind_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_operator_secrets_on_staff_secret_kind_id ON public.operator_secrets USING btree (staff_secret_kind_id);
+CREATE INDEX index_operator_secret_credentials_on_staff_secret_kind_id ON public.operator_secret_credentials USING btree (staff_secret_kind_id);
 
 
 --
 -- Name: index_operator_social_googles_on_staff_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_operator_social_googles_on_staff_id_unique ON public.operator_social_googles USING btree (staff_id) WHERE (staff_id IS NOT NULL);
-
-
---
--- Name: index_operator_social_googles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_operator_social_googles_on_status_id ON public.operator_social_googles USING btree (status_id);
-
-
---
--- Name: index_operator_social_googles_on_token_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_operator_social_googles_on_token_expires_at ON public.operator_social_googles USING btree (token_expires_at);
-
-
---
--- Name: index_operator_social_googles_on_uid_and_provider; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_operator_social_googles_on_uid_and_provider ON public.operator_social_googles USING btree (uid, provider);
+CREATE UNIQUE INDEX index_operator_social_googles_on_staff_id_unique ON public.operator_google_identities USING btree (staff_id) WHERE (staff_id IS NOT NULL);
 
 
 --
@@ -3372,17 +3372,17 @@ CREATE INDEX index_operators_on_discarded_at ON public.operators USING btree (di
 
 
 --
--- Name: index_operators_on_multi_factor_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_operators_on_mfa_level_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_operators_on_multi_factor_id ON public.operators USING btree (multi_factor_id);
+CREATE INDEX index_operators_on_mfa_level_id ON public.operators USING btree (mfa_level_id);
 
 
 --
--- Name: index_operators_on_multi_factor_status_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_operators_on_mfa_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_operators_on_multi_factor_status_id ON public.operators USING btree (multi_factor_status_id);
+CREATE INDEX index_operators_on_mfa_status_id ON public.operators USING btree (mfa_status_id);
 
 
 --
@@ -3572,18 +3572,18 @@ ALTER TABLE ONLY public.operator_banners
 
 
 --
--- Name: operator_secrets fk_rails_2386c20852; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_secret_credentials fk_rails_2386c20852; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_secrets
+ALTER TABLE ONLY public.operator_secret_credentials
     ADD CONSTRAINT fk_rails_2386c20852 FOREIGN KEY (staff_id) REFERENCES public.operators(id);
 
 
 --
--- Name: operator_preference_items_per_pages fk_rails_2b838843e1; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_preference_page_sizes fk_rails_2b838843e1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_preference_items_per_pages
+ALTER TABLE ONLY public.operator_preference_page_sizes
     ADD CONSTRAINT fk_rails_2b838843e1 FOREIGN KEY (preference_id) REFERENCES public.operator_preferences(id);
 
 
@@ -3592,7 +3592,7 @@ ALTER TABLE ONLY public.operator_preference_items_per_pages
 --
 
 ALTER TABLE ONLY public.operator_accounts
-    ADD CONSTRAINT fk_rails_326fe73dec FOREIGN KEY (status_id) REFERENCES public.operator_statuses(id);
+    ADD CONSTRAINT fk_rails_326fe73dec FOREIGN KEY (status_id) REFERENCES public.operator_workspace_account_statuses(id);
 
 
 --
@@ -3680,7 +3680,7 @@ ALTER TABLE ONLY public.operator_telephones
 --
 
 ALTER TABLE ONLY public.operators
-    ADD CONSTRAINT fk_rails_5525188c4e FOREIGN KEY (status_id) REFERENCES public.operator_identity_statuses(id);
+    ADD CONSTRAINT fk_rails_5525188c4e FOREIGN KEY (status_id) REFERENCES public.operator_statuses(id);
 
 
 --
@@ -3736,7 +3736,7 @@ ALTER TABLE ONLY public.operator_preference_motions
 --
 
 ALTER TABLE ONLY public.operators
-    ADD CONSTRAINT fk_rails_894ffe7965 FOREIGN KEY (multi_factor_id) REFERENCES public.operator_multi_factors(id);
+    ADD CONSTRAINT fk_rails_894ffe7965 FOREIGN KEY (mfa_level_id) REFERENCES public.operator_mfa_levels(id);
 
 
 --
@@ -3764,19 +3764,19 @@ ALTER TABLE ONLY public.operator_preference_time_formats
 
 
 --
--- Name: operator_secrets fk_rails_8f8aed461a; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_secret_credentials fk_rails_8f8aed461a; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_secrets
-    ADD CONSTRAINT fk_rails_8f8aed461a FOREIGN KEY (staff_identity_secret_status_id) REFERENCES public.operator_secret_statuses(id);
+ALTER TABLE ONLY public.operator_secret_credentials
+    ADD CONSTRAINT fk_rails_8f8aed461a FOREIGN KEY (staff_identity_secret_status_id) REFERENCES public.operator_secret_credential_statuses(id);
 
 
 --
--- Name: operator_preference_r18_display_stoppers fk_rails_939f6081bd; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_preference_adult_content_gates fk_rails_939f6081bd; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_preference_r18_display_stoppers
-    ADD CONSTRAINT fk_rails_939f6081bd FOREIGN KEY (option_id) REFERENCES public.operator_preference_r18_display_stopper_options(id);
+ALTER TABLE ONLY public.operator_preference_adult_content_gates
+    ADD CONSTRAINT fk_rails_939f6081bd FOREIGN KEY (option_id) REFERENCES public.operator_preference_adult_content_gate_options(id);
 
 
 --
@@ -3820,10 +3820,10 @@ ALTER TABLE ONLY public.operator_passkeys
 
 
 --
--- Name: operator_social_googles fk_rails_b2b4364acf; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_google_identities fk_rails_b2b4364acf; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_social_googles
+ALTER TABLE ONLY public.operator_google_identities
     ADD CONSTRAINT fk_rails_b2b4364acf FOREIGN KEY (staff_id) REFERENCES public.operators(id);
 
 
@@ -3872,31 +3872,31 @@ ALTER TABLE ONLY public.staff_identity_audits
 --
 
 ALTER TABLE ONLY public.operators
-    ADD CONSTRAINT fk_rails_cfd2f37948 FOREIGN KEY (multi_factor_status_id) REFERENCES public.operator_multi_factor_statuses(id);
+    ADD CONSTRAINT fk_rails_cfd2f37948 FOREIGN KEY (mfa_status_id) REFERENCES public.operator_mfa_statuses(id);
 
 
 --
--- Name: operator_preference_r18_display_stoppers fk_rails_d26854a062; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_preference_adult_content_gates fk_rails_d26854a062; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_preference_r18_display_stoppers
+ALTER TABLE ONLY public.operator_preference_adult_content_gates
     ADD CONSTRAINT fk_rails_d26854a062 FOREIGN KEY (preference_id) REFERENCES public.operator_preferences(id);
 
 
 --
--- Name: operator_preference_items_per_pages fk_rails_d9a9bd2617; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_preference_page_sizes fk_rails_d9a9bd2617; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_preference_items_per_pages
-    ADD CONSTRAINT fk_rails_d9a9bd2617 FOREIGN KEY (option_id) REFERENCES public.operator_preference_items_per_page_options(id);
+ALTER TABLE ONLY public.operator_preference_page_sizes
+    ADD CONSTRAINT fk_rails_d9a9bd2617 FOREIGN KEY (option_id) REFERENCES public.operator_preference_page_size_options(id);
 
 
 --
--- Name: operator_social_googles fk_rails_db81b40794; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_google_identities fk_rails_db81b40794; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_social_googles
-    ADD CONSTRAINT fk_rails_db81b40794 FOREIGN KEY (status_id) REFERENCES public.operator_social_google_statuses(id);
+ALTER TABLE ONLY public.operator_google_identities
+    ADD CONSTRAINT fk_rails_db81b40794 FOREIGN KEY (status_id) REFERENCES public.operator_google_identity_statuses(id);
 
 
 --
@@ -3988,11 +3988,11 @@ ALTER TABLE ONLY public.operator_preference_timezones
 
 
 --
--- Name: operator_secrets fk_staff_secrets_on_staff_secret_kind_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: operator_secret_credentials fk_staff_secrets_on_staff_secret_kind_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.operator_secrets
-    ADD CONSTRAINT fk_staff_secrets_on_staff_secret_kind_id FOREIGN KEY (staff_secret_kind_id) REFERENCES public.operator_secret_kinds(id);
+ALTER TABLE ONLY public.operator_secret_credentials
+    ADD CONSTRAINT fk_staff_secrets_on_staff_secret_kind_id FOREIGN KEY (staff_secret_kind_id) REFERENCES public.operator_secret_credential_kinds(id);
 
 
 --
@@ -4002,6 +4002,9 @@ ALTER TABLE ONLY public.operator_secrets
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260530032400'),
+('20260530032100'),
+('20260530031000'),
 ('20260528162001'),
 ('20260526090000'),
 ('20260521120000'),

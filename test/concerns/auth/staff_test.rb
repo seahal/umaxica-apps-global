@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Authentication::OperatorTest < ActiveSupport::TestCase
-  fixtures :operators, :operator_identity_statuses, :operator_tokens, :operator_token_kinds, :operator_token_statuses
+  fixtures :operators, :operator_statuses, :operator_tokens, :operator_token_kinds, :operator_token_statuses
   class FormatMock
     attr_accessor :format_type
 

@@ -15,8 +15,8 @@ module Preference
       time_format
       motion
       density
-      items_per_page
-      r18_display_stopper
+      page_size
+      adult_content_gate
     ).freeze
 
     TYPE_KEY_MAP = {
@@ -28,8 +28,8 @@ module Preference
       :time_format => :time_format,
       :motion => :motion,
       :density => :density,
-      :items_per_page => :items_per_page,
-      :r18_display_stopper => :r18_display_stopper,
+      :page_size => :page_size,
+      :adult_content_gate => :adult_content_gate,
       :colortheme => :theme,
       :theme => :theme,
       "Timezone" => :timezone,
@@ -40,8 +40,8 @@ module Preference
       "TimeFormat" => :time_format,
       "Motion" => :motion,
       "Density" => :density,
-      "ItemsPerPage" => :items_per_page,
-      "R18DisplayStopper" => :r18_display_stopper,
+      "PageSize" => :page_size,
+      "AdultContentGate" => :adult_content_gate,
       "Colortheme" => :theme,
       "Theme" => :theme,
     }.freeze
@@ -64,8 +64,8 @@ module Preference
           time_format: AppPreferenceTimeFormatOption,
           motion: AppPreferenceMotionOption,
           density: AppPreferenceDensityOption,
-          items_per_page: AppPreferenceItemsPerPageOption,
-          r18_display_stopper: AppPreferenceR18DisplayStopperOption,
+          page_size: AppPreferencePageSizeOption,
+          adult_content_gate: AppPreferenceAdultContentGateOption,
         }.freeze,
         record_classes: {
           timezone: AppPreferenceTimezone,
@@ -77,8 +77,8 @@ module Preference
           time_format: AppPreferenceTimeFormat,
           motion: AppPreferenceMotion,
           density: AppPreferenceDensity,
-          items_per_page: AppPreferenceItemsPerPage,
-          r18_display_stopper: AppPreferenceR18DisplayStopper,
+          page_size: AppPreferencePageSize,
+          adult_content_gate: AppPreferenceAdultContentGate,
         }.freeze,
       }.freeze,
       "Com" => {
@@ -98,8 +98,8 @@ module Preference
           time_format: ComPreferenceTimeFormatOption,
           motion: ComPreferenceMotionOption,
           density: ComPreferenceDensityOption,
-          items_per_page: ComPreferenceItemsPerPageOption,
-          r18_display_stopper: ComPreferenceR18DisplayStopperOption,
+          page_size: ComPreferencePageSizeOption,
+          adult_content_gate: ComPreferenceAdultContentGateOption,
         }.freeze,
         record_classes: {
           timezone: ComPreferenceTimezone,
@@ -111,8 +111,8 @@ module Preference
           time_format: ComPreferenceTimeFormat,
           motion: ComPreferenceMotion,
           density: ComPreferenceDensity,
-          items_per_page: ComPreferenceItemsPerPage,
-          r18_display_stopper: ComPreferenceR18DisplayStopper,
+          page_size: ComPreferencePageSize,
+          adult_content_gate: ComPreferenceAdultContentGate,
         }.freeze,
       }.freeze,
       "Org" => {
@@ -132,8 +132,8 @@ module Preference
           time_format: OrgPreferenceTimeFormatOption,
           motion: OrgPreferenceMotionOption,
           density: OrgPreferenceDensityOption,
-          items_per_page: OrgPreferenceItemsPerPageOption,
-          r18_display_stopper: OrgPreferenceR18DisplayStopperOption,
+          page_size: OrgPreferencePageSizeOption,
+          adult_content_gate: OrgPreferenceAdultContentGateOption,
         }.freeze,
         record_classes: {
           timezone: OrgPreferenceTimezone,
@@ -145,8 +145,8 @@ module Preference
           time_format: OrgPreferenceTimeFormat,
           motion: OrgPreferenceMotion,
           density: OrgPreferenceDensity,
-          items_per_page: OrgPreferenceItemsPerPage,
-          r18_display_stopper: OrgPreferenceR18DisplayStopper,
+          page_size: OrgPreferencePageSize,
+          adult_content_gate: OrgPreferenceAdultContentGate,
         }.freeze,
       }.freeze,
       "Client" => {
@@ -161,8 +161,8 @@ module Preference
           time_format: ClientPreferenceTimeFormatOption,
           motion: ClientPreferenceMotionOption,
           density: ClientPreferenceDensityOption,
-          items_per_page: ClientPreferenceItemsPerPageOption,
-          r18_display_stopper: ClientPreferenceR18DisplayStopperOption,
+          page_size: ClientPreferencePageSizeOption,
+          adult_content_gate: ClientPreferenceAdultContentGateOption,
         }.freeze,
         record_classes: {
           timezone: ClientPreferenceTimezone,
@@ -174,8 +174,8 @@ module Preference
           time_format: ClientPreferenceTimeFormat,
           motion: ClientPreferenceMotion,
           density: ClientPreferenceDensity,
-          items_per_page: ClientPreferenceItemsPerPage,
-          r18_display_stopper: ClientPreferenceR18DisplayStopper,
+          page_size: ClientPreferencePageSize,
+          adult_content_gate: ClientPreferenceAdultContentGate,
         }.freeze,
       }.freeze,
       "Operator" => {
@@ -190,8 +190,8 @@ module Preference
           time_format: OperatorPreferenceTimeFormatOption,
           motion: OperatorPreferenceMotionOption,
           density: OperatorPreferenceDensityOption,
-          items_per_page: OperatorPreferenceItemsPerPageOption,
-          r18_display_stopper: OperatorPreferenceR18DisplayStopperOption,
+          page_size: OperatorPreferencePageSizeOption,
+          adult_content_gate: OperatorPreferenceAdultContentGateOption,
         }.freeze,
         record_classes: {
           timezone: OperatorPreferenceTimezone,
@@ -203,8 +203,8 @@ module Preference
           time_format: OperatorPreferenceTimeFormat,
           motion: OperatorPreferenceMotion,
           density: OperatorPreferenceDensity,
-          items_per_page: OperatorPreferenceItemsPerPage,
-          r18_display_stopper: OperatorPreferenceR18DisplayStopper,
+          page_size: OperatorPreferencePageSize,
+          adult_content_gate: OperatorPreferenceAdultContentGate,
         }.freeze,
       }.freeze,
       "Visitor" => {
@@ -219,8 +219,8 @@ module Preference
           time_format: VisitorPreferenceTimeFormatOption,
           motion: VisitorPreferenceMotionOption,
           density: VisitorPreferenceDensityOption,
-          items_per_page: VisitorPreferenceItemsPerPageOption,
-          r18_display_stopper: VisitorPreferenceR18DisplayStopperOption,
+          page_size: VisitorPreferencePageSizeOption,
+          adult_content_gate: VisitorPreferenceAdultContentGateOption,
         }.freeze,
         record_classes: {
           timezone: VisitorPreferenceTimezone,
@@ -232,8 +232,8 @@ module Preference
           time_format: VisitorPreferenceTimeFormat,
           motion: VisitorPreferenceMotion,
           density: VisitorPreferenceDensity,
-          items_per_page: VisitorPreferenceItemsPerPage,
-          r18_display_stopper: VisitorPreferenceR18DisplayStopper,
+          page_size: VisitorPreferencePageSize,
+          adult_content_gate: VisitorPreferenceAdultContentGate,
         }.freeze,
       }.freeze,
     }.freeze
@@ -292,8 +292,8 @@ module Preference
       when :date_format then option::ISO
       when :time_format then option::HOUR_24
       when :motion, :density then option::STANDARD
-      when :items_per_page then option::PER_20
-      when :r18_display_stopper then option::NOTHING
+      when :page_size then option::PER_20
+      when :adult_content_gate then option::NOTHING
       end
     end
 

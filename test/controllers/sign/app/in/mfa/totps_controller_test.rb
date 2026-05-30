@@ -5,28 +5,28 @@ require "test_helper"
 
 module Sign::App::In
   class MfaTotpsControllerTest < ActionDispatch::IntegrationTest
-    fixtures :client_statuses, :client_passkey_statuses, :client_secret_kinds,
-             :client_secret_statuses, :client_email_statuses, :client_one_time_password_statuses
+    fixtures :client_statuses, :client_passkey_statuses, :client_secret_credential_kinds,
+             :client_secret_credential_statuses, :client_email_statuses, :client_totp_credential_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
 
-      @user = Client.create!(multi_factor_enabled: true)
+      @user = Client.create!(mfa_level_enabled: true)
       @email = "mfa_totp_#{SecureRandom.hex(4)}@example.com".freeze
       @user.client_emails.create!(address: @email, user_email_status_id: ClientEmailStatus::VERIFIED)
-      @totp = ClientOneTimePassword.create!(
+      @totp = ClientTotpCredential.create!(
         user: @user,
         private_key: ROTP::Base32.random_base32,
-        user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+        user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
         title: "totp",
       )
 
-      _secret, @raw_secret = ClientSecret.issue!(
-        name: "TOTP MFA secret",
+      _secret_credential, @raw_secret_credential = ClientSecretCredential.issue!(
+        name: "TOTP MFA secret_credential",
         user_id: @user.id,
-        user_secret_kind_id: ClientSecretKind::PERMANENT,
+        user_secret_kind_id: ClientSecretCredentialKind::PERMANENT,
         uses: 10,
         status: :active,
       )
@@ -43,7 +43,7 @@ module Sign::App::In
 
     test "new renders form with stealth when pending_mfa exists" do
       with_prosopite_paused do
-        establish_pending_mfa_via_secret!
+        establish_pending_mfa_via_secret_credential!
       end
 
       with_prosopite_paused do
@@ -60,28 +60,28 @@ module Sign::App::In
       end
 
       assert_response :see_other
-      assert_redirected_to new_sign_app_in_path(ri: "jp")
+      assert_redirected_to new_sign_app_sign_in_path(ri: "jp")
       assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
     end
 
     test "create with valid TOTP code redirects to configuration" do
       with_prosopite_paused do
-        establish_pending_mfa_via_secret!
+        establish_pending_mfa_via_secret_credential!
       end
 
       # Verify pending_mfa was set
-      assert_predicate session[:pending_mfa], :present?, "pending_mfa should be set after secret login"
+      assert_predicate session[:pending_mfa], :present?, "pending_mfa should be set after secret_credential login"
       user_id = session[:pending_mfa]["user_id"]
       user = Client.find(user_id)
 
       # Verify user's OTPs are accessible
-      otps = user.client_one_time_passwords
-        .where(user_identity_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
+      otps = user.client_totp_credentials
+        .where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
 
       assert_not_empty otps,
-                       "Client should have active OTPs. All OTPs: #{user.client_one_time_passwords.pluck(
+                       "Client should have active OTPs. All OTPs: #{user.client_totp_credentials.pluck(
                          :id,
-                         :user_identity_one_time_password_status_id,
+                         :user_identity_totp_credential_status_id,
                        ).inspect}"
 
       totp_code = ROTP::TOTP.new(@totp.private_key).now
@@ -98,7 +98,7 @@ module Sign::App::In
 
         flunk "TOTP verification failed (422). Errors: #{errors.inspect}. " \
               "TOTP code: #{totp_code}. " \
-              "Client OTP count: #{user.client_one_time_passwords.count}. " \
+              "Client OTP count: #{user.client_totp_credentials.count}. " \
               "pending_mfa after: #{session[:pending_mfa].inspect}"
       end
 
@@ -110,7 +110,7 @@ module Sign::App::In
 
     test "create with invalid TOTP code renders form with error" do
       with_prosopite_paused do
-        establish_pending_mfa_via_secret!
+        establish_pending_mfa_via_secret_credential!
       end
 
       with_prosopite_paused do
@@ -125,7 +125,7 @@ module Sign::App::In
 
     test "create with valid TOTP code and stealth failure renders form with error" do
       with_prosopite_paused do
-        establish_pending_mfa_via_secret!
+        establish_pending_mfa_via_secret_credential!
       end
 
       CloudflareTurnstile.test_validation_response = { "success" => false }
@@ -151,18 +151,18 @@ module Sign::App::In
       end
 
       assert_response :see_other
-      assert_redirected_to new_sign_app_in_path(ri: "jp")
+      assert_redirected_to new_sign_app_sign_in_path(ri: "jp")
     end
 
     private
 
-    def establish_pending_mfa_via_secret!
+    def establish_pending_mfa_via_secret_credential!
       with_prosopite_paused do
         post(
-          sign_app_in_secret_path(ri: "jp"), params: {
-            secret_login_form: {
+          sign_app_in_secret_credential_path(ri: "jp"), params: {
+            secret_credential_login_form: {
               identifier: @email,
-              secret_value: @raw_secret,
+              secret_credential_value: @raw_secret_credential,
             },
             "cf-turnstile-response": "test_token",
           },

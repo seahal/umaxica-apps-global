@@ -16,7 +16,7 @@ class Identity::OneTimeRevealTest < ActiveSupport::TestCase
       issued = Identity::OneTimeReveal.issue!(
         actor: actor,
         session_nonce: "session-1",
-        value: "secret-value",
+        value: "secret_credential-value",
         purpose: "test.reveal",
         metadata: { source: "test" },
       )
@@ -28,7 +28,7 @@ class Identity::OneTimeRevealTest < ActiveSupport::TestCase
         purpose: "test.reveal",
       )
 
-      assert_equal "secret-value", reveal.value
+      assert_equal "secret_credential-value", reveal.value
       assert_equal "test", reveal.metadata["source"]
 
       second_reveal = Identity::OneTimeReveal.consume!(
@@ -48,7 +48,7 @@ class Identity::OneTimeRevealTest < ActiveSupport::TestCase
       issued = Identity::OneTimeReveal.issue!(
         actor: actor,
         session_nonce: "session-1",
-        value: "secret-value",
+        value: "secret_credential-value",
         purpose: "test.reveal",
       )
 

@@ -4,7 +4,7 @@
 require "test_helper"
 
 class AuthorizationAuditTest < ActiveSupport::TestCase
-  fixtures :clients, :operators, :client_statuses, :operator_identity_statuses
+  fixtures :clients, :operators, :client_statuses, :operator_statuses
 
   class DummyPolicy
     attr_accessor :record

@@ -5,12 +5,12 @@ require "test_helper"
 require "base64"
 
 class Sign::Org::Verification::SetupsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_token_statuses, :operator_token_kinds
+  fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! @host
-    @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    @staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
     @token = OperatorToken.create!(
       staff: @staff,
       staff_token_status_id: OperatorTokenStatus::ACTIVE,

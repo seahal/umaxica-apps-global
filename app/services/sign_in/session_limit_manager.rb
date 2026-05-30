@@ -16,19 +16,19 @@ module SignIn
     Result = Struct.new(:cycle, :token, :refresh_token, keyword_init: true)
 
     SURFACES = {
-      ClientSignInCycle => {
+      ClientSignInFlow => {
         actor_class: Client,
         token_class: ClientToken,
         foreign_key: :user_id,
         max_active_sessions: ClientToken::MAX_SESSIONS_PER_USER,
       },
-      VisitorSignInCycle => {
+      VisitorSignInFlow => {
         actor_class: Visitor,
         token_class: VisitorToken,
         foreign_key: :visitor_id,
         max_active_sessions: VisitorToken::MAX_SESSIONS_PER_VISITOR,
       },
-      OperatorSignInCycle => {
+      OperatorSignInFlow => {
         actor_class: Operator,
         token_class: OperatorToken,
         foreign_key: :staff_id,

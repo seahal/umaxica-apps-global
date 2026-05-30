@@ -4,22 +4,22 @@
 require "test_helper"
 
 class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_social_google_statuses, :client_social_apple_statuses
+  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
 
   PROVIDERS = {
     google_app: {
       provider: "google_app",
       normalized: "google",
-      model: ClientSocialGoogle,
-      active_status: ClientSocialGoogleStatus::ACTIVE,
+      model: ClientGoogleIdentity,
+      active_status: ClientGoogleIdentityStatus::ACTIVE,
       config_path: :sign_app_configuration_path,
       token_prefix: "google",
     },
     apple: {
       provider: "apple",
       normalized: "apple",
-      model: ClientSocialApple,
-      active_status: ClientSocialAppleStatus::ACTIVE,
+      model: ClientAppleIdentity,
+      active_status: ClientAppleIdentityStatus::ACTIVE,
       config_path: :sign_app_configuration_apple_path,
       token_prefix: "apple",
     },
@@ -124,7 +124,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   test "Google configuration unlink rejects passcode as the only remaining method" do
     user = create_social_client
     google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "passcode_google")
-    create_login_secret(user)
+    create_login_secret_credential(user)
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
@@ -177,7 +177,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_select "input[name=birthdate_month]"
     assert_select "input[name=birthdate_day]"
 
-    cycle = ClientSignUpCycle.find_by!(principal_id: user.id)
+    cycle = ClientSignUpFlow.find_by!(principal_id: user.id)
     patch(
       sign_app_up_checkpoint_birthdate_url(ri: "jp"),
       params: {
@@ -345,16 +345,16 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def create_login_secret(user)
-    ClientSecretKind.find_or_create_by!(id: ClientSecretKind::LOGIN)
-    ClientSecretStatus.find_or_create_by!(id: ClientSecretStatus::ACTIVE)
-    secret = ClientSecret.new(
+  def create_login_secret_credential(user)
+    ClientSecretCredentialKind.find_or_create_by!(id: ClientSecretCredentialKind::LOGIN)
+    ClientSecretCredentialStatus.find_or_create_by!(id: ClientSecretCredentialStatus::ACTIVE)
+    secret_credential = ClientSecretCredential.new(
       user: user,
       name: "passcode",
       password_digest: "digest",
-      user_secret_kind_id: ClientSecretKind::LOGIN,
-      user_identity_secret_status_id: ClientSecretStatus::ACTIVE,
+      user_secret_kind_id: ClientSecretCredentialKind::LOGIN,
+      user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE,
     )
-    secret.save!(validate: false)
+    secret_credential.save!(validate: false)
   end
 end

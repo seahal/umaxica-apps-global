@@ -15,7 +15,7 @@ class ActorAuthzTest < ActiveSupport::TestCase
   end
 
   test "null class method returns the NULL constant" do
-    null_instance = Actor::Authz.new(policy_user: nil, token_claims: nil, surface: nil).null? ? Actor::Authz::NULL : Actor::Authz::NULL
+    null_instance = Actor::Authz::NULL
 
     assert_predicate null_instance, :null?
     assert_predicate null_instance, :frozen?

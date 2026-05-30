@@ -16,6 +16,16 @@ class ClientTokenPolicyTest < ActiveSupport::TestCase
     assert_not @policy.index?
   end
 
+  # index? gates the session listing to the owning actor type (Client).
+  def test_index_allows_client
+    assert_predicate ClientTokenPolicy.new(nil, user: Client.new), :index?
+  end
+
+  def test_index_denies_other_actor_types
+    assert_not ClientTokenPolicy.new(nil, user: Operator.new).index?
+    assert_not ClientTokenPolicy.new(nil, user: Visitor.new).index?
+  end
+
   def test_show
     assert_not @policy.show?
   end

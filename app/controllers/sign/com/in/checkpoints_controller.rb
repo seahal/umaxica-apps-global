@@ -35,7 +35,7 @@ module Sign
         def guard_timeout
           return unless bulletin_expired?
 
-          render plain: I18n.t("sign.app.in.bulletins.timeout"), status: :request_timeout
+          render plain: I18n.t("sign.com.in.bulletins.timeout"), status: :request_timeout
         end
       end
     end

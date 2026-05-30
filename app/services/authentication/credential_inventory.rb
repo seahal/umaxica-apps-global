@@ -129,7 +129,7 @@ module Authentication
       methods.concat(client_social_login_methods)
       methods << :email_otp if aal1_email_count.positive?
       methods << :passkey if active_passkey_count.positive?
-      methods << :secret if sign_in_secret_count.positive?
+      methods << :secret_credential if sign_in_secret_credential_count.positive?
       methods
     end
 
@@ -161,24 +161,24 @@ module Authentication
     end
 
     def active_client_google?
-      return false unless actor.respond_to?(:user_social_google)
+      return false unless actor.respond_to?(:user_google_identity)
 
-      identity = actor.user_social_google
-      identity&.status_id == ClientSocialGoogleStatus::ACTIVE && !excluded?(identity)
+      identity = actor.user_google_identity
+      identity&.status_id == ClientGoogleIdentityStatus::ACTIVE && !excluded?(identity)
     end
 
     def active_client_apple?
-      return false unless actor.respond_to?(:user_social_apple)
+      return false unless actor.respond_to?(:user_apple_identity)
 
-      identity = actor.user_social_apple
-      identity&.status_id == ClientSocialAppleStatus::ACTIVE && !excluded?(identity)
+      identity = actor.user_apple_identity
+      identity&.status_id == ClientAppleIdentityStatus::ACTIVE && !excluded?(identity)
     end
 
     def active_operator_google?
-      return false unless actor.respond_to?(:operator_social_google)
+      return false unless actor.respond_to?(:operator_google_identity)
 
-      identity = actor.operator_social_google
-      identity&.status_id == OperatorSocialGoogleStatus::ACTIVE && !excluded?(identity)
+      identity = actor.operator_google_identity
+      identity&.status_id == OperatorGoogleIdentityStatus::ACTIVE && !excluded?(identity)
     end
 
     def aal1_email_count
@@ -276,27 +276,36 @@ module Authentication
     end
 
     def active_totp_count
-      return 0 unless actor.respond_to?(:client_one_time_passwords)
+      return 0 unless actor.respond_to?(:client_totp_credentials)
 
       count_scope(
-        actor.client_one_time_passwords.where(
-          user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+        actor.client_totp_credentials.where(
+          user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
         ),
-        "ClientOneTimePassword",
+        "ClientTotpCredential",
       )
     end
 
-    def sign_in_secret_count
-      if actor.respond_to?(:client_secrets)
-        return count_scope(actor.client_secrets.allowed_for_secret_sign_in, "ClientSecret")
+    def sign_in_secret_credential_count
+      if actor.respond_to?(:client_secret_credentials)
+        return count_scope(
+          actor.client_secret_credentials.allowed_for_secret_credential_sign_in,
+          "ClientSecretCredential",
+        )
       end
 
-      if actor.respond_to?(:visitor_secrets)
-        return count_scope(actor.visitor_secrets.allowed_for_secret_sign_in, "VisitorSecret")
+      if actor.respond_to?(:visitor_secret_credentials)
+        return count_scope(
+          actor.visitor_secret_credentials.allowed_for_secret_credential_sign_in,
+          "VisitorSecretCredential",
+        )
       end
 
-      if actor.respond_to?(:staff_secrets)
-        return count_scope(actor.staff_secrets.allowed_for_secret_sign_in, "OperatorSecret")
+      if actor.respond_to?(:staff_secret_credentials)
+        return count_scope(
+          actor.staff_secret_credentials.allowed_for_secret_credential_sign_in,
+          "OperatorSecretCredential",
+        )
       end
 
       0

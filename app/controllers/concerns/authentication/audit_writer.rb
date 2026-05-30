@@ -124,7 +124,7 @@ module Authentication
     # Tier 2: persist a recovery record so the missed audit can be
     # replayed by a background job or by ops. Sanitises context before
     # writing — the outbox row lives in the chronicle database and must
-    # not embed secrets.
+    # not embed secret_credentials.
     def self.enqueue_outbox_fallback!(event_uuid:, audit_class:, event_id:, resource:, actor:, ip_address:, context:,
                                       error:)
       payload = {
@@ -237,8 +237,8 @@ module Authentication
     def self.hmac_identifier(scope, value)
       return if value.blank?
 
-      secret = Rails.application.key_generator.generate_key("authentication-audit-writer/#{scope}", 32)
-      OpenSSL::HMAC.hexdigest("SHA256", secret, value.to_s)
+      secret_credential = Rails.application.key_generator.generate_key("authentication-audit-writer/#{scope}", 32)
+      OpenSSL::HMAC.hexdigest("SHA256", secret_credential, value.to_s)
     end
 
     private_class_method :hmac_identifier

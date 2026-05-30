@@ -132,10 +132,10 @@ module Sign
           return false
         end
 
-        secret, counter, pass_code = generate_hotp_code
+        secret_credential, counter, pass_code = generate_hotp_code
         Rails.cache.write(
           email_otp_cache_key, {
-            "secret" => secret,
+            "secret_credential" => secret_credential,
             "counter" => counter,
           }, expires_in: [current_step_up_session.discarded_at - Time.current, 0].max,
         )

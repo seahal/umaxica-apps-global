@@ -12,6 +12,11 @@ module Sign
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_operator!
+        # Object-level authorization (ActionPolicy): index/new/create gate the actor type; edit/destroy
+        # authorize the owned record (find is owner-scoped, so a non-owner gets 404 first).
+        # Verification guards remain in place.
+        before_action :authorize_telephones!, only: %i(index)
+        before_action :authorize_telephone_registration!, only: %i(new create)
 
         def index
           @staff_telephones = current_operator.staff_telephones.order(created_at: :asc)
@@ -23,6 +28,7 @@ module Sign
 
         def edit
           @staff_telephone = current_operator.staff_telephones.find(params(:id))
+          authorize!(@staff_telephone)
         end
 
         def create
@@ -39,6 +45,7 @@ module Sign
 
         def destroy
           @staff_telephone = current_operator.staff_telephones.find(params(:id))
+          authorize!(@staff_telephone)
 
           unless AuthMethodGuard.can_remove_telephone?(current_operator, @staff_telephone)
             redirect_to(
@@ -57,6 +64,14 @@ module Sign
         end
 
         private
+
+        def authorize_telephones!
+          authorize!(OperatorTelephone, to: :index?)
+        end
+
+        def authorize_telephone_registration!
+          authorize!(OperatorTelephone, to: :create?)
+        end
 
         def verification_required_action?
           true

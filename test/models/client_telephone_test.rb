@@ -40,8 +40,8 @@
 require "test_helper"
 
 class ClientTelephoneTest < ActiveSupport::TestCase
-  fixtures_only :clients, :client_statuses, :client_visibilities, :client_multi_factors,
-                :client_multi_factor_statuses, :client_telephone_statuses
+  fixtures_only :clients, :client_statuses, :client_visibilities, :client_mfa_levels,
+                :client_mfa_statuses, :client_telephone_statuses
 
   setup do
     @user = clients(:none_user)

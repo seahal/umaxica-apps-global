@@ -12,6 +12,10 @@ module Sign
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!
+        # Object-level authorization (ActionPolicy): the withdrawal flow acts on the visitor's own
+        # account, so only the owner may drive it. Uses VisitorWithdrawalPolicy (owner-self).
+        # Step-up guards remain below.
+        before_action :authorize_withdrawal!, only: %i(new edit create update destroy)
 
         def new
           render_withdrawal_entry(current_visitor)
@@ -34,6 +38,10 @@ module Sign
         end
 
         private
+
+        def authorize_withdrawal!
+          authorize!(current_visitor, to: :"#{action_name}?", with: VisitorWithdrawalPolicy)
+        end
 
         def withdrawal_new_path(extra_params = {})
           new_sign_com_configuration_withdrawal_path({ ri: params[:ri] }.merge(extra_params))

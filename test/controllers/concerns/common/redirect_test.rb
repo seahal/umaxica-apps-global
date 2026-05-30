@@ -244,7 +244,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
     ) do
       JumpRt::Keyring.stub(:private_key, private_key) do
         Rails.stub(:logger, logger) do
-          controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard?secret=hidden")
+          controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard?secret_credential=hidden")
         end
       end
     end
@@ -266,7 +266,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
     assert_equal "64500", data.fetch("cf_asn")
     assert_equal "JP", data.fetch("cf_ipcountry")
     assert_not_includes logs.join, token
-    assert_not_includes logs.join, "secret=hidden"
+    assert_not_includes logs.join, "secret_credential=hidden"
     assert_not_includes logs.join, "private=1"
     assert_not_includes logs.join, "203.0.113.10"
     assert_not_includes logs.join, "198.51.100.20"
@@ -419,7 +419,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
         Rails.stub(:logger, logger) do
           controller.send(
             :redirect_to_jump_url,
-            "https://id.umaxica.app/sign/in?secret=hidden",
+            "https://id.umaxica.app/sign/in?secret_credential=hidden",
             fallback_internal: true,
           )
         end
@@ -433,9 +433,9 @@ class Common::RedirectTest < ActiveSupport::TestCase
     assert_equal "jump_rt.fallback_internal", parsed.fetch("event")
     assert_equal "issuance_failed", data.fetch("reason")
     assert_equal "SIGN_APP", data.fetch("namespace")
-    assert_equal Digest::SHA256.hexdigest("https://id.umaxica.app/sign/in?secret=hidden")[0, 12],
+    assert_equal Digest::SHA256.hexdigest("https://id.umaxica.app/sign/in?secret_credential=hidden")[0, 12],
                  data.fetch("target_url_digest")
-    assert_not_includes logs.join, "secret=hidden"
+    assert_not_includes logs.join, "secret_credential=hidden"
   end
 
   test "redirect_to_jump_url emits jump_rt.fallback_internal warning when gateway url is invalid" do

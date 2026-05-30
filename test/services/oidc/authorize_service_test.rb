@@ -278,7 +278,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   def create_visitor!
     VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
-    VisitorMultiFactor.find_or_create_by!(id: VisitorMultiFactor::NOTHING)
+    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
     Visitor.create!
   end
 end

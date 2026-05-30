@@ -75,8 +75,8 @@ module SignIn
 
     test "default guardrail advances for visitor and operator without blocking items" do
       [
-        [VisitorSignInCycle, create_visitor],
-        [OperatorSignInCycle, create_operator],
+        [VisitorSignInFlow, create_visitor],
+        [OperatorSignInFlow, create_operator],
       ].each do |cycle_class, actor|
         cycle = create_cycle(actor, cycle_class: cycle_class)
 
@@ -98,10 +98,10 @@ module SignIn
     end
 
     def create_operator
-      Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+      Operator.create!(status_id: OperatorStatus::ACTIVE)
     end
 
-    def create_cycle(actor, cycle_class: ClientSignInCycle)
+    def create_cycle(actor, cycle_class: ClientSignInFlow)
       cycle_class.create!(
         principal_id: actor.id,
         status_id: cycle_class.status_id_for("GUARDRAIL_PENDING"),

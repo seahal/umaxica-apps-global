@@ -8,7 +8,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
   fixtures :clients
 
-  ClientStruct = Struct.new(:id, :public_id, :client_passkeys, :client_one_time_passwords)
+  ClientStruct = Struct.new(:id, :public_id, :client_passkeys, :client_totp_credentials)
 
   class Harness
     class << self
@@ -94,8 +94,8 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       self.redirect_args = [args, kwargs]
     end
 
-    def verify_hotp_code(secret:, counter:, pass_code:)
-      hotp_result && secret == "secret" && counter == 1 && pass_code == "123456"
+    def verify_hotp_code(secret_credential:, counter:, pass_code:)
+      hotp_result && secret_credential == "secret_credential" && counter == 1 && pass_code == "123456"
     end
 
     def app_call(method_name, ...)
@@ -130,8 +130,8 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     return_to = "/configuration/emails"
     harness.params_hash = {
       ri: "jp",
-      scope: "configuration_secret",
-      pt: "/configuration/secrets",
+      scope: "configuration_secret_credential",
+      pt: "/configuration/secret_credentials",
       verification: {
         scope: "configuration_email",
         return_to: return_to,
@@ -140,9 +140,9 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     }
 
     assert_equal "configuration_email", harness.send(:incoming_scope)
-    assert_equal "/configuration/secrets", harness.send(:incoming_pt)
+    assert_equal "/configuration/secret_credentials", harness.send(:incoming_pt)
     assert_equal(
-      { ri: "jp", scope: "configuration_email", pt: "/configuration/secrets" },
+      { ri: "jp", scope: "configuration_email", pt: "/configuration/secret_credentials" },
       harness.send(:verification_recovery_redirect_params),
     )
     assert_equal %w(scope), harness.app_call(:verification_params).keys
@@ -157,7 +157,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
     step_up_session = create_user_step_up_session(user_token: token)
     Rails.cache.write(
-      "step_up_session:#{step_up_session.id}:email_otp", { "secret" => "secret" },
+      "step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "secret_credential" },
       expires_in: 5.minutes,
     )
 
@@ -208,7 +208,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     harness = Harness.new(user: user, user_token: token)
     harness.params_hash = { ri: "jp" }
     step_up_session = create_user_step_up_session(user_token: token)
-    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret" => "old" })
+    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "old" })
 
     assert_not harness.app_call(:handle_invalid_step_up_session!)
     assert_nil Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp")
@@ -257,7 +257,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
     Rails.cache.write(
       "step_up_session:#{step_up_session.id}:email_otp", {
-        "secret" => "secret",
+        "secret_credential" => "secret_credential",
         "counter" => 1,
       },
     )

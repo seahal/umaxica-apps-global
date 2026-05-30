@@ -55,6 +55,66 @@ CREATE UNLOGGED TABLE public.ar_internal_metadata (
 
 
 --
+-- Name: com_preference_adult_content_gate_options; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.com_preference_adult_content_gate_options (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: com_preference_adult_content_gate_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.com_preference_adult_content_gate_options_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: com_preference_adult_content_gate_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.com_preference_adult_content_gate_options_id_seq OWNED BY public.com_preference_adult_content_gate_options.id;
+
+
+--
+-- Name: com_preference_adult_content_gates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.com_preference_adult_content_gates (
+    id bigint NOT NULL,
+    preference_id bigint NOT NULL,
+    option_id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: com_preference_adult_content_gates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.com_preference_adult_content_gates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: com_preference_adult_content_gates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.com_preference_adult_content_gates_id_seq OWNED BY public.com_preference_adult_content_gates.id;
+
+
+--
 -- Name: com_preference_binding_methods; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -328,66 +388,6 @@ ALTER SEQUENCE public.com_preference_density_options_id_seq OWNED BY public.com_
 
 
 --
--- Name: com_preference_items_per_page_options; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.com_preference_items_per_page_options (
-    id bigint NOT NULL
-);
-
-
---
--- Name: com_preference_items_per_page_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.com_preference_items_per_page_options_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: com_preference_items_per_page_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.com_preference_items_per_page_options_id_seq OWNED BY public.com_preference_items_per_page_options.id;
-
-
---
--- Name: com_preference_items_per_pages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.com_preference_items_per_pages (
-    id bigint NOT NULL,
-    preference_id bigint NOT NULL,
-    option_id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: com_preference_items_per_pages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.com_preference_items_per_pages_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: com_preference_items_per_pages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.com_preference_items_per_pages_id_seq OWNED BY public.com_preference_items_per_pages.id;
-
-
---
 -- Name: com_preference_language_options; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -508,19 +508,19 @@ ALTER SEQUENCE public.com_preference_motions_id_seq OWNED BY public.com_preferen
 
 
 --
--- Name: com_preference_r18_display_stopper_options; Type: TABLE; Schema: public; Owner: -
+-- Name: com_preference_page_size_options; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.com_preference_r18_display_stopper_options (
+CREATE UNLOGGED TABLE public.com_preference_page_size_options (
     id bigint NOT NULL
 );
 
 
 --
--- Name: com_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: com_preference_page_size_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.com_preference_r18_display_stopper_options_id_seq
+CREATE UNLOGGED SEQUENCE public.com_preference_page_size_options_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -529,17 +529,17 @@ CREATE UNLOGGED SEQUENCE public.com_preference_r18_display_stopper_options_id_se
 
 
 --
--- Name: com_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: com_preference_page_size_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.com_preference_r18_display_stopper_options_id_seq OWNED BY public.com_preference_r18_display_stopper_options.id;
+ALTER SEQUENCE public.com_preference_page_size_options_id_seq OWNED BY public.com_preference_page_size_options.id;
 
 
 --
--- Name: com_preference_r18_display_stoppers; Type: TABLE; Schema: public; Owner: -
+-- Name: com_preference_page_sizes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.com_preference_r18_display_stoppers (
+CREATE UNLOGGED TABLE public.com_preference_page_sizes (
     id bigint NOT NULL,
     preference_id bigint NOT NULL,
     option_id bigint NOT NULL,
@@ -549,10 +549,10 @@ CREATE UNLOGGED TABLE public.com_preference_r18_display_stoppers (
 
 
 --
--- Name: com_preference_r18_display_stoppers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: com_preference_page_sizes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.com_preference_r18_display_stoppers_id_seq
+CREATE UNLOGGED SEQUENCE public.com_preference_page_sizes_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -561,10 +561,10 @@ CREATE UNLOGGED SEQUENCE public.com_preference_r18_display_stoppers_id_seq
 
 
 --
--- Name: com_preference_r18_display_stoppers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: com_preference_page_sizes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.com_preference_r18_display_stoppers_id_seq OWNED BY public.com_preference_r18_display_stoppers.id;
+ALTER SEQUENCE public.com_preference_page_sizes_id_seq OWNED BY public.com_preference_page_sizes.id;
 
 
 --
@@ -890,6 +890,20 @@ CREATE UNLOGGED TABLE public.schema_migrations (
 
 
 --
+-- Name: com_preference_adult_content_gate_options id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.com_preference_adult_content_gate_options ALTER COLUMN id SET DEFAULT nextval('public.com_preference_adult_content_gate_options_id_seq'::regclass);
+
+
+--
+-- Name: com_preference_adult_content_gates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.com_preference_adult_content_gates ALTER COLUMN id SET DEFAULT nextval('public.com_preference_adult_content_gates_id_seq'::regclass);
+
+
+--
 -- Name: com_preference_binding_methods id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -953,20 +967,6 @@ ALTER TABLE ONLY public.com_preference_density_options ALTER COLUMN id SET DEFAU
 
 
 --
--- Name: com_preference_items_per_page_options id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.com_preference_items_per_page_options ALTER COLUMN id SET DEFAULT nextval('public.com_preference_items_per_page_options_id_seq'::regclass);
-
-
---
--- Name: com_preference_items_per_pages id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.com_preference_items_per_pages ALTER COLUMN id SET DEFAULT nextval('public.com_preference_items_per_pages_id_seq'::regclass);
-
-
---
 -- Name: com_preference_language_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -995,17 +995,17 @@ ALTER TABLE ONLY public.com_preference_motions ALTER COLUMN id SET DEFAULT nextv
 
 
 --
--- Name: com_preference_r18_display_stopper_options id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: com_preference_page_size_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.com_preference_r18_display_stopper_options ALTER COLUMN id SET DEFAULT nextval('public.com_preference_r18_display_stopper_options_id_seq'::regclass);
+ALTER TABLE ONLY public.com_preference_page_size_options ALTER COLUMN id SET DEFAULT nextval('public.com_preference_page_size_options_id_seq'::regclass);
 
 
 --
--- Name: com_preference_r18_display_stoppers id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: com_preference_page_sizes id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.com_preference_r18_display_stoppers ALTER COLUMN id SET DEFAULT nextval('public.com_preference_r18_display_stoppers_id_seq'::regclass);
+ALTER TABLE ONLY public.com_preference_page_sizes ALTER COLUMN id SET DEFAULT nextval('public.com_preference_page_sizes_id_seq'::regclass);
 
 
 --
@@ -1087,6 +1087,22 @@ ALTER TABLE ONLY public.ar_internal_metadata
 
 
 --
+-- Name: com_preference_adult_content_gate_options com_preference_adult_content_gate_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.com_preference_adult_content_gate_options
+    ADD CONSTRAINT com_preference_adult_content_gate_options_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: com_preference_adult_content_gates com_preference_adult_content_gates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.com_preference_adult_content_gates
+    ADD CONSTRAINT com_preference_adult_content_gates_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: com_preference_binding_methods com_preference_binding_methods_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1159,22 +1175,6 @@ ALTER TABLE ONLY public.com_preference_density_options
 
 
 --
--- Name: com_preference_items_per_page_options com_preference_items_per_page_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.com_preference_items_per_page_options
-    ADD CONSTRAINT com_preference_items_per_page_options_pkey PRIMARY KEY (id);
-
-
---
--- Name: com_preference_items_per_pages com_preference_items_per_pages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.com_preference_items_per_pages
-    ADD CONSTRAINT com_preference_items_per_pages_pkey PRIMARY KEY (id);
-
-
---
 -- Name: com_preference_language_options com_preference_language_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1207,19 +1207,19 @@ ALTER TABLE ONLY public.com_preference_motions
 
 
 --
--- Name: com_preference_r18_display_stopper_options com_preference_r18_display_stopper_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: com_preference_page_size_options com_preference_page_size_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.com_preference_r18_display_stopper_options
-    ADD CONSTRAINT com_preference_r18_display_stopper_options_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.com_preference_page_size_options
+    ADD CONSTRAINT com_preference_page_size_options_pkey PRIMARY KEY (id);
 
 
 --
--- Name: com_preference_r18_display_stoppers com_preference_r18_display_stoppers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: com_preference_page_sizes com_preference_page_sizes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.com_preference_r18_display_stoppers
-    ADD CONSTRAINT com_preference_r18_display_stoppers_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.com_preference_page_sizes
+    ADD CONSTRAINT com_preference_page_sizes_pkey PRIMARY KEY (id);
 
 
 --
@@ -1311,6 +1311,20 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
+-- Name: index_com_preference_adult_content_gates_on_option_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_com_preference_adult_content_gates_on_option_id ON public.com_preference_adult_content_gates USING btree (option_id);
+
+
+--
+-- Name: index_com_preference_adult_content_gates_on_preference_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_com_preference_adult_content_gates_on_preference_id ON public.com_preference_adult_content_gates USING btree (preference_id);
+
+
+--
 -- Name: index_com_preference_cookies_on_preference_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1360,20 +1374,6 @@ CREATE UNIQUE INDEX index_com_preference_densities_on_preference_id ON public.co
 
 
 --
--- Name: index_com_preference_items_per_pages_on_option_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_com_preference_items_per_pages_on_option_id ON public.com_preference_items_per_pages USING btree (option_id);
-
-
---
--- Name: index_com_preference_items_per_pages_on_preference_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_com_preference_items_per_pages_on_preference_id ON public.com_preference_items_per_pages USING btree (preference_id);
-
-
---
 -- Name: index_com_preference_languages_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1402,17 +1402,17 @@ CREATE UNIQUE INDEX index_com_preference_motions_on_preference_id ON public.com_
 
 
 --
--- Name: index_com_preference_r18_display_stoppers_on_option_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_com_preference_page_sizes_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_com_preference_r18_display_stoppers_on_option_id ON public.com_preference_r18_display_stoppers USING btree (option_id);
+CREATE INDEX index_com_preference_page_sizes_on_option_id ON public.com_preference_page_sizes USING btree (option_id);
 
 
 --
--- Name: index_com_preference_r18_display_stoppers_on_preference_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_com_preference_page_sizes_on_preference_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_com_preference_r18_display_stoppers_on_preference_id ON public.com_preference_r18_display_stoppers USING btree (preference_id);
+CREATE UNIQUE INDEX index_com_preference_page_sizes_on_preference_id ON public.com_preference_page_sizes USING btree (preference_id);
 
 
 --
@@ -1606,10 +1606,10 @@ ALTER TABLE ONLY public.com_preference_languages
 
 
 --
--- Name: com_preference_items_per_pages fk_rails_182ca7a637; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: com_preference_page_sizes fk_rails_182ca7a637; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.com_preference_items_per_pages
+ALTER TABLE ONLY public.com_preference_page_sizes
     ADD CONSTRAINT fk_rails_182ca7a637 FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id);
 
 
@@ -1646,11 +1646,11 @@ ALTER TABLE ONLY public.com_preference_timezones
 
 
 --
--- Name: com_preference_r18_display_stoppers fk_rails_315826fe4c; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: com_preference_adult_content_gates fk_rails_315826fe4c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.com_preference_r18_display_stoppers
-    ADD CONSTRAINT fk_rails_315826fe4c FOREIGN KEY (option_id) REFERENCES public.com_preference_r18_display_stopper_options(id);
+ALTER TABLE ONLY public.com_preference_adult_content_gates
+    ADD CONSTRAINT fk_rails_315826fe4c FOREIGN KEY (option_id) REFERENCES public.com_preference_adult_content_gate_options(id);
 
 
 --
@@ -1662,19 +1662,19 @@ ALTER TABLE ONLY public.com_preference_time_formats
 
 
 --
--- Name: com_preference_r18_display_stoppers fk_rails_613936d29b; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: com_preference_adult_content_gates fk_rails_613936d29b; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.com_preference_r18_display_stoppers
+ALTER TABLE ONLY public.com_preference_adult_content_gates
     ADD CONSTRAINT fk_rails_613936d29b FOREIGN KEY (preference_id) REFERENCES public.com_preferences(id);
 
 
 --
--- Name: com_preference_items_per_pages fk_rails_6592e2e710; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: com_preference_page_sizes fk_rails_6592e2e710; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.com_preference_items_per_pages
-    ADD CONSTRAINT fk_rails_6592e2e710 FOREIGN KEY (option_id) REFERENCES public.com_preference_items_per_page_options(id);
+ALTER TABLE ONLY public.com_preference_page_sizes
+    ADD CONSTRAINT fk_rails_6592e2e710 FOREIGN KEY (option_id) REFERENCES public.com_preference_page_size_options(id);
 
 
 --
@@ -1765,6 +1765,7 @@ SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
 ('20260530120000'),
+('20260530031000'),
 ('20260526120202'),
 ('20260526090000'),
 ('20260518044424'),

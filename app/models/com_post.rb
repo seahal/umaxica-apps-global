@@ -62,10 +62,10 @@ class ComPost < ComPublisherRecord
   has_many :com_post_reviews, class_name: "ComPostReview", dependent: :restrict_with_error, inverse_of: :com_post
   has_many :com_post_versions, class_name: "ComPostVersion", dependent: :delete_all, inverse_of: :com_post
   has_many :com_post_revisions, class_name: "ComPostRevision", dependent: :delete_all, inverse_of: :com_post
-  has_many :com_post_tags, class_name: "ComPostTag", dependent: :delete_all, inverse_of: :com_post
-  has_many :com_post_tag_masters, through: :com_post_tags, source: :com_post_tag_master
-  has_one :com_post_category, class_name: "ComPostCategory", dependent: :delete, inverse_of: :com_post
-  has_one :com_post_category_master, through: :com_post_category, source: :com_post_category_master
+  has_many :com_post_taggings, class_name: "ComPostTagging", dependent: :delete_all, inverse_of: :com_post
+  has_many :com_post_tags, through: :com_post_taggings, source: :com_post_tag
+  has_one :com_post_categorization, class_name: "ComPostCategorization", dependent: :delete, inverse_of: :com_post
+  has_one :com_post_category, through: :com_post_categorization, source: :com_post_category
 
   validates :public_id, presence: true, uniqueness: true
   validates :body, presence: true

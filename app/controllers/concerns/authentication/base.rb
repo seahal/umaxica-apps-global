@@ -581,6 +581,7 @@ module Authentication
     end
 
     def transparent_refresh_access_token
+      return unless transparent_refresh_allowed?
       return if extract_access_token(ACCESS_COOKIE_KEY).present?
       return if request.env[Auth::IoKeys::Env::AUTH_REFRESHED_FLAG]
 
@@ -884,8 +885,8 @@ module Authentication
 
     def occurrence_ip_hash
       ip = request_ip_address.to_s
-      secret = Rails.app.creds.option(:OCCURRENCE_HMAC_SECRET).presence
-      OpenSSL::HMAC.hexdigest("SHA256", secret, ip)
+      secret_credential = Rails.app.creds.option(:OCCURRENCE_HMAC_SECRET).presence
+      OpenSSL::HMAC.hexdigest("SHA256", secret_credential, ip)
     end
 
     # ----------------------------------------------------------------------
@@ -1356,6 +1357,7 @@ module Authentication
       return nil if resource_withdrawn?(resource)
       return resource if resource.present?
       return nil if controller_path.end_with?("/edge/v0/token/refreshes")
+      return nil unless transparent_refresh_allowed?
 
       refresh_plain = cookies[REFRESH_COOKIE_KEY]
       return nil if refresh_plain.blank?
@@ -1984,14 +1986,14 @@ module Authentication
       when "passkey" then ["passkey"]
       when "google" then ["google"]
       when "apple" then ["apple"]
-      when "secret" then ["passcode"]
+      when "secret_credential" then ["passcode"]
       else []
       end
     end
 
     def finalize_mfa_login!(user)
       pt = pending_mfa&.dig(:pt)
-      cycle = pending_mfa_sign_in_cycle_for(user)
+      cycle = pending_mfa_sign_in_flow_for(user)
       clear_pending_mfa!
 
       result = pending_sign_in_result_after_primary!(
@@ -2002,7 +2004,7 @@ module Authentication
         audit_context: { auth_method: pending_mfa&.dig(:auth_method).presence || "mfa" },
         bootstrap_actor: false,
       )
-      advance_pending_sign_in_cycle_after_primary!(cycle, user, result) if cycle
+      advance_pending_sign_in_flow_after_primary!(cycle, user, result) if cycle
 
       if result[:status] == :session_limit_hard_reject
         { status: :session_limit_hard_reject, message: result[:message], http_status: result[:http_status] }
@@ -2064,7 +2066,7 @@ module Authentication
     def establish_signed_in_session!(resource, pt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",
                                      record_login_audit: true, audit_context: {}, bootstrap_actor: false)
       auth_method = auth_method.to_s
-      cycle = start_sign_in_cycle_for!(resource, pt: pt)
+      cycle = start_sign_in_flow_for!(resource, pt: pt)
       login_audit_context = { auth_method: auth_method }.merge(audit_context)
       if mfa_bypassed_for_auth_method?(auth_method) || !mfa_required_for?(resource)
         result = pending_sign_in_result_after_primary!(
@@ -2075,13 +2077,13 @@ module Authentication
           audit_context: login_audit_context,
           bootstrap_actor: bootstrap_actor,
         )
-        advance_pending_sign_in_cycle_after_primary!(cycle, resource, result)
+        advance_pending_sign_in_flow_after_primary!(cycle, resource, result)
         return result
       end
 
       resolved_pt = resolve_mfa_pt(pt)
       cycle.advance_sign_in_to_mfa!
-      sign_in_cycle_locator_for(actor: resource).issue!(cycle)
+      sign_in_flow_locator_for(actor: resource).issue!(cycle)
       set_pending_mfa!(
         resource: resource, primary: auth_method, pt: resolved_pt, ri: ri,
         auth_method: auth_method,
@@ -2342,6 +2344,8 @@ module Authentication
     end
 
     def attempt_transparent_refresh!(refresh_plain)
+      return nil unless transparent_refresh_allowed?
+
       request.env[Auth::IoKeys::Env::AUTH_REFRESHED_FLAG] = true
 
       if method(:refresh_access_token).arity == 1
@@ -2349,6 +2353,13 @@ module Authentication
       else
         refresh_access_token(refresh_plain, allow_suspended: true)
       end
+    end
+
+    def transparent_refresh_allowed?
+      return false unless respond_to?(:request, true) && request.present?
+      return false unless request.get? || request.head?
+
+      request.format.html?
     end
 
     def best_effort_refresh_side_effect
@@ -2455,12 +2466,12 @@ module Authentication
 
     def mfa_required_for?(resource)
       return false unless resource.is_a?(::Client) || resource.is_a?(::Operator) || resource.is_a?(::Visitor)
-      return false unless resource.respond_to?(:multi_factor_required?) || resource.respond_to?(:multi_factor_enabled?)
+      return false unless resource.respond_to?(:mfa_level_required?) || resource.respond_to?(:mfa_level_enabled?)
 
-      if resource.respond_to?(:multi_factor_required?)
-        resource.multi_factor_required?
+      if resource.respond_to?(:mfa_level_required?)
+        resource.mfa_level_required?
       else
-        resource.multi_factor_enabled?
+        resource.mfa_level_enabled?
       end
     end
 

@@ -324,13 +324,13 @@ module Sign
         def issue_emergency_key_if_available!
           return unless current_client.has_verified_recovery_identity?
 
-          result = ClientSecrets::IssueRecovery.call(actor: current_client, user: current_client)
+          result = ClientSecretCredentials::IssueRecovery.call(actor: current_client, user: current_client)
           reveal = Identity::OneTimeReveal.issue!(
             actor: current_client,
             session_nonce: current_session_token&.public_id,
-            value: result.raw_secret,
+            value: result.raw_secret_credential,
             purpose: Sign::App::Configuration::EmergencyKeysController::REVEAL_PURPOSE,
-            metadata: { secret_public_id: result.secret.public_id },
+            metadata: { secret_credential_public_id: result.secret_credential.public_id },
           )
           @emergency_key_reveal_token = reveal.token
         end

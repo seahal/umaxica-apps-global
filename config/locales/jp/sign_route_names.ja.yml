@@ -1,0 +1,18 @@
+---
+ja:
+  sign:
+    org:
+      sign_ups:
+        new:
+          recruit_prompt: 採用情報
+          heading: アカウントを作成
+          description: お客様専用の管理操作をはじめるにはアカウントを作成してください。
+          recruit_prompt_html: 採用を希望しますか？ %{link}
+          recruit_link_text: 採用に関するお問い合わせ
+          back_to_root: うえへ
+  views:
+    sign:
+      sign_outs:
+        edit:
+          confirm_label: ろぐあうとしますか？
+          confirm_description: 一度ログアウトすると、再度ログインが必要になります。

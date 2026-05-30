@@ -19,10 +19,10 @@ class PromotionalEmailUnsubscribeTokenTest < ActiveSupport::TestCase
   test "generates stable client token for an email public id" do
     email = ClientEmail.new(public_id: "email_public_id")
 
-    Rails.app.creds.stub(:option, "unsubscribe-secret") do
+    Rails.app.creds.stub(:option, "unsubscribe-secret_credential") do
       expected = OpenSSL::HMAC.hexdigest(
         "SHA256",
-        "unsubscribe-secret",
+        "unsubscribe-secret_credential",
         "client:email_public_id:promotional:v1",
       )
 
@@ -34,7 +34,7 @@ class PromotionalEmailUnsubscribeTokenTest < ActiveSupport::TestCase
   test "rejects tokens generated for another scope" do
     email = ClientEmail.new(public_id: "email_public_id")
 
-    Rails.app.creds.stub(:option, "unsubscribe-secret") do
+    Rails.app.creds.stub(:option, "unsubscribe-secret_credential") do
       visitor_token = PromotionalEmailUnsubscribeToken.generate(email, scope: :visitor)
 
       assert_not PromotionalEmailUnsubscribeToken.valid?(email, visitor_token, scope: :client)

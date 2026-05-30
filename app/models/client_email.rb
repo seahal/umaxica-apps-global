@@ -53,7 +53,7 @@ class ClientEmail < AppPrincipalRecord
   include PublicId
   include Retainable
   include Email
-  include MultiFactorStatusCredential
+  include MfaStatusCredential
   include PromotionalEmailUnsubscribable
 
   self.filter_attributes += %w(address)
@@ -64,7 +64,7 @@ class ClientEmail < AppPrincipalRecord
   belongs_to :user_email_status, class_name: "ClientEmailStatus",
                                  inverse_of: :client_emails
   belongs_to :user, class_name: "Client", inverse_of: :client_emails
-  multi_factor_status_owner :user
+  mfa_status_owner :user
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }

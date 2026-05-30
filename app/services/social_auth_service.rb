@@ -10,7 +10,7 @@
 #     current_client: current_client,
 #     intent: "login"
 #   )
-#   # => { user: Client, identity: ClientSocialGoogle, jwt_payload: {...} }
+#   # => { user: Client, identity: ClientGoogleIdentity, jwt_payload: {...} }
 #
 #   SocialAuthService.unlink(provider: "google", client: client)
 #
@@ -203,10 +203,10 @@ class SocialAuthService
 
   def identity_for_user(identity_class, provider)
     case identity_class.name
-    when "ClientSocialGoogle"
-      @current_client.user_social_google
-    when "ClientSocialApple"
-      @current_client.user_social_apple
+    when "ClientGoogleIdentity"
+      @current_client.user_google_identity
+    when "ClientAppleIdentity"
+      @current_client.user_apple_identity
     end
   end
 

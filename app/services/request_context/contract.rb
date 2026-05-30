@@ -5,7 +5,7 @@ module RequestContext
   module Contract
     REQUIRED_KEYS = %i(ri).freeze
     RETURN_TARGET_KEYS = %i(pt nt).freeze
-    OPTIONAL_OVERLAY_KEYS = %i(lx ct tz cu df tf mo dn pp).freeze
+    OPTIONAL_OVERLAY_KEYS = %i(lx ct tz cu df tf mo dn ps).freeze
     PUBLIC_KEYS = (REQUIRED_KEYS + RETURN_TARGET_KEYS + OPTIONAL_OVERLAY_KEYS).freeze
     ALLOWED_REGIONS = %w(jp us).freeze
     DEFAULT_REGION = "jp"
@@ -40,7 +40,7 @@ module RequestContext
       tf: :time_format,
       mo: :motion,
       dn: :density,
-      pp: :items_per_page,
+      ps: :page_size,
     }.freeze
 
     FAMILIES = {
@@ -55,7 +55,7 @@ module RequestContext
       tf: :optional_overlay,
       mo: :optional_overlay,
       dn: :optional_overlay,
-      pp: :optional_overlay,
+      ps: :optional_overlay,
     }.freeze
 
     module_function

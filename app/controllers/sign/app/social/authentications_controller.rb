@@ -51,7 +51,7 @@ module Sign
 
           unless SUPPORTED_PROVIDERS.include?(provider)
             return redirect_to(
-              new_sign_app_in_path,
+              new_sign_app_sign_in_path,
               alert: I18n.t("sign.app.social.sessions.invalid_provider"),
             )
           end
@@ -64,11 +64,11 @@ module Sign
             entry: social_auth_entry,
             ri: params[:ri].presence,
           )
-          issue_sign_up_cycle!(provider) if social_auth_entry == "sign_up"
+          issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
 
           safe_redirect_to(
             omniauth_authorize_path(provider, state: state),
-            fallback: new_sign_app_in_path,
+            fallback: new_sign_app_sign_in_path,
           )
         rescue SocialAuth::BaseError => e
           handle_social_auth_error(e)
@@ -101,24 +101,24 @@ module Sign
           return "sign_up" if request.parameters["entry"].to_s == "sign_up"
 
           referer_path = URI.parse(request.referer.to_s).path
-          return "sign_up" if referer_path == new_sign_app_up_path
+          return "sign_up" if referer_path == new_sign_app_sign_up_path
 
           "sign_in"
         rescue URI::InvalidURIError
           "sign_in"
         end
 
-        def issue_sign_up_cycle!(provider)
+        def issue_sign_up_flow!(provider)
           cycle =
             AppTicketRecord.connected_to(role: :writing) do
-              ClientSignUpCycleStatus.ensure_defaults!
-              ClientSignUpCycle.create!(
+              ClientSignUpFlowStatus.ensure_defaults!
+              ClientSignUpFlow.create!(
                 principal_id: nil,
-                status_id: ClientSignUpCycleStatus::STARTED,
+                status_id: ClientSignUpFlowStatus::STARTED,
                 step: "start",
-                nonce_digest: ClientSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+                nonce_digest: ClientSignUpFlow.digest_nonce(SecureRandom.urlsafe_base64(32)),
                 issued_at: Time.current,
-                expires_at: ClientSignUpCycle.default_ttl.from_now,
+                expires_at: ClientSignUpFlow.default_ttl.from_now,
                 entry_method: social_entry_method(provider),
                 social_provider: social_entry_method(provider),
                 return_to: resolved_path_or_navigation_target,
@@ -134,7 +134,7 @@ module Sign
             end
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
 
-          sign_up_cycle_locator.issue!(cycle)
+          sign_up_flow_locator.issue!(cycle)
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
 
@@ -182,8 +182,8 @@ module Sign
           path_from_signed_pt(token)
         end
 
-        def sign_up_cycle_locator
-          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpCycle)
+        def sign_up_flow_locator
+          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
         end
       end
     end

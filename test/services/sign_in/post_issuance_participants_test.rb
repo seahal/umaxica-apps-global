@@ -122,8 +122,8 @@ module SignIn
 
     test "checkpoint and selector participants work for visitor and operator cycles" do
       [
-        [VisitorSignInCycle, create_visitor],
-        [OperatorSignInCycle, create_operator],
+        [VisitorSignInFlow, create_visitor],
+        [OperatorSignInFlow, create_operator],
       ].each do |cycle_class, actor|
         cycle = create_cycle(actor, cycle_class: cycle_class, status_name: "CHECKPOINT_PENDING")
 
@@ -146,10 +146,10 @@ module SignIn
     end
 
     def create_operator
-      Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+      Operator.create!(status_id: OperatorStatus::ACTIVE)
     end
 
-    def create_cycle(actor, cycle_class: ClientSignInCycle, status_name:, return_to: "/dashboard")
+    def create_cycle(actor, cycle_class: ClientSignInFlow, status_name:, return_to: "/dashboard")
       cycle_class.create!(
         principal_id: actor.id,
         status_id: cycle_class.status_id_for(status_name),

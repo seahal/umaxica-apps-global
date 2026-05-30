@@ -4,8 +4,8 @@
 require "test_helper"
 
 class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_emails, :operator_email_statuses,
-           :operator_chronicle_events, :operator_chronicle_levels, :operator_social_google_statuses
+  fixtures :operators, :operator_statuses, :operator_emails, :operator_email_statuses,
+           :operator_chronicle_events, :operator_chronicle_levels, :operator_google_identity_statuses
 
   setup do
     @host = ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
@@ -54,7 +54,7 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
     end
 
     assert_redirected_to sign_org_configuration_url(ri: "jp")
-    assert_not OperatorSocialGoogle.exists?(identity.id)
+    assert_not OperatorGoogleIdentity.exists?(identity.id)
 
     activity = OperatorChronicle.order(created_at: :desc).find_by!(event_id: OperatorChronicleEvent::SOCIAL_UNLINKED)
 
@@ -74,14 +74,14 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
   private
 
   def create_google_identity!
-    OperatorSocialGoogle.create!(
+    OperatorGoogleIdentity.create!(
       staff: @staff,
       uid: "google-org-#{SecureRandom.hex(4)}",
       provider: "google_org",
       token: "token",
       refresh_token: "refresh-token",
       token_expires_at: 1.week.from_now.to_i,
-      status_id: OperatorSocialGoogleStatus::ACTIVE,
+      status_id: OperatorGoogleIdentityStatus::ACTIVE,
     )
   end
 end

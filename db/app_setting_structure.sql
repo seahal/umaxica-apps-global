@@ -43,6 +43,66 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: app_preference_adult_content_gate_options; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.app_preference_adult_content_gate_options (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: app_preference_adult_content_gate_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.app_preference_adult_content_gate_options_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: app_preference_adult_content_gate_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.app_preference_adult_content_gate_options_id_seq OWNED BY public.app_preference_adult_content_gate_options.id;
+
+
+--
+-- Name: app_preference_adult_content_gates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.app_preference_adult_content_gates (
+    id bigint NOT NULL,
+    preference_id bigint NOT NULL,
+    option_id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: app_preference_adult_content_gates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.app_preference_adult_content_gates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: app_preference_adult_content_gates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.app_preference_adult_content_gates_id_seq OWNED BY public.app_preference_adult_content_gates.id;
+
+
+--
 -- Name: app_preference_binding_methods; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -316,66 +376,6 @@ ALTER SEQUENCE public.app_preference_density_options_id_seq OWNED BY public.app_
 
 
 --
--- Name: app_preference_items_per_page_options; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.app_preference_items_per_page_options (
-    id bigint NOT NULL
-);
-
-
---
--- Name: app_preference_items_per_page_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.app_preference_items_per_page_options_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: app_preference_items_per_page_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.app_preference_items_per_page_options_id_seq OWNED BY public.app_preference_items_per_page_options.id;
-
-
---
--- Name: app_preference_items_per_pages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.app_preference_items_per_pages (
-    id bigint NOT NULL,
-    preference_id bigint NOT NULL,
-    option_id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: app_preference_items_per_pages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.app_preference_items_per_pages_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: app_preference_items_per_pages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.app_preference_items_per_pages_id_seq OWNED BY public.app_preference_items_per_pages.id;
-
-
---
 -- Name: app_preference_language_options; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -496,19 +496,19 @@ ALTER SEQUENCE public.app_preference_motions_id_seq OWNED BY public.app_preferen
 
 
 --
--- Name: app_preference_r18_display_stopper_options; Type: TABLE; Schema: public; Owner: -
+-- Name: app_preference_page_size_options; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.app_preference_r18_display_stopper_options (
+CREATE UNLOGGED TABLE public.app_preference_page_size_options (
     id bigint NOT NULL
 );
 
 
 --
--- Name: app_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: app_preference_page_size_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.app_preference_r18_display_stopper_options_id_seq
+CREATE UNLOGGED SEQUENCE public.app_preference_page_size_options_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -517,17 +517,17 @@ CREATE UNLOGGED SEQUENCE public.app_preference_r18_display_stopper_options_id_se
 
 
 --
--- Name: app_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: app_preference_page_size_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.app_preference_r18_display_stopper_options_id_seq OWNED BY public.app_preference_r18_display_stopper_options.id;
+ALTER SEQUENCE public.app_preference_page_size_options_id_seq OWNED BY public.app_preference_page_size_options.id;
 
 
 --
--- Name: app_preference_r18_display_stoppers; Type: TABLE; Schema: public; Owner: -
+-- Name: app_preference_page_sizes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.app_preference_r18_display_stoppers (
+CREATE UNLOGGED TABLE public.app_preference_page_sizes (
     id bigint NOT NULL,
     preference_id bigint NOT NULL,
     option_id bigint NOT NULL,
@@ -537,10 +537,10 @@ CREATE UNLOGGED TABLE public.app_preference_r18_display_stoppers (
 
 
 --
--- Name: app_preference_r18_display_stoppers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: app_preference_page_sizes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.app_preference_r18_display_stoppers_id_seq
+CREATE UNLOGGED SEQUENCE public.app_preference_page_sizes_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -549,10 +549,10 @@ CREATE UNLOGGED SEQUENCE public.app_preference_r18_display_stoppers_id_seq
 
 
 --
--- Name: app_preference_r18_display_stoppers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: app_preference_page_sizes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.app_preference_r18_display_stoppers_id_seq OWNED BY public.app_preference_r18_display_stoppers.id;
+ALTER SEQUENCE public.app_preference_page_sizes_id_seq OWNED BY public.app_preference_page_sizes.id;
 
 
 --
@@ -890,6 +890,20 @@ CREATE UNLOGGED TABLE public.schema_migrations (
 
 
 --
+-- Name: app_preference_adult_content_gate_options id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_preference_adult_content_gate_options ALTER COLUMN id SET DEFAULT nextval('public.app_preference_adult_content_gate_options_id_seq'::regclass);
+
+
+--
+-- Name: app_preference_adult_content_gates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_preference_adult_content_gates ALTER COLUMN id SET DEFAULT nextval('public.app_preference_adult_content_gates_id_seq'::regclass);
+
+
+--
 -- Name: app_preference_binding_methods id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -953,20 +967,6 @@ ALTER TABLE ONLY public.app_preference_density_options ALTER COLUMN id SET DEFAU
 
 
 --
--- Name: app_preference_items_per_page_options id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.app_preference_items_per_page_options ALTER COLUMN id SET DEFAULT nextval('public.app_preference_items_per_page_options_id_seq'::regclass);
-
-
---
--- Name: app_preference_items_per_pages id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.app_preference_items_per_pages ALTER COLUMN id SET DEFAULT nextval('public.app_preference_items_per_pages_id_seq'::regclass);
-
-
---
 -- Name: app_preference_language_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -995,17 +995,17 @@ ALTER TABLE ONLY public.app_preference_motions ALTER COLUMN id SET DEFAULT nextv
 
 
 --
--- Name: app_preference_r18_display_stopper_options id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: app_preference_page_size_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.app_preference_r18_display_stopper_options ALTER COLUMN id SET DEFAULT nextval('public.app_preference_r18_display_stopper_options_id_seq'::regclass);
+ALTER TABLE ONLY public.app_preference_page_size_options ALTER COLUMN id SET DEFAULT nextval('public.app_preference_page_size_options_id_seq'::regclass);
 
 
 --
--- Name: app_preference_r18_display_stoppers id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: app_preference_page_sizes id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.app_preference_r18_display_stoppers ALTER COLUMN id SET DEFAULT nextval('public.app_preference_r18_display_stoppers_id_seq'::regclass);
+ALTER TABLE ONLY public.app_preference_page_sizes ALTER COLUMN id SET DEFAULT nextval('public.app_preference_page_sizes_id_seq'::regclass);
 
 
 --
@@ -1076,6 +1076,22 @@ ALTER TABLE ONLY public.app_preference_timezones ALTER COLUMN id SET DEFAULT nex
 --
 
 ALTER TABLE ONLY public.app_preferences ALTER COLUMN id SET DEFAULT nextval('public.app_preferences_id_seq'::regclass);
+
+
+--
+-- Name: app_preference_adult_content_gate_options app_preference_adult_content_gate_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_preference_adult_content_gate_options
+    ADD CONSTRAINT app_preference_adult_content_gate_options_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: app_preference_adult_content_gates app_preference_adult_content_gates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_preference_adult_content_gates
+    ADD CONSTRAINT app_preference_adult_content_gates_pkey PRIMARY KEY (id);
 
 
 --
@@ -1151,22 +1167,6 @@ ALTER TABLE ONLY public.app_preference_density_options
 
 
 --
--- Name: app_preference_items_per_page_options app_preference_items_per_page_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.app_preference_items_per_page_options
-    ADD CONSTRAINT app_preference_items_per_page_options_pkey PRIMARY KEY (id);
-
-
---
--- Name: app_preference_items_per_pages app_preference_items_per_pages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.app_preference_items_per_pages
-    ADD CONSTRAINT app_preference_items_per_pages_pkey PRIMARY KEY (id);
-
-
---
 -- Name: app_preference_language_options app_preference_language_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1199,19 +1199,19 @@ ALTER TABLE ONLY public.app_preference_motions
 
 
 --
--- Name: app_preference_r18_display_stopper_options app_preference_r18_display_stopper_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: app_preference_page_size_options app_preference_page_size_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.app_preference_r18_display_stopper_options
-    ADD CONSTRAINT app_preference_r18_display_stopper_options_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.app_preference_page_size_options
+    ADD CONSTRAINT app_preference_page_size_options_pkey PRIMARY KEY (id);
 
 
 --
--- Name: app_preference_r18_display_stoppers app_preference_r18_display_stoppers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: app_preference_page_sizes app_preference_page_sizes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.app_preference_r18_display_stoppers
-    ADD CONSTRAINT app_preference_r18_display_stoppers_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.app_preference_page_sizes
+    ADD CONSTRAINT app_preference_page_sizes_pkey PRIMARY KEY (id);
 
 
 --
@@ -1311,6 +1311,20 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
+-- Name: index_app_preference_adult_content_gates_on_option_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_app_preference_adult_content_gates_on_option_id ON public.app_preference_adult_content_gates USING btree (option_id);
+
+
+--
+-- Name: index_app_preference_adult_content_gates_on_preference_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_app_preference_adult_content_gates_on_preference_id ON public.app_preference_adult_content_gates USING btree (preference_id);
+
+
+--
 -- Name: index_app_preference_cookies_on_preference_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1360,20 +1374,6 @@ CREATE UNIQUE INDEX index_app_preference_densities_on_preference_id ON public.ap
 
 
 --
--- Name: index_app_preference_items_per_pages_on_option_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_app_preference_items_per_pages_on_option_id ON public.app_preference_items_per_pages USING btree (option_id);
-
-
---
--- Name: index_app_preference_items_per_pages_on_preference_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_app_preference_items_per_pages_on_preference_id ON public.app_preference_items_per_pages USING btree (preference_id);
-
-
---
 -- Name: index_app_preference_languages_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1402,17 +1402,17 @@ CREATE UNIQUE INDEX index_app_preference_motions_on_preference_id ON public.app_
 
 
 --
--- Name: index_app_preference_r18_display_stoppers_on_option_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_app_preference_page_sizes_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_app_preference_r18_display_stoppers_on_option_id ON public.app_preference_r18_display_stoppers USING btree (option_id);
+CREATE INDEX index_app_preference_page_sizes_on_option_id ON public.app_preference_page_sizes USING btree (option_id);
 
 
 --
--- Name: index_app_preference_r18_display_stoppers_on_preference_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_app_preference_page_sizes_on_preference_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_app_preference_r18_display_stoppers_on_preference_id ON public.app_preference_r18_display_stoppers USING btree (preference_id);
+CREATE UNIQUE INDEX index_app_preference_page_sizes_on_preference_id ON public.app_preference_page_sizes USING btree (preference_id);
 
 
 --
@@ -1686,11 +1686,11 @@ ALTER TABLE ONLY public.app_preference_time_formats
 
 
 --
--- Name: app_preference_items_per_pages fk_rails_a032586f60; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: app_preference_page_sizes fk_rails_a032586f60; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.app_preference_items_per_pages
-    ADD CONSTRAINT fk_rails_a032586f60 FOREIGN KEY (option_id) REFERENCES public.app_preference_items_per_page_options(id);
+ALTER TABLE ONLY public.app_preference_page_sizes
+    ADD CONSTRAINT fk_rails_a032586f60 FOREIGN KEY (option_id) REFERENCES public.app_preference_page_size_options(id);
 
 
 --
@@ -1710,10 +1710,10 @@ ALTER TABLE ONLY public.app_preference_themes
 
 
 --
--- Name: app_preference_items_per_pages fk_rails_c926d3d05c; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: app_preference_page_sizes fk_rails_c926d3d05c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.app_preference_items_per_pages
+ALTER TABLE ONLY public.app_preference_page_sizes
     ADD CONSTRAINT fk_rails_c926d3d05c FOREIGN KEY (preference_id) REFERENCES public.app_preferences(id);
 
 
@@ -1742,19 +1742,19 @@ ALTER TABLE ONLY public.app_preference_regions
 
 
 --
--- Name: app_preference_r18_display_stoppers fk_rails_ec66ff128b; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: app_preference_adult_content_gates fk_rails_ec66ff128b; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.app_preference_r18_display_stoppers
+ALTER TABLE ONLY public.app_preference_adult_content_gates
     ADD CONSTRAINT fk_rails_ec66ff128b FOREIGN KEY (preference_id) REFERENCES public.app_preferences(id);
 
 
 --
--- Name: app_preference_r18_display_stoppers fk_rails_fa06c3d75d; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: app_preference_adult_content_gates fk_rails_fa06c3d75d; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.app_preference_r18_display_stoppers
-    ADD CONSTRAINT fk_rails_fa06c3d75d FOREIGN KEY (option_id) REFERENCES public.app_preference_r18_display_stopper_options(id);
+ALTER TABLE ONLY public.app_preference_adult_content_gates
+    ADD CONSTRAINT fk_rails_fa06c3d75d FOREIGN KEY (option_id) REFERENCES public.app_preference_adult_content_gate_options(id);
 
 
 --
@@ -1765,6 +1765,7 @@ SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
 ('20260530120000'),
+('20260530031000'),
 ('20260526120200'),
 ('20260526090000'),
 ('20260518044245'),

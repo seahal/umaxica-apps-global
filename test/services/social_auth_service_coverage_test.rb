@@ -7,10 +7,10 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
   setup do
     @user = clients(:one)
     ClientStatus.find_or_create_by!(id: 1)
-    ClientSocialGoogleStatus.find_or_create_by!(id: ClientSocialGoogleStatus::ACTIVE)
-    ClientSocialGoogleStatus.find_or_create_by!(id: ClientSocialGoogleStatus::REVOKED)
-    ClientSocialAppleStatus.find_or_create_by!(id: ClientSocialAppleStatus::ACTIVE)
-    ClientSocialAppleStatus.find_or_create_by!(id: ClientSocialAppleStatus::REVOKED)
+    ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::ACTIVE)
+    ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::REVOKED)
+    ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::ACTIVE)
+    ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::REVOKED)
     ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
   end
 
@@ -24,7 +24,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
     )
 
     assert_difference -> { Client.count }, 1 do
-      assert_difference -> { ClientSocialGoogle.count }, 1 do
+      assert_difference -> { ClientGoogleIdentity.count }, 1 do
         result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: nil, intent: "login")
 
         assert_not_nil result[:user]
@@ -42,7 +42,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
       },
     )
 
-    assert_difference -> { ClientSocialApple.count }, 1 do
+    assert_difference -> { ClientAppleIdentity.count }, 1 do
       result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
 
       assert_equal @user.id, result[:user].id
@@ -52,11 +52,11 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
 
   test "handle_link_raises_conflict_if_linked_to_another_user" do
     other_user = clients(:two)
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: other_user,
       uid: "other-uid",
       provider: "google",
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "t", token_expires_at: 0,
     )
 
@@ -68,11 +68,11 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
   end
 
   test "step_up intent is rejected" do
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: @user,
       uid: "step-up-forbidden-uid",
       provider: "google",
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "t", token_expires_at: 0,
     )
     auth_hash = OmniAuth::AuthHash.new(

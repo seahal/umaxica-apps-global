@@ -38,8 +38,8 @@ module Sign
 
             redirect_to(sign_app_up_checkpoint_path(ri: params[:ri], pt: signed_pt_param))
           rescue ActiveRecord::RecordInvalid => e
-            @secret = e.record
-            @raw_secret = session[passcode_registration_raw_session_key]
+            @secret_credential = e.record
+            @raw_secret_credential = session[passcode_registration_raw_session_key]
             render :new, status: :unprocessable_content
           end
 
@@ -52,27 +52,27 @@ module Sign
             render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
           end
 
-          def passcode_registration_secrets = @sign_up_actor.client_secrets
+          def passcode_registration_secret_credentials = @sign_up_actor.client_secret_credentials
 
-          def passcode_registration_secret_class = ClientSecret
+          def passcode_registration_secret_credential_class = ClientSecretCredential
 
           def passcode_registration_raw_session_key = :sign_app_up_passcode_raw
 
-          def passcode_registration_param_key = :user_secret
+          def passcode_registration_param_key = :user_secret_credential
 
           def passcode_registration_fallback_param_key = :client_secret
 
-          def passcode_registration_create_secret!(raw_secret)
-            secret = @sign_up_actor.client_secrets.new(
-              passcode_registration_secret_params.merge(
-                password: raw_secret,
-                raw_secret: raw_secret,
-                user_identity_secret_status_id: ClientSecretStatus::ACTIVE,
-                user_secret_kind_id: ClientSecretKind::LOGIN,
+          def passcode_registration_create_secret_credential!(raw_secret_credential)
+            secret_credential = @sign_up_actor.client_secret_credentials.new(
+              passcode_registration_secret_credential_params.merge(
+                password: raw_secret_credential,
+                raw_secret_credential: raw_secret_credential,
+                user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE,
+                user_secret_kind_id: ClientSecretCredentialKind::LOGIN,
               ),
             )
-            secret.save!(validate: false)
-            secret
+            secret_credential.save!(validate: false)
+            secret_credential
           end
 
           def sign_up_requirement_context
@@ -89,7 +89,7 @@ module Sign
 
           def sign_up_surface = :app
 
-          def sign_up_ticket_class = ClientSignUpCycle
+          def sign_up_ticket_class = ClientSignUpFlow
 
           def sign_up_sequence_session_key = :sign_app_up_sequence_id
         end

@@ -18,7 +18,7 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host_value}", "http://id.app.localhost"] }
 
     @visitor = create_verified_visitor_with_email(email_address: "com_mfa_passkey_#{SecureRandom.hex(4)}@example.com")
-    @visitor.update!(multi_factor_enabled: true)
+    @visitor.update!(mfa_level_enabled: true)
     @visitor.visitor_telephones.create!(
       number: "+8190" + format("%08d", SecureRandom.random_number(100_000_000)),
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
@@ -34,8 +34,11 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
       status_id: VisitorPasskeyStatus::ACTIVE,
     )
 
-    @secret = @visitor.visitor_secrets.create!(name: "Passkey MFA secret", password: "a" * 32)
-    @raw_secret = "a" * 32
+    @secret_credential = @visitor.visitor_secret_credentials.create!(
+      name: "Passkey MFA secret_credential",
+      password: "a" * 32,
+    )
+    @raw_secret_credential = "a" * 32
   end
 
   teardown do
@@ -49,7 +52,7 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
     assert_response :redirect
 
-    assert_redirected_to new_sign_com_in_path(ri: "jp")
+    assert_redirected_to new_sign_com_sign_in_path(ri: "jp")
   end
 
   test "create verifies passkey and redirects on success" do
@@ -97,10 +100,10 @@ class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
   def establish_pending_mfa!
     post(
-      sign_com_in_secret_path(ri: "jp"), params: {
-        secret_login_form: {
+      sign_com_in_secret_credential_path(ri: "jp"), params: {
+        secret_credential_login_form: {
           identifier: @visitor.visitor_emails.first.address,
-          secret_value: @raw_secret,
+          secret_credential_value: @raw_secret_credential,
         },
         "cf-turnstile-response": "test_token",
       },

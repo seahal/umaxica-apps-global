@@ -6,42 +6,42 @@
 # Table name: visitors
 # Database name: com_principal
 #
-#  id                     :bigint           not null, primary key
-#  birthdate              :text
-#  deactivated_at         :datetime
-#  discarded_at           :datetime         default(Infinity), not null
-#  lock_version           :integer          default(0), not null
-#  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purged_at              :datetime         default(Infinity), not null
-#  terminated_at          :datetime
-#  withdrawal_started_at  :datetime
-#  withdrawn_at           :datetime         default(Infinity)
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  multi_factor_id        :bigint           default(0), not null
-#  multi_factor_status_id :bigint           default(5), not null
-#  public_id              :string           default(""), not null
-#  status_id              :bigint           default(2), not null
-#  visibility_id          :bigint           default(1), not null
+#  id                    :bigint           not null, primary key
+#  birthdate             :text
+#  deactivated_at        :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  lock_version          :integer          default(0), not null
+#  mfa_level_enabled     :boolean          default(FALSE), not null
+#  purged_at             :datetime         default(Infinity), not null
+#  terminated_at         :datetime
+#  withdrawal_started_at :datetime
+#  withdrawn_at          :datetime         default(Infinity)
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  mfa_level_id          :bigint           default(0), not null
+#  mfa_status_id         :bigint           default(5), not null
+#  public_id             :string           default(""), not null
+#  status_id             :bigint           default(2), not null
+#  visibility_id         :bigint           default(1), not null
 #
 # Indexes
 #
-#  index_visitors_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_visitors_on_discarded_at            (discarded_at)
-#  index_visitors_on_multi_factor_id         (multi_factor_id)
-#  index_visitors_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_visitors_on_public_id               (public_id) UNIQUE
-#  index_visitors_on_purged_at               (purged_at)
-#  index_visitors_on_status_id               (status_id)
-#  index_visitors_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
-#  index_visitors_on_visibility_id           (visibility_id)
-#  index_visitors_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_visitors_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_visitors_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_visitors_on_discarded_at           (discarded_at)
+#  index_visitors_on_mfa_level_id           (mfa_level_id)
+#  index_visitors_on_mfa_status_id          (mfa_status_id)
+#  index_visitors_on_public_id              (public_id) UNIQUE
+#  index_visitors_on_purged_at              (purged_at)
+#  index_visitors_on_status_id              (status_id)
+#  index_visitors_on_terminated_at          (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_visitors_on_visibility_id          (visibility_id)
+#  index_visitors_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_visitors_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => visitor_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => visitor_multi_factor_statuses.id)
+#  fk_rails_...  (mfa_level_id => visitor_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => visitor_mfa_statuses.id)
 #  fk_rails_...  (status_id => visitor_statuses.id)
 #  fk_rails_...  (visibility_id => visitor_visibilities.id)
 #
@@ -49,16 +49,16 @@
 require "test_helper"
 
 class VisitorTest < ActiveSupport::TestCase
-  test "multi_factor_enabled and multi_factor_id must describe the same requirement" do
-    visitor = Visitor.new(multi_factor_enabled: true, multi_factor_id: VisitorMultiFactor::NOTHING)
+  test "mfa_level_enabled and mfa_level_id must describe the same requirement" do
+    visitor = Visitor.new(mfa_level_enabled: true, mfa_level_id: VisitorMfaLevel::NOTHING)
 
     assert_not visitor.valid?
-    assert_not_empty visitor.errors[:multi_factor_id]
+    assert_not_empty visitor.errors[:mfa_level_id]
 
-    visitor = Visitor.new(multi_factor_enabled: false, multi_factor_id: VisitorMultiFactor::FULL)
+    visitor = Visitor.new(mfa_level_enabled: false, mfa_level_id: VisitorMfaLevel::FULL)
 
     assert_not visitor.valid?
-    assert_not_empty visitor.errors[:multi_factor_enabled]
+    assert_not_empty visitor.errors[:mfa_level_enabled]
   end
 
   test "termination requires finite withdrawal completion" do
@@ -81,8 +81,8 @@ class VisitorTest < ActiveSupport::TestCase
 
   def setup
     Prosopite.pause do
-      VisitorMultiFactor.ensure_defaults!
-      VisitorMultiFactorStatus.ensure_defaults!
+      VisitorMfaLevel.ensure_defaults!
+      VisitorMfaStatus.ensure_defaults!
       VisitorStatus.ensure_defaults!
       VisitorVisibility.ensure_defaults!
       VisitorTelephoneStatus.ensure_defaults!

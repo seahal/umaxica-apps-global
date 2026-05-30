@@ -166,7 +166,7 @@ module Auth
       )
       payload, _header = JWT.decode(token, nil, false)
       active_kid = Jit::Security::Jwt::Keyring.active_kid
-      tampered = JWT.encode(payload, "secret", "HS256", { kid: active_kid, typ: "auth-access-token;client" })
+      tampered = JWT.encode(payload, "secret_credential", "HS256", { kid: active_kid, typ: "auth-access-token;client" })
 
       assert_nil Authentication::Base::Token.decode(tampered, host: "example.com", resource_type: "client")
     end

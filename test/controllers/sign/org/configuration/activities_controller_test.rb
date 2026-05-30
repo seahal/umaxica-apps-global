@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Configuration::ActivitiesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_chronicle_events, :operator_chronicle_levels
+  fixtures :operators, :operator_statuses, :operator_chronicle_events, :operator_chronicle_levels
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")

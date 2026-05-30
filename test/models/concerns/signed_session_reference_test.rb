@@ -6,12 +6,12 @@ require "test_helper"
 class SignedSessionReferenceTest < ActiveSupport::TestCase
   setup do
     ClientStatus.find_or_create_by!(id: ClientStatus::NOTHING)
-    OperatorIdentityStatus.find_or_create_by!(id: OperatorIdentityStatus::NOTHING)
+    OperatorStatus.find_or_create_by!(id: OperatorStatus::NOTHING)
     ClientTokenKind.find_or_create_by!(id: ClientTokenKind::BROWSER_WEB)
     OperatorTokenKind.find_or_create_by!(id: OperatorTokenKind::BROWSER_WEB)
 
     @user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::NOTHING)
-    @staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
+    @staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
 
     @user_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     @staff_token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)

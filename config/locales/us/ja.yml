@@ -75,15 +75,15 @@ ja:
       staff_telephone:
         number: 電話番号
         status: ステータス
-      user_secret:
+      user_secret_credential:
         name: 名前
         created_at: 作成日時
         last_used_at: 最終使用日
-      user_one_time_password:
+      user_totp_credential:
         title: 名前
         created_at: 作成日時
         last_otp_at: 最終使用日
-      staff_secret:
+      staff_secret_credential:
         name: 名前
         value: 値
         created_at: 作成日時
@@ -117,11 +117,11 @@ ja:
       visitor_telephone:
         number: 電話番号
         status: ステータス
-      visitor_secret:
+      visitor_secret_credential:
         name: 名前
         created_at: 作成日時
         last_used_at: 最終使用日
-      visitor_one_time_password:
+      visitor_totp_credential:
         title: 名前
         created_at: 作成日時
         last_otp_at: 最終使用日
@@ -235,7 +235,7 @@ ja:
       extension_allowlist_error: 許可されていないファイル形式です
     occurrence:
       invalid_telephone_format: 電話番号の形式が正しくありません（E.164形式で入力してください）
-      missing_hmac_secret: HMACシークレットが設定されていません
+      missing_hmac_secret_credential: HMACシークレットが設定されていません
       memo_too_long: メモは1000文字以内で入力してください
     rate_limit:
       exceeded: リクエストが多すぎます。しばらくしてからもう一度お試しください。
@@ -479,8 +479,21 @@ ja:
           links:
             email: メールアドレス
             passkey: パスキー
-            secret: シークレット
+            secret_credential: シークレット
             registration: アカウント登録はこちら
+      in:
+        bulletins:
+          show:
+            title: ブリテン
+            body: mfa をおんにしてください。重要な規約の変更があります、承諾しますか？
+            actions:
+              update: 更新する
+              continue: 続行する
+          welcome:
+            title: ようこそ
+            body: アカウントの作成が完了しました。ご利用ありがとうございます。
+          forbidden: アクセス権限がありません
+          timeout: timeout しました
       configuration:
         show:
           page_title: 設定
@@ -681,7 +694,7 @@ ja:
           links:
             email: メールアドレス
             passkey: パスキー
-            secret: シークレット
+            secret_credential: シークレット
             google: Googleで続行
             apple: Appleで続行
             registration: アカウント登録はこちら
@@ -711,12 +724,12 @@ ja:
           update:
             invalid_code: 確認コードが正しくありません
             success: ログインしました。
-        secret:
+        secret_credential:
           new:
             page_title: シークレットでサインイン
             pii_label: メールアドレスまたは電話番号
             pii_placeholder: user@example.com または +81 90 1234 5678
-            secret_label: シークレット
+            secret_credential_label: シークレット
             hints: 利用可能なシークレット
           create:
             success: ログインしました。
@@ -809,7 +822,7 @@ ja:
           destroy:
             success: 電話番号を削除しました。
             last_method: 最後のログイン手段のため削除できません。
-        secrets:
+        secret_credentials:
           index:
             new: 新規作成
           show:
@@ -898,7 +911,7 @@ ja:
           security_settings: セキュリティ設定
           totp_desc: 2段階認証を設定します
           passkey_desc: パスキーを管理します
-          secret_desc: シークレットキーの管理
+          secret_credential_desc: シークレットキーの管理
           account_settings: アカウント設定
           email_desc: 連絡用メールを管理します
           telephone_desc: 連絡用電話番号の管理
@@ -976,7 +989,7 @@ ja:
             telephone_removed: 電話番号抹消
             totp_enabled: 認証アプリ登録
             passkey_registered: パスキー登録
-            user_secret_created: シークレット作成
+            user_secret_credential_created: シークレット作成
             recovery_codes_generated: 復旧コード生成
             unknown: 不明なイベント (%{event_id})
         emergency_key:
@@ -1244,7 +1257,7 @@ ja:
             telephone_removed: 電話番号抹消
             totp_enabled: 認証アプリ登録
             passkey_registered: パスキー登録
-            user_secret_created: シークレット作成
+            user_secret_credential_created: シークレット作成
             recovery_codes_generated: 復旧コード生成
             unknown: 不明なイベント (%{event_id})
         sessions:
@@ -1255,7 +1268,7 @@ ja:
             others_confirm: 他のセッションをすべて削除しますか？
             all_button: すべてのセッションを削除
             all_confirm: すべての端末のセッションを削除しますか？
-        secrets:
+        secret_credentials:
           index:
             title: シークレット管理
             description: 登録済みのシークレットを管理します。
@@ -1292,8 +1305,8 @@ ja:
             passkeys_desc: 登録済み %{count} 件
             totps: 認証アプリ（TOTP）
             totps_desc: 登録済み %{count} 件
-            secrets: シークレット
-            secrets_desc: 有効 %{count} 件
+            secret_credentials: シークレット
+            secret_credentials_desc: 有効 %{count} 件
             reset_request: MFAリセットを申請する
             reset_unavailable: 現在、MFAをリセットできません。
           update:
@@ -1649,7 +1662,7 @@ ja:
             back: 一覧に戻る
           edit:
             title: パスキーを編集
-        secrets:
+        secret_credentials:
           create:
             created: シークレットキーを保存しました。
           update:
@@ -1814,7 +1827,7 @@ ja:
           index:
             totp: TOTP
             passkey: パスキー
-            secret: リカバリーコード
+            secret_credential: リカバリーコード
             google: Google
             apple: Apple
             email: メール
@@ -1957,7 +1970,7 @@ ja:
           index:
             totp: TOTP
             passkey: パスキー
-            secret: リカバリーコード
+            secret_credential: リカバリーコード
             google: Google
             apple: Apple
           passkey:
@@ -2219,8 +2232,8 @@ ja:
         theme_settings: テーマ設定
         motion_settings: モーション設定
         density_settings: 表示密度設定
-        items_per_page_settings: 1ページあたりの表示件数
-        r18_display_stopper_settings: R18表示設定
+        page_size_settings: 1ページあたりの表示件数
+        adult_content_gate_settings: R18表示設定
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2296,8 +2309,8 @@ ja:
         theme_settings: テーマ設定
         motion_settings: モーション設定
         density_settings: 表示密度設定
-        items_per_page_settings: 1ページあたりの表示件数
-        r18_display_stopper_settings: R18表示設定
+        page_size_settings: 1ページあたりの表示件数
+        adult_content_gate_settings: R18表示設定
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2365,7 +2378,7 @@ ja:
               dark: 夜間の監視業務や長時間利用で目の負担を軽減します。
               system: OSのテーマ変更にあわせて自動で切り替わります。
             submit: テーマ設定を保存
-        r18_display_stopper:
+        adult_content_gate:
           edit:
             heading: R18表示設定
             description: R18 コンテンツを未設定、承認、拒否のどれにするかを選択します。
@@ -3235,9 +3248,9 @@ ja:
             index:
               verified: 認証済み
               unverified: 未認証
-          secrets:
+          secret_credentials:
             new:
-              confirm_secret_saved_label: わたしはしーくれっとをほぞんしました
+              confirm_secret_credential_saved_label: わたしはしーくれっとをほぞんしました
         verifications:
           show:
             no_methods: passkey を登録してください
@@ -3284,7 +3297,7 @@ ja:
               description: Apple IDを使用してこのアカウントにログインできます。
               linked: 連携済み
               unlinked: 未連携
-          secrets:
+          secret_credentials:
             new:
               confirm_saved_label: わたしはしーくれっとをほぞんしました
               one_time_notice: この値は一度しか表示されません。

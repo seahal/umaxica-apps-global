@@ -12,6 +12,10 @@ module Sign
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!
+        # Object-level authorization (ActionPolicy): the listing gates actor type; the per-record
+        # edit/update/destroy authorize the owned record (find_by! is already owner-scoped, so a
+        # non-owner gets 404 before this). Verification/turnstile guards remain in place.
+        before_action :authorize_emails!, only: %i(index)
 
         def index
           @client_emails = current_client.client_emails
@@ -19,10 +23,12 @@ module Sign
 
         def edit
           @user_email = current_client.client_emails.find_by!(public_id: params(:id))
+          authorize!(@user_email)
         end
 
         def update
           @user_email = current_client.client_emails.find_by!(public_id: params(:id))
+          authorize!(@user_email)
 
           unless cloudflare_turnstile_stealth_validation["success"]
             @user_email.errors.add(:base, t("turnstile_error"))
@@ -45,6 +51,7 @@ module Sign
 
         def destroy
           @user_email = current_client.client_emails.find_by!(public_id: params(:id))
+          authorize!(@user_email)
 
           if @user_email.undeletable?
             redirect_to(
@@ -73,6 +80,10 @@ module Sign
         end
 
         private
+
+        def authorize_emails!
+          authorize!(ClientEmail, to: :index?)
+        end
 
         def create_audit_event!(event_id, subject:)
           ChronicleRecord.connected_to(role: :writing) do

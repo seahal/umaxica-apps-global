@@ -15,6 +15,10 @@ module Sign
           AUTHENTICATION_MODE = :private
 
           before_action :authenticate_client!
+          # Object-level authorization (ActionPolicy): registering a telephone is a fresh-record action
+          # for the authenticated client, so gate by actor type. Each step builds/looks up the record
+          # for current_client. Verification/turnstile guards remain on the flow.
+          before_action :authorize_telephone_registration!, only: %i(new create edit update)
 
           def new
             @user_telephone = ClientTelephone.new
@@ -98,6 +102,10 @@ module Sign
           end
 
           private
+
+          def authorize_telephone_registration!
+            authorize!(ClientTelephone, to: :create?)
+          end
 
           def handle_registration_update_status(status)
             case status

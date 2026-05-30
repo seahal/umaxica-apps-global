@@ -5,7 +5,7 @@ require "test_helper"
 require "base64"
 
 class Sign::App::Verification::TotpsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_one_time_password_statuses
+  fixtures :clients, :client_totp_credential_statuses
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -27,10 +27,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "creates verification on success" do
     private_key = "JBSWY3DPEHPK3PXP"
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -72,10 +72,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "successful totp consumes the step-up session and cannot be replayed" do
     private_key = "JBSWY3DPEHPK3PXP"
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
     pt = signed_step_up_pt(sign_app_configuration_emails_path(ri: "jp"))
@@ -117,10 +117,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "renders new on failure" do
     private_key = "JBSWY3DPEHPK3PXP"
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -143,10 +143,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "returns 422 on malformed code" do
     private_key = "JBSWY3DPEHPK3PXP"
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -169,10 +169,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "new keeps scope and pt in form hidden fields" do
     private_key = "JBSWY3DPEHPK3PXP"
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -200,10 +200,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "configuration_totp flow keeps pt through method selection and returns to totps" do
     private_key = "JBSWY3DPEHPK3PXP"
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -246,10 +246,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   test "POST returns 422 when turnstile stealth fails" do
     private_key = "JBSWY3DPEHPK3PXP"
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 

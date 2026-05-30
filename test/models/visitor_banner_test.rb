@@ -29,8 +29,8 @@ require "test_helper"
 class VisitorBannerTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :visitor_banners, :visitors, :visitor_statuses, :visitor_visibilities, :visitor_multi_factors,
-           :visitor_multi_factor_statuses
+  fixtures :visitor_banners, :visitors, :visitor_statuses, :visitor_visibilities, :visitor_mfa_levels,
+           :visitor_mfa_statuses
 
   test "inherits from principal record" do
     assert_operator VisitorBanner, :<, ComPrincipalRecord

@@ -172,6 +172,74 @@ CREATE UNLOGGED TABLE public.ar_internal_metadata (
 
 
 --
+-- Name: client_apple_identities; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_apple_identities (
+    id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    token_expires_at integer NOT NULL,
+    last_authenticated_at timestamp(6) with time zone,
+    provider character varying DEFAULT 'apple'::character varying NOT NULL,
+    refresh_token character varying DEFAULT ''::character varying NOT NULL,
+    token character varying DEFAULT ''::character varying NOT NULL,
+    uid character varying DEFAULT ''::character varying NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    user_id bigint NOT NULL,
+    status_id bigint DEFAULT 1 NOT NULL,
+    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: client_apple_identities_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_apple_identities_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_apple_identities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_apple_identities_id_seq OWNED BY public.client_apple_identities.id;
+
+
+--
+-- Name: client_apple_identity_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_apple_identity_statuses (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: client_apple_identity_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_apple_identity_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_apple_identity_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_apple_identity_statuses_id_seq OWNED BY public.client_apple_identity_statuses.id;
+
+
+--
 -- Name: client_banners; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -317,6 +385,74 @@ CREATE UNLOGGED SEQUENCE public.client_emails_id_seq
 --
 
 ALTER SEQUENCE public.client_emails_id_seq OWNED BY public.client_emails.id;
+
+
+--
+-- Name: client_google_identities; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_google_identities (
+    id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    token_expires_at integer NOT NULL,
+    last_authenticated_at timestamp(6) with time zone,
+    provider character varying DEFAULT 'google_app'::character varying NOT NULL,
+    refresh_token character varying DEFAULT ''::character varying NOT NULL,
+    token character varying DEFAULT ''::character varying NOT NULL,
+    uid character varying DEFAULT ''::character varying NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    user_id bigint NOT NULL,
+    status_id bigint DEFAULT 1 NOT NULL,
+    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: client_google_identities_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_google_identities_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_google_identities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_google_identities_id_seq OWNED BY public.client_google_identities.id;
+
+
+--
+-- Name: client_google_identity_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_google_identity_statuses (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: client_google_identity_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_google_identity_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_google_identity_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_google_identity_statuses_id_seq OWNED BY public.client_google_identity_statuses.id;
 
 
 --
@@ -578,19 +714,19 @@ ALTER SEQUENCE public.client_memberships_id_seq OWNED BY public.client_membershi
 
 
 --
--- Name: client_multi_factor_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: client_mfa_levels; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_multi_factor_statuses (
+CREATE UNLOGGED TABLE public.client_mfa_levels (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_multi_factor_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_mfa_levels_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_multi_factor_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.client_mfa_levels_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -599,26 +735,26 @@ CREATE UNLOGGED SEQUENCE public.client_multi_factor_statuses_id_seq
 
 
 --
--- Name: client_multi_factor_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_mfa_levels_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_multi_factor_statuses_id_seq OWNED BY public.client_multi_factor_statuses.id;
+ALTER SEQUENCE public.client_mfa_levels_id_seq OWNED BY public.client_mfa_levels.id;
 
 
 --
--- Name: client_multi_factors; Type: TABLE; Schema: public; Owner: -
+-- Name: client_mfa_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_multi_factors (
+CREATE UNLOGGED TABLE public.client_mfa_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_multi_factors_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_mfa_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_multi_factors_id_seq
+CREATE UNLOGGED SEQUENCE public.client_mfa_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -627,74 +763,10 @@ CREATE UNLOGGED SEQUENCE public.client_multi_factors_id_seq
 
 
 --
--- Name: client_multi_factors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_mfa_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_multi_factors_id_seq OWNED BY public.client_multi_factors.id;
-
-
---
--- Name: client_one_time_password_statuses; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_one_time_password_statuses (
-    id bigint NOT NULL
-);
-
-
---
--- Name: client_one_time_password_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_one_time_password_statuses_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_one_time_password_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_one_time_password_statuses_id_seq OWNED BY public.client_one_time_password_statuses.id;
-
-
---
--- Name: client_one_time_passwords; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_one_time_passwords (
-    id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    last_otp_at timestamp(6) with time zone DEFAULT '-infinity'::timestamp with time zone NOT NULL,
-    private_key character varying(1024) DEFAULT ''::character varying NOT NULL,
-    public_id character varying(21) NOT NULL,
-    title character varying(32),
-    updated_at timestamp(6) with time zone NOT NULL,
-    user_id bigint NOT NULL,
-    user_identity_one_time_password_status_id bigint DEFAULT 0 NOT NULL
-);
-
-
---
--- Name: client_one_time_passwords_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_one_time_passwords_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_one_time_passwords_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_one_time_passwords_id_seq OWNED BY public.client_one_time_passwords.id;
+ALTER SEQUENCE public.client_mfa_statuses_id_seq OWNED BY public.client_mfa_statuses.id;
 
 
 --
@@ -764,6 +836,66 @@ CREATE UNLOGGED SEQUENCE public.client_passkeys_id_seq
 --
 
 ALTER SEQUENCE public.client_passkeys_id_seq OWNED BY public.client_passkeys.id;
+
+
+--
+-- Name: client_preference_adult_content_gate_options; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_preference_adult_content_gate_options (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: client_preference_adult_content_gate_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_preference_adult_content_gate_options_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_preference_adult_content_gate_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_preference_adult_content_gate_options_id_seq OWNED BY public.client_preference_adult_content_gate_options.id;
+
+
+--
+-- Name: client_preference_adult_content_gates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_preference_adult_content_gates (
+    id bigint NOT NULL,
+    preference_id bigint NOT NULL,
+    option_id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: client_preference_adult_content_gates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_preference_adult_content_gates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_preference_adult_content_gates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_preference_adult_content_gates_id_seq OWNED BY public.client_preference_adult_content_gates.id;
 
 
 --
@@ -947,66 +1079,6 @@ ALTER SEQUENCE public.client_preference_density_options_id_seq OWNED BY public.c
 
 
 --
--- Name: client_preference_items_per_page_options; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_preference_items_per_page_options (
-    id bigint NOT NULL
-);
-
-
---
--- Name: client_preference_items_per_page_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_preference_items_per_page_options_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_preference_items_per_page_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_preference_items_per_page_options_id_seq OWNED BY public.client_preference_items_per_page_options.id;
-
-
---
--- Name: client_preference_items_per_pages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_preference_items_per_pages (
-    id bigint NOT NULL,
-    preference_id bigint NOT NULL,
-    option_id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: client_preference_items_per_pages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_preference_items_per_pages_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_preference_items_per_pages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_preference_items_per_pages_id_seq OWNED BY public.client_preference_items_per_pages.id;
-
-
---
 -- Name: client_preference_language_options; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1127,19 +1199,19 @@ ALTER SEQUENCE public.client_preference_motions_id_seq OWNED BY public.client_pr
 
 
 --
--- Name: client_preference_r18_display_stopper_options; Type: TABLE; Schema: public; Owner: -
+-- Name: client_preference_page_size_options; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_preference_r18_display_stopper_options (
+CREATE UNLOGGED TABLE public.client_preference_page_size_options (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_preference_page_size_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_preference_r18_display_stopper_options_id_seq
+CREATE UNLOGGED SEQUENCE public.client_preference_page_size_options_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1148,17 +1220,17 @@ CREATE UNLOGGED SEQUENCE public.client_preference_r18_display_stopper_options_id
 
 
 --
--- Name: client_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_preference_page_size_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_preference_r18_display_stopper_options_id_seq OWNED BY public.client_preference_r18_display_stopper_options.id;
+ALTER SEQUENCE public.client_preference_page_size_options_id_seq OWNED BY public.client_preference_page_size_options.id;
 
 
 --
--- Name: client_preference_r18_display_stoppers; Type: TABLE; Schema: public; Owner: -
+-- Name: client_preference_page_sizes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_preference_r18_display_stoppers (
+CREATE UNLOGGED TABLE public.client_preference_page_sizes (
     id bigint NOT NULL,
     preference_id bigint NOT NULL,
     option_id bigint NOT NULL,
@@ -1168,10 +1240,10 @@ CREATE UNLOGGED TABLE public.client_preference_r18_display_stoppers (
 
 
 --
--- Name: client_preference_r18_display_stoppers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_preference_page_sizes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_preference_r18_display_stoppers_id_seq
+CREATE UNLOGGED SEQUENCE public.client_preference_page_sizes_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1180,10 +1252,10 @@ CREATE UNLOGGED SEQUENCE public.client_preference_r18_display_stoppers_id_seq
 
 
 --
--- Name: client_preference_r18_display_stoppers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_preference_page_sizes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_preference_r18_display_stoppers_id_seq OWNED BY public.client_preference_r18_display_stoppers.id;
+ALTER SEQUENCE public.client_preference_page_sizes_id_seq OWNED BY public.client_preference_page_sizes.id;
 
 
 --
@@ -1451,7 +1523,7 @@ CREATE UNLOGGED TABLE public.client_preferences (
     time_format character varying DEFAULT 'hour_24'::character varying NOT NULL,
     motion character varying DEFAULT 'standard'::character varying NOT NULL,
     density character varying DEFAULT 'standard'::character varying NOT NULL,
-    items_per_page character varying DEFAULT '20'::character varying NOT NULL
+    page_size character varying DEFAULT '20'::character varying NOT NULL
 );
 
 
@@ -1475,19 +1547,19 @@ ALTER SEQUENCE public.client_preferences_id_seq OWNED BY public.client_preferenc
 
 
 --
--- Name: client_secret_kinds; Type: TABLE; Schema: public; Owner: -
+-- Name: client_secret_credential_kinds; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_secret_kinds (
+CREATE UNLOGGED TABLE public.client_secret_credential_kinds (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_secret_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_secret_credential_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_secret_kinds_id_seq
+CREATE UNLOGGED SEQUENCE public.client_secret_credential_kinds_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1496,26 +1568,26 @@ CREATE UNLOGGED SEQUENCE public.client_secret_kinds_id_seq
 
 
 --
--- Name: client_secret_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_secret_credential_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_secret_kinds_id_seq OWNED BY public.client_secret_kinds.id;
+ALTER SEQUENCE public.client_secret_credential_kinds_id_seq OWNED BY public.client_secret_credential_kinds.id;
 
 
 --
--- Name: client_secret_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: client_secret_credential_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_secret_statuses (
+CREATE UNLOGGED TABLE public.client_secret_credential_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_secret_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_secret_credential_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_secret_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.client_secret_credential_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1524,17 +1596,17 @@ CREATE UNLOGGED SEQUENCE public.client_secret_statuses_id_seq
 
 
 --
--- Name: client_secret_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_secret_credential_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_secret_statuses_id_seq OWNED BY public.client_secret_statuses.id;
+ALTER SEQUENCE public.client_secret_credential_statuses_id_seq OWNED BY public.client_secret_credential_statuses.id;
 
 
 --
--- Name: client_secrets; Type: TABLE; Schema: public; Owner: -
+-- Name: client_secret_credentials; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_secrets (
+CREATE UNLOGGED TABLE public.client_secret_credentials (
     id bigint NOT NULL,
     created_at timestamp(6) with time zone NOT NULL,
     last_used_at timestamp(6) with time zone,
@@ -1553,10 +1625,10 @@ CREATE UNLOGGED TABLE public.client_secrets (
 
 
 --
--- Name: client_secrets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_secret_credentials_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_secrets_id_seq
+CREATE UNLOGGED SEQUENCE public.client_secret_credentials_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1565,146 +1637,10 @@ CREATE UNLOGGED SEQUENCE public.client_secrets_id_seq
 
 
 --
--- Name: client_secrets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_secret_credentials_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_secrets_id_seq OWNED BY public.client_secrets.id;
-
-
---
--- Name: client_social_apple_statuses; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_social_apple_statuses (
-    id bigint NOT NULL
-);
-
-
---
--- Name: client_social_apple_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_social_apple_statuses_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_social_apple_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_social_apple_statuses_id_seq OWNED BY public.client_social_apple_statuses.id;
-
-
---
--- Name: client_social_apples; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_social_apples (
-    id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    token_expires_at integer NOT NULL,
-    last_authenticated_at timestamp(6) with time zone,
-    provider character varying DEFAULT 'apple'::character varying NOT NULL,
-    refresh_token character varying DEFAULT ''::character varying NOT NULL,
-    token character varying DEFAULT ''::character varying NOT NULL,
-    uid character varying DEFAULT ''::character varying NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL,
-    user_id bigint NOT NULL,
-    status_id bigint DEFAULT 1 NOT NULL,
-    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
-    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL
-);
-
-
---
--- Name: client_social_apples_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_social_apples_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_social_apples_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_social_apples_id_seq OWNED BY public.client_social_apples.id;
-
-
---
--- Name: client_social_google_statuses; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_social_google_statuses (
-    id bigint NOT NULL
-);
-
-
---
--- Name: client_social_google_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_social_google_statuses_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_social_google_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_social_google_statuses_id_seq OWNED BY public.client_social_google_statuses.id;
-
-
---
--- Name: client_social_googles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.client_social_googles (
-    id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    token_expires_at integer NOT NULL,
-    last_authenticated_at timestamp(6) with time zone,
-    provider character varying DEFAULT 'google_app'::character varying NOT NULL,
-    refresh_token character varying DEFAULT ''::character varying NOT NULL,
-    token character varying DEFAULT ''::character varying NOT NULL,
-    uid character varying DEFAULT ''::character varying NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL,
-    user_id bigint NOT NULL,
-    status_id bigint DEFAULT 1 NOT NULL,
-    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
-    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL
-);
-
-
---
--- Name: client_social_googles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.client_social_googles_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: client_social_googles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.client_social_googles_id_seq OWNED BY public.client_social_googles.id;
+ALTER SEQUENCE public.client_secret_credentials_id_seq OWNED BY public.client_secret_credentials.id;
 
 
 --
@@ -1806,6 +1742,70 @@ ALTER SEQUENCE public.client_telephones_id_seq OWNED BY public.client_telephones
 
 
 --
+-- Name: client_totp_credential_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_totp_credential_statuses (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: client_totp_credential_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_totp_credential_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_totp_credential_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_totp_credential_statuses_id_seq OWNED BY public.client_totp_credential_statuses.id;
+
+
+--
+-- Name: client_totp_credentials; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.client_totp_credentials (
+    id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    last_otp_at timestamp(6) with time zone DEFAULT '-infinity'::timestamp with time zone NOT NULL,
+    private_key character varying(1024) DEFAULT ''::character varying NOT NULL,
+    public_id character varying(21) NOT NULL,
+    title character varying(32),
+    updated_at timestamp(6) with time zone NOT NULL,
+    user_id bigint NOT NULL,
+    user_identity_totp_credential_status_id bigint DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: client_totp_credentials_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.client_totp_credentials_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_totp_credentials_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_totp_credentials_id_seq OWNED BY public.client_totp_credentials.id;
+
+
+--
 -- Name: client_visibilities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1834,12 +1834,12 @@ ALTER SEQUENCE public.client_visibilities_id_seq OWNED BY public.client_visibili
 
 
 --
--- Name: client_withdrawal_cycle_events; Type: TABLE; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_withdrawal_cycle_events (
+CREATE UNLOGGED TABLE public.client_withdrawal_flow_events (
     id bigint NOT NULL,
-    client_withdrawal_cycle_id bigint NOT NULL,
+    client_withdrawal_flow_id bigint NOT NULL,
     client_id bigint NOT NULL,
     from_status_id bigint,
     to_status_id bigint NOT NULL,
@@ -1853,10 +1853,10 @@ CREATE UNLOGGED TABLE public.client_withdrawal_cycle_events (
 
 
 --
--- Name: client_withdrawal_cycle_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_withdrawal_cycle_events_id_seq
+CREATE UNLOGGED SEQUENCE public.client_withdrawal_flow_events_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1865,26 +1865,26 @@ CREATE UNLOGGED SEQUENCE public.client_withdrawal_cycle_events_id_seq
 
 
 --
--- Name: client_withdrawal_cycle_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_withdrawal_cycle_events_id_seq OWNED BY public.client_withdrawal_cycle_events.id;
+ALTER SEQUENCE public.client_withdrawal_flow_events_id_seq OWNED BY public.client_withdrawal_flow_events.id;
 
 
 --
--- Name: client_withdrawal_cycle_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_withdrawal_cycle_statuses (
+CREATE UNLOGGED TABLE public.client_withdrawal_flow_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: client_withdrawal_cycle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_withdrawal_cycle_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.client_withdrawal_flow_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1893,17 +1893,17 @@ CREATE UNLOGGED SEQUENCE public.client_withdrawal_cycle_statuses_id_seq
 
 
 --
--- Name: client_withdrawal_cycle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_withdrawal_cycle_statuses_id_seq OWNED BY public.client_withdrawal_cycle_statuses.id;
+ALTER SEQUENCE public.client_withdrawal_flow_statuses_id_seq OWNED BY public.client_withdrawal_flow_statuses.id;
 
 
 --
--- Name: client_withdrawal_cycles; Type: TABLE; Schema: public; Owner: -
+-- Name: client_withdrawal_flows; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.client_withdrawal_cycles (
+CREATE UNLOGGED TABLE public.client_withdrawal_flows (
     id bigint NOT NULL,
     public_id character varying(21) NOT NULL,
     client_id bigint NOT NULL,
@@ -1920,10 +1920,10 @@ CREATE UNLOGGED TABLE public.client_withdrawal_cycles (
 
 
 --
--- Name: client_withdrawal_cycles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: client_withdrawal_flows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.client_withdrawal_cycles_id_seq
+CREATE UNLOGGED SEQUENCE public.client_withdrawal_flows_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1932,10 +1932,10 @@ CREATE UNLOGGED SEQUENCE public.client_withdrawal_cycles_id_seq
 
 
 --
--- Name: client_withdrawal_cycles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: client_withdrawal_flows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.client_withdrawal_cycles_id_seq OWNED BY public.client_withdrawal_cycles.id;
+ALTER SEQUENCE public.client_withdrawal_flows_id_seq OWNED BY public.client_withdrawal_flows.id;
 
 
 --
@@ -1951,14 +1951,14 @@ CREATE UNLOGGED TABLE public.clients (
     updated_at timestamp(6) with time zone NOT NULL,
     withdrawn_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone,
     status_id bigint DEFAULT 11 NOT NULL,
-    multi_factor_enabled boolean DEFAULT false NOT NULL,
+    mfa_level_enabled boolean DEFAULT false NOT NULL,
     withdrawal_started_at timestamp(6) with time zone,
     deactivated_at timestamp(6) with time zone,
     purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
     visibility_id bigint DEFAULT 2 NOT NULL,
     discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
-    multi_factor_id bigint DEFAULT 0 NOT NULL,
-    multi_factor_status_id bigint DEFAULT 5 NOT NULL,
+    mfa_level_id bigint DEFAULT 0 NOT NULL,
+    mfa_status_id bigint DEFAULT 5 NOT NULL,
     terminated_at timestamp(6) with time zone,
     birthdate text,
     CONSTRAINT chk_clients_birthdate_length CHECK (((birthdate IS NULL) OR (char_length(birthdate) <= 1000))),
@@ -2436,6 +2436,20 @@ ALTER TABLE ONLY public.apple_auths ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: client_apple_identities id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_apple_identities ALTER COLUMN id SET DEFAULT nextval('public.client_apple_identities_id_seq'::regclass);
+
+
+--
+-- Name: client_apple_identity_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_apple_identity_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_apple_identity_statuses_id_seq'::regclass);
+
+
+--
 -- Name: client_banners id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2461,6 +2475,20 @@ ALTER TABLE ONLY public.client_email_statuses ALTER COLUMN id SET DEFAULT nextva
 --
 
 ALTER TABLE ONLY public.client_emails ALTER COLUMN id SET DEFAULT nextval('public.client_emails_id_seq'::regclass);
+
+
+--
+-- Name: client_google_identities id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_google_identities ALTER COLUMN id SET DEFAULT nextval('public.client_google_identities_id_seq'::regclass);
+
+
+--
+-- Name: client_google_identity_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_google_identity_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_google_identity_statuses_id_seq'::regclass);
 
 
 --
@@ -2520,31 +2548,17 @@ ALTER TABLE ONLY public.client_memberships ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
--- Name: client_multi_factor_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_mfa_levels id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_multi_factor_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_multi_factor_statuses_id_seq'::regclass);
-
-
---
--- Name: client_multi_factors id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_multi_factors ALTER COLUMN id SET DEFAULT nextval('public.client_multi_factors_id_seq'::regclass);
+ALTER TABLE ONLY public.client_mfa_levels ALTER COLUMN id SET DEFAULT nextval('public.client_mfa_levels_id_seq'::regclass);
 
 
 --
--- Name: client_one_time_password_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_mfa_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_one_time_password_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_one_time_password_statuses_id_seq'::regclass);
-
-
---
--- Name: client_one_time_passwords id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_one_time_passwords ALTER COLUMN id SET DEFAULT nextval('public.client_one_time_passwords_id_seq'::regclass);
+ALTER TABLE ONLY public.client_mfa_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_mfa_statuses_id_seq'::regclass);
 
 
 --
@@ -2559,6 +2573,20 @@ ALTER TABLE ONLY public.client_passkey_statuses ALTER COLUMN id SET DEFAULT next
 --
 
 ALTER TABLE ONLY public.client_passkeys ALTER COLUMN id SET DEFAULT nextval('public.client_passkeys_id_seq'::regclass);
+
+
+--
+-- Name: client_preference_adult_content_gate_options id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_preference_adult_content_gate_options ALTER COLUMN id SET DEFAULT nextval('public.client_preference_adult_content_gate_options_id_seq'::regclass);
+
+
+--
+-- Name: client_preference_adult_content_gates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_preference_adult_content_gates ALTER COLUMN id SET DEFAULT nextval('public.client_preference_adult_content_gates_id_seq'::regclass);
 
 
 --
@@ -2604,20 +2632,6 @@ ALTER TABLE ONLY public.client_preference_density_options ALTER COLUMN id SET DE
 
 
 --
--- Name: client_preference_items_per_page_options id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_preference_items_per_page_options ALTER COLUMN id SET DEFAULT nextval('public.client_preference_items_per_page_options_id_seq'::regclass);
-
-
---
--- Name: client_preference_items_per_pages id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_preference_items_per_pages ALTER COLUMN id SET DEFAULT nextval('public.client_preference_items_per_pages_id_seq'::regclass);
-
-
---
 -- Name: client_preference_language_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2646,17 +2660,17 @@ ALTER TABLE ONLY public.client_preference_motions ALTER COLUMN id SET DEFAULT ne
 
 
 --
--- Name: client_preference_r18_display_stopper_options id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_preference_page_size_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_preference_r18_display_stopper_options ALTER COLUMN id SET DEFAULT nextval('public.client_preference_r18_display_stopper_options_id_seq'::regclass);
+ALTER TABLE ONLY public.client_preference_page_size_options ALTER COLUMN id SET DEFAULT nextval('public.client_preference_page_size_options_id_seq'::regclass);
 
 
 --
--- Name: client_preference_r18_display_stoppers id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_preference_page_sizes id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_preference_r18_display_stoppers ALTER COLUMN id SET DEFAULT nextval('public.client_preference_r18_display_stoppers_id_seq'::regclass);
+ALTER TABLE ONLY public.client_preference_page_sizes ALTER COLUMN id SET DEFAULT nextval('public.client_preference_page_sizes_id_seq'::regclass);
 
 
 --
@@ -2723,52 +2737,24 @@ ALTER TABLE ONLY public.client_preferences ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
--- Name: client_secret_kinds id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_secret_credential_kinds id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_secret_kinds ALTER COLUMN id SET DEFAULT nextval('public.client_secret_kinds_id_seq'::regclass);
-
-
---
--- Name: client_secret_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_secret_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_secret_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.client_secret_credential_kinds ALTER COLUMN id SET DEFAULT nextval('public.client_secret_credential_kinds_id_seq'::regclass);
 
 
 --
--- Name: client_secrets id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_secret_credential_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_secrets ALTER COLUMN id SET DEFAULT nextval('public.client_secrets_id_seq'::regclass);
-
-
---
--- Name: client_social_apple_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_social_apple_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_social_apple_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.client_secret_credential_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_secret_credential_statuses_id_seq'::regclass);
 
 
 --
--- Name: client_social_apples id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_secret_credentials id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_social_apples ALTER COLUMN id SET DEFAULT nextval('public.client_social_apples_id_seq'::regclass);
-
-
---
--- Name: client_social_google_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_social_google_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_social_google_statuses_id_seq'::regclass);
-
-
---
--- Name: client_social_googles id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_social_googles ALTER COLUMN id SET DEFAULT nextval('public.client_social_googles_id_seq'::regclass);
+ALTER TABLE ONLY public.client_secret_credentials ALTER COLUMN id SET DEFAULT nextval('public.client_secret_credentials_id_seq'::regclass);
 
 
 --
@@ -2793,6 +2779,20 @@ ALTER TABLE ONLY public.client_telephones ALTER COLUMN id SET DEFAULT nextval('p
 
 
 --
+-- Name: client_totp_credential_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_totp_credential_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_totp_credential_statuses_id_seq'::regclass);
+
+
+--
+-- Name: client_totp_credentials id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_totp_credentials ALTER COLUMN id SET DEFAULT nextval('public.client_totp_credentials_id_seq'::regclass);
+
+
+--
 -- Name: client_visibilities id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2800,24 +2800,24 @@ ALTER TABLE ONLY public.client_visibilities ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
--- Name: client_withdrawal_cycle_events id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycle_events ALTER COLUMN id SET DEFAULT nextval('public.client_withdrawal_cycle_events_id_seq'::regclass);
-
-
---
--- Name: client_withdrawal_cycle_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_withdrawal_cycle_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_withdrawal_cycle_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.client_withdrawal_flow_events ALTER COLUMN id SET DEFAULT nextval('public.client_withdrawal_flow_events_id_seq'::regclass);
 
 
 --
--- Name: client_withdrawal_cycles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycles ALTER COLUMN id SET DEFAULT nextval('public.client_withdrawal_cycles_id_seq'::regclass);
+ALTER TABLE ONLY public.client_withdrawal_flow_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_withdrawal_flow_statuses_id_seq'::regclass);
+
+
+--
+-- Name: client_withdrawal_flows id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_withdrawal_flows ALTER COLUMN id SET DEFAULT nextval('public.client_withdrawal_flows_id_seq'::regclass);
 
 
 --
@@ -2959,18 +2959,18 @@ ALTER TABLE public.client_passkeys
 
 
 --
--- Name: client_social_apples chk_client_social_apples_retention_order; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_apple_identities chk_client_social_apples_retention_order; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.client_social_apples
+ALTER TABLE public.client_apple_identities
     ADD CONSTRAINT chk_client_social_apples_retention_order CHECK ((discarded_at <= purged_at)) NOT VALID;
 
 
 --
--- Name: client_social_googles chk_client_social_googles_retention_order; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_google_identities chk_client_social_googles_retention_order; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.client_social_googles
+ALTER TABLE public.client_google_identities
     ADD CONSTRAINT chk_client_social_googles_retention_order CHECK ((discarded_at <= purged_at)) NOT VALID;
 
 
@@ -2987,7 +2987,7 @@ ALTER TABLE public.client_telephones
 --
 
 ALTER TABLE public.clients
-    ADD CONSTRAINT chk_clients_mfa_requirement_consistency CHECK ((((multi_factor_enabled = false) AND (multi_factor_id = 0)) OR ((multi_factor_enabled = true) AND (multi_factor_id <> 0)))) NOT VALID;
+    ADD CONSTRAINT chk_clients_mfa_requirement_consistency CHECK ((((mfa_level_enabled = false) AND (mfa_level_id = 0)) OR ((mfa_level_enabled = true) AND (mfa_level_id <> 0)))) NOT VALID;
 
 
 --
@@ -3004,6 +3004,22 @@ ALTER TABLE public.clients
 
 ALTER TABLE public.clients
     ADD CONSTRAINT chk_clients_withdrawal_order CHECK (((withdrawal_started_at IS NULL) OR (withdrawn_at IS NULL) OR (withdrawn_at = 'infinity'::timestamp without time zone) OR (withdrawal_started_at <= withdrawn_at))) NOT VALID;
+
+
+--
+-- Name: client_apple_identities client_apple_identities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_apple_identities
+    ADD CONSTRAINT client_apple_identities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_apple_identity_statuses client_apple_identity_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_apple_identity_statuses
+    ADD CONSTRAINT client_apple_identity_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -3036,6 +3052,22 @@ ALTER TABLE ONLY public.client_email_statuses
 
 ALTER TABLE ONLY public.client_emails
     ADD CONSTRAINT client_emails_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_google_identities client_google_identities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_google_identities
+    ADD CONSTRAINT client_google_identities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_google_identity_statuses client_google_identity_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_google_identity_statuses
+    ADD CONSTRAINT client_google_identity_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -3103,35 +3135,19 @@ ALTER TABLE ONLY public.client_memberships
 
 
 --
--- Name: client_multi_factor_statuses client_multi_factor_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_mfa_levels client_mfa_levels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_multi_factor_statuses
-    ADD CONSTRAINT client_multi_factor_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_multi_factors client_multi_factors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_multi_factors
-    ADD CONSTRAINT client_multi_factors_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_mfa_levels
+    ADD CONSTRAINT client_mfa_levels_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_one_time_password_statuses client_one_time_password_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_mfa_statuses client_mfa_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_one_time_password_statuses
-    ADD CONSTRAINT client_one_time_password_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_one_time_passwords client_one_time_passwords_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_one_time_passwords
-    ADD CONSTRAINT client_one_time_passwords_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_mfa_statuses
+    ADD CONSTRAINT client_mfa_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -3148,6 +3164,22 @@ ALTER TABLE ONLY public.client_passkey_statuses
 
 ALTER TABLE ONLY public.client_passkeys
     ADD CONSTRAINT client_passkeys_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_preference_adult_content_gate_options client_preference_adult_content_gate_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_preference_adult_content_gate_options
+    ADD CONSTRAINT client_preference_adult_content_gate_options_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_preference_adult_content_gates client_preference_adult_content_gates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_preference_adult_content_gates
+    ADD CONSTRAINT client_preference_adult_content_gates_pkey PRIMARY KEY (id);
 
 
 --
@@ -3199,22 +3231,6 @@ ALTER TABLE ONLY public.client_preference_density_options
 
 
 --
--- Name: client_preference_items_per_page_options client_preference_items_per_page_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_preference_items_per_page_options
-    ADD CONSTRAINT client_preference_items_per_page_options_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_preference_items_per_pages client_preference_items_per_pages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_preference_items_per_pages
-    ADD CONSTRAINT client_preference_items_per_pages_pkey PRIMARY KEY (id);
-
-
---
 -- Name: client_preference_language_options client_preference_language_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3247,19 +3263,19 @@ ALTER TABLE ONLY public.client_preference_motions
 
 
 --
--- Name: client_preference_r18_display_stopper_options client_preference_r18_display_stopper_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_preference_page_size_options client_preference_page_size_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_preference_r18_display_stopper_options
-    ADD CONSTRAINT client_preference_r18_display_stopper_options_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_preference_page_size_options
+    ADD CONSTRAINT client_preference_page_size_options_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_preference_r18_display_stoppers client_preference_r18_display_stoppers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_preference_page_sizes client_preference_page_sizes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_preference_r18_display_stoppers
-    ADD CONSTRAINT client_preference_r18_display_stoppers_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_preference_page_sizes
+    ADD CONSTRAINT client_preference_page_sizes_pkey PRIMARY KEY (id);
 
 
 --
@@ -3335,59 +3351,27 @@ ALTER TABLE ONLY public.client_preferences
 
 
 --
--- Name: client_secret_kinds client_secret_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_secret_credential_kinds client_secret_credential_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_secret_kinds
-    ADD CONSTRAINT client_secret_kinds_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_secret_statuses client_secret_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_secret_statuses
-    ADD CONSTRAINT client_secret_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_secret_credential_kinds
+    ADD CONSTRAINT client_secret_credential_kinds_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_secrets client_secrets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_secret_credential_statuses client_secret_credential_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_secrets
-    ADD CONSTRAINT client_secrets_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_social_apple_statuses client_social_apple_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_social_apple_statuses
-    ADD CONSTRAINT client_social_apple_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_secret_credential_statuses
+    ADD CONSTRAINT client_secret_credential_statuses_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_social_apples client_social_apples_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_secret_credentials client_secret_credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_social_apples
-    ADD CONSTRAINT client_social_apples_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_social_google_statuses client_social_google_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_social_google_statuses
-    ADD CONSTRAINT client_social_google_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_social_googles client_social_googles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_social_googles
-    ADD CONSTRAINT client_social_googles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_secret_credentials
+    ADD CONSTRAINT client_secret_credentials_pkey PRIMARY KEY (id);
 
 
 --
@@ -3415,6 +3399,22 @@ ALTER TABLE ONLY public.client_telephones
 
 
 --
+-- Name: client_totp_credential_statuses client_totp_credential_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_totp_credential_statuses
+    ADD CONSTRAINT client_totp_credential_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_totp_credentials client_totp_credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_totp_credentials
+    ADD CONSTRAINT client_totp_credentials_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: client_visibilities client_visibilities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3423,27 +3423,27 @@ ALTER TABLE ONLY public.client_visibilities
 
 
 --
--- Name: client_withdrawal_cycle_events client_withdrawal_cycle_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events client_withdrawal_flow_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycle_events
-    ADD CONSTRAINT client_withdrawal_cycle_events_pkey PRIMARY KEY (id);
-
-
---
--- Name: client_withdrawal_cycle_statuses client_withdrawal_cycle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.client_withdrawal_cycle_statuses
-    ADD CONSTRAINT client_withdrawal_cycle_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_withdrawal_flow_events
+    ADD CONSTRAINT client_withdrawal_flow_events_pkey PRIMARY KEY (id);
 
 
 --
--- Name: client_withdrawal_cycles client_withdrawal_cycles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_statuses client_withdrawal_flow_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycles
-    ADD CONSTRAINT client_withdrawal_cycles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.client_withdrawal_flow_statuses
+    ADD CONSTRAINT client_withdrawal_flow_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_withdrawal_flows client_withdrawal_flows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_withdrawal_flows
+    ADD CONSTRAINT client_withdrawal_flows_pkey PRIMARY KEY (id);
 
 
 --
@@ -3567,17 +3567,24 @@ ALTER TABLE ONLY public.user_clients
 
 
 --
--- Name: idx_on_client_withdrawal_cycle_id_f40263c70b; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_on_client_withdrawal_flow_id_128dba0f0d; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_on_client_withdrawal_cycle_id_f40263c70b ON public.client_withdrawal_cycle_events USING btree (client_withdrawal_cycle_id);
+CREATE INDEX idx_on_client_withdrawal_flow_id_128dba0f0d ON public.client_withdrawal_flow_events USING btree (client_withdrawal_flow_id);
 
 
 --
--- Name: idx_on_user_identity_one_time_password_status_id_45a55f4ebd; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_on_user_identity_secret_status_id_178d36c039; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_on_user_identity_one_time_password_status_id_45a55f4ebd ON public.client_one_time_passwords USING btree (user_identity_one_time_password_status_id);
+CREATE INDEX idx_on_user_identity_secret_status_id_178d36c039 ON public.client_secret_credentials USING btree (user_identity_secret_status_id);
+
+
+--
+-- Name: idx_on_user_identity_totp_credential_status_id_47a8d28ad3; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_user_identity_totp_credential_status_id_47a8d28ad3 ON public.client_totp_credentials USING btree (user_identity_totp_credential_status_id);
 
 
 --
@@ -3599,6 +3606,41 @@ CREATE UNIQUE INDEX index_accounts_on_email ON public.accounts USING btree (emai
 --
 
 CREATE INDEX index_apple_auths_on_user_id ON public.apple_auths USING btree (user_id);
+
+
+--
+-- Name: index_client_apple_identities_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_apple_identities_on_discarded_at ON public.client_apple_identities USING btree (discarded_at);
+
+
+--
+-- Name: index_client_apple_identities_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_apple_identities_on_purged_at ON public.client_apple_identities USING btree (purged_at);
+
+
+--
+-- Name: index_client_apple_identities_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_apple_identities_on_status_id ON public.client_apple_identities USING btree (status_id);
+
+
+--
+-- Name: index_client_apple_identities_on_token_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_apple_identities_on_token_expires_at ON public.client_apple_identities USING btree (token_expires_at);
+
+
+--
+-- Name: index_client_apple_identities_on_uid_and_provider; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_apple_identities_on_uid_and_provider ON public.client_apple_identities USING btree (uid, provider);
 
 
 --
@@ -3669,6 +3711,41 @@ CREATE INDEX index_client_emails_on_user_email_status_id ON public.client_emails
 --
 
 CREATE INDEX index_client_emails_on_user_id ON public.client_emails USING btree (user_id);
+
+
+--
+-- Name: index_client_google_identities_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_google_identities_on_discarded_at ON public.client_google_identities USING btree (discarded_at);
+
+
+--
+-- Name: index_client_google_identities_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_google_identities_on_purged_at ON public.client_google_identities USING btree (purged_at);
+
+
+--
+-- Name: index_client_google_identities_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_google_identities_on_status_id ON public.client_google_identities USING btree (status_id);
+
+
+--
+-- Name: index_client_google_identities_on_token_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_google_identities_on_token_expires_at ON public.client_google_identities USING btree (token_expires_at);
+
+
+--
+-- Name: index_client_google_identities_on_uid_and_provider; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_google_identities_on_uid_and_provider ON public.client_google_identities USING btree (uid, provider);
 
 
 --
@@ -3784,20 +3861,6 @@ CREATE INDEX index_client_memberships_on_workspace_id ON public.client_membershi
 
 
 --
--- Name: index_client_one_time_passwords_on_public_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_client_one_time_passwords_on_public_id ON public.client_one_time_passwords USING btree (public_id);
-
-
---
--- Name: index_client_one_time_passwords_on_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_one_time_passwords_on_user_id ON public.client_one_time_passwords USING btree (user_id);
-
-
---
 -- Name: index_client_passkeys_on_discarded_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3830,6 +3893,20 @@ CREATE INDEX index_client_passkeys_on_status_id ON public.client_passkeys USING 
 --
 
 CREATE UNIQUE INDEX index_client_passkeys_on_webauthn_id ON public.client_passkeys USING btree (webauthn_id);
+
+
+--
+-- Name: index_client_preference_adult_content_gates_on_option_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_preference_adult_content_gates_on_option_id ON public.client_preference_adult_content_gates USING btree (option_id);
+
+
+--
+-- Name: index_client_preference_adult_content_gates_on_preference_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_preference_adult_content_gates_on_preference_id ON public.client_preference_adult_content_gates USING btree (preference_id);
 
 
 --
@@ -3875,20 +3952,6 @@ CREATE UNIQUE INDEX index_client_preference_densities_on_preference_id ON public
 
 
 --
--- Name: index_client_preference_items_per_pages_on_option_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_preference_items_per_pages_on_option_id ON public.client_preference_items_per_pages USING btree (option_id);
-
-
---
--- Name: index_client_preference_items_per_pages_on_preference_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_client_preference_items_per_pages_on_preference_id ON public.client_preference_items_per_pages USING btree (preference_id);
-
-
---
 -- Name: index_client_preference_languages_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3917,17 +3980,17 @@ CREATE UNIQUE INDEX index_client_preference_motions_on_preference_id ON public.c
 
 
 --
--- Name: index_client_preference_r18_display_stoppers_on_option_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_preference_page_sizes_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_preference_r18_display_stoppers_on_option_id ON public.client_preference_r18_display_stoppers USING btree (option_id);
+CREATE INDEX index_client_preference_page_sizes_on_option_id ON public.client_preference_page_sizes USING btree (option_id);
 
 
 --
--- Name: index_client_preference_r18_display_stoppers_on_preference_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_preference_page_sizes_on_preference_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_client_preference_r18_display_stoppers_on_preference_id ON public.client_preference_r18_display_stoppers USING btree (preference_id);
+CREATE UNIQUE INDEX index_client_preference_page_sizes_on_preference_id ON public.client_preference_page_sizes USING btree (preference_id);
 
 
 --
@@ -4001,101 +4064,24 @@ CREATE UNIQUE INDEX index_client_preferences_on_user_id ON public.client_prefere
 
 
 --
--- Name: index_client_secrets_on_public_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_secret_credentials_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_client_secrets_on_public_id ON public.client_secrets USING btree (public_id);
-
-
---
--- Name: index_client_secrets_on_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_secrets_on_user_id ON public.client_secrets USING btree (user_id);
+CREATE UNIQUE INDEX index_client_secret_credentials_on_public_id ON public.client_secret_credentials USING btree (public_id);
 
 
 --
--- Name: index_client_secrets_on_user_identity_secret_status_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_secret_credentials_on_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_secrets_on_user_identity_secret_status_id ON public.client_secrets USING btree (user_identity_secret_status_id);
-
-
---
--- Name: index_client_secrets_on_user_secret_kind_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_secrets_on_user_secret_kind_id ON public.client_secrets USING btree (user_secret_kind_id);
+CREATE INDEX index_client_secret_credentials_on_user_id ON public.client_secret_credentials USING btree (user_id);
 
 
 --
--- Name: index_client_social_apples_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_secret_credentials_on_user_secret_kind_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_social_apples_on_discarded_at ON public.client_social_apples USING btree (discarded_at);
-
-
---
--- Name: index_client_social_apples_on_purged_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_social_apples_on_purged_at ON public.client_social_apples USING btree (purged_at);
-
-
---
--- Name: index_client_social_apples_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_social_apples_on_status_id ON public.client_social_apples USING btree (status_id);
-
-
---
--- Name: index_client_social_apples_on_token_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_social_apples_on_token_expires_at ON public.client_social_apples USING btree (token_expires_at);
-
-
---
--- Name: index_client_social_apples_on_uid_and_provider; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_client_social_apples_on_uid_and_provider ON public.client_social_apples USING btree (uid, provider);
-
-
---
--- Name: index_client_social_googles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_social_googles_on_discarded_at ON public.client_social_googles USING btree (discarded_at);
-
-
---
--- Name: index_client_social_googles_on_purged_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_social_googles_on_purged_at ON public.client_social_googles USING btree (purged_at);
-
-
---
--- Name: index_client_social_googles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_social_googles_on_status_id ON public.client_social_googles USING btree (status_id);
-
-
---
--- Name: index_client_social_googles_on_token_expires_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_social_googles_on_token_expires_at ON public.client_social_googles USING btree (token_expires_at);
-
-
---
--- Name: index_client_social_googles_on_uid_and_provider; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_client_social_googles_on_uid_and_provider ON public.client_social_googles USING btree (uid, provider);
+CREATE INDEX index_client_secret_credentials_on_user_secret_kind_id ON public.client_secret_credentials USING btree (user_secret_kind_id);
 
 
 --
@@ -4141,80 +4127,94 @@ CREATE INDEX index_client_telephones_on_user_identity_telephone_status_id ON pub
 
 
 --
--- Name: index_client_withdrawal_cycle_events_on_client_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_totp_credentials_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_withdrawal_cycle_events_on_client_id ON public.client_withdrawal_cycle_events USING btree (client_id);
-
-
---
--- Name: index_client_withdrawal_cycle_events_on_from_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_withdrawal_cycle_events_on_from_status_id ON public.client_withdrawal_cycle_events USING btree (from_status_id);
+CREATE UNIQUE INDEX index_client_totp_credentials_on_public_id ON public.client_totp_credentials USING btree (public_id);
 
 
 --
--- Name: index_client_withdrawal_cycle_events_on_occurred_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_totp_credentials_on_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_withdrawal_cycle_events_on_occurred_at ON public.client_withdrawal_cycle_events USING btree (occurred_at);
-
-
---
--- Name: index_client_withdrawal_cycle_events_on_to_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_withdrawal_cycle_events_on_to_status_id ON public.client_withdrawal_cycle_events USING btree (to_status_id);
+CREATE INDEX index_client_totp_credentials_on_user_id ON public.client_totp_credentials USING btree (user_id);
 
 
 --
--- Name: index_client_withdrawal_cycles_on_began_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_withdrawal_flow_events_on_client_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_withdrawal_cycles_on_began_at ON public.client_withdrawal_cycles USING btree (began_at);
-
-
---
--- Name: index_client_withdrawal_cycles_on_client_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_withdrawal_cycles_on_client_id ON public.client_withdrawal_cycles USING btree (client_id);
+CREATE INDEX index_client_withdrawal_flow_events_on_client_id ON public.client_withdrawal_flow_events USING btree (client_id);
 
 
 --
--- Name: index_client_withdrawal_cycles_on_completed_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_withdrawal_flow_events_on_from_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_withdrawal_cycles_on_completed_at ON public.client_withdrawal_cycles USING btree (completed_at);
-
-
---
--- Name: index_client_withdrawal_cycles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_withdrawal_cycles_on_discarded_at ON public.client_withdrawal_cycles USING btree (discarded_at);
+CREATE INDEX index_client_withdrawal_flow_events_on_from_status_id ON public.client_withdrawal_flow_events USING btree (from_status_id);
 
 
 --
--- Name: index_client_withdrawal_cycles_on_public_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_withdrawal_flow_events_on_occurred_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_client_withdrawal_cycles_on_public_id ON public.client_withdrawal_cycles USING btree (public_id);
-
-
---
--- Name: index_client_withdrawal_cycles_on_purged_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_client_withdrawal_cycles_on_purged_at ON public.client_withdrawal_cycles USING btree (purged_at);
+CREATE INDEX index_client_withdrawal_flow_events_on_occurred_at ON public.client_withdrawal_flow_events USING btree (occurred_at);
 
 
 --
--- Name: index_client_withdrawal_cycles_on_status_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_client_withdrawal_flow_events_on_to_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_client_withdrawal_cycles_on_status_id ON public.client_withdrawal_cycles USING btree (status_id);
+CREATE INDEX index_client_withdrawal_flow_events_on_to_status_id ON public.client_withdrawal_flow_events USING btree (to_status_id);
+
+
+--
+-- Name: index_client_withdrawal_flows_on_began_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_withdrawal_flows_on_began_at ON public.client_withdrawal_flows USING btree (began_at);
+
+
+--
+-- Name: index_client_withdrawal_flows_on_client_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_withdrawal_flows_on_client_id ON public.client_withdrawal_flows USING btree (client_id);
+
+
+--
+-- Name: index_client_withdrawal_flows_on_completed_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_withdrawal_flows_on_completed_at ON public.client_withdrawal_flows USING btree (completed_at);
+
+
+--
+-- Name: index_client_withdrawal_flows_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_withdrawal_flows_on_discarded_at ON public.client_withdrawal_flows USING btree (discarded_at);
+
+
+--
+-- Name: index_client_withdrawal_flows_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_withdrawal_flows_on_public_id ON public.client_withdrawal_flows USING btree (public_id);
+
+
+--
+-- Name: index_client_withdrawal_flows_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_withdrawal_flows_on_purged_at ON public.client_withdrawal_flows USING btree (purged_at);
+
+
+--
+-- Name: index_client_withdrawal_flows_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_withdrawal_flows_on_status_id ON public.client_withdrawal_flows USING btree (status_id);
 
 
 --
@@ -4232,17 +4232,17 @@ CREATE INDEX index_clients_on_discarded_at ON public.clients USING btree (discar
 
 
 --
--- Name: index_clients_on_multi_factor_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_clients_on_mfa_level_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_clients_on_multi_factor_id ON public.clients USING btree (multi_factor_id);
+CREATE INDEX index_clients_on_mfa_level_id ON public.clients USING btree (mfa_level_id);
 
 
 --
--- Name: index_clients_on_multi_factor_status_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_clients_on_mfa_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_clients_on_multi_factor_status_id ON public.clients USING btree (multi_factor_status_id);
+CREATE INDEX index_clients_on_mfa_status_id ON public.clients USING btree (mfa_status_id);
 
 
 --
@@ -4487,14 +4487,14 @@ CREATE INDEX index_user_identity_passkeys_on_user_id ON public.client_passkeys U
 -- Name: index_user_identity_social_apples_on_user_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_user_identity_social_apples_on_user_id_unique ON public.client_social_apples USING btree (user_id) WHERE (user_id IS NOT NULL);
+CREATE UNIQUE INDEX index_user_identity_social_apples_on_user_id_unique ON public.client_apple_identities USING btree (user_id) WHERE (user_id IS NOT NULL);
 
 
 --
 -- Name: index_user_identity_social_googles_on_user_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_user_identity_social_googles_on_user_id_unique ON public.client_social_googles USING btree (user_id) WHERE (user_id IS NOT NULL);
+CREATE UNIQUE INDEX index_user_identity_social_googles_on_user_id_unique ON public.client_google_identities USING btree (user_id) WHERE (user_id IS NOT NULL);
 
 
 --
@@ -4570,11 +4570,11 @@ ALTER TABLE ONLY public.client_preference_motions
 
 
 --
--- Name: client_secrets fk_rails_1dae7ac648; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_secret_credentials fk_rails_1dae7ac648; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_secrets
-    ADD CONSTRAINT fk_rails_1dae7ac648 FOREIGN KEY (user_identity_secret_status_id) REFERENCES public.client_secret_statuses(id);
+ALTER TABLE ONLY public.client_secret_credentials
+    ADD CONSTRAINT fk_rails_1dae7ac648 FOREIGN KEY (user_identity_secret_status_id) REFERENCES public.client_secret_credential_statuses(id);
 
 
 --
@@ -4618,11 +4618,11 @@ ALTER TABLE ONLY public.members
 
 
 --
--- Name: client_social_googles fk_rails_2e9d0c19b0; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_google_identities fk_rails_2e9d0c19b0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_social_googles
-    ADD CONSTRAINT fk_rails_2e9d0c19b0 FOREIGN KEY (status_id) REFERENCES public.client_social_google_statuses(id);
+ALTER TABLE ONLY public.client_google_identities
+    ADD CONSTRAINT fk_rails_2e9d0c19b0 FOREIGN KEY (status_id) REFERENCES public.client_google_identity_statuses(id);
 
 
 --
@@ -4642,11 +4642,11 @@ ALTER TABLE ONLY public.client_preference_date_formats
 
 
 --
--- Name: client_withdrawal_cycle_events fk_rails_3721c60304; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events fk_rails_3721c60304; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_3721c60304 FOREIGN KEY (from_status_id) REFERENCES public.client_withdrawal_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.client_withdrawal_flow_events
+    ADD CONSTRAINT fk_rails_3721c60304 FOREIGN KEY (from_status_id) REFERENCES public.client_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
@@ -4666,11 +4666,11 @@ ALTER TABLE ONLY public.client_preference_currencies
 
 
 --
--- Name: client_withdrawal_cycles fk_rails_3a897cfb78; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_withdrawal_flows fk_rails_3a897cfb78; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycles
-    ADD CONSTRAINT fk_rails_3a897cfb78 FOREIGN KEY (status_id) REFERENCES public.client_withdrawal_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.client_withdrawal_flows
+    ADD CONSTRAINT fk_rails_3a897cfb78 FOREIGN KEY (status_id) REFERENCES public.client_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
@@ -4706,18 +4706,18 @@ ALTER TABLE ONLY public.client_member_discoveries
 
 
 --
--- Name: client_secrets fk_rails_4ab5f45eae; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_secret_credentials fk_rails_4ab5f45eae; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_secrets
+ALTER TABLE ONLY public.client_secret_credentials
     ADD CONSTRAINT fk_rails_4ab5f45eae FOREIGN KEY (user_id) REFERENCES public.clients(id);
 
 
 --
--- Name: client_one_time_passwords fk_rails_5146d3e196; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_totp_credentials fk_rails_5146d3e196; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_one_time_passwords
+ALTER TABLE ONLY public.client_totp_credentials
     ADD CONSTRAINT fk_rails_5146d3e196 FOREIGN KEY (user_id) REFERENCES public.clients(id);
 
 
@@ -4766,7 +4766,7 @@ ALTER TABLE ONLY public.user_client_discoveries
 --
 
 ALTER TABLE ONLY public.clients
-    ADD CONSTRAINT fk_rails_67ec2e6839 FOREIGN KEY (multi_factor_status_id) REFERENCES public.client_multi_factor_statuses(id);
+    ADD CONSTRAINT fk_rails_67ec2e6839 FOREIGN KEY (mfa_status_id) REFERENCES public.client_mfa_statuses(id);
 
 
 --
@@ -4790,15 +4790,15 @@ ALTER TABLE ONLY public.client_member_revocations
 --
 
 ALTER TABLE ONLY public.clients
-    ADD CONSTRAINT fk_rails_73fa0fcaee FOREIGN KEY (multi_factor_id) REFERENCES public.client_multi_factors(id);
+    ADD CONSTRAINT fk_rails_73fa0fcaee FOREIGN KEY (mfa_level_id) REFERENCES public.client_mfa_levels(id);
 
 
 --
--- Name: client_social_apples fk_rails_779a7e522b; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_apple_identities fk_rails_779a7e522b; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_social_apples
-    ADD CONSTRAINT fk_rails_779a7e522b FOREIGN KEY (status_id) REFERENCES public.client_social_apple_statuses(id);
+ALTER TABLE ONLY public.client_apple_identities
+    ADD CONSTRAINT fk_rails_779a7e522b FOREIGN KEY (status_id) REFERENCES public.client_apple_identity_statuses(id);
 
 
 --
@@ -4834,35 +4834,35 @@ ALTER TABLE ONLY public.client_member_observations
 
 
 --
--- Name: client_secrets fk_rails_85ad49373c; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_secret_credentials fk_rails_85ad49373c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_secrets
-    ADD CONSTRAINT fk_rails_85ad49373c FOREIGN KEY (user_secret_kind_id) REFERENCES public.client_secret_kinds(id);
+ALTER TABLE ONLY public.client_secret_credentials
+    ADD CONSTRAINT fk_rails_85ad49373c FOREIGN KEY (user_secret_kind_id) REFERENCES public.client_secret_credential_kinds(id);
 
 
 --
--- Name: client_social_apples fk_rails_86cd98ea8f; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_apple_identities fk_rails_86cd98ea8f; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_social_apples
+ALTER TABLE ONLY public.client_apple_identities
     ADD CONSTRAINT fk_rails_86cd98ea8f FOREIGN KEY (user_id) REFERENCES public.clients(id);
 
 
 --
--- Name: client_preference_items_per_pages fk_rails_8c10421fba; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_preference_page_sizes fk_rails_8c10421fba; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_preference_items_per_pages
+ALTER TABLE ONLY public.client_preference_page_sizes
     ADD CONSTRAINT fk_rails_8c10421fba FOREIGN KEY (preference_id) REFERENCES public.client_preferences(id);
 
 
 --
--- Name: client_preference_r18_display_stoppers fk_rails_8e51082240; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_preference_adult_content_gates fk_rails_8e51082240; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_preference_r18_display_stoppers
-    ADD CONSTRAINT fk_rails_8e51082240 FOREIGN KEY (option_id) REFERENCES public.client_preference_r18_display_stopper_options(id);
+ALTER TABLE ONLY public.client_preference_adult_content_gates
+    ADD CONSTRAINT fk_rails_8e51082240 FOREIGN KEY (option_id) REFERENCES public.client_preference_adult_content_gate_options(id);
 
 
 --
@@ -4906,19 +4906,19 @@ ALTER TABLE ONLY public.members
 
 
 --
--- Name: client_social_googles fk_rails_96706c4d26; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_google_identities fk_rails_96706c4d26; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_social_googles
+ALTER TABLE ONLY public.client_google_identities
     ADD CONSTRAINT fk_rails_96706c4d26 FOREIGN KEY (user_id) REFERENCES public.clients(id);
 
 
 --
--- Name: client_preference_items_per_pages fk_rails_991df7332c; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_preference_page_sizes fk_rails_991df7332c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_preference_items_per_pages
-    ADD CONSTRAINT fk_rails_991df7332c FOREIGN KEY (option_id) REFERENCES public.client_preference_items_per_page_options(id);
+ALTER TABLE ONLY public.client_preference_page_sizes
+    ADD CONSTRAINT fk_rails_991df7332c FOREIGN KEY (option_id) REFERENCES public.client_preference_page_size_options(id);
 
 
 --
@@ -4930,18 +4930,18 @@ ALTER TABLE ONLY public.user_client_suspensions
 
 
 --
--- Name: client_withdrawal_cycle_events fk_rails_a2aace221d; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events fk_rails_a2aace221d; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_a2aace221d FOREIGN KEY (to_status_id) REFERENCES public.client_withdrawal_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.client_withdrawal_flow_events
+    ADD CONSTRAINT fk_rails_a2aace221d FOREIGN KEY (to_status_id) REFERENCES public.client_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
--- Name: client_withdrawal_cycle_events fk_rails_a58c9bf0a2; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events fk_rails_a58c9bf0a2; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycle_events
+ALTER TABLE ONLY public.client_withdrawal_flow_events
     ADD CONSTRAINT fk_rails_a58c9bf0a2 FOREIGN KEY (client_id) REFERENCES public.clients(id) NOT VALID;
 
 
@@ -4970,11 +4970,11 @@ ALTER TABLE ONLY public.user_client_impersonations
 
 
 --
--- Name: client_withdrawal_cycle_events fk_rails_b55e5a56c4; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_withdrawal_flow_events fk_rails_b55e5a56c4; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_b55e5a56c4 FOREIGN KEY (client_withdrawal_cycle_id) REFERENCES public.client_withdrawal_cycles(id) NOT VALID;
+ALTER TABLE ONLY public.client_withdrawal_flow_events
+    ADD CONSTRAINT fk_rails_b55e5a56c4 FOREIGN KEY (client_withdrawal_flow_id) REFERENCES public.client_withdrawal_flows(id) NOT VALID;
 
 
 --
@@ -5018,10 +5018,10 @@ ALTER TABLE ONLY public.client_members
 
 
 --
--- Name: client_preference_r18_display_stoppers fk_rails_db31dff0ff; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_preference_adult_content_gates fk_rails_db31dff0ff; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_preference_r18_display_stoppers
+ALTER TABLE ONLY public.client_preference_adult_content_gates
     ADD CONSTRAINT fk_rails_db31dff0ff FOREIGN KEY (preference_id) REFERENCES public.client_preferences(id);
 
 
@@ -5042,10 +5042,10 @@ ALTER TABLE ONLY public.user_clients
 
 
 --
--- Name: client_withdrawal_cycles fk_rails_e5e99fd372; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_withdrawal_flows fk_rails_e5e99fd372; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_withdrawal_cycles
+ALTER TABLE ONLY public.client_withdrawal_flows
     ADD CONSTRAINT fk_rails_e5e99fd372 FOREIGN KEY (client_id) REFERENCES public.clients(id) NOT VALID;
 
 
@@ -5074,11 +5074,11 @@ ALTER TABLE ONLY public.user_client_observations
 
 
 --
--- Name: client_one_time_passwords fk_rails_ee2c1859b3; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_totp_credentials fk_rails_ee2c1859b3; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.client_one_time_passwords
-    ADD CONSTRAINT fk_rails_ee2c1859b3 FOREIGN KEY (user_identity_one_time_password_status_id) REFERENCES public.client_one_time_password_statuses(id);
+ALTER TABLE ONLY public.client_totp_credentials
+    ADD CONSTRAINT fk_rails_ee2c1859b3 FOREIGN KEY (user_identity_totp_credential_status_id) REFERENCES public.client_totp_credential_statuses(id);
 
 
 --
@@ -5184,6 +5184,12 @@ ALTER TABLE ONLY public.client_preference_timezones
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260530032500'),
+('20260530032400'),
+('20260530032300'),
+('20260530032100'),
+('20260530032000'),
+('20260530031000'),
 ('20260528162000'),
 ('20260526090000'),
 ('20260525200000'),

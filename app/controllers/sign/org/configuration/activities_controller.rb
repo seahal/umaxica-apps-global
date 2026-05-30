@@ -21,7 +21,7 @@ module Sign
           user_agent
           authorization
           token
-          secret
+          secret_credential
           code
           email
           telephone
@@ -30,6 +30,10 @@ module Sign
         ).freeze
 
         before_action :authenticate_operator!
+        # Object-level authorization (ActionPolicy). Kept in a before_action rather than inside the
+        # action body because `index` rescues StandardError (which ActionPolicy::Unauthorized
+        # subclasses) — an in-body check would be swallowed instead of denied.
+        before_action :authorize_activity_log!, only: %i(index show)
 
         helper_method :activity_event_label, :activity_ip_address, :activity_context_text, :activity_occurred_at,
                       :activity_user_agent_summary, :activity_login_method
@@ -46,6 +50,10 @@ module Sign
         end
 
         private
+
+        def authorize_activity_log!
+          authorize!(OperatorChronicle, to: :index?)
+        end
 
         def current_operator_activities
           OperatorChronicle

@@ -1,0 +1,15 @@
+# == Schema Information
+#
+# Table name: client_mfa_statuses
+# Database name: app_principal
+#
+#  id :bigint           not null, primary key
+#
+nothing:
+  id: 0
+
+active:
+  id: 1
+
+unconfigured:
+  id: 5

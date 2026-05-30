@@ -6,7 +6,7 @@
   <h2><%= t("sign.app.configuration.show.security_settings") %></h2>
   <ul>
     <li><%= link_to t("controller.sign.app.setting.index.passkey"), sign_com_configuration_passkeys_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.secret"), sign_com_configuration_secrets_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.secret_credential"), sign_com_configuration_secret_credentials_path %></li>
     <li><%= link_to t("sign.app.configuration.show.mfa"), sign_com_configuration_mfa_challenge_path(ri: params[:ri]) %></li>
   </ul>
 </section>
@@ -26,7 +26,7 @@
 <section>
   <h2><%= t("sign.app.configuration.show.others") %></h2>
   <ul>
-    <li><%= link_to t("sign.app.configuration.show.logout"), edit_sign_com_out_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("sign.app.configuration.show.logout"), edit_sign_com_sign_out_path(ri: params[:ri]) %></li>
     <li><%= link_to t("sign.app.configuration.show.withdrawal"), new_sign_com_configuration_withdrawal_path %></li>
   </ul>
 </section>

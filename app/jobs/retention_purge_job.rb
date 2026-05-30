@@ -8,22 +8,22 @@ class RetentionPurgeJob < ApplicationJob
   # cascades but not AR callbacks. Tables that hold FK references with
   # ON DELETE CASCADE to other RETAINABLE rows MUST be listed *before* the
   # referenced parent — otherwise the cascade will silently delete rows whose
-  # `purged_at` is still Infinity. Concretely: `client_sign_up_cycles.token_id`
-  # → `client_tokens.id` ON DELETE CASCADE, so ClientSignUpCycle/VisitorSignUpCycle
+  # `purged_at` is still Infinity. Concretely: `client_sign_up_flows.token_id`
+  # → `client_tokens.id` ON DELETE CASCADE, so ClientSignUpFlow/VisitorSignUpFlow
   # must precede ClientToken/VisitorToken. Verified by
   # `test/jobs/retention_purge_job_test.rb`.
   RETAINABLE_MODELS = %w(
     AppPreferenceChronicle ComPreferenceChronicle OrgPreferenceChronicle
     ClientChronicle OperatorChronicle
-    ClientSignInCycle VisitorSignInCycle OperatorSignInCycle
-    ClientSignOutCycle VisitorSignOutCycle OperatorSignOutCycle
-    ClientWithdrawalCycle VisitorWithdrawalCycle
-    ClientSignUpCycle VisitorSignUpCycle OperatorSignUpCycle
-    ClientSecret VisitorSecret OperatorSecret
+    ClientSignInFlow VisitorSignInFlow OperatorSignInFlow
+    ClientSignOutFlow VisitorSignOutFlow OperatorSignOutFlow
+    ClientWithdrawalFlow VisitorWithdrawalFlow
+    ClientSignUpFlow VisitorSignUpFlow OperatorSignUpFlow
+    ClientSecretCredential VisitorSecretCredential OperatorSecretCredential
     Avatar Member OperatorWorkspaceAccount
     AppPreference OrgPreference ComPreference
     ClientEmail VisitorEmail ClientTelephone VisitorTelephone
-    ClientPasskey VisitorPasskey ClientSocialGoogle ClientSocialApple
+    ClientPasskey VisitorPasskey ClientGoogleIdentity ClientAppleIdentity
     ClientToken OperatorToken VisitorToken
     ClientVerification OperatorVerification VisitorVerification
     ClientAuthorizationCode OperatorAuthorizationCode VisitorAuthorizationCode

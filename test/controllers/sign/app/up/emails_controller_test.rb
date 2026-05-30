@@ -55,7 +55,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "a[href=?]", new_sign_app_up_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", new_sign_app_sign_up_path(ri: "jp"), count: 1
     assert_select "a[href=?]", new_sign_app_in_email_path(ri: "jp"), count: 1
   end
 
@@ -894,7 +894,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
 
-    cycle = current_sign_up_cycle(user_email)
+    cycle = current_sign_up_flow(user_email)
 
     patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
           params: {
@@ -908,7 +908,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     user = user_email.reload.user
 
-    assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.reload.status_id
+    assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
     assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
     assert ClientToken.exists?(user_id: user.id)
   end
@@ -1037,7 +1037,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     user_email = ClientEmail.order(:created_at).last
-    cycle = current_sign_up_cycle(user_email)
+    cycle = current_sign_up_flow(user_email)
 
     assert_equal "email", cycle.entry_method
     assert_equal "email", cycle.pending_contact_type
@@ -1070,7 +1070,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     user_email = ClientEmail.order(:created_at).last
-    cycle = current_sign_up_cycle(user_email)
+    cycle = current_sign_up_flow(user_email)
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
@@ -1102,7 +1102,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_equal "2000-02-03", user_email.user.reload.birthdate
     assert cycle.reload.requirement_cleared?(:birthdate)
-    assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.status_id
+    assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.status_id
   end
 
   test "email signup checkpoint birthdate is idempotent after requirement is cleared" do
@@ -1117,7 +1117,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: default_headers
 
     user_email = ClientEmail.order(:created_at).last
-    cycle = current_sign_up_cycle(user_email)
+    cycle = current_sign_up_flow(user_email)
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
@@ -1148,7 +1148,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     assert_response :redirect
-    assert_equal ClientSignUpCycleStatus::COMPLETED, cycle.reload.status_id
+    assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
   end
 
   test "email signup checkpoint blocks users before thirteenth birthday" do
@@ -1165,7 +1165,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :redirect
       user_email = ClientEmail.order(:created_at).last
-      cycle = current_sign_up_cycle(user_email)
+      cycle = current_sign_up_flow(user_email)
       otp_data = user_email.get_otp
       pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
@@ -1193,7 +1193,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, "この登録方法ではアカウントを作成できません"
-      assert_equal ClientSignUpCycleStatus::FAILED, cycle.reload.status_id
+      assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
 
       patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
             params: {
@@ -1204,7 +1204,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
             headers: default_headers
 
       assert_response :success
-      assert_equal ClientSignUpCycleStatus::FAILED, cycle.reload.status_id
+      assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
       assert_not cycle.requirement_cleared?(:birthdate)
     end
   end
@@ -1471,12 +1471,12 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     { "Host" => host, "HTTPS" => "on", "X-CSRF-Token" => csrf_token_value }
   end
 
-  def current_sign_up_cycle(user_email)
-    ClientSignUpCycle.order(:id).find_by(
+  def current_sign_up_flow(user_email)
+    ClientSignUpFlow.order(:id).find_by(
       principal_id: user_email.user_id,
       pending_contact_type: "email",
       pending_contact_id: user_email.id,
-    ) || ClientSignUpCycle.order(:id).find_by!(
+    ) || ClientSignUpFlow.order(:id).find_by!(
       principal_id: user_email.user_id,
       pending_contact_type: "email",
     )

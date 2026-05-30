@@ -91,7 +91,7 @@ module Sign
     # When reuse is observed (a valid token that no longer matches the
     # stored digest), we treat the event as a family compromise and revoke
     # every token in the same refresh token family. This is logged without
-    # the raw refresh verifier to avoid exposing secrets.
+    # the raw refresh verifier to avoid exposing secret_credentials.
     def handle_refresh_token_reuse(token)
       family_scope = refresh_token_family_scope(token)
       now = Time.current

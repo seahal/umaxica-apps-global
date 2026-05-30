@@ -3,7 +3,7 @@
 
 require "test_helper"
 class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_one_time_password_statuses, :client_chronicle_events, :client_chronicle_levels
+  fixtures :clients, :client_totp_credential_statuses, :client_chronicle_events, :client_chronicle_levels
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -25,7 +25,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET protected endpoint redirects to setup when configured methods are zero" do
-    @user.update!(multi_factor_status_id: ClientMultiFactorStatus::UNCONFIGURED)
+    @user.update!(mfa_status_id: ClientMfaStatus::UNCONFIGURED)
 
     StepUp::ConfiguredMethods.stub(:call, []) do
       StepUp::AvailableMethods.stub(:call, []) do
@@ -57,10 +57,10 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET protected endpoint redirects to verification when usable methods exist" do
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -73,10 +73,10 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   end
 
   test "POST protected endpoint returns 401 plain when step-up is missing and usable methods exist" do
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 
@@ -88,10 +88,10 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
   test "successful verification enables protected POST and records audit" do
     private_key = "JBSWY3DPEHPK3PXP"
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: private_key,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 

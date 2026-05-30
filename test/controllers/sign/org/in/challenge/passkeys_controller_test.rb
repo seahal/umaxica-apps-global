@@ -6,8 +6,8 @@ require "base64"
 require "ostruct"
 
 class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_passkey_statuses, :operator_passkeys, :operator_secrets,
-           :operator_secret_kinds, :operator_secret_statuses, :operator_email_statuses
+  fixtures :operators, :operator_statuses, :operator_passkey_statuses, :operator_passkeys, :operator_secret_credentials,
+           :operator_secret_credential_kinds, :operator_secret_credential_statuses, :operator_email_statuses
 
   setup do
     host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -19,7 +19,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host}", "http://id.app.localhost"] }
 
     @staff = operators(:one)
-    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE, multi_factor_enabled: true)
+    @staff.update!(status_id: OperatorStatus::ACTIVE, mfa_level_enabled: true)
 
     @passkey = OperatorPasskey.create!(
       staff: @staff,
@@ -31,10 +31,10 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    _secret, @raw_secret = OperatorSecret.issue!(
+    _secret_credential, @raw_secret_credential = OperatorSecretCredential.issue!(
       name: "MFA Secret",
       staff_id: @staff.id,
-      staff_secret_kind_id: OperatorSecretKind::PERMANENT,
+      staff_secret_kind_id: OperatorSecretCredentialKind::PERMANENT,
       uses: 10,
       status: :active,
     )
@@ -57,7 +57,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
   test "new requires pending MFA session" do
     get new_sign_org_in_challenge_passkey_path(ri: "jp")
 
-    assert_redirected_to new_sign_org_in_path(ri: "jp")
+    assert_redirected_to new_sign_org_sign_in_path(ri: "jp")
     assert_equal I18n.t("sign.org.in.mfa.session_expired"), flash[:alert]
   end
 
@@ -358,7 +358,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_in_challenge_passkey_path(ri: "jp", pt: "/bulleting/path"),
+      post sign_org_in_challenge_passkey_path(ri: "jp", pt: "/bulletin/path"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
              mfa_passkey_form: {
@@ -383,10 +383,10 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
   def establish_pending_mfa!
     post(
-      sign_org_in_secret_url(ri: "jp"), params: {
-        secret_login_form: {
+      sign_org_in_secret_credential_url(ri: "jp"), params: {
+        secret_credential_login_form: {
           identifier: @staff.public_id.downcase,
-          secret_value: @raw_secret,
+          secret_credential_value: @raw_secret_credential,
         },
         "cf-turnstile-response": "test_token",
       },

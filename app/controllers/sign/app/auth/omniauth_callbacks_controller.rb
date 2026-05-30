@@ -162,13 +162,13 @@ module Sign
           # arrive simultaneously (e.g. user double-clicks the consent button
           # or replays a stale tab). Without serialization, both pass the
           # "no existing account" check, both fall into this branch, both
-          # try to create a sign_up_cycle, and the second loser hits the
+          # try to create a sign_up_flow, and the second loser hits the
           # unique constraint on Client during finalization. The advisory
           # lock collapses the second arrival into a no-op
           # cycle-already-issued.
           with_social_sign_up_lock(identity) do
-            cycle = sign_up_cycle_locator.current || create_social_sign_up_cycle!(user, identity, pt: pt)
-            bind_social_sign_up_cycle!(cycle, user, identity)
+            cycle = sign_up_flow_locator.current || create_social_sign_up_flow!(user, identity, pt: pt)
+            bind_social_sign_up_flow!(cycle, user, identity)
           end
 
           redirect_to(
@@ -201,23 +201,23 @@ module Sign
           end
         end
 
-        def create_social_sign_up_cycle!(user, identity, pt: nil)
+        def create_social_sign_up_flow!(user, identity, pt: nil)
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless user && identity
 
           AppTicketRecord.connected_to(role: :writing) do
-            ClientSignUpCycleStatus.ensure_defaults!
-            cycle = ClientSignUpCycle.create!(
+            ClientSignUpFlowStatus.ensure_defaults!
+            cycle = ClientSignUpFlow.create!(
               principal_id: nil,
-              status_id: ClientSignUpCycleStatus::SOCIAL_CALLBACK_PENDING,
+              status_id: ClientSignUpFlowStatus::SOCIAL_CALLBACK_PENDING,
               step: "social_callback",
-              nonce_digest: ClientSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+              nonce_digest: ClientSignUpFlow.digest_nonce(SecureRandom.urlsafe_base64(32)),
               issued_at: Time.current,
-              expires_at: ClientSignUpCycle.default_ttl.from_now,
+              expires_at: ClientSignUpFlow.default_ttl.from_now,
               entry_method: SocialIdentifiable.normalize_provider(identity.provider),
               social_provider: SocialIdentifiable.normalize_provider(identity.provider),
               return_to: path_from_signed_pt(signed_pt_token(pt)),
             )
-            sign_up_cycle_locator.issue!(cycle)
+            sign_up_flow_locator.issue!(cycle)
             session[:sign_app_up_sequence_id] = cycle.public_id
             cycle
           end
@@ -249,7 +249,7 @@ module Sign
           Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.login_intent", message: "Signing in user"))
           unless user&.login_allowed?
             return redirect_to(
-              new_sign_app_in_path,
+              new_sign_app_sign_in_path,
               alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
@@ -351,7 +351,7 @@ module Sign
           context
         end
 
-        def bind_social_sign_up_cycle!(cycle, user, identity)
+        def bind_social_sign_up_flow!(cycle, user, identity)
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless identity
           unless identity.persisted? && identity.id.present?
             raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
@@ -385,8 +385,8 @@ module Sign
           nil
         end
 
-        def sign_up_cycle_locator
-          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpCycle)
+        def sign_up_flow_locator
+          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
         end
 
         # Handle login failures (session limit, MFA required, etc.)
@@ -414,13 +414,13 @@ module Sign
             Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.mfa_required"))
             safe_redirect_to(
               sign_in_result.redirect_to,
-              fallback: new_sign_app_in_path,
+              fallback: new_sign_app_sign_in_path,
               notice: I18n.t("sign.app.in.mfa.required"),
             )
           else
             Rails.logger.warn(Jit::LogEvent.format("sign.social.omniauth.unknown_login_failure", status: status))
             redirect_to(
-              new_sign_app_in_path,
+              new_sign_app_sign_in_path,
               alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
@@ -430,10 +430,10 @@ module Sign
           ri = params[:ri].presence || current_social_auth_ri
 
           if current_social_auth_entry == "sign_up"
-            return new_sign_app_up_path(ri: ri)
+            return new_sign_app_sign_up_path(ri: ri)
           end
 
-          new_sign_app_in_path(ri: ri)
+          new_sign_app_sign_in_path(ri: ri)
         end
 
         def social_auth_success_redirect_path
@@ -459,7 +459,7 @@ module Sign
         end
 
         # Override to support auto-link when user is already logged in
-        # IMPORTANT: This ensures ClientSocialApple/ClientSocialGoogle is created and linked to current_client
+        # IMPORTANT: This ensures ClientAppleIdentity/ClientGoogleIdentity is created and linked to current_client
         # Without this, callback defaults to "login" intent and creates a NEW user instead
         def current_social_auth_intent
           explicit_intent = session[SOCIAL_INTENT_SESSION_KEY]

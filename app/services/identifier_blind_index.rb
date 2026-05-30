@@ -18,27 +18,27 @@ module IdentifierBlindIndex
     normalized = normalize_email(value)
     return nil if normalized.blank?
 
-    digest(:email, normalized, secret_for_email)
+    digest(:email, normalized, secret_credential_for_email)
   end
 
   def bidx_for_telephone(value)
     normalized = normalize_telephone(value)
     return nil if normalized.blank?
 
-    digest(:telephone, normalized, secret_for_telephone)
+    digest(:telephone, normalized, secret_credential_for_telephone)
   end
 
-  def digest(kind, normalized_identifier, secret_value)
-    OpenSSL::HMAC.hexdigest("SHA256", secret_value, "#{kind}:#{normalized_identifier}")
+  def digest(kind, normalized_identifier, secret_credential_value)
+    OpenSSL::HMAC.hexdigest("SHA256", secret_credential_value, "#{kind}:#{normalized_identifier}")
   end
 
-  def secret_for_email
+  def secret_credential_for_email
     Rails.app.creds.option(:EMAIL_ADDRESS_HMAC_SALT).presence ||
       ENV["EMAIL_ADDRESS_HMAC_SALT"].presence ||
       raise(KeyError, "Missing key: [:EMAIL_ADDRESS_HMAC_SALT]")
   end
 
-  def secret_for_telephone
+  def secret_credential_for_telephone
     Rails.app.creds.option(:TELEPHONE_NUMBER_HMAC_SALT).presence ||
       ENV["TELEPHONE_NUMBER_HMAC_SALT"].presence ||
       raise(KeyError, "Missing key: [:TELEPHONE_NUMBER_HMAC_SALT]")

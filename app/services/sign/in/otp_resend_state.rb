@@ -36,9 +36,9 @@ module Sign
 
       def encryptor
         ENCRYPTOR_CACHE.compute_if_absent(PURPOSE) do
-          secret = Rails.application.secret_key_base
+          secret_credential = Rails.application.secret_key_base
           key_len = ActiveSupport::MessageEncryptor.key_len
-          key = ActiveSupport::KeyGenerator.new(secret).generate_key(PURPOSE, key_len)
+          key = ActiveSupport::KeyGenerator.new(secret_credential).generate_key(PURPOSE, key_len)
           ActiveSupport::MessageEncryptor.new(key, cipher: "aes-256-gcm")
         end
       end

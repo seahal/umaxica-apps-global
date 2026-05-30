@@ -8,29 +8,29 @@ require "test_helper"
 class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   fixtures :client_statuses
 
-  test "mfa_required_for? returns false for user without multi_factor_enabled" do
-    user = Client.create!(multi_factor_enabled: false)
+  test "mfa_required_for? returns false for user without mfa_level_enabled" do
+    user = Client.create!(mfa_level_enabled: false)
     controller = build_test_controller
 
     assert_not controller.send(:mfa_required_for?, user)
   end
 
-  test "mfa_required_for? returns true for user with multi_factor_enabled" do
-    user = Client.create!(multi_factor_enabled: true)
+  test "mfa_required_for? returns true for user with mfa_level_enabled" do
+    user = Client.create!(mfa_level_enabled: true)
     controller = build_test_controller
 
     assert controller.send(:mfa_required_for?, user)
   end
 
-  test "mfa_required_for? returns true for user with full multi_factor_id" do
-    user = Client.create!(multi_factor_id: ClientMultiFactor::FULL, multi_factor_enabled: true)
+  test "mfa_required_for? returns true for user with full mfa_level_id" do
+    user = Client.create!(mfa_level_id: ClientMfaLevel::FULL, mfa_level_enabled: true)
     controller = build_test_controller
 
     assert controller.send(:mfa_required_for?, user)
   end
 
-  test "mfa_required_for? returns false for user with nothing multi_factor_id" do
-    user = Client.create!(multi_factor_id: ClientMultiFactor::NOTHING)
+  test "mfa_required_for? returns false for user with nothing mfa_level_id" do
+    user = Client.create!(mfa_level_id: ClientMfaLevel::NOTHING)
     controller = build_test_controller
 
     assert_not controller.send(:mfa_required_for?, user)
@@ -43,7 +43,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   end
 
   test "check_totp_requirement returns mfa_required status for MFA user" do
-    user = Client.create!(multi_factor_enabled: true)
+    user = Client.create!(mfa_level_enabled: true)
     controller = build_test_controller
 
     result = controller.send(:check_totp_requirement, user)
@@ -52,7 +52,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   end
 
   test "check_totp_requirement returns nil for non-MFA user" do
-    user = Client.create!(multi_factor_enabled: false)
+    user = Client.create!(mfa_level_enabled: false)
     controller = build_test_controller
 
     result = controller.send(:check_totp_requirement, user)
@@ -85,7 +85,7 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   end
 
   test "complete_sign_in_or_start_mfa adds auth method to login audit context" do
-    user = Client.create!(multi_factor_enabled: false)
+    user = Client.create!(mfa_level_enabled: false)
     controller = build_test_controller
     captured = nil
 
@@ -99,17 +99,17 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
       user,
       pt: nil,
       ri: "jp",
-      auth_method: "secret",
+      auth_method: "secret_credential",
     )
 
     assert_equal({ status: :success, redirect_path: "/dashboard" }, result)
     assert_equal user, captured.first
     assert_not captured.last[:require_totp_check]
-    assert_equal({ auth_method: "secret" }, captured.last[:audit_context])
+    assert_equal({ auth_method: "secret_credential" }, captured.last[:audit_context])
   end
 
   test "complete_sign_in_or_start_mfa preserves explicit audit context" do
-    user = Client.create!(multi_factor_enabled: false)
+    user = Client.create!(mfa_level_enabled: false)
     controller = build_test_controller
     captured = nil
 

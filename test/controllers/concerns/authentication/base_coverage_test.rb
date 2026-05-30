@@ -379,7 +379,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal ["passkey"], @controller.normalize_amr("passkey")
     assert_equal ["google"], @controller.normalize_amr("google")
     assert_equal ["apple"], @controller.normalize_amr("apple")
-    assert_equal ["passcode"], @controller.normalize_amr("secret")
+    assert_equal ["passcode"], @controller.normalize_amr("secret_credential")
     assert_equal [], @controller.normalize_amr("unknown")
   end
 
@@ -580,7 +580,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert @request.env[Auth::IoKeys::Env::AUTH_REFRESHED_FLAG]
 
     rendered = []
+    @request = ActionDispatch::TestRequest.create
     @request.set_header("HTTP_ACCEPT", "application/json")
+    @controller.request = @request
     @controller.define_singleton_method(:render) { |**kwargs| rendered << kwargs }
 
     @controller.authenticate!
@@ -704,12 +706,12 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
     @controller.set_pending_mfa!(
       resource: @user, primary: "email", pt: "/after", ri: "jp",
-      auth_method: "secret",
+      auth_method: "secret_credential",
     )
 
     assert_equal @user.id, @controller.session[:mfa_user_id]
     assert_predicate @controller, :pending_mfa_valid?
-    assert_equal "secret", @controller.pending_mfa[:auth_method]
+    assert_equal "secret_credential", @controller.pending_mfa[:auth_method]
 
     @controller.session[:pending_mfa][:expires_at] = 1.minute.ago.to_i
 

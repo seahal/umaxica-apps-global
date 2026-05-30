@@ -45,7 +45,7 @@ class IdentifierBlindIndexBackfillTest < ActiveSupport::TestCase
       visitor: @visitor,
       visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
       otp_counter: "0",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
 
     user_email.update_columns(columns_to_clear(ClientEmail, address_bidx: nil, address_digest: nil))

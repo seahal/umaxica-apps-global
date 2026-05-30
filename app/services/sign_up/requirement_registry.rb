@@ -50,9 +50,9 @@ module SignUp
 
     def self.surface_for_ticket(ticket)
       case ticket
-      when ClientSignUpCycle
+      when ClientSignUpFlow
         :app
-      when VisitorSignUpCycle
+      when VisitorSignUpFlow
         :com
       else
         raise ArgumentError, "unsupported sign-up ticket class: #{ticket.class.name}"

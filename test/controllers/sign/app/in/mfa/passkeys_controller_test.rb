@@ -7,28 +7,28 @@ require "ostruct"
 
 module Sign::App::In
   class MfaPasskeysControllerTest < ActionDispatch::IntegrationTest
-    fixtures :client_statuses, :client_passkey_statuses, :client_secret_kinds,
-             :client_secret_statuses, :client_email_statuses, :client_one_time_password_statuses
+    fixtures :client_statuses, :client_passkey_statuses, :client_secret_credential_kinds,
+             :client_secret_credential_statuses, :client_email_statuses, :client_totp_credential_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
 
-      @user = Client.create!(multi_factor_enabled: true)
+      @user = Client.create!(mfa_level_enabled: true)
       @email = "mfa_passkey_#{SecureRandom.hex(4)}@example.com".freeze
       @user.client_emails.create!(address: @email, user_email_status_id: ClientEmailStatus::VERIFIED)
-      ClientOneTimePassword.create!(
+      ClientTotpCredential.create!(
         user: @user,
         private_key: ROTP::Base32.random_base32,
-        user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+        user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
         title: "totp",
       )
 
-      _secret, @raw_secret = ClientSecret.issue!(
-        name: "Passkey MFA secret",
+      _secret_credential, @raw_secret_credential = ClientSecretCredential.issue!(
+        name: "Passkey MFA secret_credential",
         user_id: @user.id,
-        user_secret_kind_id: ClientSecretKind::PERMANENT,
+        user_secret_kind_id: ClientSecretCredentialKind::PERMANENT,
         uses: 10,
         status: :active,
       )
@@ -62,13 +62,13 @@ module Sign::App::In
       get new_sign_app_in_challenge_passkey_path(ri: "jp")
 
       assert_response :see_other
-      assert_redirected_to new_sign_app_in_path(ri: "jp")
+      assert_redirected_to new_sign_app_sign_in_path(ri: "jp")
       assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
     end
 
     test "create verifies passkey and finalizes login with pending_mfa" do
       # skip "Route helper new_sign_app_in_mfa_passkey_path is undefined - needs route configuration fix"
-      establish_pending_mfa_via_secret!
+      establish_pending_mfa_via_secret_credential!
 
       get new_sign_app_in_challenge_passkey_path(ri: "jp")
 
@@ -114,12 +114,12 @@ module Sign::App::In
 
     private
 
-    def establish_pending_mfa_via_secret!
+    def establish_pending_mfa_via_secret_credential!
       post(
-        sign_app_in_secret_path(ri: "jp"), params: {
-          secret_login_form: {
+        sign_app_in_secret_credential_path(ri: "jp"), params: {
+          secret_credential_login_form: {
             identifier: @email,
-            secret_value: @raw_secret,
+            secret_credential_value: @raw_secret_credential,
           },
           "cf-turnstile-response": "test_token",
         },

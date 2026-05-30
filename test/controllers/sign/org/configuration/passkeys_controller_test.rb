@@ -4,12 +4,12 @@
 require "test_helper"
 
 class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures_only :operators, :operator_identity_statuses, :operator_passkey_statuses
+  fixtures_only :operators, :operator_statuses, :operator_passkey_statuses
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = operators(:one)
-    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    @staff.update!(status_id: OperatorStatus::ACTIVE)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     @token.rotate_refresh_token!
     satisfy_staff_verification(@token)
@@ -64,7 +64,7 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   test "new allows bootstrap when operator multi factor status is unconfigured" do
-    operator = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    operator = Operator.create!(status_id: OperatorStatus::ACTIVE)
     token = OperatorToken.create!(staff: operator, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     token.rotate_refresh_token!
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
@@ -78,7 +78,7 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
     end
 
     assert_response :success
-    assert_equal OperatorMultiFactorStatus::UNCONFIGURED, operator.reload.multi_factor_status_id
+    assert_equal OperatorMfaStatus::UNCONFIGURED, operator.reload.mfa_status_id
   end
 
   test "new requires step up when operator multi factor status is active" do
@@ -100,14 +100,14 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_passkey", query["scope"]
-    assert_equal OperatorMultiFactorStatus::ACTIVE, @staff.reload.multi_factor_status_id
+    assert_equal OperatorMfaStatus::ACTIVE, @staff.reload.mfa_status_id
   end
 
   test "redirects unauthenticated staff to login" do
     get sign_org_configuration_passkeys_url(ri: "jp"), headers: @host_headers
 
     assert_response :redirect
-    assert_equal "https://#{ENV.fetch("ID_STAFF_URL", "id.umaxica.org")}#{new_sign_org_in_path(ri: "jp")}",
+    assert_equal "https://#{ENV.fetch("ID_STAFF_URL", "id.umaxica.org")}#{new_sign_org_sign_in_path(ri: "jp")}",
                  jump_rt_url_from_location(response.headers["Location"])
   end
 
@@ -191,7 +191,7 @@ class Sign::Org::Configuration::PasskeysControllerTest < ActionDispatch::Integra
   end
 
   test "cannot access other staff's passkey" do
-    other_staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    other_staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     other_passkey = OperatorPasskey.create!(
       staff: other_staff,
       webauthn_id: "other_webauthn_id",

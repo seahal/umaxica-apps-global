@@ -6,25 +6,30 @@
 # Table name: com_post_categories
 # Database name: com_publisher
 #
-#  id                          :bigint           not null, primary key
-#  created_at                  :datetime         not null
-#  updated_at                  :datetime         not null
-#  com_post_category_master_id :bigint           default(0), not null
-#  com_post_id                 :bigint           not null
+#  id        :bigint           not null, primary key
+#  parent_id :bigint           default(0), not null
 #
 # Indexes
 #
-#  index_com_post_categories_on_com_post_category_master_id  (com_post_category_master_id)
-#  index_com_post_categories_on_com_post_id                  (com_post_id) UNIQUE
-#
-# Foreign Keys
-#
-#  fk_rails_...  (com_post_category_master_id => com_post_category_masters.id)
-#  fk_rails_...  (com_post_id => com_posts.id) ON DELETE => cascade
+#  index_com_post_categories_on_parent_id  (parent_id)
 #
 class ComPostCategory < ComPublisherRecord
-  belongs_to :com_post, class_name: "ComPost", inverse_of: :com_post_category
-  belongs_to :com_post_category_master, class_name: "ComPostCategoryMaster", inverse_of: :com_post_categories
+  NOTHING = 0
+  LEGACY_NOTHING = 1
+  DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
 
-  validates :com_post_id, uniqueness: true
+  include PublisherPostMaster
+
+  belongs_to :parent,
+             class_name: "ComPostCategory",
+             inverse_of: :children,
+             optional: true
+  has_many :children,
+           class_name: "ComPostCategory",
+           foreign_key: :parent_id,
+           inverse_of: :parent,
+           dependent: :restrict_with_error
+  has_many :com_post_categorizations, class_name: "ComPostCategorization", dependent: :restrict_with_error,
+                                      inverse_of: :com_post_category
+  has_many :com_posts, through: :com_post_categorizations
 end

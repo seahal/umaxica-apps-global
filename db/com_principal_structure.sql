@@ -198,19 +198,19 @@ ALTER SEQUENCE public.visitor_emails_id_seq OWNED BY public.visitor_emails.id;
 
 
 --
--- Name: visitor_multi_factor_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_mfa_levels; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_multi_factor_statuses (
+CREATE UNLOGGED TABLE public.visitor_mfa_levels (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_multi_factor_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_mfa_levels_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_multi_factor_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_mfa_levels_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -219,26 +219,26 @@ CREATE UNLOGGED SEQUENCE public.visitor_multi_factor_statuses_id_seq
 
 
 --
--- Name: visitor_multi_factor_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_mfa_levels_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_multi_factor_statuses_id_seq OWNED BY public.visitor_multi_factor_statuses.id;
+ALTER SEQUENCE public.visitor_mfa_levels_id_seq OWNED BY public.visitor_mfa_levels.id;
 
 
 --
--- Name: visitor_multi_factors; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_mfa_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_multi_factors (
+CREATE UNLOGGED TABLE public.visitor_mfa_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_multi_factors_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_mfa_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_multi_factors_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_mfa_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -247,10 +247,10 @@ CREATE UNLOGGED SEQUENCE public.visitor_multi_factors_id_seq
 
 
 --
--- Name: visitor_multi_factors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_mfa_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_multi_factors_id_seq OWNED BY public.visitor_multi_factors.id;
+ALTER SEQUENCE public.visitor_mfa_statuses_id_seq OWNED BY public.visitor_mfa_statuses.id;
 
 
 --
@@ -320,6 +320,66 @@ CREATE UNLOGGED SEQUENCE public.visitor_passkeys_id_seq
 --
 
 ALTER SEQUENCE public.visitor_passkeys_id_seq OWNED BY public.visitor_passkeys.id;
+
+
+--
+-- Name: visitor_preference_adult_content_gate_options; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.visitor_preference_adult_content_gate_options (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: visitor_preference_adult_content_gate_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.visitor_preference_adult_content_gate_options_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_preference_adult_content_gate_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_preference_adult_content_gate_options_id_seq OWNED BY public.visitor_preference_adult_content_gate_options.id;
+
+
+--
+-- Name: visitor_preference_adult_content_gates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.visitor_preference_adult_content_gates (
+    id bigint NOT NULL,
+    preference_id bigint NOT NULL,
+    option_id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: visitor_preference_adult_content_gates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED SEQUENCE public.visitor_preference_adult_content_gates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_preference_adult_content_gates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_preference_adult_content_gates_id_seq OWNED BY public.visitor_preference_adult_content_gates.id;
 
 
 --
@@ -503,66 +563,6 @@ ALTER SEQUENCE public.visitor_preference_density_options_id_seq OWNED BY public.
 
 
 --
--- Name: visitor_preference_items_per_page_options; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.visitor_preference_items_per_page_options (
-    id bigint NOT NULL
-);
-
-
---
--- Name: visitor_preference_items_per_page_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.visitor_preference_items_per_page_options_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: visitor_preference_items_per_page_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.visitor_preference_items_per_page_options_id_seq OWNED BY public.visitor_preference_items_per_page_options.id;
-
-
---
--- Name: visitor_preference_items_per_pages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED TABLE public.visitor_preference_items_per_pages (
-    id bigint NOT NULL,
-    preference_id bigint NOT NULL,
-    option_id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
-);
-
-
---
--- Name: visitor_preference_items_per_pages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE UNLOGGED SEQUENCE public.visitor_preference_items_per_pages_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: visitor_preference_items_per_pages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.visitor_preference_items_per_pages_id_seq OWNED BY public.visitor_preference_items_per_pages.id;
-
-
---
 -- Name: visitor_preference_language_options; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -683,19 +683,19 @@ ALTER SEQUENCE public.visitor_preference_motions_id_seq OWNED BY public.visitor_
 
 
 --
--- Name: visitor_preference_r18_display_stopper_options; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_preference_page_size_options; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_preference_r18_display_stopper_options (
+CREATE UNLOGGED TABLE public.visitor_preference_page_size_options (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_preference_page_size_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_preference_r18_display_stopper_options_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_preference_page_size_options_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -704,17 +704,17 @@ CREATE UNLOGGED SEQUENCE public.visitor_preference_r18_display_stopper_options_i
 
 
 --
--- Name: visitor_preference_r18_display_stopper_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_preference_page_size_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_preference_r18_display_stopper_options_id_seq OWNED BY public.visitor_preference_r18_display_stopper_options.id;
+ALTER SEQUENCE public.visitor_preference_page_size_options_id_seq OWNED BY public.visitor_preference_page_size_options.id;
 
 
 --
--- Name: visitor_preference_r18_display_stoppers; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_preference_page_sizes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_preference_r18_display_stoppers (
+CREATE UNLOGGED TABLE public.visitor_preference_page_sizes (
     id bigint NOT NULL,
     preference_id bigint NOT NULL,
     option_id bigint NOT NULL,
@@ -724,10 +724,10 @@ CREATE UNLOGGED TABLE public.visitor_preference_r18_display_stoppers (
 
 
 --
--- Name: visitor_preference_r18_display_stoppers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_preference_page_sizes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_preference_r18_display_stoppers_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_preference_page_sizes_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -736,10 +736,10 @@ CREATE UNLOGGED SEQUENCE public.visitor_preference_r18_display_stoppers_id_seq
 
 
 --
--- Name: visitor_preference_r18_display_stoppers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_preference_page_sizes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_preference_r18_display_stoppers_id_seq OWNED BY public.visitor_preference_r18_display_stoppers.id;
+ALTER SEQUENCE public.visitor_preference_page_sizes_id_seq OWNED BY public.visitor_preference_page_sizes.id;
 
 
 --
@@ -1004,7 +1004,7 @@ CREATE UNLOGGED TABLE public.visitor_preferences (
     time_format character varying DEFAULT 'hour_24'::character varying NOT NULL,
     motion character varying DEFAULT 'standard'::character varying NOT NULL,
     density character varying DEFAULT 'standard'::character varying NOT NULL,
-    items_per_page character varying DEFAULT '20'::character varying NOT NULL,
+    page_size character varying DEFAULT '20'::character varying NOT NULL,
     public_id character varying(21),
     created_at timestamp(6) with time zone NOT NULL,
     updated_at timestamp(6) with time zone NOT NULL
@@ -1031,19 +1031,19 @@ ALTER SEQUENCE public.visitor_preferences_id_seq OWNED BY public.visitor_prefere
 
 
 --
--- Name: visitor_secret_kinds; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_secret_credential_kinds; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_secret_kinds (
+CREATE UNLOGGED TABLE public.visitor_secret_credential_kinds (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_secret_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_secret_credential_kinds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_secret_kinds_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_secret_credential_kinds_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1052,26 +1052,26 @@ CREATE UNLOGGED SEQUENCE public.visitor_secret_kinds_id_seq
 
 
 --
--- Name: visitor_secret_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_secret_credential_kinds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_secret_kinds_id_seq OWNED BY public.visitor_secret_kinds.id;
+ALTER SEQUENCE public.visitor_secret_credential_kinds_id_seq OWNED BY public.visitor_secret_credential_kinds.id;
 
 
 --
--- Name: visitor_secret_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_secret_credential_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_secret_statuses (
+CREATE UNLOGGED TABLE public.visitor_secret_credential_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_secret_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_secret_credential_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_secret_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_secret_credential_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1080,17 +1080,17 @@ CREATE UNLOGGED SEQUENCE public.visitor_secret_statuses_id_seq
 
 
 --
--- Name: visitor_secret_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_secret_credential_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_secret_statuses_id_seq OWNED BY public.visitor_secret_statuses.id;
+ALTER SEQUENCE public.visitor_secret_credential_statuses_id_seq OWNED BY public.visitor_secret_credential_statuses.id;
 
 
 --
--- Name: visitor_secrets; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_secret_credentials; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_secrets (
+CREATE UNLOGGED TABLE public.visitor_secret_credentials (
     id bigint NOT NULL,
     name character varying DEFAULT ''::character varying NOT NULL,
     password_digest character varying DEFAULT ''::character varying NOT NULL,
@@ -1098,8 +1098,8 @@ CREATE UNLOGGED TABLE public.visitor_secrets (
     uses_remaining integer DEFAULT 1 NOT NULL,
     public_id character varying(21) NOT NULL,
     visitor_id bigint NOT NULL,
-    visitor_secret_status_id bigint DEFAULT 1 NOT NULL,
-    visitor_secret_kind_id bigint DEFAULT 1 NOT NULL,
+    visitor_secret_credential_status_id bigint DEFAULT 1 NOT NULL,
+    visitor_secret_credential_kind_id bigint DEFAULT 1 NOT NULL,
     created_at timestamp(6) with time zone NOT NULL,
     updated_at timestamp(6) with time zone NOT NULL,
     discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
@@ -1109,10 +1109,10 @@ CREATE UNLOGGED TABLE public.visitor_secrets (
 
 
 --
--- Name: visitor_secrets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_secret_credentials_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_secrets_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_secret_credentials_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1121,10 +1121,10 @@ CREATE UNLOGGED SEQUENCE public.visitor_secrets_id_seq
 
 
 --
--- Name: visitor_secrets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_secret_credentials_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_secrets_id_seq OWNED BY public.visitor_secrets.id;
+ALTER SEQUENCE public.visitor_secret_credentials_id_seq OWNED BY public.visitor_secret_credentials.id;
 
 
 --
@@ -1254,12 +1254,12 @@ ALTER SEQUENCE public.visitor_visibilities_id_seq OWNED BY public.visitor_visibi
 
 
 --
--- Name: visitor_withdrawal_cycle_events; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_withdrawal_cycle_events (
+CREATE UNLOGGED TABLE public.visitor_withdrawal_flow_events (
     id bigint NOT NULL,
-    visitor_withdrawal_cycle_id bigint NOT NULL,
+    visitor_withdrawal_flow_id bigint NOT NULL,
     visitor_id bigint NOT NULL,
     from_status_id bigint,
     to_status_id bigint NOT NULL,
@@ -1273,10 +1273,10 @@ CREATE UNLOGGED TABLE public.visitor_withdrawal_cycle_events (
 
 
 --
--- Name: visitor_withdrawal_cycle_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_cycle_events_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_flow_events_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1285,26 +1285,26 @@ CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_cycle_events_id_seq
 
 
 --
--- Name: visitor_withdrawal_cycle_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_withdrawal_cycle_events_id_seq OWNED BY public.visitor_withdrawal_cycle_events.id;
+ALTER SEQUENCE public.visitor_withdrawal_flow_events_id_seq OWNED BY public.visitor_withdrawal_flow_events.id;
 
 
 --
--- Name: visitor_withdrawal_cycle_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_withdrawal_cycle_statuses (
+CREATE UNLOGGED TABLE public.visitor_withdrawal_flow_statuses (
     id bigint NOT NULL
 );
 
 
 --
--- Name: visitor_withdrawal_cycle_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_cycle_statuses_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_flow_statuses_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1313,17 +1313,17 @@ CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_cycle_statuses_id_seq
 
 
 --
--- Name: visitor_withdrawal_cycle_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_withdrawal_cycle_statuses_id_seq OWNED BY public.visitor_withdrawal_cycle_statuses.id;
+ALTER SEQUENCE public.visitor_withdrawal_flow_statuses_id_seq OWNED BY public.visitor_withdrawal_flow_statuses.id;
 
 
 --
--- Name: visitor_withdrawal_cycles; Type: TABLE; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flows; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.visitor_withdrawal_cycles (
+CREATE UNLOGGED TABLE public.visitor_withdrawal_flows (
     id bigint NOT NULL,
     public_id character varying(21) NOT NULL,
     visitor_id bigint NOT NULL,
@@ -1340,10 +1340,10 @@ CREATE UNLOGGED TABLE public.visitor_withdrawal_cycles (
 
 
 --
--- Name: visitor_withdrawal_cycles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_cycles_id_seq
+CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_flows_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1352,10 +1352,10 @@ CREATE UNLOGGED SEQUENCE public.visitor_withdrawal_cycles_id_seq
 
 
 --
--- Name: visitor_withdrawal_cycles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.visitor_withdrawal_cycles_id_seq OWNED BY public.visitor_withdrawal_cycles.id;
+ALTER SEQUENCE public.visitor_withdrawal_flows_id_seq OWNED BY public.visitor_withdrawal_flows.id;
 
 
 --
@@ -1368,7 +1368,7 @@ CREATE UNLOGGED TABLE public.visitors (
     purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
     created_at timestamp(6) with time zone NOT NULL,
     lock_version integer DEFAULT 0 NOT NULL,
-    multi_factor_enabled boolean DEFAULT false NOT NULL,
+    mfa_level_enabled boolean DEFAULT false NOT NULL,
     public_id character varying DEFAULT ''::character varying NOT NULL,
     status_id bigint DEFAULT 2 NOT NULL,
     visibility_id bigint DEFAULT 1 NOT NULL,
@@ -1376,8 +1376,8 @@ CREATE UNLOGGED TABLE public.visitors (
     withdrawn_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp without time zone,
     withdrawal_started_at timestamp(6) with time zone,
     discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
-    multi_factor_id bigint DEFAULT 0 NOT NULL,
-    multi_factor_status_id bigint DEFAULT 5 NOT NULL,
+    mfa_level_id bigint DEFAULT 0 NOT NULL,
+    mfa_status_id bigint DEFAULT 5 NOT NULL,
     terminated_at timestamp(6) with time zone,
     birthdate text,
     CONSTRAINT chk_customers_retention_order CHECK ((discarded_at <= purged_at)),
@@ -1433,17 +1433,17 @@ ALTER TABLE ONLY public.visitor_emails ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
--- Name: visitor_multi_factor_statuses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_mfa_levels id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_multi_factor_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_multi_factor_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_mfa_levels ALTER COLUMN id SET DEFAULT nextval('public.visitor_mfa_levels_id_seq'::regclass);
 
 
 --
--- Name: visitor_multi_factors id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_mfa_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_multi_factors ALTER COLUMN id SET DEFAULT nextval('public.visitor_multi_factors_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_mfa_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_mfa_statuses_id_seq'::regclass);
 
 
 --
@@ -1458,6 +1458,20 @@ ALTER TABLE ONLY public.visitor_passkey_statuses ALTER COLUMN id SET DEFAULT nex
 --
 
 ALTER TABLE ONLY public.visitor_passkeys ALTER COLUMN id SET DEFAULT nextval('public.visitor_passkeys_id_seq'::regclass);
+
+
+--
+-- Name: visitor_preference_adult_content_gate_options id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_preference_adult_content_gate_options ALTER COLUMN id SET DEFAULT nextval('public.visitor_preference_adult_content_gate_options_id_seq'::regclass);
+
+
+--
+-- Name: visitor_preference_adult_content_gates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_preference_adult_content_gates ALTER COLUMN id SET DEFAULT nextval('public.visitor_preference_adult_content_gates_id_seq'::regclass);
 
 
 --
@@ -1503,20 +1517,6 @@ ALTER TABLE ONLY public.visitor_preference_density_options ALTER COLUMN id SET D
 
 
 --
--- Name: visitor_preference_items_per_page_options id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_preference_items_per_page_options ALTER COLUMN id SET DEFAULT nextval('public.visitor_preference_items_per_page_options_id_seq'::regclass);
-
-
---
--- Name: visitor_preference_items_per_pages id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_preference_items_per_pages ALTER COLUMN id SET DEFAULT nextval('public.visitor_preference_items_per_pages_id_seq'::regclass);
-
-
---
 -- Name: visitor_preference_language_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1545,17 +1545,17 @@ ALTER TABLE ONLY public.visitor_preference_motions ALTER COLUMN id SET DEFAULT n
 
 
 --
--- Name: visitor_preference_r18_display_stopper_options id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_preference_page_size_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_preference_r18_display_stopper_options ALTER COLUMN id SET DEFAULT nextval('public.visitor_preference_r18_display_stopper_options_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_preference_page_size_options ALTER COLUMN id SET DEFAULT nextval('public.visitor_preference_page_size_options_id_seq'::regclass);
 
 
 --
--- Name: visitor_preference_r18_display_stoppers id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_preference_page_sizes id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_preference_r18_display_stoppers ALTER COLUMN id SET DEFAULT nextval('public.visitor_preference_r18_display_stoppers_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_preference_page_sizes ALTER COLUMN id SET DEFAULT nextval('public.visitor_preference_page_sizes_id_seq'::regclass);
 
 
 --
@@ -1622,24 +1622,24 @@ ALTER TABLE ONLY public.visitor_preferences ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
--- Name: visitor_secret_kinds id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_secret_credential_kinds id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_secret_kinds ALTER COLUMN id SET DEFAULT nextval('public.visitor_secret_kinds_id_seq'::regclass);
-
-
---
--- Name: visitor_secret_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_secret_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_secret_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_secret_credential_kinds ALTER COLUMN id SET DEFAULT nextval('public.visitor_secret_credential_kinds_id_seq'::regclass);
 
 
 --
--- Name: visitor_secrets id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_secret_credential_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_secrets ALTER COLUMN id SET DEFAULT nextval('public.visitor_secrets_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_secret_credential_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_secret_credential_statuses_id_seq'::regclass);
+
+
+--
+-- Name: visitor_secret_credentials id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_secret_credentials ALTER COLUMN id SET DEFAULT nextval('public.visitor_secret_credentials_id_seq'::regclass);
 
 
 --
@@ -1671,24 +1671,24 @@ ALTER TABLE ONLY public.visitor_visibilities ALTER COLUMN id SET DEFAULT nextval
 
 
 --
--- Name: visitor_withdrawal_cycle_events id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycle_events ALTER COLUMN id SET DEFAULT nextval('public.visitor_withdrawal_cycle_events_id_seq'::regclass);
-
-
---
--- Name: visitor_withdrawal_cycle_statuses id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_withdrawal_cycle_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_withdrawal_cycle_statuses_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_withdrawal_flow_events ALTER COLUMN id SET DEFAULT nextval('public.visitor_withdrawal_flow_events_id_seq'::regclass);
 
 
 --
--- Name: visitor_withdrawal_cycles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycles ALTER COLUMN id SET DEFAULT nextval('public.visitor_withdrawal_cycles_id_seq'::regclass);
+ALTER TABLE ONLY public.visitor_withdrawal_flow_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_withdrawal_flow_statuses_id_seq'::regclass);
+
+
+--
+-- Name: visitor_withdrawal_flows id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_withdrawal_flows ALTER COLUMN id SET DEFAULT nextval('public.visitor_withdrawal_flows_id_seq'::regclass);
 
 
 --
@@ -1743,7 +1743,7 @@ ALTER TABLE public.visitor_telephones
 --
 
 ALTER TABLE public.visitors
-    ADD CONSTRAINT chk_visitors_mfa_requirement_consistency CHECK ((((multi_factor_enabled = false) AND (multi_factor_id = 0)) OR ((multi_factor_enabled = true) AND (multi_factor_id <> 0)))) NOT VALID;
+    ADD CONSTRAINT chk_visitors_mfa_requirement_consistency CHECK ((((mfa_level_enabled = false) AND (mfa_level_id = 0)) OR ((mfa_level_enabled = true) AND (mfa_level_id <> 0)))) NOT VALID;
 
 
 --
@@ -1795,19 +1795,19 @@ ALTER TABLE ONLY public.visitor_emails
 
 
 --
--- Name: visitor_multi_factor_statuses visitor_multi_factor_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_mfa_levels visitor_mfa_levels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_multi_factor_statuses
-    ADD CONSTRAINT visitor_multi_factor_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_mfa_levels
+    ADD CONSTRAINT visitor_mfa_levels_pkey PRIMARY KEY (id);
 
 
 --
--- Name: visitor_multi_factors visitor_multi_factors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_mfa_statuses visitor_mfa_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_multi_factors
-    ADD CONSTRAINT visitor_multi_factors_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_mfa_statuses
+    ADD CONSTRAINT visitor_mfa_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -1824,6 +1824,22 @@ ALTER TABLE ONLY public.visitor_passkey_statuses
 
 ALTER TABLE ONLY public.visitor_passkeys
     ADD CONSTRAINT visitor_passkeys_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_preference_adult_content_gate_options visitor_preference_adult_content_gate_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_preference_adult_content_gate_options
+    ADD CONSTRAINT visitor_preference_adult_content_gate_options_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_preference_adult_content_gates visitor_preference_adult_content_gates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_preference_adult_content_gates
+    ADD CONSTRAINT visitor_preference_adult_content_gates_pkey PRIMARY KEY (id);
 
 
 --
@@ -1875,22 +1891,6 @@ ALTER TABLE ONLY public.visitor_preference_density_options
 
 
 --
--- Name: visitor_preference_items_per_page_options visitor_preference_items_per_page_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_preference_items_per_page_options
-    ADD CONSTRAINT visitor_preference_items_per_page_options_pkey PRIMARY KEY (id);
-
-
---
--- Name: visitor_preference_items_per_pages visitor_preference_items_per_pages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_preference_items_per_pages
-    ADD CONSTRAINT visitor_preference_items_per_pages_pkey PRIMARY KEY (id);
-
-
---
 -- Name: visitor_preference_language_options visitor_preference_language_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1923,19 +1923,19 @@ ALTER TABLE ONLY public.visitor_preference_motions
 
 
 --
--- Name: visitor_preference_r18_display_stopper_options visitor_preference_r18_display_stopper_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_preference_page_size_options visitor_preference_page_size_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_preference_r18_display_stopper_options
-    ADD CONSTRAINT visitor_preference_r18_display_stopper_options_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_preference_page_size_options
+    ADD CONSTRAINT visitor_preference_page_size_options_pkey PRIMARY KEY (id);
 
 
 --
--- Name: visitor_preference_r18_display_stoppers visitor_preference_r18_display_stoppers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_preference_page_sizes visitor_preference_page_sizes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_preference_r18_display_stoppers
-    ADD CONSTRAINT visitor_preference_r18_display_stoppers_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_preference_page_sizes
+    ADD CONSTRAINT visitor_preference_page_sizes_pkey PRIMARY KEY (id);
 
 
 --
@@ -2011,27 +2011,27 @@ ALTER TABLE ONLY public.visitor_preferences
 
 
 --
--- Name: visitor_secret_kinds visitor_secret_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_secret_credential_kinds visitor_secret_credential_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_secret_kinds
-    ADD CONSTRAINT visitor_secret_kinds_pkey PRIMARY KEY (id);
-
-
---
--- Name: visitor_secret_statuses visitor_secret_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_secret_statuses
-    ADD CONSTRAINT visitor_secret_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_secret_credential_kinds
+    ADD CONSTRAINT visitor_secret_credential_kinds_pkey PRIMARY KEY (id);
 
 
 --
--- Name: visitor_secrets visitor_secrets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_secret_credential_statuses visitor_secret_credential_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_secrets
-    ADD CONSTRAINT visitor_secrets_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_secret_credential_statuses
+    ADD CONSTRAINT visitor_secret_credential_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_secret_credentials visitor_secret_credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_secret_credentials
+    ADD CONSTRAINT visitor_secret_credentials_pkey PRIMARY KEY (id);
 
 
 --
@@ -2067,27 +2067,27 @@ ALTER TABLE ONLY public.visitor_visibilities
 
 
 --
--- Name: visitor_withdrawal_cycle_events visitor_withdrawal_cycle_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events visitor_withdrawal_flow_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
-    ADD CONSTRAINT visitor_withdrawal_cycle_events_pkey PRIMARY KEY (id);
-
-
---
--- Name: visitor_withdrawal_cycle_statuses visitor_withdrawal_cycle_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visitor_withdrawal_cycle_statuses
-    ADD CONSTRAINT visitor_withdrawal_cycle_statuses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_withdrawal_flow_events
+    ADD CONSTRAINT visitor_withdrawal_flow_events_pkey PRIMARY KEY (id);
 
 
 --
--- Name: visitor_withdrawal_cycles visitor_withdrawal_cycles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_statuses visitor_withdrawal_flow_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycles
-    ADD CONSTRAINT visitor_withdrawal_cycles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.visitor_withdrawal_flow_statuses
+    ADD CONSTRAINT visitor_withdrawal_flow_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_withdrawal_flows visitor_withdrawal_flows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_withdrawal_flows
+    ADD CONSTRAINT visitor_withdrawal_flows_pkey PRIMARY KEY (id);
 
 
 --
@@ -2099,10 +2099,24 @@ ALTER TABLE ONLY public.visitors
 
 
 --
--- Name: idx_on_visitor_withdrawal_cycle_id_b3ca5138c1; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_on_visitor_secret_credential_kind_id_80c2fa07fe; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_on_visitor_withdrawal_cycle_id_b3ca5138c1 ON public.visitor_withdrawal_cycle_events USING btree (visitor_withdrawal_cycle_id);
+CREATE INDEX idx_on_visitor_secret_credential_kind_id_80c2fa07fe ON public.visitor_secret_credentials USING btree (visitor_secret_credential_kind_id);
+
+
+--
+-- Name: idx_on_visitor_secret_credential_status_id_a8132e5a1a; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_visitor_secret_credential_status_id_a8132e5a1a ON public.visitor_secret_credentials USING btree (visitor_secret_credential_status_id);
+
+
+--
+-- Name: idx_on_visitor_withdrawal_flow_id_dada4f9f5b; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_visitor_withdrawal_flow_id_dada4f9f5b ON public.visitor_withdrawal_flow_events USING btree (visitor_withdrawal_flow_id);
 
 
 --
@@ -2211,6 +2225,20 @@ CREATE UNIQUE INDEX index_visitor_passkeys_on_webauthn_id ON public.visitor_pass
 
 
 --
+-- Name: index_visitor_preference_adult_content_gates_on_option_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_preference_adult_content_gates_on_option_id ON public.visitor_preference_adult_content_gates USING btree (option_id);
+
+
+--
+-- Name: index_visitor_preference_adult_content_gates_on_preference_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_preference_adult_content_gates_on_preference_id ON public.visitor_preference_adult_content_gates USING btree (preference_id);
+
+
+--
 -- Name: index_visitor_preference_currencies_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2253,20 +2281,6 @@ CREATE UNIQUE INDEX index_visitor_preference_densities_on_preference_id ON publi
 
 
 --
--- Name: index_visitor_preference_items_per_pages_on_option_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_preference_items_per_pages_on_option_id ON public.visitor_preference_items_per_pages USING btree (option_id);
-
-
---
--- Name: index_visitor_preference_items_per_pages_on_preference_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_visitor_preference_items_per_pages_on_preference_id ON public.visitor_preference_items_per_pages USING btree (preference_id);
-
-
---
 -- Name: index_visitor_preference_language_options_on_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2302,17 +2316,17 @@ CREATE UNIQUE INDEX index_visitor_preference_motions_on_preference_id ON public.
 
 
 --
--- Name: index_visitor_preference_r18_display_stoppers_on_option_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_preference_page_sizes_on_option_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_preference_r18_display_stoppers_on_option_id ON public.visitor_preference_r18_display_stoppers USING btree (option_id);
+CREATE INDEX index_visitor_preference_page_sizes_on_option_id ON public.visitor_preference_page_sizes USING btree (option_id);
 
 
 --
--- Name: index_visitor_preference_r18_display_stoppers_on_preference_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_preference_page_sizes_on_preference_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_visitor_preference_r18_display_stoppers_on_preference_id ON public.visitor_preference_r18_display_stoppers USING btree (preference_id);
+CREATE UNIQUE INDEX index_visitor_preference_page_sizes_on_preference_id ON public.visitor_preference_page_sizes USING btree (preference_id);
 
 
 --
@@ -2407,31 +2421,17 @@ CREATE UNIQUE INDEX index_visitor_preferences_on_visitor_id ON public.visitor_pr
 
 
 --
--- Name: index_visitor_secrets_on_public_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_secret_credentials_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_visitor_secrets_on_public_id ON public.visitor_secrets USING btree (public_id);
-
-
---
--- Name: index_visitor_secrets_on_visitor_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_secrets_on_visitor_id ON public.visitor_secrets USING btree (visitor_id);
+CREATE UNIQUE INDEX index_visitor_secret_credentials_on_public_id ON public.visitor_secret_credentials USING btree (public_id);
 
 
 --
--- Name: index_visitor_secrets_on_visitor_secret_kind_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_secret_credentials_on_visitor_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_secrets_on_visitor_secret_kind_id ON public.visitor_secrets USING btree (visitor_secret_kind_id);
-
-
---
--- Name: index_visitor_secrets_on_visitor_secret_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_secrets_on_visitor_secret_status_id ON public.visitor_secrets USING btree (visitor_secret_status_id);
+CREATE INDEX index_visitor_secret_credentials_on_visitor_id ON public.visitor_secret_credentials USING btree (visitor_id);
 
 
 --
@@ -2477,80 +2477,80 @@ CREATE INDEX index_visitor_telephones_on_visitor_telephone_status_id ON public.v
 
 
 --
--- Name: index_visitor_withdrawal_cycle_events_on_from_status_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_withdrawal_flow_events_on_from_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_withdrawal_cycle_events_on_from_status_id ON public.visitor_withdrawal_cycle_events USING btree (from_status_id);
-
-
---
--- Name: index_visitor_withdrawal_cycle_events_on_occurred_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_withdrawal_cycle_events_on_occurred_at ON public.visitor_withdrawal_cycle_events USING btree (occurred_at);
+CREATE INDEX index_visitor_withdrawal_flow_events_on_from_status_id ON public.visitor_withdrawal_flow_events USING btree (from_status_id);
 
 
 --
--- Name: index_visitor_withdrawal_cycle_events_on_to_status_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_withdrawal_flow_events_on_occurred_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_withdrawal_cycle_events_on_to_status_id ON public.visitor_withdrawal_cycle_events USING btree (to_status_id);
-
-
---
--- Name: index_visitor_withdrawal_cycle_events_on_visitor_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_withdrawal_cycle_events_on_visitor_id ON public.visitor_withdrawal_cycle_events USING btree (visitor_id);
+CREATE INDEX index_visitor_withdrawal_flow_events_on_occurred_at ON public.visitor_withdrawal_flow_events USING btree (occurred_at);
 
 
 --
--- Name: index_visitor_withdrawal_cycles_on_began_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_withdrawal_flow_events_on_to_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_withdrawal_cycles_on_began_at ON public.visitor_withdrawal_cycles USING btree (began_at);
-
-
---
--- Name: index_visitor_withdrawal_cycles_on_completed_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_withdrawal_cycles_on_completed_at ON public.visitor_withdrawal_cycles USING btree (completed_at);
+CREATE INDEX index_visitor_withdrawal_flow_events_on_to_status_id ON public.visitor_withdrawal_flow_events USING btree (to_status_id);
 
 
 --
--- Name: index_visitor_withdrawal_cycles_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_withdrawal_flow_events_on_visitor_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_withdrawal_cycles_on_discarded_at ON public.visitor_withdrawal_cycles USING btree (discarded_at);
-
-
---
--- Name: index_visitor_withdrawal_cycles_on_public_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_visitor_withdrawal_cycles_on_public_id ON public.visitor_withdrawal_cycles USING btree (public_id);
+CREATE INDEX index_visitor_withdrawal_flow_events_on_visitor_id ON public.visitor_withdrawal_flow_events USING btree (visitor_id);
 
 
 --
--- Name: index_visitor_withdrawal_cycles_on_purged_at; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_withdrawal_flows_on_began_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_withdrawal_cycles_on_purged_at ON public.visitor_withdrawal_cycles USING btree (purged_at);
-
-
---
--- Name: index_visitor_withdrawal_cycles_on_status_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_visitor_withdrawal_cycles_on_status_id ON public.visitor_withdrawal_cycles USING btree (status_id);
+CREATE INDEX index_visitor_withdrawal_flows_on_began_at ON public.visitor_withdrawal_flows USING btree (began_at);
 
 
 --
--- Name: index_visitor_withdrawal_cycles_on_visitor_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitor_withdrawal_flows_on_completed_at; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitor_withdrawal_cycles_on_visitor_id ON public.visitor_withdrawal_cycles USING btree (visitor_id);
+CREATE INDEX index_visitor_withdrawal_flows_on_completed_at ON public.visitor_withdrawal_flows USING btree (completed_at);
+
+
+--
+-- Name: index_visitor_withdrawal_flows_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_withdrawal_flows_on_discarded_at ON public.visitor_withdrawal_flows USING btree (discarded_at);
+
+
+--
+-- Name: index_visitor_withdrawal_flows_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_withdrawal_flows_on_public_id ON public.visitor_withdrawal_flows USING btree (public_id);
+
+
+--
+-- Name: index_visitor_withdrawal_flows_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_withdrawal_flows_on_purged_at ON public.visitor_withdrawal_flows USING btree (purged_at);
+
+
+--
+-- Name: index_visitor_withdrawal_flows_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_withdrawal_flows_on_status_id ON public.visitor_withdrawal_flows USING btree (status_id);
+
+
+--
+-- Name: index_visitor_withdrawal_flows_on_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_withdrawal_flows_on_visitor_id ON public.visitor_withdrawal_flows USING btree (visitor_id);
 
 
 --
@@ -2568,17 +2568,17 @@ CREATE INDEX index_visitors_on_discarded_at ON public.visitors USING btree (disc
 
 
 --
--- Name: index_visitors_on_multi_factor_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitors_on_mfa_level_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitors_on_multi_factor_id ON public.visitors USING btree (multi_factor_id);
+CREATE INDEX index_visitors_on_mfa_level_id ON public.visitors USING btree (mfa_level_id);
 
 
 --
--- Name: index_visitors_on_multi_factor_status_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_visitors_on_mfa_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_visitors_on_multi_factor_status_id ON public.visitors USING btree (multi_factor_status_id);
+CREATE INDEX index_visitors_on_mfa_status_id ON public.visitors USING btree (mfa_status_id);
 
 
 --
@@ -2631,19 +2631,19 @@ CREATE INDEX index_visitors_on_withdrawn_at ON public.visitors USING btree (with
 
 
 --
--- Name: visitor_preference_items_per_pages fk_rails_014019b4c4; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_preference_page_sizes fk_rails_014019b4c4; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_preference_items_per_pages
+ALTER TABLE ONLY public.visitor_preference_page_sizes
     ADD CONSTRAINT fk_rails_014019b4c4 FOREIGN KEY (preference_id) REFERENCES public.visitor_preferences(id);
 
 
 --
--- Name: visitor_preference_items_per_pages fk_rails_06044e10ed; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_preference_page_sizes fk_rails_06044e10ed; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_preference_items_per_pages
-    ADD CONSTRAINT fk_rails_06044e10ed FOREIGN KEY (option_id) REFERENCES public.visitor_preference_items_per_page_options(id);
+ALTER TABLE ONLY public.visitor_preference_page_sizes
+    ADD CONSTRAINT fk_rails_06044e10ed FOREIGN KEY (option_id) REFERENCES public.visitor_preference_page_size_options(id);
 
 
 --
@@ -2659,7 +2659,7 @@ ALTER TABLE ONLY public.visitor_emails
 --
 
 ALTER TABLE ONLY public.visitors
-    ADD CONSTRAINT fk_rails_15c7fee824 FOREIGN KEY (multi_factor_id) REFERENCES public.visitor_multi_factors(id);
+    ADD CONSTRAINT fk_rails_15c7fee824 FOREIGN KEY (mfa_level_id) REFERENCES public.visitor_mfa_levels(id);
 
 
 --
@@ -2671,11 +2671,11 @@ ALTER TABLE ONLY public.visitor_preference_languages
 
 
 --
--- Name: visitor_withdrawal_cycle_events fk_rails_24dd59e35d; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events fk_rails_24dd59e35d; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_24dd59e35d FOREIGN KEY (from_status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.visitor_withdrawal_flow_events
+    ADD CONSTRAINT fk_rails_24dd59e35d FOREIGN KEY (from_status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
@@ -2687,11 +2687,11 @@ ALTER TABLE ONLY public.visitor_telephones
 
 
 --
--- Name: visitor_secrets fk_rails_2ee7e81748; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_secret_credentials fk_rails_2ee7e81748; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_secrets
-    ADD CONSTRAINT fk_rails_2ee7e81748 FOREIGN KEY (visitor_secret_status_id) REFERENCES public.visitor_secret_statuses(id);
+ALTER TABLE ONLY public.visitor_secret_credentials
+    ADD CONSTRAINT fk_rails_2ee7e81748 FOREIGN KEY (visitor_secret_credential_status_id) REFERENCES public.visitor_secret_credential_statuses(id);
 
 
 --
@@ -2703,10 +2703,10 @@ ALTER TABLE ONLY public.visitor_banners
 
 
 --
--- Name: visitor_preference_r18_display_stoppers fk_rails_33ff94718e; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_preference_adult_content_gates fk_rails_33ff94718e; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_preference_r18_display_stoppers
+ALTER TABLE ONLY public.visitor_preference_adult_content_gates
     ADD CONSTRAINT fk_rails_33ff94718e FOREIGN KEY (preference_id) REFERENCES public.visitor_preferences(id);
 
 
@@ -2735,10 +2735,10 @@ ALTER TABLE ONLY public.visitor_passkeys
 
 
 --
--- Name: visitor_withdrawal_cycles fk_rails_3e7b55d34f; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flows fk_rails_3e7b55d34f; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycles
+ALTER TABLE ONLY public.visitor_withdrawal_flows
     ADD CONSTRAINT fk_rails_3e7b55d34f FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) NOT VALID;
 
 
@@ -2751,10 +2751,10 @@ ALTER TABLE ONLY public.visitor_preference_time_formats
 
 
 --
--- Name: visitor_secrets fk_rails_41951b924f; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_secret_credentials fk_rails_41951b924f; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_secrets
+ALTER TABLE ONLY public.visitor_secret_credentials
     ADD CONSTRAINT fk_rails_41951b924f FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
 
 
@@ -2767,10 +2767,10 @@ ALTER TABLE ONLY public.visitor_preference_date_formats
 
 
 --
--- Name: visitor_withdrawal_cycle_events fk_rails_55a6a6bfd5; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events fk_rails_55a6a6bfd5; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
+ALTER TABLE ONLY public.visitor_withdrawal_flow_events
     ADD CONSTRAINT fk_rails_55a6a6bfd5 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) NOT VALID;
 
 
@@ -2783,11 +2783,11 @@ ALTER TABLE ONLY public.visitor_preference_themes
 
 
 --
--- Name: visitor_withdrawal_cycle_events fk_rails_606617dd12; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events fk_rails_606617dd12; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_606617dd12 FOREIGN KEY (visitor_withdrawal_cycle_id) REFERENCES public.visitor_withdrawal_cycles(id) NOT VALID;
+ALTER TABLE ONLY public.visitor_withdrawal_flow_events
+    ADD CONSTRAINT fk_rails_606617dd12 FOREIGN KEY (visitor_withdrawal_flow_id) REFERENCES public.visitor_withdrawal_flows(id) NOT VALID;
 
 
 --
@@ -2811,7 +2811,7 @@ ALTER TABLE ONLY public.visitor_preference_regions
 --
 
 ALTER TABLE ONLY public.visitors
-    ADD CONSTRAINT fk_rails_6e2a03b63d FOREIGN KEY (multi_factor_status_id) REFERENCES public.visitor_multi_factor_statuses(id);
+    ADD CONSTRAINT fk_rails_6e2a03b63d FOREIGN KEY (mfa_status_id) REFERENCES public.visitor_mfa_statuses(id);
 
 
 --
@@ -2823,11 +2823,11 @@ ALTER TABLE ONLY public.visitor_preference_regions
 
 
 --
--- Name: visitor_withdrawal_cycles fk_rails_8021cd7888; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flows fk_rails_8021cd7888; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycles
-    ADD CONSTRAINT fk_rails_8021cd7888 FOREIGN KEY (status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.visitor_withdrawal_flows
+    ADD CONSTRAINT fk_rails_8021cd7888 FOREIGN KEY (status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
@@ -2863,11 +2863,11 @@ ALTER TABLE ONLY public.visitor_preference_currencies
 
 
 --
--- Name: visitor_preference_r18_display_stoppers fk_rails_a04d2550c9; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_preference_adult_content_gates fk_rails_a04d2550c9; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_preference_r18_display_stoppers
-    ADD CONSTRAINT fk_rails_a04d2550c9 FOREIGN KEY (option_id) REFERENCES public.visitor_preference_r18_display_stopper_options(id);
+ALTER TABLE ONLY public.visitor_preference_adult_content_gates
+    ADD CONSTRAINT fk_rails_a04d2550c9 FOREIGN KEY (option_id) REFERENCES public.visitor_preference_adult_content_gate_options(id);
 
 
 --
@@ -2887,11 +2887,11 @@ ALTER TABLE ONLY public.visitors
 
 
 --
--- Name: visitor_withdrawal_cycle_events fk_rails_bb8f094ca9; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_withdrawal_flow_events fk_rails_bb8f094ca9; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_withdrawal_cycle_events
-    ADD CONSTRAINT fk_rails_bb8f094ca9 FOREIGN KEY (to_status_id) REFERENCES public.visitor_withdrawal_cycle_statuses(id) NOT VALID;
+ALTER TABLE ONLY public.visitor_withdrawal_flow_events
+    ADD CONSTRAINT fk_rails_bb8f094ca9 FOREIGN KEY (to_status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
@@ -2951,11 +2951,11 @@ ALTER TABLE ONLY public.visitors
 
 
 --
--- Name: visitor_secrets fk_rails_e1dad63cb9; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visitor_secret_credentials fk_rails_e1dad63cb9; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.visitor_secrets
-    ADD CONSTRAINT fk_rails_e1dad63cb9 FOREIGN KEY (visitor_secret_kind_id) REFERENCES public.visitor_secret_kinds(id);
+ALTER TABLE ONLY public.visitor_secret_credentials
+    ADD CONSTRAINT fk_rails_e1dad63cb9 FOREIGN KEY (visitor_secret_credential_kind_id) REFERENCES public.visitor_secret_credential_kinds(id);
 
 
 --
@@ -2981,6 +2981,11 @@ ALTER TABLE ONLY public.visitor_preference_themes
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260530032500'),
+('20260530032400'),
+('20260530032200'),
+('20260530032100'),
+('20260530031000'),
 ('20260528162002'),
 ('20260526090000'),
 ('20260525131000'),

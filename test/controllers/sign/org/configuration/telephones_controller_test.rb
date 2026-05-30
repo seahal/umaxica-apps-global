@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Configuration::TelephonesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_email_statuses, :operator_telephone_statuses
+  fixtures :operators, :operator_statuses, :operator_email_statuses, :operator_telephone_statuses
   include ActiveJob::TestHelper
 
   setup do

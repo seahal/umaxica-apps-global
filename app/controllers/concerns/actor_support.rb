@@ -312,8 +312,8 @@ module ActorSupport
       time_format: preference_record_value(preference_record, :time_format),
       motion: preference_record_value(preference_record, :motion),
       density: preference_record_value(preference_record, :density),
-      items_per_page: preference_record_value(preference_record, :items_per_page),
-      r18_display_stopper: preference_record_value(preference_record, :r18_display_stopper),
+      page_size: preference_record_value(preference_record, :page_size),
+      adult_content_gate: preference_record_value(preference_record, :adult_content_gate),
       cookie: cookie,
     )
   end
@@ -334,8 +334,8 @@ module ActorSupport
       time_format: preference.time_format,
       motion: preference.motion,
       density: preference.density,
-      items_per_page: preference.items_per_page,
-      r18_display_stopper: preference.r18_display_stopper,
+      page_size: preference.page_size,
+      adult_content_gate: preference.adult_content_gate,
       cookie: preference.cookie,
       null: preference.null?,
       explicit_fields: preference.explicit_fields,
@@ -373,16 +373,16 @@ module ActorSupport
   end
 
   def preference_record_value(preference_record, name)
-    return preference_r18_display_stopper_value(preference_record) if name == :r18_display_stopper
+    return preference_adult_content_gate_value(preference_record) if name == :adult_content_gate
 
     value = preference_record.public_send(name) if preference_record.respond_to?(name)
     value.presence || Actor::Preference::DEFAULTS.fetch(name)
   end
 
-  def preference_r18_display_stopper_value(preference_record)
-    association = "#{preference_record.class.name.underscore}_r18_display_stopper"
+  def preference_adult_content_gate_value(preference_record)
+    association = "#{preference_record.class.name.underscore}_adult_content_gate"
     stopper = preference_record.public_send(association) if preference_record.respond_to?(association)
-    stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
+    stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:adult_content_gate)
   end
 
   def set_current_observability

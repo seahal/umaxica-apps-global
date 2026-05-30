@@ -7,7 +7,7 @@ class PreferenceExplicitModelRegistryTest < ActiveSupport::TestCase
   fixtures_none!
 
   PREFIXES = %w(App Com Org Client Operator Visitor).freeze
-  TYPES = %i(currency date_format time_format motion density items_per_page).freeze
+  TYPES = %i(currency date_format time_format motion density page_size).freeze
 
   test "extended preference records and options are explicit model files" do
     PREFIXES.each do |prefix|

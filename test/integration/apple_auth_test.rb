@@ -4,7 +4,7 @@
 require "test_helper"
 
 class AppleAuthTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_social_apple_statuses
+  fixtures :client_statuses, :client_apple_identity_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -39,7 +39,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
 
-    user = ClientSocialApple.find_by(uid: "apple_uid_new").user
+    user = ClientAppleIdentity.find_by(uid: "apple_uid_new").user
 
     assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
     assert_nil ClientEmail.find_by(user: user)
@@ -86,7 +86,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
   test "should sign in existing user normally" do
     user = Client.create!(status_id: ClientStatus::ACTIVE)
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: user,
       uid: "apple_uid_existing",
       provider: "apple",
@@ -141,7 +141,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     # Should create user and identity
     assert_difference("Client.count", 1) do
-      assert_difference("ClientSocialApple.count", 1) do
+      assert_difference("ClientAppleIdentity.count", 1) do
         post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
              headers: browser_headers.merge(@callback_headers)
       end
@@ -154,9 +154,9 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:notice], :present?, "Should have success message"
 
     # Verify user and identity were created
-    identity = ClientSocialApple.find_by(uid: uid)
+    identity = ClientAppleIdentity.find_by(uid: uid)
 
-    assert_not_nil identity, "ClientSocialApple identity should exist"
+    assert_not_nil identity, "ClientAppleIdentity identity should exist"
     assert_not_nil identity.user, "Client should be associated with identity"
 
     # CRITICAL: Verify NO email was saved
@@ -165,8 +165,8 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_nil ClientEmail.find_by(user: user), "NO ClientEmail should exist for social login user"
   end
 
-  test "Apple login without email does NOT save email to ClientSocialApple" do
-    # Even though ClientSocialApple schema may have an email column (legacy),
+  test "Apple login without email does NOT save email to ClientAppleIdentity" do
+    # Even though ClientAppleIdentity schema may have an email column (legacy),
     # we MUST NOT write to it during social login
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
@@ -189,14 +189,14 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    identity = ClientSocialApple.find_by(uid: uid)
+    identity = ClientAppleIdentity.find_by(uid: uid)
 
     assert_not_nil identity
 
     # Verify email column is NOT populated (if it exists in schema)
     # This ensures we don't accidentally write email even if the column exists
     if identity.respond_to?(:email)
-      assert_nil identity.email, "ClientSocialApple.email should be nil"
+      assert_nil identity.email, "ClientAppleIdentity.email should be nil"
     end
   end
 
@@ -221,7 +221,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     uid = OmniAuth.config.mock_auth[:google_app].uid
 
     assert_difference("Client.count", 1) do
-      assert_difference("ClientSocialGoogle.count", 1) do
+      assert_difference("ClientGoogleIdentity.count", 1) do
         get sign_app_auth_callback_url(provider: "google_app", ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
@@ -229,14 +229,14 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
 
-    identity = ClientSocialGoogle.find_by(uid: uid)
+    identity = ClientGoogleIdentity.find_by(uid: uid)
 
     assert_not_nil identity
     assert_nil ClientEmail.find_by(user: identity.user), "NO ClientEmail for Google login user"
 
     # Verify email column is NOT populated
     if identity.respond_to?(:email)
-      assert_nil identity.email, "ClientSocialGoogle.email should be nil"
+      assert_nil identity.email, "ClientGoogleIdentity.email should be nil"
     end
   end
 

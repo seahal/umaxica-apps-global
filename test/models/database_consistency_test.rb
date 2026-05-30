@@ -9,7 +9,7 @@ class DatabaseConsistencyTest < ActiveSupport::TestCase
   fixtures :clients, :client_statuses, :client_occurrence_statuses, :zip_occurrence_statuses
 
   setup do
-    I18n.locale = I18n.default_locale
+    I18n.locale = I18n.default_locale # rubocop:disable Rails/I18nLocaleAssignment
   end
 
   # Test PublicId concern validations

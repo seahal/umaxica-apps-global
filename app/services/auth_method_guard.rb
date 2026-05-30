@@ -95,12 +95,12 @@ class AuthMethodGuard
 
   def self.active_social_count(actor)
     count = 0
-    if actor.respond_to?(:user_social_google) &&
-        actor.user_social_google&.status_id == ClientSocialGoogleStatus::ACTIVE
+    if actor.respond_to?(:user_google_identity) &&
+        actor.user_google_identity&.status_id == ClientGoogleIdentityStatus::ACTIVE
       count += 1
     end
-    if actor.respond_to?(:user_social_apple) &&
-        actor.user_social_apple&.status_id == ClientSocialAppleStatus::ACTIVE
+    if actor.respond_to?(:user_apple_identity) &&
+        actor.user_apple_identity&.status_id == ClientAppleIdentityStatus::ACTIVE
       count += 1
     end
     count

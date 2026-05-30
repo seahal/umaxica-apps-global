@@ -12,8 +12,8 @@ module SignIn
 
       locator.issue!(cycle, nonce: "fresh-nonce")
 
-      assert_equal cycle.public_id, session.dig(:app_sign_in_cycle_locator, "public_id")
-      assert_equal "fresh-nonce", session.dig(:app_sign_in_cycle_locator, "nonce")
+      assert_equal cycle.public_id, session.dig(:app_sign_in_flow_locator, "public_id")
+      assert_equal "fresh-nonce", session.dig(:app_sign_in_flow_locator, "nonce")
       assert_equal cycle, locator.current
       assert cycle.reload.nonce_matches?("fresh-nonce")
       assert_not cycle.nonce_matches?("old-nonce")
@@ -27,7 +27,7 @@ module SignIn
       original_status_id = cycle.status_id
       original_nonce_digest = cycle.nonce_digest
 
-      session[:app_sign_in_cycle_locator]["nonce"] = "bad-nonce"
+      session[:app_sign_in_flow_locator]["nonce"] = "bad-nonce"
 
       assert_nil locator.current
       cycle.reload
@@ -51,7 +51,7 @@ module SignIn
         assert_nil locator.current
       end
 
-      assert_equal ClientSignInCycleStatus::PRIMARY_PENDING, cycle.reload.status_id
+      assert_equal ClientSignInFlowStatus::PRIMARY_PENDING, cycle.reload.status_id
     end
 
     test "principal-bound cycle requires matching actor" do
@@ -83,7 +83,7 @@ module SignIn
       session = {}
       completed = create_client_cycle(
         nonce: "nonce",
-        status_id: ClientSignInCycleStatus::COMPLETED,
+        status_id: ClientSignInFlowStatus::COMPLETED,
         step: "completed",
         completed_at: Time.current,
       )
@@ -93,7 +93,7 @@ module SignIn
 
       failed = create_client_cycle(
         nonce: "failed-nonce",
-        status_id: ClientSignInCycleStatus::FAILED,
+        status_id: ClientSignInFlowStatus::FAILED,
         step: "failed",
       )
       CycleLocator.new(session, surface: :app).issue!(failed, nonce: "failed-nonce")
@@ -106,15 +106,15 @@ module SignIn
       cycle = create_client_cycle(nonce: "old-nonce")
       locator = CycleLocator.new(session, surface: :app)
       locator.issue!(cycle, nonce: "old-nonce")
-      old_payload = session[:app_sign_in_cycle_locator].dup
+      old_payload = session[:app_sign_in_flow_locator].dup
 
       locator.rotate!(cycle)
-      new_nonce = session.dig(:app_sign_in_cycle_locator, "nonce")
+      new_nonce = session.dig(:app_sign_in_flow_locator, "nonce")
 
       assert_not_equal "old-nonce", new_nonce
       assert_equal cycle, locator.current
 
-      session[:app_sign_in_cycle_locator] = old_payload
+      session[:app_sign_in_flow_locator] = old_payload
 
       assert_nil locator.current
     end
@@ -134,13 +134,13 @@ module SignIn
     end
 
     def create_client_cycle(nonce:, **overrides)
-      ClientSignInCycle.create!(
+      ClientSignInFlow.create!(
         {
           principal_id: nil,
-          status_id: ClientSignInCycleStatus::PRIMARY_PENDING,
+          status_id: ClientSignInFlowStatus::PRIMARY_PENDING,
           step: "primary",
           return_to: "/dashboard",
-          nonce_digest: ClientSignInCycle.digest_nonce(nonce),
+          nonce_digest: ClientSignInFlow.digest_nonce(nonce),
           issued_at: Time.current,
           expires_at: 15.minutes.from_now,
         }.merge(overrides),

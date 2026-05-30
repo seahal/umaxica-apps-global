@@ -30,10 +30,10 @@
         <div class="flex gap-2">
           <% content_for :nav_links do %>
             <% if logged_in? %>
-              <%= link_to t("sign.app.layout.nav.logout"), edit_sign_com_out_path %>
+              <%= link_to t("sign.app.layout.nav.logout"), edit_sign_com_sign_out_path %>
             <% else %>
-              <%= link_to t("sign.app.layout.nav.sign_up"), new_sign_com_up_url %>
-              <%= link_to t("sign.app.layout.nav.log_in"), new_sign_com_in_url %>
+              <%= link_to t("sign.app.layout.nav.sign_up"), new_sign_com_sign_up_url %>
+              <%= link_to t("sign.app.layout.nav.log_in"), new_sign_com_sign_in_url %>
             <% end %>
           <% end %>
           <%= yield :nav_links %>

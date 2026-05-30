@@ -47,7 +47,7 @@ class VisitorEmail < ComPrincipalRecord
   include PublicId
   include Retainable
   include Email
-  include MultiFactorStatusCredential
+  include MfaStatusCredential
   include PromotionalEmailUnsubscribable
 
   self.filter_attributes += %w(address)
@@ -57,7 +57,7 @@ class VisitorEmail < ComPrincipalRecord
   attribute :visitor_email_status_id, default: VisitorEmailStatus::UNVERIFIED
 
   belongs_to :visitor, inverse_of: :visitor_emails
-  multi_factor_status_owner :visitor
+  mfa_status_owner :visitor
   belongs_to :visitor_email_status, inverse_of: :visitor_emails
 
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }

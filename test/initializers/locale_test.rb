@@ -28,7 +28,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
 
     I18n.with_locale(:en) do
       assert_equal "Passkey", I18n.t("controller.sign.app.setting.index.passkey")
-      assert_equal "Recovery Code", I18n.t("controller.sign.app.setting.index.secret")
+      assert_equal "Recovery Code", I18n.t("controller.sign.app.setting.index.secret_credential")
       assert_equal "Email", I18n.t("controller.sign.app.setting.index.email")
       assert_equal "Telephone", I18n.t("controller.sign.app.setting.index.telephone")
       assert_equal "Session", I18n.t("controller.sign.app.setting.index.session")
@@ -131,30 +131,30 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       I18n.with_locale(:en) do
         assert_equal "Motion Settings", I18n.t("acme.#{surface}.preferences.motion_settings")
         assert_equal "Density Settings", I18n.t("acme.#{surface}.preferences.density_settings")
-        assert_equal "Items Per Page", I18n.t("acme.#{surface}.preferences.items_per_page_settings")
-        assert_equal "R18 Display Stopper", I18n.t("acme.app.preferences.r18_display_stopper_settings")
+        assert_equal "Page Size", I18n.t("acme.#{surface}.preferences.page_size_settings")
+        assert_equal "R18 Display Stopper", I18n.t("acme.app.preferences.adult_content_gate_settings")
       end
 
       I18n.with_locale(:ja) do
         assert_equal "モーション設定", I18n.t("acme.#{surface}.preferences.motion_settings")
         assert_equal "表示密度設定", I18n.t("acme.#{surface}.preferences.density_settings")
-        assert_equal "1ページあたりの表示件数", I18n.t("acme.#{surface}.preferences.items_per_page_settings")
-        assert_equal "R18表示設定", I18n.t("acme.app.preferences.r18_display_stopper_settings")
+        assert_equal "1ページあたりの表示件数", I18n.t("acme.#{surface}.preferences.page_size_settings")
+        assert_equal "R18表示設定", I18n.t("acme.app.preferences.adult_content_gate_settings")
       end
     end
 
     I18n.with_locale(:en) do
       assert_equal "Reduced motion", I18n.t("acme.app.preference.motion.options.reduced")
       assert_equal "Compact density", I18n.t("acme.app.preference.density.options.compact")
-      assert_equal "50 items", I18n.t("acme.app.preference.items_per_page.options.50")
-      assert_equal "Infinite items", I18n.t("acme.app.preference.items_per_page.options.infinity")
+      assert_equal "50 items", I18n.t("acme.app.preference.page_size.options.50")
+      assert_equal "Infinite items", I18n.t("acme.app.preference.page_size.options.infinity")
     end
 
     I18n.with_locale(:ja) do
       assert_equal "控えめなモーション", I18n.t("acme.app.preference.motion.options.reduced")
       assert_equal "コンパクト", I18n.t("acme.app.preference.density.options.compact")
-      assert_equal "50件", I18n.t("acme.app.preference.items_per_page.options.50")
-      assert_equal "無制限", I18n.t("acme.app.preference.items_per_page.options.infinity")
+      assert_equal "50件", I18n.t("acme.app.preference.page_size.options.50")
+      assert_equal "無制限", I18n.t("acme.app.preference.page_size.options.infinity")
     end
   end
 
@@ -262,8 +262,12 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     %w(
       config/locales/jp/en.yml
       config/locales/jp/ja.yml
+      config/locales/jp/sign_route_names.en.yml
+      config/locales/jp/sign_route_names.ja.yml
       config/locales/us/en.yml
       config/locales/us/ja.yml
+      config/locales/us/sign_route_names.en.yml
+      config/locales/us/sign_route_names.ja.yml
     ).map { |path| Rails.root.join(path).to_s }.sort
   end
 end

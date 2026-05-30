@@ -120,12 +120,12 @@ class AppPreference < AppSettingRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :app_preference_items_per_page,
+  has_one :app_preference_page_size,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
   # FIXME: too nasty name is this.
-  has_one :app_preference_r18_display_stopper,
+  has_one :app_preference_adult_content_gate,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
@@ -151,8 +151,8 @@ class AppPreference < AppSettingRecord
   before_validation :default_replaced_by_to_self, on: :create
   after_create :persist_self_replacement
 
-  def r18_display_stopper
-    app_preference_r18_display_stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
+  def adult_content_gate
+    app_preference_adult_content_gate&.option&.name || Actor::Preference::DEFAULTS.fetch(:adult_content_gate)
   end
 
   private
@@ -162,6 +162,6 @@ class AppPreference < AppSettingRecord
   end
 
   def persist_self_replacement
-    update_column(:replaced_by_id, id) if replaced_by_id.blank?
+    update!(replaced_by_id: id) if replaced_by_id.blank?
   end
 end

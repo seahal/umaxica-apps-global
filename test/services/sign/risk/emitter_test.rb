@@ -69,7 +69,7 @@ module Sign
         ENV["RISK_ENFORCEMENT_DISABLED"] = nil
         ENV["RISK_ENFORCEMENT_ENABLED"] = "true"
 
-        option = ->(key, **) { (key == :OCCURRENCE_HMAC_SECRET) ? "secret" : nil }
+        option = ->(key, **) { (key == :OCCURRENCE_HMAC_SECRET) ? "secret_credential" : nil }
 
         Rails.app.creds.stub(:option, option) do
           assert_difference "VisitorOccurrence.count", 1 do
@@ -78,7 +78,7 @@ module Sign
               visitor_id: 123,
               email: "Visitor@Example.com",
               ip: "203.0.113.10",
-              reason: "bad_secret",
+              reason: "bad_secret_credential",
             )
           end
         end

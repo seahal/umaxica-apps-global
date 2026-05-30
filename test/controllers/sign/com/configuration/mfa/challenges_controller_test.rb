@@ -17,8 +17,8 @@ class Sign::Com::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
       VisitorTokenStatus.ensure_defaults!
       VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
       VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
-      VisitorSecretKind.find_or_create_by!(id: VisitorSecretKind::LOGIN)
-      VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::ACTIVE)
+      VisitorSecretCredentialKind.find_or_create_by!(id: VisitorSecretCredentialKind::LOGIN)
+      VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::ACTIVE)
     end
     @visitor = Visitor.create!(
       status_id: VisitorStatus::ACTIVE,
@@ -49,11 +49,11 @@ class Sign::Com::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
       description: "Passkey",
       status_id: VisitorPasskeyStatus::ACTIVE,
     )
-    @secret = @visitor.visitor_secrets.create!(
+    @secret_credential = @visitor.visitor_secret_credentials.create!(
       name: "Recovery",
       password: "a" * 32,
-      visitor_secret_kind_id: VisitorSecretKind::LOGIN,
-      visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
+      visitor_secret_credential_kind_id: VisitorSecretCredentialKind::LOGIN,
+      visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE,
     )
   end
 
@@ -69,7 +69,7 @@ class Sign::Com::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
     assert_equal "/configuration/mfa/challenge", URI.parse(sign_com_configuration_mfa_challenge_url(ri: "jp")).path
   end
 
-  test "show renders current passkeys and secrets" do
+  test "show renders current passkeys and secret_credentials" do
     get sign_com_configuration_mfa_challenge_url(ri: "jp"), headers: request_headers
 
     assert_response :success
@@ -79,14 +79,14 @@ class Sign::Com::Configuration::Mfa::ChallengesControllerTest < ActionDispatch::
   end
 
   test "update route is not exposed" do
-    @visitor.update!(multi_factor_id: VisitorMultiFactor::NOTHING, multi_factor_enabled: false)
+    @visitor.update!(mfa_level_id: VisitorMfaLevel::NOTHING, mfa_level_enabled: false)
 
     patch sign_com_configuration_mfa_challenge_url(ri: "jp"),
-          params: { user: { multi_factor_id: VisitorMultiFactor::FULL.to_s } },
+          params: { user: { mfa_level_id: VisitorMfaLevel::FULL.to_s } },
           headers: request_headers
 
     assert_response :not_found
-    assert_equal VisitorMultiFactor::NOTHING, @visitor.reload.multi_factor_id
-    assert_not_predicate @visitor.reload, :multi_factor_enabled?
+    assert_equal VisitorMfaLevel::NOTHING, @visitor.reload.mfa_level_id
+    assert_not_predicate @visitor.reload, :mfa_level_enabled?
   end
 end

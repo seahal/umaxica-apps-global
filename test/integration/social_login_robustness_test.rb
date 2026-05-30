@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_statuses, :client_social_google_statuses
+  fixtures :clients, :client_statuses, :client_google_identity_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -92,14 +92,14 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     )
 
     # First, link the identity
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: OmniAuth.config.mock_auth[:google_app].uid,
       provider: "google_app",
       token: "existing_token",
       refresh_token: "existing_refresh",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
     original_step_up_at = user.reload.last_step_up_at
 
@@ -121,28 +121,28 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     user = clients(:one)
 
     # Setup user with MFA
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       title: "totp",
     )
 
     # Setup social identity
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "mfa_test_#{SecureRandom.hex(4)}",
       provider: "google_app",
       token: "test_token",
       refresh_token: "test_refresh",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     # Setup mock auth
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
       provider: "google_app",
-      uid: user.client_social_googles.first.uid,
+      uid: user.client_google_identities.first.uid,
       info: { image: "https://example.com/image.jpg" },
       credentials: {
         token: "new_token_#{SecureRandom.hex(8)}",

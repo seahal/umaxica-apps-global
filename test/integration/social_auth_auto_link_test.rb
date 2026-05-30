@@ -7,7 +7,7 @@ require "test_helper"
 # IMPORTANT: These tests verify that when a logged-in user completes OAuth callback,
 # the social identity is automatically linked to current_user (NOT creating a new user)
 class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_social_google_statuses, :client_social_apple_statuses
+  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -23,7 +23,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
   # ============================================================================
   # a) Logged-in link success
   # ============================================================================
-  test "logged-in user: Apple callback automatically links ClientSocialApple" do
+  test "logged-in user: Apple callback automatically links ClientAppleIdentity" do
     # Create and login as user
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
     ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
@@ -32,8 +32,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     apple_uid = "apple_auto_link_#{SecureRandom.hex(4)}"
     setup_apple_mock_auth(uid: apple_uid)
 
-    # Before: no ClientSocialApple exists
-    assert_equal 0, user.reload.user_social_apple ? 1 : 0
+    # Before: no ClientAppleIdentity exists
+    assert_equal 0, user.reload.user_apple_identity ? 1 : 0
 
     # Simulate Apple callback as logged-in user
     state = start_social_auth_flow(provider: "apple", intent: "link", user: user)
@@ -49,23 +49,23 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     # Should show link success message
     assert_match(/Apple/, flash[:notice])
 
-    # CRITICAL: ClientSocialApple should be created and linked to current_user
+    # CRITICAL: ClientAppleIdentity should be created and linked to current_user
     user.reload
 
-    assert_not_nil user.user_social_apple, "ClientSocialApple should be linked to user"
-    assert_equal apple_uid, user.user_social_apple.uid
-    assert_equal "apple", user.user_social_apple.provider
+    assert_not_nil user.user_apple_identity, "ClientAppleIdentity should be linked to user"
+    assert_equal apple_uid, user.user_apple_identity.uid
+    assert_equal "apple", user.user_apple_identity.provider
 
     # Verify NO email was saved (if email column exists)
-    if user.user_social_apple.respond_to?(:email)
-      assert_nil user.user_social_apple.email
+    if user.user_apple_identity.respond_to?(:email)
+      assert_nil user.user_apple_identity.email
     end
 
     # Verify NO new Client was created (should still be 1)
     assert_equal 1, Client.where(id: user.id).count
   end
 
-  test "logged-in user: Google callback automatically links ClientSocialGoogle" do
+  test "logged-in user: Google callback automatically links ClientGoogleIdentity" do
     # Create and login as user
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
     ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
@@ -74,8 +74,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     google_uid = "google_auto_link_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: google_uid)
 
-    # Before: no ClientSocialGoogle exists
-    assert_nil user.reload.user_social_google
+    # Before: no ClientGoogleIdentity exists
+    assert_nil user.reload.user_google_identity
 
     # Simulate Google callback as logged-in user
     state = start_social_auth_flow(provider: "google_app", intent: "link", user: user)
@@ -87,11 +87,11 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     follow_redirect!
 
-    # CRITICAL: ClientSocialGoogle should be created and linked to current_user
+    # CRITICAL: ClientGoogleIdentity should be created and linked to current_user
     user.reload
 
-    assert_not_nil user.user_social_google, "ClientSocialGoogle should be linked to user"
-    assert_equal google_uid, user.user_social_google.uid
+    assert_not_nil user.user_google_identity, "ClientGoogleIdentity should be linked to user"
+    assert_equal google_uid, user.user_google_identity.uid
   end
 
   # ============================================================================
@@ -113,7 +113,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     user.reload
-    first_identity = user.user_social_apple
+    first_identity = user.user_apple_identity
 
     assert_not_nil first_identity
     first_identity_id = first_identity.id
@@ -127,13 +127,13 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    # Should NOT create a new ClientSocialApple
+    # Should NOT create a new ClientAppleIdentity
     user.reload
 
-    assert_equal first_identity_id, user.user_social_apple.id, "Should reuse existing identity"
+    assert_equal first_identity_id, user.user_apple_identity.id, "Should reuse existing identity"
 
     # Total count should still be 1
-    assert_equal 1, ClientSocialApple.where(uid: apple_uid).count
+    assert_equal 1, ClientAppleIdentity.where(uid: apple_uid).count
   end
 
   # ============================================================================
@@ -143,13 +143,13 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     # Create userA and link Apple identity
     user_a = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "userA_#{SecureRandom.hex(4)}")
     apple_uid = "apple_conflict_#{SecureRandom.hex(4)}"
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: user_a,
       uid: apple_uid,
       provider: "apple",
       token: "token_a",
       expires_at: 1.week.from_now.to_i,
-      user_social_apple_status: client_social_apple_statuses(:active),
+      user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
     # Create userB and try to link SAME Apple uid
@@ -168,15 +168,15 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_match(/conflict|linked|already|別のユーザー/i, flash[:alert] || "") if flash[:alert]
 
-    # userB should NOT have ClientSocialApple
+    # userB should NOT have ClientAppleIdentity
     user_b.reload
 
-    assert_nil user_b.user_social_apple, "userB should NOT have Apple identity"
+    assert_nil user_b.user_apple_identity, "userB should NOT have Apple identity"
 
     # userA should still have the identity
     user_a.reload
 
-    assert_equal apple_uid, user_a.user_social_apple.uid
+    assert_equal apple_uid, user_a.user_apple_identity.uid
   end
 
   test "not logged in: Apple callback creates new user (login flow, not link)" do
@@ -198,8 +198,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     # Should create NEW user (login flow)
     assert_equal user_count_before + 1, Client.count
 
-    # ClientSocialApple should exist
-    identity = ClientSocialApple.find_by(uid: apple_uid)
+    # ClientAppleIdentity should exist
+    identity = ClientAppleIdentity.find_by(uid: apple_uid)
 
     assert_not_nil identity
     assert_not_nil identity.user

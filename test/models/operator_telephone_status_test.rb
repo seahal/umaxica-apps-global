@@ -12,7 +12,7 @@
 require "test_helper"
 
 class OperatorTelephoneStatusTest < ActiveSupport::TestCase
-  fixtures :operator_telephone_statuses, :operators, :operator_identity_statuses
+  fixtures :operator_telephone_statuses, :operators, :operator_statuses
 
   test "valid status with id" do
     status = OperatorTelephoneStatus.find(OperatorTelephoneStatus::UNVERIFIED)
@@ -43,7 +43,7 @@ class OperatorTelephoneStatusTest < ActiveSupport::TestCase
       staff_id: staff.id,
       staff_telephone_status_id: status.id,
       otp_counter: "1",
-      otp_private_key: "secret",
+      otp_private_key: "secret_credential",
     )
 
     assert_raises(ActiveRecord::RecordNotDestroyed) do

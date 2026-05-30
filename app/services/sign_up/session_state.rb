@@ -17,7 +17,7 @@ module SignUp
   class SessionState
     KEY_GROUPS = {
       app: {
-        cycle_locator: :app_sign_up_cycle_locator,
+        cycle_locator: :app_sign_up_flow_locator,
         sequence_id: :sign_app_up_sequence_id,
         telephone_otp: :user_telephone_registration,
         existing_email: :sign_up_existing_email_id,
@@ -26,7 +26,7 @@ module SignUp
         age_restricted: :sign_app_up_age_restricted,
       }.freeze,
       com: {
-        cycle_locator: :com_sign_up_cycle_locator,
+        cycle_locator: :com_sign_up_flow_locator,
         sequence_id: :sign_com_up_sequence_id,
         telephone_otp: :visitor_telephone_registration,
         existing_email: :sign_com_up_existing_visitor_email_id,

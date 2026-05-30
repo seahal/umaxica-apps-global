@@ -75,7 +75,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
 
-    cycle = VisitorSignUpCycle.order(:id).find_by!(
+    cycle = VisitorSignUpFlow.order(:id).find_by!(
       principal_id: visitor_email.visitor_id,
       pending_contact_type: "email",
       pending_contact_id: visitor_email.id,
@@ -93,7 +93,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     visitor = visitor_email.reload.visitor
 
-    assert_equal VisitorSignUpCycleStatus::COMPLETED, cycle.reload.status_id
+    assert_equal VisitorSignUpFlowStatus::COMPLETED, cycle.reload.status_id
     assert VisitorToken.exists?(visitor_id: visitor.id)
   end
 
@@ -138,8 +138,8 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "a[href=?]", new_sign_com_up_path(ri: "jp"), count: 1
-    assert_select "a[href=?]", new_sign_com_in_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", new_sign_com_sign_up_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", new_sign_com_sign_in_path(ri: "jp"), count: 1
   end
 
   test "create redirects to edit and allows edit page" do
@@ -192,7 +192,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to sign_com_up_guardrail_path(ri: "jp")
     visitor = visitor_email.reload.visitor
-    cycle = VisitorSignUpCycle.find_by!(public_id: session.dig(:com_sign_up_cycle_locator, "public_id"))
+    cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
 
     assert_equal VisitorEmailStatus::VERIFIED_WITH_SIGN_UP, visitor_email.visitor_email_status_id
     assert_nil visitor.rp_account
@@ -303,7 +303,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_includes response.location, "/sign/up/email/edit"
     assert_equal I18n.t("sign.com.registration.email.create.verification_code_sent"), flash[:notice]
-    assert_nil session[:com_sign_up_cycle_locator]
+    assert_nil session[:com_sign_up_flow_locator]
   end
 
   test "update for existing email flow redirects to sign in without otp" do
@@ -331,9 +331,9 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           params: { visitor_email: { pass_code: "000000" } },
           headers: default_headers
 
-    assert_redirected_to new_sign_com_in_path(ri: "jp")
+    assert_redirected_to new_sign_com_sign_in_path(ri: "jp")
     assert_equal I18n.t("sign.app.registration.email.update.sign_in_required"), flash[:notice]
-    assert_nil session[:com_sign_up_cycle_locator]
+    assert_nil session[:com_sign_up_flow_locator]
   end
 
   test "edit missing email resets flow and redirects to new" do
@@ -528,7 +528,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:edit_sign_com_up_email_path) { |_email, ri: nil, pt: nil|
       "/sign/up/email/edit?ri=#{ri}&pt=#{pt}"
     }
-    controller.define_singleton_method(:new_sign_com_in_path) { |ri: nil| "/in?ri=#{ri}" }
+    controller.define_singleton_method(:new_sign_com_sign_in_path) { |ri: nil| "/in?ri=#{ri}" }
     controller.define_singleton_method(:t) { |key, **| key }
     controller.define_singleton_method(:safe_internal_path) { |path| path.to_s.start_with?("/") ? path : nil }
 

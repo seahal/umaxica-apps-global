@@ -351,10 +351,10 @@ class ActorSupportTest < ActiveSupport::TestCase
 
   test "resolved_current_step_up uses required verification scope and aal" do
     @host.define_singleton_method(:verification_required?) { true }
-    @host.define_singleton_method(:verification_scope) { "configuration_secret" }
+    @host.define_singleton_method(:verification_scope) { "configuration_secret_credential" }
     @host.define_singleton_method(:verification_required_aal) { :aal3 }
 
-    assert_equal "configuration_secret", @host.resolved_current_step_up_scope
+    assert_equal "configuration_secret_credential", @host.resolved_current_step_up_scope
     assert_equal :aal3, @host.resolved_current_step_up_required_aal
   end
 
@@ -376,7 +376,7 @@ class ActorSupportTest < ActiveSupport::TestCase
       time_format: "hour_12",
       motion: "reduced",
       density: "compact",
-      items_per_page: "50",
+      page_size: "50",
       consented: true,
       functional: true,
       performant: false,
@@ -408,7 +408,7 @@ class ActorSupportTest < ActiveSupport::TestCase
           "tf" => "hour_12",
           "mo" => "reduced",
           "dn" => "compact",
-          "ipp" => "50",
+          "ps" => "50",
         },
       }
     end
@@ -427,7 +427,7 @@ class ActorSupportTest < ActiveSupport::TestCase
     assert_equal "hour_24", preference.time_format
     assert_equal "standard", preference.motion
     assert_equal "standard", preference.density
-    assert_equal "20", preference.items_per_page
+    assert_equal "20", preference.page_size
     assert_equal Actor::Preference::NULL_COOKIE, preference.cookie
   end
 

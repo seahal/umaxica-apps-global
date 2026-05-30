@@ -42,11 +42,11 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
     assert_equal expected, result
   end
 
-  test "configured_totp? returns false for user without client_one_time_passwords" do
+  test "configured_totp? returns false for user without client_totp_credentials" do
     user = clients(:one)
     result = StepUp::ConfiguredMethods.configured_totp?(user)
-    expected = user.client_one_time_passwords.exists?(
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+    expected = user.client_totp_credentials.exists?(
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
     )
 
     assert_equal expected, result
@@ -84,13 +84,13 @@ class StepUp::ConfiguredMethodsComprehensiveTest < ActiveSupport::TestCase
   end
 
   test "configured_passkey? with operator_passkeys" do
-    staff = Operator.new(status_id: OperatorIdentityStatus::NOTHING)
+    staff = Operator.new(status_id: OperatorStatus::NOTHING)
 
     assert_not StepUp::ConfiguredMethods.configured_passkey?(staff)
   end
 
   test "configured_email? with operator_emails" do
-    staff = Operator.new(status_id: OperatorIdentityStatus::NOTHING)
+    staff = Operator.new(status_id: OperatorStatus::NOTHING)
 
     assert_not StepUp::ConfiguredMethods.configured_email?(staff)
   end

@@ -8,7 +8,7 @@ class Org::RegistrationPolicyTest < ActiveSupport::TestCase
     Prosopite.pause do
       [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) }
     end
-    @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    @staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     @organization = Organization.create!(name: "Test Org")
     @invitation = OrganizationInvitation.create!(
       organization_id: @organization.id,

@@ -4,13 +4,13 @@
 module SignUp
   class CycleLocator
     SESSION_KEYS = {
-      app: :app_sign_up_cycle_locator,
-      com: :com_sign_up_cycle_locator,
+      app: :app_sign_up_flow_locator,
+      com: :com_sign_up_flow_locator,
     }.freeze
 
     CYCLE_CLASSES = {
-      app: ClientSignUpCycle,
-      com: VisitorSignUpCycle,
+      app: ClientSignUpFlow,
+      com: VisitorSignUpFlow,
     }.freeze
 
     NONCE_BYTES = 32

@@ -5,7 +5,7 @@ class Chronicle
   class Recorder < ApplicationService
     FORBIDDEN_KEY_PATTERN =
       /
-        password|passw|secret|raw_secret|token|authorization|dpop|otp|totp|recovery_code|
+        password|passw|secret|secret_credential|raw_secret_credential|token|authorization|dpop|otp|totp|recovery_code|
         cookie|raw_session|session_id\z|session\z|raw_email|raw_ip
       /ix
     ALLOWED_DIGEST_KEYS = %w(session_id_digest).freeze
@@ -14,7 +14,7 @@ class Chronicle
     SENSITIVE_VALUE_PATTERNS = [
       /bearer\s+[a-z0-9._~+\-\/]+=*/i,
       /\beyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\b/,
-      /\b(?:password|passw|secret|token|otp|totp|recovery_code)\b\s*[:=]\s*\S+/i,
+      /\b(?:password|passw|secret|secret_credential|token|otp|totp|recovery_code)\b\s*[:=]\s*\S+/i,
       /\b\d{6,8}\b/,
       /\b[a-zA-Z0-9_-]{32,}\b/,
     ].freeze

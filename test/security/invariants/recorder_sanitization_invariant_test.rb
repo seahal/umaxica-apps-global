@@ -12,7 +12,7 @@ module Security
       # Update SECURITY_INVARIANTS.md before intentionally changing them.
 
       RAW_SECRET_VALUES = [
-        "secret",
+        "raw-secret-value",
         "123456",
         "raw-token",
         "raw-refresh",
@@ -25,8 +25,8 @@ module Security
 
       test "recorder removes dangerous keys and sanitizes nested sensitive values" do
         payload = {
-          password: "secret",
-          Secret: "case-secret",
+          password: "raw-secret-value",
+          Secret: "case-raw-secret-value",
           otp: "123456",
           token: "raw-token",
           refresh_token: "raw-refresh",
@@ -36,7 +36,7 @@ module Security
           cookie: "_session=abc",
           dpop: "proof.jwt",
           nested: {
-            note: "password=secret otp=123456 token=abcdefghijklmnopqrstuvwxyzabcdef",
+            note: "password=raw-secret-value otp=123456 token=abcdefghijklmnopqrstuvwxyzabcdef",
             array: [
               { "Authorization" => "Bearer abc" },
               "refresh_token=abcdefghijklmnopqrstuvwxyzabcdef",

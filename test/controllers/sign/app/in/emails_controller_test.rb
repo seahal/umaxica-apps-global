@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :operators, :client_statuses, :operator_identity_statuses, :client_email_statuses
+  fixtures :clients, :operators, :client_statuses, :operator_statuses, :client_email_statuses
 
   include ActiveSupport::Testing::TimeHelpers
 
@@ -222,10 +222,10 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :found
     assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
 
-    cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
+    cycle = ClientSignInFlow.where(principal_id: user.id).recent_first.first
 
     assert_equal "CHECKPOINT_PENDING", cycle.state
-    assert_equal cycle.public_id, session.dig(:app_sign_in_cycle_locator, "public_id")
+    assert_equal cycle.public_id, session.dig(:app_sign_in_flow_locator, "public_id")
   end
 
   test "successful OTP verification sets auth cookies with app domain" do
@@ -258,7 +258,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
   test "email sign-in redirects to MFA challenge when MFA is enabled" do
     user = clients(:one)
-    user.update!(multi_factor_enabled: true)
+    user.update!(mfa_level_enabled: true)
     test_email = user.client_emails.create!(
       address: "mfa_email_login_#{SecureRandom.hex(4)}@example.com",
     )
@@ -567,7 +567,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :found
     assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
 
-    cycle = ClientSignInCycle.where(principal_id: user.id).recent_first.first
+    cycle = ClientSignInFlow.where(principal_id: user.id).recent_first.first
 
     assert_equal "CHECKPOINT_PENDING", cycle.state
     assert_nil cycle.return_to

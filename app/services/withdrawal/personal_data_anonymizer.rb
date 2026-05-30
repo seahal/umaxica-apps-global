@@ -29,20 +29,23 @@ module Withdrawal
       anonymize_emails(actor.client_emails, status_column: :user_email_status_id)
       anonymize_telephones(actor.client_telephones, status_column: :user_identity_telephone_status_id)
       revoke_records(actor.client_passkeys, status_column: :status_id, revoked_status: ClientPasskeyStatus::REVOKED)
-      revoke_records(actor.client_secrets, status_column: :user_secret_status_id, revoked_status: ClientSecretStatus::REVOKED)
+      revoke_records(actor.client_secret_credentials, status_column: :user_secret_status_id, revoked_status: ClientSecretCredentialStatus::REVOKED)
       revoke_records(
-        actor.client_one_time_passwords, status_column: :user_identity_one_time_password_status_id,
-                                         revoked_status: ClientOneTimePasswordStatus::REVOKED,
+        actor.client_totp_credentials, status_column: :user_identity_totp_credential_status_id,
+                                       revoked_status: ClientTotpCredentialStatus::REVOKED,
       )
-      anonymize_social(actor.user_social_google, revoked_status: ClientSocialGoogleStatus::REVOKED)
-      anonymize_social(actor.user_social_apple, revoked_status: ClientSocialAppleStatus::REVOKED)
+      anonymize_social(actor.user_google_identity, revoked_status: ClientGoogleIdentityStatus::REVOKED)
+      anonymize_social(actor.user_apple_identity, revoked_status: ClientAppleIdentityStatus::REVOKED)
     end
 
     def anonymize_visitor
       anonymize_emails(actor.visitor_emails, status_column: :visitor_email_status_id)
       anonymize_telephones(actor.visitor_telephones, status_column: :visitor_telephone_status_id)
       revoke_records(actor.visitor_passkeys, status_column: :status_id, revoked_status: VisitorPasskeyStatus::REVOKED)
-      revoke_records(actor.visitor_secrets, status_column: :visitor_secret_status_id, revoked_status: VisitorSecretStatus::REVOKED)
+      revoke_records(
+        actor.visitor_secret_credentials, status_column: :visitor_secret_credential_status_id,
+                                          revoked_status: VisitorSecretCredentialStatus::REVOKED,
+      )
     end
 
     def anonymize_emails(scope, status_column:)

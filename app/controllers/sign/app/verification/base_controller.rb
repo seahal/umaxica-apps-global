@@ -93,8 +93,8 @@ module Sign
         end
 
         def active_totp_credentials
-          current_client.client_one_time_passwords
-            .where(user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
+          current_client.client_totp_credentials
+            .where(user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
             .order(created_at: :desc)
         end
       end

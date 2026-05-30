@@ -11,9 +11,9 @@
 #  date_format     :string           default("iso"), not null
 #  density         :string           default("standard"), not null
 #  functional      :boolean          default(FALSE), not null
-#  items_per_page  :string           default("20"), not null
 #  language        :string           default("ja"), not null
 #  motion          :string           default("standard"), not null
+#  page_size       :string           default("20"), not null
 #  performant      :boolean          default(FALSE), not null
 #  region          :string           default("jp"), not null
 #  targetable      :boolean          default(FALSE), not null

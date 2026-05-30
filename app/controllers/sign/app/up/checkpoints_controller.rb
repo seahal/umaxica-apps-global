@@ -40,7 +40,7 @@ module Sign
         end
 
         def load_sign_up_ticket_for_destroy
-          @sign_up_ticket = sign_up_cycle_locator.current
+          @sign_up_ticket = sign_up_flow_locator.current
           return if @sign_up_ticket
 
           sign_up_session_state.clear_all!
@@ -59,7 +59,7 @@ module Sign
 
         def sign_up_surface = :app
 
-        def sign_up_ticket_class = ClientSignUpCycle
+        def sign_up_ticket_class = ClientSignUpFlow
 
         def sign_up_sequence_session_key = :sign_app_up_sequence_id
       end

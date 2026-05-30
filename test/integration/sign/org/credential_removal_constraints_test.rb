@@ -20,7 +20,7 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     operator = create_operator
     email = create_verified_email(operator, "org-removal-contact-email@example.com")
     create_active_passkey(operator)
-    create_active_secret(operator)
+    create_active_secret_credential(operator)
 
     assert_no_difference("OperatorEmail.count") do
       delete sign_org_configuration_email_url(email.public_id, ri: "jp"),
@@ -35,7 +35,7 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     operator = create_operator
     telephone = create_verified_telephone(operator, "+819033330001")
     create_active_passkey(operator)
-    create_active_secret(operator)
+    create_active_secret_credential(operator)
 
     assert_no_difference("OperatorTelephone.count") do
       delete sign_org_configuration_telephone_url(telephone.id, ri: "jp"),
@@ -49,7 +49,7 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
   test "passkey removal preserves aal2" do
     operator = create_operator
     create_verified_telephone(operator, "+819033330002")
-    create_active_secret(operator)
+    create_active_secret_credential(operator)
     passkey = create_active_passkey(operator)
 
     assert_no_difference("OperatorPasskey.count") do
@@ -61,29 +61,29 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
-  test "secret removal preserves aal1" do
+  test "secret_credential removal preserves aal1" do
     operator = create_operator
     create_verified_telephone(operator, "+819033330003")
-    secret = create_active_secret(operator)
+    secret_credential = create_active_secret_credential(operator)
 
-    assert_no_difference("OperatorSecret.count") do
-      delete sign_org_configuration_secret_url(secret.public_id, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_secret")
+    assert_no_difference("OperatorSecretCredential.count") do
+      delete sign_org_configuration_secret_credential_url(secret_credential.public_id, ri: "jp"),
+             headers: operator_headers(operator, scope: "configuration_secret_credential")
     end
 
-    assert_redirected_to sign_org_configuration_secrets_url(ri: "jp")
-    assert_equal I18n.t("sign.org.configuration.secrets.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_org_configuration_secret_credentials_url(ri: "jp")
+    assert_equal I18n.t("sign.org.configuration.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
-  test "email telephone passkey and secret removals are allowed when dimensions remain" do
+  test "email telephone passkey and secret_credential removals are allowed when dimensions remain" do
     operator = create_operator
     email = create_verified_email(operator, "org-removal-email-allowed@example.com")
     create_verified_telephone(operator, "+819033330004")
     telephone = create_verified_telephone(operator, "+819033330005")
     passkey = create_active_passkey(operator)
     create_active_passkey(operator)
-    secret = create_active_secret(operator)
-    create_active_secret(operator)
+    secret_credential = create_active_secret_credential(operator)
+    create_active_secret_credential(operator)
 
     assert_difference("OperatorEmail.count", -1) do
       delete sign_org_configuration_email_url(email.public_id, ri: "jp"),
@@ -100,16 +100,16 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
              headers: operator_headers(operator, scope: "configuration_passkey")
     end
 
-    assert_difference("OperatorSecret.count", -1) do
-      delete sign_org_configuration_secret_url(secret.public_id, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_secret")
+    assert_difference("OperatorSecretCredential.count", -1) do
+      delete sign_org_configuration_secret_credential_url(secret_credential.public_id, ri: "jp"),
+             headers: operator_headers(operator, scope: "configuration_secret_credential")
     end
   end
 
   private
 
   def create_operator
-    Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    Operator.create!(status_id: OperatorStatus::ACTIVE)
   end
 
   def operator_headers(operator, scope:)
@@ -151,13 +151,13 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     )
   end
 
-  def create_active_secret(operator)
-    OperatorSecret.create!(
+  def create_active_secret_credential(operator)
+    OperatorSecretCredential.create!(
       staff: operator,
-      name: "Removal guard secret",
+      name: "Removal guard secret_credential",
       password_digest: "digest",
-      staff_secret_kind_id: OperatorSecretKind::LOGIN,
-      staff_secret_status_id: OperatorSecretStatus::ACTIVE,
+      staff_secret_kind_id: OperatorSecretCredentialKind::LOGIN,
+      staff_secret_status_id: OperatorSecretCredentialStatus::ACTIVE,
     )
   end
 end

@@ -128,7 +128,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }
     controller.define_singleton_method(:head) { |status| heads << status }
-    controller.define_singleton_method(:new_sign_com_in_path) { |ri: nil| "/sign/in/new?ri=#{ri}" }
+    controller.define_singleton_method(:new_sign_com_sign_in_path) { |ri: nil| "/sign/in/new?ri=#{ri}" }
     controller.define_singleton_method(:sign_com_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
 
     controller.instance_variable_set(:@logged_in_for_test, true)

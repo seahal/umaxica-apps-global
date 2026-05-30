@@ -48,7 +48,7 @@ module Sign
 
         def new
           @user_email = VisitorEmail.new
-          sign_up_cycle_locator.clear!
+          sign_up_flow_locator.clear!
         end
 
         def edit
@@ -109,7 +109,7 @@ module Sign
             return
           end
 
-          bind_sign_up_cycle_to_email!(@user_email) unless existing_signup_email_flow?
+          bind_sign_up_flow_to_email!(@user_email) unless existing_signup_email_flow?
           progress_email_flow!(:create)
           flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
           redirect_to(edit_sign_com_up_email_path(ri: params[:ri], pt: sanitized_rt_param))
@@ -173,7 +173,7 @@ module Sign
           session.delete(EXISTING_EMAIL_SESSION_KEY)
           session.delete(EXISTING_EMAIL_SKIP_OTP_SESSION_KEY)
           session.delete(PENDING_VISITOR_ID_SESSION_KEY)
-          sign_up_cycle_locator.clear!
+          sign_up_flow_locator.clear!
         end
 
         def redirect_invalid_session
@@ -296,7 +296,7 @@ module Sign
           VisitorEmail.transaction do
             clear_otp(@user_email)
             @user_email.update!(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
-            sequence_advanced = advance_sign_up_cycle_after_email_otp!
+            sequence_advanced = advance_sign_up_flow_after_email_otp!
             raise ActiveRecord::Rollback unless sequence_advanced
           end
 
@@ -307,7 +307,7 @@ module Sign
           if existing_signup_skip_otp?
             reset_email_flow!
             redirect_to(
-              new_sign_com_in_path(ri: params[:ri]),
+              new_sign_com_sign_in_path(ri: params[:ri]),
               notice: t("sign.app.registration.email.update.sign_in_required"),
             )
             return :redirected
@@ -328,7 +328,7 @@ module Sign
           reset_email_flow!
           session.delete(EXISTING_EMAIL_SESSION_KEY)
           redirect_to(
-            new_sign_com_in_path(ri: params[:ri]),
+            new_sign_com_sign_in_path(ri: params[:ri]),
             notice: t("sign.app.registration.email.update.sign_in_required"),
           )
           :redirected
@@ -402,31 +402,31 @@ module Sign
           )
         end
 
-        def issue_sign_up_cycle!
+        def issue_sign_up_flow!
           ComTicketRecord.connected_to(role: :writing) do
-            VisitorSignUpCycleStatus.ensure_defaults!
+            VisitorSignUpFlowStatus.ensure_defaults!
           end
 
-          sign_up_cycle_locator.issue!(
-            VisitorSignUpCycle.create!(
+          sign_up_flow_locator.issue!(
+            VisitorSignUpFlow.create!(
               principal_id: nil,
-              status_id: VisitorSignUpCycleStatus::STARTED,
+              status_id: VisitorSignUpFlowStatus::STARTED,
               step: "start",
-              nonce_digest: VisitorSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+              nonce_digest: VisitorSignUpFlow.digest_nonce(SecureRandom.urlsafe_base64(32)),
               issued_at: Time.current,
-              expires_at: VisitorSignUpCycle.default_ttl.from_now,
+              expires_at: VisitorSignUpFlow.default_ttl.from_now,
               entry_method: "email",
               return_to: sanitized_return_to,
             ),
           )
         end
 
-        def current_sign_up_cycle
-          sign_up_cycle_locator.current || issue_sign_up_cycle!
+        def current_sign_up_flow
+          sign_up_flow_locator.current || issue_sign_up_flow!
         end
 
-        def bind_sign_up_cycle_to_email!(email)
-          cycle = current_sign_up_cycle
+        def bind_sign_up_flow_to_email!(email)
+          cycle = current_sign_up_flow
           ComTicketRecord.connected_to(role: :writing) do
             cycle.update!(
               principal_id: email.visitor_id,
@@ -438,8 +438,8 @@ module Sign
           session[:sign_com_up_sequence_id] = cycle.public_id
         end
 
-        def advance_sign_up_cycle_after_email_otp!
-          cycle = sign_up_cycle_locator.current
+        def advance_sign_up_flow_after_email_otp!
+          cycle = sign_up_flow_locator.current
           return false unless cycle
 
           result =
@@ -449,8 +449,8 @@ module Sign
           result.status == :advanced
         end
 
-        def sign_up_cycle_locator
-          SignUp::CycleLocator.new(session, surface: :com, cycle_class: VisitorSignUpCycle)
+        def sign_up_flow_locator
+          SignUp::CycleLocator.new(session, surface: :com, cycle_class: VisitorSignUpFlow)
         end
 
         def sanitized_return_to

@@ -21,7 +21,7 @@ module Sign
 
           def sign_up_surface = :app
 
-          def sign_up_ticket_class = ClientSignUpCycle
+          def sign_up_ticket_class = ClientSignUpFlow
 
           def sign_up_sequence_session_key = :sign_app_up_sequence_id
         end

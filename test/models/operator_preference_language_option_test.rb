@@ -92,7 +92,7 @@ class OperatorPreferenceLanguageOptionTest < ActiveSupport::TestCase
 
   test "operator_preference_languages association works with dependent restrict" do
     option = OperatorPreferenceLanguageOption.find(OperatorPreferenceLanguageOption::JA)
-    staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
 
     pref = OperatorPreference.create!(staff: staff)
     language = OperatorPreferenceLanguage.create!(

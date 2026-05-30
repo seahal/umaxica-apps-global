@@ -81,6 +81,22 @@ class VisitorPolicyTest < ActiveSupport::TestCase
     assert_not policy.show?
   end
 
+  # show? gates owner-only viewing of account attributes (e.g. the birthdate page).
+  def test_show_allows_owner_visitor
+    owner = Visitor.new(id: 1)
+    policy = VisitorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :show?
+  end
+
+  def test_show_denies_different_visitor
+    owner = Visitor.new(id: 1)
+    other = Visitor.new(id: 2)
+    policy = VisitorPolicy.new(owner, user: other)
+
+    assert_not policy.show?
+  end
+
   def test_create_denied_by_default
     policy = VisitorPolicy.new(MockRecord.new(1), user: build_actor(Visitor, 1))
 
@@ -89,6 +105,22 @@ class VisitorPolicyTest < ActiveSupport::TestCase
 
   def test_update_denied_by_default
     policy = VisitorPolicy.new(MockRecord.new(1), user: build_actor(Visitor, 1))
+
+    assert_not policy.update?
+  end
+
+  # update? gates owner-only mutation of account attributes (e.g. the MFA level page).
+  def test_update_allows_owner_visitor
+    owner = Visitor.new(id: 1)
+    policy = VisitorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :update?
+  end
+
+  def test_update_denies_different_visitor
+    owner = Visitor.new(id: 1)
+    other = Visitor.new(id: 2)
+    policy = VisitorPolicy.new(owner, user: other)
 
     assert_not policy.update?
   end

@@ -9,7 +9,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
            :client_statuses,
            :client_token_statuses,
            :client_token_kinds,
-           :client_one_time_password_statuses,
+           :client_totp_credential_statuses,
            :app_preference_chronicle_levels,
            :client_chronicle_events,
            :client_chronicle_levels
@@ -18,7 +18,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = clients(:one)
     # Clear existing TOTPs to avoid limit error
-    @user.client_one_time_passwords.destroy_all
+    @user.client_totp_credentials.destroy_all
     ClientEmail.create!(
       user: @user,
       address: "totp-config-test@example.com",
@@ -42,12 +42,12 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     satisfy_user_verification(@token)
     @headers.freeze
 
-    @totp = ClientOneTimePassword.create!(
+    @totp = ClientTotpCredential.create!(
       user: @user,
       private_key: ROTP::Base32.random_base32,
       last_otp_at: Time.zone.at(0),
       title: "Main TOTP",
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
     )
 
     CloudflareTurnstile.test_mode = true
@@ -127,7 +127,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
     assert_equal "/verification", uri.path
     assert_equal "configuration_totp", query["scope"]
-    assert_equal ClientMultiFactorStatus::ACTIVE, user.reload.multi_factor_status_id
+    assert_equal ClientMfaStatus::ACTIVE, user.reload.mfa_status_id
   end
 
   test "should show up link on index page" do
@@ -163,7 +163,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   test "should update title with public_id" do
     with_prosopite_paused do
       patch sign_app_configuration_totp_url(@totp.public_id, ri: "jp"),
-            params: { user_one_time_password: { title: "Updated TOTP" } },
+            params: { user_totp_credential: { title: "Updated TOTP" } },
             headers: @headers
     end
 
@@ -172,7 +172,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "should destroy with public_id" do
-    assert_difference("ClientOneTimePassword.count", -1) do
+    assert_difference("ClientTotpCredential.count", -1) do
       with_prosopite_paused do
         delete sign_app_configuration_totp_url(@totp.public_id, ri: "jp"), headers: @headers
       end
@@ -183,12 +183,12 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
   test "should return 404 for other user's totp" do
     other_user = clients(:two)
-    other_totp = ClientOneTimePassword.create!(
+    other_totp = ClientTotpCredential.create!(
       user: other_user,
       private_key: ROTP::Base32.random_base32,
       last_otp_at: Time.zone.at(0),
       title: "Other TOTP",
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
     )
 
     with_prosopite_paused do
@@ -200,19 +200,19 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
   test "should create totp with valid token" do
     # Clear TOTP created in setup to allow creation of a new one (limit is 2)
-    @user.client_one_time_passwords.destroy_all
+    @user.client_totp_credentials.destroy_all
 
-    with_mocked_totp do |secret|
+    with_mocked_totp do |secret_credential|
       with_prosopite_paused do
         get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
       end
 
       assert_response :success
       assert_select "input[name='cf-turnstile-response']"
-      token = ROTP::TOTP.new(secret).now
+      token = ROTP::TOTP.new(secret_credential).now
       step_up_before = Time.current
 
-      assert_difference("ClientOneTimePassword.count") do
+      assert_difference("ClientTotpCredential.count") do
         assert_difference(
           -> {
             ClientChronicle.where(
@@ -227,7 +227,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
         ) do
           with_prosopite_paused do
             post sign_app_configuration_totps_url(ri: "jp"),
-                 params: { user_one_time_password: { first_token: token } },
+                 params: { user_totp_credential: { first_token: token } },
                  headers: @headers
           end
         end
@@ -240,24 +240,24 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "should assign attributes to created totp" do
-    @user.client_one_time_passwords.destroy_all
+    @user.client_totp_credentials.destroy_all
 
-    with_mocked_totp do |secret|
+    with_mocked_totp do |secret_credential|
       with_prosopite_paused do
         get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
       end
 
       assert_response :success
       assert_select "input[name='cf-turnstile-response']"
-      token = ROTP::TOTP.new(secret).now
+      token = ROTP::TOTP.new(secret_credential).now
 
       with_prosopite_paused do
         post sign_app_configuration_totps_url(ri: "jp"),
-             params: { user_one_time_password: { first_token: token, title: "New TOTP" } },
+             params: { user_totp_credential: { first_token: token, title: "New TOTP" } },
              headers: @headers
       end
 
-      created_totp = ClientOneTimePassword.order(created_at: :desc).first
+      created_totp = ClientTotpCredential.order(created_at: :desc).first
 
       assert_equal "New TOTP", created_totp.title
       assert_not_nil created_totp.last_otp_at
@@ -272,10 +272,10 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     assert_response :success
     assert_select "input[name='cf-turnstile-response']"
 
-    assert_no_difference("ClientOneTimePassword.count") do
+    assert_no_difference("ClientTotpCredential.count") do
       with_prosopite_paused do
         post sign_app_configuration_totps_url(ri: "jp"),
-             params: { user_one_time_password: { first_token: "000000" } },
+             params: { user_totp_credential: { first_token: "000000" } },
              headers: @headers
       end
     end
@@ -284,7 +284,7 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   end
 
   test "should not create totp when turnstile stealth fails" do
-    with_mocked_totp do |secret|
+    with_mocked_totp do |secret_credential|
       with_prosopite_paused do
         get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
       end
@@ -293,12 +293,12 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
       assert_select "input[name='cf-turnstile-response']"
 
       CloudflareTurnstile.test_validation_response = { "success" => false }
-      token = ROTP::TOTP.new(secret).now
+      token = ROTP::TOTP.new(secret_credential).now
 
-      assert_no_difference("ClientOneTimePassword.count") do
+      assert_no_difference("ClientTotpCredential.count") do
         with_prosopite_paused do
           post sign_app_configuration_totps_url(ri: "jp"),
-               params: { user_one_time_password: { first_token: token, title: "Blocked TOTP" } },
+               params: { user_totp_credential: { first_token: token, title: "Blocked TOTP" } },
                headers: @headers
         end
       end
@@ -353,18 +353,18 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
     satisfy_user_verification(token)
 
-    with_mocked_totp do |secret|
+    with_mocked_totp do |secret_credential|
       with_prosopite_paused do
         get new_sign_app_configuration_totp_url(ri: "jp"), headers: headers
       end
 
       assert_response :success
-      first_code = ROTP::TOTP.new(secret).now
+      first_code = ROTP::TOTP.new(secret_credential).now
 
-      assert_difference("ClientOneTimePassword.count", 1) do
+      assert_difference("ClientTotpCredential.count", 1) do
         with_prosopite_paused do
           post sign_app_configuration_totps_url(ri: "jp"),
-               params: { user_one_time_password: { first_token: first_code } },
+               params: { user_totp_credential: { first_token: first_code } },
                headers: headers
         end
       end
@@ -376,9 +376,9 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
   private
 
   def with_mocked_totp
-    known_secret = "JBSWY3DPEHPK3PXP"
-    ROTP::Base32.stub(:random_base32, known_secret) do
-      yield known_secret
+    known_secret_credential = "JBSWY3DPEHPK3PXP"
+    ROTP::Base32.stub(:random_base32, known_secret_credential) do
+      yield known_secret_credential
     end
   end
 end

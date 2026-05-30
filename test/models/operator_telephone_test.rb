@@ -34,7 +34,7 @@
 require "test_helper"
 
 class OperatorTelephoneTest < ActiveSupport::TestCase
-  fixtures :operators, :operator_identity_statuses, :operator_telephone_statuses
+  fixtures :operators, :operator_statuses, :operator_telephone_statuses
 
   setup do
     @staff = operators(:none_staff)
@@ -147,7 +147,7 @@ class OperatorTelephoneTest < ActiveSupport::TestCase
   end
 
   test "enforces maximum telephones per staff" do
-    staff = Operator.create!(staff_status: OperatorIdentityStatus.find(OperatorIdentityStatus::NOTHING))
+    staff = Operator.create!(staff_status: OperatorStatus.find(OperatorStatus::NOTHING))
     Prosopite.pause do
       OperatorTelephone::MAX_TELEPHONES_PER_STAFF.times do |i|
         OperatorTelephone.create!(

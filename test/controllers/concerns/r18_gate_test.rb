@@ -80,8 +80,8 @@ class R18GateTest < ActionDispatch::IntegrationTest
     end
 
   Preference =
-    Struct.new(:client_preference_r18_display_stopper, keyword_init: true) do
-      def r18_display_stopper = client_preference_r18_display_stopper
+    Struct.new(:client_preference_adult_content_gate, keyword_init: true) do
+      def adult_content_gate = client_preference_adult_content_gate
     end
 
   setup do
@@ -138,7 +138,7 @@ class R18GateTest < ActionDispatch::IntegrationTest
   end
 
   test "logged in adult passes when stopper is approved" do
-    preference = Preference.new(client_preference_r18_display_stopper: Stopper.new(:approved))
+    preference = Preference.new(client_preference_adult_content_gate: Stopper.new(:approved))
     R18GateTestController.test_actor = Actor.new(birthdate: "2000-01-01", user_preference: preference)
 
     get "/test/r18"
@@ -148,7 +148,7 @@ class R18GateTest < ActionDispatch::IntegrationTest
   end
 
   test "logged in adult with stopper is redirected to stopped page" do
-    preference = Preference.new(client_preference_r18_display_stopper: Stopper.new(:deny))
+    preference = Preference.new(client_preference_adult_content_gate: Stopper.new(:deny))
     R18GateTestController.test_actor = Actor.new(birthdate: "2000-01-01", user_preference: preference)
 
     get "/test/r18"
@@ -157,7 +157,7 @@ class R18GateTest < ActionDispatch::IntegrationTest
   end
 
   test "logged in adult with undecided stopper is asked" do
-    preference = Preference.new(client_preference_r18_display_stopper: Stopper.new(:nothing))
+    preference = Preference.new(client_preference_adult_content_gate: Stopper.new(:nothing))
     R18GateTestController.test_actor = Actor.new(birthdate: "2000-01-01", user_preference: preference)
 
     get "/test/r18"
@@ -166,7 +166,7 @@ class R18GateTest < ActionDispatch::IntegrationTest
   end
 
   test "logged in adult with token preference stopper is redirected to stopped page" do
-    preference = ::Actor::Preference.new(r18_display_stopper: "deny")
+    preference = ::Actor::Preference.new(adult_content_gate: "deny")
     R18GateTestController.test_actor = Actor.new(birthdate: "2000-01-01", user_preference: preference)
 
     get "/test/r18"
@@ -176,7 +176,7 @@ class R18GateTest < ActionDispatch::IntegrationTest
 
   test "logged in leap day user uses canonical R18 age calculation" do
     travel_to Time.zone.local(2030, 2, 28, 12, 0, 0) do
-      preference = Preference.new(client_preference_r18_display_stopper: Stopper.new(:approved))
+      preference = Preference.new(client_preference_adult_content_gate: Stopper.new(:approved))
       R18GateTestController.test_actor = Actor.new(birthdate: "2012-02-29", user_preference: preference)
 
       get "/test/r18"

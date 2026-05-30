@@ -29,6 +29,11 @@ module Sign
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_operator!
+        # Object-level authorization (ActionPolicy): index/create gate the actor type; show/edit/
+        # update/destroy authorize the owned record (set_passkey is owner-scoped → 404 first).
+        # Step-up / Turnstile / WebAuthn-challenge guards remain in place for the registration ceremony.
+        before_action :authorize_passkeys!, only: %i(index)
+        before_action :authorize_passkey_create!, only: %i(create)
         before_action only: %i(new create options verification) do
           require_step_up_unless_bootstrap!(scope: verification_scope)
         end
@@ -44,6 +49,7 @@ module Sign
 
         # GET /configuration/passkeys/:id
         def show
+          authorize!(@passkey)
         end
 
         # GET /configuration/passkeys/new
@@ -53,6 +59,7 @@ module Sign
 
         # GET /configuration/passkeys/:id/edit
         def edit
+          authorize!(@passkey)
         end
 
         # POST /configuration/passkeys
@@ -178,6 +185,7 @@ module Sign
 
         # PATCH/PUT /configuration/passkeys/:id
         def update
+          authorize!(@passkey)
           if @passkey.update(update_params)
             respond_to do |format|
               format.html do
@@ -200,6 +208,8 @@ module Sign
 
         # DELETE /configuration/passkeys/:id
         def destroy
+          authorize!(@passkey)
+
           unless AuthMethodGuard.can_remove_passkey?(current_operator, @passkey)
             respond_to do |format|
               format.html do
@@ -232,6 +242,14 @@ module Sign
         end
 
         private
+
+        def authorize_passkeys!
+          authorize!(OperatorPasskey, to: :index?)
+        end
+
+        def authorize_passkey_create!
+          authorize!(OperatorPasskey, to: :create?)
+        end
 
         def verify_configuration_passkey_turnstile!
           return true if cloudflare_turnstile_stealth_validation["success"]

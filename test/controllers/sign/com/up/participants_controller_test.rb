@@ -17,7 +17,7 @@ class Sign::Com::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "guardrail rejects ticket id without session binding" do
-    ticket = create_ticket(status_id: VisitorSignUpCycleStatus::CONTACT_VERIFIED, step: "contact_verified")
+    ticket = create_ticket(status_id: VisitorSignUpFlowStatus::CONTACT_VERIFIED, step: "contact_verified")
 
     get sign_com_up_guardrail_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
@@ -26,11 +26,11 @@ class Sign::Com::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "checkpoint show rejects ticket id without session binding" do
-    ticket = create_ticket(status_id: VisitorSignUpCycleStatus::GUARDRAIL_PENDING, step: "guardrail")
+    ticket = create_ticket(status_id: VisitorSignUpFlowStatus::GUARDRAIL_PENDING, step: "guardrail")
 
     get sign_com_up_checkpoint_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
-    assert_redirected_to new_sign_com_up_url(ri: "jp")
+    assert_redirected_to new_sign_com_sign_up_url(ri: "jp")
     assert_equal I18n.t("sign.com.registration.session_missing"), flash[:alert]
   end
 
@@ -56,12 +56,12 @@ class Sign::Com::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   private
 
   def create_ticket(attrs = {})
-    VisitorSignUpCycle.create!(
+    VisitorSignUpFlow.create!(
       {
         principal_id: nil,
-        status_id: VisitorSignUpCycleStatus::STARTED,
+        status_id: VisitorSignUpFlowStatus::STARTED,
         step: "start",
-        nonce_digest: VisitorSignUpCycle.digest_nonce("nonce"),
+        nonce_digest: VisitorSignUpFlow.digest_nonce("nonce"),
         issued_at: Time.current,
         expires_at: 15.minutes.from_now,
         entry_method: "email",

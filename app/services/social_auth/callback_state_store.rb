@@ -20,9 +20,9 @@ module SocialAuth
       def state_class_for(provider)
         case provider.to_s
         when "google_app", "apple"
-          ClientSocialCallbackState
+          ClientOauthCallbackState
         when "google_org"
-          OperatorSocialCallbackState
+          OperatorOauthCallbackState
         end
       end
     end

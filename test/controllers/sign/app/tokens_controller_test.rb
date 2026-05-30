@@ -19,7 +19,7 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
     )
     @client = Oidc::ClientRegistry.find("core_app")
     @redirect_uri = @client.redirect_uris.first
-    @client_secret = "test_secret_for_core_app"
+    @client_secret = "test_secret_credential_for_core_app"
   end
 
   test "exchanges valid authorization code for tokens" do

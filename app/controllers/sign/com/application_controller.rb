@@ -138,7 +138,7 @@ module Sign
       def telephone_registration_allowed_path?
         allowed = [
           "sign/com/configuration/telephones/registrations",
-          "sign/com/outs",
+          "sign/com/sign_outs",
         ]
         allowed.include?(controller_path)
       end

@@ -6,41 +6,41 @@
 # Table name: operators
 # Database name: org_principal
 #
-#  id                     :bigint           not null, primary key
-#  birthdate              :text
-#  deactivated_at         :datetime
-#  discarded_at           :datetime         default(Infinity), not null
-#  lock_version           :integer          default(0), not null
-#  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purged_at              :datetime         default(Infinity), not null
-#  withdrawal_started_at  :datetime
-#  withdrawn_at           :datetime
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  multi_factor_id        :bigint           default(0), not null
-#  multi_factor_status_id :bigint           default(5), not null
-#  public_id              :string(16)       not null
-#  status_id              :bigint           default(2), not null
-#  visibility_id          :bigint           default(2), not null
+#  id                    :bigint           not null, primary key
+#  birthdate             :text
+#  deactivated_at        :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  lock_version          :integer          default(0), not null
+#  mfa_level_enabled     :boolean          default(FALSE), not null
+#  purged_at             :datetime         default(Infinity), not null
+#  withdrawal_started_at :datetime
+#  withdrawn_at          :datetime
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  mfa_level_id          :bigint           default(0), not null
+#  mfa_status_id         :bigint           default(5), not null
+#  public_id             :string(16)       not null
+#  status_id             :bigint           default(2), not null
+#  visibility_id         :bigint           default(2), not null
 #
 # Indexes
 #
-#  index_operators_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_operators_on_discarded_at            (discarded_at)
-#  index_operators_on_multi_factor_id         (multi_factor_id)
-#  index_operators_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_operators_on_public_id               (public_id) UNIQUE
-#  index_operators_on_purged_at               (purged_at)
-#  index_operators_on_status_id               (status_id)
-#  index_operators_on_visibility_id           (visibility_id)
-#  index_operators_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_operators_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_operators_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_operators_on_discarded_at           (discarded_at)
+#  index_operators_on_mfa_level_id           (mfa_level_id)
+#  index_operators_on_mfa_status_id          (mfa_status_id)
+#  index_operators_on_public_id              (public_id) UNIQUE
+#  index_operators_on_purged_at              (purged_at)
+#  index_operators_on_status_id              (status_id)
+#  index_operators_on_visibility_id          (visibility_id)
+#  index_operators_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_operators_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => operator_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => operator_multi_factor_statuses.id)
-#  fk_rails_...  (status_id => operator_identity_statuses.id)
+#  fk_rails_...  (mfa_level_id => operator_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => operator_mfa_statuses.id)
+#  fk_rails_...  (status_id => operator_statuses.id)
 #  fk_rails_...  (visibility_id => operator_visibilities.id)
 #
 
@@ -87,27 +87,27 @@ class OperatorTest < ActiveSupport::TestCase
   end
 
   test "login_allowed? is false for reserved status" do
-    staff = Operator.create!(public_id: Operator.generate_public_id, status_id: OperatorIdentityStatus::RESERVED)
+    staff = Operator.create!(public_id: Operator.generate_public_id, status_id: OperatorStatus::RESERVED)
 
     assert_not staff.login_allowed?
   end
 
   test "login_allowed? remains true for nothing status while active" do
-    staff = Operator.create!(public_id: Operator.generate_public_id, status_id: OperatorIdentityStatus::NOTHING)
+    staff = Operator.create!(public_id: Operator.generate_public_id, status_id: OperatorStatus::NOTHING)
 
     assert_predicate staff, :login_allowed?
   end
 
-  test "multi_factor_enabled and multi_factor_id must describe the same requirement" do
-    staff = Operator.new(multi_factor_enabled: true, multi_factor_id: OperatorMultiFactor::NOTHING)
+  test "mfa_level_enabled and mfa_level_id must describe the same requirement" do
+    staff = Operator.new(mfa_level_enabled: true, mfa_level_id: OperatorMfaLevel::NOTHING)
 
     assert_not staff.valid?
-    assert_not_empty staff.errors[:multi_factor_id]
+    assert_not_empty staff.errors[:mfa_level_id]
 
-    staff = Operator.new(multi_factor_enabled: false, multi_factor_id: OperatorMultiFactor::FULL)
+    staff = Operator.new(mfa_level_enabled: false, mfa_level_id: OperatorMfaLevel::FULL)
 
     assert_not staff.valid?
-    assert_not_empty staff.errors[:multi_factor_enabled]
+    assert_not_empty staff.errors[:mfa_level_enabled]
   end
 
   test "withdrawal completion cannot precede withdrawal start" do
@@ -126,7 +126,7 @@ class OperatorTest < ActiveSupport::TestCase
   test "invalid visibility_id is rejected by foreign key" do
     staff = Operator.new(
       public_id: Operator.generate_public_id,
-      status_id: OperatorIdentityStatus::NOTHING,
+      status_id: OperatorStatus::NOTHING,
       visibility_id: 9_999,
     )
     assert_raises(ActiveRecord::InvalidForeignKey) do
@@ -472,7 +472,7 @@ class OperatorTest < ActiveSupport::TestCase
     assert_nil Operator.reflect_on_association(:staff_chronicles).options[:dependent]
     assert_nil Operator.reflect_on_association(:client_chronicles).options[:dependent]
     assert_equal :destroy,
-                 Operator.reflect_on_association(:staff_secrets).options[:dependent]
+                 Operator.reflect_on_association(:staff_secret_credentials).options[:dependent]
     assert_equal :destroy,
                  Operator.reflect_on_association(:staff_tokens).options[:dependent]
     # Cross-database (org_signal DB): NO implicit cascade; purged explicitly
@@ -495,7 +495,7 @@ class OperatorTest < ActiveSupport::TestCase
   test "should set default status before creation" do
     staff = Operator.create!
 
-    assert_equal OperatorIdentityStatus::NOTHING, staff.status_id
+    assert_equal OperatorStatus::NOTHING, staff.status_id
   end
 
   test "association deletion: restriction by dependent emails" do

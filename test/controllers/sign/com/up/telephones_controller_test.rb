@@ -120,7 +120,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     end
 
     visitor = telephone.reload.visitor
-    cycle = VisitorSignUpCycle.find_by!(public_id: session.dig(:com_sign_up_cycle_locator, "public_id"))
+    cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
 
     assert_redirected_to sign_com_up_guardrail_path(ri: "jp")
     assert_nil visitor.rp_account
@@ -185,7 +185,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_nil session[:com_sign_up_cycle_locator]
+    assert_nil session[:com_sign_up_flow_locator]
     job_args = enqueued_jobs.last[:args].first
     body = Outbound::SensitivePayload.decrypt_sms_body(job_args.fetch("encrypted_body"))
     sent_code = body[/\d{6}/]
@@ -203,9 +203,9 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
             headers: default_headers
     end
 
-    assert_redirected_to new_sign_com_in_path(ri: "jp")
+    assert_redirected_to new_sign_com_sign_in_path(ri: "jp")
     assert_nil session[:visitor_telephone_registration]
-    assert_nil session[:com_sign_up_cycle_locator]
+    assert_nil session[:com_sign_up_flow_locator]
     assert_equal VisitorTelephoneStatus::VERIFIED, existing_telephone.reload.visitor_telephone_status_id
   end
 

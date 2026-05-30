@@ -6,7 +6,7 @@ require "minitest/mock"
 require "base64"
 
 class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_passkeys, :operator_passkey_statuses
+  fixtures :operators, :operator_statuses, :operator_passkeys, :operator_passkey_statuses
 
   setup do
     host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -20,7 +20,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
     # Setup active staff with email and passkey
     @staff = operators(:one)
-    @staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    @staff.update!(status_id: OperatorStatus::ACTIVE)
     OperatorToken.where(staff_id: @staff.id).delete_all
 
     @staff_passkey = OperatorPasskey.create!(
@@ -70,7 +70,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
   test "options returns error if staff has no passkeys" do
     staff_no_passkey = operators(:two)
-    staff_no_passkey.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    staff_no_passkey.update!(status_id: OperatorStatus::ACTIVE)
 
     post options_sign_org_in_passkeys_url(ri: "jp"), params: { identifier: staff_no_passkey.public_id }
 
@@ -229,7 +229,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     challenge_id = response.parsed_body["challenge_id"]
 
     other_staff = operators(:two)
-    other_staff.update!(status_id: OperatorIdentityStatus::ACTIVE)
+    other_staff.update!(status_id: OperatorStatus::ACTIVE)
     other_passkey = OperatorPasskey.create!(
       staff: other_staff,
       webauthn_id: Base64.urlsafe_encode64("other_staff_key_#{SecureRandom.hex(4)}", padding: false),
@@ -297,7 +297,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "verification for staff with mfa enabled succeeds (MFA not enforced for staff)" do
-    @staff.update!(multi_factor_enabled: true)
+    @staff.update!(mfa_level_enabled: true)
 
     post options_sign_org_in_passkeys_url(ri: "jp"), params: { identifier: @staff.public_id }
     challenge_id = response.parsed_body["challenge_id"]

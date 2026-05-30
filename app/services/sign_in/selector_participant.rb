@@ -46,9 +46,9 @@ module SignIn
 
     def actor_class_matches?
       case cycle
-      when ClientSignInCycle then resolved_actor.is_a?(Client)
-      when VisitorSignInCycle then resolved_actor.is_a?(Visitor)
-      when OperatorSignInCycle then resolved_actor.is_a?(Operator)
+      when ClientSignInFlow then resolved_actor.is_a?(Client)
+      when VisitorSignInFlow then resolved_actor.is_a?(Visitor)
+      when OperatorSignInFlow then resolved_actor.is_a?(Operator)
       else false
       end
     end

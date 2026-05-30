@@ -4,7 +4,7 @@
 require "test_helper"
 
 class TelephoneConcernTest < ActiveSupport::TestCase
-  fixtures :operators, :operator_identity_statuses
+  fixtures :operators, :operator_statuses
 
   setup do
     @telephone = OperatorTelephone.new(
@@ -16,9 +16,9 @@ class TelephoneConcernTest < ActiveSupport::TestCase
 
   test "store_otp updates otp fields" do
     expires_at = 5.minutes.from_now.to_i
-    @telephone.store_otp("secret", 123, expires_at)
+    @telephone.store_otp("secret_credential", 123, expires_at)
 
-    assert_equal "secret", @telephone.otp_private_key
+    assert_equal "secret_credential", @telephone.otp_private_key
     assert_equal "123", @telephone.otp_counter
     assert_equal Time.zone.at(expires_at), @telephone.otp_expires_at
     assert_equal 0, @telephone.otp_attempts_count
@@ -35,7 +35,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
       otp_attempts_count: Telephone::MAX_OTP_ATTEMPTS,
     )
 
-    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+    @telephone.store_otp("secret_credential", 123, 5.minutes.from_now.to_i)
 
     assert_equal Telephone::MAX_OTP_ATTEMPTS, @telephone.reload.otp_attempts_count
     assert_equal lockout_expires_at.to_i, @telephone.locked_at.to_i
@@ -44,11 +44,11 @@ class TelephoneConcernTest < ActiveSupport::TestCase
 
   test "get_otp returns otp details if valid" do
     expires_at = 5.minutes.from_now.to_i
-    @telephone.store_otp("secret", 123, expires_at)
+    @telephone.store_otp("secret_credential", 123, expires_at)
 
     otp = @telephone.get_otp
 
-    assert_equal "secret", otp[:otp_private_key]
+    assert_equal "secret_credential", otp[:otp_private_key]
     assert_equal 123, otp[:otp_counter]
     assert_equal expires_at, otp[:otp_expires_at]
   end
@@ -61,23 +61,23 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   end
 
   test "get_otp returns nil if otp expired" do
-    @telephone.store_otp("secret", 123, 5.minutes.ago.to_i)
+    @telephone.store_otp("secret_credential", 123, 5.minutes.ago.to_i)
 
     assert_nil @telephone.get_otp
   end
 
   test "get_otp returns nil if locked" do
-    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+    @telephone.store_otp("secret_credential", 123, 5.minutes.from_now.to_i)
     @telephone.update!(locked_at: 1.minute.from_now)
 
     assert_nil @telephone.get_otp
   end
 
   test "clear_otp clears otp fields" do
-    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+    @telephone.store_otp("secret_credential", 123, 5.minutes.from_now.to_i)
     @telephone.clear_otp
 
-    assert_equal "secret", @telephone.otp_private_key # Persists
+    assert_equal "secret_credential", @telephone.otp_private_key # Persists
     assert_equal "0", @telephone.otp_counter
     # Expect -infinity logic
     expires = @telephone.otp_expires_at
@@ -106,7 +106,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   end
 
   test "otp_active? returns true if not expired and not locked" do
-    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+    @telephone.store_otp("secret_credential", 123, 5.minutes.from_now.to_i)
 
     assert_predicate @telephone, :otp_active?
 
@@ -132,7 +132,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   end
 
   test "increment_attempts! increments counter and locks if threshold reached" do
-    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+    @telephone.store_otp("secret_credential", 123, 5.minutes.from_now.to_i)
 
     (Telephone::MAX_OTP_ATTEMPTS - 1).times do |index|
       @telephone.increment_attempts!
@@ -149,7 +149,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   end
 
   test "increment_attempts! sets locked_at timestamp when threshold is reached" do
-    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+    @telephone.store_otp("secret_credential", 123, 5.minutes.from_now.to_i)
 
     # Initially locked_at should be a sentinel (-infinity)
     locked = @telephone.locked_at
@@ -166,7 +166,7 @@ class TelephoneConcernTest < ActiveSupport::TestCase
   end
 
   test "increment_attempts! keeps locked_at stable when incrementing beyond threshold" do
-    @telephone.store_otp("secret", 123, 5.minutes.from_now.to_i)
+    @telephone.store_otp("secret_credential", 123, 5.minutes.from_now.to_i)
 
     Telephone::MAX_OTP_ATTEMPTS.times { @telephone.increment_attempts! }
     @telephone.reload

@@ -30,7 +30,7 @@ module Oidc
 
       VisitorAccount.new(
         client_id: client_id.to_s,
-        client_secret: resolve_secret(client_id.to_s),
+        client_secret: resolve_secret_credential(client_id.to_s),
         redirect_uris: config[:redirect_uris],
         aud: config[:aud],
         resource_type: config[:resource_type],
@@ -57,14 +57,14 @@ module Oidc
     end
 
     # @param client_id [String]
-    # @param secret [String]
+    # @param secret_credential [String]
     # @return [Boolean]
-    def authenticate(client_id, secret)
+    def authenticate(client_id, secret_credential)
       client = find(client_id)
       return false unless client
-      return false if client.client_secret.blank? || secret.blank?
+      return false if client.client_secret.blank? || secret_credential.blank?
 
-      ActiveSupport::SecurityUtils.secure_compare(client.client_secret, secret)
+      ActiveSupport::SecurityUtils.secure_compare(client.client_secret, secret_credential)
     end
 
     def client_ids
@@ -212,7 +212,7 @@ module Oidc
       false
     end
 
-    def resolve_secret(client_id)
+    def resolve_secret_credential(client_id)
       Rails.app.creds.option(credential_key_for(client_id))
     end
 
@@ -235,7 +235,7 @@ module Oidc
     end
 
     private_class_method :clients, :build_clients, :build_redirect_uris, :public_host?,
-                         :resolve_secret, :domains_from_redirect_uris, :credential_key_for,
+                         :resolve_secret_credential, :domains_from_redirect_uris, :credential_key_for,
                          :normalize_resource_type
   end
 end

@@ -9,8 +9,8 @@ module Sign
       class EmailsControllerTest < ActionDispatch::IntegrationTest
         fixtures_only :visitor_statuses,
                       :visitor_visibilities,
-                      :visitor_multi_factors,
-                      :visitor_multi_factor_statuses,
+                      :visitor_mfa_levels,
+                      :visitor_mfa_statuses,
                       :visitor_email_statuses,
                       :visitor_telephone_statuses
 

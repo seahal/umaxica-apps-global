@@ -8,7 +8,7 @@ class Org::InvitationServiceTest < ActiveSupport::TestCase
     operation = -> { [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) } }
     defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
 
-    @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    @staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     @organization = Organization.create!(name: "Test Org")
   end
 

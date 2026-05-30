@@ -150,8 +150,21 @@ en:
           links:
             email: Email
             passkey: Passkey
-            secret: Secret
+            secret_credential: Secret
             registration: Need an account?
+      in:
+        bulletins:
+          show:
+            title: Bulletin
+            body: Please enable MFA. Important terms have changed. Do you accept?
+            actions:
+              update: Update
+              continue: Continue
+          welcome:
+            title: Welcome
+            body: Your account has been created. Thank you for using the service.
+          forbidden: You are not authorized to access this page.
+          timeout: The checkpoint timed out.
       configuration:
         show:
           page_title: Settings
@@ -262,20 +275,20 @@ en:
           links:
             email: Email
             passkey: Passkey
-            secret: Secret
+            secret_credential: Secret
             google: Continue with Google
             apple: Continue with Apple
             registration: Need an account?
             telephone: Telephone
             recovery: Recovery code
           back_link: Back
-        secret:
+        secret_credential:
           new:
-            page_title: Sign in with a secret
+            page_title: Sign in with a secret_credential
             pii_label: Email or telephone
             pii_placeholder: user@example.com or +81 90 1234 5678
-            secret_label: Secret
-            hints: Available secret hints
+            secret_credential_label: Secret
+            hints: Available secret_credential hints
           create:
             success: Signed in successfully.
             invalid: Authentication failed. Please check your credentials.
@@ -328,7 +341,7 @@ en:
           security_settings: Security Settings
           totp_desc: Configure 2FA
           passkey_desc: Manage passkeys
-          secret_desc: Manage secret keys
+          secret_credential_desc: Manage secret_credential keys
           mfa_reset: Request an MFA reset
           account_settings: Account Settings
           email_desc: Manage contact emails
@@ -417,7 +430,7 @@ en:
           edit:
             title: Edit passkey
             description: Update the name for this passkey.
-        secrets:
+        secret_credentials:
           create:
             created: Secret has been saved.
           update:
@@ -454,7 +467,7 @@ en:
             telephone_removed: Telephone number removed
             totp_enabled: Authenticator app registered
             passkey_registered: Passkey registered
-            user_secret_created: Secret created
+            user_secret_credential_created: Secret created
             recovery_codes_generated: Recovery codes generated
             unknown: Unknown event (%{event_id})
         mfa:
@@ -469,8 +482,8 @@ en:
             passkeys_desc: "%{count} registered"
             totps: Authenticator app (TOTP)
             totps_desc: "%{count} registered"
-            secrets: Secrets
-            secrets_desc: "%{count} active"
+            secret_credentials: Secrets
+            secret_credentials_desc: "%{count} active"
             reset_request: Request an MFA reset
             reset_unavailable: MFA reset is currently unavailable.
           update:
@@ -850,7 +863,7 @@ en:
             google: Google
             passkey: Passkey
             recovery: Recovery code
-            secret: Secret
+            secret_credential: Secret
             registration: Need an account?
         passkey:
           new:
@@ -859,13 +872,13 @@ en:
             identifier_label: ID
             identifier_placeholder: Enter the staff ID
             submit: Sign in with passkey
-        secret:
+        secret_credential:
           new:
-            page_title: Sign in with a secret
+            page_title: Sign in with a secret_credential
             pii_label: ID
             pii_placeholder: Enter the staff ID
-            secret_label: Secret
-            confirm_label: I have saved the secret
+            secret_credential_label: Secret
+            confirm_label: I have saved the secret_credential
           create:
             success: Signed in successfully.
             invalid: Authentication failed. Please check your credentials.
@@ -963,7 +976,7 @@ en:
             telephone_removed: Telephone number removed
             totp_enabled: Authenticator app registered
             passkey_registered: Passkey registered
-            user_secret_created: Secret created
+            user_secret_credential_created: Secret created
             recovery_codes_generated: Recovery codes generated
             unknown: Unknown event (%{event_id})
         sessions:
@@ -990,7 +1003,7 @@ en:
             back: Back to list
           edit:
             title: Edit Passkey
-        secrets:
+        secret_credentials:
           create:
             created: Secret has been saved.
           update:
@@ -1630,8 +1643,8 @@ en:
         theme_settings: Theme Settings
         motion_settings: Motion Settings
         density_settings: Density Settings
-        items_per_page_settings: Items Per Page
-        r18_display_stopper_settings: R18 Display Stopper
+        page_size_settings: Page Size
+        adult_content_gate_settings: R18 Display Stopper
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.
@@ -1713,9 +1726,9 @@ en:
           options:
             standard: Standard density
             compact: Compact density
-        items_per_page:
+        page_size:
           edit:
-            heading: Items Per Page
+            heading: Page Size
             description: Choose how many items are shown in each paginated list.
             option_label: Items per page
           options:
@@ -1724,7 +1737,7 @@ en:
             '50': 50 items
             '100': 100 items
             infinity: Infinite items
-        r18_display_stopper:
+        adult_content_gate:
           edit:
             heading: R18 Display Stopper
             description: Choose whether R18 content is approved, denied, or left unset.
@@ -1767,8 +1780,8 @@ en:
         language_settings: Language Settings
         motion_settings: Motion Settings
         density_settings: Density Settings
-        items_per_page_settings: Items Per Page
-        r18_display_stopper_settings: R18 Display Stopper
+        page_size_settings: Page Size
+        adult_content_gate_settings: R18 Display Stopper
         theme_settings: Theme Settings
         reset_settings: Reset Settings
         email_settings: Email Settings
@@ -1889,7 +1902,7 @@ en:
         theme_settings: Theme Settings
         motion_settings: Motion Settings
         density_settings: Density Settings
-        items_per_page_settings: Items Per Page
+        page_size_settings: Page Size
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.
@@ -2140,14 +2153,14 @@ en:
           index:
             totp: TOTP
             passkey: Passkey
-            secret: Recovery Code
+            secret_credential: Recovery Code
             google: Google
             apple: Apple
         setting:
           index:
             totp: TOTP
             passkey: Passkey
-            secret: Recovery Code
+            secret_credential: Recovery Code
             google: Google
             apple: Apple
             email: Email
@@ -2367,7 +2380,7 @@ en:
         language_settings: Language Settings
         motion_settings: Motion Settings
         density_settings: Density Settings
-        items_per_page_settings: Items Per Page
+        page_size_settings: Page Size
         update_success: Preferences updated successfully
         update_settings: Update Settings
         submitting: Submitting...
@@ -2416,9 +2429,9 @@ en:
           options:
             standard: Standard density
             compact: Compact density
-        items_per_page:
+        page_size:
           edit:
-            heading: Items Per Page
+            heading: Page Size
             description: Choose how many items are shown in each paginated list.
             option_label: Items per page
           options:
@@ -3145,9 +3158,9 @@ en:
             index:
               verified: Verified
               unverified: Unverified
-          secrets:
+          secret_credentials:
             new:
-              confirm_secret_saved_label: I have saved the secret
+              confirm_secret_credential_saved_label: I have saved the secret_credential
         verifications:
           show:
             no_methods: Please register a passkey.
@@ -3164,7 +3177,7 @@ en:
               empty: No email addresses registered.
           totps:
             new:
-              qr_fallback: If you cannot scan the QR code, enter the secret manually into your authenticator app.
+              qr_fallback: If you cannot scan the QR code, enter the secret_credential manually into your authenticator app.
               first_token_label: Verification code
               first_token_help: Please enter the 6-digit code shown in your authenticator app.
           telephones:
@@ -3194,9 +3207,9 @@ en:
               description: You can sign in to this account using your Apple ID.
               linked: Linked
               unlinked: Not linked
-          secrets:
+          secret_credentials:
             new:
-              confirm_saved_label: I have saved the secret
+              confirm_saved_label: I have saved the secret_credential
               one_time_notice: This value will only be shown once.
           passkeys:
             index:
@@ -3223,9 +3236,9 @@ en:
             no_methods: Please register an email, passkey, or TOTP.
   models:
     visitor:
-      recovery_identity_required: To register a passkey or secret, please register and verify at least one email address or phone number first.
+      recovery_identity_required: To register a passkey or secret_credential, please register and verify at least one email address or phone number first.
     user:
-      recovery_identity_required: To register a passkey or secret, please register and verify at least one email address or phone number first.
+      recovery_identity_required: To register a passkey or secret_credential, please register and verify at least one email address or phone number first.
   controllers:
     restricted_session_guard:
       blocked_message: Restricted session.

@@ -62,10 +62,10 @@ class OrgPost < OrgPublisherRecord
   has_many :org_post_reviews, class_name: "OrgPostReview", dependent: :restrict_with_error, inverse_of: :org_post
   has_many :org_post_versions, class_name: "OrgPostVersion", dependent: :delete_all, inverse_of: :org_post
   has_many :org_post_revisions, class_name: "OrgPostRevision", dependent: :delete_all, inverse_of: :org_post
-  has_many :org_post_tags, class_name: "OrgPostTag", dependent: :delete_all, inverse_of: :org_post
-  has_many :org_post_tag_masters, through: :org_post_tags, source: :org_post_tag_master
-  has_one :org_post_category, class_name: "OrgPostCategory", dependent: :delete, inverse_of: :org_post
-  has_one :org_post_category_master, through: :org_post_category, source: :org_post_category_master
+  has_many :org_post_taggings, class_name: "OrgPostTagging", dependent: :delete_all, inverse_of: :org_post
+  has_many :org_post_tags, through: :org_post_taggings, source: :org_post_tag
+  has_one :org_post_categorization, class_name: "OrgPostCategorization", dependent: :delete, inverse_of: :org_post
+  has_one :org_post_category, through: :org_post_categorization, source: :org_post_category
 
   validates :public_id, presence: true, uniqueness: true
   validates :body, presence: true

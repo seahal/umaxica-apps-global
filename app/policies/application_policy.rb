@@ -119,6 +119,8 @@ class ApplicationPolicy < ActionPolicy::Base
       record.user_id == user.id
     elsif user.is_a?(Operator) && record.respond_to?(:staff_id)
       record.staff_id == user.id
+    elsif defined?(Visitor) && user.is_a?(Visitor) && record.respond_to?(:visitor_id)
+      record.visitor_id == user.id
     else
       false
     end

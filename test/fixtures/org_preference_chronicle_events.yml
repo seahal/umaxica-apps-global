@@ -33,7 +33,7 @@ update_preference_motion:
   id: 12
 update_preference_density:
   id: 13
-update_preference_items_per_page:
+update_preference_page_size:
   id: 14
-update_preference_r18_display_stopper:
+update_preference_adult_content_gate:
   id: 15

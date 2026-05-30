@@ -43,7 +43,7 @@
 require "test_helper"
 
 class OperatorChronicleTest < ActiveSupport::TestCase
-  fixtures :operators, :clients, :operator_chronicle_events, :operator_chronicle_levels, :operator_identity_statuses,
+  fixtures :operators, :clients, :operator_chronicle_events, :operator_chronicle_levels, :operator_statuses,
            :client_statuses
 
   def setup

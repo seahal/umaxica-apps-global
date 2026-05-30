@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_social_google_statuses, :client_social_apple_statuses
+  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -35,14 +35,14 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
     )
     state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
 
-    assert_no_difference("ClientSocialGoogle.count") do
+    assert_no_difference("ClientGoogleIdentity.count") do
       get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
           params: { state: state },
           headers: social_callback_headers(@host)
     end
 
     assert_response :redirect
-    assert_nil ClientSocialGoogle.find_by(uid: "forged-google-sub")
+    assert_nil ClientGoogleIdentity.find_by(uid: "forged-google-sub")
   end
 
   test "callback rejects auth provider that does not match the route provider" do
@@ -57,8 +57,8 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
     )
     state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
 
-    assert_no_difference("ClientSocialApple.count") do
-      assert_no_difference("ClientSocialGoogle.count") do
+    assert_no_difference("ClientAppleIdentity.count") do
+      assert_no_difference("ClientGoogleIdentity.count") do
         get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
             params: { state: state },
             headers: social_callback_headers(@host)
@@ -85,7 +85,7 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
     )
     state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
 
-    assert_no_difference("ClientSocialGoogle.count") do
+    assert_no_difference("ClientGoogleIdentity.count") do
       get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
           params: { state: state },
           headers: social_callback_headers(@host)

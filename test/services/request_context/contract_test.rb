@@ -8,7 +8,7 @@ module RequestContext
     test "public key families partition the public key set" do
       assert_equal %i(ri), Contract.required_keys
       assert_equal %i(pt nt), Contract.redirect_target_keys
-      assert_equal %i(lx ct tz cu df tf mo dn pp), Contract.optional_overlay_keys
+      assert_equal %i(lx ct tz cu df tf mo dn ps), Contract.optional_overlay_keys
 
       union = Contract.required_keys + Contract.redirect_target_keys + Contract.optional_overlay_keys
 
@@ -29,7 +29,7 @@ module RequestContext
         tf: :time_format,
         mo: :motion,
         dn: :density,
-        pp: :items_per_page,
+        ps: :page_size,
       }
 
       assert_equal expected, Contract.internal_names
@@ -42,7 +42,7 @@ module RequestContext
       assert_equal :path_target, Contract.family(:pt)
       assert_equal :navigation_target, Contract.family(:nt)
       assert_equal :optional_overlay, Contract.family(:lx)
-      assert_equal :optional_overlay, Contract.family(:pp)
+      assert_equal :optional_overlay, Contract.family(:ps)
     end
 
     test "redirect_target_key? recognizes only pt and nt" do

@@ -6,43 +6,43 @@
 # Table name: clients
 # Database name: app_principal
 #
-#  id                     :bigint           not null, primary key
-#  birthdate              :text
-#  deactivated_at         :datetime
-#  discarded_at           :datetime         default(Infinity), not null
-#  last_step_up_at        :datetime
-#  lock_version           :integer          default(0), not null
-#  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purged_at              :datetime         default(Infinity), not null
-#  terminated_at          :datetime
-#  withdrawal_started_at  :datetime
-#  withdrawn_at           :datetime         default(Infinity)
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  multi_factor_id        :bigint           default(0), not null
-#  multi_factor_status_id :bigint           default(5), not null
-#  public_id              :string(255)      default(""), not null
-#  status_id              :bigint           default(11), not null
-#  visibility_id          :bigint           default(2), not null
+#  id                    :bigint           not null, primary key
+#  birthdate             :text
+#  deactivated_at        :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  last_step_up_at       :datetime
+#  lock_version          :integer          default(0), not null
+#  mfa_level_enabled     :boolean          default(FALSE), not null
+#  purged_at             :datetime         default(Infinity), not null
+#  terminated_at         :datetime
+#  withdrawal_started_at :datetime
+#  withdrawn_at          :datetime         default(Infinity)
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  mfa_level_id          :bigint           default(0), not null
+#  mfa_status_id         :bigint           default(5), not null
+#  public_id             :string(255)      default(""), not null
+#  status_id             :bigint           default(11), not null
+#  visibility_id         :bigint           default(2), not null
 #
 # Indexes
 #
-#  index_clients_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_clients_on_discarded_at            (discarded_at)
-#  index_clients_on_multi_factor_id         (multi_factor_id)
-#  index_clients_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_clients_on_public_id               (public_id) UNIQUE
-#  index_clients_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_clients_on_status_id               (status_id)
-#  index_clients_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
-#  index_clients_on_visibility_id           (visibility_id)
-#  index_clients_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_clients_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_clients_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_clients_on_discarded_at           (discarded_at)
+#  index_clients_on_mfa_level_id           (mfa_level_id)
+#  index_clients_on_mfa_status_id          (mfa_status_id)
+#  index_clients_on_public_id              (public_id) UNIQUE
+#  index_clients_on_purged_at              (purged_at) WHERE (purged_at IS NOT NULL)
+#  index_clients_on_status_id              (status_id)
+#  index_clients_on_terminated_at          (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_clients_on_visibility_id          (visibility_id)
+#  index_clients_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_clients_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => client_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => client_multi_factor_statuses.id)
+#  fk_rails_...  (mfa_level_id => client_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => client_mfa_statuses.id)
 #  fk_rails_...  (status_id => client_statuses.id)
 #  fk_rails_...  (visibility_id => client_visibilities.id)
 #
@@ -72,14 +72,14 @@ class ClientTest < ActiveSupport::TestCase
     assert_not_nil @user.updated_at
   end
 
-  test "should have one user_social_apple association" do
-    assert_respond_to @user, :user_social_apple
-    assert_equal :has_one, @user.class.reflect_on_association(:user_social_apple).macro
+  test "should have one user_apple_identity association" do
+    assert_respond_to @user, :user_apple_identity
+    assert_equal :has_one, @user.class.reflect_on_association(:user_apple_identity).macro
   end
 
-  test "should have one user_social_google association" do
-    assert_respond_to @user, :user_social_google
-    assert_equal :has_one, @user.class.reflect_on_association(:user_social_google).macro
+  test "should have one user_google_identity association" do
+    assert_respond_to @user, :user_google_identity
+    assert_equal :has_one, @user.class.reflect_on_association(:user_google_identity).macro
   end
 
   test "staff? should return false" do
@@ -118,16 +118,16 @@ class ClientTest < ActiveSupport::TestCase
     assert_predicate @user, :login_allowed?
   end
 
-  test "multi_factor_enabled and multi_factor_id must describe the same requirement" do
-    user = Client.new(multi_factor_enabled: true, multi_factor_id: ClientMultiFactor::NOTHING)
+  test "mfa_level_enabled and mfa_level_id must describe the same requirement" do
+    user = Client.new(mfa_level_enabled: true, mfa_level_id: ClientMfaLevel::NOTHING)
 
     assert_not user.valid?
-    assert_not_empty user.errors[:multi_factor_id]
+    assert_not_empty user.errors[:mfa_level_id]
 
-    user = Client.new(multi_factor_enabled: false, multi_factor_id: ClientMultiFactor::FULL)
+    user = Client.new(mfa_level_enabled: false, mfa_level_id: ClientMfaLevel::FULL)
 
     assert_not user.valid?
-    assert_not_empty user.errors[:multi_factor_enabled]
+    assert_not_empty user.errors[:mfa_level_enabled]
   end
 
   test "termination requires finite withdrawal completion" do
@@ -170,9 +170,9 @@ class ClientTest < ActiveSupport::TestCase
     assert_equal :has_many, @user.class.reflect_on_association(:client_emails).macro
   end
 
-  test "should have many client_secrets association" do
-    assert_respond_to @user, :client_secrets
-    assert_equal :has_many, @user.class.reflect_on_association(:client_secrets).macro
+  test "should have many client_secret_credentials association" do
+    assert_respond_to @user, :client_secret_credentials
+    assert_equal :has_many, @user.class.reflect_on_association(:client_secret_credentials).macro
   end
 
   test "should have many client_passkeys association" do
@@ -263,37 +263,37 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "totp_enabled? returns true when active totp exists" do
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
-      user_identity_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
     )
 
     assert_predicate @user, :totp_enabled?
   end
 
   test "totp_enabled? returns false when totp is not active" do
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
-      user_identity_one_time_password_status_id: ClientOneTimePasswordStatus::INACTIVE,
+      user_identity_totp_credential_status_id: ClientTotpCredentialStatus::INACTIVE,
     )
 
     assert_not @user.totp_enabled?
   end
 
-  test "client_social_googles returns array with google when present" do
-    google = ClientSocialGoogle.create!(
+  test "client_google_identities returns array with google when present" do
+    google = ClientGoogleIdentity.create!(
       user: @user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "test_token",
       uid: "test_uid",
       token_expires_at: 1.day.from_now,
     )
 
-    assert_equal [google], @user.client_social_googles
+    assert_equal [google], @user.client_google_identities
   end
 
-  test "client_social_googles returns empty array when no google" do
-    assert_equal [], @user.client_social_googles
+  test "client_google_identities returns empty array when no google" do
+    assert_equal [], @user.client_google_identities
   end
 
   test "withdrawal_started? returns false when not started" do
@@ -437,9 +437,9 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "active_social_provider? returns true for active google" do
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: @user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "test_token",
       uid: "test_uid",
       token_expires_at: 1.day.from_now,
@@ -449,9 +449,9 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "active_social_provider? returns true for active apple" do
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: @user,
-      status_id: ClientSocialAppleStatus::ACTIVE,
+      status_id: ClientAppleIdentityStatus::ACTIVE,
       token: "test_token",
       uid: "test_uid",
       token_expires_at: 1.day.from_now,
@@ -461,9 +461,9 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "remaining_login_methods excludes provider when specified" do
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: @user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "test_token",
       uid: "test_uid",
       token_expires_at: 1.day.from_now,
@@ -482,11 +482,11 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "remaining_social_unlink_methods ignores stale social association cache" do
-    assert_nil @user.user_social_apple
+    assert_nil @user.user_apple_identity
 
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: @user,
-      status_id: ClientSocialAppleStatus::ACTIVE,
+      status_id: ClientAppleIdentityStatus::ACTIVE,
       token: "test_token",
       uid: "cached_apple_uid",
       token_expires_at: 1.day.from_now,
@@ -529,9 +529,9 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   test "remaining_login_methods returns apple when active" do
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: @user,
-      status_id: ClientSocialAppleStatus::ACTIVE,
+      status_id: ClientAppleIdentityStatus::ACTIVE,
       token: "test_token",
       uid: "apple_uid",
       token_expires_at: 1.day.from_now,

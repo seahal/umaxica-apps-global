@@ -379,10 +379,10 @@ class Sign::App::Configuration::SessionsControllerTest < ActionDispatch::Integra
     current_session_id = @headers["X-TEST-SESSION-PUBLIC-ID"]
     token = ClientToken.find_by!(public_id: current_session_id)
     token.update!(created_at: 20.minutes.ago)
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: @user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
 

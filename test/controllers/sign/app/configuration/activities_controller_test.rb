@@ -176,7 +176,7 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
       user: @user,
       event_id: ClientChronicleEvent::USER_SECRET_CREATED,
       occurred_at: 20.seconds.ago,
-      context: { tag: "user-secret-created-event" },
+      context: { tag: "user-secret_credential-created-event" },
     )
     create_user_audit(
       user: @user,
@@ -216,8 +216,8 @@ class Sign::App::Configuration::ActivitiesControllerTest < ActionDispatch::Integ
     assert_includes response.body, I18n.t("sign.app.configuration.activity.events.totp_enabled")
     assert_includes response.body, "passkey-registered-event"
     assert_includes response.body, I18n.t("sign.app.configuration.activity.events.passkey_registered")
-    assert_includes response.body, "user-secret-created-event"
-    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.user_secret_created")
+    assert_includes response.body, "user-secret_credential-created-event"
+    assert_includes response.body, I18n.t("sign.app.configuration.activity.events.user_secret_credential_created")
     assert_includes response.body, "recovery-codes-generated-event"
     assert_includes response.body, I18n.t("sign.app.configuration.activity.events.recovery_codes_generated")
     assert_not_includes response.body, "non-login-event"

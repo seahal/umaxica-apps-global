@@ -7,8 +7,8 @@ class CurrentBannerPartialTest < ActionView::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :client_banners, :operator_banners, :visitor_banners, :clients, :client_statuses, :operators,
-           :operator_identity_statuses, :visitors, :visitor_statuses, :visitor_visibilities, :visitor_multi_factors,
-           :visitor_multi_factor_statuses
+           :operator_statuses, :visitors, :visitor_statuses, :visitor_visibilities, :visitor_mfa_levels,
+           :visitor_mfa_statuses
 
   test "renders the current banner for a surface" do
     travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do

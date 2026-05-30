@@ -13,8 +13,8 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
       VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
       VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
       VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
-      VisitorSecretKind.find_or_create_by!(id: VisitorSecretKind::LOGIN)
-      VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::ACTIVE)
+      VisitorSecretCredentialKind.find_or_create_by!(id: VisitorSecretCredentialKind::LOGIN)
+      VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::ACTIVE)
       VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
       VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
       VisitorTokenStatus.ensure_defaults!
@@ -57,10 +57,10 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     assert_equal I18n.t("sign.app.configuration.telephone.destroy.last_method"), flash[:alert]
   end
 
-  test "passkey removal preserves aal2 when only secret remains for aal1" do
+  test "passkey removal preserves aal2 when only secret_credential remains for aal1" do
     visitor = create_visitor
     create_verified_telephone(visitor, "+819022220002")
-    create_active_secret(visitor)
+    create_active_secret_credential(visitor)
     passkey = create_active_passkey(visitor)
 
     assert_no_difference("VisitorPasskey.count") do
@@ -72,18 +72,20 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
-  test "secret removal preserves aal1 when passkey does not remain" do
+  test "secret_credential removal preserves aal1 when passkey does not remain" do
     visitor = create_visitor
     create_verified_telephone(visitor, "+819022220003")
-    secret = create_active_secret(visitor)
+    secret_credential = create_active_secret_credential(visitor)
 
-    assert_no_difference("VisitorSecret.where(visitor_secret_status_id: VisitorSecretStatus::ACTIVE).count") do
-      delete sign_com_configuration_secret_url(secret.public_id, ri: "jp"),
-             headers: visitor_headers(visitor, scope: "configuration_secret")
+    assert_no_difference(
+      "VisitorSecretCredential.where(visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE).count",
+    ) do
+      delete sign_com_configuration_secret_credential_url(secret_credential.public_id, ri: "jp"),
+             headers: visitor_headers(visitor, scope: "configuration_secret_credential")
     end
 
-    assert_redirected_to sign_com_configuration_secrets_url(ri: "jp")
-    assert_equal I18n.t("sign.app.configuration.secrets.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_com_configuration_secret_credentials_url(ri: "jp")
+    assert_equal I18n.t("sign.app.configuration.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
   test "email and passkey removals are allowed when all dimensions remain" do
@@ -149,13 +151,13 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     )
   end
 
-  def create_active_secret(visitor)
-    VisitorSecret.create!(
+  def create_active_secret_credential(visitor)
+    VisitorSecretCredential.create!(
       visitor: visitor,
-      name: "Removal guard secret",
+      name: "Removal guard secret_credential",
       password: "a" * 32,
-      visitor_secret_kind_id: VisitorSecretKind::LOGIN,
-      visitor_secret_status_id: VisitorSecretStatus::ACTIVE,
+      visitor_secret_credential_kind_id: VisitorSecretCredentialKind::LOGIN,
+      visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE,
     )
   end
 end

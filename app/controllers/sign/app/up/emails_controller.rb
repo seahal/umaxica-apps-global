@@ -41,7 +41,7 @@ module Sign
 
         def new
           @user_email = ClientEmail.new
-          sign_up_cycle_locator.clear!
+          sign_up_flow_locator.clear!
         end
 
         def edit
@@ -111,7 +111,7 @@ module Sign
             return
           end
 
-          bind_sign_up_cycle_to_email!(@user_email)
+          bind_sign_up_flow_to_email!(@user_email)
           progress_email_flow!(:create)
           redirect_params = build_notice_params(t("sign.app.registration.email.create.verification_code_sent"))
           flash[:notice] = redirect_params.delete(:notice)
@@ -184,7 +184,7 @@ module Sign
 
         def complete_update_and_redirect
           progress_email_flow!(:update)
-          advance_sign_up_cycle_after_email_otp!
+          advance_sign_up_flow_after_email_otp!
           redirect_to(
             sign_app_up_guardrail_path(
               ri: params[:ri],
@@ -235,7 +235,7 @@ module Sign
           if existing_signup_skip_otp?
             reset_email_flow!
             redirect_to(
-              new_sign_app_in_path,
+              new_sign_app_sign_in_path,
               notice: t("sign.app.registration.email.update.sign_in_required"),
             )
             return :redirected
@@ -257,7 +257,7 @@ module Sign
           reset_email_flow!
           session.delete(Sign::EmailRegistrable::EXISTING_EMAIL_SESSION_KEY)
           redirect_to(
-            new_sign_app_in_path,
+            new_sign_app_sign_in_path,
             notice: t("sign.app.registration.email.update.sign_in_required"),
           )
           :redirected
@@ -314,31 +314,31 @@ module Sign
           Digest::SHA256.hexdigest(normalized)
         end
 
-        def issue_sign_up_cycle!
+        def issue_sign_up_flow!
           AppTicketRecord.connected_to(role: :writing) do
-            ClientSignUpCycleStatus.ensure_defaults!
+            ClientSignUpFlowStatus.ensure_defaults!
           end
 
-          sign_up_cycle_locator.issue!(
-            ClientSignUpCycle.create!(
+          sign_up_flow_locator.issue!(
+            ClientSignUpFlow.create!(
               principal_id: nil,
-              status_id: ClientSignUpCycleStatus::STARTED,
+              status_id: ClientSignUpFlowStatus::STARTED,
               step: "start",
-              nonce_digest: ClientSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+              nonce_digest: ClientSignUpFlow.digest_nonce(SecureRandom.urlsafe_base64(32)),
               issued_at: Time.current,
-              expires_at: ClientSignUpCycle.default_ttl.from_now,
+              expires_at: ClientSignUpFlow.default_ttl.from_now,
               entry_method: "email",
               return_to: sanitized_return_to,
             ),
           )
         end
 
-        def current_sign_up_cycle
-          sign_up_cycle_locator.current || issue_sign_up_cycle!
+        def current_sign_up_flow
+          sign_up_flow_locator.current || issue_sign_up_flow!
         end
 
-        def bind_sign_up_cycle_to_email!(email)
-          cycle = current_sign_up_cycle
+        def bind_sign_up_flow_to_email!(email)
+          cycle = current_sign_up_flow
           AppTicketRecord.connected_to(role: :writing) do
             cycle.update!(
               principal_id: email.user_id,
@@ -350,8 +350,8 @@ module Sign
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
 
-        def advance_sign_up_cycle_after_email_otp!
-          cycle = sign_up_cycle_locator.current
+        def advance_sign_up_flow_after_email_otp!
+          cycle = sign_up_flow_locator.current
           return unless cycle
 
           result =
@@ -370,8 +370,8 @@ module Sign
           )
         end
 
-        def sign_up_cycle_locator
-          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpCycle)
+        def sign_up_flow_locator
+          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
         end
 
         def sanitized_return_to

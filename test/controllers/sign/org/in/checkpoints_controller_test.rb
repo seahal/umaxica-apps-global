@@ -10,7 +10,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = operators(:one)
-    OperatorSignInCycleStatus.ensure_defaults!
+    OperatorSignInFlowStatus.ensure_defaults!
   end
 
   test "show without login is rejected" do
@@ -115,12 +115,12 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
       participant: :checkpoint,
       pt: nil,
     )
-    cycle = OperatorSignInCycle.new(
+    cycle = OperatorSignInFlow.new(
       principal_id: @staff.id,
-      status_id: OperatorSignInCycle.status_id_for("CHECKPOINT_PENDING"),
+      status_id: OperatorSignInFlow.status_id_for("CHECKPOINT_PENDING"),
       state: "CHECKPOINT_PENDING",
       step: "checkpoint",
-      nonce_digest: OperatorSignInCycle.digest_nonce("pending-test-nonce"),
+      nonce_digest: OperatorSignInFlow.digest_nonce("pending-test-nonce"),
       issued_at: Time.current,
       expires_at: 15.minutes.from_now,
     )

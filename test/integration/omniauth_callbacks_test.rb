@@ -4,8 +4,8 @@
 require "test_helper"
 
 class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
-  fixtures_only :client_social_google_statuses, :client_social_apple_statuses, :client_statuses,
-                :client_one_time_password_statuses
+  fixtures_only :client_google_identity_statuses, :client_apple_identity_statuses, :client_statuses,
+                :client_totp_credential_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -53,7 +53,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
 
-    user = ClientSocialGoogle.find_by(uid: "123456789").user
+    user = ClientGoogleIdentity.find_by(uid: "123456789").user
 
     assert_not_nil user
     assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
@@ -114,7 +114,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
 
-    user = ClientSocialApple.find_by(uid: "apple_uid_123").user
+    user = ClientAppleIdentity.find_by(uid: "apple_uid_123").user
 
     assert_not_nil user
     assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
@@ -150,7 +150,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
 
-    user = ClientSocialApple.find_by(uid: "apple_get_callback_uid").user
+    user = ClientAppleIdentity.find_by(uid: "apple_get_callback_uid").user
 
     assert_not_nil user
     assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
@@ -164,20 +164,20 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
   end
 
   test "apple social login with MFA enabled does not require additional MFA challenge" do
-    user = Client.create!(birthdate: "2000-02-03", multi_factor_enabled: true)
-    ClientOneTimePassword.create!(
+    user = Client.create!(birthdate: "2000-02-03", mfa_level_enabled: true)
+    ClientTotpCredential.create!(
       user: user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       title: "totp",
     )
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: user,
       uid: "apple_mfa_skip_uid",
       provider: "apple",
       token: "existing_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_apple_status: client_social_apple_statuses(:active),
+      user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
@@ -205,13 +205,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
   test "should sign in with existing Google user" do
     user = Client.create!(birthdate: "2000-02-03")
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "existing_uid",
       provider: "google_app",
       token: "existing_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
@@ -246,13 +246,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
   test "existing Google identity without birthdate returns to sign up checkpoint" do
     user = Client.create!
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "existing_missing_birthdate_uid",
       provider: "google_app",
       token: "existing_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
@@ -288,21 +288,21 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
   test "social login with MFA enabled does not require additional MFA challenge" do
     user = Client.create!(birthdate: "2000-02-03")
-    user.update!(multi_factor_enabled: true)
-    ClientOneTimePassword.create!(
+    user.update!(mfa_level_enabled: true)
+    ClientTotpCredential.create!(
       user: user,
       private_key: ROTP::Base32.random_base32,
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       title: "totp",
     )
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "totp_required_uid",
       provider: "google_app",
       token: "existing_token",
       refresh_token: "existing_refresh",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
@@ -360,13 +360,13 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
   test "google login with session limit exceeded redirects to session management" do
     # Create an existing user with Google social identity
     user = Client.create!(birthdate: "2000-02-03")
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: user,
       uid: "session_limit_uid",
       provider: "google_app",
       token: "existing_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     # Create 2 active sessions to hit the limit

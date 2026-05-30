@@ -1,0 +1,16 @@
+<% content_for :page_title, t("sign.com.authentication.new.page_title") %>
+<% pt = signed_pt_param %>
+<h1><%= t("sign.com.authentication.new.page_title") %></h1>
+<p><%= t("sign.com.authentication.new.description") %></p>
+
+<ul>
+  <li><%= link_to t("sign.com.authentication.new.links.email"), new_sign_com_in_email_path(pt: pt) %></li>
+  <li><%= link_to t("sign.com.authentication.new.links.passkey"), new_sign_com_in_passkey_path(pt: pt) %>
+  </li>
+  <li><%= link_to t("sign.com.authentication.new.links.secret_credential"), new_sign_com_in_secret_credential_path(pt: pt) %>
+  </li>
+</ul>
+
+<%= link_to new_sign_com_sign_up_path(ri: params[:ri], pt: signed_pt_param) do %>
+  <%= t("sign.com.authentication.new.links.registration") %>
+<% end %>

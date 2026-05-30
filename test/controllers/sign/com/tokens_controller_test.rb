@@ -24,7 +24,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
              code: "abc",
              redirect_uri: "http://example.com/callback",
              client_id: "client-id",
-             client_secret: "secret",
+             client_secret: "secret_credential",
              code_verifier: "verifier",
            },
            headers: { "Host" => @host }
@@ -46,7 +46,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
              code: "abc",
              redirect_uri: "http://example.com/callback",
              client_id: "client-id",
-             client_secret: "secret",
+             client_secret: "secret_credential",
              code_verifier: "verifier",
            },
            headers: { "Host" => @host }
@@ -73,7 +73,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
              code: "abc",
              redirect_uri: "http://example.com/callback",
              client_id: "client-id",
-             client_secret: "secret",
+             client_secret: "secret_credential",
              code_verifier: "verifier",
            },
            headers: { "Host" => @host, "DPoP" => "proof-jwt" }

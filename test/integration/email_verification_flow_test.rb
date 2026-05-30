@@ -4,8 +4,8 @@
 require "test_helper"
 
 class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
-  fixtures_only :client_statuses, :client_social_apple_statuses, :client_visibilities, :client_multi_factors,
-                :client_multi_factor_statuses
+  fixtures_only :client_statuses, :client_apple_identity_statuses, :client_visibilities, :client_mfa_levels,
+                :client_mfa_statuses
 
   setup do
     CloudflareTurnstile.test_mode = true
@@ -42,7 +42,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
 
     # Client status should still be UNVERIFIED_WITH_SIGN_UP if it was new,
     # but no ClientEmail should have been created from the IdP info
-    user = ClientSocialApple.find_by(uid: "flow_uid").user
+    user = ClientAppleIdentity.find_by(uid: "flow_uid").user
 
     assert_nil ClientEmail.find_by(user: user)
   end

@@ -6,7 +6,8 @@ require "minitest/mock"
 require "base64"
 
 class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_statuses, :client_secret_kinds, :client_secret_statuses, :client_email_statuses,
+  fixtures :clients, :client_statuses, :client_secret_credential_kinds,
+           :client_secret_credential_statuses, :client_email_statuses,
            :client_chronicle_events, :client_chronicle_levels
 
   setup do
@@ -266,7 +267,7 @@ class Sign::App::Configuration::PasskeysControllerTest < ActionDispatch::Integra
       }
 
       assert_difference("ClientPasskey.count", 1) do
-        assert_no_difference("ClientSecret.count") do
+        assert_no_difference("ClientSecretCredential.count") do
           post verification_sign_app_configuration_passkeys_path(ri: "jp"), params: params, headers: headers
         end
       end

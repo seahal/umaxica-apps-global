@@ -10,18 +10,18 @@ class ClientCoverageTest < ActiveSupport::TestCase
     @user = Client.create!(status_id: 1, visibility_id: 1)
     ClientEmailStatus.find_or_create_by!(id: ClientEmailStatus::VERIFIED)
     ClientTelephoneStatus.find_or_create_by!(id: ClientTelephoneStatus::VERIFIED)
-    ClientSocialGoogleStatus.find_or_create_by!(id: ClientSocialGoogleStatus::ACTIVE)
-    ClientSocialAppleStatus.find_or_create_by!(id: ClientSocialAppleStatus::ACTIVE)
-    ClientOneTimePasswordStatus.find_or_create_by!(id: ClientOneTimePasswordStatus::ACTIVE)
+    ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::ACTIVE)
+    ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::ACTIVE)
+    ClientTotpCredentialStatus.find_or_create_by!(id: ClientTotpCredentialStatus::ACTIVE)
   end
 
   test "totp_enabled?" do
     assert_not @user.totp_enabled?
-    ClientOneTimePassword.create!(user: @user, user_identity_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
+    ClientTotpCredential.create!(user: @user, user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
 
     assert_predicate @user, :totp_enabled?
 
-    @user.client_one_time_passwords.load
+    @user.client_totp_credentials.load
 
     assert_predicate @user, :totp_enabled?
   end
@@ -31,14 +31,14 @@ class ClientCoverageTest < ActiveSupport::TestCase
     assert_predicate @user, :user?
   end
 
-  test "client_social_googles shim" do
-    assert_empty @user.client_social_googles
-    google = ClientSocialGoogle.create!(
+  test "client_google_identities shim" do
+    assert_empty @user.client_google_identities
+    google = ClientGoogleIdentity.create!(
       user: @user, uid: "u", provider: "google",
-      status_id: ClientSocialGoogleStatus::ACTIVE, token: "t", expires_at: 0,
+      status_id: ClientGoogleIdentityStatus::ACTIVE, token: "t", expires_at: 0,
     )
 
-    assert_equal [google], @user.client_social_googles
+    assert_equal [google], @user.client_google_identities
   end
 
   test "verified_email? and verified_telephone?" do
@@ -71,16 +71,16 @@ class ClientCoverageTest < ActiveSupport::TestCase
 
   test "active_social_provider?" do
     assert_not @user.active_social_provider?("google")
-    ClientSocialGoogle.create!(
-      user: @user, uid: "g", provider: "google", status_id: ClientSocialGoogleStatus::ACTIVE,
+    ClientGoogleIdentity.create!(
+      user: @user, uid: "g", provider: "google", status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "t", expires_at: 0,
     )
 
     assert @user.active_social_provider?("google")
 
     assert_not @user.active_social_provider?("apple")
-    ClientSocialApple.create!(
-      user: @user, uid: "a", provider: "apple", status_id: ClientSocialAppleStatus::ACTIVE,
+    ClientAppleIdentity.create!(
+      user: @user, uid: "a", provider: "apple", status_id: ClientAppleIdentityStatus::ACTIVE,
       token: "t", expires_at: 0,
     )
 

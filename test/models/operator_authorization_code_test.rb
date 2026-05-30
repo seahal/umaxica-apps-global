@@ -33,7 +33,7 @@ require "test_helper"
 
 class OperatorAuthorizationCodeTest < ActiveSupport::TestCase
   setup do
-    @staff = Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+    @staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     @valid_params = {
       client_id: "test-client",
       redirect_uri: "https://example.com/callback",

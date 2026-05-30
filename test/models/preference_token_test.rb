@@ -189,7 +189,7 @@ class PreferenceTokenModelTest < ActiveSupport::TestCase
         jti: @jti,
       )
       payload, _header = JWT.decode(token, nil, false)
-      tampered = JWT.encode(payload, "secret", "HS256", { typ: Preference::Token::TOKEN_TYPE })
+      tampered = JWT.encode(payload, "secret_credential", "HS256", { typ: Preference::Token::TOKEN_TYPE })
 
       assert_nil Preference::Token.decode(tampered, host: @host)
     end

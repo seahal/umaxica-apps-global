@@ -5,7 +5,7 @@ module SignUp
   # Unified terminal-event service for sign-up cycles. Handles the orchestration
   # that the raw `SignUp::StateMachine` does not own:
   #
-  # 1. Acquire row lock on the cycle (in a transaction — see Cycle::Base).
+  # 1. Acquire row lock on the cycle (in a transaction — see Flow::Base).
   # 2. Drive the state machine to the terminal status (CANCELLED/EXPIRED/FAILED).
   # 3. Schedule retention (discard now, purge after PHYSICAL_PURGE_DELAY) on the
   #    cycle row via Retainable#discard_now!.

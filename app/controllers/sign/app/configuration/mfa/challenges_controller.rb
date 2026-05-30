@@ -11,25 +11,29 @@ module Sign
           AUTHENTICATION_MODE = :private
 
           before_action :authenticate_client!
+          # Object-level authorization (ActionPolicy): the MFA level is an account-self attribute
+          # on the client, so only the owner may view/update it. Reuses ClientPolicy#show?/#update?
+          # (owner-self), mirroring the birthdate page. Step-up/verification guards remain below.
+          before_action :authorize_mfa_challenge!, only: %i(show update)
 
           def show
             @user = current_client
             @passkeys = current_client.client_passkeys.active.order(created_at: :desc)
             @totps =
-              current_client.client_one_time_passwords
-                .where(user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
+              current_client.client_totp_credentials
+                .where(user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
                 .order(created_at: :desc)
-            @secrets =
-              current_client.client_secrets
-                .where(user_identity_secret_status_id: ClientSecretStatus::ACTIVE)
+            @secret_credentials =
+              current_client.client_secret_credentials
+                .where(user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE)
                 .order(created_at: :desc)
           end
 
           def update
-            multi_factor_id = requested_multi_factor_id
+            mfa_level_id = requested_mfa_level_id
             user = Client.find(current_client.id)
-            user.multi_factor_id = multi_factor_id
-            user.multi_factor_enabled = multi_factor_id != ClientMultiFactor::NOTHING
+            user.mfa_level_id = mfa_level_id
+            user.mfa_level_enabled = mfa_level_id != ClientMfaLevel::NOTHING
             user.save!
 
             redirect_to(
@@ -44,6 +48,10 @@ module Sign
 
           private
 
+          def authorize_mfa_challenge!
+            authorize!(current_client, to: :"#{action_name}?")
+          end
+
           def verification_required_action?
             %w(show update).include?(action_name)
           end
@@ -52,9 +60,9 @@ module Sign
             "configuration_mfa"
           end
 
-          def requested_multi_factor_id
-            multi_factor_id = Integer(params.dig(:user, :multi_factor_id).to_s, 10)
-            return multi_factor_id if [ClientMultiFactor::NOTHING, ClientMultiFactor::FULL].include?(multi_factor_id)
+          def requested_mfa_level_id
+            mfa_level_id = Integer(params.dig(:user, :mfa_level_id).to_s, 10)
+            return mfa_level_id if [ClientMfaLevel::NOTHING, ClientMfaLevel::FULL].include?(mfa_level_id)
 
             raise ArgumentError, "unsupported multi factor level"
           end

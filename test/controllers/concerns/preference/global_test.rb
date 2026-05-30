@@ -85,7 +85,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
       tf: "Hour_24",
       mo: "Reduced",
       dn: "Compact",
-      pp: "50",
+      ps: "50",
       bad: "value",
     )
 
@@ -101,7 +101,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
         tf: "24",
         mo: "rd",
         dn: "cp",
-        pp: "50",
+        ps: "50",
       },
       controller.request_context,
     )
@@ -118,7 +118,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
         tf: "24",
         mo: "rd",
         dn: "cp",
-        pp: "50",
+        ps: "50",
       },
       controller.requested_context,
     )

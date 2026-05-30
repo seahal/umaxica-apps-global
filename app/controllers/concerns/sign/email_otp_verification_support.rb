@@ -101,7 +101,7 @@ module Sign
         return false
       end
 
-      ok = verify_hotp_code(secret: data["secret"], counter: data["counter"], pass_code: code)
+      ok = verify_hotp_code(secret_credential: data["secret_credential"], counter: data["counter"], pass_code: code)
       unless ok
         @verification_errors = [I18n.t("sign.app.verification.errors.incorrect_code")]
         return false

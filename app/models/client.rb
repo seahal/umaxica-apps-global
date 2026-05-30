@@ -6,43 +6,43 @@
 # Table name: clients
 # Database name: app_principal
 #
-#  id                     :bigint           not null, primary key
-#  birthdate              :text
-#  deactivated_at         :datetime
-#  discarded_at           :datetime         default(Infinity), not null
-#  last_step_up_at        :datetime
-#  lock_version           :integer          default(0), not null
-#  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purged_at              :datetime         default(Infinity), not null
-#  terminated_at          :datetime
-#  withdrawal_started_at  :datetime
-#  withdrawn_at           :datetime         default(Infinity)
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  multi_factor_id        :bigint           default(0), not null
-#  multi_factor_status_id :bigint           default(5), not null
-#  public_id              :string(255)      default(""), not null
-#  status_id              :bigint           default(11), not null
-#  visibility_id          :bigint           default(2), not null
+#  id                    :bigint           not null, primary key
+#  birthdate             :text
+#  deactivated_at        :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  last_step_up_at       :datetime
+#  lock_version          :integer          default(0), not null
+#  mfa_level_enabled     :boolean          default(FALSE), not null
+#  purged_at             :datetime         default(Infinity), not null
+#  terminated_at         :datetime
+#  withdrawal_started_at :datetime
+#  withdrawn_at          :datetime         default(Infinity)
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  mfa_level_id          :bigint           default(0), not null
+#  mfa_status_id         :bigint           default(5), not null
+#  public_id             :string(255)      default(""), not null
+#  status_id             :bigint           default(11), not null
+#  visibility_id         :bigint           default(2), not null
 #
 # Indexes
 #
-#  index_clients_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_clients_on_discarded_at            (discarded_at)
-#  index_clients_on_multi_factor_id         (multi_factor_id)
-#  index_clients_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_clients_on_public_id               (public_id) UNIQUE
-#  index_clients_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_clients_on_status_id               (status_id)
-#  index_clients_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
-#  index_clients_on_visibility_id           (visibility_id)
-#  index_clients_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_clients_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_clients_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_clients_on_discarded_at           (discarded_at)
+#  index_clients_on_mfa_level_id           (mfa_level_id)
+#  index_clients_on_mfa_status_id          (mfa_status_id)
+#  index_clients_on_public_id              (public_id) UNIQUE
+#  index_clients_on_purged_at              (purged_at) WHERE (purged_at IS NOT NULL)
+#  index_clients_on_status_id              (status_id)
+#  index_clients_on_terminated_at          (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_clients_on_visibility_id          (visibility_id)
+#  index_clients_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_clients_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => client_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => client_multi_factor_statuses.id)
+#  fk_rails_...  (mfa_level_id => client_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => client_mfa_statuses.id)
 #  fk_rails_...  (status_id => client_statuses.id)
 #  fk_rails_...  (visibility_id => client_visibilities.id)
 #
@@ -66,8 +66,8 @@ class Client < AppPrincipalRecord
   include ::PublicId
   include ::Identity
   include Authentication::CredentialInventoryOwner
-  include MultiFactorConfigurable
-  include MultiFactorStatusTrackable
+  include MfaLevelConfigurable
+  include MfaStatusTrackable
   include Actor::LifecycleConsistency
 
   LOGIN_BLOCKED_STATUS_IDS = [ClientStatus::RESERVED].freeze
@@ -83,29 +83,29 @@ class Client < AppPrincipalRecord
   RECOVERY_IDENTITY_REQUIRED_MESSAGE = I18n.t("models.user.recovery_identity_required")
 
   attribute :status_id, default: ClientStatus::NOTHING
-  multi_factor_reference ClientMultiFactor
-  multi_factor_status_reference ClientMultiFactorStatus
+  mfa_level_reference ClientMfaLevel
+  mfa_status_reference ClientMfaStatus
 
   belongs_to :user_status, class_name: "ClientStatus",
                            foreign_key: :status_id,
                            inverse_of: :users
-  belongs_to :multi_factor,
-             class_name: "ClientMultiFactor",
+  belongs_to :mfa_level,
+             class_name: "ClientMfaLevel",
              inverse_of: :users
-  belongs_to :multi_factor_status,
-             class_name: "ClientMultiFactorStatus",
+  belongs_to :mfa_status,
+             class_name: "ClientMfaStatus",
              inverse_of: :users
   belongs_to :visibility,
              class_name: "ClientVisibility",
              inverse_of: :users
-  has_one :user_social_apple, class_name: "ClientSocialApple",
-                              foreign_key: :user_id,
-                              dependent: :destroy,
-                              inverse_of: :user
-  has_one :user_social_google, class_name: "ClientSocialGoogle",
-                               foreign_key: :user_id,
-                               dependent: :destroy,
-                               inverse_of: :user
+  has_one :user_apple_identity, class_name: "ClientAppleIdentity",
+                                foreign_key: :user_id,
+                                dependent: :destroy,
+                                inverse_of: :user
+  has_one :user_google_identity, class_name: "ClientGoogleIdentity",
+                                 foreign_key: :user_id,
+                                 dependent: :destroy,
+                                 inverse_of: :user
   has_many :client_emails,
            foreign_key: :user_id,
            dependent: :destroy,
@@ -114,11 +114,11 @@ class Client < AppPrincipalRecord
            foreign_key: :user_id,
            dependent: :destroy,
            inverse_of: :user
-  has_many :client_secrets,
+  has_many :client_secret_credentials,
            foreign_key: :user_id,
            dependent: :destroy,
            inverse_of: :user
-  has_many :client_one_time_passwords,
+  has_many :client_totp_credentials,
            foreign_key: :user_id,
            dependent: :destroy,
            inverse_of: :user
@@ -126,19 +126,19 @@ class Client < AppPrincipalRecord
            foreign_key: :user_id,
            dependent: :destroy,
            inverse_of: :user
-  has_many :client_withdrawal_cycles,
+  has_many :client_withdrawal_flows,
            dependent: :restrict_with_error,
            inverse_of: :client
   has_many :active_totps,
-           -> { where(user_identity_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE) },
-           class_name: "ClientOneTimePassword",
+           -> { where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE) },
+           class_name: "ClientTotpCredential",
            dependent: :restrict_with_exception,
            inverse_of: :user
 
   # Cross-database (chronicle DB): append-only audit history. No dependent:
   # cascade — audit records intentionally outlive actor purge and are not
   # deleted across the DB boundary. See adr/chronicle-audit-db-consolidation.md.
-  has_many :client_chronicles,
+  has_many :client_chronicles, # rubocop:disable Rails/HasManyOrHasOneDependent
            foreign_key: :subject_id,
            inverse_of: false
   has_many :client_tokens,
@@ -160,11 +160,11 @@ class Client < AppPrincipalRecord
            inverse_of: :user
   # Cross-database (chronicle DB), polymorphic audit history. No dependent:
   # cascade — see client_chronicles above.
-  has_many :staff_chronicles, class_name: "OperatorChronicle", as: :actor
+  has_many :staff_chronicles, class_name: "OperatorChronicle", as: :actor # rubocop:disable Rails/HasManyOrHasOneDependent
   # Cross-database (app_signal DB). Lifecycle is NOT an implicit AR cascade
   # across the DB boundary; purged explicitly via
   # Retention::CrossDatabaseChildPurge from the account purge path.
-  has_many :notification_records,
+  has_many :notification_records, # rubocop:disable Rails/HasManyOrHasOneDependent
            class_name: "ClientNotificationRecord",
            foreign_key: :user_id,
            inverse_of: :client
@@ -227,7 +227,7 @@ class Client < AppPrincipalRecord
                             inverse_of: :user
   # Cross-database (avatar DB). Join rows are purged explicitly via
   # Retention::CrossDatabaseChildPurge, not by an implicit cross-DB cascade.
-  has_many :avatar_assignments, foreign_key: :user_id, inverse_of: :user
+  has_many :avatar_assignments, foreign_key: :user_id, inverse_of: :user # rubocop:disable Rails/HasManyOrHasOneDependent
   has_many :assigned_avatars, through: :avatar_assignments, source: :avatar
   has_many :owned_avatars,
            -> { joins(:avatar_assignments).where(avatar_assignments: { role: "owner" }) },
@@ -237,10 +237,10 @@ class Client < AppPrincipalRecord
   include Retainable
 
   def totp_enabled?
-    if client_one_time_passwords.loaded?
-      client_one_time_passwords.any? { |otp| otp.user_one_time_password_status_id == ClientOneTimePasswordStatus::ACTIVE }
+    if client_totp_credentials.loaded?
+      client_totp_credentials.any? { |otp| otp.user_totp_credential_status_id == ClientTotpCredentialStatus::ACTIVE }
     else
-      client_one_time_passwords.exists?(user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
+      client_totp_credentials.exists?(user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
     end
   end
 
@@ -258,8 +258,8 @@ class Client < AppPrincipalRecord
 
   # Compatibility shim for legacy pluralized callers.
   # Association remains has_one.
-  def client_social_googles
-    user_social_google ? [user_social_google] : []
+  def client_google_identities
+    user_google_identity ? [user_google_identity] : []
   end
 
   # what is this?
@@ -284,8 +284,8 @@ class Client < AppPrincipalRecord
     methods = []
     methods << :email if client_emails.exists?(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES)
     methods << :passkey if client_passkeys.exists?(status_id: ClientPasskeyStatus::ACTIVE)
-    methods << :google if excluded != "google" && active_social_google_exists?
-    methods << :apple if excluded != "apple" && active_social_apple_exists?
+    methods << :google if excluded != "google" && active_google_identity_exists?
+    methods << :apple if excluded != "apple" && active_apple_identity_exists?
     methods
   end
 
@@ -301,20 +301,20 @@ class Client < AppPrincipalRecord
     normalized = SocialIdentifiable.normalize_provider(provider)
     case normalized
     when "google"
-      user_social_google&.status_id == ClientSocialGoogleStatus::ACTIVE
+      user_google_identity&.status_id == ClientGoogleIdentityStatus::ACTIVE
     when "apple"
-      user_social_apple&.status_id == ClientSocialAppleStatus::ACTIVE
+      user_apple_identity&.status_id == ClientAppleIdentityStatus::ACTIVE
     else
       false
     end
   end
 
-  def active_social_google_exists?
-    ClientSocialGoogle.exists?(user_id: id, status_id: ClientSocialGoogleStatus::ACTIVE)
+  def active_google_identity_exists?
+    ClientGoogleIdentity.exists?(user_id: id, status_id: ClientGoogleIdentityStatus::ACTIVE)
   end
 
-  def active_social_apple_exists?
-    ClientSocialApple.exists?(user_id: id, status_id: ClientSocialAppleStatus::ACTIVE)
+  def active_apple_identity_exists?
+    ClientAppleIdentity.exists?(user_id: id, status_id: ClientAppleIdentityStatus::ACTIVE)
   end
 
   def verified_email?
@@ -359,7 +359,7 @@ class Client < AppPrincipalRecord
 
   private
 
-  def configured_multi_factor_methods
+  def configured_mfa_level_methods
     step_up_methods
   end
 end

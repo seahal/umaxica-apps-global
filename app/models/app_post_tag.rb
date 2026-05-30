@@ -6,25 +6,29 @@
 # Table name: app_post_tags
 # Database name: app_publisher
 #
-#  id                     :bigint           not null, primary key
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  app_post_id            :bigint           not null
-#  app_post_tag_master_id :bigint           default(0), not null
+#  id        :bigint           not null, primary key
+#  parent_id :bigint           default(0), not null
 #
 # Indexes
 #
-#  index_app_post_tags_on_app_post_id                             (app_post_id)
-#  index_app_post_tags_on_app_post_tag_master_id_and_app_post_id  (app_post_tag_master_id,app_post_id) UNIQUE
-#
-# Foreign Keys
-#
-#  fk_rails_...  (app_post_id => app_posts.id) ON DELETE => cascade
-#  fk_rails_...  (app_post_tag_master_id => app_post_tag_masters.id)
+#  index_app_post_tags_on_parent_id  (parent_id)
 #
 class AppPostTag < AppPublisherRecord
-  belongs_to :app_post, class_name: "AppPost", inverse_of: :app_post_tags
-  belongs_to :app_post_tag_master, class_name: "AppPostTagMaster", inverse_of: :app_post_tags
+  NOTHING = 0
+  LEGACY_NOTHING = 1
+  DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
 
-  validates :app_post_tag_master_id, uniqueness: { scope: :app_post_id, message: :already_tagged }
+  include PublisherPostMaster
+
+  belongs_to :parent,
+             class_name: "AppPostTag",
+             inverse_of: :children,
+             optional: true
+  has_many :children,
+           class_name: "AppPostTag",
+           foreign_key: :parent_id,
+           inverse_of: :parent,
+           dependent: :restrict_with_error
+  has_many :app_post_taggings, class_name: "AppPostTagging", dependent: :restrict_with_error, inverse_of: :app_post_tag
+  has_many :app_posts, through: :app_post_taggings
 end

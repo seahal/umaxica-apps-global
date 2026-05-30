@@ -14,9 +14,9 @@
 #  date_format     :string           default("iso"), not null
 #  density         :string           default("standard"), not null
 #  functional      :boolean          default(FALSE), not null
-#  items_per_page  :string           default("20"), not null
 #  language        :string           default("ja"), not null
 #  motion          :string           default("standard"), not null
+#  page_size       :string           default("20"), not null
 #  performant      :boolean          default(FALSE), not null
 #  region          :string           default("jp"), not null
 #  targetable      :boolean          default(FALSE), not null
@@ -76,11 +76,11 @@ class VisitorPreference < ComPrincipalRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :visitor_preference_items_per_page,
+  has_one :visitor_preference_page_size,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :visitor_preference_r18_display_stopper,
+  has_one :visitor_preference_adult_content_gate,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
@@ -95,8 +95,8 @@ class VisitorPreference < ComPrincipalRecord
   after_initialize :set_defaults
   before_validation :generate_public_id, on: :create
 
-  def r18_display_stopper
-    visitor_preference_r18_display_stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
+  def adult_content_gate
+    visitor_preference_adult_content_gate&.option&.name || Actor::Preference::DEFAULTS.fetch(:adult_content_gate)
   end
 
   private

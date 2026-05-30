@@ -32,10 +32,7 @@ CREATE UNLOGGED TABLE public.ar_internal_metadata (
 
 CREATE UNLOGGED TABLE public.org_post_categories (
     id bigint NOT NULL,
-    org_post_category_master_id bigint DEFAULT 0 NOT NULL,
-    org_post_id bigint NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
+    parent_id bigint DEFAULT 0 NOT NULL
 );
 
 
@@ -59,20 +56,23 @@ ALTER SEQUENCE public.org_post_categories_id_seq OWNED BY public.org_post_catego
 
 
 --
--- Name: org_post_category_masters; Type: TABLE; Schema: public; Owner: -
+-- Name: org_post_categorizations; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.org_post_category_masters (
+CREATE UNLOGGED TABLE public.org_post_categorizations (
     id bigint NOT NULL,
-    parent_id bigint DEFAULT 0 NOT NULL
+    org_post_category_id bigint DEFAULT 0 NOT NULL,
+    org_post_id bigint NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
 );
 
 
 --
--- Name: org_post_category_masters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: org_post_categorizations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.org_post_category_masters_id_seq
+CREATE UNLOGGED SEQUENCE public.org_post_categorizations_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -81,10 +81,10 @@ CREATE UNLOGGED SEQUENCE public.org_post_category_masters_id_seq
 
 
 --
--- Name: org_post_category_masters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: org_post_categorizations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.org_post_category_masters_id_seq OWNED BY public.org_post_category_masters.id;
+ALTER SEQUENCE public.org_post_categorizations_id_seq OWNED BY public.org_post_categorizations.id;
 
 
 --
@@ -221,20 +221,23 @@ ALTER SEQUENCE public.org_post_statuses_id_seq OWNED BY public.org_post_statuses
 
 
 --
--- Name: org_post_tag_masters; Type: TABLE; Schema: public; Owner: -
+-- Name: org_post_taggings; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED TABLE public.org_post_tag_masters (
+CREATE UNLOGGED TABLE public.org_post_taggings (
     id bigint NOT NULL,
-    parent_id bigint DEFAULT 0 NOT NULL
+    org_post_id bigint NOT NULL,
+    org_post_tag_id bigint DEFAULT 0 NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
 );
 
 
 --
--- Name: org_post_tag_masters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: org_post_taggings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE UNLOGGED SEQUENCE public.org_post_tag_masters_id_seq
+CREATE UNLOGGED SEQUENCE public.org_post_taggings_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -243,10 +246,10 @@ CREATE UNLOGGED SEQUENCE public.org_post_tag_masters_id_seq
 
 
 --
--- Name: org_post_tag_masters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: org_post_taggings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.org_post_tag_masters_id_seq OWNED BY public.org_post_tag_masters.id;
+ALTER SEQUENCE public.org_post_taggings_id_seq OWNED BY public.org_post_taggings.id;
 
 
 --
@@ -255,10 +258,7 @@ ALTER SEQUENCE public.org_post_tag_masters_id_seq OWNED BY public.org_post_tag_m
 
 CREATE UNLOGGED TABLE public.org_post_tags (
     id bigint NOT NULL,
-    org_post_id bigint NOT NULL,
-    org_post_tag_master_id bigint DEFAULT 0 NOT NULL,
-    created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
+    parent_id bigint DEFAULT 0 NOT NULL
 );
 
 
@@ -386,10 +386,10 @@ ALTER TABLE ONLY public.org_post_categories ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
--- Name: org_post_category_masters id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: org_post_categorizations id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_post_category_masters ALTER COLUMN id SET DEFAULT nextval('public.org_post_category_masters_id_seq'::regclass);
+ALTER TABLE ONLY public.org_post_categorizations ALTER COLUMN id SET DEFAULT nextval('public.org_post_categorizations_id_seq'::regclass);
 
 
 --
@@ -421,10 +421,10 @@ ALTER TABLE ONLY public.org_post_statuses ALTER COLUMN id SET DEFAULT nextval('p
 
 
 --
--- Name: org_post_tag_masters id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: org_post_taggings id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_post_tag_masters ALTER COLUMN id SET DEFAULT nextval('public.org_post_tag_masters_id_seq'::regclass);
+ALTER TABLE ONLY public.org_post_taggings ALTER COLUMN id SET DEFAULT nextval('public.org_post_taggings_id_seq'::regclass);
 
 
 --
@@ -505,11 +505,11 @@ ALTER TABLE public.org_posts
 
 
 --
--- Name: org_post_categories org_post_categories_master_id_non_negative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_categorizations org_post_categories_master_id_non_negative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.org_post_categories
-    ADD CONSTRAINT org_post_categories_master_id_non_negative CHECK ((org_post_category_master_id >= 0)) NOT VALID;
+ALTER TABLE public.org_post_categorizations
+    ADD CONSTRAINT org_post_categories_master_id_non_negative CHECK ((org_post_category_id >= 0)) NOT VALID;
 
 
 --
@@ -521,19 +521,19 @@ ALTER TABLE ONLY public.org_post_categories
 
 
 --
--- Name: org_post_category_masters org_post_category_masters_parent_id_non_negative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_categorizations org_post_categorizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.org_post_category_masters
+ALTER TABLE ONLY public.org_post_categorizations
+    ADD CONSTRAINT org_post_categorizations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: org_post_categories org_post_category_masters_parent_id_non_negative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.org_post_categories
     ADD CONSTRAINT org_post_category_masters_parent_id_non_negative CHECK ((parent_id >= 0)) NOT VALID;
-
-
---
--- Name: org_post_category_masters org_post_category_masters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.org_post_category_masters
-    ADD CONSTRAINT org_post_category_masters_pkey PRIMARY KEY (id);
 
 
 --
@@ -569,27 +569,27 @@ ALTER TABLE ONLY public.org_post_statuses
 
 
 --
--- Name: org_post_tag_masters org_post_tag_masters_parent_id_non_negative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_tags org_post_tag_masters_parent_id_non_negative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.org_post_tag_masters
+ALTER TABLE public.org_post_tags
     ADD CONSTRAINT org_post_tag_masters_parent_id_non_negative CHECK ((parent_id >= 0)) NOT VALID;
 
 
 --
--- Name: org_post_tag_masters org_post_tag_masters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_taggings org_post_taggings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_post_tag_masters
-    ADD CONSTRAINT org_post_tag_masters_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.org_post_taggings
+    ADD CONSTRAINT org_post_taggings_pkey PRIMARY KEY (id);
 
 
 --
--- Name: org_post_tags org_post_tags_master_id_non_negative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_taggings org_post_tags_master_id_non_negative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE public.org_post_tags
-    ADD CONSTRAINT org_post_tags_master_id_non_negative CHECK ((org_post_tag_master_id >= 0)) NOT VALID;
+ALTER TABLE public.org_post_taggings
+    ADD CONSTRAINT org_post_tags_master_id_non_negative CHECK ((org_post_tag_id >= 0)) NOT VALID;
 
 
 --
@@ -625,24 +625,24 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
--- Name: index_org_post_categories_on_org_post_category_master_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_org_post_categories_on_parent_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_org_post_categories_on_org_post_category_master_id ON public.org_post_categories USING btree (org_post_category_master_id);
-
-
---
--- Name: index_org_post_categories_on_org_post_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_org_post_categories_on_org_post_id ON public.org_post_categories USING btree (org_post_id);
+CREATE INDEX index_org_post_categories_on_parent_id ON public.org_post_categories USING btree (parent_id);
 
 
 --
--- Name: index_org_post_category_masters_on_parent_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_org_post_categorizations_on_org_post_category_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_org_post_category_masters_on_parent_id ON public.org_post_category_masters USING btree (parent_id);
+CREATE INDEX index_org_post_categorizations_on_org_post_category_id ON public.org_post_categorizations USING btree (org_post_category_id);
+
+
+--
+-- Name: index_org_post_categorizations_on_org_post_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_org_post_categorizations_on_org_post_id ON public.org_post_categorizations USING btree (org_post_id);
 
 
 --
@@ -681,24 +681,24 @@ CREATE UNIQUE INDEX index_org_post_revisions_on_public_id ON public.org_post_rev
 
 
 --
--- Name: index_org_post_tag_masters_on_parent_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_org_post_taggings_on_org_post_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_org_post_tag_masters_on_parent_id ON public.org_post_tag_masters USING btree (parent_id);
-
-
---
--- Name: index_org_post_tags_on_org_post_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_org_post_tags_on_org_post_id ON public.org_post_tags USING btree (org_post_id);
+CREATE INDEX index_org_post_taggings_on_org_post_id ON public.org_post_taggings USING btree (org_post_id);
 
 
 --
--- Name: index_org_post_tags_on_org_post_tag_master_id_and_org_post_id; Type: INDEX; Schema: public; Owner: -
+-- Name: index_org_post_taggings_on_org_post_tag_id_and_org_post_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_org_post_tags_on_org_post_tag_master_id_and_org_post_id ON public.org_post_tags USING btree (org_post_tag_master_id, org_post_id);
+CREATE UNIQUE INDEX index_org_post_taggings_on_org_post_tag_id_and_org_post_id ON public.org_post_taggings USING btree (org_post_tag_id, org_post_id);
+
+
+--
+-- Name: index_org_post_tags_on_parent_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_org_post_tags_on_parent_id ON public.org_post_tags USING btree (parent_id);
 
 
 --
@@ -789,10 +789,10 @@ ALTER TABLE ONLY public.org_posts
 
 
 --
--- Name: org_post_categories fk_rails_1c8744edf5; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_categorizations fk_rails_1c8744edf5; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_post_categories
+ALTER TABLE ONLY public.org_post_categorizations
     ADD CONSTRAINT fk_rails_1c8744edf5 FOREIGN KEY (org_post_id) REFERENCES public.org_posts(id) ON DELETE CASCADE;
 
 
@@ -813,11 +813,11 @@ ALTER TABLE ONLY public.org_posts
 
 
 --
--- Name: org_post_categories fk_rails_a677300bb6; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_categorizations fk_rails_a677300bb6; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_post_categories
-    ADD CONSTRAINT fk_rails_a677300bb6 FOREIGN KEY (org_post_category_master_id) REFERENCES public.org_post_category_masters(id);
+ALTER TABLE ONLY public.org_post_categorizations
+    ADD CONSTRAINT fk_rails_a677300bb6 FOREIGN KEY (org_post_category_id) REFERENCES public.org_post_categories(id);
 
 
 --
@@ -837,18 +837,18 @@ ALTER TABLE ONLY public.org_post_reviews
 
 
 --
--- Name: org_post_tags fk_rails_e33f9a0083; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_taggings fk_rails_e33f9a0083; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_post_tags
-    ADD CONSTRAINT fk_rails_e33f9a0083 FOREIGN KEY (org_post_tag_master_id) REFERENCES public.org_post_tag_masters(id);
+ALTER TABLE ONLY public.org_post_taggings
+    ADD CONSTRAINT fk_rails_e33f9a0083 FOREIGN KEY (org_post_tag_id) REFERENCES public.org_post_tags(id);
 
 
 --
--- Name: org_post_tags fk_rails_fdf74b486b; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: org_post_taggings fk_rails_fdf74b486b; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_post_tags
+ALTER TABLE ONLY public.org_post_taggings
     ADD CONSTRAINT fk_rails_fdf74b486b FOREIGN KEY (org_post_id) REFERENCES public.org_posts(id) ON DELETE CASCADE;
 
 
@@ -860,6 +860,8 @@ SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
 ('20260530143000'),
+('20260530032000'),
+('20260530031000'),
 ('20260528162201'),
 ('20260525231100'),
 ('20260525231000');

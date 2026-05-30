@@ -13,9 +13,9 @@ ENV["SIGN_STAFF_URL"] ||= "id.umaxica.org"
 ENV["ID_CORPORATE_URL"] ||= "id.umaxica.com"
 ENV["SIGN_CORPORATE_URL"] ||= "id.umaxica.com"
 
-ENV["EMAIL_ADDRESS_HMAC_SALT"] ||= "test-email-address-secret"
-ENV["TELEPHONE_NUMBER_HMAC_SALT"] ||= "test-telephone-number-secret"
-ENV["PROMOTIONAL_UNSUBSCRIBE_HMAC_SALT"] ||= "test-promotional-unsubscribe-secret"
+ENV["EMAIL_ADDRESS_HMAC_SALT"] ||= "test-email-address-secret_credential"
+ENV["TELEPHONE_NUMBER_HMAC_SALT"] ||= "test-telephone-number-secret_credential"
+ENV["PROMOTIONAL_UNSUBSCRIBE_HMAC_SALT"] ||= "test-promotional-unsubscribe-secret_credential"
 
 class SocialAuthTestCsrfController < (defined?(ApplicationController) ? ApplicationController : ActionController::Base)
   protect_from_forgery using: :header_or_legacy_token
@@ -422,19 +422,23 @@ module MissingHelpers
   def ensure_visitor_reference_records!
     VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
-    VisitorMultiFactor.find_or_create_by!(id: VisitorMultiFactor::NOTHING)
-    VisitorMultiFactorStatus.find_or_create_by!(id: VisitorMultiFactorStatus::UNCONFIGURED)
+    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
+    VisitorMfaStatus.find_or_create_by!(id: VisitorMfaStatus::UNCONFIGURED)
     VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
     VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
-    VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::ACTIVE) if defined?(VisitorSecretStatus)
-    VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::EXPIRED) if defined?(VisitorSecretStatus)
-    VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::REVOKED) if defined?(VisitorSecretStatus)
-    VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::USED) if defined?(VisitorSecretStatus)
-    VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::DELETED) if defined?(VisitorSecretStatus)
-    VisitorSecretStatus.find_or_create_by!(id: VisitorSecretStatus::NOTHING) if defined?(VisitorSecretStatus)
-    VisitorSecretKind.find_or_create_by!(id: VisitorSecretKind::LOGIN) if defined?(VisitorSecretKind)
-    VisitorSecretKind.find_or_create_by!(id: VisitorSecretKind::RECOVERY) if defined?(VisitorSecretKind)
-    VisitorSecretKind.find_or_create_by!(id: VisitorSecretKind::API) if defined?(VisitorSecretKind)
+    if defined?(VisitorSecretCredentialStatus)
+      VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::ACTIVE)
+      VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::EXPIRED)
+      VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::REVOKED)
+      VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::USED)
+      VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::DELETED)
+      VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::NOTHING)
+    end
+    if defined?(VisitorSecretCredentialKind)
+      VisitorSecretCredentialKind.find_or_create_by!(id: VisitorSecretCredentialKind::LOGIN)
+      VisitorSecretCredentialKind.find_or_create_by!(id: VisitorSecretCredentialKind::RECOVERY)
+      VisitorSecretCredentialKind.find_or_create_by!(id: VisitorSecretCredentialKind::API)
+    end
     VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
   end
 
@@ -450,7 +454,7 @@ module MissingHelpers
 
     user = Client.create!(status_id: ClientStatus::NOTHING, visibility_id: ClientVisibility::USER)
     insert_verified_user_email!(user_id: user.id, address: email_address)
-    user.refresh_multi_factor_status! if user.respond_to?(:refresh_multi_factor_status!)
+    user.refresh_mfa_status! if user.respond_to?(:refresh_mfa_status!)
     user.reload
   end
 
@@ -459,7 +463,7 @@ module MissingHelpers
 
     visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
     insert_verified_visitor_email!(visitor_id: visitor.id, address: email_address)
-    visitor.refresh_multi_factor_status! if visitor.respond_to?(:refresh_multi_factor_status!)
+    visitor.refresh_mfa_status! if visitor.respond_to?(:refresh_mfa_status!)
     visitor.reload
   end
 
@@ -640,10 +644,10 @@ module MissingHelpers
   def ensure_user_reference_records!
     ClientStatus.find_or_create_by!(id: ClientStatus::NOTHING)
     ClientVisibility.find_or_create_by!(id: ClientVisibility::USER)
-    ClientMultiFactor.find_or_create_by!(id: ClientMultiFactor::NOTHING)
-    ClientMultiFactorStatus.find_or_create_by!(id: ClientMultiFactorStatus::NOTHING)
-    ClientMultiFactorStatus.find_or_create_by!(id: ClientMultiFactorStatus::ACTIVE)
-    ClientMultiFactorStatus.find_or_create_by!(id: ClientMultiFactorStatus::UNCONFIGURED)
+    ClientMfaLevel.find_or_create_by!(id: ClientMfaLevel::NOTHING)
+    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::NOTHING)
+    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::ACTIVE)
+    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::UNCONFIGURED)
     ClientEmailStatus.find_or_create_by!(id: ClientEmailStatus::VERIFIED)
     ClientTelephoneStatus.find_or_create_by!(id: ClientTelephoneStatus::VERIFIED)
     ClientPasskeyStatus.find_or_create_by!(id: ClientPasskeyStatus::ACTIVE)

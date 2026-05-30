@@ -47,7 +47,7 @@ module Email
   end
 
   # OTP-related methods for email authentication
-  # Stores OTP secret on this email record
+  # Stores OTP secret_credential on this email record
   def store_otp(otp_private_key, otp_counter, expires_at)
     attrs = {
       otp_private_key: otp_private_key,
@@ -64,7 +64,7 @@ module Email
     update!(attrs)
   end
 
-  # Retrieves OTP secret from this email record
+  # Retrieves OTP secret_credential from this email record
   def get_otp
     return nil if otp_private_key.blank? || otp_expired? || locked?
 
@@ -75,7 +75,7 @@ module Email
     }
   end
 
-  # Clears OTP secret after verification
+  # Clears OTP secret_credential after verification
   def clear_otp
     update!(
       otp_counter: "0",

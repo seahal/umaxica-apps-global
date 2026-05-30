@@ -46,14 +46,14 @@ module Sign
           ClientChronicleEvent::TELEPHONE_REMOVED => "telephone_removed",
           ClientChronicleEvent::TOTP_ENABLED => "totp_enabled",
           ClientChronicleEvent::PASSKEY_REGISTERED => "passkey_registered",
-          ClientChronicleEvent::USER_SECRET_CREATED => "user_secret_created",
+          ClientChronicleEvent::USER_SECRET_CREATED => "user_secret_credential_created",
           ClientChronicleEvent::RECOVERY_CODES_GENERATED => "recovery_codes_generated",
         }.freeze
         SENSITIVE_CONTEXT_PATTERNS = %w(
           user_agent
           authorization
           token
-          secret
+          secret_credential
           code
           email
           telephone
@@ -62,6 +62,10 @@ module Sign
         ).freeze
 
         before_action :authenticate_client!
+        # Object-level authorization (ActionPolicy). Kept in a before_action rather than inside the
+        # action body because `index` rescues StandardError (which ActionPolicy::Unauthorized
+        # subclasses) — an in-body check would be swallowed instead of denied.
+        before_action :authorize_activity_log!, only: %i(index show)
 
         helper_method :activity_event_label, :activity_ip_address, :activity_context_text, :activity_occurred_at,
                       :activity_user_agent_summary, :activity_login_method
@@ -78,6 +82,10 @@ module Sign
         end
 
         private
+
+        def authorize_activity_log!
+          authorize!(ClientChronicle, to: :index?)
+        end
 
         # ClientChronicle is currently written with numeric user.id in subject_id.
         def current_client_activities

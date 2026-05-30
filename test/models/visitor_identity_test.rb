@@ -35,14 +35,14 @@ require "base64"
 class VisitorIdentityTest < ActiveSupport::TestCase
   setup do
     Prosopite.pause do
-      VisitorMultiFactor.ensure_defaults!
-      VisitorMultiFactorStatus.ensure_defaults!
+      VisitorMfaLevel.ensure_defaults!
+      VisitorMfaStatus.ensure_defaults!
       VisitorStatus.ensure_defaults!
       VisitorVisibility.ensure_defaults!
       VisitorEmailStatus.ensure_defaults!
       VisitorTelephoneStatus.ensure_defaults!
-      VisitorSecretStatus.ensure_defaults!
-      [1, 3, 4].each { |id| VisitorSecretKind.find_or_create_by!(id: id) }
+      VisitorSecretCredentialStatus.ensure_defaults!
+      [1, 3, 4].each { |id| VisitorSecretCredentialKind.find_or_create_by!(id: id) }
       VisitorPasskeyStatus.ensure_defaults!
       VisitorIdentityState.ensure_defaults!
     end
@@ -71,12 +71,12 @@ class VisitorIdentityTest < ActiveSupport::TestCase
     assert_predicate visitor, :verified_telephone?
   end
 
-  test "visitor secret requires verified recovery identity" do
+  test "visitor secret_credential requires verified recovery identity" do
     visitor = Visitor.create!
-    secret = VisitorSecret.new(visitor: visitor, name: "login", password: "a" * 32)
+    secret_credential = VisitorSecretCredential.new(visitor: visitor, name: "login", password: "a" * 32)
 
-    assert_not secret.valid?
-    assert_includes secret.errors[:base], Visitor::RECOVERY_IDENTITY_REQUIRED_MESSAGE
+    assert_not secret_credential.valid?
+    assert_includes secret_credential.errors[:base], Visitor::RECOVERY_IDENTITY_REQUIRED_MESSAGE
   end
 
   test "visitor passkey requires verified recovery identity" do

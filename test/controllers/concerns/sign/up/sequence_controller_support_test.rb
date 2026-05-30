@@ -11,13 +11,13 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
   test "sign_up_pending_actor loads the matching client or visitor by id" do
     harness = Harness.new
 
-    harness.instance_variable_set(:@sign_up_ticket, ClientSignUpCycle.new(principal_id: clients(:sample_user).id))
+    harness.instance_variable_set(:@sign_up_ticket, ClientSignUpFlow.new(principal_id: clients(:sample_user).id))
 
     assert_equal clients(:sample_user), harness.send(:sign_up_pending_actor)
 
     harness.instance_variable_set(
       :@sign_up_ticket,
-      VisitorSignUpCycle.new(principal_id: visitors(:reserved_visitor).id),
+      VisitorSignUpFlow.new(principal_id: visitors(:reserved_visitor).id),
     )
 
     assert_equal visitors(:reserved_visitor), harness.send(:sign_up_pending_actor)
@@ -41,14 +41,14 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
 
     harness.instance_variable_set(
       :@sign_up_ticket,
-      ClientSignUpCycle.new(pending_contact_id: client_telephone.id),
+      ClientSignUpFlow.new(pending_contact_id: client_telephone.id),
     )
 
     assert_equal client_telephone, harness.send(:sign_up_pending_telephone)
 
     harness.instance_variable_set(
       :@sign_up_ticket,
-      VisitorSignUpCycle.new(pending_contact_id: visitor_telephone.id),
+      VisitorSignUpFlow.new(pending_contact_id: visitor_telephone.id),
     )
 
     assert_equal visitor_telephone, harness.send(:sign_up_pending_telephone)

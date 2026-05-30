@@ -113,7 +113,7 @@ module Authentication
 
     def sign_in_url_with_pt(return_to)
       _ = return_to
-      new_sign_com_in_url(
+      new_sign_com_sign_in_url(
         host: sign_com_redirect_host,
         protocol: "https",
       )

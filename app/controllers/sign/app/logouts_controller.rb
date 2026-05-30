@@ -11,7 +11,7 @@ module Sign
       private
 
       def oidc_logout_completed_path(ri:)
-        sign_app_out_path(ri: ri)
+        sign_app_sign_out_path(ri: ri)
       end
     end
   end

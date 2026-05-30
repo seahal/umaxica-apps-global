@@ -6,7 +6,7 @@ module Authentication
     extend ActiveSupport::Concern
 
     def sign_in_sequence_redirect_path(pt: nil, default_path: after_dashboard_path)
-      cycle = current_db_sign_in_cycle_for_sequence
+      cycle = current_db_sign_in_flow_for_sequence
       if cycle
         url_pt = signed_pt_token(pt || cycle.return_to)
         return sign_in_session_limit_path(pt: url_pt) if cycle.sign_in_session_limit_pending?
@@ -16,7 +16,7 @@ module Authentication
         return reject_invalid_sign_in_sequence_path(default_path) unless cycle.sign_in_guardrail_pending?
 
         result =
-          with_sign_in_cycle_writing(cycle) do
+          with_sign_in_flow_writing(cycle) do
             sign_in_guardrail_participant(cycle).advance_if_clear!
           end
         return default_path if result.blocking?
@@ -60,13 +60,13 @@ module Authentication
     end
 
     def redirect_after_checkpoint_sequence!(pt: nil, default_path: after_dashboard_path, **redirect_options)
-      cycle = current_db_sign_in_cycle_for_sequence
+      cycle = current_db_sign_in_flow_for_sequence
       if cycle
         return reject_invalid_sign_in_sequence! unless cycle.sign_in_checkpoint_pending?
         return reject_invalid_sign_in_sequence! unless allowed_to?(:complete_checkpoint?, cycle)
 
         result =
-          with_sign_in_cycle_writing(cycle) do
+          with_sign_in_flow_writing(cycle) do
             sign_in_checkpoint_participant(cycle).advance_if_clear!
           end
         if result.blocking?
@@ -83,19 +83,19 @@ module Authentication
     end
 
     def continue_checkpoint_sequence_without_content!
-      cycle = current_db_sign_in_cycle_for_sequence
+      cycle = current_db_sign_in_flow_for_sequence
       if cycle
         return reject_invalid_sign_in_sequence! unless cycle.sign_in_checkpoint_pending?
         return reject_invalid_sign_in_sequence! unless allowed_to?(:show_checkpoint?, cycle)
         return if bulletin_state.present?
 
         result =
-          with_sign_in_cycle_writing(cycle) do
+          with_sign_in_flow_writing(cycle) do
             sign_in_checkpoint_participant(cycle).advance_if_clear!
           end
         return if result.blocking?
 
-        with_sign_in_cycle_writing(cycle) do
+        with_sign_in_flow_writing(cycle) do
           changes = {
             status_id: cycle.status_id_for("DASHBOARD_PENDING"),
             state: "DASHBOARD_PENDING",
@@ -125,7 +125,7 @@ module Authentication
 
     # rubocop:disable Metrics/AbcSize
     def continue_welcome_sequence_without_content!
-      cycle = current_db_sign_in_cycle_for_sequence
+      cycle = current_db_sign_in_flow_for_sequence
       if cycle
         process_cycle_based_sequence!(cycle)
       else
@@ -136,7 +136,7 @@ module Authentication
     def process_cycle_based_sequence!(cycle)
       if cycle.sign_in_completed?
         clear_welcome_gate!
-        clear_current_sign_in_cycle_locator!
+        clear_current_sign_in_flow_locator!
         return redirect_to(after_welcome_path)
       end
       return redirect_to(sign_in_session_limit_path(pt: cycle.return_to)) if cycle.sign_in_session_limit_pending?
@@ -146,12 +146,12 @@ module Authentication
       return redirect_to(after_welcome_path) unless welcome_gate_available?
       return redirect_to(after_welcome_path) unless consume_welcome_gate!(sequence_id: cycle.public_id)
 
-      bind_current_session_to_sign_in_cycle!(cycle)
+      bind_current_session_to_sign_in_flow!(cycle)
       return reject_invalid_sign_in_sequence! unless allowed_to?(:show_dashboard?, cycle)
 
       if cycle.sign_in_dashboard_pending?
         result =
-          with_sign_in_cycle_writing(cycle) do
+          with_sign_in_flow_writing(cycle) do
             sign_in_dashboard_participant(cycle).advance!
           end
         return if result.blocking?
@@ -159,7 +159,7 @@ module Authentication
 
       reloaded_cycle = cycle.reload
       destination =
-        with_sign_in_cycle_writing(reloaded_cycle) do
+        with_sign_in_flow_writing(reloaded_cycle) do
           SignIn::ReturnParticipant.new(
             cycle: reloaded_cycle,
             default_path: after_welcome_path,
@@ -167,7 +167,7 @@ module Authentication
         end
 
       clear_welcome_gate!
-      clear_current_sign_in_cycle_locator!
+      clear_current_sign_in_flow_locator!
       fallback_destination = safe_non_welcome_return_path(after_welcome_path)
       destination = safe_non_welcome_return_path(destination) || fallback_destination
       @welcome_next_path = destination if destination.present?
@@ -189,15 +189,15 @@ module Authentication
     alias continue_dashboard_sequence_without_content! continue_welcome_sequence_without_content!
 
     def continue_selector_sequence!
-      cycle = current_db_sign_in_cycle_for_sequence
+      cycle = current_db_sign_in_flow_for_sequence
       return reject_invalid_sign_in_sequence! unless cycle
       return reject_invalid_sign_in_sequence! unless cycle.sign_in_selector_pending?
       return reject_invalid_sign_in_sequence! unless allowed_to?(:show_selector?, cycle)
 
-      with_sign_in_cycle_writing(cycle) do
+      with_sign_in_flow_writing(cycle) do
         SignIn::SelectorParticipant.new(
           cycle: cycle,
-          actor: sign_in_cycle_actor(cycle),
+          actor: sign_in_flow_actor(cycle),
           authn_public_id: Actor.authn.login_public_id,
         ).auto_commit_single!
       end
@@ -213,7 +213,7 @@ module Authentication
     def enforce_sign_in_selector_gate!
       return unless logged_in?
 
-      cycle = current_db_sign_in_cycle_for_sequence
+      cycle = current_db_sign_in_flow_for_sequence
       return unless cycle&.sign_in_selector_pending?
       return if sign_in_selector_allowed_request?
 
@@ -376,8 +376,8 @@ module Authentication
       false
     end
 
-    def current_db_sign_in_cycle_for_sequence
-      @current_db_sign_in_cycle_for_sequence ||=
+    def current_db_sign_in_flow_for_sequence
+      @current_db_sign_in_flow_for_sequence ||=
         begin
           token = respond_to?(:current_session, true) ? current_session : nil
           SignIn::CycleLocator.new(
@@ -391,24 +391,24 @@ module Authentication
       nil
     end
 
-    def with_sign_in_cycle_writing(cycle, &)
+    def with_sign_in_flow_writing(cycle, &)
       cycle.class.connection_class_for_self.connected_to(role: :writing, &)
     end
 
     def sign_in_checkpoint_participant(cycle)
-      SignIn::CheckpointParticipant.new(cycle: cycle, actor: sign_in_cycle_actor(cycle))
+      SignIn::CheckpointParticipant.new(cycle: cycle, actor: sign_in_flow_actor(cycle))
     end
 
     def sign_in_guardrail_participant(cycle)
-      SignIn::GuardrailParticipant.new(cycle: cycle, actor: sign_in_cycle_actor(cycle))
+      SignIn::GuardrailParticipant.new(cycle: cycle, actor: sign_in_flow_actor(cycle))
     end
 
     def sign_in_dashboard_participant(cycle)
       SignIn::DashboardParticipant.new(cycle: cycle, actor: current_resource)
     end
 
-    def clear_current_sign_in_cycle_locator!
-      sign_in_cycle_locator_for(actor: current_resource, token: current_session).clear!
+    def clear_current_sign_in_flow_locator!
+      sign_in_flow_locator_for(actor: current_resource, token: current_session).clear!
     rescue ArgumentError
       nil
     end
@@ -420,8 +420,8 @@ module Authentication
 
     private
 
-    def start_sign_in_cycle_for!(resource, pt:)
-      cycle_class = sign_in_cycle_class_for(resource)
+    def start_sign_in_flow_for!(resource, pt:)
+      cycle_class = sign_in_flow_class_for(resource)
       nonce = SecureRandom.urlsafe_base64(SignIn::CycleLocator::NONCE_BYTES)
       cycle_class.create!(
         principal_id: resource.id,
@@ -432,12 +432,12 @@ module Authentication
       )
     end
 
-    def complete_sign_in_cycle_after_session_result!(cycle, resource, result)
+    def complete_sign_in_flow_after_session_result!(cycle, resource, result)
       return result unless cycle&.persisted?
 
       if result[:status] == :session_limit_hard_reject
         cycle.advance_sign_in_to_guardrail! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
-        sign_in_cycle_locator_for(actor: resource).issue!(cycle)
+        sign_in_flow_locator_for(actor: resource).issue!(cycle)
         return result
       end
 
@@ -447,8 +447,8 @@ module Authentication
       if result[:restricted] || result[:session_management_required]
         cycle.advance_sign_in_to_session_limit! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
         cycle.update!(token: token)
-        sign_in_cycle_locator_for(actor: resource, token: token).issue!(cycle)
-        reset_current_db_sign_in_cycle_for_sequence!
+        sign_in_flow_locator_for(actor: resource, token: token).issue!(cycle)
+        reset_current_db_sign_in_flow_for_sequence!
         return result
       end
 
@@ -456,18 +456,18 @@ module Authentication
       result
     end
 
-    def advance_pending_sign_in_cycle_after_primary!(cycle, resource, result)
+    def advance_pending_sign_in_flow_after_primary!(cycle, resource, result)
       return result unless cycle&.persisted?
 
       if result[:status] == :session_limit_hard_reject
         cycle.fail_sign_in!
-        sign_in_cycle_locator_for(actor: resource).issue!(cycle)
+        sign_in_flow_locator_for(actor: resource).issue!(cycle)
         return result
       end
 
       if result[:session_management_required]
         cycle.advance_sign_in_to_session_limit! if cycle.sign_in_primary_pending? || cycle.sign_in_mfa_pending?
-        sign_in_cycle_locator_for(actor: resource).issue!(cycle)
+        sign_in_flow_locator_for(actor: resource).issue!(cycle)
         return result
       end
 
@@ -476,16 +476,16 @@ module Authentication
         guardrail = SignIn::GuardrailParticipant.new(cycle: cycle, actor: resource)
         guardrail.advance_if_clear!
       end
-      sign_in_cycle_locator_for(actor: resource).issue!(cycle.reload)
+      sign_in_flow_locator_for(actor: resource).issue!(cycle.reload)
       result
     end
 
-    def bind_current_session_to_sign_in_cycle!(cycle)
+    def bind_current_session_to_sign_in_flow!(cycle)
       return unless cycle.has_attribute?(:token_id)
       return if cycle.token_id.present?
       return unless current_session
 
-      with_sign_in_cycle_writing(cycle) do
+      with_sign_in_flow_writing(cycle) do
         changes = { token: current_session }
         changes[:session_issued_at] = Time.current if cycle.has_attribute?(:session_issued_at)
         cycle.reload.update!(changes)
@@ -503,12 +503,12 @@ module Authentication
       cycle.reload
       cycle.update!(token: token) if cycle.token_id.blank?
       cycle.advance_sign_in_to_checkpoint! if cycle.sign_in_session_issuance_pending?
-      sign_in_cycle_locator_for(actor: resource, token: token).issue!(cycle.reload)
-      reset_current_db_sign_in_cycle_for_sequence!
+      sign_in_flow_locator_for(actor: resource, token: token).issue!(cycle.reload)
+      reset_current_db_sign_in_flow_for_sequence!
     end
 
     def promote_current_session_limit_cycle!(actor)
-      cycle = current_db_sign_in_cycle_for_sequence
+      cycle = current_db_sign_in_flow_for_sequence
       return false unless cycle&.sign_in_session_limit_pending?
 
       result = SignIn::SessionLimitManager.new(
@@ -524,7 +524,7 @@ module Authentication
     end
 
     def issue_active_session_for_selector!(cycle)
-      actor = sign_in_cycle_actor(cycle)
+      actor = sign_in_flow_actor(cycle)
       return { status: :invalid_request } unless actor
 
       cycle.class.transaction do
@@ -557,18 +557,18 @@ module Authentication
       result
     end
 
-    def sign_in_cycle_actor(cycle)
+    def sign_in_flow_actor(cycle)
       return current_resource if current_resource
       return unless cycle.respond_to?(:principal)
 
       cycle.principal
     end
 
-    def pending_mfa_sign_in_cycle_for(resource)
-      sign_in_cycle_locator_for(actor: resource).current
+    def pending_mfa_sign_in_flow_for(resource)
+      sign_in_flow_locator_for(actor: resource).current
     end
 
-    def sign_in_cycle_locator_for(actor: nil, token: nil)
+    def sign_in_flow_locator_for(actor: nil, token: nil)
       SignIn::CycleLocator.new(
         session,
         surface: sign_in_sequence_surface_for_actor(actor),
@@ -586,20 +586,20 @@ module Authentication
       end
     end
 
-    def sign_in_cycle_class_for(resource)
+    def sign_in_flow_class_for(resource)
       case resource
-      when ::Client then ClientSignInCycle
-      when ::Visitor then VisitorSignInCycle
-      when ::Operator then OperatorSignInCycle
+      when ::Client then ClientSignInFlow
+      when ::Visitor then VisitorSignInFlow
+      when ::Operator then OperatorSignInFlow
       else
         raise ArgumentError, "unsupported sign-in cycle actor"
       end
     end
 
-    def reset_current_db_sign_in_cycle_for_sequence!
-      return unless defined?(@current_db_sign_in_cycle_for_sequence)
+    def reset_current_db_sign_in_flow_for_sequence!
+      return unless defined?(@current_db_sign_in_flow_for_sequence)
 
-      remove_instance_variable(:@current_db_sign_in_cycle_for_sequence)
+      remove_instance_variable(:@current_db_sign_in_flow_for_sequence)
     end
 
     def establish_sign_in_result!(resource, pt:, ri:, auth_method:, token_kind_id: "BROWSER_WEB",

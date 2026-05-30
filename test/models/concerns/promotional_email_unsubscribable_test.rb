@@ -13,7 +13,7 @@ class PromotionalEmailUnsubscribableTest < ActiveSupport::TestCase
   test "generates token with the record unsubscribe scope" do
     email = ClientEmail.new(public_id: "client_email_public_id")
 
-    Rails.app.creds.stub(:option, "unsubscribe-secret") do
+    Rails.app.creds.stub(:option, "unsubscribe-secret_credential") do
       token = email.promotional_unsubscribe_token
 
       assert_equal PromotionalEmailUnsubscribeToken.generate(email, scope: :client), token
@@ -24,7 +24,7 @@ class PromotionalEmailUnsubscribableTest < ActiveSupport::TestCase
   test "rejects malformed promotional unsubscribe token" do
     email = ClientEmail.new(public_id: "client_email_public_id")
 
-    Rails.app.creds.stub(:option, "unsubscribe-secret") do
+    Rails.app.creds.stub(:option, "unsubscribe-secret_credential") do
       assert_not email.valid_promotional_unsubscribe_token?("not-a-token")
     end
   end

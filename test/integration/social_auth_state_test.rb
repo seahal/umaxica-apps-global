@@ -7,7 +7,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   SOCIAL_FLOW_ID_SESSION_KEY = :social_auth_flow_id
-  fixtures :clients, :client_statuses, :client_social_google_statuses, :client_social_apple_statuses
+  fixtures :clients, :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -43,7 +43,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
     assert_equal user_count_before, Client.count
-    assert_not ClientSocialGoogle.exists?(uid: uid)
+    assert_not ClientGoogleIdentity.exists?(uid: uid)
   end
 
   test "google callback without ri rejects missing app-managed state before regional redirect" do
@@ -56,7 +56,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
         headers: social_callback_headers(@host)
 
     assert_response :forbidden
-    assert_not ClientSocialGoogle.exists?(uid: uid)
+    assert_not ClientGoogleIdentity.exists?(uid: uid)
   end
 
   test "link rejects when flow context is missing" do

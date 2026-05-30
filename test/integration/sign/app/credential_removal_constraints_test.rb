@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses, :client_token_kinds, :client_email_statuses, :client_telephone_statuses,
-           :client_secret_kinds, :client_secret_statuses, :client_one_time_password_statuses,
+           :client_secret_credential_kinds, :client_secret_credential_statuses, :client_totp_credential_statuses,
            :client_passkey_statuses
 
   setup do
@@ -51,7 +51,7 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
   test "passkey removal preserves aal2 even when aal1 and contactability remain" do
     client = Client.create!(status_id: ClientStatus::NOTHING)
     create_verified_telephone(client, "+819011110002")
-    create_active_secret(client)
+    create_active_secret_credential(client)
     passkey = create_active_passkey(client)
 
     assert_no_difference("ClientPasskey.count") do
@@ -63,28 +63,28 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
-  test "secret removal preserves aal1 even when aal2 and contactability remain" do
+  test "secret_credential removal preserves aal1 even when aal2 and contactability remain" do
     client = Client.create!(status_id: ClientStatus::NOTHING)
     create_verified_telephone(client, "+819011110005")
     create_active_totp(client)
-    secret = create_active_secret(client)
+    secret_credential = create_active_secret_credential(client)
 
-    assert_no_difference("ClientSecret.count") do
-      delete sign_app_configuration_secret_url(secret.public_id, ri: "jp"),
-             headers: client_browser_headers(client, scope: "configuration_secret")
+    assert_no_difference("ClientSecretCredential.count") do
+      delete sign_app_configuration_secret_credential_url(secret_credential.public_id, ri: "jp"),
+             headers: client_browser_headers(client, scope: "configuration_secret_credential")
     end
 
-    assert_redirected_to sign_app_configuration_secrets_url(ri: "jp")
-    assert_equal I18n.t("sign.app.configuration.secrets.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_app_configuration_secret_credentials_url(ri: "jp")
+    assert_equal I18n.t("sign.app.configuration.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
   test "totp removal preserves aal2 even when aal1 and contactability remain" do
     client = Client.create!(status_id: ClientStatus::NOTHING)
     create_verified_telephone(client, "+819011110003")
-    create_active_secret(client)
+    create_active_secret_credential(client)
     totp = create_active_totp(client)
 
-    assert_no_difference("ClientOneTimePassword.count") do
+    assert_no_difference("ClientTotpCredential.count") do
       delete sign_app_configuration_totp_url(totp.public_id, ri: "jp"),
              headers: client_headers(client, scope: "configuration_totp")
     end
@@ -96,11 +96,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
   test "totp removal is allowed when another aal2 method remains" do
     client = Client.create!(status_id: ClientStatus::NOTHING)
     create_verified_telephone(client, "+819011110004")
-    create_active_secret(client)
+    create_active_secret_credential(client)
     create_active_passkey(client)
     totp = create_active_totp(client)
 
-    assert_difference("ClientOneTimePassword.count", -1) do
+    assert_difference("ClientTotpCredential.count", -1) do
       delete sign_app_configuration_totp_url(totp.public_id, ri: "jp"),
              headers: client_headers(client, scope: "configuration_totp")
     end
@@ -148,17 +148,17 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     assert_redirected_to sign_app_configuration_passkeys_url(ri: "jp")
   end
 
-  test "secret removal is allowed when another aal1 method remains" do
+  test "secret_credential removal is allowed when another aal1 method remains" do
     client = Client.create!(status_id: ClientStatus::NOTHING)
-    create_verified_email(client, "app-removal-secret-allowed@example.com")
-    secret = create_active_secret(client)
+    create_verified_email(client, "app-removal-secret_credential-allowed@example.com")
+    secret_credential = create_active_secret_credential(client)
 
-    assert_difference("ClientSecret.count", -1) do
-      delete sign_app_configuration_secret_url(secret.public_id, ri: "jp"),
-             headers: client_browser_headers(client, scope: "configuration_secret")
+    assert_difference("ClientSecretCredential.count", -1) do
+      delete sign_app_configuration_secret_credential_url(secret_credential.public_id, ri: "jp"),
+             headers: client_browser_headers(client, scope: "configuration_secret_credential")
     end
 
-    assert_redirected_to sign_app_configuration_secrets_url(ri: "jp")
+    assert_redirected_to sign_app_configuration_secret_credentials_url(ri: "jp")
   end
 
   private
@@ -222,22 +222,22 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     passkey
   end
 
-  def create_active_secret(client)
-    ClientSecret.create!(
+  def create_active_secret_credential(client)
+    ClientSecretCredential.create!(
       user: client,
-      name: "Removal guard secret",
+      name: "Removal guard secret_credential",
       password_digest: "digest",
-      user_secret_kind_id: ClientSecret::Kinds::LOGIN,
-      user_identity_secret_status_id: ClientSecretStatus::ACTIVE,
+      user_secret_kind_id: ClientSecretCredential::Kinds::LOGIN,
+      user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE,
     )
   end
 
   def create_active_totp(client)
-    ClientOneTimePassword.create!(
+    ClientTotpCredential.create!(
       user: client,
       private_key: ROTP::Base32.random_base32,
       last_otp_at: Time.zone.at(0),
-      user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
     )
   end
 end

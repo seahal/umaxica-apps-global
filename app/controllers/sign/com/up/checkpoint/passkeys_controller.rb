@@ -83,7 +83,7 @@ module Sign
 
           def sign_up_surface = :com
 
-          def sign_up_ticket_class = VisitorSignUpCycle
+          def sign_up_ticket_class = VisitorSignUpFlow
 
           def sign_up_sequence_session_key = :sign_com_up_sequence_id
         end

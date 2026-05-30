@@ -6,25 +6,30 @@
 # Table name: org_post_categories
 # Database name: org_publisher
 #
-#  id                          :bigint           not null, primary key
-#  created_at                  :datetime         not null
-#  updated_at                  :datetime         not null
-#  org_post_category_master_id :bigint           default(0), not null
-#  org_post_id                 :bigint           not null
+#  id        :bigint           not null, primary key
+#  parent_id :bigint           default(0), not null
 #
 # Indexes
 #
-#  index_org_post_categories_on_org_post_category_master_id  (org_post_category_master_id)
-#  index_org_post_categories_on_org_post_id                  (org_post_id) UNIQUE
-#
-# Foreign Keys
-#
-#  fk_rails_...  (org_post_category_master_id => org_post_category_masters.id)
-#  fk_rails_...  (org_post_id => org_posts.id) ON DELETE => cascade
+#  index_org_post_categories_on_parent_id  (parent_id)
 #
 class OrgPostCategory < OrgPublisherRecord
-  belongs_to :org_post, class_name: "OrgPost", inverse_of: :org_post_category
-  belongs_to :org_post_category_master, class_name: "OrgPostCategoryMaster", inverse_of: :org_post_categories
+  NOTHING = 0
+  LEGACY_NOTHING = 1
+  DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
 
-  validates :org_post_id, uniqueness: true
+  include PublisherPostMaster
+
+  belongs_to :parent,
+             class_name: "OrgPostCategory",
+             inverse_of: :children,
+             optional: true
+  has_many :children,
+           class_name: "OrgPostCategory",
+           foreign_key: :parent_id,
+           inverse_of: :parent,
+           dependent: :restrict_with_error
+  has_many :org_post_categorizations, class_name: "OrgPostCategorization", dependent: :restrict_with_error,
+                                      inverse_of: :org_post_category
+  has_many :org_posts, through: :org_post_categorizations
 end

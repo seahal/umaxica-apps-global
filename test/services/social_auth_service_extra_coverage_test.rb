@@ -11,8 +11,8 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     # Ensure necessary statuses exist
     ClientStatus.find_or_create_by!(id: ClientStatus::ACTIVE)
     ClientStatus.find_or_create_by!(id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    ClientSocialGoogleStatus.find_or_create_by!(id: ClientSocialGoogleStatus::ACTIVE)
-    ClientSocialGoogleStatus.find_or_create_by!(id: ClientSocialGoogleStatus::REVOKED)
+    ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::ACTIVE)
+    ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::REVOKED)
   end
 
   test "extract_uid rejects raw_info and id_info without top-level uid" do
@@ -47,18 +47,18 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "handle_login attaches orphaned identity to a new user" do
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       uid: "orphan-google",
       provider: "google",
       user: @user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "old-token",
       token_expires_at: 1.day.from_now.to_i,
     )
     identity.define_singleton_method(:user) { nil }
     auth_hash = auth_hash_for("orphan-google")
 
-    ClientSocialGoogle.stub(:find_by, identity) do
+    ClientGoogleIdentity.stub(:find_by, identity) do
       result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: nil, intent: "login")
 
       assert_predicate result[:user], :persisted?
@@ -68,11 +68,11 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "handle_link reactivates an existing identity for current user" do
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       uid: "existing-for-user",
       provider: "google",
       user: @user,
-      status_id: ClientSocialGoogleStatus::REVOKED,
+      status_id: ClientGoogleIdentityStatus::REVOKED,
       token: "old-token",
       token_expires_at: 1.day.from_now.to_i,
     )
@@ -82,16 +82,16 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
 
       assert_equal @user.id, result[:user].id
-      assert_equal ClientSocialGoogleStatus::ACTIVE, identity.reload.status_id
+      assert_equal ClientGoogleIdentityStatus::ACTIVE, identity.reload.status_id
     end
   end
 
   test "handle_link updates identity that already belongs to current user" do
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       uid: "same-user-link",
       provider: "google",
       user: @user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "old-token",
       token_expires_at: 1.day.from_now.to_i,
     )
@@ -106,11 +106,11 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "step_up intent is rejected for social auth" do
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       uid: "step-up-forbidden-google",
       provider: "google",
       user: @user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "old-token",
       token_expires_at: 1.day.from_now.to_i,
     )
@@ -127,7 +127,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     service = SocialAuthService.new(auth_hash: @auth_hash, current_client: nil, intent: "login")
 
     # Mock find_by to return nil first, then raise RecordNotUnique on user save
-    ClientSocialGoogle.stub(:find_by, nil) do
+    ClientGoogleIdentity.stub(:find_by, nil) do
       user_mock = Client.new
       user_mock.define_singleton_method(:save!) { raise ActiveRecord::RecordNotUnique, "identity conflict" }
 
@@ -141,9 +141,9 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
 
   test "handle_link when already linked to another user" do
     other_user = Client.create!(status_id: ClientStatus::ACTIVE)
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       uid: "google-123", provider: "google", user: other_user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "t", token_expires_at: 1.day.from_now.to_i,
     )
 
@@ -156,9 +156,9 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
 
   test "step_up intent is rejected before identity matching" do
     other_user = Client.create!(status_id: ClientStatus::ACTIVE)
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       uid: "google-123", provider: "google", user: other_user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "t", token_expires_at: 1.day.from_now.to_i,
     )
 
@@ -170,9 +170,9 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "unlink last identity fails" do
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       uid: "google-123", provider: "google", user: @user,
-      status_id: ClientSocialGoogleStatus::ACTIVE,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
       token: "t", token_expires_at: 1.day.from_now.to_i,
     )
     # Ensure social_unlink_methods_remaining? returns false
@@ -185,9 +185,9 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "unlink removes inactive legacy identity" do
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       uid: "google-123", provider: "google", user: @user,
-      status_id: ClientSocialGoogleStatus::REVOKED,
+      status_id: ClientGoogleIdentityStatus::REVOKED,
       token: "t", token_expires_at: 1.day.from_now.to_i,
     )
 
@@ -195,7 +195,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     result = service.unlink("google")
 
     assert result[:success]
-    assert_not ClientSocialGoogle.exists?(identity.id)
+    assert_not ClientGoogleIdentity.exists?(identity.id)
   end
 
   test "ensure_user_status fallback" do
@@ -222,9 +222,9 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       calls << [model, id, code]
     end
 
-    service.send(:ensure_identity_status!, ClientSocialGoogle)
+    service.send(:ensure_identity_status!, ClientGoogleIdentity)
 
-    assert_equal [[ClientSocialGoogleStatus, ClientSocialGoogleStatus::ACTIVE, "ACTIVE"]], calls
+    assert_equal [[ClientGoogleIdentityStatus, ClientGoogleIdentityStatus::ACTIVE, "ACTIVE"]], calls
   end
 
   test "ensure_user_visibility creates default visibility" do
@@ -258,7 +258,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   def login_handler
     SocialAuth::LoginHandler.new(
       auth_hash: @auth_hash,
-      identity_class: ClientSocialGoogle,
+      identity_class: ClientGoogleIdentity,
       provider: "google",
       uid: "google-123",
     )

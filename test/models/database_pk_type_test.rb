@@ -8,15 +8,15 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
   # After migration, all status/kind/master tables should use bigint
 
   test "operator schema tables use bigint primary keys" do
+    assert_bigint_pk(OperatorWorkspaceAccountStatus)
     assert_bigint_pk(OperatorStatus)
-    assert_bigint_pk(OperatorIdentityStatus)
     assert_bigint_pk(OrganizationStatus)
   end
 
   test "principal schema tables use bigint primary keys" do
     assert_bigint_pk(ClientStatus)
     assert_bigint_pk(MemberStatus)
-    assert_bigint_pk(ClientSecretKind)
+    assert_bigint_pk(ClientSecretCredentialKind)
   end
 
   test "avatar schema tables use bigint primary keys" do
@@ -38,7 +38,7 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
 
   test "guest schema tables use bigint primary keys" do
     assert_bigint_pk(VisitorStatus)
-    assert_bigint_pk(VisitorSecretKind)
+    assert_bigint_pk(VisitorSecretCredentialKind)
   end
 
   test "chronicle schema tables use bigint primary keys" do

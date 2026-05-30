@@ -13,7 +13,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     )
     @client = Oidc::ClientRegistry.find("core_app")
     @redirect_uri = @client.redirect_uris.first
-    @client_secret = "test_secret_for_core_app"
+    @client_secret = "test_secret_credential_for_core_app"
   end
 
   test "exchanges valid code for tokens" do
@@ -77,16 +77,16 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     assert_equal "invalid_request", result.error
   end
 
-  test "fails for wrong client_secret" do
+  test "fails for wrong client_secret_credential" do
     code_record = issue_code!
 
-    # Do not stub authenticate; let it fail naturally with no secret configured.
+    # Do not stub authenticate; let it fail naturally with no secret_credential configured.
     result = Oidc::TokenExchangeService.call(
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: @redirect_uri,
       client_id: "core_app",
-      client_secret: "wrong_secret",
+      client_secret: "wrong_secret_credential",
       code_verifier: @code_verifier,
     )
 
@@ -312,7 +312,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     staff = operators(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
-    staff_secret = "test_secret_for_core_org"
+    staff_secret_credential = "test_secret_credential_for_core_org"
 
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
@@ -324,13 +324,13 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     )
 
     result =
-      with_authenticated_org_client(staff_secret) do
+      with_authenticated_org_client(staff_secret_credential) do
         Oidc::TokenExchangeService.call(
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: org_redirect_uri,
           client_id: "core_org",
-          client_secret: staff_secret,
+          client_secret: staff_secret_credential,
           code_verifier: @code_verifier,
         )
       end
@@ -345,7 +345,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     staff = operators(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
-    staff_secret = "test_secret_for_core_org"
+    staff_secret_credential = "test_secret_credential_for_core_org"
 
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
@@ -357,13 +357,13 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     )
 
     assert_difference "OperatorToken.count", 1 do
-      with_authenticated_org_client(staff_secret) do
+      with_authenticated_org_client(staff_secret_credential) do
         Oidc::TokenExchangeService.call(
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: org_redirect_uri,
           client_id: "core_org",
-          client_secret: staff_secret,
+          client_secret: staff_secret_credential,
           code_verifier: @code_verifier,
         )
       end
@@ -373,7 +373,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   test "records staff RP connection" do
     staff = operators(:one)
     org_client = Oidc::ClientRegistry.find("core_org")
-    staff_secret = "test_secret_for_core_org"
+    staff_secret_credential = "test_secret_credential_for_core_org"
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
       client_id: "core_org",
@@ -384,13 +384,13 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
       scope: "openid staff",
     )
 
-    with_authenticated_org_client(staff_secret) do
+    with_authenticated_org_client(staff_secret_credential) do
       Oidc::TokenExchangeService.call(
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: org_client.redirect_uris.first,
         client_id: "core_org",
-        client_secret: staff_secret,
+        client_secret: staff_secret_credential,
         code_verifier: @code_verifier,
       )
     end
@@ -406,7 +406,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     visitor = create_visitor!
     com_client = Oidc::ClientRegistry.find("core_com")
     com_redirect_uri = com_client.redirect_uris.first
-    visitor_secret = "test_secret_for_core_com"
+    visitor_secret_credential = "test_secret_credential_for_core_com"
 
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
@@ -418,13 +418,13 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     )
 
     result =
-      with_authenticated_com_client(visitor_secret) do
+      with_authenticated_com_client(visitor_secret_credential) do
         Oidc::TokenExchangeService.call(
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: com_redirect_uri,
           client_id: "core_com",
-          client_secret: visitor_secret,
+          client_secret: visitor_secret_credential,
           code_verifier: @code_verifier,
         )
       end
@@ -439,7 +439,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     visitor = create_visitor!
     com_client = Oidc::ClientRegistry.find("core_com")
     com_redirect_uri = com_client.redirect_uris.first
-    visitor_secret = "test_secret_for_core_com"
+    visitor_secret_credential = "test_secret_credential_for_core_com"
 
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
@@ -451,13 +451,13 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     )
 
     assert_difference "VisitorToken.count", 1 do
-      with_authenticated_com_client(visitor_secret) do
+      with_authenticated_com_client(visitor_secret_credential) do
         Oidc::TokenExchangeService.call(
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: com_redirect_uri,
           client_id: "core_com",
-          client_secret: visitor_secret,
+          client_secret: visitor_secret_credential,
           code_verifier: @code_verifier,
         )
       end
@@ -467,7 +467,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   test "records visitor RP connection" do
     visitor = create_visitor!
     com_client = Oidc::ClientRegistry.find("core_com")
-    visitor_secret = "test_secret_for_core_com"
+    visitor_secret_credential = "test_secret_credential_for_core_com"
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
       client_id: "core_com",
@@ -478,13 +478,13 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
       scope: "openid visitor",
     )
 
-    with_authenticated_com_client(visitor_secret) do
+    with_authenticated_com_client(visitor_secret_credential) do
       Oidc::TokenExchangeService.call(
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: com_client.redirect_uris.first,
         client_id: "core_com",
-        client_secret: visitor_secret,
+        client_secret: visitor_secret_credential,
         code_verifier: @code_verifier,
       )
     end
@@ -670,7 +670,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
   def create_visitor!
     VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
-    VisitorMultiFactor.find_or_create_by!(id: VisitorMultiFactor::NOTHING)
+    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
     VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
     VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
@@ -678,7 +678,7 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     Visitor.create!
   end
 
-  # Stub ClientRegistry.authenticate to bypass secret resolution in tests
+  # Stub ClientRegistry.authenticate to bypass secret_credential resolution in tests
   def with_authenticated_client(&block)
     Oidc::ClientRegistry.stub(
       :authenticate, ->(cid, sec) {
@@ -689,20 +689,20 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     end
   end
 
-  def with_authenticated_org_client(secret, &block)
+  def with_authenticated_org_client(secret_credential, &block)
     Oidc::ClientRegistry.stub(
       :authenticate, ->(cid, sec) {
-                       cid == "core_org" && sec == secret
+                       cid == "core_org" && sec == secret_credential
                      },
     ) do
       block.call
     end
   end
 
-  def with_authenticated_com_client(secret, &block)
+  def with_authenticated_com_client(secret_credential, &block)
     Oidc::ClientRegistry.stub(
       :authenticate, ->(cid, sec) {
-                       cid == "core_com" && sec == secret
+                       cid == "core_com" && sec == secret_credential
                      },
     ) do
       block.call

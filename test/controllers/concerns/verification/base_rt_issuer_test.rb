@@ -80,12 +80,12 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
   test "encoded_step_up_pt issues a signed token derived from request.fullpath" do
     h = Sign::App::RtHarness.new
     h.session_token = TokenStub.new("nonce-1")
-    h.request_fullpath = "/configuration/secrets"
+    h.request_fullpath = "/configuration/secret_credentials"
 
     pt = h.send(:encoded_step_up_pt)
 
     assert_includes pt, "--", "expected signed format"
-    assert_equal "/configuration/secrets", h.send(:resolve_step_up_pt, pt)
+    assert_equal "/configuration/secret_credentials", h.send(:resolve_step_up_pt, pt)
   end
 
   test "issue_step_up_pt returns nil when surface cannot be inferred" do

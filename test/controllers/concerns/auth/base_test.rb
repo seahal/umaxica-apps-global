@@ -312,7 +312,7 @@ module Auth
     test "checkpoint continuation uses db-backed sign-in cycle when locator is present" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
+      cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
@@ -330,7 +330,7 @@ module Auth
     test "checkpoint continuation advances db-backed cycle while request is readonly" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
+      cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
@@ -345,7 +345,7 @@ module Auth
     test "checkpoint continuation can carry dashboard as pt" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
+      cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       cycle.update!(return_to: "/dashboard?ri=jp")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
@@ -363,7 +363,7 @@ module Auth
     test "checkpoint continuation keeps blocking db-backed cycle at checkpoint" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
+      cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
       harness.checkpoint_participant = BlockingParticipant.new(cycle)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
@@ -378,7 +378,7 @@ module Auth
     test "dashboard continuation consumes db-backed return path before rendering welcome page" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
+      cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
       harness.send(:issue_welcome_gate_and_path, pt: "/after", sequence_id: cycle.public_id)
@@ -390,18 +390,18 @@ module Auth
       assert_predicate cycle.reload, :sign_in_completed?
       assert_nil cycle.return_to
       assert_nil harness.session[:app_sign_in_welcome]
-      assert_nil harness.session[:app_sign_in_cycle_locator]
+      assert_nil harness.session[:app_sign_in_flow_locator]
     end
 
     test "dashboard continuation binds current session before dashboard policy" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = ClientSignInCycle.create!(
+      cycle = ClientSignInFlow.create!(
         principal_id: user.id,
-        status_id: ClientSignInCycle.status_id_for("DASHBOARD_PENDING"),
+        status_id: ClientSignInFlow.status_id_for("DASHBOARD_PENDING"),
         step: "dashboard",
         return_to: "/after",
-        nonce_digest: ClientSignInCycle.digest_nonce("nonce"),
+        nonce_digest: ClientSignInFlow.digest_nonce("nonce"),
         issued_at: Time.current,
         expires_at: 15.minutes.from_now,
       )
@@ -420,7 +420,7 @@ module Auth
     test "dashboard continuation falls back when persisted return path points to dashboard" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
+      cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       cycle.update!(return_to: "/dashboard?ri=jp")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
@@ -437,7 +437,7 @@ module Auth
     test "dashboard continuation falls back when resolved return path is welcome" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
+      cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       cycle.update!(return_to: "/welcome?ri=jp")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
@@ -454,7 +454,7 @@ module Auth
     test "dashboard continuation redirects checkpoint-pending cycle back to checkpoint" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
+      cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
@@ -471,7 +471,7 @@ module Auth
     test "dashboard continuation requires dashboard policy before advancing" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
+      cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
       harness.allowed_policy = { show_dashboard?: false }
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
@@ -487,7 +487,7 @@ module Auth
     test "db-backed sequence rejects wrong participant without advancing" do
       user = create_db_sequence_client
       token = ClientToken.create!(user: user)
-      cycle = db_sign_in_cycle(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
+      cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
       SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
@@ -673,8 +673,8 @@ module Auth
     def create_db_sequence_client
       ClientStatus.ensure_defaults!
       ClientVisibility.ensure_defaults!
-      ClientMultiFactor.ensure_defaults!
-      ClientMultiFactorStatus.ensure_defaults!
+      ClientMfaLevel.ensure_defaults!
+      ClientMfaStatus.ensure_defaults!
       ClientTokenBindingMethod.ensure_defaults!
       ClientTokenDbscStatus.ensure_defaults!
       ClientTokenKind.ensure_defaults!
@@ -684,8 +684,8 @@ module Auth
         public_id: "u_#{SecureRandom.hex(8)}",
         status_id: ClientStatus::ACTIVE,
         visibility_id: ClientVisibility::USER,
-        multi_factor_id: ClientMultiFactor::NOTHING,
-        multi_factor_status_id: ClientMultiFactorStatus::UNCONFIGURED,
+        mfa_level_id: ClientMfaLevel::NOTHING,
+        mfa_status_id: ClientMfaStatus::UNCONFIGURED,
       )
     end
 
@@ -697,14 +697,14 @@ module Auth
       end
     end
 
-    def db_sign_in_cycle(user, token, status_name:, step:)
-      ClientSignInCycle.create!(
+    def db_sign_in_flow(user, token, status_name:, step:)
+      ClientSignInFlow.create!(
         principal_id: user.id,
         token: token,
-        status_id: ClientSignInCycle.status_id_for(status_name),
+        status_id: ClientSignInFlow.status_id_for(status_name),
         step: step,
         return_to: "/after",
-        nonce_digest: ClientSignInCycle.digest_nonce("nonce"),
+        nonce_digest: ClientSignInFlow.digest_nonce("nonce"),
         issued_at: Time.current,
         expires_at: 15.minutes.from_now,
       )

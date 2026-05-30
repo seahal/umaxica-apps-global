@@ -119,11 +119,11 @@ class OrgPreference < OrgSettingRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :org_preference_items_per_page,
+  has_one :org_preference_page_size,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :org_preference_r18_display_stopper,
+  has_one :org_preference_adult_content_gate,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
@@ -143,8 +143,8 @@ class OrgPreference < OrgSettingRecord
   before_validation :default_replaced_by_to_self, on: :create
   after_create :persist_self_replacement
 
-  def r18_display_stopper
-    org_preference_r18_display_stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
+  def adult_content_gate
+    org_preference_adult_content_gate&.option&.name || Actor::Preference::DEFAULTS.fetch(:adult_content_gate)
   end
 
   private

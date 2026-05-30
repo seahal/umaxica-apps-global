@@ -41,15 +41,15 @@ class SignUpContractsTest < ActiveSupport::TestCase
   end
 
   test "requirement registry derives surface from ticket class" do
-    app_ticket = build_cycle(ClientSignUpCycle, entry_method: "google")
-    com_ticket = build_cycle(VisitorSignUpCycle, entry_method: "telephone")
+    app_ticket = build_cycle(ClientSignUpFlow, entry_method: "google")
+    com_ticket = build_cycle(VisitorSignUpFlow, entry_method: "telephone")
 
     assert_equal :app, SignUp::RequirementRegistry.for_ticket(app_ticket).surface
     assert_equal :com, SignUp::RequirementRegistry.for_ticket(com_ticket).surface
   end
 
   test "policy context copies step and entry method from ticket" do
-    ticket = build_cycle(ClientSignUpCycle, entry_method: "email", step: "checkpoint")
+    ticket = build_cycle(ClientSignUpFlow, entry_method: "email", step: "checkpoint")
     context = SignUp::PolicyContext.build(surface: :app, actor_authentication: nil, ticket: ticket)
 
     assert_equal :app, context.surface
@@ -58,7 +58,7 @@ class SignUpContractsTest < ActiveSupport::TestCase
   end
 
   test "requirement context accepts only requirements for the ticket entry method" do
-    ticket = build_cycle(ClientSignUpCycle, entry_method: "email")
+    ticket = build_cycle(ClientSignUpFlow, entry_method: "email")
 
     context = SignUp::RequirementContext.build(
       surface: :app,
@@ -80,7 +80,7 @@ class SignUpContractsTest < ActiveSupport::TestCase
 
   test "finalization context requires all entry requirements to be clear" do
     ticket = build_cycle(
-      ClientSignUpCycle,
+      ClientSignUpFlow,
       entry_method: "telephone",
       completed_requirements: {
         "birthdate" => { "cleared" => true },
@@ -109,7 +109,7 @@ class SignUpContractsTest < ActiveSupport::TestCase
   end
 
   test "state machine protocol rejects unknown events before core wiring" do
-    ticket = build_cycle(ClientSignUpCycle, entry_method: "email")
+    ticket = build_cycle(ClientSignUpFlow, entry_method: "email")
 
     result = SignUp::StateMachine.call(ticket: ticket, event: :bogus, actor_context: nil)
 
@@ -119,7 +119,7 @@ class SignUpContractsTest < ActiveSupport::TestCase
   end
 
   test "state machine protocol returns a typed result for known events" do
-    ticket = create_cycle(ClientSignUpCycle, entry_method: "email")
+    ticket = create_cycle(ClientSignUpFlow, entry_method: "email")
 
     result = SignUp::StateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
 

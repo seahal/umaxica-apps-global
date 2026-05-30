@@ -16,6 +16,22 @@ class OperatorPolicyTest < ActiveSupport::TestCase
     assert_not policy.show?
   end
 
+  # show? gates owner-only viewing of account attributes (e.g. the birthdate page).
+  def test_show_allows_owner_operator
+    owner = Operator.new(id: 1)
+    policy = OperatorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :show?
+  end
+
+  def test_show_denies_different_operator
+    owner = Operator.new(id: 1)
+    other = Operator.new(id: 2)
+    policy = OperatorPolicy.new(owner, user: other)
+
+    assert_not policy.show?
+  end
+
   def test_create_returns_false_by_default
     policy = OperatorPolicy.new(Operator.new, user: nil)
 
@@ -24,6 +40,22 @@ class OperatorPolicyTest < ActiveSupport::TestCase
 
   def test_update_returns_false_by_default
     policy = OperatorPolicy.new(Operator.new, user: nil)
+
+    assert_not policy.update?
+  end
+
+  # update? gates owner-only mutation of account attributes (e.g. the MFA level page).
+  def test_update_allows_owner_operator
+    owner = Operator.new(id: 1)
+    policy = OperatorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :update?
+  end
+
+  def test_update_denies_different_operator
+    owner = Operator.new(id: 1)
+    other = Operator.new(id: 2)
+    policy = OperatorPolicy.new(owner, user: other)
 
     assert_not policy.update?
   end

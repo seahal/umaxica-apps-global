@@ -6,25 +6,29 @@
 # Table name: com_post_tags
 # Database name: com_publisher
 #
-#  id                     :bigint           not null, primary key
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  com_post_id            :bigint           not null
-#  com_post_tag_master_id :bigint           default(0), not null
+#  id        :bigint           not null, primary key
+#  parent_id :bigint           default(0), not null
 #
 # Indexes
 #
-#  index_com_post_tags_on_com_post_id                             (com_post_id)
-#  index_com_post_tags_on_com_post_tag_master_id_and_com_post_id  (com_post_tag_master_id,com_post_id) UNIQUE
-#
-# Foreign Keys
-#
-#  fk_rails_...  (com_post_id => com_posts.id) ON DELETE => cascade
-#  fk_rails_...  (com_post_tag_master_id => com_post_tag_masters.id)
+#  index_com_post_tags_on_parent_id  (parent_id)
 #
 class ComPostTag < ComPublisherRecord
-  belongs_to :com_post, class_name: "ComPost", inverse_of: :com_post_tags
-  belongs_to :com_post_tag_master, class_name: "ComPostTagMaster", inverse_of: :com_post_tags
+  NOTHING = 0
+  LEGACY_NOTHING = 1
+  DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
 
-  validates :com_post_tag_master_id, uniqueness: { scope: :com_post_id, message: :already_tagged }
+  include PublisherPostMaster
+
+  belongs_to :parent,
+             class_name: "ComPostTag",
+             inverse_of: :children,
+             optional: true
+  has_many :children,
+           class_name: "ComPostTag",
+           foreign_key: :parent_id,
+           inverse_of: :parent,
+           dependent: :restrict_with_error
+  has_many :com_post_taggings, class_name: "ComPostTagging", dependent: :restrict_with_error, inverse_of: :com_post_tag
+  has_many :com_posts, through: :com_post_taggings
 end

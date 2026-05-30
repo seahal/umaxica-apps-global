@@ -17,7 +17,7 @@ module Sign
       def load_sign_up_ticket
         return render_sign_up_age_restricted if sign_up_session_state.age_restricted?
 
-        @sign_up_ticket = sign_up_cycle_locator.current
+        @sign_up_ticket = sign_up_flow_locator.current
         return if @sign_up_ticket
 
         render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
@@ -26,7 +26,7 @@ module Sign
       def load_sign_up_checkpoint_ticket
         return render_sign_up_age_restricted if sign_up_session_state.age_restricted?
 
-        @sign_up_ticket = sign_up_cycle_locator.current
+        @sign_up_ticket = sign_up_flow_locator.current
         return if @sign_up_ticket
 
         sign_up_session_state.clear_all!
@@ -283,7 +283,7 @@ module Sign
             )
             next unless finalized.success?
 
-            sign_in_result = handoff_to_sign_in_cycle!(context.pending_actor)
+            sign_in_result = handoff_to_sign_in_flow!(context.pending_actor)
             handoff = perform_sign_up_event(
               :handoff_to_sign_in,
               payload: {
@@ -382,7 +382,7 @@ module Sign
         )
       end
 
-      def sign_up_cycle_locator
+      def sign_up_flow_locator
         SignUp::CycleLocator.new(session, surface: sign_up_surface, cycle_class: sign_up_ticket_class)
       end
 
@@ -480,9 +480,9 @@ module Sign
         return :failed unless actor
 
         case @sign_up_ticket
-        when ClientSignUpCycle
+        when ClientSignUpFlow
           finalize_app_sign_up_actor!(actor)
-        when VisitorSignUpCycle
+        when VisitorSignUpFlow
           finalize_com_sign_up_actor!(actor)
         else
           :failed
@@ -532,7 +532,7 @@ module Sign
         :failed
       end
 
-      def handoff_to_sign_in_cycle!(actor)
+      def handoff_to_sign_in_flow!(actor)
         # bootstrap_actor: true marks this as a fresh registration handoff.
         # The sign-in boundary creates or advances a pending cycle; active
         # session issuance remains delayed until checkpoint and selector pass.
@@ -541,7 +541,7 @@ module Sign
           pt: signed_pt_param.presence || @sign_up_ticket.return_to.presence,
           ri: params[:ri],
           auth_method: sign_up_auth_method,
-          audit_context: { flow: "sign_up", sign_up_cycle_id: @sign_up_ticket.public_id },
+          audit_context: { flow: "sign_up", sign_up_flow_id: @sign_up_ticket.public_id },
           bootstrap_actor: true,
         )
         sign_in_result_from_session_result(result, actor: actor)
@@ -608,9 +608,9 @@ module Sign
 
       def sign_up_ticket_record_class
         case @sign_up_ticket
-        when ClientSignUpCycle
+        when ClientSignUpFlow
           AppTicketRecord
-        when VisitorSignUpCycle
+        when VisitorSignUpFlow
           ComTicketRecord
         else
           @sign_up_ticket.class
@@ -620,9 +620,9 @@ module Sign
       def sign_up_default_sign_in_path
         case sign_up_surface
         when :app
-          new_sign_app_in_path(ri: params[:ri])
+          new_sign_app_sign_in_path(ri: params[:ri])
         when :com
-          new_sign_com_in_path(ri: params[:ri])
+          new_sign_com_sign_in_path(ri: params[:ri])
         else
           "/"
         end
@@ -631,9 +631,9 @@ module Sign
       def sign_up_restart_path
         case sign_up_surface
         when :app
-          new_sign_app_up_path(ri: params[:ri])
+          new_sign_app_sign_up_path(ri: params[:ri])
         when :com
-          new_sign_com_up_path(ri: params[:ri])
+          new_sign_com_sign_up_path(ri: params[:ri])
         else
           "/"
         end
@@ -641,18 +641,18 @@ module Sign
 
       def sign_up_pending_actor_model
         case @sign_up_ticket
-        when ClientSignUpCycle
+        when ClientSignUpFlow
           Client
-        when VisitorSignUpCycle
+        when VisitorSignUpFlow
           Visitor
         end
       end
 
       def sign_up_pending_telephone_model
         case @sign_up_ticket
-        when ClientSignUpCycle
+        when ClientSignUpFlow
           ClientTelephone
-        when VisitorSignUpCycle
+        when VisitorSignUpFlow
           VisitorTelephone
         end
       end

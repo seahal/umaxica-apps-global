@@ -97,53 +97,53 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
       confirm_policy: true,
       user_email_status_id: ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP,
     )
-    cycle = ClientSignUpCycle.create!(
+    cycle = ClientSignUpFlow.create!(
       principal_id: user.id,
-      status_id: ClientSignUpCycleStatus::CANCELLED,
+      status_id: ClientSignUpFlowStatus::CANCELLED,
       step: "cancelled",
-      nonce_digest: ClientSignUpCycle.digest_nonce("nonce"),
+      nonce_digest: ClientSignUpFlow.digest_nonce("nonce"),
       issued_at: 20.minutes.ago,
       expires_at: 5.minutes.ago,
       entry_method: "email",
       pending_contact_type: "email",
       pending_contact_id: email.id,
-      cleanup_status_id: ClientSignUpCycleCleanupStatus::PENDING,
+      cleanup_status_id: ClientSignUpFlowCleanupStatus::PENDING,
     )
     cycle.update_columns(discarded_at: cycle.created_at, purged_at: cycle.created_at)
 
     RetentionPurgeJob.perform_now
 
-    assert_not ClientSignUpCycle.exists?(cycle.id)
+    assert_not ClientSignUpFlow.exists?(cycle.id)
     assert_equal ClientEmailStatus::DELETED, email.reload.user_email_status_id
     assert_operator email.discarded_at, :<=, Time.current
   end
 
-  # Regression guard for RETAINABLE_MODELS ordering. ClientSignUpCycle has an
+  # Regression guard for RETAINABLE_MODELS ordering. ClientSignUpFlow has an
   # ON DELETE CASCADE FK to ClientToken; if RETAINABLE_MODELS lists ClientToken
-  # before ClientSignUpCycle, purging tokens will silently cascade-delete
+  # before ClientSignUpFlow, purging tokens will silently cascade-delete
   # active cycles whose own `purged_at` is still Infinity.
-  test "ClientSignUpCycle is listed before ClientToken in RETAINABLE_MODELS" do
+  test "ClientSignUpFlow is listed before ClientToken in RETAINABLE_MODELS" do
     models = RetentionPurgeJob::RETAINABLE_MODELS
-    cycle_index = models.index(ClientSignUpCycle)
+    cycle_index = models.index(ClientSignUpFlow)
     token_index = models.index(ClientToken)
 
     skip "ClientToken not registered" unless token_index
 
-    assert cycle_index, "ClientSignUpCycle missing from RETAINABLE_MODELS"
+    assert cycle_index, "ClientSignUpFlow missing from RETAINABLE_MODELS"
     assert_operator cycle_index, :<, token_index,
-                    "ClientSignUpCycle must precede ClientToken to avoid cascade-deletion of active cycles"
+                    "ClientSignUpFlow must precede ClientToken to avoid cascade-deletion of active cycles"
   end
 
-  test "VisitorSignUpCycle is listed before VisitorToken in RETAINABLE_MODELS" do
+  test "VisitorSignUpFlow is listed before VisitorToken in RETAINABLE_MODELS" do
     models = RetentionPurgeJob::RETAINABLE_MODELS
-    cycle_index = models.index(VisitorSignUpCycle)
+    cycle_index = models.index(VisitorSignUpFlow)
     token_index = models.index(VisitorToken)
 
     skip "VisitorToken not registered" unless token_index
 
-    assert cycle_index, "VisitorSignUpCycle missing from RETAINABLE_MODELS"
+    assert cycle_index, "VisitorSignUpFlow missing from RETAINABLE_MODELS"
     assert_operator cycle_index, :<, token_index,
-                    "VisitorSignUpCycle must precede VisitorToken"
+                    "VisitorSignUpFlow must precede VisitorToken"
   end
 
   # Every Retainable model must be registered with RetentionPurgeJob so the
@@ -156,7 +156,7 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
 
     missing =
       (Retainable.registry - RetentionPurgeJob::RETAINABLE_MODELS).reject do |model|
-        model.name.to_s.match?(/\A(?:CycleBaseTest|RetainableTest|SecretConcernTest)::/) ||
+        model.name.to_s.match?(/\A(?:CycleBaseTest|RetainableTest|SecretCredentialConcernTest)::/) ||
           !model.table_exists?
       end
 

@@ -54,7 +54,7 @@ module SignUp
       else
         evaluate_event
       end
-    rescue ArgumentError, ActiveRecord::RecordInvalid, Cycle::InvalidTransition => e
+    rescue ArgumentError, ActiveRecord::RecordInvalid, Flow::InvalidTransition => e
       invalid(e.message)
     end
 
@@ -74,7 +74,7 @@ module SignUp
       # Reject events on TTL-expired or logically-discarded tickets. The union
       # is intentional: discarded rows must not accept transitions any more
       # than expired ones can, but the two states are surfaced separately
-      # (SignCycle#expired? = TTL only; Retainable#lapsed? = logical deletion).
+      # (SignFlow#expired? = TTL only; Retainable#lapsed? = logical deletion).
       return expired_result if (ticket.expired? || ticket_lapsed?) && event != :expire
 
       return invalid("terminal ticket cannot transition") if terminal? && !terminal_event_allowed?

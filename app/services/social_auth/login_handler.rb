@@ -82,8 +82,8 @@ module SocialAuth
       user = Client.new
       ensure_user_status(user)
       ensure_user_visibility(user)
-      ensure_user_multi_factor(user)
-      ensure_user_multi_factor_status(user)
+      ensure_user_mfa_level(user)
+      ensure_user_mfa_status(user)
       user
     end
 
@@ -124,50 +124,50 @@ module SocialAuth
       ensure_reference_record!(ClientVisibility, id, code)
     end
 
-    def ensure_user_multi_factor(user)
-      multi_factor = ensure_user_multi_factor_record(user.multi_factor_id) ||
-        ensure_user_multi_factor_record(ClientMultiFactor::NOTHING) ||
-        ClientMultiFactor.first
+    def ensure_user_mfa_level(user)
+      mfa_level = ensure_user_mfa_level_record(user.mfa_level_id) ||
+        ensure_user_mfa_level_record(ClientMfaLevel::NOTHING) ||
+        ClientMfaLevel.first
 
-      if multi_factor.present?
-        user.multi_factor_id = multi_factor.id
+      if mfa_level.present?
+        user.mfa_level_id = mfa_level.id
       else
         Rails.logger.error(
           Jit::LogEvent.format(
             "social_auth.default_reference.missing",
-            reference: "user_multi_factor",
+            reference: "user_mfa_level",
           ),
         )
       end
     end
 
-    def ensure_user_multi_factor_record(id)
+    def ensure_user_mfa_level_record(id)
       return nil if id.blank?
 
-      ensure_reference_record!(ClientMultiFactor, id, nil)
+      ensure_reference_record!(ClientMfaLevel, id, nil)
     end
 
-    def ensure_user_multi_factor_status(user)
-      status = ensure_user_multi_factor_status_record(user.multi_factor_status_id) ||
-        ensure_user_multi_factor_status_record(ClientMultiFactorStatus::UNCONFIGURED) ||
-        ClientMultiFactorStatus.first
+    def ensure_user_mfa_status(user)
+      status = ensure_user_mfa_status_record(user.mfa_status_id) ||
+        ensure_user_mfa_status_record(ClientMfaStatus::UNCONFIGURED) ||
+        ClientMfaStatus.first
 
       if status.present?
-        user.multi_factor_status_id = status.id
+        user.mfa_status_id = status.id
       else
         Rails.logger.error(
           Jit::LogEvent.format(
             "social_auth.default_reference.missing",
-            reference: "user_multi_factor_status",
+            reference: "user_mfa_status",
           ),
         )
       end
     end
 
-    def ensure_user_multi_factor_status_record(id)
+    def ensure_user_mfa_status_record(id)
       return nil if id.blank?
 
-      ensure_reference_record!(ClientMultiFactorStatus, id, nil)
+      ensure_reference_record!(ClientMfaStatus, id, nil)
     end
 
     def ensure_reference_record!(model, id, code)
@@ -220,7 +220,7 @@ module SocialAuth
 
     def assign_identity_to_user(user, identity)
       case identity_class.name
-      when "ClientSocialGoogle", "ClientSocialApple"
+      when "ClientGoogleIdentity", "ClientAppleIdentity"
         identity.user_id = user.id
       end
     end

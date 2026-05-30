@@ -313,7 +313,7 @@ module Preference::Core
       tf: snapshot[:time_format] || "hour_24",
       mo: snapshot[:motion] || "standard",
       dn: snapshot[:density] || "standard",
-      ipp: snapshot[:items_per_page] || "20",
+      ps: snapshot[:page_size] || "20",
       consented: cookie[:consented],
       functional: cookie[:functional],
       performant: cookie[:performant],
@@ -450,7 +450,8 @@ module Preference::Core
   end
 
   def preference_write_redirect_params(except: nil)
-    except_keys = Array(except).compact.map(&:to_sym)
+    except_keys = Array(except).compact
+    except_keys.map!(&:to_sym)
     preference_context_redirect_params.except(*except_keys).tap do |redirect_params|
       except_keys.each { |key| redirect_params[key] = nil }
       redirect_params[:ri] = params[:ri].presence || get_region
@@ -486,7 +487,7 @@ module Preference::Core
       time_format: :tf,
       motion: :mo,
       density: :dn,
-      items_per_page: :pp,
+      page_size: :ps,
     }[screen.to_sym]
   end
 
@@ -617,8 +618,8 @@ module Preference::Core
       when :time_format then "region_time"
       when :motion then "accessibility_motion"
       when :density then "accessibility_density"
-      when :items_per_page then "display_items_per_page"
-      when :r18_display_stopper then "display_r18_display_stopper"
+      when :page_size then "display_page_size"
+      when :adult_content_gate then "display_adult_content_gate"
       when :theme then "theme"
       when :cookie then "cookie"
       when :reset then "reset"

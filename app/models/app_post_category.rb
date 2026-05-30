@@ -6,25 +6,30 @@
 # Table name: app_post_categories
 # Database name: app_publisher
 #
-#  id                          :bigint           not null, primary key
-#  created_at                  :datetime         not null
-#  updated_at                  :datetime         not null
-#  app_post_category_master_id :bigint           default(0), not null
-#  app_post_id                 :bigint           not null
+#  id        :bigint           not null, primary key
+#  parent_id :bigint           default(0), not null
 #
 # Indexes
 #
-#  index_app_post_categories_on_app_post_category_master_id  (app_post_category_master_id)
-#  index_app_post_categories_on_app_post_id                  (app_post_id) UNIQUE
-#
-# Foreign Keys
-#
-#  fk_rails_...  (app_post_category_master_id => app_post_category_masters.id)
-#  fk_rails_...  (app_post_id => app_posts.id) ON DELETE => cascade
+#  index_app_post_categories_on_parent_id  (parent_id)
 #
 class AppPostCategory < AppPublisherRecord
-  belongs_to :app_post, class_name: "AppPost", inverse_of: :app_post_category
-  belongs_to :app_post_category_master, class_name: "AppPostCategoryMaster", inverse_of: :app_post_categories
+  NOTHING = 0
+  LEGACY_NOTHING = 1
+  DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
 
-  validates :app_post_id, uniqueness: true
+  include PublisherPostMaster
+
+  belongs_to :parent,
+             class_name: "AppPostCategory",
+             inverse_of: :children,
+             optional: true
+  has_many :children,
+           class_name: "AppPostCategory",
+           foreign_key: :parent_id,
+           inverse_of: :parent,
+           dependent: :restrict_with_error
+  has_many :app_post_categorizations, class_name: "AppPostCategorization", dependent: :restrict_with_error,
+                                      inverse_of: :app_post_category
+  has_many :app_posts, through: :app_post_categorizations
 end

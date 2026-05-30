@@ -6,8 +6,8 @@ module Sign
     module Up
       class SocialCancellation
         SUPPORTED_PROVIDERS = {
-          "apple" => ClientSocialApple,
-          "google" => ClientSocialGoogle,
+          "apple" => ClientAppleIdentity,
+          "google" => ClientGoogleIdentity,
         }.freeze
 
         def self.call(...)

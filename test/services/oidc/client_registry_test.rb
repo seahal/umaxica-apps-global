@@ -93,26 +93,26 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     end
   end
 
-  test "authenticate returns false when secrets are not configured" do
-    assert_not Oidc::ClientRegistry.authenticate("core_app", "any_secret")
+  test "authenticate returns false when secret_credentials are not configured" do
+    assert_not Oidc::ClientRegistry.authenticate("core_app", "any_secret_credential")
   end
 
-  test "find resolves secret from flat credential key" do
-    with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_CORE_APP: "core-app-secret") do
+  test "find resolves secret_credential from flat credential key" do
+    with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_CORE_APP: "core-app-secret_credential") do
       client = Oidc::ClientRegistry.find("core_app")
 
-      assert_equal "core-app-secret", client.client_secret
+      assert_equal "core-app-secret_credential", client.client_secret
     end
   end
 
   test "authenticate uses flat credential key" do
-    with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_ACME_ORG: "acme-org-secret") do
-      assert Oidc::ClientRegistry.authenticate("acme_org", "acme-org-secret")
-      assert_not Oidc::ClientRegistry.authenticate("acme_org", "wrong-secret")
+    with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_ACME_ORG: "acme-org-secret_credential") do
+      assert Oidc::ClientRegistry.authenticate("acme_org", "acme-org-secret_credential")
+      assert_not Oidc::ClientRegistry.authenticate("acme_org", "wrong-secret_credential")
     end
   end
 
-  test "authenticate returns false for blank secret" do
+  test "authenticate returns false for blank secret_credential" do
     assert_not Oidc::ClientRegistry.authenticate("core_app", "")
     assert_not Oidc::ClientRegistry.authenticate("core_app", nil)
   end

@@ -14,7 +14,7 @@ module Security
       assert Rails.application.config.action_dispatch.use_authenticated_cookie_encryption
     end
 
-    test "secret key base is long enough for derived cookie keys" do
+    test "secret_credential key base is long enough for derived cookie keys" do
       assert_operator Rails.application.secret_key_base.to_s.bytesize, :>=, 64
     end
   end

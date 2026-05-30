@@ -100,8 +100,8 @@ scope module: :sign, as: :sign do
         end
 
         namespace :display do
-          resource :items_per_page, only: [:edit, :update]
-          resource :r18_display_stopper, only: [:edit, :update]
+          resource :page_size, only: [:edit, :update]
+          resource :adult_content_gate, only: [:edit, :update]
         end
 
         # Display and privacy settings
@@ -119,7 +119,7 @@ scope module: :sign, as: :sign do
       # Sign-up and sign-in
       scope path: "sign" do
         # Sign-up: account registration via email or telephone
-        resource :up, only: :new
+        resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
           resource :email, only: %i(new create edit update)
           resource :guardrail, only: :show
@@ -139,7 +139,7 @@ scope module: :sign, as: :sign do
         end
 
         # Sign-in: credential entry and session establishment
-        resource :in, only: %i(new)
+        resource :sign_in, path: "in", controller: "sign_ins", only: %i(new)
         namespace :in do
           resource :email, only: %i(new create edit update)
 
@@ -150,7 +150,7 @@ scope module: :sign, as: :sign do
             end
           end
 
-          resource :secret, only: %i(new create)
+          resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
           resource :checkpoint, only: %i(show update destroy)
           resource :challenge, only: %i(show)
@@ -161,7 +161,7 @@ scope module: :sign, as: :sign do
           end
         end
 
-        resource :out, only: %i(show edit create destroy)
+        resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
 
       # Social auth: continue sets intent/state then redirects to /auth/:provider.
@@ -255,7 +255,7 @@ scope module: :sign, as: :sign do
         resource :apple, only: :show
         resource :google, only: %i(show)
 
-        resources :secrets, only: %i(index show new edit create update destroy) do
+        resources :secret_credentials, only: %i(index show new edit create update destroy) do
           post :regenerate, on: :member
         end
 
@@ -355,8 +355,8 @@ scope module: :sign, as: :sign do
         end
 
         namespace :display do
-          resource :items_per_page, only: [:edit, :update]
-          resource :r18_display_stopper, only: [:edit, :update]
+          resource :page_size, only: [:edit, :update]
+          resource :adult_content_gate, only: [:edit, :update]
         end
 
         # Display and privacy settings
@@ -372,7 +372,7 @@ scope module: :sign, as: :sign do
       # Sign-up and sign-in
       scope path: "sign" do
         # Sign-up: account registration via email or telephone
-        resource :up, only: :new
+        resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
           resource :email, only: %i(new create edit update)
           resource :guardrail, only: :show
@@ -390,7 +390,7 @@ scope module: :sign, as: :sign do
         end
 
         # Sign-in: credential entry and session establishment
-        resource :in, only: %i(new)
+        resource :sign_in, path: "in", controller: "sign_ins", only: %i(new)
         namespace :in do
           resource :email, only: %i(new create edit update)
 
@@ -401,7 +401,7 @@ scope module: :sign, as: :sign do
             end
           end
 
-          resource :secret, only: %i(new create)
+          resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
           resource :checkpoint, only: %i(show update destroy)
           resource :challenge, only: %i(show)
@@ -411,7 +411,7 @@ scope module: :sign, as: :sign do
           end
         end
 
-        resource :out, only: %i(show edit create destroy)
+        resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
 
       # Step-up verification
@@ -465,7 +465,7 @@ scope module: :sign, as: :sign do
 
         resource :birthdate, only: :show
 
-        resources :secrets, only: %i(index show new edit create update destroy) do
+        resources :secret_credentials, only: %i(index show new edit create update destroy) do
           post :regenerate, on: :member
         end
 
@@ -562,8 +562,8 @@ scope module: :sign, as: :sign do
         end
 
         namespace :display do
-          resource :items_per_page, only: [:edit, :update]
-          resource :r18_display_stopper, only: [:edit, :update]
+          resource :page_size, only: [:edit, :update]
+          resource :adult_content_gate, only: [:edit, :update]
         end
 
         # Display and privacy settings
@@ -580,7 +580,7 @@ scope module: :sign, as: :sign do
 
       # Sign-up: email registration and staff invitation flows
       scope path: "sign" do
-        resource :up, only: :new
+        resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
           resources :invitations, only: %i(new create)
         end
@@ -609,7 +609,7 @@ scope module: :sign, as: :sign do
 
       # Sign-in: credential entry and session establishment
       scope path: "sign" do
-        resource :in, only: [:new]
+        resource :sign_in, path: "in", controller: "sign_ins", only: [:new]
         namespace :in do
           resources :passkeys, only: [:new] do
             collection do
@@ -618,7 +618,7 @@ scope module: :sign, as: :sign do
             end
           end
 
-          resource :secret, only: %i(new create)
+          resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
           resource :checkpoint, only: %i(show update destroy)
           resource :challenge, only: %i(show)
@@ -628,7 +628,7 @@ scope module: :sign, as: :sign do
           end
         end
 
-        resource :out, only: %i(show edit create destroy)
+        resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
 
       # Step-up verification
@@ -666,7 +666,7 @@ scope module: :sign, as: :sign do
           resource :challenge, only: %i(show)
         end
 
-        resources :secrets
+        resources :secret_credentials
 
         resources :sessions, only: %i(index destroy) do
           collection do

@@ -117,10 +117,10 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     assert_equal @visitor.deactivated_at + 31.days, @visitor.purged_at
     assert VisitorToken.exists?(id: @token.id)
 
-    cycle = @visitor.visitor_withdrawal_cycles.recent_first.first
+    cycle = @visitor.visitor_withdrawal_flows.recent_first.first
 
     assert_predicate cycle, :withdrawal_discarded?
-    assert_equal 3, cycle.visitor_withdrawal_cycle_events.count
+    assert_equal 3, cycle.visitor_withdrawal_flow_events.count
   end
 
   test "fresh sign-in token cannot schedule withdrawal" do
@@ -159,10 +159,10 @@ class Sign::Com::Configuration::WithdrawalsControllerTest < ActionDispatch::Inte
     assert_not @token.revoked?
     assert_not other_token.revoked?
 
-    cycle = @visitor.visitor_withdrawal_cycles.recent_first.first
+    cycle = @visitor.visitor_withdrawal_flows.recent_first.first
 
     assert_predicate cycle, :withdrawal_requested?
-    assert_equal 1, cycle.visitor_withdrawal_cycle_events.count
+    assert_equal 1, cycle.visitor_withdrawal_flow_events.count
   end
 
   test "wrong step-up scope cannot recover withdrawal" do

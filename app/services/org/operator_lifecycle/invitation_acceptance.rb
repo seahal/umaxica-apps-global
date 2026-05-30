@@ -63,7 +63,7 @@ module Org
 
         OrgPrincipalRecord.transaction do
           operator = Operator.create!(
-            status_id: OperatorIdentityStatus::ACTIVE,
+            status_id: OperatorStatus::ACTIVE,
             visibility_id: OperatorVisibility::STAFF,
           )
           email = operator.operator_emails.create!(

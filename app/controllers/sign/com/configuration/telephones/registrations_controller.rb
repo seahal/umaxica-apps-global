@@ -17,6 +17,10 @@ module Sign
           TELEPHONE_VERIFICATION_RATE_LIMIT = 5
           TELEPHONE_VERIFICATION_RATE_WINDOW = 60
           before_action :authenticate_visitor!
+          # Object-level authorization (ActionPolicy): registering a telephone is a fresh-record action
+          # for the authenticated visitor, so gate by actor type. Each step builds/looks up the record
+          # for current_visitor. Verification/turnstile/rate-limit guards remain on the flow.
+          before_action :authorize_telephone_registration!, only: %i(new create edit update)
 
           def new
             @user_telephone = VisitorTelephone.new
@@ -97,6 +101,10 @@ module Sign
           end
 
           private
+
+          def authorize_telephone_registration!
+            authorize!(VisitorTelephone, to: :create?)
+          end
 
           def handle_registration_update_status(status)
             case status

@@ -1,0 +1,59 @@
+<% content_for :page_title, t("sign.app.configuration.secret_credentials.new.title") %>
+<div>
+  <div>
+    <div>
+      <div>
+        <h3><%= t("sign.app.configuration.secret_credentials.new.title") %></h3>
+        <p><%= t("sign.app.configuration.secret_credentials.new.description") %></p>
+      </div>
+    </div>
+    <div>
+      <%= form_with(model: @secret_credential, url: sign_com_configuration_secret_credentials_path(ri: params[:ri])) do |form| %>
+        <div>
+          <% if @secret_credential.errors.any? %>
+            <div>
+              <div>
+                <div>
+                  <h3><%= t('errors.template.header', model: @secret_credential.model_name.human, count: @secret_credential.errors.count) %></h3>
+                  <div>
+                    <ul role="list">
+                      <% @secret_credential.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <div>
+            <div>
+              <%= form.label :name %>
+              <div>
+                <%= form.text_field :name %>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <%= form.check_box :enabled, {}, "1", "0" %>
+            <%= form.label :enabled, t("views.sign.app.configuration.secret_credentials.new.confirm_saved_label") %>
+          </div>
+
+          <div>
+            <p>Secret</p>
+            <p><%= @raw_secret_credential %></p>
+            <p><%= t("views.sign.app.configuration.secret_credentials.new.one_time_notice") %></p>
+          </div>
+
+          <%= render "shared/cloudflare_turnstile_stealth" %>
+        </div>
+        <div>
+          <%= link_to t('actions.cancel'), sign_com_configuration_secret_credentials_path(ri: params[:ri]) %>
+          <%= form.submit t('actions.save') %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

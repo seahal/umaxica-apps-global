@@ -54,8 +54,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:safe_redirect_to) { |*args, **kwargs| safe_redirects << [args, kwargs] }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
-    controller.define_singleton_method(:new_sign_app_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
-    controller.define_singleton_method(:new_sign_app_up_path) { |ri: nil| "/sign/up/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:new_sign_app_sign_up_path) { |ri: nil| "/sign/up/new#{ri ? "?ri=#{ri}" : ""}" }
     controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
@@ -205,14 +205,14 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       :social_login_result_log_payload,
       {
         status: :success,
-        access_token: "access-secret",
-        refresh_token: "refresh-secret",
+        access_token: "access-secret_credential",
+        refresh_token: "refresh-secret_credential",
         token_type: "Bearer",
         expires_in: 3600,
         dbsc: {
           binding_method: "legacy",
           status: "nothing",
-          session_id: "session-secret",
+          session_id: "session-secret_credential",
           registration_url: "/edge/v0/token/dbsc",
         },
       },
@@ -229,25 +229,25 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   end
 
   test "social sign up entry routes new identity to sign up guardrail without signing in" do
-    ClientSignUpCycleStatus.ensure_defaults!
-    ClientSignUpCycleCleanupStatus.ensure_defaults!
+    ClientSignUpFlowStatus.ensure_defaults!
+    ClientSignUpFlowCleanupStatus.ensure_defaults!
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       user: user,
       uid: "social-signup-guardrail",
       provider: "google_app",
       token: "token",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
-    cycle = ClientSignUpCycle.create!(
+    cycle = ClientSignUpFlow.create!(
       principal_id: nil,
-      status_id: ClientSignUpCycleStatus::SOCIAL_CALLBACK_PENDING,
+      status_id: ClientSignUpFlowStatus::SOCIAL_CALLBACK_PENDING,
       step: "social_callback",
-      nonce_digest: ClientSignUpCycle.digest_nonce("nonce"),
+      nonce_digest: ClientSignUpFlow.digest_nonce("nonce"),
       issued_at: Time.current,
       expires_at: 15.minutes.from_now,
-      cleanup_status_id: ClientSignUpCycleCleanupStatus::IDLE,
+      cleanup_status_id: ClientSignUpFlowCleanupStatus::IDLE,
       entry_method: "google",
       social_provider: "google",
     )
@@ -270,7 +270,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_up_guardrail_path) { |ri: nil, pt: nil|
       "/sign/up/guardrail?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
-    controller.define_singleton_method(:sign_up_cycle_locator) { locator }
+    controller.define_singleton_method(:sign_up_flow_locator) { locator }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
 
     controller.send(
@@ -291,16 +291,16 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   end
 
   test "social callback sign up cycle stores decoded pt as return_to" do
-    ClientSignUpCycleStatus.ensure_defaults!
-    ClientSignUpCycleCleanupStatus.ensure_defaults!
+    ClientSignUpFlowStatus.ensure_defaults!
+    ClientSignUpFlowCleanupStatus.ensure_defaults!
     user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       user: user,
       uid: "social-signup-return-to",
       provider: "google_app",
       token: "token",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
     issued_cycles = []
     controller = Sign::App::Auth::OmniauthCallbacksController.new
@@ -311,7 +311,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:path_from_signed_pt) do |value|
       (value == "signed:/after-social") ? "/after-social" : nil
     end
-    controller.define_singleton_method(:sign_up_cycle_locator) do
+    controller.define_singleton_method(:sign_up_flow_locator) do
       Struct.new(:issued_cycles) do
         def issue!(cycle)
           issued_cycles << cycle
@@ -319,7 +319,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       end.new(issued_cycles)
     end
 
-    cycle = controller.send(:create_social_sign_up_cycle!, user, identity, pt: "/after-social")
+    cycle = controller.send(:create_social_sign_up_flow!, user, identity, pt: "/after-social")
 
     assert_equal "/after-social", cycle.return_to
     assert_equal [cycle], issued_cycles
@@ -356,13 +356,13 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     end
 
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       user: user,
       uid: "social-signup-existing",
       provider: "google_app",
       token: "token",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     controller.send(
@@ -383,13 +383,13 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   test "social sign in failure keeps account records" do
     controller = Sign::App::Auth::OmniauthCallbacksController.new
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
-    identity = ClientSocialGoogle.create!(
+    identity = ClientGoogleIdentity.create!(
       user: user,
       uid: "social-signin-keep-existing",
       provider: "google_app",
       token: "token",
       token_expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
     controller.define_singleton_method(:sign_in) do |*|
       { status: :login_forbidden }
@@ -401,7 +401,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.send(:handle_login_intent, user, "Google", true)
 
     assert Client.exists?(user.id)
-    assert ClientSocialGoogle.exists?(identity.id)
+    assert ClientGoogleIdentity.exists?(identity.id)
   end
 
   test "direct action early exits and csrf helpers" do
@@ -415,8 +415,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(provider: "apple", message: "cancelled", strategy: "apple") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:new_sign_app_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
-    controller.define_singleton_method(:new_sign_app_up_path) { |ri: nil| "/sign/up/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:new_sign_app_sign_up_path) { |ri: nil| "/sign/up/new#{ri ? "?ri=#{ri}" : ""}" }
     controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
     controller.define_singleton_method(:action_name) { @action_name_for_test }
     controller.define_singleton_method(:verified_social_callback_request?) { @verified_social_for_test }

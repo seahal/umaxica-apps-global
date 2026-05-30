@@ -17,6 +17,10 @@ module Sign
           AUTHENTICATION_MODE = :private
 
           before_action :authenticate_visitor!
+          # Object-level authorization (ActionPolicy): registering an email is a fresh-record action
+          # for the authenticated visitor, so gate by actor type. Each flow step builds/looks up the
+          # email through current_visitor.visitor_emails (owner-scoped). Step-up/turnstile remain below.
+          before_action :authorize_email_registration!, only: %i(new create edit update)
           before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update)
           before_action only: %i(new create edit update) do
             require_step_up_unless_bootstrap!(scope: verification_scope)
@@ -99,6 +103,10 @@ module Sign
           end
 
           private
+
+          def authorize_email_registration!
+            authorize!(VisitorEmail, to: :create?)
+          end
 
           def initiate_visitor_email_verification!(email_address, email_preferences: {})
             turnstile_result = cloudflare_turnstile_stealth_validation

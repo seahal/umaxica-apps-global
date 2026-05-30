@@ -39,7 +39,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     assert_response :redirect
     assert_match %r{/auth/google_app}, response.location
 
-    cycle = ClientSignUpCycle.order(:id).last
+    cycle = ClientSignUpFlow.order(:id).last
 
     assert_equal "google", cycle.entry_method
     assert_equal "google", cycle.social_provider
@@ -59,7 +59,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
   test "continue redirects to sign-in with alert for unsupported provider" do
     post continue_sign_app_social_authentication_path(provider: "twitter", ri: "jp")
 
-    assert_redirected_to new_sign_app_in_path(ri: "jp")
+    assert_redirected_to new_sign_app_sign_in_path(ri: "jp")
     assert_equal I18n.t("sign.app.social.sessions.invalid_provider"), flash[:alert]
   end
 end

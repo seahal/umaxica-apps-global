@@ -27,7 +27,7 @@
 require "test_helper"
 
 class OperatorBannerTest < ActiveSupport::TestCase
-  fixtures :operator_banners, :operators, :operator_identity_statuses
+  fixtures :operator_banners, :operators, :operator_statuses
 
   test "staff is required" do
     banner = OperatorBanner.new(body: "Banner body")

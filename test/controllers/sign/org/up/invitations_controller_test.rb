@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Up::InvitationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_email_statuses, :operator_visibilities
+  fixtures :operators, :operator_statuses, :operator_email_statuses, :operator_visibilities
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -38,7 +38,7 @@ class Sign::Org::Up::InvitationsControllerTest < ActionDispatch::IntegrationTest
            params: { invitation_code: @invitation.code, "cf-turnstile-response": "test" }
     end
 
-    assert_redirected_to new_sign_org_in_path(ri: "jp")
+    assert_redirected_to new_sign_org_sign_in_path(ri: "jp")
     assert_predicate @invitation.reload, :consumed?
     assert_match(/operator ID/i, flash[:notice])
   end

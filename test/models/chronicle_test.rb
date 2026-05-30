@@ -106,7 +106,7 @@ class ChronicleTest < ActiveSupport::TestCase
       occurred_at: Time.current,
       erasable_at: 365.days.from_now,
       metadata: {
-        password: "secret",
+        password: "secret_credential",
         session_id_digest: "digest-ok",
         password_digest: "password-digest",
         token_digest: "token-digest",

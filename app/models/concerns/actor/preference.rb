@@ -16,8 +16,8 @@ class Actor
   #   Actor.preferences.null?      # => true (for guests)
   class Preference
     attr_reader :language, :region, :timezone, :theme,
-                :currency, :date_format, :time_format, :motion, :density, :items_per_page,
-                :r18_display_stopper
+                :currency, :date_format, :time_format, :motion, :density, :page_size,
+                :adult_content_gate
 
     # Field names (strings) the user set on purpose. Drives localization: an
     # explicitly set field's saved value wins over dynamic region seeding (?ri),
@@ -45,8 +45,8 @@ class Actor
       time_format: "hour_24",
       motion: "standard",
       density: "standard",
-      items_per_page: "20",
-      r18_display_stopper: "nothing",
+      page_size: "20",
+      adult_content_gate: "nothing",
     }.freeze
 
     SCHEMA_VERSION = 1
@@ -64,8 +64,8 @@ class Actor
                    timezone: DEFAULTS[:timezone], theme: DEFAULTS[:theme],
                    currency: DEFAULTS[:currency], date_format: DEFAULTS[:date_format],
                    time_format: DEFAULTS[:time_format], motion: DEFAULTS[:motion],
-                   density: DEFAULTS[:density], items_per_page: DEFAULTS[:items_per_page],
-                   r18_display_stopper: DEFAULTS[:r18_display_stopper],
+                   density: DEFAULTS[:density], page_size: DEFAULTS[:page_size],
+                   adult_content_gate: DEFAULTS[:adult_content_gate],
                    cookie: NULL_COOKIE, null: false, explicit_fields: [])
       @explicit_fields = Array(explicit_fields).map(&:to_s).freeze
       @language = language.freeze
@@ -77,8 +77,8 @@ class Actor
       @time_format = time_format.freeze
       @motion = motion.freeze
       @density = density.freeze
-      @items_per_page = items_per_page.freeze
-      @r18_display_stopper = r18_display_stopper.freeze
+      @page_size = page_size.freeze
+      @adult_content_gate = adult_content_gate.freeze
       @cookie = cookie
       @null = null
       freeze
@@ -112,8 +112,8 @@ class Actor
         time_format == other.time_format &&
         motion == other.motion &&
         density == other.density &&
-        items_per_page == other.items_per_page &&
-        r18_display_stopper == other.r18_display_stopper &&
+        page_size == other.page_size &&
+        adult_content_gate == other.adult_content_gate &&
         cookie == other.cookie &&
         null? == other.null? &&
         explicit_fields == other.explicit_fields
@@ -124,7 +124,7 @@ class Actor
     def hash
       [
         self.class, language, region, timezone, theme, currency, date_format, time_format,
-        motion, density, items_per_page, r18_display_stopper, cookie, null?, explicit_fields,
+        motion, density, page_size, adult_content_gate, cookie, null?, explicit_fields,
       ].hash
     end
 
@@ -163,14 +163,14 @@ class Actor
         time_format: @time_format,
         motion: @motion,
         density: @density,
-        items_per_page: @items_per_page,
-        r18_display_stopper: @r18_display_stopper,
+        page_size: @page_size,
+        adult_content_gate: @adult_content_gate,
         consented: @cookie.consented?,
       }
     end
 
-    def r18_display_stopper?
-      @r18_display_stopper == "deny" || @r18_display_stopper == "enabled"
+    def adult_content_gate?
+      @adult_content_gate == "deny" || @adult_content_gate == "enabled"
     end
 
     def with_cookie(cookie)
@@ -184,8 +184,8 @@ class Actor
         time_format: @time_format,
         motion: @motion,
         density: @density,
-        items_per_page: @items_per_page,
-        r18_display_stopper: @r18_display_stopper,
+        page_size: @page_size,
+        adult_content_gate: @adult_content_gate,
         cookie: self.class.cookie_from(cookie),
         null: @null,
         explicit_fields: @explicit_fields,
@@ -213,15 +213,15 @@ class Actor
         time_format: hash_value(prf_claim, "tf", :tf, "time_format", :time_format) || DEFAULTS[:time_format],
         motion: hash_value(prf_claim, "mo", :mo, "motion", :motion) || DEFAULTS[:motion],
         density: hash_value(prf_claim, "dn", :dn, "density", :density) || DEFAULTS[:density],
-        items_per_page: hash_value(prf_claim, "ipp", :ipp, "items_per_page", :items_per_page) ||
-          DEFAULTS[:items_per_page],
-        r18_display_stopper: hash_value(
+        page_size: hash_value(prf_claim, "ps", :ps, "page_size", :page_size) ||
+          DEFAULTS[:page_size],
+        adult_content_gate: hash_value(
           prf_claim,
           "r18s",
           :r18s,
-          "r18_display_stopper",
-          :r18_display_stopper,
-        ) || DEFAULTS[:r18_display_stopper],
+          "adult_content_gate",
+          :adult_content_gate,
+        ) || DEFAULTS[:adult_content_gate],
         cookie: cookie,
         explicit_fields: hash_value(prf_claim, "explicit", :explicit) || [],
       )

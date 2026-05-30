@@ -24,7 +24,7 @@ module Sign
 
           # to avoid session attack
           session[:user_telephone_registration] = nil
-          sign_up_cycle_locator.clear!
+          sign_up_flow_locator.clear!
         end
 
         def edit
@@ -110,7 +110,7 @@ module Sign
 
             @user_telephone = result.telephone
             session[:user_telephone_registration] = result.session_payload
-            bind_sign_up_cycle_to_telephone!(@user_telephone)
+            bind_sign_up_flow_to_telephone!(@user_telephone)
             redirect_to(
               edit_sign_app_up_telephone_path,
               notice: t("sign.app.registration.telephone.create.verification_code_sent"),
@@ -159,14 +159,14 @@ module Sign
             clear_otp(@user_telephone)
             session[:user_telephone_registration] = nil
             redirect_to(
-              new_sign_app_in_path,
+              new_sign_app_sign_in_path,
               notice: t("sign.app.registration.telephone.update.sign_in_required"),
             )
             return
           end
 
           verify_telephone_ownership!
-          advance_sign_up_cycle_after_telephone_otp!
+          advance_sign_up_flow_after_telephone_otp!
           redirect_to(
             sign_app_up_guardrail_path(ri: params[:ri]),
             notice: t("sign.app.registration.telephone.update.passkey_required"),
@@ -323,7 +323,7 @@ module Sign
           pending_public_id =
             session.dig(:user_telephone_registration, "public_id") ||
             session.dig(:user_telephone_registration, :public_id)
-          sign_up_cycle_locator.clear!
+          sign_up_flow_locator.clear!
           return if pending_public_id.blank?
 
           pending_telephone = ClientTelephone.find_by(public_id: pending_public_id)
@@ -339,7 +339,7 @@ module Sign
         end
 
         def dispatch_existing_telephone_verification!(existing_telephone)
-          sign_up_cycle_locator.clear!
+          sign_up_flow_locator.clear!
           @user_telephone = existing_telephone
           otp_code = generate_otp_for(@user_telephone)
           @user_telephone.update!(otp_last_sent_at: Time.current) if @user_telephone.respond_to?(:otp_last_sent_at=)
@@ -395,30 +395,30 @@ module Sign
           ClientTelephone.find_by(number_digest: @user_telephone.number_digest)
         end
 
-        def issue_sign_up_cycle!
+        def issue_sign_up_flow!
           AppTicketRecord.connected_to(role: :writing) do
-            ClientSignUpCycleStatus.ensure_defaults!
+            ClientSignUpFlowStatus.ensure_defaults!
           end
 
-          sign_up_cycle_locator.issue!(
-            ClientSignUpCycle.create!(
+          sign_up_flow_locator.issue!(
+            ClientSignUpFlow.create!(
               principal_id: nil,
-              status_id: ClientSignUpCycleStatus::STARTED,
+              status_id: ClientSignUpFlowStatus::STARTED,
               step: "start",
-              nonce_digest: ClientSignUpCycle.digest_nonce(SecureRandom.urlsafe_base64(32)),
+              nonce_digest: ClientSignUpFlow.digest_nonce(SecureRandom.urlsafe_base64(32)),
               issued_at: Time.current,
-              expires_at: ClientSignUpCycle.default_ttl.from_now,
+              expires_at: ClientSignUpFlow.default_ttl.from_now,
               entry_method: "telephone",
             ),
           )
         end
 
-        def current_sign_up_cycle
-          sign_up_cycle_locator.current || issue_sign_up_cycle!
+        def current_sign_up_flow
+          sign_up_flow_locator.current || issue_sign_up_flow!
         end
 
-        def bind_sign_up_cycle_to_telephone!(telephone)
-          cycle = current_sign_up_cycle
+        def bind_sign_up_flow_to_telephone!(telephone)
+          cycle = current_sign_up_flow
           cycle.update!(
             principal_id: telephone.user_id,
             pending_contact_type: "telephone",
@@ -428,8 +428,8 @@ module Sign
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
 
-        def advance_sign_up_cycle_after_telephone_otp!
-          cycle = sign_up_cycle_locator.current
+        def advance_sign_up_flow_after_telephone_otp!
+          cycle = sign_up_flow_locator.current
           return unless cycle
 
           result = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
@@ -445,15 +445,15 @@ module Sign
           )
         end
 
-        def sign_up_cycle_locator
-          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpCycle)
+        def sign_up_flow_locator
+          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
         end
 
         def ensure_signup_reference_defaults!
           ClientStatus.ensure_defaults!
           ClientVisibility.ensure_defaults!
-          ClientMultiFactor.ensure_defaults!
-          ClientMultiFactorStatus.ensure_defaults!
+          ClientMfaLevel.ensure_defaults!
+          ClientMfaStatus.ensure_defaults!
           ClientTelephoneStatus.ensure_defaults!
         end
 

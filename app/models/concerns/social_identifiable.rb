@@ -26,11 +26,11 @@ module SocialIdentifiable
     def model_for_provider(provider)
       case provider.to_s
       when "google_app", "google"
-        ClientSocialGoogle
+        ClientGoogleIdentity
       when "google_org"
-        OperatorSocialGoogle
+        OperatorGoogleIdentity
       when "apple"
-        ClientSocialApple
+        ClientAppleIdentity
       else
         raise ArgumentError, "Unknown provider: #{provider}"
       end

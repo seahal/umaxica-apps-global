@@ -210,7 +210,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.define_singleton_method(:current_step_up_session) {
       VisitorStepUpSession.find_by(visitor_token: @token_for_test)
     }
-    controller.define_singleton_method(:generate_hotp_code) { ["secret", 1, "123456"] }
+    controller.define_singleton_method(:generate_hotp_code) { ["secret_credential", 1, "123456"] }
 
     return_to = sign_com_configuration_emails_path(ri: "jp")
     pt_param = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
@@ -230,7 +230,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
       controller.send(:start_step_up_session!, scope: "configuration_email", pt_param: "%%%")
     end
 
-    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret" => "old" })
+    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "old" })
     controller.instance_variable_set(:@restore_for_test, false)
 
     assert_not controller.send(:handle_invalid_step_up_session!)

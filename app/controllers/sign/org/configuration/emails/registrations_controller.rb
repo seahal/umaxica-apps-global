@@ -15,6 +15,10 @@ module Sign
           AUTHENTICATION_MODE = :private
 
           before_action :authenticate_operator!
+          # Object-level authorization (ActionPolicy): registering an email is a fresh-record action
+          # for the authenticated operator, so gate by actor type. Each flow step builds/looks up the
+          # email through current_operator.staff_emails (owner-scoped). Step-up/turnstile remain below.
+          before_action :authorize_email_registration!, only: %i(new create edit update)
           before_action only: %i(new create edit update) do
             require_step_up!(scope: verification_scope)
           end
@@ -123,6 +127,10 @@ module Sign
           end
 
           private
+
+          def authorize_email_registration!
+            authorize!(OperatorEmail, to: :create?)
+          end
 
           def current_registration_email
             current_operator.staff_emails.find_by(public_id: session[registration_session_key])

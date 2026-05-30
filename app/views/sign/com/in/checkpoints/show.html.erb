@@ -1,15 +1,15 @@
-<% content_for :page_title, @bulletin&.title || t("sign.app.in.bulletins.show.title") %>
+<% content_for :page_title, @bulletin&.title || t("sign.com.in.bulletins.show.title") %>
 
-<h1><%= @bulletin&.title || t("sign.app.in.bulletins.show.title") %></h1>
-<p><%= @bulletin&.body || t("sign.app.in.bulletins.show.body") %></p>
+<h1><%= @bulletin&.title || t("sign.com.in.bulletins.show.title") %></h1>
+<p><%= @bulletin&.body || t("sign.com.in.bulletins.show.body") %></p>
 <% pt = signed_pt_param %>
 
 <%= form_with url: sign_com_in_checkpoint_path(ri: params[:ri]), method: :patch do %>
   <%= hidden_field_tag :pt, pt %>
-  <%= submit_tag t("sign.app.in.bulletins.show.actions.update") %>
+  <%= submit_tag t("sign.com.in.bulletins.show.actions.update") %>
 <% end %>
 
 <%= form_with url: sign_com_in_checkpoint_path(ri: params[:ri]), method: :delete do %>
   <%= hidden_field_tag :pt, pt %>
-  <%= submit_tag t("sign.app.in.bulletins.show.actions.continue") %>
+  <%= submit_tag t("sign.com.in.bulletins.show.actions.continue") %>
 <% end %>

@@ -5,7 +5,7 @@ require "test_helper"
 require "support/auth_helpers"
 
 class Sign::Org::Configuration::SessionsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_token_statuses, :operator_token_kinds
+  fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")

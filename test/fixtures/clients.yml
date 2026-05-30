@@ -3,43 +3,43 @@
 # Table name: clients
 # Database name: app_principal
 #
-#  id                     :bigint           not null, primary key
-#  birthdate              :text
-#  deactivated_at         :datetime
-#  discarded_at           :datetime         default(Infinity), not null
-#  last_step_up_at        :datetime
-#  lock_version           :integer          default(0), not null
-#  multi_factor_enabled   :boolean          default(FALSE), not null
-#  purged_at              :datetime         default(Infinity), not null
-#  terminated_at          :datetime
-#  withdrawal_started_at  :datetime
-#  withdrawn_at           :datetime         default(Infinity)
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  multi_factor_id        :bigint           default(0), not null
-#  multi_factor_status_id :bigint           default(5), not null
-#  public_id              :string(255)      default(""), not null
-#  status_id              :bigint           default(11), not null
-#  visibility_id          :bigint           default(2), not null
+#  id                    :bigint           not null, primary key
+#  birthdate             :text
+#  deactivated_at        :datetime
+#  discarded_at          :datetime         default(Infinity), not null
+#  last_step_up_at       :datetime
+#  lock_version          :integer          default(0), not null
+#  mfa_level_enabled     :boolean          default(FALSE), not null
+#  purged_at             :datetime         default(Infinity), not null
+#  terminated_at         :datetime
+#  withdrawal_started_at :datetime
+#  withdrawn_at          :datetime         default(Infinity)
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  mfa_level_id          :bigint           default(0), not null
+#  mfa_status_id         :bigint           default(5), not null
+#  public_id             :string(255)      default(""), not null
+#  status_id             :bigint           default(11), not null
+#  visibility_id         :bigint           default(2), not null
 #
 # Indexes
 #
-#  index_clients_on_deactivated_at          (deactivated_at) WHERE (deactivated_at IS NOT NULL)
-#  index_clients_on_discarded_at            (discarded_at)
-#  index_clients_on_multi_factor_id         (multi_factor_id)
-#  index_clients_on_multi_factor_status_id  (multi_factor_status_id)
-#  index_clients_on_public_id               (public_id) UNIQUE
-#  index_clients_on_purged_at               (purged_at) WHERE (purged_at IS NOT NULL)
-#  index_clients_on_status_id               (status_id)
-#  index_clients_on_terminated_at           (terminated_at) WHERE (terminated_at IS NOT NULL)
-#  index_clients_on_visibility_id           (visibility_id)
-#  index_clients_on_withdrawal_started_at   (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
-#  index_clients_on_withdrawn_at            (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
+#  index_clients_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+#  index_clients_on_discarded_at           (discarded_at)
+#  index_clients_on_mfa_level_id           (mfa_level_id)
+#  index_clients_on_mfa_status_id          (mfa_status_id)
+#  index_clients_on_public_id              (public_id) UNIQUE
+#  index_clients_on_purged_at              (purged_at) WHERE (purged_at IS NOT NULL)
+#  index_clients_on_status_id              (status_id)
+#  index_clients_on_terminated_at          (terminated_at) WHERE (terminated_at IS NOT NULL)
+#  index_clients_on_visibility_id          (visibility_id)
+#  index_clients_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
+#  index_clients_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)
 #
 # Foreign Keys
 #
-#  fk_rails_...  (multi_factor_id => client_multi_factors.id)
-#  fk_rails_...  (multi_factor_status_id => client_multi_factor_statuses.id)
+#  fk_rails_...  (mfa_level_id => client_mfa_levels.id)
+#  fk_rails_...  (mfa_status_id => client_mfa_statuses.id)
 #  fk_rails_...  (status_id => client_statuses.id)
 #  fk_rails_...  (visibility_id => client_visibilities.id)
 #
@@ -48,8 +48,8 @@ _fixture:
 
 zero:
   id: 0
-  multi_factor_id: <%= ClientMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= ClientMultiFactorStatus::UNCONFIGURED %>
+  mfa_level_id: <%= ClientMfaLevel::NOTHING %>
+  mfa_status_id: <%= ClientMfaStatus::UNCONFIGURED %>
   status_id: <%= ClientStatus::NOTHING %>
   public_id: "zero_id"
   discarded_at: <%= 1.day.from_now %>
@@ -57,8 +57,8 @@ zero:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 placeholder:
-  multi_factor_id: <%= ClientMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= ClientMultiFactorStatus::UNCONFIGURED %>
+  mfa_level_id: <%= ClientMfaLevel::NOTHING %>
+  mfa_status_id: <%= ClientMfaStatus::UNCONFIGURED %>
   status_id: <%= ClientStatus::NOTHING %>
   public_id: "placeholder_id"
   discarded_at: <%= 1.day.from_now %>
@@ -66,8 +66,8 @@ placeholder:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 one:
-  multi_factor_id: <%= ClientMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= ClientMultiFactorStatus::UNCONFIGURED %>
+  mfa_level_id: <%= ClientMfaLevel::NOTHING %>
+  mfa_status_id: <%= ClientMfaStatus::UNCONFIGURED %>
   status_id: <%= ClientStatus::NOTHING %>
   public_id: "one_id"
   discarded_at: <%= 1.day.from_now %>
@@ -75,8 +75,8 @@ one:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 none_user:
-  multi_factor_id: <%= ClientMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= ClientMultiFactorStatus::UNCONFIGURED %>
+  mfa_level_id: <%= ClientMfaLevel::NOTHING %>
+  mfa_status_id: <%= ClientMfaStatus::UNCONFIGURED %>
   status_id: <%= ClientStatus::NOTHING %>
   public_id: "none_id"
   discarded_at: <%= 1.day.from_now %>
@@ -84,8 +84,8 @@ none_user:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 two:
-  multi_factor_id: <%= ClientMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= ClientMultiFactorStatus::UNCONFIGURED %>
+  mfa_level_id: <%= ClientMfaLevel::NOTHING %>
+  mfa_status_id: <%= ClientMfaStatus::UNCONFIGURED %>
   status_id: <%= ClientStatus::NOTHING %>
   public_id: "two_id"
   discarded_at: <%= 1.day.from_now %>
@@ -93,8 +93,8 @@ two:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 sample_user:
-  multi_factor_id: <%= ClientMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= ClientMultiFactorStatus::UNCONFIGURED %>
+  mfa_level_id: <%= ClientMfaLevel::NOTHING %>
+  mfa_status_id: <%= ClientMfaStatus::UNCONFIGURED %>
   status_id: <%= ClientStatus::NOTHING %>
   public_id: "sample_user"
   discarded_at: <%= 1.day.from_now %>
@@ -102,8 +102,8 @@ sample_user:
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 reserved_user:
-  multi_factor_id: <%= ClientMultiFactor::NOTHING %>
-  multi_factor_status_id: <%= ClientMultiFactorStatus::UNCONFIGURED %>
+  mfa_level_id: <%= ClientMfaLevel::NOTHING %>
+  mfa_status_id: <%= ClientMfaStatus::UNCONFIGURED %>
   status_id: <%= ClientStatus::RESERVED %>
   public_id: "reserved_user"
   discarded_at: <%= 1.day.from_now %>

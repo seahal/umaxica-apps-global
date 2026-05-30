@@ -168,7 +168,7 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "oidc_client_secret uses ClientRegistry" do
+  test "oidc_client_secret_credential uses ClientRegistry" do
     dummy_class =
       Class.new(ApplicationController) do
         def self.declare_authentication_mode!(*)
@@ -181,10 +181,10 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
         end
       end
 
-    client_mock = Struct.new(:client_secret).new("mock_secret")
+    client_mock = Struct.new(:client_secret).new("mock_secret_credential")
 
     Oidc::ClientRegistry.stub(:find, client_mock) do
-      assert_equal "mock_secret", dummy_class.new.send(:oidc_client_secret)
+      assert_equal "mock_secret_credential", dummy_class.new.send(:oidc_client_secret)
     end
   end
 end

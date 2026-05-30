@@ -21,8 +21,8 @@ class SignUpCancellationTest < ActiveSupport::TestCase
     result = SignUp::Cancellation.call(cycle: cycle, actor_context: nil)
 
     assert_equal :ok, result.status
-    assert_equal ClientSignUpCycleStatus::CANCELLED, cycle.reload.status_id
-    assert_equal ClientSignUpCycleCleanupStatus::COMPLETED, cycle.cleanup_status_id
+    assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
+    assert_equal ClientSignUpFlowCleanupStatus::COMPLETED, cycle.cleanup_status_id
     assert_not_nil cycle.cleanup_completed_at
     assert_operator cycle.purged_at, :>, Time.current
     assert_equal ClientEmailStatus::DELETED, email.reload.user_email_status_id
@@ -32,17 +32,17 @@ class SignUpCancellationTest < ActiveSupport::TestCase
 
   test "replayed cancel reruns cleanup when previous cleanup did not finish" do
     cycle = create_cycle(
-      status_id: ClientSignUpCycleStatus::CANCELLED,
+      status_id: ClientSignUpFlowStatus::CANCELLED,
       step: "cancelled",
       cancelled_at: 1.minute.ago,
-      cleanup_status_id: ClientSignUpCycleCleanupStatus::FAILED,
+      cleanup_status_id: ClientSignUpFlowCleanupStatus::FAILED,
       cleanup_error_code: "boom",
     )
 
     result = SignUp::Cancellation.call(cycle: cycle, actor_context: nil)
 
     assert_equal :ok, result.status
-    assert_equal ClientSignUpCycleCleanupStatus::COMPLETED, cycle.reload.cleanup_status_id
+    assert_equal ClientSignUpFlowCleanupStatus::COMPLETED, cycle.reload.cleanup_status_id
     assert_nil cycle.cleanup_error_code
   end
 
@@ -75,15 +75,15 @@ class SignUpCancellationTest < ActiveSupport::TestCase
       pending_contact_type: "telephone",
       pending_contact_id: telephone.id,
       pending_passkey_registration_id: pending_passkey.id,
-      status_id: ClientSignUpCycleStatus::CANCELLED,
+      status_id: ClientSignUpFlowStatus::CANCELLED,
       step: "cancelled",
-      cleanup_status_id: ClientSignUpCycleCleanupStatus::PENDING,
+      cleanup_status_id: ClientSignUpFlowCleanupStatus::PENDING,
     )
     cycle.update_columns(discarded_at: cycle.created_at, purged_at: cycle.created_at + 29.minutes)
 
     SignUp::ArtifactCleanup.call(cycle: cycle)
 
-    assert_equal ClientSignUpCycleCleanupStatus::COMPLETED, cycle.reload.cleanup_status_id
+    assert_equal ClientSignUpFlowCleanupStatus::COMPLETED, cycle.reload.cleanup_status_id
     assert_equal ClientPasskeyStatus::ACTIVE, existing_passkey.reload.status_id
     assert_predicate existing_passkey.discarded_at, :infinite?
     assert_equal ClientPasskeyStatus::DELETED, pending_passkey.reload.status_id
@@ -94,12 +94,12 @@ class SignUpCancellationTest < ActiveSupport::TestCase
   private
 
   def create_cycle(attrs = {})
-    ClientSignUpCycle.create!(
+    ClientSignUpFlow.create!(
       {
         principal_id: 123,
-        status_id: ClientSignUpCycleStatus::CHECKPOINT_PENDING,
+        status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
         step: "checkpoint",
-        nonce_digest: ClientSignUpCycle.digest_nonce("nonce"),
+        nonce_digest: ClientSignUpFlow.digest_nonce("nonce"),
         issued_at: Time.current,
         expires_at: 15.minutes.from_now,
         entry_method: "email",

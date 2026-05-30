@@ -5,7 +5,7 @@ require "test_helper"
 require "support/root_theme_cookie_helper"
 
 class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses
+  fixtures :operators, :operator_statuses
 
   include RootThemeCookieHelper
 
@@ -13,8 +13,8 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_org_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "a[href*=?]", new_sign_org_up_path
-    assert_select "a[href*=?]", new_sign_org_in_path
+    assert_select "a[href*=?]", new_sign_org_sign_up_path
+    assert_select "a[href*=?]", new_sign_org_sign_in_path
   end
 
   test "renders layout contract" do

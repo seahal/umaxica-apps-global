@@ -561,7 +561,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
           [:region_time, :preference_time_format, :time_format, "hour_12", 2],
           [:accessibility_motion, :preference_motion, :motion, "reduced", 2],
           [:accessibility_density, :preference_density, :density, "compact", 2],
-          [:display_items_per_page, :preference_items_per_page, :items_per_page, "50", 3],
+          [:display_page_size, :preference_page_size, :page_size, "50", 3],
         ].each do |route_suffix, param_scope, association_suffix, submitted_value, expected_id|
           get public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
@@ -613,7 +613,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     [
       edit_sign_app_preference_accessibility_motion_url(ri: "jp"),
       edit_sign_app_preference_accessibility_density_url(ri: "jp"),
-      edit_sign_app_preference_display_items_per_page_url(ri: "jp"),
+      edit_sign_app_preference_display_page_size_url(ri: "jp"),
     ].each do |url|
       get url, headers: headers
 
@@ -881,7 +881,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       time_format: :tf,
       motion: :mo,
       density: :dn,
-      items_per_page: :pp,
+      page_size: :ps,
     }[kind]
   end
 end

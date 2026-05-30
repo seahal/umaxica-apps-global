@@ -6,10 +6,10 @@ require "test_helper"
 class SocialAuthServiceTest < ActiveSupport::TestCase
   setup do
     @user = clients(:one)
-    # Ensure ClientSocialGoogleStatus and ClientSocialGoogle exist and are used correctly
-    @status = ClientSocialGoogleStatus.find_or_create_by!(id: ClientSocialGoogleStatus::ACTIVE)
+    # Ensure ClientGoogleIdentityStatus and ClientGoogleIdentity exist and are used correctly
+    @status = ClientGoogleIdentityStatus.find_or_create_by!(id: ClientGoogleIdentityStatus::ACTIVE)
     @identity =
-      ClientSocialGoogle.find_or_create_by!(uid: "uid123", provider: "google") do |id|
+      ClientGoogleIdentity.find_or_create_by!(uid: "uid123", provider: "google") do |id|
         id.user = @user
         id.token = "token123"
         id.expires_at = 1.hour.from_now.to_i
@@ -87,7 +87,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
       )
 
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, result[:user].status_id
-      assert_equal ClientMultiFactorStatus::UNCONFIGURED, result[:user].multi_factor_status_id
+      assert_equal ClientMfaStatus::UNCONFIGURED, result[:user].mfa_status_id
       assert_nil result[:user].rp_account
       assert_not result[:existing_account]
       assert_equal result[:user].id, result[:identity].user_id
@@ -121,7 +121,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
   end
 
   test "handle_callback creates apple pending signup user with unconfigured multi factor status" do
-    ClientSocialAppleStatus.find_or_create_by!(id: ClientSocialAppleStatus::ACTIVE)
+    ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::ACTIVE)
     auth_hash = {
       "provider" => "apple",
       "uid" => "new-apple-signup-#{SecureRandom.hex(8)}",
@@ -137,7 +137,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
       intent: "login",
     )
 
-    assert_equal ClientMultiFactorStatus::UNCONFIGURED, result[:user].multi_factor_status_id
+    assert_equal ClientMfaStatus::UNCONFIGURED, result[:user].mfa_status_id
     assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, result[:user].status_id
     assert_nil result[:user].rp_account
     assert_not result[:existing_account]
@@ -174,13 +174,13 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
       assert_equal user.id, audit.actor_id
       assert_equal "social", audit.context["auth_method"]
       assert_equal "google", audit.context["provider"]
-      assert_equal "ClientSocialGoogle", audit.context["social_identity_type"]
+      assert_equal "ClientGoogleIdentity", audit.context["social_identity_type"]
     end
   end
 
   test "unlink records user-scoped social unlink audit" do
-    apple_status = ClientSocialAppleStatus.find_or_create_by!(id: ClientSocialAppleStatus::ACTIVE)
-    ClientSocialApple.create!(
+    apple_status = ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::ACTIVE)
+    ClientAppleIdentity.create!(
       user: @user,
       uid: "apple-backup-#{SecureRandom.hex(8)}",
       provider: "apple",
@@ -202,7 +202,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
       assert_equal @user.id, audit.actor_id
       assert_equal "social", audit.context["auth_method"]
       assert_equal "google", audit.context["provider"]
-      assert_equal "ClientSocialGoogle", audit.context["social_identity_type"]
+      assert_equal "ClientGoogleIdentity", audit.context["social_identity_type"]
     end
   end
 
@@ -223,6 +223,6 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
 
     assert result[:success]
     assert_equal "google", result[:provider]
-    assert_not ClientSocialGoogle.exists?(@identity.id)
+    assert_not ClientGoogleIdentity.exists?(@identity.id)
   end
 end

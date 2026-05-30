@@ -24,7 +24,7 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
       @visitor_token = visitor_token
       @params_hash = {}
       @restore_result = false
-      @generated_hotp = ["secret", 1, "123456"]
+      @generated_hotp = ["secret_credential", 1, "123456"]
     end
 
     def current_visitor = visitor
@@ -114,7 +114,7 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "configuration_email",
-                                 pt_param: "/configuration/secrets",
+                                 pt_param: "/configuration/secret_credentials",
       )
     end
   end
@@ -144,7 +144,7 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     harness = Harness.new(visitor: visitor, visitor_token: token)
     harness.params_hash = { ri: "jp" }
     step_up_session = create_visitor_step_up_session(visitor_token: token)
-    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret" => "old" })
+    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "old" })
 
     assert_not harness.send(:handle_invalid_step_up_session!)
     assert_nil Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp")
@@ -202,7 +202,7 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
 
     assert harness.send(:send_email_otp!)
     assert_equal(
-      { "secret" => "secret",
+      { "secret_credential" => "secret_credential",
         "counter" => 1, },
       Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp"),
     )

@@ -62,15 +62,15 @@ module Sign
 
             clear_pending_mfa!
             redirect_to(
-              new_sign_app_in_path,
+              new_sign_app_sign_in_path,
               alert: I18n.t("sign.app.in.mfa.session_expired"),
               status: :see_other,
             )
           end
 
           def verify_totp_for(user, token)
-            user.client_one_time_passwords
-              .where(user_identity_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE)
+            user.client_totp_credentials
+              .where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
               .order(created_at: :desc)
               .each do |totp|
               last_otp_at = ROTP::TOTP.new(totp.private_key).verify(token.to_s)
@@ -95,7 +95,7 @@ module Sign
               )
             else
               redirect_to(
-                new_sign_app_in_path,
+                new_sign_app_sign_in_path,
                 alert: I18n.t("sign.app.in.mfa.verification_failed"),
                 status: :see_other,
               )

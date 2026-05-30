@@ -49,6 +49,22 @@ The org-principal workspace account linked to the authenticated `Operator` is
 - Do not add `self.table_name` compatibility overrides for old `user_*`, `staff_*`, or `customer_*`
   actor table names.
 
+## Surface, Actor, and Message Vocabulary
+
+`app`, `org`, and `com` are UI and routing surfaces. They are not actor types. Each surface has one
+authenticated actor type: `Client` for `app`, `Operator` for `org`, and `Visitor` for `com`.
+Unauthenticated traffic should be described as `guest` or `unauthenticated`, not as a `Visitor`.
+
+Use the message names consistently:
+
+- `Bulletin` is an actor-scoped, readable checkpoint or post-authentication message. Current
+  implementations exist for `Client` and `Operator`; there is no `VisitorBulletin` contract.
+- `Banner` is a surface-visible announcement. Existing banner tables are still actor-owned, so new
+  code must not assume they are global announcements until that storage shape is explicitly changed.
+- `Notice` is a transient controller/session/flash message unless a more specific model says
+  otherwise.
+- `Occurrence` is an audit, risk, or event record. It is not a user-facing notice or bulletin.
+
 ## Related Decisions
 
 - `adr/app-actor-client-naming.md`

@@ -11,13 +11,27 @@ module Sign
           include ::Verification::Client
 
           AUTHENTICATION_MODE = :private
-
           before_action :authenticate_client!
+          # Object-level authorization (ActionPolicy): registering an email is a fresh-record action
+          # for the authenticated client, so gate by actor type. Each flow step builds/looks up the
+          # email through current_client.client_emails (owner-scoped). Step-up/turnstile remain below.
+          before_action :authorize_email_registration!, only: %i(new create edit update)
           before_action only: %i(new create edit update) do
             require_step_up_unless_bootstrap!(scope: verification_scope)
           end
+          def new = super
+
+          def edit = super
+
+          def create = super
+
+          def update = super
 
           private
+
+          def authorize_email_registration!
+            authorize!(ClientEmail, to: :create?)
+          end
 
           def ensure_turnstile!(email_address, confirm_policy)
             turnstile_result = cloudflare_turnstile_stealth_validation

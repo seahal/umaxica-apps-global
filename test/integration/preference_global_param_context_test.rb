@@ -216,7 +216,7 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
         tf: "12",
         mo: "rd",
         dn: "cp",
-        pp: "50",
+        ps: "50",
       )
 
       assert_response :success
@@ -230,7 +230,7 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       links_with_all_params =
         links.select do |link|
           href = link["href"]
-          %w(lx=en ct=dr tz=utc cu=usd df=us tf=12 mo=rd dn=cp pp=50).all? do |param|
+          %w(lx=en ct=dr tz=utc cu=usd df=us tf=12 mo=rd dn=cp ps=50).all? do |param|
             href.include?(param)
           end
         end

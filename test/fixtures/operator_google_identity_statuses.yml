@@ -1,0 +1,24 @@
+# == Schema Information
+#
+# Table name: operator_google_identity_statuses
+# Database name: org_principal
+#
+#  id :bigint           not null, primary key
+#
+active:
+  id: 1
+
+inactive:
+  id: 2
+
+pending:
+  id: 3
+
+deleted:
+  id: 4
+
+revoked:
+  id: 5
+
+nothing:
+  id: 6

@@ -113,11 +113,11 @@ class ComPreference < ComSettingRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :com_preference_items_per_page,
+  has_one :com_preference_page_size,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
-  has_one :com_preference_r18_display_stopper,
+  has_one :com_preference_adult_content_gate,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
@@ -140,8 +140,8 @@ class ComPreference < ComSettingRecord
   before_validation :default_replaced_by_to_self, on: :create
   after_create :persist_self_replacement
 
-  def r18_display_stopper
-    com_preference_r18_display_stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:r18_display_stopper)
+  def adult_content_gate
+    com_preference_adult_content_gate&.option&.name || Actor::Preference::DEFAULTS.fetch(:adult_content_gate)
   end
 
   private

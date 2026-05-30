@@ -96,11 +96,11 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
       if current_session&.restricted?
         current_session.revoke!
       end
-      current_db_sign_in_cycle_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
+      current_db_sign_in_flow_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
       log_out
-      redirect_to(new_sign_org_in_path, notice: I18n.t("session_limit.cancelled"))
+      redirect_to(new_sign_org_sign_in_path, notice: I18n.t("session_limit.cancelled"))
     end
   end
 
@@ -127,12 +127,12 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
   end
 
   def pending_session_limit_cycle?
-    current_db_sign_in_cycle_for_sequence&.sign_in_session_limit_pending?
+    current_db_sign_in_flow_for_sequence&.sign_in_session_limit_pending?
   end
 
   def redirect_to_login
     redirect_to(
-      new_sign_org_in_path,
+      new_sign_org_sign_in_path,
       alert: I18n.t("session_limit.login_required"),
     )
   end

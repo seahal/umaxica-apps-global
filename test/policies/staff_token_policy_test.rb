@@ -14,6 +14,16 @@ class OperatorTokenPolicyTest < ActiveSupport::TestCase
     assert_not @policy.index?
   end
 
+  # index? gates the session listing to the owning actor type (Operator).
+  def test_index_allows_operator
+    assert_predicate OperatorTokenPolicy.new(nil, user: Operator.new), :index?
+  end
+
+  def test_index_denies_other_actor_types
+    assert_not OperatorTokenPolicy.new(nil, user: Client.new).index?
+    assert_not OperatorTokenPolicy.new(nil, user: Visitor.new).index?
+  end
+
   def test_show
     assert_not @policy.show?
   end

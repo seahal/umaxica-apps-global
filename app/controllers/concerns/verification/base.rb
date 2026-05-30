@@ -410,14 +410,14 @@ module Verification
     def step_up_bootstrap_unconfigured?(actor = current_actor)
       return false unless actor
 
-      refresh_actor_multi_factor_status(actor)
+      refresh_actor_mfa_status(actor)
       configured_step_up_methods(actor).empty?
     end
 
     def step_up_bootstrap_active?(actor = current_actor)
       return false unless actor
 
-      return actor.multi_factor_status_active? if actor.respond_to?(:multi_factor_status_active?)
+      return actor.mfa_status_active? if actor.respond_to?(:mfa_status_active?)
 
       configured_step_up_methods(actor).present?
     end
@@ -446,11 +446,11 @@ module Verification
       nil
     end
 
-    def refresh_actor_multi_factor_status(actor)
-      return unless actor.respond_to?(:refresh_multi_factor_status!)
+    def refresh_actor_mfa_status(actor)
+      return unless actor.respond_to?(:refresh_mfa_status!)
       return if actor.destroyed?
 
-      actor.refresh_multi_factor_status!
+      actor.refresh_mfa_status!
     end
 
     def verification_redirect_path(pt: nil, scope_override: nil)

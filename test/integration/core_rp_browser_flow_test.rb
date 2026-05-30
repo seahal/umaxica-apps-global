@@ -153,7 +153,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   def create_visitor!
     VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
-    VisitorMultiFactor.find_or_create_by!(id: VisitorMultiFactor::NOTHING)
+    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
     VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
     Visitor.create!(status_id: VisitorStatus::NOTHING)

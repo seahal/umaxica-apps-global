@@ -10,7 +10,7 @@ module PromotionalEmailUnsubscribeToken
   module_function
 
   def generate(email_record, scope:)
-    OpenSSL::HMAC.hexdigest("SHA256", secret, message(email_record.public_id, scope: scope))
+    OpenSSL::HMAC.hexdigest("SHA256", secret_credential, message(email_record.public_id, scope: scope))
   end
 
   def valid?(email_record, token, scope:)
@@ -25,7 +25,7 @@ module PromotionalEmailUnsubscribeToken
     "#{scope}:#{public_id}:promotional:#{VERSION}"
   end
 
-  def secret
+  def secret_credential
     Rails.app.creds.option(SECRET_KEY).presence ||
       ENV[SECRET_KEY.to_s].presence ||
       raise(KeyError, "Missing key: [:#{SECRET_KEY}]")

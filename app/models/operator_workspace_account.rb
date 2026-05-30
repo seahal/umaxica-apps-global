@@ -28,9 +28,9 @@ class OperatorWorkspaceAccount < OrgRpRecord
   include Retainable
   include ::Account
 
-  attribute :status_id, default: OperatorStatus::NOTHING
+  attribute :status_id, default: OperatorWorkspaceAccountStatus::NOTHING
 
-  belongs_to :operator_status,
+  belongs_to :operator_workspace_account_status,
              foreign_key: :status_id,
              inverse_of: false
   belongs_to :operator,

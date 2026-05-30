@@ -5,8 +5,8 @@ require "test_helper"
 
 class OperatorCoverageTest < ActiveSupport::TestCase
   setup do
-    OperatorIdentityStatus.find_or_create_by!(id: 1)
-    OperatorIdentityStatus.find_or_create_by!(id: 2)
+    OperatorStatus.find_or_create_by!(id: 1)
+    OperatorStatus.find_or_create_by!(id: 2)
     OperatorVisibility.find_or_create_by!(id: 1)
     OperatorVisibility.find_or_create_by!(id: 2)
     @staff = Operator.create!(status_id: 2, visibility_id: 2)

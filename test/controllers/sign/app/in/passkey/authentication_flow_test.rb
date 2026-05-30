@@ -7,7 +7,7 @@ require "minitest/mock"
 module Sign::App::In::Passkey
   class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     fixtures :clients, :client_statuses, :client_email_statuses, :client_passkey_statuses,
-             :client_one_time_password_statuses
+             :client_totp_credential_statuses
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -24,7 +24,7 @@ module Sign::App::In::Passkey
         user_email_status_id: ClientEmailStatus::VERIFIED,
         otp_attempts_count: 0,
         otp_counter: "0",
-        otp_private_key: "secret",
+        otp_private_key: "secret_credential",
         otp_expires_at: 10.minutes.from_now,
         otp_last_sent_at: 1.hour.ago,
       )
@@ -119,11 +119,11 @@ module Sign::App::In::Passkey
     end
 
     test "passkey login completes without additional MFA even when MFA is enabled" do
-      @user.update!(multi_factor_enabled: true)
-      ClientOneTimePassword.create!(
+      @user.update!(mfa_level_enabled: true)
+      ClientTotpCredential.create!(
         user: @user,
         private_key: ROTP::Base32.random_base32,
-        user_one_time_password_status_id: ClientOneTimePasswordStatus::ACTIVE,
+        user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
         title: "app",
       )
 

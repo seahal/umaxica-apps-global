@@ -123,10 +123,10 @@ module SocialAuth
 
     def identity_for_current_user
       case identity_class.name
-      when "ClientSocialGoogle"
-        current_client.user_social_google
-      when "ClientSocialApple"
-        current_client.user_social_apple
+      when "ClientGoogleIdentity"
+        current_client.user_google_identity
+      when "ClientAppleIdentity"
+        current_client.user_apple_identity
       end
     end
 

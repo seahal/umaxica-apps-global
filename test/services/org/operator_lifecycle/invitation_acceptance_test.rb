@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Org::OperatorLifecycle::InvitationAcceptanceTest < ActiveSupport::TestCase
-  fixtures :operators, :operator_identity_statuses, :operator_email_statuses, :operator_visibilities
+  fixtures :operators, :operator_statuses, :operator_email_statuses, :operator_visibilities
 
   setup do
     @invitation = OrganizationInvitation.create!(
@@ -26,7 +26,7 @@ class Org::OperatorLifecycle::InvitationAcceptanceTest < ActiveSupport::TestCase
 
     assert_predicate @result, :success?
     assert_predicate @invitation.reload, :consumed?
-    assert_equal OperatorIdentityStatus::ACTIVE, @result.operator.status_id
+    assert_equal OperatorStatus::ACTIVE, @result.operator.status_id
     assert_equal OperatorVisibility::STAFF, @result.operator.visibility_id
     assert_equal "invitee@example.com", @result.email.address
     assert_equal OperatorEmailStatus::VERIFIED, @result.email.staff_email_status_id
@@ -46,7 +46,7 @@ class Org::OperatorLifecycle::InvitationAcceptanceTest < ActiveSupport::TestCase
 
   test "keeps invitation active when operator email cannot be created" do
     existing = Operator.create!(
-      status_id: OperatorIdentityStatus::ACTIVE,
+      status_id: OperatorStatus::ACTIVE,
       visibility_id: OperatorVisibility::STAFF,
     )
     existing.operator_emails.create!(

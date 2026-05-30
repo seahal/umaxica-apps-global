@@ -49,11 +49,11 @@ totp_disabled:
   id: 20
 totp_enabled:
   id: 21
-user_secret_created:
+user_secret_credential_created:
   id: 22
-user_secret_removed:
+user_secret_credential_removed:
   id: 23
-user_secret_updated:
+user_secret_credential_updated:
   id: 24
 email_removed:
   id: 25

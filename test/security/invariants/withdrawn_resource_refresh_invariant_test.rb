@@ -57,8 +57,8 @@ module Security
         Client.create!(
           status_id: ClientStatus::NOTHING,
           visibility_id: ClientVisibility::USER,
-          multi_factor_id: ClientMultiFactor::NOTHING,
-          multi_factor_status_id: ClientMultiFactorStatus::UNCONFIGURED,
+          mfa_level_id: ClientMfaLevel::NOTHING,
+          mfa_status_id: ClientMfaStatus::UNCONFIGURED,
         )
       end
 

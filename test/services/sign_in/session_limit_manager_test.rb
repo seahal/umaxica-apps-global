@@ -7,7 +7,7 @@ module SignIn
   class SessionLimitManagerTest < ActiveSupport::TestCase
     test "issues restricted client token and binds it to session-limit cycle" do
       actor = create_client
-      cycle = create_cycle(ClientSignInCycle, actor)
+      cycle = create_cycle(ClientSignInFlow, actor)
 
       result = SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
 
@@ -22,8 +22,8 @@ module SignIn
 
     test "issues restricted visitor and operator tokens on their own surfaces" do
       [
-        [VisitorSignInCycle, create_visitor, VisitorToken, :visitor_id],
-        [OperatorSignInCycle, create_operator, OperatorToken, :staff_id],
+        [VisitorSignInFlow, create_visitor, VisitorToken, :visitor_id],
+        [OperatorSignInFlow, create_operator, OperatorToken, :staff_id],
       ].each do |cycle_class, actor, token_class, foreign_key|
         cycle = create_cycle(cycle_class, actor)
 
@@ -38,7 +38,7 @@ module SignIn
 
     test "promotes pending cycle without issuing a token and advances cycle to guardrail" do
       actor = create_client
-      cycle = create_cycle(ClientSignInCycle, actor)
+      cycle = create_cycle(ClientSignInFlow, actor)
 
       result = SessionLimitManager.new(cycle: cycle.reload, actor: actor).promote!
 
@@ -51,7 +51,7 @@ module SignIn
       actor = create_client
       create_active_client_token(actor)
       create_active_client_token(actor)
-      cycle = create_cycle(ClientSignInCycle, actor)
+      cycle = create_cycle(ClientSignInFlow, actor)
 
       assert_raises(SessionLimitManager::PromotionBlocked) do
         SessionLimitManager.new(cycle: cycle.reload, actor: actor).promote!
@@ -62,7 +62,7 @@ module SignIn
 
     test "cancel fails pending cycle without requiring a restricted token" do
       actor = create_client
-      cycle = create_cycle(ClientSignInCycle, actor)
+      cycle = create_cycle(ClientSignInFlow, actor)
 
       result = SessionLimitManager.new(cycle: cycle.reload, actor: actor).cancel!
 
@@ -74,7 +74,7 @@ module SignIn
     test "rejects actor mismatch without issuing restricted token" do
       actor = create_client
       other = create_client
-      cycle = create_cycle(ClientSignInCycle, actor)
+      cycle = create_cycle(ClientSignInFlow, actor)
 
       assert_no_difference("ClientToken.count") do
         assert_raises(SessionLimitManager::ActorMismatch) do
@@ -88,7 +88,7 @@ module SignIn
 
     test "rejects non-session-limit cycle without issuing token" do
       actor = create_client
-      cycle = create_cycle(ClientSignInCycle, actor, status_name: "GUARDRAIL_PENDING")
+      cycle = create_cycle(ClientSignInFlow, actor, status_name: "GUARDRAIL_PENDING")
 
       assert_no_difference("ClientToken.count") do
         assert_raises(SessionLimitManager::InvalidCycle) do
@@ -102,7 +102,7 @@ module SignIn
 
     test "rejects expired session-limit cycle without issuing token" do
       actor = create_client
-      cycle = create_cycle(ClientSignInCycle, actor, issued_at: 20.minutes.ago, expires_at: 1.second.ago)
+      cycle = create_cycle(ClientSignInFlow, actor, issued_at: 20.minutes.ago, expires_at: 1.second.ago)
 
       assert_no_difference("ClientToken.count") do
         assert_raises(SessionLimitManager::InvalidCycle) do
@@ -116,7 +116,7 @@ module SignIn
 
     test "rejects issuing a second restricted token for an already bound cycle" do
       actor = create_client
-      cycle = create_cycle(ClientSignInCycle, actor)
+      cycle = create_cycle(ClientSignInFlow, actor)
       SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
 
       assert_no_difference("ClientToken.count") do
@@ -137,7 +137,7 @@ module SignIn
     end
 
     def create_operator
-      Operator.create!(status_id: OperatorIdentityStatus::ACTIVE)
+      Operator.create!(status_id: OperatorStatus::ACTIVE)
     end
 
     def create_active_client_token(actor)

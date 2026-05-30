@@ -9,7 +9,7 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     cookies["csrf_token"] = csrf_token_value
-    ClientSignUpCycleStatus.ensure_defaults!
+    ClientSignUpFlowStatus.ensure_defaults!
   end
 
   test "guardrail rejects direct access without a ticket" do
@@ -20,7 +20,7 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "guardrail rejects ticket id without session binding" do
-    ticket = create_ticket(status_id: ClientSignUpCycleStatus::CONTACT_VERIFIED, step: "contact_verified")
+    ticket = create_ticket(status_id: ClientSignUpFlowStatus::CONTACT_VERIFIED, step: "contact_verified")
 
     get sign_app_up_guardrail_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
@@ -29,11 +29,11 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "checkpoint show rejects ticket id without session binding" do
-    ticket = create_ticket(status_id: ClientSignUpCycleStatus::GUARDRAIL_PENDING, step: "guardrail")
+    ticket = create_ticket(status_id: ClientSignUpFlowStatus::GUARDRAIL_PENDING, step: "guardrail")
 
     get sign_app_up_checkpoint_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
-    assert_redirected_to new_sign_app_up_url(ri: "jp")
+    assert_redirected_to new_sign_app_sign_up_url(ri: "jp")
     assert_equal I18n.t("sign.app.registration.session_missing"), flash[:alert]
   end
 
@@ -59,12 +59,12 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   private
 
   def create_ticket(attrs = {})
-    ClientSignUpCycle.create!(
+    ClientSignUpFlow.create!(
       {
         principal_id: nil,
-        status_id: ClientSignUpCycleStatus::STARTED,
+        status_id: ClientSignUpFlowStatus::STARTED,
         step: "start",
-        nonce_digest: ClientSignUpCycle.digest_nonce("nonce"),
+        nonce_digest: ClientSignUpFlow.digest_nonce("nonce"),
         issued_at: Time.current,
         expires_at: 15.minutes.from_now,
         entry_method: "email",

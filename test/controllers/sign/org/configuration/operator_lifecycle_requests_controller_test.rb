@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Sign::Org::Configuration::OperatorLifecycleRequestsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_identity_statuses, :operator_tokens, :operator_token_statuses,
+  fixtures :operators, :operator_statuses, :operator_tokens, :operator_token_statuses,
            :operator_token_kinds, :operator_token_binding_methods, :operator_token_dbsc_statuses
 
   setup do

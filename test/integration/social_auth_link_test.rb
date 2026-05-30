@@ -15,8 +15,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   SOCIAL_FLOW_ID_SESSION_KEY = :social_auth_flow_id
   fixtures :clients,
            :client_statuses,
-           :client_social_google_statuses,
-           :client_social_apple_statuses,
+           :client_google_identity_statuses,
+           :client_apple_identity_statuses,
            :app_preference_chronicle_levels
 
   setup do
@@ -29,8 +29,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     @user_two = clients(:two)
 
     # Ensure no pre-existing social identities
-    ClientSocialGoogle.where(user: [@user_one, @user_two]).destroy_all
-    ClientSocialApple.where(user: [@user_one, @user_two]).destroy_all
+    ClientGoogleIdentity.where(user: [@user_one, @user_two]).destroy_all
+    ClientAppleIdentity.where(user: [@user_one, @user_two]).destroy_all
   end
 
   teardown do
@@ -45,13 +45,13 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     existing_uid = "google_owned_by_user_one"
 
     # First, create identity for user_one
-    ClientSocialGoogle.create!(
+    ClientGoogleIdentity.create!(
       user: @user_one,
       uid: existing_uid,
       provider: "google_app",
       token: "token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     # Setup mock auth with the same uid
@@ -77,7 +77,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:alert], :present?, "Should have conflict error"
 
     # Identity should still belong to user_one
-    identity = ClientSocialGoogle.find_by(uid: existing_uid)
+    identity = ClientGoogleIdentity.find_by(uid: existing_uid)
 
     assert_equal @user_one.id, identity.user_id, "Identity should still belong to original user"
   end
@@ -85,13 +85,13 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "link Apple identity already linked to another user returns 409 Conflict" do
     existing_uid = "apple_owned_by_user_one"
 
-    ClientSocialApple.create!(
+    ClientAppleIdentity.create!(
       user: @user_one,
       uid: existing_uid,
       provider: "apple",
       token: "token",
       expires_at: 1.week.from_now.to_i,
-      user_social_apple_status: client_social_apple_statuses(:active),
+      user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
     setup_apple_mock_auth(uid: existing_uid)
@@ -111,7 +111,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     assert_predicate flash[:alert], :present?, "Should have conflict error for Apple"
 
-    identity = ClientSocialApple.find_by(uid: existing_uid)
+    identity = ClientAppleIdentity.find_by(uid: existing_uid)
 
     assert_equal @user_one.id, identity.user_id
   end
@@ -127,7 +127,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
 
-    identity = ClientSocialApple.find_by(uid: OmniAuth.config.mock_auth[:apple].uid)
+    identity = ClientAppleIdentity.find_by(uid: OmniAuth.config.mock_auth[:apple].uid)
 
     assert_nil identity, "Identity should not be created on state mismatch"
   end
@@ -148,7 +148,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
 
-    identity = ClientSocialApple.find_by(uid: OmniAuth.config.mock_auth[:apple].uid)
+    identity = ClientAppleIdentity.find_by(uid: OmniAuth.config.mock_auth[:apple].uid)
 
     assert_nil identity, "Identity should not be created when intent expired"
   end
@@ -160,13 +160,13 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     old_uid = "old_google_uid"
 
     # Client one already has Google linked
-    existing_identity = ClientSocialGoogle.create!(
+    existing_identity = ClientGoogleIdentity.create!(
       user: @user_one,
       uid: old_uid,
       provider: "google_app",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:active),
+      user_google_identity_status: client_google_identity_statuses(:active),
     )
 
     # Try to link again (same provider, different uid)
@@ -197,7 +197,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     new_uid = "brand_new_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    identity_count_before = ClientSocialGoogle.count
+    identity_count_before = ClientGoogleIdentity.count
 
     post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
          headers: as_user_headers(@user_one, host: @host)
@@ -213,8 +213,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:notice], :present?, "Should have success flash"
 
     # New identity created
-    assert_equal identity_count_before + 1, ClientSocialGoogle.count
-    identity = ClientSocialGoogle.find_by(uid: new_uid)
+    assert_equal identity_count_before + 1, ClientGoogleIdentity.count
+    identity = ClientGoogleIdentity.find_by(uid: new_uid)
 
     assert_not_nil identity
     assert_equal @user_one.id, identity.user_id, "Identity should belong to current user"
@@ -242,13 +242,13 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     revoked_uid = "revoked_google_#{SecureRandom.hex(4)}"
 
     # Create a REVOKED identity for user_one
-    revoked_identity = ClientSocialGoogle.create!(
+    revoked_identity = ClientGoogleIdentity.create!(
       user: @user_one,
       uid: revoked_uid,
       provider: "google_app",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_google_status: client_social_google_statuses(:revoked),
+      user_google_identity_status: client_google_identity_statuses(:revoked),
     )
 
     # Setup mock auth with the same uid but updated info
@@ -271,20 +271,20 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     # Identity should be reactivated (status changed to ACTIVE)
     revoked_identity.reload
 
-    assert_equal ClientSocialGoogleStatus::ACTIVE, revoked_identity.status_id,
+    assert_equal ClientGoogleIdentityStatus::ACTIVE, revoked_identity.status_id,
                  "Identity should be ACTIVE"
   end
 
   test "re-link REVOKED Apple identity reactivates it" do
     revoked_uid = "revoked_apple_#{SecureRandom.hex(4)}"
 
-    revoked_identity = ClientSocialApple.create!(
+    revoked_identity = ClientAppleIdentity.create!(
       user: @user_one,
       uid: revoked_uid,
       provider: "apple",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
-      user_social_apple_status: client_social_apple_statuses(:revoked),
+      user_apple_identity_status: client_apple_identity_statuses(:revoked),
     )
 
     setup_apple_mock_auth(uid: revoked_uid)
@@ -303,7 +303,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     revoked_identity.reload
 
-    assert_equal ClientSocialAppleStatus::ACTIVE, revoked_identity.status_id,
+    assert_equal ClientAppleIdentityStatus::ACTIVE, revoked_identity.status_id,
                  "Apple identity should be ACTIVE"
   end
 

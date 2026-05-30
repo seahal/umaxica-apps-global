@@ -5,7 +5,7 @@ require "test_helper"
 
 module Preference
   class AdoptionTest < ActiveSupport::TestCase
-    fixtures :clients, :client_statuses, :operators, :operator_identity_statuses,
+    fixtures :clients, :client_statuses, :operators, :operator_statuses,
              :app_preferences, :app_preference_statuses,
              :app_preference_binding_methods, :app_preference_dbsc_statuses,
              :org_preferences, :org_preference_statuses,
@@ -211,8 +211,8 @@ module Preference
         @adoption.send(:sync_preferences!, user_pref)
       end
 
-      assert_equal "deny", @preference.reload.r18_display_stopper
-      assert_equal "deny", user_pref.reload.r18_display_stopper
+      assert_equal "deny", @preference.reload.adult_content_gate
+      assert_equal "deny", user_pref.reload.adult_content_gate
     end
 
     test "adopt_preference_for! does not raise on error and logs event" do

@@ -24,10 +24,10 @@ module Common
     # Basic HOTP generation/verification (from Rotp)
     # ============================================================
 
-    # Generate a new HOTP secret, counter, and corresponding 6-digit pass code for one-time use.
+    # Generate a new HOTP secret_credential, counter, and corresponding 6-digit pass code for one-time use.
     # All three values should be persisted together so the pass code can be verified later.
     #
-    # @return [Array<String, Integer, String>] [secret, counter, pass_code]
+    # @return [Array<String, Integer, String>] [secret_credential, counter, pass_code]
     def generate_hotp_code
       sec = ROTP::Base32.random
       hotp = ROTP::HOTP.new(sec)
@@ -35,15 +35,15 @@ module Common
       [sec, counter, hotp.at(counter)]
     end
 
-    # Verify the submitted pass code by recreating the HOTP value from the stored secret and counter.
+    # Verify the submitted pass code by recreating the HOTP value from the stored secret_credential and counter.
     # Returns true only when the provided code exactly matches the expected value.
     #
-    # @param secret [String] The stored HOTP secret
+    # @param secret_credential [String] The stored HOTP secret_credential
     # @param counter [Integer] The stored counter value
     # @param pass_code [String] The submitted pass code to verify
     # @return [Boolean] true if codes match, false otherwise
-    def verify_hotp_code(secret:, counter:, pass_code:)
-      hotp = ROTP::HOTP.new(secret)
+    def verify_hotp_code(secret_credential:, counter:, pass_code:)
+      hotp = ROTP::HOTP.new(secret_credential)
       hotp.verify(pass_code, counter) == counter
     end
 

@@ -10,7 +10,7 @@ module Sign
 
       def render_withdrawal_entry(actor)
         build_forms
-        @schedule_confirmed = withdrawal_cycle_closing_or_later?(actor)
+        @schedule_confirmed = withdrawal_flow_closing_or_later?(actor)
         @terminated = actor.terminated?
 
         return unless params.key?(:ack_schedule_purge)
@@ -93,7 +93,7 @@ module Sign
       end
 
       def should_start_withdrawal_request?(actor)
-        !withdrawal_cycle_closing_or_later?(actor) && !params.key?(:ack_deactivate_today)
+        !withdrawal_flow_closing_or_later?(actor) && !params.key?(:ack_deactivate_today)
       end
 
       def start_withdrawal_request!(actor)
@@ -115,20 +115,20 @@ module Sign
         )
       end
 
-      def withdrawal_cycle_closing_or_later?(actor)
-        cycle = active_withdrawal_cycle_for(actor)
+      def withdrawal_flow_closing_or_later?(actor)
+        cycle = active_withdrawal_flow_for(actor)
         return true if cycle&.withdrawal_closing?
         return true if cycle&.withdrawal_discarded?
 
         actor.closing? || actor.deactivated? || actor.terminated?
       end
 
-      def active_withdrawal_cycle_for(actor)
+      def active_withdrawal_flow_for(actor)
         case actor
         when Client
-          actor.client_withdrawal_cycles.active.recent_first.first
+          actor.client_withdrawal_flows.active.recent_first.first
         when Visitor
-          actor.visitor_withdrawal_cycles.active.recent_first.first
+          actor.visitor_withdrawal_flows.active.recent_first.first
         end
       end
 

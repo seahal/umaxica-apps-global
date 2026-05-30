@@ -7,7 +7,7 @@ class Actor
 
     included do
       validate :lifecycle_timestamps_are_consistent
-      validate :multi_factor_requirement_columns_are_consistent
+      validate :mfa_level_requirement_columns_are_consistent
     end
 
     private
@@ -35,14 +35,14 @@ class Actor
 
     end
 
-    def multi_factor_requirement_columns_are_consistent
-      return unless has_attribute?(:multi_factor_enabled) && has_attribute?(:multi_factor_id)
+    def mfa_level_requirement_columns_are_consistent
+      return unless has_attribute?(:mfa_level_enabled) && has_attribute?(:mfa_level_id)
 
-      enabled = ActiveModel::Type::Boolean.new.cast(self[:multi_factor_enabled])
-      if enabled && multi_factor_id.to_i == multi_factor_nothing_id
-        errors.add(:multi_factor_id, "must not be nothing when multi_factor_enabled is true")
-      elsif !enabled && multi_factor_id.to_i != multi_factor_nothing_id
-        errors.add(:multi_factor_enabled, "must be true when multi_factor_id requires multi-factor")
+      enabled = ActiveModel::Type::Boolean.new.cast(self[:mfa_level_enabled])
+      if enabled && mfa_level_id.to_i == mfa_level_nothing_id
+        errors.add(:mfa_level_id, "must not be nothing when mfa_level_enabled is true")
+      elsif !enabled && mfa_level_id.to_i != mfa_level_nothing_id
+        errors.add(:mfa_level_enabled, "must be true when mfa_level_id requires multi-factor")
       end
     end
 

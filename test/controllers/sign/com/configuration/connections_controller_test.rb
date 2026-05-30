@@ -89,8 +89,8 @@ class Sign::Com::Configuration::ConnectionsControllerTest < ActionDispatch::Inte
   def ensure_visitor_references!
     VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
-    VisitorMultiFactor.find_or_create_by!(id: VisitorMultiFactor::NOTHING)
-    VisitorMultiFactorStatus.find_or_create_by!(id: VisitorMultiFactorStatus::UNCONFIGURED)
+    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
+    VisitorMfaStatus.find_or_create_by!(id: VisitorMfaStatus::UNCONFIGURED)
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
     VisitorTokenStatus.ensure_defaults!
     VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
