@@ -92,6 +92,25 @@ class Sign::Com::Configuration::SessionsControllerTest < ActionDispatch::Integra
     assert_predicate other_two.reload, :revoked?
   end
 
+  test "destroy does not revoke session belonging to another visitor" do
+    other_visitor = Visitor.create!(
+      status_id: VisitorStatus::ACTIVE,
+      visibility_id: VisitorVisibility::VISITOR,
+    )
+    other_visitor_token = VisitorToken.create!(
+      visitor: other_visitor,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::NOTHING,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+    )
+
+    delete sign_com_configuration_session_url(other_visitor_token.public_id, ri: "jp"), headers: request_headers
+
+    assert_response :not_found
+    assert_predicate other_visitor_token.reload, :currently_usable?
+  end
+
   # ===================================================================
   # revoke_all
   # ===================================================================

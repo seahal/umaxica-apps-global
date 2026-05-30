@@ -79,6 +79,8 @@ module Sign
         def destroy
           provider = params[:provider]
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
+          identity = social_identity_for_unlink(provider)
+          authorize!(identity) if identity.present?
 
           ActiveRecord::Base.connected_to(role: :writing) do
             SocialAuthService.unlink(provider: provider, client: current_resource)
@@ -174,6 +176,15 @@ module Sign
             sign_app_configuration_apple_path(ri: params[:ri])
           else
             sign_app_configuration_google_path(ri: params[:ri])
+          end
+        end
+
+        def social_identity_for_unlink(provider)
+          case SocialIdentifiable.normalize_provider(provider)
+          when "apple"
+            current_resource&.user_apple_identity
+          else
+            current_resource&.user_google_identity
           end
         end
 

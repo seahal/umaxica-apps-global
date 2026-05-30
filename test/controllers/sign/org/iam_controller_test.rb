@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-# AuditController is a staff-only (`AUTHENTICATION_MODE = :private`) read-only stub.
-# It now performs an object-level Action Policy check against the current operator record.
-class Sign::Org::AuditControllerTest < ActionDispatch::IntegrationTest
+# IamController is a staff-only (`AUTHENTICATION_MODE = :private`) read-only stub.
+# It performs an object-level Action Policy check against the current operator record.
+class Sign::Org::IamControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :clients
 
   setup do
@@ -15,21 +15,21 @@ class Sign::Org::AuditControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index redirects when not signed in" do
-    get sign_org_audit_index_url(ri: "jp"), headers: host_headers(@host)
+    get sign_org_iam_index_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
     assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
   end
 
   test "index renders for authenticated operator authorized on own record" do
-    get sign_org_audit_index_url(ri: "jp"), headers: as_staff_headers(@staff, host: @host)
+    get sign_org_iam_index_url(ri: "jp"), headers: as_staff_headers(@staff, host: @host)
 
     assert_response :success
     assert_equal "ok", response.body
   end
 
   test "client credentials do not authenticate as operator on the staff surface" do
-    get sign_org_audit_index_url(ri: "jp"), headers: as_user_headers(@client, host: @host)
+    get sign_org_iam_index_url(ri: "jp"), headers: as_user_headers(@client, host: @host)
 
     assert_response :redirect
   end

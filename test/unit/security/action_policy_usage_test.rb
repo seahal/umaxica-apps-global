@@ -7,23 +7,26 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
   fixtures_none!
 
   SURFACE_AUTHORIZATION_CONTEXTS = {
-    Acme::App::ApplicationController => :current_policy_user,
-    Acme::Com::ApplicationController => :current_policy_user,
-    Acme::Org::ApplicationController => :current_policy_user,
-    Sign::App::ApplicationController => :current_policy_user,
-    Sign::Com::ApplicationController => :current_policy_user,
-    Sign::Org::ApplicationController => :current_policy_user,
+    Acme::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Acme::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Acme::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Core::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Core::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Core::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Sign::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Sign::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Sign::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
   }.freeze
 
-  test "authenticated surface controllers use Action Policy with explicit user context" do
-    SURFACE_AUTHORIZATION_CONTEXTS.each do |controller_class, current_actor_method|
+  test "authenticated surface controllers use Action Policy with explicit actor context" do
+    SURFACE_AUTHORIZATION_CONTEXTS.each do |controller_class, expected_context|
       assert_includes controller_class.ancestors,
                       ActionPolicy::Controller,
                       "#{controller_class.name} must include ActionPolicy::Controller"
       assert_equal(
-        { user: current_actor_method },
+        expected_context,
         controller_class.instance_variable_get(:@authorization_targets),
-        "#{controller_class.name} must configure Action Policy user context",
+        "#{controller_class.name} must configure Action Policy actor and compatibility user contexts",
       )
     end
   end

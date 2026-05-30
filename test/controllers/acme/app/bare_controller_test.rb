@@ -28,8 +28,8 @@ module Acme
       ).freeze
 
       test "bare boundary does not inherit the full application controller" do
-        assert_equal Acme::App::ApplicationController, Acme::App::BareController.superclass
-        assert_operator Acme::App::BareController, :<, Acme::App::ApplicationController
+        assert_equal ActionController::Base, Acme::App::BareController.superclass
+        assert_not_operator Acme::App::BareController, :<, Acme::App::ApplicationController
       end
 
       test "only the reviewed allowlist inherits the bare public boundary" do

@@ -148,7 +148,7 @@ module Sign
 
         def revoke_session_by_ref(visitor, ref)
           token = VisitorToken.find_from_signed_ref(ref)
-          unless token && token.visitor_id == visitor.id
+          unless token && allowed_to?(:destroy?, token, context: { user: visitor })
             flash[:alert] = I18n.t("sign.app.in.session.invalid_session")
             return
           end
@@ -169,7 +169,7 @@ module Sign
           ComTicketRecord.connected_to(role: :writing) do
             VisitorToken.transaction do
               VisitorToken.find_from_signed_refs(refs).each do |token|
-                next unless token && token.visitor_id == visitor.id
+                next unless token && allowed_to?(:destroy?, token, context: { user: visitor })
                 next if token.public_id == current_session_public_id
 
                 token.revoke!

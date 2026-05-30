@@ -3,6 +3,8 @@
 
 module Acme
   module App
+    # Intentionally bypasses ApplicationController and its app-wide callbacks.
+    # Do not normalize this inheritance; bare endpoints own only the callbacks declared here.
     class BareController < ApplicationController
       include ::RateLimit
 

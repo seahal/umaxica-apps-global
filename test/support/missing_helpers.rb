@@ -285,7 +285,14 @@ module MissingHelpers
     with_social_auth_csrf_route do |csrf_path|
       csrf_token = fetch_csrf_token(csrf_path)
       headers = social_callback_headers(host).merge(csrf_headers(csrf_token))
-      headers = headers.merge(as_user_headers(user, host: host)) if user
+      if user
+        user_headers = as_user_headers(user, host: host)
+        if intent.to_s == "link"
+          token = ClientToken.find_by(public_id: user_headers["X-TEST-SESSION-PUBLIC-ID"])
+          mark_token_step_up_satisfied_for_test(token) if token
+        end
+        headers = headers.merge(user_headers)
+      end
 
       post(
         continue_path,

@@ -188,7 +188,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
 
   def revoke_session_by_ref(staff, ref)
     token = OperatorToken.find_from_signed_ref(ref)
-    unless token && token.staff_id == staff.id
+    unless token && allowed_to?(:destroy?, token, context: { user: staff })
       flash[:alert] = I18n.t("session_limit.invalid_session")
       return
     end
@@ -212,7 +212,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
     OrgTicketRecord.connected_to(role: :writing) do
       OperatorToken.transaction do
         OperatorToken.find_from_signed_refs(refs).each do |token|
-          next unless token && token.staff_id == staff.id
+          next unless token && allowed_to?(:destroy?, token, context: { user: staff })
           next if token.id == current_session&.id || token.public_id == current_session_public_id # Skip current session
 
           token.revoke!

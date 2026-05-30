@@ -59,6 +59,23 @@ module ActorSupportLifecycle
       },
     }
   end
+
+  def actor_policy_snapshot
+    allowed = allowed_to?(:show?, current_resource, with: ActorSupportLifecyclePolicy)
+
+    {
+      allowed: allowed,
+      authorization_actor_class: authorization_context[:actor].class.name,
+      authorization_actor_actor_class: authorization_context[:actor].actor.class.name,
+      authorization_user_class: authorization_context[:user]&.class&.name,
+    }
+  end
+end
+
+class ActorSupportLifecyclePolicy < ApplicationPolicy
+  def show?
+    actor.is_a?(Actor::Context) && record.present? && user == record
+  end
 end
 
 module Acme
@@ -70,6 +87,12 @@ module Acme
 
       def show
         render json: actor_support_snapshot
+      end
+
+      def policy
+        authorize!(current_resource, to: :show?, with: ActorSupportLifecyclePolicy) if current_resource.present?
+
+        render json: actor_policy_snapshot
       end
     end
   end
@@ -83,6 +106,10 @@ module Acme
       def show
         render json: actor_support_snapshot
       end
+
+      def policy
+        render json: actor_policy_snapshot
+      end
     end
   end
 
@@ -95,6 +122,10 @@ module Acme
       def show
         render json: actor_support_snapshot
       end
+
+      def policy
+        render json: actor_policy_snapshot
+      end
     end
   end
 end
@@ -104,8 +135,11 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     Actor.reset
     Rails.application.routes.draw do
       get "/actor-support/acme-app", to: "acme/app/actor_support#show"
+      get "/actor-support/acme-app-policy", to: "acme/app/actor_support#policy"
       get "/actor-support/acme-org", to: "acme/org/actor_support#show"
+      get "/actor-support/acme-org-policy", to: "acme/org/actor_support#policy"
       get "/actor-support/acme-com", to: "acme/com/actor_support#show"
+      get "/actor-support/acme-com-policy", to: "acme/com/actor_support#policy"
     end
   end
 
@@ -313,5 +347,44 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_nil snapshot["current_resource_class"]
     assert_equal "unauthenticated", snapshot["actor_type"]
     assert_not snapshot["signed_in"]
+  end
+
+  test "action policy receives current_actor context for authenticated app request" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = Client.create!(
+      status_id: ClientStatus::ACTIVE,
+      public_id: SecureRandom.hex(10),
+      created_at: Time.current,
+      updated_at: Time.current,
+    )
+
+    host!(host)
+    get "/actor-support/acme-app-policy", params: { ri: "jp" }, headers: {
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+    }
+
+    assert_response :success
+    snapshot = response.parsed_body
+
+    assert snapshot["allowed"]
+    assert_equal "Actor::Context", snapshot["authorization_actor_class"]
+    assert_equal "Client", snapshot["authorization_actor_actor_class"]
+    assert_equal "Client", snapshot["authorization_user_class"]
+  end
+
+  test "action policy fails closed for unauthenticated app request" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+
+    host!(host)
+    get "/actor-support/acme-app-policy", params: { ri: "jp" }
+
+    assert_response :success
+
+    snapshot = response.parsed_body
+
+    assert_not snapshot["allowed"]
+    assert_equal "Actor::Context", snapshot["authorization_actor_class"]
+    assert_equal Unauthenticated.instance.class.name, snapshot["authorization_actor_actor_class"]
+    assert_nil snapshot["authorization_user_class"]
   end
 end

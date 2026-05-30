@@ -9,6 +9,8 @@ module Sign
       before_action :authenticate_operator!
 
       def index
+        authorize!(current_operator, to: :support?)
+
         render plain: "ok"
       end
     end

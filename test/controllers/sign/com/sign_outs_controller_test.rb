@@ -223,6 +223,20 @@ class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
                "another device's token must remain active after a single-browser logout"
   end
 
+  test "destroy rejects current session token belonging to another visitor" do
+    other_visitor = create_verified_visitor_with_email(email_address: "com-out-other-#{SecureRandom.hex(4)}@example.com")
+    other_token = VisitorToken.create!(visitor: other_visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    other_token.rotate_refresh_token!
+
+    delete sign_com_sign_out_url(ri: "jp"),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => other_token.public_id, }
+
+    assert_response :forbidden
+    assert_predicate other_token.reload, :currently_usable?
+  end
+
   test "logout clears all auth cookies" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     refresh_plain = token.rotate_refresh_token!

@@ -86,27 +86,28 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
     def sign_app_root_path = "/"
   end
 
-  StepUpToken = Struct.new(
-    :public_id,
-    :last_step_up_at,
-    :last_step_up_scope,
-    :last_step_up_method,
-    :last_step_up_session_public_id,
-    :last_step_up_purpose,
-    :last_step_up_audience,
-    keyword_init: true,
-  ) do
-    def currently_usable? = true
+  StepUpToken =
+    Struct.new(
+      :public_id,
+      :last_step_up_at,
+      :last_step_up_scope,
+      :last_step_up_method,
+      :last_step_up_session_public_id,
+      :last_step_up_purpose,
+      :last_step_up_audience,
+      keyword_init: true,
+    ) do
+      def currently_usable? = true
 
-    def has_attribute?(name)
-      %w(
-        last_step_up_method
-        last_step_up_session_public_id
-        last_step_up_purpose
-        last_step_up_audience
-      ).include?(name.to_s)
+      def has_attribute?(name)
+        %w(
+          last_step_up_method
+          last_step_up_session_public_id
+          last_step_up_purpose
+          last_step_up_audience
+        ).include?(name.to_s)
+      end
     end
-  end
 
   setup do
     @harness = Harness.new

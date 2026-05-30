@@ -67,7 +67,7 @@ module Sign
 
     def access_expires_at_from_current_cookie
       return unless respond_to?(:extract_access_token, true)
-      return unless request&.host.present?
+      return if request&.host.blank?
       return unless respond_to?(:resource_type, true)
 
       token = extract_access_token(Authentication::Base::ACCESS_COOKIE_KEY)

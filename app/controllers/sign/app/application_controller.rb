@@ -5,33 +5,33 @@ module Sign
   module App
     class ApplicationController < ActionController::Base
       include ::RateLimit
-
       include ::Session
-
       include ::Preference::Global
-
       # Adopt anonymous preference cookies into the signed-in user account after authentication.
       include ::Preference::Adoption
-
       include ::Authentication::Client
-
       include ::Authentication::CredentialInventoryReader
-
       include ::Authorization::Client
-
       include ::Verification::Client
-
       include ActionPolicy::Controller
-
       # Note: RestrictedSessionGuard is still needed to enforce session expiration
       # and block expired restricted sessions on the session management page itself.
       include ::RestrictedSessionGuard
-
       include ::ActorSupport
-
       include ::Finisher
 
       AUTHENTICATION_MODE = :deny_all
+
+      allow_browser versions: :modern
+
+      protect_from_forgery using: :header_or_legacy_token,
+                           trusted_origins: Jit::HostOriginEnv.trusted_origins(
+                             ENV["ID_SERVICE_URL"],
+                             ENV.fetch("SIGN_SERVICE_URL"),
+                           ),
+                           with: :exception
+
+      authorize :user, through: :current_policy_user
 
       # NOTE: Order matters (dependencies rely on this sequence)
       # Layer order: RateLimit -> CurrentContext -> Preference -> AuthN ->
@@ -42,7 +42,6 @@ module Sign
       before_action :set_preferences_cookie
       before_action :resolve_param_context
       before_action :set_region
-
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :set_current_actor
       before_action :apply_localization_preferences
@@ -57,17 +56,6 @@ module Sign
       before_action :enforce_access_policy!
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
-
-      authorize :user, through: :current_policy_user
-
-      allow_browser versions: :modern
-
-      protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: Jit::HostOriginEnv.trusted_origins(
-                             ENV["ID_SERVICE_URL"],
-                             ENV.fetch("SIGN_SERVICE_URL"),
-                           ),
-                           with: :exception
 
       private
 

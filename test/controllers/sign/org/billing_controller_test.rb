@@ -3,14 +3,8 @@
 
 require "test_helper"
 
-# Characterization test (pre-enforcement baseline).
-#
-# BillingController is a staff-only (`AUTHENTICATION_MODE = :private`) read-only stub with NO
-# object-level Action Policy check today, so any authenticated operator currently reaches it.
-# These tests pin that current behavior so the Phase 3 object-level authorization rollout
-# (ADR pundit-to-action-policy-migration.md) can prove which cases change: anonymous denial and
-# cross-surface isolation MUST stay as they are; the "any operator succeeds" case is the one a
-# role/permission check is expected to tighten.
+# BillingController is a staff-only (`AUTHENTICATION_MODE = :private`) read-only stub.
+# It now performs an object-level Action Policy check against the current operator record.
 class Sign::Org::BillingControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :clients
 
@@ -27,7 +21,7 @@ class Sign::Org::BillingControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
   end
 
-  test "index renders for any authenticated operator (no object authorization yet)" do
+  test "index renders for authenticated operator authorized on own record" do
     get sign_org_billing_index_url(ri: "jp"), headers: as_staff_headers(@staff, host: @host)
 
     assert_response :success

@@ -199,9 +199,13 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   private
 
   def prepare_callback_flow(provider:, user:)
+    headers = as_user_headers(user, host: @host)
+    token = ClientToken.find_by(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
+    mark_token_step_up_satisfied_for_test(token) if token
+
     post(
       continue_sign_app_social_authentication_url(provider: provider, intent: "link", ri: "jp"),
-      headers: callback_headers.merge(as_user_headers(user, host: @host)),
+      headers: callback_headers.merge(headers),
     )
 
     assert_response :redirect

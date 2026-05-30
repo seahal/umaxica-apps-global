@@ -83,6 +83,17 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal VisitorTokenStatus::ACTIVE, @token.reload.visitor_token_status_id
   end
 
+  test "update with ref belonging to another visitor does not revoke" do
+    other_visitor = create_verified_visitor_with_email(email_address: "other-ses-#{SecureRandom.hex(4)}@example.com")
+    other_token = create_active_session(other_visitor)
+    headers = request_headers(@token)
+
+    patch sign_com_in_session_url(ri: "jp"), params: { ref: other_token.signed_ref }, headers: headers
+
+    assert_response :redirect
+    assert_predicate other_token.reload, :currently_usable?
+  end
+
   test "destroy without ref logs out and redirects to login" do
     headers = request_headers(@token)
 
@@ -90,6 +101,17 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_match %r{/sign/in/new\?ri=jp}, response.location
+  end
+
+  test "destroy with ref belonging to another visitor does not revoke" do
+    other_visitor = create_verified_visitor_with_email(email_address: "other-des-#{SecureRandom.hex(4)}@example.com")
+    other_token = create_active_session(other_visitor)
+    headers = request_headers(@token)
+
+    delete sign_com_in_session_url(ri: "jp"), params: { ref: other_token.signed_ref }, headers: headers
+
+    assert_response :success
+    assert_predicate other_token.reload, :currently_usable?
   end
 
   test "direct controller session management branches" do

@@ -5,10 +5,6 @@ module JumpRt
   module ReturnVerification
     extend ActiveSupport::Concern
 
-    included do
-      before_action :verify_jump_return_rt!, if: :jump_return_rt_request?
-    end
-
     private
 
     def jump_return_rt_request?

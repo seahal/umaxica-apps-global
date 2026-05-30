@@ -69,6 +69,7 @@ module Sign
 
         def unlink_google_org!
           identity = current_operator.operator_google_identity
+          authorize!(identity, with: OperatorIdentityPolicy) if identity.present?
 
           Operator.transaction do
             current_operator.lock!

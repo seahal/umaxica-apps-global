@@ -134,6 +134,15 @@ skips hide partial migrations and corrupt schema_dump files over time.
 - Prefer existing project patterns over new abstractions.
 - Keep changes scoped to the requested behavior.
 
+### Controller Inheritance Contract
+
+- Surface-local `ApplicationController` is the normal parent for authentication-aware endpoints.
+- `BareController` is the explicit exception: it must inherit directly from
+  `ActionController::Base`, never from `ApplicationController`.
+- Do not "normalize" `BareController` inheritance to `ApplicationController`; bare endpoints
+  intentionally bypass app-wide authentication, authorization, preference, actor, and other
+  lifecycle callbacks unless declared directly on `BareController`.
+
 ## Code Comments
 
 When implementing or changing code:

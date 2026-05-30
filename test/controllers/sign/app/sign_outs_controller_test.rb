@@ -295,6 +295,20 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
                "another device's token must remain active after a single-browser logout"
   end
 
+  test "destroy rejects current session token belonging to another user" do
+    other_user = clients(:two)
+    other_token = ClientToken.create!(user: other_user)
+    other_token.rotate_refresh_token!
+
+    delete sign_app_sign_out_url(ri: "jp"),
+           headers: { "Host" => @host,
+                      "X-TEST-CURRENT-USER" => @user.id,
+                      "X-TEST-SESSION-PUBLIC-ID" => other_token.public_id, }
+
+    assert_response :forbidden
+    assert_predicate other_token.reload, :currently_usable?
+  end
+
   test "logout clears all auth cookies" do
     token = ClientToken.create!(user: @user)
     refresh_plain = token.rotate_refresh_token!

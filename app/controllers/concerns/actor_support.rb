@@ -8,6 +8,7 @@ module ActorSupport
 
   included do
     helper_method :current_actor if respond_to?(:helper_method)
+    authorize :actor, through: :current_actor if respond_to?(:authorize)
   end
 
   def current_actor

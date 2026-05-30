@@ -32,6 +32,98 @@ class OperatorPolicyTest < ActiveSupport::TestCase
     assert_not policy.show?
   end
 
+  def test_audit_allows_owner_operator
+    owner = Operator.new(id: 1)
+    policy = OperatorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :audit?
+  end
+
+  def test_audit_denies_different_operator
+    owner = Operator.new(id: 1)
+    other = Operator.new(id: 2)
+    policy = OperatorPolicy.new(owner, user: other)
+
+    assert_not policy.audit?
+  end
+
+  def test_audit_denies_non_operator_actor
+    client = Client.new(id: 1)
+    operator = Operator.new(id: client.id)
+    policy = OperatorPolicy.new(operator, user: client)
+
+    assert_not policy.audit?
+  end
+
+  def test_billing_allows_owner_operator
+    owner = Operator.new(id: 1)
+    policy = OperatorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :billing?
+  end
+
+  def test_billing_denies_different_operator
+    owner = Operator.new(id: 1)
+    other = Operator.new(id: 2)
+    policy = OperatorPolicy.new(owner, user: other)
+
+    assert_not policy.billing?
+  end
+
+  def test_billing_denies_non_operator_actor
+    client = Client.new(id: 1)
+    operator = Operator.new(id: client.id)
+    policy = OperatorPolicy.new(operator, user: client)
+
+    assert_not policy.billing?
+  end
+
+  def test_iam_allows_owner_operator
+    owner = Operator.new(id: 1)
+    policy = OperatorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :iam?
+  end
+
+  def test_iam_denies_different_operator
+    owner = Operator.new(id: 1)
+    other = Operator.new(id: 2)
+    policy = OperatorPolicy.new(owner, user: other)
+
+    assert_not policy.iam?
+  end
+
+  def test_iam_denies_non_operator_actor
+    client = Client.new(id: 1)
+    operator = Operator.new(id: client.id)
+    policy = OperatorPolicy.new(operator, user: client)
+
+    assert_not policy.iam?
+  end
+
+  def test_support_allows_owner_operator
+    owner = Operator.new(id: 1)
+    policy = OperatorPolicy.new(owner, user: owner)
+
+    assert_predicate policy, :support?
+  end
+
+  def test_support_denies_different_operator
+    owner = Operator.new(id: 1)
+    other = Operator.new(id: 2)
+    policy = OperatorPolicy.new(owner, user: other)
+
+    assert_not policy.support?
+  end
+
+  def test_support_denies_non_operator_actor
+    client = Client.new(id: 1)
+    operator = Operator.new(id: client.id)
+    policy = OperatorPolicy.new(operator, user: client)
+
+    assert_not policy.support?
+  end
+
   def test_create_returns_false_by_default
     policy = OperatorPolicy.new(Operator.new, user: nil)
 

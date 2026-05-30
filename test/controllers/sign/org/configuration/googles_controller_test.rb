@@ -11,7 +11,8 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
     @host = ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
     host! @host
     @staff = operators(:one)
-    @headers = { "Host" => @host, "X-TEST-CURRENT-STAFF" => @staff.id }.freeze
+    @headers = as_staff_headers(@staff, host: @host)
+    @token = OperatorToken.find_by!(public_id: @headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
   end
 
   test "should get show when logged in" do
@@ -21,6 +22,8 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
   end
 
   test "create redirects to google social session" do
+    mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
+
     post sign_org_configuration_google_url(ri: "jp"), headers: @headers
 
     assert_match(%r{/auth/google_org\?state=}, response.location)
@@ -48,6 +51,7 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
 
   test "destroy disables google login and records activity" do
     identity = create_google_identity!
+    mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
 
     assert_difference -> { OperatorChronicle.where(event_id: OperatorChronicleEvent::SOCIAL_UNLINKED).count }, 1 do
       delete sign_org_social_authentication_url(provider: "google_org", ri: "jp"), headers: @headers

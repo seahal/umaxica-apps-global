@@ -192,7 +192,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
 
   def revoke_session_by_ref(user, ref)
     token = ClientToken.find_from_signed_ref(ref)
-    unless token && token.user_id == user.id
+    unless token && allowed_to?(:destroy?, token, context: { user: user })
       flash[:alert] = I18n.t("sign.app.in.session.invalid_session")
       return
     end
@@ -216,7 +216,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
     AppTicketRecord.connected_to(role: :writing) do
       ClientToken.transaction do
         ClientToken.find_from_signed_refs(refs).each do |token|
-          next unless token && token.user_id == user.id
+          next unless token && allowed_to?(:destroy?, token, context: { user: user })
           next if token.id == current_session&.id || token.public_id == current_session_public_id # Skip current session
 
           token.revoke!

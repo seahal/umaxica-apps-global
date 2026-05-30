@@ -47,12 +47,21 @@ module Sign
         pt = signed_pt_param
         destination = path_from_signed_pt(pt) if pt.present?
 
+        return if authorize_current_session_for_sign_out! == false
         prepare_sign_out_completion_notice!
         logout_current_session!(reason: "app_user_logout")
         return render_invalid_return_target! if raw_pt.present? && destination.blank?
         return redirect_to_pt_destination!(destination) if destination.present?
 
         render :show
+      end
+
+      def authorize_current_session_for_sign_out!
+        return true if current_session.blank?
+        return true if allowed_to?(:destroy?, current_session, context: { user: current_resource })
+
+        head :forbidden
+        false
       end
     end
   end

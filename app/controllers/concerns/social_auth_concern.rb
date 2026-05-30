@@ -51,6 +51,7 @@ module SocialAuthConcern
     if intent == "link"
       @social_auth_intent_snapshot = intent
       @social_auth_provider_snapshot = provider
+      authorize_social_auth_link!(social_auth_authorization_resource)
       require_recent_step_up!
     end
 
@@ -218,6 +219,7 @@ module SocialAuthConcern
     intent = current_social_auth_intent
     pt = current_social_auth_pt
     entry = current_social_auth_entry
+    authorize_social_auth_link!(social_auth_user) if intent == "link"
 
     result = SocialAuthService.handle_callback(
       auth_hash: auth_hash,
@@ -260,6 +262,37 @@ module SocialAuthConcern
         klass = respond_to?(:resource_class, true) ? resource_class : Client
         klass.find_by(id: user_id)
       end
+  end
+
+  def authorize_social_auth_link!(resource)
+    raise SocialAuth::UnauthorizedError.new("errors.social_auth.not_logged_in") unless resource
+    return if social_auth_link_allowed?(resource)
+
+    raise SocialAuth::UnauthorizedError.new("errors.social_auth.not_logged_in")
+  end
+
+  def social_auth_authorization_resource
+    return current_resource if respond_to?(:current_resource, true) && current_resource.present?
+    return current_client if respond_to?(:current_client, true) && current_client.present?
+    return current_operator if respond_to?(:current_operator, true) && current_operator.present?
+    return current_visitor if respond_to?(:current_visitor, true) && current_visitor.present?
+
+    nil
+  end
+
+  def social_auth_link_allowed?(resource)
+    return allowed_to?(:update?, resource, context: { user: resource }) if respond_to?(:allowed_to?, true)
+
+    policy_class =
+      case resource
+      when Client
+        ClientPolicy
+      when Operator
+        OperatorPolicy
+      end
+    return false unless policy_class
+
+    policy_class.new(resource, user: resource).apply(:update?)
   end
 
   def handle_social_auth_error(error)

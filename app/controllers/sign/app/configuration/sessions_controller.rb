@@ -9,16 +9,34 @@ module Sign
 
         AUTHENTICATION_MODE = :private
         before_action :authenticate_client!
-        # Object-level authorization (ActionPolicy) for the listing only. `destroy`/`others`/
-        # `revoke_all` are intentionally excluded — they stay gated by their existing checks
-        # (current-session guard, step-up), not this rollout.
         before_action :authorize_sessions!, only: %i(index)
+        before_action :authorize_session!, only: %i(destroy)
+        before_action :authorize_session_revoke_others!, only: %i(others)
+        before_action :authorize_session_revoke_all!, only: %i(revoke_all)
         def index = super
+
+        def destroy = super
+
+        def others = super
+
+        def revoke_all = super
 
         private
 
         def authorize_sessions!
           authorize!(ClientToken, to: :index?)
+        end
+
+        def authorize_session!
+          authorize!(@session)
+        end
+
+        def authorize_session_revoke_others!
+          authorize!(ClientToken, to: :revoke_others?)
+        end
+
+        def authorize_session_revoke_all!
+          authorize!(current_client, to: :revoke_all?)
         end
 
         def visible_sessions

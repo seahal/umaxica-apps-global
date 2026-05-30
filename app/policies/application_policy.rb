@@ -3,7 +3,9 @@
 
 # Base policy class for authorization using Action Policy
 class ApplicationPolicy < ActionPolicy::Base
-  # Authorization is added controller-by-controller; unauthenticated paths may pass nil.
+  # Actor::Context is the primary authorization context. Legacy policies may
+  # still consume `user`, which is derived from the actor context when omitted.
+  authorize :actor, optional: true
   authorize :user, optional: true
 
   alias_rule :edit?, to: :update?
@@ -12,6 +14,10 @@ class ApplicationPolicy < ActionPolicy::Base
   def edit? = update?
 
   def new? = create?
+
+  def user
+    @user || actor_resource
+  end
 
   # Default permissions - deny all by default (allowlist approach)
   def index?
@@ -39,6 +45,19 @@ class ApplicationPolicy < ActionPolicy::Base
   end
 
   protected
+
+  def actor_context
+    return actor if defined?(Actor::Context) && actor.is_a?(Actor::Context)
+
+    nil
+  end
+
+  def actor_resource
+    resource = actor_context&.actor
+    return nil if resource.respond_to?(:unauthenticated?) && resource.unauthenticated?
+
+    resource
+  end
 
   # Get the organization from the record if it has one
   # @return [Object, nil]

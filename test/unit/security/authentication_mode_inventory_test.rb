@@ -105,16 +105,16 @@ module Security
       assert_empty legacy, "Controllers must use AUTHENTICATION_MODE instead of legacy DSL:\n#{legacy.join("\n")}"
     end
 
-    test "bare controllers inherit their surface application controllers" do
+    test "bare controllers inherit directly from action controller base" do
       violations =
         Rails.root.glob("app/controllers/**/bare_controller.rb").filter_map do |path|
           relative_path = path.relative_path_from(Rails.root).to_s
           content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
-          relative_path unless content.match?(/class\s+BareController\s+<\s+ApplicationController\b/)
+          relative_path unless content.match?(/class\s+BareController\s+<\s+ActionController::Base\b/)
         end
 
       assert_empty violations,
-                   "Bare controllers must inherit their surface ApplicationController:\n#{violations.join("\n")}"
+                   "Bare controllers must inherit ActionController::Base directly:\n#{violations.join("\n")}"
     end
 
     test "routes resolve to controllers with local authentication mode declarations" do

@@ -156,6 +156,7 @@ module Sign
         def link_google_identity!(identity, auth)
           staff = social_auth_user
           return nil unless staff
+          return nil unless allowed_to?(:update?, staff, context: { user: staff })
           return nil if identity && identity.staff_id != staff.id
 
           identity ||= OperatorGoogleIdentity.find_or_create_from_auth_hash(auth)

@@ -34,6 +34,9 @@ module Acme
       # NOTE: Order matters (dependencies rely on this sequence)
       # Layer order: RateLimit -> CurrentContext -> Preference -> AuthN ->
       # CurrentActor -> side-effect reflection -> Verification -> AuthZ
+      # Existing jump-return handling runs before rate limiting; keep that order
+      # for this extraction and review the risk in a follow-up lifecycle PR.
+      before_action :verify_jump_return_rt!, if: :jump_return_rt_request?
       before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash

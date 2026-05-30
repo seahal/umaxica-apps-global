@@ -5,36 +5,22 @@ module Sign
   module Com
     class ApplicationController < ActionController::Base
       include ::RateLimit
-
       include ::Session
-
       include ::Preference::Global
-
       include ::Preference::Adoption
-
       include ::Authentication::Visitor
-
       include ::Authentication::CredentialInventoryReader
-
       include ::Authorization::Visitor
-
       include ::Verification::Visitor
-
       include ActionPolicy::Controller
-
       include ::RestrictedSessionGuard
-
       include Sign::Com::RouteAliasHelper
-
       include ::ActorSupport
-
       include ::Finisher
 
       AUTHENTICATION_MODE = :deny_all
 
-      authorize :user, through: :current_policy_user
-
-      helper Sign::Com::ApplicationHelper
+      allow_browser versions: :modern
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: Jit::HostOriginEnv.trusted_origins(
@@ -42,13 +28,16 @@ module Sign
                            ),
                            with: :exception
 
+      authorize :user, through: :current_policy_user
+
+      helper Sign::Com::ApplicationHelper
+
       before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash
       before_action :set_preferences_cookie
       before_action :resolve_param_context
       before_action :set_region
-
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :set_current_actor
       before_action :apply_localization_preferences

@@ -26,6 +26,37 @@ class ClientTokenPolicyTest < ActiveSupport::TestCase
     assert_not ClientTokenPolicy.new(nil, user: Visitor.new).index?
   end
 
+  def test_destroy_allows_owner_client_token
+    client = Client.new(id: 123)
+    token = ClientToken.new(user_id: client.id)
+
+    assert_predicate ClientTokenPolicy.new(token, user: client), :destroy?
+  end
+
+  def test_destroy_denies_other_client_token
+    client = Client.new(id: 123)
+    token = ClientToken.new(user_id: 456)
+
+    assert_not ClientTokenPolicy.new(token, user: client).destroy?
+  end
+
+  def test_destroy_denies_other_actor_types
+    token = ClientToken.new(user_id: 123)
+
+    assert_not ClientTokenPolicy.new(token, user: Operator.new(id: 123)).destroy?
+    assert_not ClientTokenPolicy.new(token, user: Visitor.new(id: 123)).destroy?
+  end
+
+  def test_revoke_others_allows_client_token_class_for_client
+    assert_predicate ClientTokenPolicy.new(ClientToken, user: Client.new), :revoke_others?
+  end
+
+  def test_revoke_others_denies_non_clients_and_instances
+    assert_not ClientTokenPolicy.new(ClientToken, user: Operator.new).revoke_others?
+    assert_not ClientTokenPolicy.new(ClientToken, user: Visitor.new).revoke_others?
+    assert_not ClientTokenPolicy.new(ClientToken.new, user: Client.new).revoke_others?
+  end
+
   def test_show
     assert_not @policy.show?
   end
