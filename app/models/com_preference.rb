@@ -9,6 +9,7 @@
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  discarded_at             :datetime         default(Infinity), not null
+#  explicit_fields          :jsonb            not null
 #  jti                      :string
 #  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
@@ -50,6 +51,7 @@ class ComPreference < ComSettingRecord
   include ::PublicId
   include ::SingleUseToken
   include ::Preference::Resettable
+  include ::Preference::ExplicitFields
   include ::DbscBindable
 
   self.belongs_to_required_by_default = false
@@ -88,11 +90,6 @@ class ComPreference < ComSettingRecord
           inverse_of: :preference,
           dependent: :destroy
   has_one :com_preference_theme,
-          foreign_key: :preference_id,
-          inverse_of: :preference,
-          dependent: :destroy
-  has_one :com_preference_colortheme,
-          class_name: "ComPreferenceTheme",
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy

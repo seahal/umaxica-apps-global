@@ -2,6 +2,8 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "base64"
+require "openssl"
 
 class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
   fixtures_none!
@@ -27,14 +29,16 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
     @previous_env = @jwt_env.transform_values { |_value| nil }
     @jwt_env.each do |key, value|
       @previous_env[key] = ENV[key]
-      ENV[key] = value
+      value.nil? ? ENV.delete(key) : ENV[key] = value
     end
+    Jit::Security::Jwt::Registry.reload!
   end
 
   teardown do
     @previous_env.each do |key, value|
       value.nil? ? ENV.delete(key) : ENV[key] = value
     end
+    Jit::Security::Jwt::Registry.reload!
   end
 
   ENDPOINTS.each do |name, namespace, host|
@@ -64,10 +68,11 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
   end
 
   def docker_core_jwt_env
-    Rails.root.join("docker/core/env").read.lines.filter_map do |line|
-      next unless line.start_with?("JWT_")
-
-      line.chomp.split("=", 2)
-    end.to_h
+    key = Base64.strict_encode64(OpenSSL::PKey::EC.generate("secp384r1").to_der)
+    ENDPOINTS.each_with_object({}) do |(_name, namespace, _host), env|
+      env["JWT_#{namespace}_ACTIVE_KID"] = "#{namespace.downcase.tr("_", "-")}-test"
+      env["JWT_#{namespace}_PRIVATE_KEY"] = key
+      env["JWT_#{namespace}_PUBLIC_KEYSET"] = nil
+    end
   end
 end

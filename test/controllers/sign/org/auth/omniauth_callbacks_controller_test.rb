@@ -123,7 +123,11 @@ class Sign::Org::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller = Sign::Org::Auth::OmniauthCallbacksController.new
     redirects = []
     request = ActionDispatch::TestRequest.create("REQUEST_METHOD" => "GET")
-    auth = OpenStruct.new(provider: "google_org")
+    auth = OpenStruct.new(
+      provider: "google_org",
+      uid: "google-org-direct",
+      credentials: OpenStruct.new(token: "token", expires_at: 1.week.from_now.to_i),
+    )
     request.env["omniauth.auth"] = auth
     controller.request = request
     controller.response = ActionDispatch::TestResponse.new

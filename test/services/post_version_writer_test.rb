@@ -13,21 +13,21 @@ class PostVersionWriterTest < ActiveSupport::TestCase
         record.cooldown_until = Time.current
       }
     @avatar =
-      Avatar.find_or_create_by!(moniker: "Post Version Writer Author") do |record|
+      Avatar.find_or_create_by!(moniker: "AppPost Version Writer Author") do |record|
         record.capability = capability
         record.active_handle = handle
       end
   end
 
   test "writes app post version" do
-    post = create_post(Post, PostStatus)
+    post = create_post(AppPost, AppPostStatus)
 
     version = nil
-    assert_difference "PostVersion.count", 1 do
+    assert_difference "AppPostVersion.count", 1 do
       version = PostVersionWriter.write!(post, attrs: { title: "Title", description: "Desc", body: "Body" })
     end
 
-    assert_equal post, version.post
+    assert_equal post, version.app_post
     assert_equal "Title", version.title
     assert_equal "Desc", version.description
     assert_equal "Body", version.body
@@ -41,7 +41,7 @@ class PostVersionWriterTest < ActiveSupport::TestCase
       version = PostVersionWriter.write!(post, attrs: { title: "Title", description: "Desc", body: "Body" })
     end
 
-    assert_equal post, version.post
+    assert_equal post, version.com_post
     assert_equal "Title", version.title
   end
 
@@ -53,7 +53,7 @@ class PostVersionWriterTest < ActiveSupport::TestCase
       version = PostVersionWriter.write!(post, attrs: { title: "Title", description: "Desc", body: "Body" })
     end
 
-    assert_equal post, version.post
+    assert_equal post, version.org_post
     assert_equal "Title", version.title
   end
 
@@ -66,7 +66,7 @@ class PostVersionWriterTest < ActiveSupport::TestCase
   end
 
   test "writes version with editor metadata" do
-    post = create_post(Post, PostStatus)
+    post = create_post(AppPost, AppPostStatus)
     editor = TestEditor.new(123)
 
     version = PostVersionWriter.write!(
@@ -85,7 +85,7 @@ class PostVersionWriterTest < ActiveSupport::TestCase
     status = status_class.find_or_create_by!(id: status_class::NOTHING)
     post_class.create!(
       author_avatar: @avatar,
-      post_status: status,
+      "#{post_class.model_name.singular}_status": status,
       body: "Version writer post body",
       created_by_actor_id: 1,
     )

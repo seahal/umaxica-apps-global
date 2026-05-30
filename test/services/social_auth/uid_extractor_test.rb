@@ -27,25 +27,28 @@ class SocialAuth::UidExtractorTest < ActiveSupport::TestCase
     assert_equal "primary_uid", result
   end
 
-  test "falls back to raw_info sub when top-level uid is blank" do
+  test "rejects raw_info sub when top-level uid is blank" do
     auth_hash = { "uid" => "", "extra" => { "raw_info" => { "sub" => "raw_sub_value" } } }
-    result = SocialAuth::UidExtractor.call(auth_hash: auth_hash)
 
-    assert_equal "raw_sub_value", result
+    assert_raises(SocialAuth::ProviderError) do
+      SocialAuth::UidExtractor.call(auth_hash: auth_hash)
+    end
   end
 
-  test "falls back to id_info sub when uid and raw_info are blank" do
+  test "rejects id_info sub when uid is blank" do
     auth_hash = { "extra" => { "id_info" => { "sub" => "id_info_sub" } } }
-    result = SocialAuth::UidExtractor.call(auth_hash: auth_hash)
 
-    assert_equal "id_info_sub", result
+    assert_raises(SocialAuth::ProviderError) do
+      SocialAuth::UidExtractor.call(auth_hash: auth_hash)
+    end
   end
 
-  test "falls back through all candidates in order" do
+  test "does not fall back through nested candidates" do
     auth_hash = { "uid" => nil, "extra" => { "raw_info" => {}, "id_info" => { "sub" => "fallback_sub" } } }
-    result = SocialAuth::UidExtractor.call(auth_hash: auth_hash)
 
-    assert_equal "fallback_sub", result
+    assert_raises(SocialAuth::ProviderError) do
+      SocialAuth::UidExtractor.call(auth_hash: auth_hash)
+    end
   end
 
   test "converts numeric uid to string" do
@@ -78,10 +81,11 @@ class SocialAuth::UidExtractorTest < ActiveSupport::TestCase
     end
   end
 
-  test "handles symbol-keyed extra hash" do
+  test "rejects symbol-keyed nested extra hash without top-level uid" do
     auth_hash = { extra: { raw_info: { "sub" => "sym_sub" } } }
-    result = SocialAuth::UidExtractor.call(auth_hash: auth_hash)
 
-    assert_equal "sym_sub", result
+    assert_raises(SocialAuth::ProviderError) do
+      SocialAuth::UidExtractor.call(auth_hash: auth_hash)
+    end
   end
 end

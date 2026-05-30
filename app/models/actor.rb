@@ -185,6 +185,10 @@ class Actor < ActiveSupport::CurrentAttributes
       key
     end
 
+    # FIXME: cofniguration has a lot of subdomain stuff that needs to be cleaned up
+    # Actor.configuration.apex.one = 1
+    # Actor.configuration.sign.two = 2
+    # Actor.configuration.core.three = 3
     def normalize_context_value(key, value)
       case key
       when :preferences

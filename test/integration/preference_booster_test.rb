@@ -53,12 +53,12 @@ class PreferenceBoosterTest < ActionDispatch::IntegrationTest
     end
 
     def edit_theme
-      set_colortheme_preferences_edit
+      set_theme_preferences_edit
       render plain: "ok"
     end
 
     def update_theme
-      set_colortheme_preferences_update
+      set_theme_preferences_update
       render json: preference_response_payload
     end
 

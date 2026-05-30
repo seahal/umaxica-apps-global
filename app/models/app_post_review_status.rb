@@ -3,14 +3,12 @@
 
 # == Schema Information
 #
-# Table name: post_review_statuses
+# Table name: app_post_review_statuses
 # Database name: app_publisher
 #
 #  id :bigint           not null, primary key
 #
 class AppPostReviewStatus < AppPublisherRecord
-  self.table_name = "post_review_statuses"
-
   include ReferenceRecord
 
   NOTHING = 1
@@ -20,5 +18,6 @@ class AppPostReviewStatus < AppPublisherRecord
   DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
   PENDING = NOTHING
 
-  has_many :post_reviews, class_name: "AppPostReview", dependent: :restrict_with_error, inverse_of: :post_review_status
+  has_many :app_post_reviews, class_name: "AppPostReview", dependent: :restrict_with_error,
+                              inverse_of: :app_post_review_status
 end

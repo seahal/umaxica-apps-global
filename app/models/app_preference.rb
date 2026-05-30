@@ -9,6 +9,7 @@
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  discarded_at             :datetime         default(Infinity), not null
+#  explicit_fields          :jsonb            not null
 #  jti                      :string
 #  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary
@@ -50,26 +51,34 @@ class AppPreference < AppSettingRecord
   include ::PublicId
   include ::SingleUseToken
   include ::Preference::Resettable
+  include ::Preference::ExplicitFields
   include ::DbscBindable
 
   self.belongs_to_required_by_default = false
 
+  # FIXME: this is a hack.
   alias_attribute :expires_at, :discarded_at
 
   DBSC_BINDING_METHOD_CLASS = AppPreferenceBindingMethod
   DBSC_STATUS_CLASS = AppPreferenceDbscStatus
 
+  # FIXME: this attribute should be set by the migration.
   attribute :status_id, default: AppPreferenceStatus::NOTHING
 
   belongs_to :app_preference_status,
              foreign_key: :status_id,
              inverse_of: :app_preferences
+  # TODO: what is this relation?
   belongs_to :app_preference_binding_method,
              foreign_key: :binding_method_id,
              inverse_of: :app_preferences
+  # TODO: what is this relation?
   belongs_to :app_preference_dbsc_status,
              foreign_key: :dbsc_status_id,
              inverse_of: :app_preferences
+  # TODO: what is this relation?
+  belongs_to :replaced_by,
+             class_name: "AppPreference"
 
   has_one :app_preference_cookie,
           foreign_key: :preference_id,
@@ -88,11 +97,6 @@ class AppPreference < AppSettingRecord
           inverse_of: :preference,
           dependent: :destroy
   has_one :app_preference_theme,
-          foreign_key: :preference_id,
-          inverse_of: :preference,
-          dependent: :destroy
-  has_one :app_preference_colortheme,
-          class_name: "AppPreferenceTheme",
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
@@ -120,23 +124,27 @@ class AppPreference < AppSettingRecord
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  # FIXME: too nasty name is this.
   has_one :app_preference_r18_display_stopper,
           foreign_key: :preference_id,
           inverse_of: :preference,
           dependent: :destroy
+  # TODO: what is this relation?
   has_many :app_preference_chronicles,
            foreign_key: :subject_id,
            inverse_of: :app_preference,
            dependent: :destroy
-  belongs_to :replaced_by,
-             class_name: "AppPreference"
+  # TODO: what is this relation?
   has_many :replacements,
            class_name: "AppPreference",
            foreign_key: :replaced_by_id,
            inverse_of: :replaced_by,
            dependent: :nullify
+
+  # validations
   validates :status_id, numericality: { only_integer: true }
   validates :jti, uniqueness: true, allow_nil: true
+
   attribute :binding_method_id, default: AppPreferenceBindingMethod::NOTHING
   attribute :dbsc_status_id, default: AppPreferenceDbscStatus::NOTHING
 
@@ -154,8 +162,6 @@ class AppPreference < AppSettingRecord
   end
 
   def persist_self_replacement
-    # rubocop:disable Rails/SkipsModelValidations
     update_column(:replaced_by_id, id) if replaced_by_id.blank?
-    # rubocop:enable Rails/SkipsModelValidations
   end
 end

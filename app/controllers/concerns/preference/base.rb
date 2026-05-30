@@ -36,14 +36,13 @@ module Preference
     LANGUAGE_COOKIE_KEY = Preference::IoKeys::Cookies::LANGUAGE
     TIMEZONE_COOKIE_KEY = Preference::IoKeys::Cookies::TIMEZONE
 
-    COLORTHEME_SHORT_MAP = {
+    THEME_SHORT_MAP = {
       "light" => "li",
       "dark" => "dr",
       "system" => "sy",
     }.freeze
-    THEME_SHORT_MAP = COLORTHEME_SHORT_MAP
 
-    COLORTHEME_OPTION_MAP = {
+    THEME_OPTION_MAP = {
       "li" => "light",
       "dr" => "dark",
       "sy" => "system",
@@ -51,7 +50,6 @@ module Preference
       "dark" => "dark",
       "system" => "system",
     }.freeze
-    THEME_OPTION_MAP = COLORTHEME_OPTION_MAP
 
     def show_cookie_banner?
       false
@@ -128,7 +126,7 @@ module Preference
     end
 
     def set_color_theme
-      theme = normalize_colortheme(actor_preference_theme)
+      theme = normalize_theme(actor_preference_theme)
       theme ||= "sy"
 
       write_preference_cookie(THEME_COOKIE_KEY, theme)
@@ -146,8 +144,8 @@ module Preference
     def preference_record_theme
       return if @preferences.blank?
 
-      option_id = @preferences.public_send(preference_colortheme_association)&.option_id
-      colortheme_short_code(option_id_to_colortheme(option_id, preference_prefix))
+      option_id = @preferences.public_send(preference_theme_association)&.option_id
+      theme_short_code(option_id_to_theme(option_id, preference_prefix))
     end
 
     def create_preference_options(preference, params_hash = {})
@@ -178,7 +176,6 @@ module Preference
         Preference::ClassRegistry::CHILD_RECORD_TYPES.index_with do |type|
           Preference::ClassRegistry.option_class(prefix, type)
         end
-      classes[:colortheme] = classes[:theme]
       classes
     end
 
@@ -377,8 +374,8 @@ module Preference
       IPAddr.new((127 << 24) + 1).to_s
     end
 
-    def preference_colortheme_association
-      @preference_colortheme_association ||= "#{preference_prefix_underscore}_colortheme"
+    def preference_theme_association
+      @preference_theme_association ||= "#{preference_prefix_underscore}_theme"
     end
 
     def update_preference_child_with_audit(child, attributes, audit_event)
@@ -419,8 +416,8 @@ module Preference
 
       if option_class
         name =
-          if %i(colortheme theme).include?(option_type)
-            canonical_colortheme_option_id(params[option_id_key])
+          if option_type == :theme
+            canonical_theme_option_id(params[option_id_key])
           else
             params[option_id_key]
           end
@@ -448,26 +445,26 @@ module Preference
       ].uniq
     end
 
-    def canonical_colortheme_option_id(value)
+    def canonical_theme_option_id(value)
       return nil if value.blank?
 
-      COLORTHEME_OPTION_MAP[value.to_s.downcase]
+      THEME_OPTION_MAP[value.to_s.downcase]
     end
 
-    def colortheme_short_code(value)
+    def theme_short_code(value)
       return nil if value.blank?
 
-      COLORTHEME_SHORT_MAP[value.to_s.downcase]
+      THEME_SHORT_MAP[value.to_s.downcase]
     end
 
-    def normalize_colortheme(value)
+    def normalize_theme(value)
       return nil if value.blank?
 
       theme = value.to_s.downcase
-      if COLORTHEME_SHORT_MAP.value?(theme)
+      if THEME_SHORT_MAP.value?(theme)
         theme
       else
-        COLORTHEME_SHORT_MAP[theme]
+        THEME_SHORT_MAP[theme]
       end
     end
 
@@ -626,11 +623,21 @@ module Preference
         "lx" => option_id_to_language(option_ids[:language], option_prefix) || "ja",
         "ri" => option_id_to_region(option_ids[:region], option_prefix) || "jp",
         "tz" => option_id_to_timezone(option_ids[:timezone], option_prefix) || "Asia/Tokyo",
-        "ct" => normalize_colortheme(option_id_to_colortheme(option_ids[:theme], option_prefix)) || "sy",
+        "ct" => normalize_theme(option_id_to_theme(option_ids[:theme], option_prefix)) || "sy",
       }.merge(
         preference_payload_extended_options(option_ids, option_prefix),
         preference_payload_consent(consent_state),
+        preference_payload_explicit(preference),
       )
+    end
+
+    # Field names the user set on purpose, carried in the signed payload so the
+    # Actor can let an explicit value win over dynamic region seeding (?ri).
+    # Absent (older record without the marker) yields an empty list.
+    def preference_payload_explicit(preference)
+      return {} unless preference.respond_to?(:explicit_field_names)
+
+      { "explicit" => preference.explicit_field_names }
     end
 
     def preference_payload_option_ids(preference, association_prefix)
@@ -718,10 +725,10 @@ module Preference
       option_class.find_by(id: option_id)&.name || option_id.to_s
     end
 
-    def option_id_to_colortheme(option_id, prefix)
+    def option_id_to_theme(option_id, prefix)
       return if option_id.blank?
 
-      option_class = Preference::ClassRegistry.option_class(prefix, :colortheme)
+      option_class = Preference::ClassRegistry.option_class(prefix, :theme)
       return "light" if option_id == option_class::LIGHT
       return "dark" if option_id == option_class::DARK
       return "system" if option_id == option_class::SYSTEM
@@ -964,7 +971,7 @@ module Preference
         "#{prefix}_language",
         "#{prefix}_region",
         "#{prefix}_timezone",
-        "#{prefix}_colortheme",
+        "#{prefix}_theme",
         "#{prefix}_currency",
         "#{prefix}_date_format",
         "#{prefix}_time_format",

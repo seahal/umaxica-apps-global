@@ -248,12 +248,18 @@ class Preference::CoreTest < ActiveSupport::TestCase
     @controller.params_hash = { return_to: "/safe", theme: "dark" }
 
     assert_equal "/safe", @controller.send(:safe_return_to_path)
-    assert_equal "dark", @controller.send(:preference_colortheme_params)[:option_id]
+    assert_equal "dark", @controller.send(:preference_theme_params)[:option_id]
 
     @controller.params_hash = { return_to: "//evil.example", ct: "dr" }
 
     assert_nil @controller.send(:safe_return_to_path)
-    assert_equal "dr", @controller.send(:preference_colortheme_params)[:option_id]
+    assert_equal "dr", @controller.send(:preference_theme_params)[:option_id]
+  end
+
+  test "theme params still accept legacy colortheme scope" do
+    @controller.params_hash = { preference_colortheme: { option_id: "dark" } }
+
+    assert_equal "dark", @controller.send(:preference_theme_params)[:option_id]
   end
 
   test "render update response and reset state cover response helpers" do

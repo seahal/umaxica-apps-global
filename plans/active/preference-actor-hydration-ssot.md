@@ -1,8 +1,32 @@
 # プラン: Actor.preferences を Preference JWT(=DB の署名付き射影) から hydrate する（B案で実装 → 長期 A案へ）
 
-Status: Active（実装未着手。前段調査のみ完了）関連:
+Status: B案 実装完了（2026-05-30）。長期 A案は
+`plans/backlog/preference-explicit-child-records-model-a.md` に残置。関連:
 `plans/active/preference-jwt-runtime-cache-migration.md`、ADR `preference-soft-bubble-doctrine.md` /
 `actor-current-facade.md` / `localization-preference-flow.md`
+
+> **実装サマリ（2026-05-30）:**
+>
+> - B-1: `explicit_fields`(jsonb, default `[]`, not null) を `app/com/org_preferences`
+>   に追加（`db/{app,com,org}_settings_migrate/20260530120000_*`）。dev/test
+>   DB へ適用済み。マーキングは `Preference::ExplicitFields` concern（`mark_field_explicit!` /
+>   `clear_explicit_fields!`）で、明示update（`core.rb`
+>   `update_preference_child_with_resource_first!`）時に立て、reset（`reset_app_org_preference_to_defaults!`）時に消す。
+> - B-2: `build_preferences_payload` に `explicit` リストを追加（`base.rb`）。
+> - B-3: `Actor::Preference` に `explicit_fields` と `language_explicit?` / `explicit?` を追加、
+>   `from_jwt` が `explicit` を読む。`==`/`hash`/`with_cookie` 更新。
+> - B-4: `resolved_current_preference` は `preference_payload_preferences`
+>   から hydrate（payload 不在は NULL+overlay）。`overlay_language` は `null?` ではなく
+>   `language_explicit?` で判定。
+> - B-6:
+>   3面 hydration テスト（`.../region/language_payload_hydration_test.rb`）、overlay 単体、lifecycle/support 単体を更新。全グリーン。
+> - B-7: 上記3 ADR と `docs/architecture/preference.md` を追補/更新。
+>
+> **注意（構造ダンプ）:** リポジトリの `db/*_structure.sql`
+> は現状 18 行のスタブ（このブランチは migration 直実行で DB を構築している）。`bin/rails db:migrate`
+> を回すと全 27 ダンプが環境依存フォーマットで全面書き換えされる（並行作業の migration も巻き込む）ため、構造ダンプはスタブのまま据え置いた。正規ダンプ再生成は
+> `bin/db-reset-all` ワークフローで別途行うこと。`db:verify_no_schema_drift`
+> はスタブ相手では意味を成さない。
 
 ## Context（なぜ）
 

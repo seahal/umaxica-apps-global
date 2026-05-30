@@ -10,9 +10,9 @@ class IdColumnTypeTest < ActiveSupport::TestCase
   end
 
   test "polymorphic ids use bigint" do
-    assert_bigint_column(PostVersion, "edited_by_id")
-    assert_bigint_column(Post, "created_by_actor_id")
-    assert_bigint_column(Post, "published_by_actor_id")
+    assert_bigint_column(AppPostVersion, "edited_by_id")
+    assert_bigint_column(AppPost, "created_by_actor_id")
+    assert_bigint_column(AppPost, "published_by_actor_id")
   end
 
   test "notification public_id columns are strings" do

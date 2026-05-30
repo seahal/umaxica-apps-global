@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: post_category_masters
+# Table name: com_post_category_masters
 # Database name: com_publisher
 #
 #  id        :bigint           not null, primary key
@@ -11,11 +11,9 @@
 #
 # Indexes
 #
-#  index_post_category_masters_on_parent_id  (parent_id)
+#  index_com_post_category_masters_on_parent_id  (parent_id)
 #
 class ComPostCategoryMaster < ComPublisherRecord
-  self.table_name = "post_category_masters"
-
   NOTHING = 0
   LEGACY_NOTHING = 1
   DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
@@ -31,7 +29,7 @@ class ComPostCategoryMaster < ComPublisherRecord
            foreign_key: :parent_id,
            inverse_of: :parent,
            dependent: :restrict_with_error
-  has_many :post_categories, class_name: "ComPostCategory", dependent: :restrict_with_error,
-                             inverse_of: :post_category_master
-  has_many :posts, through: :post_categories
+  has_many :com_post_categories, class_name: "ComPostCategory", dependent: :restrict_with_error,
+                                 inverse_of: :com_post_category_master
+  has_many :com_posts, through: :com_post_categories
 end

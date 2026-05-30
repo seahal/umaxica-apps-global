@@ -150,7 +150,12 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert snapshot["signed_up"]
     assert_equal "app", snapshot["tld"]
     assert_equal({ "client" => "app" }, { snapshot["whoami"] => snapshot["tld"] })
-    assert snapshot["preference"]["null"]
+    # Hydrated from the session preference payload (default-seeded), so it is no
+    # longer null. The resource ClientPreference (language "en", currency "usd")
+    # must still NOT be used as a runtime fallback: language stays the session
+    # default "ja" and currency "jpy".
+    assert_not snapshot["preference"]["null"]
+    assert_equal "ja", snapshot["preference"]["language"]
     assert_equal "jpy", snapshot["preference"]["currency"]
     assert_equal "iso", snapshot["preference"]["date_format"]
     assert_equal "hour_24", snapshot["preference"]["time_format"]
@@ -206,7 +211,11 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert snapshot["signed_up"]
     assert_equal "org", snapshot["tld"]
     assert_equal({ "operator" => "org" }, { snapshot["whoami"] => snapshot["tld"] })
-    assert snapshot["preference"]["null"]
+    # Hydrated from the session preference payload (default-seeded), so it is no
+    # longer null. The resource OperatorPreference (language "en", currency "usd")
+    # must still NOT be used as a runtime fallback.
+    assert_not snapshot["preference"]["null"]
+    assert_equal "ja", snapshot["preference"]["language"]
     assert_equal "jpy", snapshot["preference"]["currency"]
     assert_equal "iso", snapshot["preference"]["date_format"]
     assert_equal "hour_24", snapshot["preference"]["time_format"]
@@ -245,7 +254,10 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal "com", snapshot["tld"]
     assert_equal({ "visitor" => "com" }, { snapshot["whoami"] => snapshot["tld"] })
     assert_predicate snapshot["preference"], :present?
-    assert snapshot["preference"]["null"]
+    # No resource preference record exists, but the session preference payload is
+    # default-seeded, so Actor.preferences hydrates to non-null defaults.
+    assert_not snapshot["preference"]["null"]
+    assert_equal "ja", snapshot["preference"]["language"]
     assert_equal "jpy", snapshot["preference"]["currency"]
     assert_equal "iso", snapshot["preference"]["date_format"]
     assert_equal "hour_24", snapshot["preference"]["time_format"]

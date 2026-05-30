@@ -21,11 +21,11 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
         provider: "apple",
         uid: "flow_uid",
         info: {},
-        credentials: { token: "token", discarded_at: 1.week.from_now.to_i },
+        credentials: { token: "token", expires_at: 1.week.from_now.to_i },
       },
     )
 
-    state = seed_social_auth_session(provider: "apple", intent: "login", ri: "jp")
+    state = seed_social_auth_session(provider: "apple", intent: "login", entry: "sign_up", ri: "jp")
 
     # 1. Auth callback
     # We expect NO emails to be sent

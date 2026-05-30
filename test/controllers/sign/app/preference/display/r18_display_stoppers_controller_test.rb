@@ -21,10 +21,10 @@ module Sign
                 headers: as_user_headers(@user, host: @host)
 
             assert_response :success
-            assert_select "select[name='preference_r18_display_stopper[option_id]'] option", text: "Unset"
-            assert_select "select[name='preference_r18_display_stopper[option_id]'] option", text: "Approved"
-            assert_select "select[name='preference_r18_display_stopper[option_id]'] option", text: "Deny"
-            assert_select "option[selected][value='0']", count: 1
+            assert_select "select[name='preference_r18_display_stopper[option_id]'] option[value='0']"
+            assert_select "select[name='preference_r18_display_stopper[option_id]'] option[value='1']"
+            assert_select "select[name='preference_r18_display_stopper[option_id]'] option[value='2']"
+            assert_select "select[name='preference_r18_display_stopper[option_id]'] option[value='0']", count: 1
           end
 
           test "PATCH update stores approved preference" do

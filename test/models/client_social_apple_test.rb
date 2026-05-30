@@ -183,7 +183,7 @@ class ClientSocialAppleTest < ActiveSupport::TestCase
     assert_equal "updated-refresh", identity.refresh_token
   end
 
-  test "extract_uid falls back to extra raw_info sub" do
+  test "extract_uid does not fall back to extra raw_info sub" do
     auth = MockAuth.new(
       uid: "",
       provider: "apple",
@@ -192,7 +192,7 @@ class ClientSocialAppleTest < ActiveSupport::TestCase
       extra: OpenStruct.new(raw_info: OpenStruct.new(sub: "apple-sub")),
     )
 
-    assert_equal "apple-sub", ClientSocialApple.extract_uid(auth)
+    assert_equal "", ClientSocialApple.extract_uid(auth)
   end
 
   test "extract_uid uses uid when present" do

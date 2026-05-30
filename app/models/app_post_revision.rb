@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: post_revisions
+# Table name: app_post_revisions
 # Database name: app_publisher
 #
 #  id             :bigint           not null, primary key
@@ -18,29 +18,27 @@
 #  title          :string
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
+#  app_post_id    :bigint           not null
 #  edited_by_id   :bigint
-#  post_id        :bigint           not null
 #  public_id      :string           default(""), not null
 #
 # Indexes
 #
-#  index_post_revisions_on_post_id_and_created_at  (post_id,created_at DESC)
-#  index_post_revisions_on_public_id               (public_id) UNIQUE
+#  index_app_post_revisions_on_app_post_id_and_created_at  (app_post_id,created_at DESC)
+#  index_app_post_revisions_on_public_id                   (public_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (post_id => posts.id) ON DELETE => cascade
+#  fk_rails_...  (app_post_id => app_posts.id) ON DELETE => cascade
 #
 class AppPostRevision < AppPublisherRecord
-  self.table_name = "post_revisions"
-
   include ::Version
   include ::PublicId
 
-  belongs_to :post, class_name: "AppPost", inverse_of: :post_revisions
+  belongs_to :app_post, class_name: "AppPost", inverse_of: :app_post_revisions
   has_one :latest_post,
           class_name: "AppPost",
-          foreign_key: :latest_revision_id,
+          foreign_key: :latest_app_post_revision_id,
           dependent: :nullify,
           inverse_of: :latest_revision_record
 

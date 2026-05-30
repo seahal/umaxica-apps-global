@@ -3,14 +3,12 @@
 
 # == Schema Information
 #
-# Table name: post_review_statuses
+# Table name: org_post_review_statuses
 # Database name: org_publisher
 #
 #  id :bigint           not null, primary key
 #
 class OrgPostReviewStatus < OrgPublisherRecord
-  self.table_name = "post_review_statuses"
-
   include ReferenceRecord
 
   NOTHING = 1
@@ -20,5 +18,6 @@ class OrgPostReviewStatus < OrgPublisherRecord
   DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
   PENDING = NOTHING
 
-  has_many :post_reviews, class_name: "OrgPostReview", dependent: :restrict_with_error, inverse_of: :post_review_status
+  has_many :org_post_reviews, class_name: "OrgPostReview", dependent: :restrict_with_error,
+                              inverse_of: :org_post_review_status
 end

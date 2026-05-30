@@ -58,10 +58,7 @@ module SocialIdentifiable
     end
 
     def extract_uid(auth)
-      uid = auth_value(auth, :uid)
-      raw_info = auth_value(auth_value(auth, :extra), :raw_info)
-      uid = auth_value(raw_info, :sub) if uid.blank?
-      uid.to_s
+      auth_value(auth, :uid).to_s
     end
 
     def provider_from_auth(auth)

@@ -97,28 +97,28 @@ module Preference::Core
     raise PreferenceOperationError
   end
 
-  def set_colortheme_preferences_edit
+  def set_theme_preferences_edit
     with_preference_connection(:writing) do
-      @preference_colortheme = load_or_refresh_preference_child("Colortheme", option_id: nil)
+      @preference_theme = load_or_refresh_preference_child("Theme", option_id: nil)
     end
   end
 
-  def set_colortheme_preferences_update
+  def set_theme_preferences_update
     with_preference_connection(:writing) do
-      @preference_colortheme = load_or_refresh_preference_child("Colortheme", option_id: nil)
+      @preference_theme = load_or_refresh_preference_child("Theme", option_id: nil)
 
       update_preference_child_with_resource_first!(
-        @preference_colortheme,
-        sanitize_option_id(preference_colortheme_params, option_type: :colortheme),
+        @preference_theme,
+        sanitize_option_id(preference_theme_params, option_type: :theme),
         option_type: :theme,
         audit_event: "UPDATE_PREFERENCE_COLORTHEME",
       )
     end
 
-    return if @preference_colortheme.option_id.blank?
+    return if @preference_theme.option_id.blank?
 
-    colortheme = option_id_to_colortheme(@preference_colortheme.option_id, preference_prefix)
-    short_code = colortheme_short_code(colortheme)
+    theme = option_id_to_theme(@preference_theme.option_id, preference_prefix)
+    short_code = theme_short_code(theme)
     write_preference_cookie(Preference::Base::THEME_COOKIE_KEY, short_code) if short_code.present?
   end
 
@@ -259,10 +259,25 @@ module Preference::Core
     ) if resource_pref
 
     update_preference_child_with_audit(child, p_hash, audit_event)
+    # Record that this field was set on purpose so localization can let the saved
+    # value win over dynamic region seeding (?ri). Must run before the token is
+    # reissued so the explicit list rides along in the preference payload.
+    mark_preference_field_explicit!(option_type)
     reload_preferences_and_reissue_token!(sync_resource: false)
   rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ActionPolicy::Unauthorized, ArgumentError => e
     record_preference_write_error("preference.write.option_error", e, target: option_type)
     raise PreferenceOperationError
+  end
+
+  # Mark a preference field as explicitly chosen on the session preference record.
+  # No-op when the record is missing or predates the explicit-fields marker.
+  def mark_preference_field_explicit!(option_type)
+    return if @preferences.blank?
+    return unless @preferences.respond_to?(:mark_field_explicit!)
+
+    with_preference_connection(:writing) do
+      @preferences.mark_field_explicit!(option_type)
+    end
   end
 
   def update_preference_cookie_with_resource_first!(cookie, attributes, audit_event:)
@@ -343,9 +358,9 @@ module Preference::Core
     params.fetch(:preference_region, {}).permit(:option_id)
   end
 
-  def preference_colortheme_params
-    return params.fetch(:preference_colortheme, {}).permit(:option_id) if params[:preference_colortheme]
+  def preference_theme_params
     return params.fetch(:preference_theme, {}).permit(:option_id) if params[:preference_theme]
+    return params.fetch(:preference_colortheme, {}).permit(:option_id) if params[:preference_colortheme]
 
     ActionController::Parameters.new(
       option_id: params[:option_id] || params[:theme] || params[:ct],
@@ -551,6 +566,10 @@ module Preference::Core
         targetable: false,
         consented_at: nil,
       )
+
+      # Reset clears explicit intent: every field returns to default-seeded state
+      # so dynamic region seeding (?ri) applies again until the user sets a value.
+      preference.clear_explicit_fields! if preference.respond_to?(:clear_explicit_fields!)
     end
   end
 

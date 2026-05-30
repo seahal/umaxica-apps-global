@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: post_statuses
+# Table name: app_post_statuses
 # Database name: app_publisher
 #
 #  id :bigint           not null, primary key

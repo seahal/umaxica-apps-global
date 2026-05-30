@@ -9,8 +9,8 @@ Backlog. Do not implement during the current QA stabilization pass unless explic
 The current sign preference reset flow behaves like "restore defaults":
 
 - shared surface preference rows (`AppPreference`, `ComPreference`, `OrgPreference`) stay in place;
-- actor-local preference rows (`ClientPreference`, `VisitorPreference`, `OperatorPreference`) stay in
-  place when present;
+- actor-local preference rows (`ClientPreference`, `VisitorPreference`, `OperatorPreference`) stay
+  in place when present;
 - child preference rows stay in place and their `option_id` values are updated to defaults;
 - consent fields are updated to false/nil;
 - a new preference access token is issued for the same preference record.
@@ -27,7 +27,8 @@ visit":
 
 For each sign surface:
 
-- app: reset destroys/retires `AppPreference`; if signed in, also destroys/retires `ClientPreference`.
+- app: reset destroys/retires `AppPreference`; if signed in, also destroys/retires
+  `ClientPreference`.
 - com: reset destroys/retires `ComPreference`; if signed in, also destroys/retires
   `VisitorPreference`.
 - org: reset destroys/retires `OrgPreference`; if signed in, also destroys/retires
@@ -107,7 +108,8 @@ Add focused controller/integration coverage for app, com, and org:
 - `ct`, `tz`, `lx`, and `ri` cookie/context state is cleared;
 - old access/refresh cookies cannot resolve the retired preference after reset;
 - new preference has default child rows and default consent false values;
-- redirect target remains same-surface `/preference`, not `/`, `/dashboard`, or a cross-surface path.
+- redirect target remains same-surface `/preference`, not `/`, `/dashboard`, or a cross-surface
+  path.
 
 ## Non-Goals
 

@@ -50,13 +50,11 @@ module Preference::SignScreenActions
   end
 
   def edit_theme_preference_screen
-    set_colortheme_preferences_edit
-    @preference_theme = @preference_colortheme
+    set_theme_preferences_edit
   end
 
   def update_theme_preference_screen
-    set_colortheme_preferences_update
-    @preference_theme = @preference_colortheme
+    set_theme_preferences_update
     return render_preference_update_response if request.format.json?
 
     redirect_to(

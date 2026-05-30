@@ -36,6 +36,27 @@ class Sign::CommonHelperTest < ActionView::TestCase
     end
   end
 
+  test "sign up birthdate order follows date format preference" do
+    assert_equal %w(year month day), sign_up_birthdate_part_order("iso")
+    assert_equal %w(month day year), sign_up_birthdate_part_order("us")
+    assert_equal %w(day month year), sign_up_birthdate_part_order("uk")
+  end
+
+  test "sign up birthdate fields use birthday autocomplete tokens" do
+    original = Actor.preferences
+    Actor.preferences = Actor::Preference.new(date_format: "us")
+
+    html = sign_up_birthdate_fields("2000-02-03")
+    fragment = Nokogiri::HTML.fragment(html)
+    inputs = fragment.css("input")
+
+    assert_includes html, 'data-birthdate-format="us"'
+    assert_equal %w(birthdate_month birthdate_day birthdate_year), inputs.pluck("name")
+    assert_equal %w(bday-month bday-day bday-year), inputs.pluck("autocomplete")
+  ensure
+    Actor.preferences = original
+  end
+
   test "get_timezone returns jst" do
     assert_equal "jst", get_timezone
   end

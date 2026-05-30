@@ -296,7 +296,7 @@ module Preference
           language: Preference::ClassRegistry.option_class(prefix, :language),
           timezone: Preference::ClassRegistry.option_class(prefix, :timezone),
           region: Preference::ClassRegistry.option_class(prefix, :region),
-          colortheme: Preference::ClassRegistry.option_class(prefix, :colortheme),
+          theme: Preference::ClassRegistry.option_class(prefix, :theme),
         }
       end
       ctx.instance_variable_set(:@preferences, preference)

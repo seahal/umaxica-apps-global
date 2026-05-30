@@ -395,7 +395,7 @@ class ActorSupportTest < ActiveSupport::TestCase
     assert_equal Actor::Preference::NULL_COOKIE, preference.cookie
   end
 
-  test "resolved_current_preference uses prf claim when no preference record exists" do
+  test "resolved_current_preference ignores auth prf claim when no preference record exists" do
     @host.define_singleton_method(:access_token_payload) do
       {
         "prf" => {
@@ -415,17 +415,43 @@ class ActorSupportTest < ActiveSupport::TestCase
 
     preference = @host.resolved_current_preference(nil)
 
+    # prf is dead transport: with no Preference JWT payload, hydration falls back
+    # to the NULL preference defaults rather than reading the prf claim.
+    assert_predicate preference, :null?
+    assert_equal "ja", preference.language
+    assert_equal "jp", preference.region
+    assert_equal "Asia/Tokyo", preference.timezone
+    assert_equal "sy", preference.theme
+    assert_equal "jpy", preference.currency
+    assert_equal "iso", preference.date_format
+    assert_equal "hour_24", preference.time_format
+    assert_equal "standard", preference.motion
+    assert_equal "standard", preference.density
+    assert_equal "20", preference.items_per_page
+    assert_equal Actor::Preference::NULL_COOKIE, preference.cookie
+  end
+
+  test "resolved_current_preference hydrates from the preference payload" do
+    # Actor.preferences is hydrated from the Preference JWT payload (the signed
+    # projection of the DB SSoT), with the explicit-fields marker preserved.
+    @host.define_singleton_method(:preference_payload_preferences) do
+      {
+        "lx" => "en",
+        "ri" => "us",
+        "tz" => "America/New_York",
+        "ct" => "dr",
+        "explicit" => ["language"],
+      }
+    end
+
+    preference = @host.resolved_current_preference(nil)
+
+    assert_not preference.null?
+    assert_predicate preference, :language_explicit?
     assert_equal "en", preference.language
     assert_equal "us", preference.region
     assert_equal "America/New_York", preference.timezone
     assert_equal "dr", preference.theme
-    assert_equal "usd", preference.currency
-    assert_equal "mdy", preference.date_format
-    assert_equal "hour_12", preference.time_format
-    assert_equal "reduced", preference.motion
-    assert_equal "compact", preference.density
-    assert_equal "50", preference.items_per_page
-    assert_equal Actor::Preference::NULL_COOKIE, preference.cookie
   end
 
   test "resolved_current_preference falls back to null preference" do

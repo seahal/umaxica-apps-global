@@ -68,7 +68,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "html.theme-system"
+    assert_includes response.body, 'class="theme-dark dark"'
 
     headers = as_user_headers(@user, host: @host)
     get sign_app_configuration_url(ct: "light"), headers: headers
@@ -77,7 +77,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "html:not(.dark)"
+    assert_no_match(/\bclass="[^"]*\bdark\b/, response.body)
   end
 
   test "UI components are used in the page" do

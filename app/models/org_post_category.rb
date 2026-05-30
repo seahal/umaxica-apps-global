@@ -3,30 +3,28 @@
 
 # == Schema Information
 #
-# Table name: post_categories
+# Table name: org_post_categories
 # Database name: org_publisher
 #
-#  id                      :bigint           not null, primary key
-#  created_at              :datetime         not null
-#  updated_at              :datetime         not null
-#  post_category_master_id :bigint           default(0), not null
-#  post_id                 :bigint           not null
+#  id                          :bigint           not null, primary key
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  org_post_category_master_id :bigint           default(0), not null
+#  org_post_id                 :bigint           not null
 #
 # Indexes
 #
-#  index_post_categories_on_post_category_master_id  (post_category_master_id)
-#  index_post_categories_on_post_id                  (post_id) UNIQUE
+#  index_org_post_categories_on_org_post_category_master_id  (org_post_category_master_id)
+#  index_org_post_categories_on_org_post_id                  (org_post_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (post_category_master_id => post_category_masters.id)
-#  fk_rails_...  (post_id => posts.id) ON DELETE => cascade
+#  fk_rails_...  (org_post_category_master_id => org_post_category_masters.id)
+#  fk_rails_...  (org_post_id => org_posts.id) ON DELETE => cascade
 #
 class OrgPostCategory < OrgPublisherRecord
-  self.table_name = "post_categories"
+  belongs_to :org_post, class_name: "OrgPost", inverse_of: :org_post_category
+  belongs_to :org_post_category_master, class_name: "OrgPostCategoryMaster", inverse_of: :org_post_categories
 
-  belongs_to :post, class_name: "OrgPost", inverse_of: :category
-  belongs_to :post_category_master, class_name: "OrgPostCategoryMaster", inverse_of: :post_categories
-
-  validates :post_id, uniqueness: true
+  validates :org_post_id, uniqueness: true
 end

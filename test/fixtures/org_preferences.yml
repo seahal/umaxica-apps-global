@@ -8,6 +8,7 @@
 #  dbsc_challenge_issued_at :datetime
 #  dbsc_public_key          :jsonb
 #  discarded_at             :datetime         default(Infinity), not null
+#  explicit_fields          :jsonb            not null
 #  jti                      :string
 #  purged_at                :datetime         default(Infinity), not null
 #  token_digest             :binary

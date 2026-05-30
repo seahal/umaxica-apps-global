@@ -179,7 +179,7 @@ class ClientSocialGoogleTest < ActiveSupport::TestCase
     assert_equal "updated-refresh", identity.refresh_token
   end
 
-  test "extract_uid falls back to extra raw_info sub" do
+  test "extract_uid does not fall back to extra raw_info sub" do
     auth = MockAuth.new(
       uid: "",
       provider: "google_app",
@@ -188,7 +188,7 @@ class ClientSocialGoogleTest < ActiveSupport::TestCase
       extra: OpenStruct.new(raw_info: OpenStruct.new(sub: "fallback-sub")),
     )
 
-    assert_equal "fallback-sub", ClientSocialGoogle.extract_uid(auth)
+    assert_equal "", ClientSocialGoogle.extract_uid(auth)
   end
 
   test "extract_uid uses uid when present" do

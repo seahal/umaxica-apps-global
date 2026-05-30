@@ -36,6 +36,10 @@ module Sign
 
         def handle_omniauth_callback(auth)
           validate_social_auth_state!
+          SocialAuth::VerifiedProviderAssertion.call(
+            auth_hash: auth,
+            expected_provider: params[:provider],
+          )
           staff = find_staff_from_auth(auth)
           return redirect_staff_not_found(auth) unless staff
 

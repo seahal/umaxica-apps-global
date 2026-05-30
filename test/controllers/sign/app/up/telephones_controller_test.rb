@@ -336,7 +336,10 @@ module Sign::App::Up
       get sign_app_up_checkpoint_url(regional_defaults)
 
       assert_response :success
-      assert_select "input[type=date][name=birthdate]"
+      assert_select "[data-birthdate-format=iso]"
+      assert_select "input[type=number][name=birthdate_year][autocomplete=bday-year]"
+      assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
+      assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
       cycle = ClientSignUpCycle.find_by!(principal_id: user.id)
 
       assert_select "a[href='#{new_sign_app_up_checkpoint_passkey_path(

@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: post_tag_masters
+# Table name: app_post_tag_masters
 # Database name: app_publisher
 #
 #  id        :bigint           not null, primary key
@@ -11,11 +11,9 @@
 #
 # Indexes
 #
-#  index_post_tag_masters_on_parent_id  (parent_id)
+#  index_app_post_tag_masters_on_parent_id  (parent_id)
 #
 class AppPostTagMaster < AppPublisherRecord
-  self.table_name = "post_tag_masters"
-
   NOTHING = 0
   LEGACY_NOTHING = 1
   DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
@@ -31,6 +29,6 @@ class AppPostTagMaster < AppPublisherRecord
            foreign_key: :parent_id,
            inverse_of: :parent,
            dependent: :restrict_with_error
-  has_many :post_tags, class_name: "AppPostTag", dependent: :restrict_with_error, inverse_of: :post_tag_master
-  has_many :posts, through: :post_tags
+  has_many :app_post_tags, class_name: "AppPostTag", dependent: :restrict_with_error, inverse_of: :app_post_tag_master
+  has_many :app_posts, through: :app_post_tags
 end

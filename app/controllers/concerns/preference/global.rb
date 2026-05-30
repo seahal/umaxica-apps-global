@@ -77,7 +77,7 @@ module Preference::Global
       ri: normalized_preference_value(preferences, "ri"),
       lx: normalized_preference_value(preferences, "lx"),
       tz: preferences["tz"],
-      ct: colortheme_short_code(preferences["ct"]),
+      ct: theme_short_code(preferences["ct"]),
     }
   end
 
@@ -88,7 +88,7 @@ module Preference::Global
       ri: option_id_to_region(preference_option_id(association_name_for_region), prefix),
       lx: option_id_to_language(preference_option_id(association_name_for_language), prefix),
       tz: option_id_to_timezone(preference_option_id(association_name_for_timezone), prefix),
-      ct: colortheme_short_code(preference_option_value(preference_colortheme_association)),
+      ct: theme_short_code(preference_option_value(preference_theme_association)),
     }
   end
 
@@ -164,7 +164,7 @@ module Preference::Global
     when :lx
       normalized_locale(value).present?
     when :ct
-      normalize_colortheme(value).present?
+      normalize_theme(value).present?
     when :tz
       valid_timezone_value?(value)
     else
@@ -217,7 +217,7 @@ module Preference::Global
     (request.get? || request.head?) ? :found : :see_other
   end
 
-  def get_colortheme
+  def get_theme
     "sy"
   end
 

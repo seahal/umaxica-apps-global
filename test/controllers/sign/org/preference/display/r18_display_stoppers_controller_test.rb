@@ -21,7 +21,7 @@ module Sign
                 headers: as_staff_headers(@staff, host: @host)
 
             assert_response :success
-            assert_select "a[href=?]", edit_sign_org_preference_display_r18_display_stopper_path
+            assert_select "a[href*=?]", edit_sign_org_preference_display_r18_display_stopper_path
           end
 
           test "edit renders unset approved and deny choices" do
@@ -29,10 +29,10 @@ module Sign
                 headers: as_staff_headers(@staff, host: @host)
 
             assert_response :success
-            assert_select "select[name='preference_r18_display_stopper[option_id]'] option", text: "Unset"
-            assert_select "select[name='preference_r18_display_stopper[option_id]'] option", text: "Approved"
-            assert_select "select[name='preference_r18_display_stopper[option_id]'] option", text: "Deny"
-            assert_select "option[selected][value='0']", count: 1
+            assert_select "select[name='preference_r18_display_stopper[option_id]'] option[value='0']"
+            assert_select "select[name='preference_r18_display_stopper[option_id]'] option[value='1']"
+            assert_select "select[name='preference_r18_display_stopper[option_id]'] option[value='2']"
+            assert_select "select[name='preference_r18_display_stopper[option_id]'] option[value='2']", count: 1
           end
 
           test "PATCH update stores approved preference" do

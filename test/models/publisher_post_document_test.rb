@@ -11,38 +11,38 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
         record.cooldown_until = Time.current
       }
     @avatar =
-      Avatar.find_or_create_by!(moniker: "Publisher Post Author") do |record|
+      Avatar.find_or_create_by!(moniker: "Publisher AppPost Author") do |record|
         record.capability = capability
         record.active_handle = handle
       end
   end
 
   test "app post carries document-style publication fields" do
-    post = create_post(Post, PostStatus)
+    post = create_post(AppPost, AppPostStatus)
 
     assert_predicate post, :persisted?
     assert_not_empty post.permalink
     assert_not_empty post.revision_key
     assert_predicate post, :html_response_mode?
-    assert_includes Post.available, post
+    assert_includes AppPost.available, post
   end
 
   test "permalink validation rejects slash accepts underscore and rejects long length" do
-    invalid = build_post(Post, PostStatus, permalink: "bad/slug")
+    invalid = build_post(AppPost, AppPostStatus, permalink: "bad/slug")
 
     assert_not invalid.valid?
 
-    valid = build_post(Post, PostStatus, permalink: "good_slug")
+    valid = build_post(AppPost, AppPostStatus, permalink: "good_slug")
 
     assert_predicate valid, :valid?
 
-    too_long = build_post(Post, PostStatus, permalink: "a" * 201)
+    too_long = build_post(AppPost, AppPostStatus, permalink: "a" * 201)
 
     assert_not too_long.valid?
   end
 
   test "generated permalink is valid when public id starts with a hyphen" do
-    post = build_post(Post, PostStatus, public_id: "-#{SecureRandom.alphanumeric(20)}")
+    post = build_post(AppPost, AppPostStatus, public_id: "-#{SecureRandom.alphanumeric(20)}")
 
     assert_predicate post, :valid?
     assert_match(/\A[A-Za-z0-9_][A-Za-z0-9_-]{0,199}\z/, post.permalink)
@@ -51,19 +51,19 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
   test "available scope excludes future and expired posts" do
     now = Time.current
     available = create_post(
-      Post, PostStatus, permalink: "available_#{SecureRandom.hex(4)}",
-                        published_at: now - 1.hour, expires_at: now + 1.hour,
+      AppPost, AppPostStatus, permalink: "available_#{SecureRandom.hex(4)}",
+                              published_at: now - 1.hour, expires_at: now + 1.hour,
     )
     future = create_post(
-      Post, PostStatus, permalink: "future_#{SecureRandom.hex(4)}",
-                        published_at: now + 1.hour, expires_at: now + 2.hours,
+      AppPost, AppPostStatus, permalink: "future_#{SecureRandom.hex(4)}",
+                              published_at: now + 1.hour, expires_at: now + 2.hours,
     )
     expired = create_post(
-      Post, PostStatus, permalink: "expired_#{SecureRandom.hex(4)}",
-                        published_at: now - 2.hours, expires_at: now - 1.hour,
+      AppPost, AppPostStatus, permalink: "expired_#{SecureRandom.hex(4)}",
+                              published_at: now - 2.hours, expires_at: now - 1.hour,
     )
 
-    available_ids = Post.available.pluck(:id)
+    available_ids = AppPost.available.pluck(:id)
 
     assert_includes available_ids, available.id
     assert_not_includes available_ids, future.id
@@ -71,27 +71,32 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
   end
 
   test "redirect url is required when response mode is redirect" do
-    invalid = build_post(Post, PostStatus, response_mode: "redirect", redirect_url: nil)
+    invalid = build_post(AppPost, AppPostStatus, response_mode: "redirect", redirect_url: nil)
 
     assert_not invalid.valid?
 
-    valid = build_post(Post, PostStatus, response_mode: "redirect", redirect_url: "https://example.com")
+    valid = build_post(AppPost, AppPostStatus, response_mode: "redirect", redirect_url: "https://example.com")
 
     assert_predicate valid, :valid?
   end
 
   test "response mode only accepts known values" do
-    post = build_post(Post, PostStatus, response_mode: "xml")
+    post = build_post(AppPost, AppPostStatus, response_mode: "xml")
 
     assert_not post.valid?
     assert_not_empty post.errors[:response_mode]
   end
 
   test "post versions and revisions enforce response mode constraints" do
-    post = create_post(Post, PostStatus)
+    post = create_post(AppPost, AppPostStatus)
 
-    invalid_version = PostVersion.new(version_attributes(post, "invalid-version").merge(response_mode: "xml"))
-    invalid_revision = PostRevision.new(version_attributes(post, "invalid-revision").merge(response_mode: "redirect"))
+    invalid_version = AppPostVersion.new(version_attributes(post, "invalid-version").merge(response_mode: "xml"))
+    invalid_revision = AppPostRevision.new(
+      version_attributes(
+        post,
+        "invalid-revision",
+      ).merge(response_mode: "redirect"),
+    )
 
     assert_not invalid_version.valid?
     assert_not_empty invalid_version.errors[:response_mode]
@@ -100,38 +105,38 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
   end
 
   test "published at must be before expires at" do
-    post = build_post(Post, PostStatus, published_at: 1.day.from_now, expires_at: 1.day.ago)
+    post = build_post(AppPost, AppPostStatus, published_at: 1.day.from_now, expires_at: 1.day.ago)
 
     assert_not post.valid?
     assert_not_empty post.errors[:published_at]
   end
 
   test "revision key is ensured before validation" do
-    post = build_post(Post, PostStatus, revision_key: nil)
+    post = build_post(AppPost, AppPostStatus, revision_key: nil)
 
     assert_predicate post, :valid?
     assert_not_empty post.revision_key
   end
 
-  test "app post relates category and tags through tree masters" do
-    post = create_post(Post, PostStatus)
-    category_master = PostCategoryMaster.create!(id: 10, parent_id: PostCategoryMaster::NOTHING)
-    tag_master = PostTagMaster.create!(id: 11, parent_id: PostTagMaster::NOTHING)
+  test "app post relates app_post_category and tags through tree masters" do
+    post = create_post(AppPost, AppPostStatus)
+    app_post_category_master = AppPostCategoryMaster.create!(id: 10, parent_id: AppPostCategoryMaster::NOTHING)
+    app_post_tag_master = AppPostTagMaster.create!(id: 11, parent_id: AppPostTagMaster::NOTHING)
 
-    category = PostCategory.create!(post: post, post_category_master: category_master)
-    tag = PostTag.create!(post: post, post_tag_master: tag_master)
+    app_post_category = AppPostCategory.create!(app_post: post, app_post_category_master: app_post_category_master)
+    app_post_tag = AppPostTag.create!(app_post: post, app_post_tag_master: app_post_tag_master)
 
-    assert_equal category, post.category
-    assert_equal category_master, post.category_master
-    assert_includes post.post_tags, tag
-    assert_includes post.tag_masters, tag_master
+    assert_equal app_post_category, post.app_post_category
+    assert_equal app_post_category_master, post.app_post_category_master
+    assert_includes post.app_post_tags, app_post_tag
+    assert_includes post.app_post_tag_masters, app_post_tag_master
   end
 
-  test "post category and tag masters expose root and child hierarchy" do
-    root_category = PostCategoryMaster.create!(id: 20, parent_id: PostCategoryMaster::NOTHING)
-    child_category = PostCategoryMaster.create!(id: 21, parent: root_category)
-    root_tag = PostTagMaster.create!(id: 22, parent_id: PostTagMaster::NOTHING)
-    child_tag = PostTagMaster.create!(id: 23, parent: root_tag)
+  test "post app_post_category and tag masters expose root and child hierarchy" do
+    root_category = AppPostCategoryMaster.create!(id: 20, parent_id: AppPostCategoryMaster::NOTHING)
+    child_category = AppPostCategoryMaster.create!(id: 21, parent: root_category)
+    root_tag = AppPostTagMaster.create!(id: 22, parent_id: AppPostTagMaster::NOTHING)
+    child_tag = AppPostTagMaster.create!(id: 23, parent: root_tag)
 
     assert_predicate root_category, :root?
     assert_equal root_category, child_category.parent
@@ -142,9 +147,9 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
   end
 
   test "app post relates versions and revisions separately" do
-    post = create_post(Post, PostStatus)
-    version = PostVersion.create!(version_attributes(post, "current-version"))
-    revision = PostRevision.create!(version_attributes(post, "current-revision"))
+    post = create_post(AppPost, AppPostStatus)
+    version = AppPostVersion.create!(version_attributes(post, "current-version"))
+    revision = AppPostRevision.create!(version_attributes(post, "current-revision"))
 
     post.update!(latest_version_record: version, latest_revision_record: revision)
 
@@ -174,7 +179,7 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
     status = status_class.find_or_create_by!(id: status_class::NOTHING)
     post_class.new(
       author_avatar: @avatar,
-      post_status: status,
+      "#{post_class.model_name.singular}_status": status,
       body: "Document-shaped post body",
       created_by_actor_id: 1,
       **attributes,
@@ -183,12 +188,12 @@ class PublisherPostDocumentTest < ActiveSupport::TestCase
 
   def version_attributes(post, permalink)
     {
-      post: post,
-      body: "Versioned body",
-      permalink: permalink,
-      response_mode: "html",
-      publish_at: 1.hour.ago,
-      expires_at: 1.year.from_now,
+      post.model_name.singular.to_sym => post,
+      :body => "Versioned body",
+      :permalink => permalink,
+      :response_mode => "html",
+      :publish_at => 1.hour.ago,
+      :expires_at => 1.year.from_now,
     }
   end
 end

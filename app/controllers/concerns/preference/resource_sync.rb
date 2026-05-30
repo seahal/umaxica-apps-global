@@ -187,7 +187,7 @@ module Preference
       when :timezone
         option_id_to_timezone(option_id, resource_prefix)
       when :theme
-        normalize_colortheme(option_id_to_colortheme(option_id, resource_prefix))
+        normalize_theme(option_id_to_theme(option_id, resource_prefix))
       else
         option_id_to_preference_value(option_id, resource_prefix, type)
       end
@@ -252,7 +252,7 @@ module Preference
         child = preference.public_send(association_name)
         value = child&.option&.name
         value = value&.downcase if %i(language region currency).include?(type)
-        value = colortheme_short_code(value) if type == :theme
+        value = theme_short_code(value) if type == :theme
         snapshot[type] = value if value.present?
       end
     end

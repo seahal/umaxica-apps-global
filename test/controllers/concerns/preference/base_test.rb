@@ -890,7 +890,7 @@ module Preference
       @controller.instance_variable_set(:@preference_class, AppPreference)
 
       assert_equal AppPreferenceStatus, @controller.send(:preference_status_class)
-      assert_equal "app_preference_colortheme", @controller.send(:preference_colortheme_association)
+      assert_equal "app_preference_theme", @controller.send(:preference_theme_association)
 
       Actor.install_context!(preferences: Actor::Preference.new(theme: "dr"))
       @controller.send(:set_color_theme)
@@ -940,7 +940,7 @@ module Preference
       assert_equal "zz", @controller.send(:option_id_to_language, "ZZ", "App")
       assert_equal "xx", @controller.send(:option_id_to_region, "XX", "App")
       assert_equal "Mars/Base", @controller.send(:option_id_to_timezone, "Mars/Base", "App")
-      assert_equal "contrast", @controller.send(:option_id_to_colortheme, "contrast", "App")
+      assert_equal "contrast", @controller.send(:option_id_to_theme, "contrast", "App")
       assert_equal "R18DisplayStopper", @controller.send(:preference_child_class_suffix, :r18_display_stopper)
     end
 

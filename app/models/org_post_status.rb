@@ -3,14 +3,12 @@
 
 # == Schema Information
 #
-# Table name: post_statuses
+# Table name: org_post_statuses
 # Database name: org_publisher
 #
 #  id :bigint           not null, primary key
 #
 class OrgPostStatus < OrgPublisherRecord
-  self.table_name = "post_statuses"
-
   include ReferenceRecord
 
   NOTHING = 1
@@ -19,5 +17,5 @@ class OrgPostStatus < OrgPublisherRecord
   DELETED = 4
   DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
-  has_many :posts, class_name: "OrgPost", dependent: :restrict_with_error, inverse_of: :post_status
+  has_many :org_posts, class_name: "OrgPost", dependent: :restrict_with_error, inverse_of: :org_post_status
 end

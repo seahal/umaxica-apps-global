@@ -11,7 +11,7 @@ module Preference
 
     def current_color_theme
       theme = theme_from_preference_payload
-      theme ||= normalize_colortheme(cookies[Preference::Base::THEME_COOKIE_KEY])
+      theme ||= normalize_theme(cookies[Preference::Base::THEME_COOKIE_KEY])
       theme || "sy"
     end
 
@@ -20,7 +20,7 @@ module Preference
       return nil if payload.blank?
 
       preferences = Preference::Token.extract_preferences(payload)
-      normalize_colortheme(preferences["ct"])
+      normalize_theme(preferences["ct"])
     end
 
     def apply_theme_update_from_request!
@@ -39,7 +39,7 @@ module Preference
       raw_value = request_params["theme"].presence || request_params["ct"].presence
       return nil if raw_value.blank?
 
-      normalize_colortheme(raw_value.to_s)
+      normalize_theme(raw_value.to_s)
     end
 
     def persist_theme!(short_code)
@@ -51,7 +51,7 @@ module Preference
       preference = find_preference_for_theme_update(public_id)
       return if preference.blank?
 
-      update_preference_colortheme!(preference, short_code)
+      update_preference_theme!(preference, short_code)
     end
 
     def find_preference_for_theme_update(public_id)
@@ -60,15 +60,15 @@ module Preference
       end
     end
 
-    def update_preference_colortheme!(preference, short_code)
+    def update_preference_theme!(preference, short_code)
       with_preference_connection(:writing) do
         preference_class.transaction do
-          colortheme = load_or_create_colortheme_child(preference)
-          canonical = canonical_colortheme_option_id(
-            Preference::Base::COLORTHEME_OPTION_MAP[short_code] || short_code,
+          theme = load_or_create_theme_child(preference)
+          canonical = canonical_theme_option_id(
+            Preference::Base::THEME_OPTION_MAP[short_code] || short_code,
           )
           option_id = lookup_option_id(
-            Preference::ClassRegistry.option_class(preference_prefix, :colortheme),
+            Preference::ClassRegistry.option_class(preference_prefix, :theme),
             canonical,
           )
           return unless option_id
@@ -78,7 +78,7 @@ module Preference
           write_resource_preference_option!(resource_pref, :theme, option_id) if resource_pref
 
           @preferences = preference
-          colortheme.update!(option_id: option_id)
+          theme.update!(option_id: option_id)
           create_audit_log(
             event_id: "UPDATE_PREFERENCE_COLORTHEME",
             context: { updated_attributes: { option_id: option_id }, source: "web_theme_endpoint" },
@@ -102,12 +102,12 @@ module Preference
       decode_matching_access_token(jwt)
     end
 
-    def load_or_create_colortheme_child(preference)
-      association_name = "#{preference.class.name.underscore}_colortheme"
+    def load_or_create_theme_child(preference)
+      association_name = "#{preference.class.name.underscore}_theme"
       child = preference.public_send(association_name)
       return child if child.present?
 
-      option_class = Preference::ClassRegistry.option_class(preference_prefix, :colortheme)
+      option_class = Preference::ClassRegistry.option_class(preference_prefix, :theme)
       preference.public_send("create_#{association_name}!", option_id: option_class::SYSTEM)
     end
   end

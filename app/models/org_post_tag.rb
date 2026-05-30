@@ -3,30 +3,28 @@
 
 # == Schema Information
 #
-# Table name: post_tags
+# Table name: org_post_tags
 # Database name: org_publisher
 #
-#  id                 :bigint           not null, primary key
-#  created_at         :datetime         not null
-#  updated_at         :datetime         not null
-#  post_id            :bigint           not null
-#  post_tag_master_id :bigint           default(0), not null
+#  id                     :bigint           not null, primary key
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  org_post_id            :bigint           not null
+#  org_post_tag_master_id :bigint           default(0), not null
 #
 # Indexes
 #
-#  index_post_tags_on_post_id                         (post_id)
-#  index_post_tags_on_post_tag_master_id_and_post_id  (post_tag_master_id,post_id) UNIQUE
+#  index_org_post_tags_on_org_post_id                             (org_post_id)
+#  index_org_post_tags_on_org_post_tag_master_id_and_org_post_id  (org_post_tag_master_id,org_post_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (post_id => posts.id) ON DELETE => cascade
-#  fk_rails_...  (post_tag_master_id => post_tag_masters.id)
+#  fk_rails_...  (org_post_id => org_posts.id) ON DELETE => cascade
+#  fk_rails_...  (org_post_tag_master_id => org_post_tag_masters.id)
 #
 class OrgPostTag < OrgPublisherRecord
-  self.table_name = "post_tags"
+  belongs_to :org_post, class_name: "OrgPost", inverse_of: :org_post_tags
+  belongs_to :org_post_tag_master, class_name: "OrgPostTagMaster", inverse_of: :org_post_tags
 
-  belongs_to :post, class_name: "OrgPost", inverse_of: :post_tags
-  belongs_to :post_tag_master, class_name: "OrgPostTagMaster", inverse_of: :post_tags
-
-  validates :post_tag_master_id, uniqueness: { scope: :post_id, message: :already_tagged }
+  validates :org_post_tag_master_id, uniqueness: { scope: :org_post_id, message: :already_tagged }
 end

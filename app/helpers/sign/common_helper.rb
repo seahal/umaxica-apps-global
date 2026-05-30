@@ -57,12 +57,12 @@ module Sign::CommonHelper
     time.utc.strftime(format_string)
   end
 
-  def sign_up_birthdate_fields(value)
+  def sign_up_birthdate_fields(value, labelledby: nil)
     format = sign_up_birthdate_date_format
     parts = sign_up_birthdate_value_parts(value)
     order = sign_up_birthdate_part_order(format)
 
-    content_tag(:div, data: { birthdate_format: format }) do
+    content_tag(:div, role: "group", aria: { labelledby: labelledby }, data: { birthdate_format: format }) do
       safe_join(
         order.map { |part| sign_up_birthdate_part_field(part, parts[part]) },
         sign_up_birthdate_separator(format),
@@ -74,7 +74,7 @@ module Sign::CommonHelper
     value = Actor.preferences.date_format if defined?(Actor)
     normalized = value.to_s.downcase
     return "us" if normalized == "us"
-    return "uk" if normalized == "uk" || normalized == "gb"
+    return "uk" if normalized == "uk"
 
     "iso"
   end
@@ -83,7 +83,7 @@ module Sign::CommonHelper
     case format.to_s
     when "us"
       %w(month day year)
-    when "uk", "gb"
+    when "uk"
       %w(day month year)
     else
       %w(year month day)
@@ -155,7 +155,7 @@ module Sign::CommonHelper
 
   def sign_up_birthdate_separator(format)
     case format.to_s
-    when "us", "uk", "gb" then " / "
+    when "us", "uk" then " / "
     else " - "
     end
   end

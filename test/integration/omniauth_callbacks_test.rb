@@ -62,7 +62,9 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "input[name=birthdate_year]"
+    assert_select "input[name=birthdate_month]"
+    assert_select "input[name=birthdate_day]"
   end
 
   test "google callback without region parameter is processed without regional redirect" do
@@ -121,7 +123,9 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "input[name=birthdate_year]"
+    assert_select "input[name=birthdate_month]"
+    assert_select "input[name=birthdate_day]"
   end
 
   test "unknown Apple GET callback enters sign up checkpoint instead of signing in" do
@@ -154,7 +158,9 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "input[name=birthdate_year]"
+    assert_select "input[name=birthdate_month]"
+    assert_select "input[name=birthdate_day]"
   end
 
   test "apple social login with MFA enabled does not require additional MFA challenge" do
@@ -275,7 +281,9 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "input[name=birthdate_year]"
+    assert_select "input[name=birthdate_month]"
+    assert_select "input[name=birthdate_day]"
   end
 
   test "social login with MFA enabled does not require additional MFA challenge" do

@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (2026-05-06). Partially implemented; active enforcement rollout is pending.
+Accepted (2026-05-06). Partially implemented; per-action object-level enforcement rollout is
+pending. Re-verified 2026-05-30 — see the Phase 3 update for corrections to this section.
 
 ## Context
 
@@ -81,10 +82,40 @@ Changes made:
 
 Result: 442 runs / 0 failures on policy test suite; rubocop clean.
 
-### Phase 3: Active enforcement (pending — separate task)
+### Phase 3: Active enforcement (in progress — separate task)
 
-The `authorize_request!` stub in `Authorization::Base` still returns `true`. Actual authorization
-enforcement requires:
+> **Re-verification correction (2026-05-30).** The original Phase 3 text below predated the Actor
+> facade and the authentication-mode work; several of its claims are now stale. Corrected status:
+>
+> - **Authorization is two distinct layers; do not conflate them.**
+>   1. **Authentication-mode enforcement** (`enforce_access_policy!` in
+>      `app/controllers/concerns/authentication/base.rb`) — gates _who may reach an action_ (modes
+>      `:bare` / `:deny_all` / `:guest` / `:private` / `:open`) per ADR
+>      `two-base-authentication-mode-boundaries.md`. This is **live** as a `before_action` on all
+>      three surface base controllers (`sign/{app,org,com}/application_controller.rb`). It is NOT
+>      object-level authorization.
+>   2. **Object/resource authorization** (`authorize!(record)`, `authorized_scope`) — gates _what an
+>      authenticated actor may do to a specific record_. This is the work still rolling out.
+> - The `authorize_request!` hook in `Authorization::Base` **no longer returns `true`** — it now
+>   `raise`s (fail-closed, "disabled; authorize through Action Policy") and has no callers. The
+>   "implicit allow" risk described in the old Consequences section is resolved.
+> - **Context wiring is already done and is Actor-based**, not the railtie default. All three
+>   surface bases declare `authorize :user, through: :current_policy_user`, where
+>   `current_policy_user` (`app/controllers/concerns/actor_support.rb`) returns
+>   `Actor.authz.policy_user || safe_current_resource`. The old "user controllers use
+>   `current_user`, staff controllers need `current_staff`" plan is superseded — both unify on the
+>   Actor.
+> - **No `policy_scope(...)` call sites remain**; that migration sub-item is complete.
+>
+> Genuine remaining Phase 3 work: add per-action `authorize!` / `authorized_scope` to controllers.
+> As of this re-verification only **14 of 508** controllers do so. Roll this out test-first, one
+> controller group per PR (read-only/low-risk first, sensitive operations last), proving for each
+> group that allowed actors keep their status/redirect/flash and denied actors are correctly
+> rejected through the existing `authorization_audit.rb` / `rescue_from ActionPolicy::Unauthorized`
+> path. Migrate remaining transitional `Scope` inner classes to `scope_for :active_record_relation`
+> as the controllers that use them are touched.
+
+Original Phase 3 text (retained for history; see correction above):
 
 - Replacing the stub with real `authorize!` calls in controllers.
 - Mapping authorization context per controller base class:
@@ -104,17 +135,25 @@ enforcement requires:
 
 **Negative / risks:**
 
-- Authorization is still not enforced in production (Phase 3 pending). This is the same state as
-  before the migration — the stub was always returning `true`.
+- Object-level authorization is enforced on only a minority of controllers (14/508 as of
+  2026-05-30); the rollout is in progress (Phase 3). Note this is no longer the pre-migration state:
+  the `authorize_request!` hook now fails closed (raises) instead of returning `true`, and the
+  authentication-mode gate (`enforce_access_policy!`) is live, so the "implicit allow everywhere"
+  risk is gone — what remains is extending per-record checks.
 - The constructor shim (`case args.length`) is a transitional layer. All 132 legacy-style test
   instantiations continue to work, but should be migrated to `Policy.new(record, user: actor)` style
   once enforcement is active.
-- Staff controllers require explicit context wiring before Phase 3 can activate (the railtie default
-  wires `current_user`, which is undefined on staff controller trees).
+- ~~Staff controllers require explicit context wiring before Phase 3 can activate~~ — superseded:
+  all surface bases now wire `authorize :user, through: :current_policy_user` (Actor-based), so no
+  per-tree `current_user`/`current_staff` wiring is needed.
 
 ## Related
 
 - GitHub issue #674: Migrate authorization from Pundit to Action Policy
 - `app/policies/application_policy.rb`
-- `app/controllers/concerns/authorization/base.rb` (stub to replace in Phase 3)
+- `app/controllers/concerns/authorization/base.rb` (`authorize_request!` now raises; fail-closed)
+- `app/controllers/concerns/actor_support.rb` (`current_policy_user`, Actor-based policy context)
+- `app/controllers/concerns/authentication/base.rb` (`enforce_access_policy!`, authentication-mode
+  layer)
+- ADR `two-base-authentication-mode-boundaries.md` (the distinct authentication-mode layer)
 - Action Policy documentation: https://actionpolicy.evilmartians.io/

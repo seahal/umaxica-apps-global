@@ -19,6 +19,11 @@ class Actor
                 :currency, :date_format, :time_format, :motion, :density, :items_per_page,
                 :r18_display_stopper
 
+    # Field names (strings) the user set on purpose. Drives localization: an
+    # explicitly set field's saved value wins over dynamic region seeding (?ri),
+    # while an unset field stays eligible for seeding. See Preference::ExplicitFields.
+    attr_reader :explicit_fields
+
     Cookie =
       Data.define(:consented, :functional, :performant, :targetable, :consent_version, :consented_at) do
         def consented? = !!consented
@@ -61,7 +66,8 @@ class Actor
                    time_format: DEFAULTS[:time_format], motion: DEFAULTS[:motion],
                    density: DEFAULTS[:density], items_per_page: DEFAULTS[:items_per_page],
                    r18_display_stopper: DEFAULTS[:r18_display_stopper],
-                   cookie: NULL_COOKIE, null: false)
+                   cookie: NULL_COOKIE, null: false, explicit_fields: [])
+      @explicit_fields = Array(explicit_fields).map(&:to_s).freeze
       @language = language.freeze
       @region = region.freeze
       @timezone = timezone.freeze
@@ -86,6 +92,15 @@ class Actor
       @null
     end
 
+    # True when the user explicitly chose this field (vs an auto-seeded default).
+    def explicit?(field)
+      @explicit_fields.include?(field.to_s)
+    end
+
+    def language_explicit?
+      explicit?(:language)
+    end
+
     def ==(other)
       other.is_a?(self.class) &&
         language == other.language &&
@@ -100,7 +115,8 @@ class Actor
         items_per_page == other.items_per_page &&
         r18_display_stopper == other.r18_display_stopper &&
         cookie == other.cookie &&
-        null? == other.null?
+        null? == other.null? &&
+        explicit_fields == other.explicit_fields
     end
 
     alias eql? ==
@@ -108,7 +124,7 @@ class Actor
     def hash
       [
         self.class, language, region, timezone, theme, currency, date_format, time_format,
-        motion, density, items_per_page, r18_display_stopper, cookie, null?,
+        motion, density, items_per_page, r18_display_stopper, cookie, null?, explicit_fields,
       ].hash
     end
 
@@ -172,6 +188,7 @@ class Actor
         r18_display_stopper: @r18_display_stopper,
         cookie: self.class.cookie_from(cookie),
         null: @null,
+        explicit_fields: @explicit_fields,
       )
     end
 
@@ -206,6 +223,7 @@ class Actor
           :r18_display_stopper,
         ) || DEFAULTS[:r18_display_stopper],
         cookie: cookie,
+        explicit_fields: hash_value(prf_claim, "explicit", :explicit) || [],
       )
     end
 

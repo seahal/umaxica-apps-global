@@ -3,30 +3,28 @@
 
 # == Schema Information
 #
-# Table name: post_tags
+# Table name: com_post_tags
 # Database name: com_publisher
 #
-#  id                 :bigint           not null, primary key
-#  created_at         :datetime         not null
-#  updated_at         :datetime         not null
-#  post_id            :bigint           not null
-#  post_tag_master_id :bigint           default(0), not null
+#  id                     :bigint           not null, primary key
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  com_post_id            :bigint           not null
+#  com_post_tag_master_id :bigint           default(0), not null
 #
 # Indexes
 #
-#  index_post_tags_on_post_id                         (post_id)
-#  index_post_tags_on_post_tag_master_id_and_post_id  (post_tag_master_id,post_id) UNIQUE
+#  index_com_post_tags_on_com_post_id                             (com_post_id)
+#  index_com_post_tags_on_com_post_tag_master_id_and_com_post_id  (com_post_tag_master_id,com_post_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (post_id => posts.id) ON DELETE => cascade
-#  fk_rails_...  (post_tag_master_id => post_tag_masters.id)
+#  fk_rails_...  (com_post_id => com_posts.id) ON DELETE => cascade
+#  fk_rails_...  (com_post_tag_master_id => com_post_tag_masters.id)
 #
 class ComPostTag < ComPublisherRecord
-  self.table_name = "post_tags"
+  belongs_to :com_post, class_name: "ComPost", inverse_of: :com_post_tags
+  belongs_to :com_post_tag_master, class_name: "ComPostTagMaster", inverse_of: :com_post_tags
 
-  belongs_to :post, class_name: "ComPost", inverse_of: :post_tags
-  belongs_to :post_tag_master, class_name: "ComPostTagMaster", inverse_of: :post_tags
-
-  validates :post_tag_master_id, uniqueness: { scope: :post_id, message: :already_tagged }
+  validates :com_post_tag_master_id, uniqueness: { scope: :com_post_id, message: :already_tagged }
 end

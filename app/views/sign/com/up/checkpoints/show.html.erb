@@ -15,8 +15,8 @@
       <%= hidden_field_tag :checkpoint_version, @sign_up_ticket.checkpoint_version %>
 
       <div>
-        <%= label_tag :birthdate, t("sign.com.registration.checkpoint.show.birthdate.label") %>
-        <%= date_field_tag :birthdate, @sign_up_pending_actor&.birthdate, required: true, autocomplete: "bday" %>
+        <p id="birthdate_label"><%= t("sign.com.registration.checkpoint.show.birthdate.label") %></p>
+        <%= sign_up_birthdate_fields(@sign_up_pending_actor&.birthdate, labelledby: "birthdate_label") %>
       </div>
 
       <%= submit_tag t("sign.com.registration.checkpoint.show.birthdate.submit") %>

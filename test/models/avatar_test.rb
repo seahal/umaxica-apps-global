@@ -70,15 +70,13 @@ class AvatarTest < ActiveSupport::TestCase
 
     assert_not avatar.valid?
     assert_not_empty avatar.errors[:capability_id]
-    assert_not_empty avatar.errors[:capability]
   end
 
   test "requires active_handle" do
     avatar = Avatar.new(capability: @capability, moniker: "No Handle")
 
-    assert_not avatar.valid?
-    assert_not_empty avatar.errors[:active_handle_id]
-    assert_not_empty avatar.errors[:active_handle]
+    assert_predicate avatar, :valid?
+    assert_raises(ActiveRecord::NotNullViolation) { avatar.save! }
   end
 
   test "requires moniker" do
@@ -124,15 +122,15 @@ class AvatarTest < ActiveSupport::TestCase
 
   test "association deletion: restriction by posts" do
     avatar = Avatar.create!(
-      moniker: "Post Author",
+      moniker: "AppPost Author",
       capability: @capability,
       active_handle: @handle,
     )
-    status = PostStatus.find_or_create_by!(id: PostStatus::NOTHING)
-    Post.create!(
+    status = AppPostStatus.find_or_create_by!(id: AppPostStatus::NOTHING)
+    AppPost.create!(
       author_avatar: avatar,
-      post_status: status,
-      body: "Test Post",
+      app_post_status: status,
+      body: "Test AppPost",
       permalink: "post-author",
       created_by_actor_id: "user-1",
     )

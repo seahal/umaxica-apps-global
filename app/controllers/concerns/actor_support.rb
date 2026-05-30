@@ -209,15 +209,38 @@ module ActorSupport
     raise ResolutionError.new("Actor #{component} resolution failed"), cause: exception
   end
 
+  # Hydrate Actor.preferences from the Preference JWT payload -- the signed
+  # projection of the DB, which is the SSoT. The payload is decoded by
+  # set_preferences_cookie, which the controller lifecycle runs before
+  # set_current_actor (locked by controller_lifecycle_order_invariant_test).
+  #
+  # The auth access-token `prf` claim is intentionally no longer read here: it
+  # never mirrored the DB (it was built from the NULL+overlay value), so it was
+  # dead transport. It is left in place as unread data; its removal is a separate
+  # auth-side task.
+  #
+  # Bearer/OIDC requests and the endpoints that skip set_preferences_cookie carry
+  # no Preference JWT cookie, so they fall back to NULL+overlay.
   def resolved_current_preference(resource)
     cookie = resolved_current_cookie(resource, preference_record: nil)
 
-    prf_claim = resolved_current_token&.dig("prf")
-    if prf_claim.is_a?(Hash)
-      return preference_with_request_overlay(Actor::Preference.from_jwt(prf_claim, cookie: cookie))
+    payload_preferences = current_preference_payload_preferences
+    if payload_preferences.present?
+      return preference_with_request_overlay(
+        Actor::Preference.from_jwt(payload_preferences, cookie: cookie),
+      )
     end
 
     preference_with_request_overlay(Actor::Preference::NULL.with_cookie(cookie))
+  end
+
+  # The decoded Preference JWT `preferences` hash, or nil when absent or when the
+  # controller does not include the preference concept at all.
+  def current_preference_payload_preferences
+    return unless respond_to?(:preference_payload_preferences, true)
+
+    preferences = preference_payload_preferences
+    preferences if preferences.is_a?(Hash) && preferences.present?
   end
 
   def resolved_current_cookie(resource, preference_record: :__resolve__)
@@ -315,21 +338,26 @@ module ActorSupport
       r18_display_stopper: preference.r18_display_stopper,
       cookie: preference.cookie,
       null: preference.null?,
+      explicit_fields: preference.explicit_fields,
     )
   end
 
   # Resolve the request-overlay language.
   #
   # Priority:
-  #   1. explicit `lx` param  - the user asked for this language directly
-  #   2. saved language        - an explicit preference must not be overridden
-  #                              by a region context param (e.g. ?ri=jp)
-  #   3. region-derived locale - only seeds the language for guests / first
-  #                              visits that have no saved preference yet
-  #   4. preference default    - final fallback (NULL preference returns "ja")
+  #   1. explicit `lx` param      - the user asked for this language directly
+  #   2. explicitly saved language - a language the user chose on purpose must not
+  #                                  be overridden by a region context param (?ri)
+  #   3. region-derived locale    - seeds the language for users who have not set
+  #                                  one yet (?ri=jp -> ja, ?ri=us -> en)
+  #   4. preference default       - final fallback (default language is "ja")
+  #
+  # Explicitness, not whole-record null?, gates step 2: a hydrated preference is
+  # never null (default child records always exist), so region seeding for unset
+  # users relies on the per-field explicit marker.
   def overlay_language(context, preference)
     context[:lx] ||
-      (preference.null? ? nil : preference.language) ||
+      (preference.language_explicit? ? preference.language : nil) ||
       locale_from_request_region(context[:ri]) ||
       preference.language
   end

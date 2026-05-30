@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: post_revisions
+# Table name: com_post_revisions
 # Database name: com_publisher
 #
 #  id             :bigint           not null, primary key
@@ -18,29 +18,27 @@
 #  title          :string
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
+#  com_post_id    :bigint           not null
 #  edited_by_id   :bigint
-#  post_id        :bigint           not null
 #  public_id      :string           default(""), not null
 #
 # Indexes
 #
-#  index_post_revisions_on_post_id_and_created_at  (post_id,created_at DESC)
-#  index_post_revisions_on_public_id               (public_id) UNIQUE
+#  index_com_post_revisions_on_com_post_id_and_created_at  (com_post_id,created_at DESC)
+#  index_com_post_revisions_on_public_id                   (public_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (post_id => posts.id) ON DELETE => cascade
+#  fk_rails_...  (com_post_id => com_posts.id) ON DELETE => cascade
 #
 class ComPostRevision < ComPublisherRecord
-  self.table_name = "post_revisions"
-
   include ::Version
   include ::PublicId
 
-  belongs_to :post, class_name: "ComPost", inverse_of: :post_revisions
+  belongs_to :com_post, class_name: "ComPost", inverse_of: :com_post_revisions
   has_one :latest_post,
           class_name: "ComPost",
-          foreign_key: :latest_revision_id,
+          foreign_key: :latest_com_post_revision_id,
           dependent: :nullify,
           inverse_of: :latest_revision_record
 

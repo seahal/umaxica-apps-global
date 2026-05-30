@@ -317,10 +317,27 @@ module Sign
       end
 
       def sign_up_birthdate_param
-        params[:birthdate].presence ||
+        explicit_birthdate =
+          params[:birthdate].presence ||
           params.dig(:sign_up, :birthdate).presence ||
           params.dig(:client, :birthdate).presence ||
           params.dig(:visitor, :birthdate).presence
+        return explicit_birthdate if explicit_birthdate.present?
+
+        sign_up_split_birthdate_param
+      end
+
+      def sign_up_split_birthdate_param
+        year = params[:birthdate_year].presence || params[:birth_year].presence
+        month = params[:birthdate_month].presence || params[:birth_month].presence
+        day = params[:birthdate_day].presence || params[:birth_day].presence
+        return if year.blank? && month.blank? && day.blank?
+
+        [
+          year.to_s.rjust(4, "0"),
+          month.to_s.rjust(2, "0"),
+          day.to_s.rjust(2, "0"),
+        ].join("-")
       end
 
       def sign_up_checkpoint_version_param

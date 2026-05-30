@@ -173,7 +173,9 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :ok
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "input[name=birthdate_year]"
+    assert_select "input[name=birthdate_month]"
+    assert_select "input[name=birthdate_day]"
 
     cycle = ClientSignUpCycle.find_by!(principal_id: user.id)
     patch(

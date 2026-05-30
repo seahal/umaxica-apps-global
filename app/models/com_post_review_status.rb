@@ -3,14 +3,12 @@
 
 # == Schema Information
 #
-# Table name: post_review_statuses
+# Table name: com_post_review_statuses
 # Database name: com_publisher
 #
 #  id :bigint           not null, primary key
 #
 class ComPostReviewStatus < ComPublisherRecord
-  self.table_name = "post_review_statuses"
-
   include ReferenceRecord
 
   NOTHING = 1
@@ -20,5 +18,6 @@ class ComPostReviewStatus < ComPublisherRecord
   DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
   PENDING = NOTHING
 
-  has_many :post_reviews, class_name: "ComPostReview", dependent: :restrict_with_error, inverse_of: :post_review_status
+  has_many :com_post_reviews, class_name: "ComPostReview", dependent: :restrict_with_error,
+                              inverse_of: :com_post_review_status
 end

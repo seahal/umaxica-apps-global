@@ -883,13 +883,16 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "[data-birthdate-format=iso]"
+    assert_select "input[type=number][name=birthdate_year][autocomplete=bday-year]"
+    assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
+    assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
 
     get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "[data-birthdate-format=iso]"
 
     cycle = current_sign_up_cycle(user_email)
 
@@ -1084,12 +1087,14 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "[data-birthdate-format=iso]"
 
     patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
-            birthdate: "2000-02-03",
+            birthdate_year: "2000",
+            birthdate_month: "02",
+            birthdate_day: "03",
             checkpoint_version: cycle.checkpoint_version,
           },
           headers: default_headers

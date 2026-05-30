@@ -61,8 +61,6 @@
 #   (physical delete). Anonymized rows are retained for audit linkage with
 #   anonymous PII placeholders.
 class Client < AppPrincipalRecord
-  # rubocop:disable Rails/HasManyOrHasOneDependent
-
   include Retainable
   include HasBirthdate
   include ::PublicId
@@ -83,10 +81,6 @@ class Client < AppPrincipalRecord
     ClientTelephoneStatus::VERIFIED_WITH_SIGN_UP,
   ].freeze
   RECOVERY_IDENTITY_REQUIRED_MESSAGE = I18n.t("models.user.recovery_identity_required")
-
-  # Legacy column scheduled for removal after passkeys table migration.
-  # Remove this line as well after DROP COLUMN migration is completed.
-  self.ignored_columns += ["webauthn_id"]
 
   attribute :status_id, default: ClientStatus::NOTHING
   multi_factor_reference ClientMultiFactor

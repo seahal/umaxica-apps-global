@@ -21,7 +21,7 @@ class DatabasePkTypeTest < ActiveSupport::TestCase
 
   test "avatar schema tables use bigint primary keys" do
     assert_bigint_pk(HandleStatus)
-    assert_bigint_pk(PostStatus)
+    assert_bigint_pk(AppPostStatus)
     assert_bigint_pk(AvatarCapability)
   end
 

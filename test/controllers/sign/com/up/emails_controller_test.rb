@@ -69,7 +69,10 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get sign_com_up_checkpoint_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
-    assert_select "input[type=date][name=birthdate]"
+    assert_select "[data-birthdate-format=iso]"
+    assert_select "input[type=number][name=birthdate_year][autocomplete=bday-year]"
+    assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
+    assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
 
     cycle = VisitorSignUpCycle.order(:id).find_by!(

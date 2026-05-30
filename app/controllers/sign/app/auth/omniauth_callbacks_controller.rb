@@ -43,6 +43,10 @@ module Sign
         def handle_omniauth_callback(auth)
           Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.validating_state"))
           validate_social_auth_state!
+          SocialAuth::VerifiedProviderAssertion.call(
+            auth_hash: auth,
+            expected_provider: params[:provider],
+          )
 
           intent = current_social_auth_intent
           Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.processing_callback", intent: intent))

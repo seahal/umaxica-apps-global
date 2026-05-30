@@ -24,6 +24,26 @@
 > surfaces. `acme` and `jump` consume the resolved runtime preference through `Actor.preferences`
 > and must treat preference state as read-only. Request context overlays, RP rendering, and jump
 > redirects are not preference write paths.
+>
+> **Hydration source supersession (2026-05-30):** `Actor.preferences`
+> の構築元を、認証アクセストークンの `prf` クレームから **Preference
+> JWT(`*_preference_access`)の payload** に一本化する。Preference
+> JWT は DB(SSoT) の署名付き射影であり、`set_preferences_cookie` が `set_current_actor`
+> より前にデコード済みなので、追加 DB / 再発行なしの read-only で hydrate できる。旧経路の `prf`
+> は実装上 DB を一度も写しておらず（NULL+overlay から生成されていた）transport として死んでいたため、読み取りを停止する。`prf`
+> の生成自体の撤去は auth 側の別タスクで、当面は unread の dead data として残置する。
+>
+> **明示 vs 未設定と動的 region シード（2026-05-30）:**
+> 子レコード（language ほか）は初回訪問で常に default
+> option 付きで作られるため、「ユーザーが明示的に選んだ」か「自動 default か」を値だけでは区別できない。これを
+> `app/com/org_preferences.explicit_fields`(jsonb) マーカーで表現する。ローカライズは次の優先順位で言語を決める:
+> ①`?lx`（request-local、DB/JWT には書かない）→ ②明示設定された言語（`explicit_fields` に含まれる）→
+> ③`?ri` 由来の動的シード（`jp`→ja / `us`→en、未設定ユーザー向け）→ ④default(`ja`)。
+>
+> **フォールバック（2026-05-30）:** Bearer/OIDC API や `set_preferences_cookie`
+> をスキップするエンドポイントは Preference JWT cookie を持たないため、`Actor::Preference::NULL` +
+> overlay に落ちる。長期的には `explicit_fields`
+> マーカーを廃し「子レコード不在＝未設定」とする A 案へ移行する（`plans/backlog/preference-explicit-child-records-model-a.md`）。
 
 ## Context
 

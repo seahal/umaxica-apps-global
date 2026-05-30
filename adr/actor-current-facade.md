@@ -2,6 +2,15 @@
 
 **Status:** Accepted (2026-05-13)
 
+> **Hydration source supersession (2026-05-30):** 本 ADR 本文は `Actor.preferences`
+> を「検証済みアクセストークンの `prf`
+> クレームから初期化する」と記すが、これは廃止する。`Actor.preferences` は **Preference
+> JWT(`*_preference_access`)の payload**（DB(SSoT) の署名付き射影）から hydrate し、その後有効な
+> `lx`/`ct`/`tz` の request-local overlay を重ねる（overlay は DB/JWT を書かない点は不変）。 `prf`
+> は DB を写しておらず transport として死んでいたため読み取りを停止する（生成撤去は auth 側の別タスク）。言語決定は「明示設定 >
+> `?ri` 由来の動的シード > default」で、明示性は `explicit_fields` マーカーで判定する。詳細は
+> `adr/preference-soft-bubble-doctrine.md` の 2026-05-30 追補を参照。
+
 ## Context
 
 The app previously had multiple request-context experiments:

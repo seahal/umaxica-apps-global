@@ -175,25 +175,48 @@ Examples:
 Preference data flows in one direction for Rails runtime reads:
 
 ```text
-access-token JWT prf -> Actor.preferences
+Preference JWT payload (*_preference_access) -> Actor.preferences
 ```
 
-The database is the durable storage boundary used by explicit preference write and token-refresh
-flows. The access-token JWT is the Rails runtime read cache for normal requests. `Actor.preferences`
-is the immutable request-local runtime preference value exposed to controllers, views, and services.
+The database is the durable storage boundary (SSoT) used by explicit preference write and
+token-refresh flows. The **Preference JWT** (`*_preference_access` cookie) is its signed projection
+and the Rails runtime read cache for normal requests. `Actor.preferences` is the immutable
+request-local runtime preference value exposed to controllers, views, and services.
 
-In a normal authenticated request, `Actor.preferences` is built in two stages:
+> **2026-05-30:** The hydration source changed from the auth access-token `prf` claim to the
+> Preference JWT payload. The `prf` claim never mirrored the DB (it was built from the NULL+overlay
+> value), so it was dead transport and is no longer read; its production is removed on the auth side
+> in a separate task. The Preference JWT is decoded by `set_preferences_cookie`, which the
+> controller lifecycle runs before `set_current_actor`, so hydration is a read-only, no-extra-DB
+> step.
 
-1. Build the base preference from the verified access-token `prf` claim.
+In a normal request, `Actor.preferences` is built in two stages:
+
+1. Build the base preference from the Preference JWT payload (`preference_payload_preferences`), via
+   `Actor::Preference.from_jwt`. When no Preference JWT cookie exists (Bearer/OIDC APIs and
+   endpoints that skip `set_preferences_cookie`), fall back to `Actor::Preference::NULL`.
 2. Overlay valid request-local `lx`, `ct`, and `tz` values when they were explicitly present in the
    request.
 
 The overlay changes only the current request's runtime preference. It is not a preference write.
 
+### Language resolution and dynamic region seeding
+
+Child preference records are always created with a default option on first visit, so a saved value
+cannot, by itself, distinguish an explicit user choice from an auto-seeded default. The
+`explicit_fields` jsonb marker on `app/com/org_preferences` records which fields the user set on
+purpose; it rides along in the payload as the `explicit` list. The effective language is resolved by
+priority:
+
+1. `?lx` request param (request-local; never written to DB/JWT).
+2. An explicitly set language (present in `explicit_fields`) — wins over `?ri`.
+3. `?ri`-derived dynamic seeding for users who have not set a language (`jp` -> ja, `us` -> en).
+4. Default (`ja`).
+
 Example:
 
 ```text
-access-token prf: lx=ja, ct=sy, tz=Asia/Tokyo
+Preference JWT: lx=ja, ct=sy, tz=Asia/Tokyo
 request params:   lx=en
 Actor.preferences: language=en, theme=sy, timezone=Asia/Tokyo
 ```

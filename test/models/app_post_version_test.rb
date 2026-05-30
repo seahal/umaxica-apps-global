@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: post_versions
+# Table name: app_post_versions
 # Database name: app_publisher
 #
 #  id             :bigint           not null, primary key
@@ -18,34 +18,34 @@
 #  title          :string
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
+#  app_post_id    :bigint           not null
 #  edited_by_id   :bigint
-#  post_id        :bigint           not null
 #  public_id      :string           default(""), not null
 #
 # Indexes
 #
-#  index_post_versions_on_post_id_and_created_at  (post_id,created_at DESC)
-#  index_post_versions_on_public_id               (public_id) UNIQUE
+#  index_app_post_versions_on_app_post_id_and_created_at  (app_post_id,created_at DESC)
+#  index_app_post_versions_on_public_id                   (public_id) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (post_id => posts.id) ON DELETE => cascade
+#  fk_rails_...  (app_post_id => app_posts.id) ON DELETE => cascade
 #
 require "test_helper"
 
-class PostVersionTest < ActiveSupport::TestCase
+class AppPostVersionTest < ActiveSupport::TestCase
   setup do
     capability = AvatarCapability.find_or_create_by!(id: AvatarCapability::NORMAL)
     handle = Handle.find_or_create_by!(handle: "post_version_test_handle") { |h| h.cooldown_until = Time.current }
     avatar =
-      Avatar.find_or_create_by!(moniker: "Post Version Author") do |a|
+      Avatar.find_or_create_by!(moniker: "AppPost Version Author") do |a|
         a.capability = capability
         a.active_handle = handle
       end
-    status = PostStatus.find_or_create_by!(id: PostStatus::NOTHING)
-    @post = Post.create!(
+    status = AppPostStatus.find_or_create_by!(id: AppPostStatus::NOTHING)
+    @post = AppPost.create!(
       author_avatar: avatar,
-      post_status: status,
+      app_post_status: status,
       body: "Valid post body content",
       created_by_actor_id: 1,
       permalink: "post-version-test-#{SecureRandom.hex(4)}",
@@ -75,9 +75,9 @@ class PostVersionTest < ActiveSupport::TestCase
   private
 
   def build_post_version(attributes = {})
-    PostVersion.new(
+    AppPostVersion.new(
       {
-        post: @post,
+        app_post: @post,
         body: "Version body",
         permalink: "version-#{SecureRandom.hex(4)}",
         response_mode: "html",

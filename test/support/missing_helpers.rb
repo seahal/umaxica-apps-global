@@ -172,6 +172,51 @@ module MissingHelpers
     }
   end
 
+  def load_jump_rt_env!
+    @jump_rt_env_originals ||= {}
+    jump_rt_key = Base64.strict_encode64(OpenSSL::PKey::EC.generate("secp384r1").to_der)
+    env = {
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-test",
+      "JWT_SIGN_APP_PRIVATE_KEY" => jump_rt_key,
+      "JWT_SIGN_ORG_ACTIVE_KID" => "sign-org-test",
+      "JWT_SIGN_ORG_PRIVATE_KEY" => jump_rt_key,
+      "JWT_SIGN_COM_ACTIVE_KID" => "sign-com-test",
+      "JWT_SIGN_COM_PRIVATE_KEY" => jump_rt_key,
+      "JWT_ACME_APP_ACTIVE_KID" => "acme-app-test",
+      "JWT_ACME_APP_PRIVATE_KEY" => jump_rt_key,
+      "JWT_ACME_ORG_ACTIVE_KID" => "acme-org-test",
+      "JWT_ACME_ORG_PRIVATE_KEY" => jump_rt_key,
+      "JWT_ACME_COM_ACTIVE_KID" => "acme-com-test",
+      "JWT_ACME_COM_PRIVATE_KEY" => jump_rt_key,
+      "JWT_CORE_APP_ACTIVE_KID" => "core-app-test",
+      "JWT_CORE_APP_PRIVATE_KEY" => jump_rt_key,
+      "JWT_CORE_ORG_ACTIVE_KID" => "core-org-test",
+      "JWT_CORE_ORG_PRIVATE_KEY" => jump_rt_key,
+      "JWT_CORE_COM_ACTIVE_KID" => "core-com-test",
+      "JWT_CORE_COM_PRIVATE_KEY" => jump_rt_key,
+    }
+
+    env.each do |key, value|
+      @jump_rt_env_originals[key] = ENV[key] unless @jump_rt_env_originals.key?(key)
+      ENV[key] = value
+    end
+    Jit::Security::Jwt::Registry.reload! if defined?(Jit::Security::Jwt::Registry)
+  end
+
+  def jump_rt_url_from_location(location)
+    uri = URI.parse(location.to_s)
+    return location unless uri.host == "jump.umaxica.net"
+
+    token = Rack::Utils.parse_nested_query(uri.query.to_s)["rt"]
+    return location if token.blank?
+
+    payload, = JWT.decode(token, nil, false)
+    payload["url"].presence || location
+  rescue JWT::DecodeError, URI::InvalidURIError
+    location
+  end
+
   def host_headers(host)
     { "Host" => host }
   end

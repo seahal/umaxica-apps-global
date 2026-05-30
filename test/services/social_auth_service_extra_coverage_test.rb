@@ -15,7 +15,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     ClientSocialGoogleStatus.find_or_create_by!(id: ClientSocialGoogleStatus::REVOKED)
   end
 
-  test "extract_uid falls back to raw_info then id_info" do
+  test "extract_uid rejects raw_info and id_info without top-level uid" do
     raw_info_service = SocialAuthService.new(
       auth_hash: { "provider" => "apple", "extra" => { "raw_info" => { "sub" => "raw-sub" } } },
       current_client: nil,
@@ -27,14 +27,12 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       intent: "login",
     )
 
-    assert_equal "raw-sub", raw_info_service.send(:extract_uid)
-    assert_equal "id-info-sub", id_info_service.send(:extract_uid)
+    assert_raises(SocialAuth::ProviderError) { raw_info_service.send(:extract_uid) }
+    assert_raises(SocialAuth::ProviderError) { id_info_service.send(:extract_uid) }
   end
 
   test "extract_uid does not fall back to unsigned id_token" do
-    # The strategy is responsible for verifying the id_token signature and
-    # populating raw_info/id_info. We must never trust an unsigned id_token
-    # to derive uid because a forged token would silently bind to any sub.
+    # This layer never derives uid from raw token material.
     header = Base64.urlsafe_encode64({ alg: "RS256", typ: "JWT" }.to_json, padding: false)
     payload = Base64.urlsafe_encode64({ sub: "forged-sub" }.to_json, padding: false)
     service = SocialAuthService.new(

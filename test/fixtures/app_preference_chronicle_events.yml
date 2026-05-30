@@ -33,3 +33,5 @@ update_preference_density:
   id: 13
 update_preference_items_per_page:
   id: 14
+update_preference_r18_display_stopper:
+  id: 15

@@ -81,8 +81,7 @@ class AppPreferenceChronicleTest < ActiveSupport::TestCase
   test "validates presence of subject_id" do
     @audit.subject_id = nil
 
-    assert_not @audit.valid?
-    assert_includes @audit.errors[:subject_id], I18n.t("errors.messages.blank")
+    assert_raises(ActiveRecord::NotNullViolation) { @audit.save!(validate: false) }
   end
 
   test "validates presence of subject_type" do

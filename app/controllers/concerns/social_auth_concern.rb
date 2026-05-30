@@ -77,10 +77,16 @@ module SocialAuthConcern
   end
 
   def store_social_callback_state(provider)
-    session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = SecureRandom.hex(24)
+    state = SecureRandom.hex(24)
+    session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = state
     session[SocialCallbackGuard::SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
     session[SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
     session[SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
+    SocialAuth::CallbackStateStore.issue!(
+      state: state,
+      provider: provider,
+      intent: session[SOCIAL_INTENT_SESSION_KEY],
+    )
   end
 
   def store_social_auth_user_context(intent)

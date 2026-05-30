@@ -3,14 +3,12 @@
 
 # == Schema Information
 #
-# Table name: post_statuses
+# Table name: app_post_statuses
 # Database name: app_publisher
 #
 #  id :bigint           not null, primary key
 #
 class AppPostStatus < AppPublisherRecord
-  self.table_name = "post_statuses"
-
   include ReferenceRecord
 
   NOTHING = 1
@@ -19,5 +17,5 @@ class AppPostStatus < AppPublisherRecord
   DELETED = 4
   DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
-  has_many :posts, class_name: "AppPost", dependent: :restrict_with_error, inverse_of: :post_status
+  has_many :app_posts, class_name: "AppPost", dependent: :restrict_with_error, inverse_of: :app_post_status
 end

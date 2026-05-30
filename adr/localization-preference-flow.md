@@ -4,6 +4,15 @@
 
 Accepted on 2026-04-07.
 
+> **Hydration & 動的 region シード追補（2026-05-30）:** リクエストの実効ロケールは
+> `apply_localization_preferences` が `Actor.preferences.language` から決める。`Actor.preferences`
+> は Preference JWT payload（DB の署名付き射影）から hydrate されるようになった（auth トークンの
+> `prf` は読まない。 `adr/preference-soft-bubble-doctrine.md`
+> の 2026-05-30 追補を参照）。言語の優先順位は ①`?lx`（request-local overlay）→
+> ②明示設定された言語（`explicit_fields` マーカー）→ ③`?ri` 由来の動的シード（`jp`→ja /
+> `us`→en、未設定ユーザー向け）→ ④default(`ja`)。これにより、英語を明示設定したユーザーは `?ri=jp`
+> でも英語で描画され、未設定ユーザーは `?ri` に追従する。
+
 ## Context
 
 GitHub issue `#631` tracked completion of the localization preference flow across the sign surfaces.

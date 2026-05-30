@@ -58,7 +58,11 @@ class Avatar < AvatarRecord
   has_many :avatar_monikers, dependent: :restrict_with_error
   has_many :avatar_memberships, dependent: :restrict_with_error
   has_many :avatar_ownership_periods, dependent: :restrict_with_error
-  has_many :posts, foreign_key: :author_avatar_id, dependent: :restrict_with_error, inverse_of: :author_avatar
+  has_many :app_posts,
+           class_name: "AppPost",
+           foreign_key: :author_avatar_id,
+           dependent: :restrict_with_error,
+           inverse_of: :author_avatar
 
   # Avatar assignments (role-based access control)
   has_many :avatar_assignments, dependent: :destroy
@@ -179,9 +183,6 @@ class Avatar < AvatarRecord
 
   validates :public_id, presence: true, uniqueness: true
   validates :capability_id, numericality: { only_integer: true, greater_than: 0 }
-  validates :active_handle_id, presence: true
-  validates :capability, presence: true
-  validates :active_handle, presence: true
   validates :moniker, presence: true
 
   # Create avatar with owner assigned in a transaction

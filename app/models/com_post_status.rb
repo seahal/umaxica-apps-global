@@ -3,14 +3,12 @@
 
 # == Schema Information
 #
-# Table name: post_statuses
+# Table name: com_post_statuses
 # Database name: com_publisher
 #
 #  id :bigint           not null, primary key
 #
 class ComPostStatus < ComPublisherRecord
-  self.table_name = "post_statuses"
-
   include ReferenceRecord
 
   NOTHING = 1
@@ -19,5 +17,5 @@ class ComPostStatus < ComPublisherRecord
   DELETED = 4
   DEFAULTS = [NOTHING, ACTIVE, INACTIVE, DELETED].freeze
 
-  has_many :posts, class_name: "ComPost", dependent: :restrict_with_error, inverse_of: :post_status
+  has_many :com_posts, class_name: "ComPost", dependent: :restrict_with_error, inverse_of: :com_post_status
 end

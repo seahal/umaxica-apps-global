@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: post_category_masters
+# Table name: org_post_category_masters
 # Database name: org_publisher
 #
 #  id        :bigint           not null, primary key
@@ -11,11 +11,9 @@
 #
 # Indexes
 #
-#  index_post_category_masters_on_parent_id  (parent_id)
+#  index_org_post_category_masters_on_parent_id  (parent_id)
 #
 class OrgPostCategoryMaster < OrgPublisherRecord
-  self.table_name = "post_category_masters"
-
   NOTHING = 0
   LEGACY_NOTHING = 1
   DEFAULTS = [NOTHING, LEGACY_NOTHING].freeze
@@ -31,7 +29,7 @@ class OrgPostCategoryMaster < OrgPublisherRecord
            foreign_key: :parent_id,
            inverse_of: :parent,
            dependent: :restrict_with_error
-  has_many :post_categories, class_name: "OrgPostCategory", dependent: :restrict_with_error,
-                             inverse_of: :post_category_master
-  has_many :posts, through: :post_categories
+  has_many :org_post_categories, class_name: "OrgPostCategory", dependent: :restrict_with_error,
+                                 inverse_of: :org_post_category_master
+  has_many :org_posts, through: :org_post_categories
 end
