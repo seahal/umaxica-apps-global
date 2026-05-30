@@ -8,6 +8,10 @@ require "test_helper"
 class DatabaseConsistencyTest < ActiveSupport::TestCase
   fixtures :clients, :client_statuses, :client_occurrence_statuses, :zip_occurrence_statuses
 
+  setup do
+    I18n.locale = I18n.default_locale
+  end
+
   # Test PublicId concern validations
   test "ClientEmail requires unique public_id" do
     email = ClientEmail.new(

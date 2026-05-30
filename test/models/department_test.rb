@@ -33,6 +33,7 @@ class DepartmentTest < ActiveSupport::TestCase
   fixtures :organizations, :organization_statuses, :department_statuses
 
   setup do
+    I18n.locale = I18n.default_locale
     @workspace = organizations(:one)
   end
 

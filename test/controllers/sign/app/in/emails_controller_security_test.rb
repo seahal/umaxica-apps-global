@@ -12,6 +12,7 @@ module Sign
         setup do
           host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
           CloudflareTurnstile.test_mode = true
+          CloudflareTurnstile.test_validation_response = { "success" => true }
         end
 
         teardown do
