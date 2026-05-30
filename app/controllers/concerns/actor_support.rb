@@ -6,6 +6,14 @@ module ActorSupport
 
   class ResolutionError < StandardError; end
 
+  included do
+    helper_method :current_actor if respond_to?(:helper_method)
+  end
+
+  def current_actor
+    Actor.context
+  end
+
   private
 
   def with_actor_lifecycle

@@ -383,7 +383,7 @@ module Verification
       false
     end
 
-    def available_step_up_methods(actor = current_actor)
+    def available_step_up_methods(actor = current_verification_actor)
       return @available_step_up_methods if actor.nil? && defined?(@available_step_up_methods)
 
       result = resolved_step_up_methods(actor).available
@@ -391,7 +391,7 @@ module Verification
       result
     end
 
-    def configured_step_up_methods(actor = current_actor)
+    def configured_step_up_methods(actor = current_verification_actor)
       return @configured_step_up_methods if actor.nil? && defined?(@configured_step_up_methods)
 
       result = resolved_step_up_methods(actor).configured
@@ -407,14 +407,14 @@ module Verification
       )
     end
 
-    def step_up_bootstrap_unconfigured?(actor = current_actor)
+    def step_up_bootstrap_unconfigured?(actor = current_verification_actor)
       return false unless actor
 
       refresh_actor_mfa_status(actor)
       configured_step_up_methods(actor).empty?
     end
 
-    def step_up_bootstrap_active?(actor = current_actor)
+    def step_up_bootstrap_active?(actor = current_verification_actor)
       return false unless actor
 
       return actor.mfa_status_active? if actor.respond_to?(:mfa_status_active?)
@@ -438,7 +438,7 @@ module Verification
       "step_up:#{surface}"
     end
 
-    def current_actor
+    def current_verification_actor
       return current_operator if actor_operator? && respond_to?(:current_operator)
       return current_visitor if respond_to?(:current_visitor)
       return current_client if respond_to?(:current_client)

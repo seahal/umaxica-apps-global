@@ -10,8 +10,17 @@ module ActorSupportLifecycle
     preference = Actor.preferences
     cookie = preference.cookie
     actor = Actor.actor
+    context = current_actor
+    resource = current_resource if respond_to?(:current_resource, true)
 
     {
+      current_actor_class: context.class.name,
+      current_actor_actor_class: context.actor.class.name,
+      current_actor_actor_id: context.actor.respond_to?(:id) ? context.actor.id : nil,
+      current_actor_authn_null: context.authn.null?,
+      current_actor_step_up_class: context.step_up.class.name,
+      current_resource_class: resource&.class&.name,
+      current_resource_id: resource&.id,
       actor_class: actor.class.name,
       actor_id: actor.respond_to?(:id) ? actor.id : nil,
       actor_type: Actor.actor_type.to_s,
@@ -144,6 +153,12 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal "Client", snapshot["actor_class"]
     assert_equal user.id, snapshot["actor_id"]
+    assert_equal "Actor::Context", snapshot["current_actor_class"]
+    assert_equal "Client", snapshot["current_actor_actor_class"]
+    assert_equal user.id, snapshot["current_actor_actor_id"]
+    assert_equal "Actor::StepUp", snapshot["current_actor_step_up_class"]
+    assert_equal "Client", snapshot["current_resource_class"]
+    assert_equal user.id, snapshot["current_resource_id"]
     assert_equal "client", snapshot["actor_type"]
     assert_equal "client", snapshot["whoami"]
     assert snapshot["signed_in"]
@@ -205,6 +220,11 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal "Operator", snapshot["actor_class"]
     assert_equal staff.id, snapshot["actor_id"]
+    assert_equal "Actor::Context", snapshot["current_actor_class"]
+    assert_equal "Operator", snapshot["current_actor_actor_class"]
+    assert_equal staff.id, snapshot["current_actor_actor_id"]
+    assert_equal "Operator", snapshot["current_resource_class"]
+    assert_equal staff.id, snapshot["current_resource_id"]
     assert_equal "operator", snapshot["actor_type"]
     assert_equal "operator", snapshot["whoami"]
     assert snapshot["signed_in"]
@@ -247,6 +267,11 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal "Visitor", snapshot["actor_class"]
     assert_equal visitor.id, snapshot["actor_id"]
+    assert_equal "Actor::Context", snapshot["current_actor_class"]
+    assert_equal "Visitor", snapshot["current_actor_actor_class"]
+    assert_equal visitor.id, snapshot["current_actor_actor_id"]
+    assert_equal "Visitor", snapshot["current_resource_class"]
+    assert_equal visitor.id, snapshot["current_resource_id"]
     assert_equal "visitor", snapshot["actor_type"]
     assert_equal "visitor", snapshot["whoami"]
     assert snapshot["signed_in"]
@@ -271,5 +296,22 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal Actor::Configuration::NULL, Actor.configuration
     assert_equal Actor::Preference::NULL, Actor.preferences
     assert_nil Actor.tld
+  end
+
+  test "unauthenticated request exposes unauthenticated current_actor context" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+
+    host!(host)
+    get "/actor-support/acme-app", params: { ri: "jp" }
+
+    assert_response :success
+    snapshot = response.parsed_body
+
+    assert_equal "Actor::Context", snapshot["current_actor_class"]
+    assert_equal Unauthenticated.instance.class.name, snapshot["current_actor_actor_class"]
+    assert snapshot["current_actor_authn_null"]
+    assert_nil snapshot["current_resource_class"]
+    assert_equal "unauthenticated", snapshot["actor_type"]
+    assert_not snapshot["signed_in"]
   end
 end

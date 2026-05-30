@@ -76,7 +76,7 @@ module Sign
         false
       end
 
-      def current_actor
+      def current_verification_actor
         current_visitor
       end
 
