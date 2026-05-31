@@ -1,179 +1,30 @@
 # typed: false
 # frozen_string_literal: true
 
-# rubocop:disable Metrics/MethodLength
-
-require "jwt"
-
 module Authentication
+  # Backward-compatible facade for Auth access JWTs.
+  #
+  # JWT encode/decode behavior lives in `Security::Jwt::AuthAccessTokenCodec`;
+  # this service keeps the existing public API used by controllers and OIDC services.
   class TokenService
-    JWT_ALGORITHM = "ES384"
-    VALID_ACTOR_TYPES = %w(client operator visitor).freeze
+    JWT_ALGORITHM = Security::Jwt::AuthAccessTokenCodec::JWT_ALGORITHM
+    VALID_ACTOR_TYPES = Security::Jwt::AuthAccessTokenCodec::VALID_ACTOR_TYPES
 
     class << self
-      def encode(resource, host:, resource_type: nil, dpop_jkt: nil, expires_at: nil,
-                 session_public_id: nil, session_id: nil, oidc_sid: nil, oidc_jti: nil, preferences: nil,
-                 scopes: nil, acr: nil, amr: nil, access_token_ttl: 1.hour, jwt_issuer_id: nil,
-                 issuer: nil, audiences: nil, subject: nil, auth_time: nil, step_up_until: nil)
-        resource_type ||=
-          case resource
-          when ::Client then "client"
-          when ::Operator then "operator"
-          when ::Visitor then "visitor"
-          end
-
-        return nil unless valid_encode_params?(resource, host)
-
-        oidc_jti ||= oidc_jti_for_session(resource_type, session_public_id)
-
-        issued_at = Time.current
-        payload = Authorization::TokenClaims.build(
-          resource: resource,
-          session_id: session_id,
-          session_public_id: session_public_id,
-          oidc_sid: oidc_sid,
-          oidc_jti: oidc_jti,
-          resource_type: resource_type,
-          issued_at: issued_at,
-          access_token_ttl: access_token_ttl,
-          expires_at: expires_at,
-          preferences: preferences,
-          scopes: scopes,
-          acr: acr,
-          amr: amr,
-          dpop_jkt: dpop_jkt,
-          issuer: issuer,
-          audiences: audiences,
-          subject: subject,
-          auth_time: auth_time,
-          step_up_until: step_up_until,
-        )
-
-        token_issuer_id = resolve_jwt_issuer_id(host: host, resource_type: resource_type, jwt_issuer_id: jwt_issuer_id)
-        token_issuer_id ? Jit::Security::Jwt::Keyring.encode(payload, issuer_id: token_issuer_id) : Jit::Security::Jwt::Keyring.encode(payload)
-      rescue StandardError => e
-        Rails.logger.error(
-          Jit::LogEvent.format(
-            "authentication.token.encoding.error",
-            error_class: e.class.name,
-            message: e.message,
-            resource_type: resource_type,
-            resource_id: resource&.id,
-          ),
-        )
-        nil
+      def encode(...)
+        codec.encode(...)
       end
 
-      def decode(token, host:, resource_type: nil, issuer: nil, audiences: nil, jwt_issuer_id: nil)
-        decode_with_expiration(
-          token, host: host, resource_type: resource_type, issuer: issuer,
-                 audiences: audiences, verify_exp: true, jwt_issuer_id: jwt_issuer_id,
-        )
+      def decode(...)
+        codec.decode(...)
       end
 
-      def decode_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil, jwt_issuer_id: nil)
-        decode_with_expiration(
-          token, host: host, resource_type: resource_type, issuer: issuer,
-                 audiences: audiences, verify_exp: false, jwt_issuer_id: jwt_issuer_id,
-        )
+      def decode_allow_expired(...)
+        codec.decode_allow_expired(...)
       end
 
-      def extract_session_id_allow_expired(token, host:, resource_type: nil, issuer: nil, audiences: nil,
-                                           jwt_issuer_id: nil)
-        payload = decode_allow_expired(
-          token, host: host, resource_type: resource_type,
-                 issuer: issuer, audiences: audiences, jwt_issuer_id: jwt_issuer_id,
-        )
-        Authorization::TokenClaims.session_id(payload) if payload.present?
-      end
-
-      def decode_with_expiration(token, host:, resource_type: nil, issuer: nil, audiences: nil, verify_exp:,
-                                 jwt_issuer_id: nil)
-        return nil if token.blank? || host.blank?
-
-        header = Jit::Security::Jwt::Keyring.parse_header(token)
-        unless valid_header?(header, resource_type)
-          report_invalid_header(resource_type: resource_type, host: host, header: header)
-          return nil
-        end
-
-        resolved_jwt_issuer_id = resolve_jwt_issuer_id(
-          host: host, resource_type: resource_type,
-          jwt_issuer_id: jwt_issuer_id,
-        )
-        public_key =
-          if resolved_jwt_issuer_id.present?
-            Jit::Security::Jwt::Keyring.public_key_for(header["kid"], issuer_id: resolved_jwt_issuer_id)
-          else
-            Jit::Security::Jwt::Keyring.public_key_for(header["kid"])
-          end
-        if public_key.nil?
-          Jit::Security::Jwt::AnomalyReporter.report_auth(
-            resource_type: resource_type,
-            host: host,
-            header: header,
-            reason: "UNKNOWN_KID",
-          )
-          return nil
-        end
-
-        payload, = JWT.decode(
-          token, public_key, true,
-          decode_options(resource_type, issuer, audiences, verify_exp: verify_exp),
-        )
-        unless valid_payload_type?(payload, resource_type)
-          Jit::Security::Jwt::AnomalyReporter.report_auth(
-            resource_type: resource_type,
-            host: host,
-            header: header,
-            payload: payload,
-            reason: "TYP_MISMATCH",
-          )
-          return nil
-        end
-
-        payload
-      rescue JWT::ExpiredSignature
-        return nil unless verify_exp
-
-        Jit::Security::Jwt::AnomalyReporter.report_auth(
-          resource_type: resource_type,
-          host: host,
-          header: header,
-          reason: "EXPIRED",
-        )
-        Rails.logger.info(Jit::LogEvent.format("authentication.token.verification.expired", host: host))
-        nil
-      rescue JWT::InvalidIssuerError, JWT::InvalidAudError, JWT::InvalidIatError, JWT::ImmatureSignature => e
-        report_claim_error(resource_type: resource_type, host: host, header: header, error: e)
-        Rails.logger.info(
-          Jit::LogEvent.format(
-            "authentication.token.verification.claim_invalid",
-            error_class: e.class.name,
-            host: host,
-          ),
-        )
-        nil
-      rescue JWT::DecodeError, JWT::VerificationError => e
-        report_decode_error(resource_type: resource_type, host: host, header: header, error: e)
-        Rails.logger.info(
-          Jit::LogEvent.format(
-            "authentication.token.verification.failed",
-            error_class: e.class.name,
-            host: host,
-          ),
-        )
-        nil
-      rescue OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
-        Rails.logger.info(
-          Jit::LogEvent.format(
-            "authentication.token.verification.error",
-            error_class: e.class.name,
-            error_message: e.message,
-            host: host,
-          ),
-        )
-        nil
+      def extract_session_id_allow_expired(...)
+        codec.extract_session_id_allow_expired(...)
       end
 
       def extract_subject(payload)
@@ -217,139 +68,9 @@ module Authentication
 
       private
 
-      def valid_encode_params?(resource, host)
-        return false if resource.nil? || host.blank?
-
-        # Ensure resource is Client, Operator or Visitor
-        resource.is_a?(::Client) || resource.is_a?(::Operator) || resource.is_a?(::Visitor)
-      end
-
-      def oidc_jti_for_session(resource_type, session_public_id)
-        return nil if resource_type.blank? || session_public_id.blank?
-
-        token_class = token_class_for_resource_type(resource_type)
-        return nil unless token_class&.column_names&.include?("oidc_jti")
-
-        lookup = lambda { token_class.where(public_id: session_public_id).pick(:oidc_jti) }
-        token_connection_owner(token_class).connected_to(role: :writing, &lookup)
-      end
-
-      def token_class_for_resource_type(resource_type)
-        case resource_type.to_s
-        when "client" then ::ClientToken
-        when "operator" then ::OperatorToken
-        when "visitor" then ::VisitorToken
-        end
-      end
-
-      def resolve_jwt_issuer_id(host:, resource_type:, jwt_issuer_id:)
-        return jwt_issuer_id.presence if jwt_issuer_id.present?
-
-        inferred = inferred_surface_jwt_issuer_id(host: host, resource_type: resource_type)
-        return inferred if inferred.present?
-
-        nil
-      end
-
-      def inferred_surface_jwt_issuer_id(host:, resource_type:)
-        normalized = host.to_s
-        return nil if normalized.blank?
-        return nil unless normalized.include?("umaxica") || normalized.include?("localhost") ||
-          normalized.include?("acme") || normalized.include?("core")
-
-        service =
-          if normalized.include?("acme")
-            "ACME"
-          elsif normalized.include?("core")
-            "CORE"
-          else
-            "SIGN"
-          end
-
-        surface =
-          if service == "SIGN"
-            case resource_type.to_s
-            when "operator" then "ORG"
-            when "visitor" then "COM"
-            else "APP"
-            end
-          elsif normalized.include?(".org") || normalized.include?("org.")
-            "ORG"
-          elsif normalized.include?(".com") || normalized.include?("com.")
-            "COM"
-          else
-            "APP"
-          end
-
-        "surface:#{service}_#{surface}"
-      end
-
-      def token_connection_owner(token_class)
-        klass = token_class
-        klass = klass.superclass until klass.connection_class?
-        klass
-      end
-
-      def decode_options(resource_type, issuer, audiences, verify_exp:)
-        {
-          algorithms: [JWT_ALGORITHM],
-          required_claims: %w(iss aud typ exp sub sid act jti acr),
-          leeway: Authentication::Base::JwtConfiguration.leeway_seconds,
-          verify_iat: true,
-          verify_exp: verify_exp,
-          verify_iss: true,
-          iss: issuer || Authentication::Base::JwtConfiguration.issuer(resource_type),
-          verify_aud: true,
-          aud: audiences || Authentication::Base::JwtConfiguration.audiences(resource_type),
-        }
-      end
-
-      def valid_header?(header, resource_type)
-        return false if header.blank?
-        return false unless header["alg"] == JWT_ALGORITHM
-        return false unless header["typ"] == expected_token_type(resource_type)
-
-        header["kid"].present?
-      end
-
-      def valid_payload_type?(payload, resource_type)
-        payload.is_a?(Hash) && payload["typ"] == expected_token_type(resource_type)
-      end
-
-      def expected_token_type(resource_type)
-        Authentication::Base::JwtConfiguration.token_type(resource_type)
-      end
-
-      def report_invalid_header(resource_type:, host:, header:)
-        Jit::Security::Jwt::AnomalyReporter.report_auth(
-          resource_type: resource_type,
-          host: host,
-          header: header,
-          reason: "INVALID_HEADER",
-        )
-      end
-
-      def report_claim_error(resource_type:, host:, header:, error:)
-        Jit::Security::Jwt::AnomalyReporter.report_auth(
-          resource_type: resource_type,
-          host: host,
-          header: header,
-          reason: "CLAIM_INVALID",
-          error: error,
-        )
-      end
-
-      def report_decode_error(resource_type:, host:, header:, error:)
-        Jit::Security::Jwt::AnomalyReporter.report_auth(
-          resource_type: resource_type,
-          host: host,
-          header: header,
-          reason: "DECODE_FAILED",
-          error: error,
-        )
+      def codec
+        Security::Jwt::AuthAccessTokenCodec
       end
     end
   end
 end
-
-# rubocop:enable Metrics/MethodLength

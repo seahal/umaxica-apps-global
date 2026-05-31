@@ -8,10 +8,10 @@ class Sign::CommonHelperTest < ActionView::TestCase
     extend Sign::CommonHelper
   end
 
-  test "to_localetime converts to JST for jst timezone" do
+  test "to_localetime converts to JST for canonical request timezone" do
     test_time = Time.parse("2024-01-01 00:00:00 UTC")
 
-    result = to_localetime(test_time, "jst")
+    result = to_localetime(test_time, "asia/tokyo")
 
     assert_equal "JST", result.zone
   end
@@ -57,8 +57,8 @@ class Sign::CommonHelperTest < ActionView::TestCase
     Actor.preferences = original
   end
 
-  test "get_timezone returns jst" do
-    assert_equal "jst", get_timezone
+  test "get_timezone returns request timezone context" do
+    assert_equal "asia/tokyo", get_timezone
   end
 
   test "get_language returns ja" do

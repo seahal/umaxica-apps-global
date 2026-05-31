@@ -165,12 +165,12 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 3.9 Front-End Bundles
 
-- `app/javascript/application.js` imports Turbo and each surface-specific entrypoint.
-- Directory structure: `app/javascript/views/<surface>/<domain>/application.(ts|js)` plus shared
-  scripts (`views/passkey.js`, `views/passkey_helpers.js`,
-  `views/www/app/inquiry/before_submit.js`).
-- JavaScript is served via importmap/Turbo; pnpm manages tooling (Biome) for linting/formatting the
-  sources.
+- `app/javascript/entrypoints/application.js` imports Turbo, Stimulus controllers, and shared
+  browser helpers.
+- Additional Vite entrypoints live under `app/javascript/entrypoints`, with page modules under
+  `app/javascript/pages`.
+- JavaScript is bundled through Vite Rails; pnpm and Vite Plus manage linting, formatting, tests,
+  and build tooling.
 - Tailwind CSS is compiled through Rails' Tailwind CLI (`bin/rails tailwindcss:watch`).
 
 ### 3.10 Services & Integrations

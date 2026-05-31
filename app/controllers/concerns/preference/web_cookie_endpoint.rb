@@ -13,6 +13,8 @@ module Preference
     private
 
     def cookie_consent_state
+      return @cookie_consent_state_override if @cookie_consent_state_override
+
       payload = decoded_preference_payload
       preferences = payload.is_a?(Hash) ? payload["preferences"] : nil
 
@@ -52,11 +54,33 @@ module Preference
       requested = requested_consented_value
       return false if requested.nil?
 
+      if decoded_preference_payload&.dig("public_id").blank?
+        apply_buffer_only_cookie_consent!(requested)
+        return true
+      end
+
       persist_cookie_consent!(requested)
       true
     rescue StandardError => e
       Rails.logger.error("[Preference::WebCookieEndpoint] consent update failed: #{e.class}")
       raise
+    end
+
+    def cookie_consent_state_overridden?
+      @cookie_consent_state_override.present?
+    end
+
+    def apply_buffer_only_cookie_consent!(consented)
+      set_preference_consented_buffer!(
+        consented: consented,
+        expires_at: Preference::Base::REFRESH_TOKEN_TTL.from_now,
+      )
+      @cookie_consent_state_override = {
+        consented: consented,
+        functional: consented,
+        performant: consented,
+        targetable: false,
+      }
     end
 
     # SSOT decode point.

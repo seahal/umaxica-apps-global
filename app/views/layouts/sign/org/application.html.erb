@@ -14,7 +14,7 @@
   <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "sign/main", "data-turbo-track": "reload" %>
   <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-  <%= javascript_importmap_tags %>
+  <%= vite_javascript_tag "application", nonce: true, "data-turbo-eval": "false" %>
   <%= inertia_ssr_head %>
   <%= yield :head %>
 </head>

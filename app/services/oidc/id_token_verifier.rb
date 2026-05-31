@@ -35,34 +35,13 @@ module Oidc
     attr_reader :id_token, :client_id, :resource_type, :expected_nonce, :jwt_issuer_id, :issuer
 
     def decode!
-      header = Jit::Security::Jwt::Keyring.parse_header(id_token)
-      raise JWT::DecodeError, "invalid header" unless header["alg"] == Authentication::TokenService::JWT_ALGORITHM
-      raise JWT::DecodeError, "invalid typ" unless header["typ"] == Oidc::IdTokenIssuer::TOKEN_TYPE
-
-      public_key = Jit::Security::Jwt::Keyring.public_key_for(
-        header["kid"],
-        issuer_id: resolved_jwt_issuer_id,
+      Security::Jwt::OidcIdTokenCodec.decode(
+        id_token: id_token,
+        client_id: client_id,
+        resource_type: resource_type,
+        jwt_issuer_id: resolved_jwt_issuer_id,
+        issuer: issuer,
       )
-      raise JWT::DecodeError, "unknown kid" unless public_key
-
-      payload, = JWT.decode(
-        id_token,
-        public_key,
-        true,
-        algorithms: [Authentication::TokenService::JWT_ALGORITHM],
-        required_claims: %w(iss aud exp iat sub nonce jti typ act),
-        leeway: Authentication::Base::JwtConfiguration.leeway_seconds,
-        verify_iat: true,
-        verify_exp: true,
-        verify_iss: true,
-        iss: issuer.presence || Oidc::Issuer.for_resource_type(resource_type),
-        verify_aud: true,
-        aud: client_id,
-      )
-      raise JWT::DecodeError, "invalid payload typ" unless payload["typ"] == Oidc::IdTokenIssuer::TOKEN_TYPE
-      raise JWT::DecodeError, "invalid act" unless payload["act"] == resource_type
-
-      payload
     end
 
     def secure_equal?(actual, expected)

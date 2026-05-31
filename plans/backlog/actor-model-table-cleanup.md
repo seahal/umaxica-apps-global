@@ -75,7 +75,7 @@ This cleanup should happen separately from feature work such as welcome/banner b
    - Rename or recreate indexes and foreign keys so schema dumps no longer contain stale
      `user_*`/`staff_*` names for actor-owned records.
    - Keep schema changes separate from any data backfills.
-   - During rename work, reset local dev/test DBs from schema with `bin/db-reset-all` and run
+   - During rename work, rebuild local dev/test DBs with `bin/rails db:migrate:reset` and run
      `bin/rails db:verify_no_schema_drift` before handoff.
 
 6. Remove compatibility code after tests pass.

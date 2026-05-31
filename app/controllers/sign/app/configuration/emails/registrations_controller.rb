@@ -30,6 +30,8 @@ module Sign
 
           def update = super
 
+          def resend = super
+
           private
 
           def authorize_email_registration!

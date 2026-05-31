@@ -38,7 +38,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
 
     context = controller.requested_context
 
-    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "UTC" }, context)
+    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "utc" }, context)
   end
 
   test "requested_context ignores unsupported lx values" do
@@ -68,7 +68,17 @@ class Preference::GlobalTest < ActiveSupport::TestCase
 
     context = controller.requested_context
 
-    assert_equal({ ri: "jp", ct: "dr", tz: "UTC" }, context)
+    assert_equal({ ri: "jp", ct: "dr", tz: "utc" }, context)
+  end
+
+  test "requested_context drops jst timezone shorthand" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(ri: "jp", tz: "jst")
+
+    context = controller.requested_context
+
+    assert_equal({ ri: "jp" }, context)
   end
 
   test "request_context exposes all public request context keys through one safe reader" do
@@ -95,7 +105,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
         pt: "opaque-token",
         lx: "en",
         ct: "dr",
-        tz: "Asia/Tokyo",
+        tz: "asia/tokyo",
         cu: "jpy",
         df: "iso",
         tf: "24",
@@ -112,7 +122,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
         ri: "us",
         lx: "en",
         ct: "dr",
-        tz: "Asia/Tokyo",
+        tz: "asia/tokyo",
         cu: "jpy",
         df: "iso",
         tf: "24",
@@ -151,7 +161,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
     controller.request = ActionDispatch::TestRequest.create
     controller.params = ActionController::Parameters.new(ri: "us", lx: "EN", ct: "DR", tz: "UTC")
 
-    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "UTC" }, controller.default_url_options)
+    assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "utc" }, controller.default_url_options)
   end
 
   test "get_region uses persisted context when ri is missing" do

@@ -82,7 +82,7 @@ module Authentication
     DBSC_COOKIE_KEY = Authentication::CookieName.dbsc
 
     # Token TTLs
-    ACCESS_TOKEN_TTL = Integer(ENV.fetch("AUTH_ACCESS_TOKEN_TTL", 1.hour.to_i.to_s), 10).seconds
+    ACCESS_TOKEN_TTL = Security::TokenLifetimes::AUTH_ACCESS_JWT_TTL
     REFRESH_TOKEN_TTL = 30.days
     DBSC_COOKIE_TTL = 10.minutes
     RESTRICTED_SESSION_TTL = 15.minutes
@@ -875,8 +875,8 @@ module Authentication
 
     def occurrence_ip_hash
       ip = request_ip_address.to_s
-      secret_credential = Rails.app.creds.option(:OCCURRENCE_HMAC_SECRET).presence
-      OpenSSL::HMAC.hexdigest("SHA256", secret_credential, ip)
+      secret = Rails.app.creds.option(:OCCURRENCE_HMAC_SECRET).presence
+      OpenSSL::HMAC.hexdigest("SHA256", secret, ip)
     end
 
     # ----------------------------------------------------------------------

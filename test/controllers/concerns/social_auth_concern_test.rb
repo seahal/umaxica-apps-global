@@ -98,7 +98,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
 
     harness.logged_in_value = true
     harness.resource = clients(:one)
-    harness.session_token = step_up_token(scope: "social_link")
+    harness.session_token = step_up_token(scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
     harness.send(:prepare_social_auth_intent!, "link", provider: "apple")
 
     assert_equal clients(:one).id, harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
@@ -139,7 +139,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness = Harness.new
     harness.logged_in_value = true
     harness.resource = clients(:one)
-    harness.session_token = step_up_token(scope: "social_link")
+    harness.session_token = step_up_token(scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
     harness.send(:prepare_social_auth_intent!, "link", provider: "apple")
 
     assert_equal "link", harness.send(:current_social_auth_intent)

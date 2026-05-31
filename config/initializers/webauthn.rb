@@ -52,27 +52,21 @@ module Webauthn
       origins.compact!
       origins.map! { |origin| origin.to_s.strip }
       origins.reject!(&:empty?)
+      origins.uniq!
 
       if origins.empty?
         raise TrustedOriginsNotConfiguredError,
               "TRUSTED_ORIGINS environment variable is required but not set. " \
               "Please configure it with comma-separated origin URLs. " \
               "Example for development: TRUSTED_ORIGINS=http://id.app.localhost:3000, " \
-              "http://id.org.localhost:3000" \
+              "http://id.org.localhost:3000. " \
               "Example for production: TRUSTED_ORIGINS=https://id.app.example.com, " \
               "https://id.org.example.com"
       end
 
-      # Validate origin format
       origins.each do |origin|
-        uri = URI.parse(origin)
-        unless uri.scheme && uri.host
-          raise TrustedOriginsNotConfiguredError,
-                "Invalid origin format in TRUSTED_ORIGINS: '#{origin}'. " \
-                "Origins must include scheme and host (e.g., https://example.com)"
-        end
+        uri = parse_origin_uri(origin)
 
-        # Production must use HTTPS
         if Rails.env.production? && uri.scheme != "https"
           raise TrustedOriginsNotConfiguredError,
                 "Production requires HTTPS origins. Found HTTP origin: '#{origin}'"
@@ -80,6 +74,17 @@ module Webauthn
       end
 
       origins.freeze
+    end
+
+    def parse_origin_uri(origin)
+      uri = URI.parse(origin)
+      return uri if uri.scheme && uri.host
+
+      raise URI::InvalidURIError
+    rescue URI::InvalidURIError
+      raise TrustedOriginsNotConfiguredError,
+            "Invalid origin format in TRUSTED_ORIGINS: '#{origin}'. " \
+            "Origins must include scheme and host (e.g., https://example.com)"
     end
   end
 

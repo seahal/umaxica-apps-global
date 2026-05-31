@@ -22,13 +22,17 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
       @request_obj = Object.new
       def @request_obj.host = "id.app.localhost"
 
-      def @request_obj.format = Struct.new(:json?).new(false)
+      def @request_obj.format = Struct.new(:json?, :ref).new(false, :html)
 
       def @request_obj.request_id = "req-1"
 
       def @request_obj.remote_ip = "127.0.0.1"
 
       def @request_obj.ssl? = false
+
+      def @request_obj.request_method = "GET"
+
+      def @request_obj.path = "/preference"
       @response_obj = Struct.new(:headers).new({})
     end
 
@@ -47,6 +51,8 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
     def request = @request_obj
 
     def response = @response_obj
+
+    def params = { action: "test" }.with_indifferent_access
 
     def render(args) = @rendered = args
 

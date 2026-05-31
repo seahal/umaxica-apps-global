@@ -36,15 +36,13 @@ export default class extends Controller {
   // Handle accept action
   accept(event) {
     event.preventDefault();
-    this.setCookieConsent("accepted");
-    this.element.remove();
+    void this.submitConsent(true).catch((error) => this.dispatchConsentError(error));
   }
 
   // Handle reject action
   reject(event) {
     event.preventDefault();
-    this.setCookieConsent("rejected");
-    this.element.remove();
+    void this.submitConsent(false).catch((error) => this.dispatchConsentError(error));
   }
 
   // Handle open settings action
@@ -64,11 +62,49 @@ export default class extends Controller {
 
   // Fetch cookie consent from API endpoint
   async fetchCookieConsent() {
-    const response = await fetch("/web/v0/cookie");
+    const response = await fetch(this.cookieEndpointUrl());
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
+  }
+
+  async submitConsent(consented) {
+    const response = await fetch(this.cookieEndpointUrl(), {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-CSRF-Token": this.csrfToken(),
+      },
+      body: JSON.stringify({ consented }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    this.setCookieConsent(consented ? "accepted" : "rejected");
+    this.element.remove();
+  }
+
+  cookieEndpointUrl() {
+    const endpoint = new URL("/web/v0/cookie", window.location.origin);
+    endpoint.search = window.location.search;
+    return endpoint.toString();
+  }
+
+  csrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || "";
+  }
+
+  dispatchConsentError(error) {
+    this.dispatch("error", {
+      detail: {
+        message: "Cookie consent update failed",
+        error,
+      },
+    });
   }
 
   // Helper: Set cookie consent preference

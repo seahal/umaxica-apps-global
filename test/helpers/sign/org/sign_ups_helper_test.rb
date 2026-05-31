@@ -39,7 +39,7 @@ class Sign::Org::SignUpsHelperTest < ActionView::TestCase
 
   test "sign_org_recruit_contact_link falls back to corporate root with preference params" do
     define_singleton_method(:default_url_options) do
-      { ct: "dr", lx: "en", ri: "jp", tz: "jst", ignored: "value" }
+      { ct: "dr", lx: "en", ri: "jp", tz: "asia/tokyo", ignored: "value" }
     end
     define_singleton_method(:params) do
       ActionController::Parameters.new(default_url_options)
@@ -59,7 +59,7 @@ class Sign::Org::SignUpsHelperTest < ActionView::TestCase
       assert_includes html, "font-semibold text-slate-900 underline"
       assert_not_includes html, "ignored"
       assert_not_includes html, "ct=dr"
-      assert_not_includes html, "tz=jst"
+      assert_not_includes html, "tz=asia%2Ftokyo"
     end
   end
 

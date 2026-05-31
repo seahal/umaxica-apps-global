@@ -132,14 +132,14 @@ class LocaleInitializerTest < ActiveSupport::TestCase
         assert_equal "Motion Settings", I18n.t("acme.#{surface}.preferences.motion_settings")
         assert_equal "Density Settings", I18n.t("acme.#{surface}.preferences.density_settings")
         assert_equal "Page Size", I18n.t("acme.#{surface}.preferences.page_size_settings")
-        assert_equal "R18 Display Stopper", I18n.t("acme.app.preferences.adult_content_gate_settings")
+        assert_equal "R18 Display Stopper", I18n.t("acme.#{surface}.preferences.adult_content_gate_settings")
       end
 
       I18n.with_locale(:ja) do
         assert_equal "モーション設定", I18n.t("acme.#{surface}.preferences.motion_settings")
         assert_equal "表示密度設定", I18n.t("acme.#{surface}.preferences.density_settings")
         assert_equal "1ページあたりの表示件数", I18n.t("acme.#{surface}.preferences.page_size_settings")
-        assert_equal "R18表示設定", I18n.t("acme.app.preferences.adult_content_gate_settings")
+        assert_equal "R18表示設定", I18n.t("acme.#{surface}.preferences.adult_content_gate_settings")
       end
     end
 

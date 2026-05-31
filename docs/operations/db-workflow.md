@@ -4,8 +4,8 @@
 
 ## 原則
 
-1. **テーブルリネームを含むマイグレーションが進行中のブランチでは、`bin/rails db:migrate`
-   を使わない。** 代わりに `bin/db-reset-all` を使い、毎回 schema_dump からロードし直す。
+1. **テーブルリネームを含むマイグレーションが進行中のブランチでは、増分の `bin/rails db:migrate`
+   を使わない。** 代わりに `bin/rails db:migrate:reset` を使い、毎回マイグレーションから作り直す。
 2. **`rename_table_if_present` 形式の「サイレントスキップ」ヘルパーを書かない。** 代わりに
    `rename_table_strict`（`MigrationHelpers::SafeTableRename` で提供）を使う。
 3. **コミット前に `bin/rails db:verify_no_schema_drift` を実行する。**
@@ -24,14 +24,13 @@ DB）でテーブルリネームを複数行っているブランチでは、次
   schema_dump も中間状態でダンプされてコミットされる → 他環境に伝播。
 - fixtures は最新のテーブル名を前提にしているので、半分リネームされた DB ではロードできず、テストが全滅する。
 
-`bin/db-reset-all` は毎回 drop → create → schema_dump からロードするので、中間状態が累積しません。
+`bin/rails db:migrate:reset` は毎回 drop → create → migrate を実行するので、中間状態が累積しません。
 
 ## コマンド
 
 ```bash
-bin/db-reset-all              # development を drop → create → schema:load → seed
-bin/db-reset-all test         # test だけ
-bin/db-reset-all all          # development + test 両方
+bin/rails db:migrate:reset
+RAILS_ENV=test bin/rails db:migrate:reset
 
 bin/rails db:verify_no_schema_drift
 # クリーン test DB に対してマイグレーションを流し、

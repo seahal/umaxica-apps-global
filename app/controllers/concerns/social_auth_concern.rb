@@ -28,6 +28,7 @@ module SocialAuthConcern
   SOCIAL_RI_SESSION_KEY = :social_auth_ri
   STATE_TTL = 5.minutes
   STEP_UP_TTL = 10.minutes
+  SOCIAL_LINK_SCOPE = "social_link"
 
   VALID_INTENTS = %w(login link step_up).freeze
 
@@ -165,12 +166,23 @@ module SocialAuthConcern
     step_up = recent_social_auth_step_up(ttl: ttl)
     return if step_up.satisfied?
 
+    # Emit the binding breakdown (booleans + the required scope only -- never the
+    # token value or other PII) so operators can tell *why* the step-up was
+    # rejected: expired vs. wrong session/token vs. purpose/audience mismatch.
+    # A scope/aal/method mismatch shows up as usable_token=true with every
+    # *_bound=true yet satisfied=false.
     Rails.logger.info(
       Jit::LogEvent.format(
         "social_auth.step_up_required",
         user_id: current_resource.id,
         last_step_up_at: step_up.satisfied_at&.iso8601,
         required_within: Integer(ttl.to_s, 10),
+        required_scope: SOCIAL_LINK_SCOPE,
+        usable_token: step_up.usable_token?,
+        session_bound: step_up.session_bound,
+        token_bound: step_up.token_bound,
+        purpose_bound: step_up.purpose_bound,
+        audience_bound: step_up.audience_bound,
       ),
     )
     raise SocialAuth::StepUpRequiredError.new("errors.social_auth.step_up_required")
@@ -186,7 +198,7 @@ module SocialAuthConcern
 
   def social_auth_step_up_requirement(token, ttl:)
     StepUp::Requirement.new(
-      scope: token&.last_step_up_scope,
+      scope: SOCIAL_LINK_SCOPE,
       session_binding: token&.public_id,
       token_binding: token&.public_id,
       ttl: ttl,

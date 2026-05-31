@@ -7,7 +7,7 @@ module Sign::CommonHelper
 
     zone =
       case tz.to_s.downcase
-      when "jst"
+      when "jst", "asia/tokyo"
         "Asia/Tokyo"
       else
         "UTC"
@@ -17,7 +17,7 @@ module Sign::CommonHelper
   end
 
   def get_timezone
-    "jst"
+    "asia/tokyo"
   end
 
   def get_language

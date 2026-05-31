@@ -128,6 +128,14 @@ class Preference::GlobalCoverageTest < ActiveSupport::TestCase
     assert_not context.key?(:tz)
   end
 
+  test "requested_context drops jst timezone shorthand" do
+    @harness.params_hash = { ri: "jp", tz: "jst" }
+    context = @harness.requested_context
+
+    assert_equal "jp", context[:ri]
+    assert_not context.key?(:tz)
+  end
+
   test "cookie_context merges payload and record" do
     @harness.instance_variable_set(:@preferences, AppPreference.new)
     context = @harness.cookie_context
@@ -147,6 +155,13 @@ class Preference::GlobalCoverageTest < ActiveSupport::TestCase
     @harness.send(:set_timezone)
 
     assert_equal "Etc/UTC", @harness.session[:timezone]
+  end
+
+  test "set_timezone canonicalizes request asia tokyo to db timezone spelling" do
+    @harness.params_hash = { ri: "jp", tz: "asia/tokyo" }
+    @harness.send(:set_timezone)
+
+    assert_equal "Asia/Tokyo", @harness.session[:timezone]
   end
 
   test "set_locale calls write_preference_cookie" do
@@ -207,6 +222,34 @@ class Preference::GlobalCoverageTest < ActiveSupport::TestCase
     @harness.send(:set_region)
 
     assert_equal "http://localhost/test?ri=jp", @harness.redirected_to
+    assert_equal({ status: :found }, @harness.redirected.last)
+  end
+
+  test "set_region removes jst when ri is valid" do
+    @harness.params_hash = { ri: "us", lx: "en", tz: "jst" }
+    @harness.query_parameters = { "ri" => "us", "lx" => "en", "tz" => "jst" }
+    @harness.define_singleton_method(:url_for) do |options|
+      query = options.slice(:ri, :lx, :tz).compact.to_query
+      "http://localhost/test?#{query}"
+    end
+
+    @harness.send(:set_region)
+
+    assert_equal "http://localhost/test?lx=en&ri=us", @harness.redirected_to
+    assert_equal({ status: :found }, @harness.redirected.last)
+  end
+
+  test "set_region canonicalizes valid timezone request context to lowercase" do
+    @harness.params_hash = { ri: "jp", tz: "Asia/Tokyo" }
+    @harness.query_parameters = { "ri" => "jp", "tz" => "Asia/Tokyo" }
+    @harness.define_singleton_method(:url_for) do |options|
+      query = options.slice(:ri, :tz).compact.to_query
+      "http://localhost/test?#{query}"
+    end
+
+    @harness.send(:set_region)
+
+    assert_equal "http://localhost/test?ri=jp&tz=asia%2Ftokyo", @harness.redirected_to
     assert_equal({ status: :found }, @harness.redirected.last)
   end
 

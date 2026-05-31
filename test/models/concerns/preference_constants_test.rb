@@ -13,7 +13,7 @@ class PreferenceConstantsTest < ActiveSupport::TestCase
       {
         "lx" => "ja",
         "ri" => "jp",
-        "tz" => "jst",
+        "tz" => "asia/tokyo",
         "ct" => "sy",
       },
       Preference::Constants::DEFAULT_PREFERENCES,

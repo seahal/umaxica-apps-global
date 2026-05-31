@@ -18,16 +18,14 @@ and subdomain matter in both development and production.
 - PostgreSQL
   - Solid Queue
 - Valkey/Redis
-- Importmap + Stimulus + Turbo
-  - Tailwind CSS via `tailwindcss-rails`
+- Vite Rails + Stimulus + Turbo
+- Tailwind CSS via `tailwindcss-rails`
 - Propshaft
-- `pnpm` only for JavaScript linting/formatting tooling
+- Vite Plus and `pnpm` for JavaScript build, linting, formatting, and tests
 
 ## Frontend and Assets
 
-This repository does not use a JavaScript bundler.
-
-- JavaScript is served through `importmap-rails`
+- JavaScript entrypoints are bundled through Vite Rails from `app/javascript/entrypoints`
 - Stimulus controllers live in `app/javascript/controllers`
 - CSS is built by `tailwindcss-rails`
 - Static assets are served by Propshaft
@@ -37,8 +35,8 @@ Useful commands:
 ```bash
 bin/rails tailwindcss:watch     # Tailwind watch mode
 bin/rails assets:precompile     # Production asset build
+bin/rails vite:build            # Vite frontend build
 bin/rails assets:clobber        # Remove compiled assets
-bin/importmap audit             # Audit pinned JS packages
 ```
 
 ## Local Setup
@@ -211,7 +209,6 @@ are written to `coverage/vite/`.
 bundle exec brakeman --no-pager
 bundle exec bundler-audit check --update
 bundle exec database_consistency
-bin/importmap audit
 pnpm audit
 bin/debride
 ```

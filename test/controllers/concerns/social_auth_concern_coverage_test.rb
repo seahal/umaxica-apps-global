@@ -146,9 +146,18 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
 
   test "require_recent_step_up! accepts current token-bound step-up" do
     @harness.current_resource = Client.new
-    @harness.current_session_token = step_up_token
+    @harness.current_session_token = step_up_token(last_step_up_scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
 
     assert_nothing_raised do
+      @harness.send(:require_recent_step_up!)
+    end
+  end
+
+  test "require_recent_step_up! rejects token-bound step-up with different scope" do
+    @harness.current_resource = Client.new
+    @harness.current_session_token = step_up_token(last_step_up_scope: "configuration_email")
+
+    assert_raises(SocialAuth::StepUpRequiredError) do
       @harness.send(:require_recent_step_up!)
     end
   end
@@ -193,6 +202,28 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
     end
   end
 
+  test "require_recent_step_up! logs the binding breakdown on rejection" do
+    @harness.current_resource = Client.new
+    @harness.current_session_token = step_up_token(
+      public_id: "current-session",
+      last_step_up_session_public_id: "other-session",
+    )
+
+    log =
+      capture_step_up_required_log do
+        assert_raises(SocialAuth::StepUpRequiredError) do
+          @harness.send(:require_recent_step_up!)
+        end
+      end
+
+    assert_includes log, "required_scope"
+    assert_includes log, "usable_token"
+    assert_includes log, "session_bound"
+    assert_includes log, "token_bound"
+    assert_includes log, "purpose_bound"
+    assert_includes log, "audience_bound"
+  end
+
   test "handle_social_auth_error redirects for html" do
     error = SocialAuth::BaseError.new("failed ❌", :bad_request)
     @harness.send(:handle_social_auth_error, error)
@@ -227,6 +258,18 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
 
   def assert_response_redirected
     assert_predicate @harness.redirected, :present?
+  end
+
+  # Capture what require_recent_step_up! writes to Rails.logger so the rejection
+  # breakdown (M2) can be asserted without depending on log formatting internals.
+  def capture_step_up_required_log
+    io = StringIO.new
+    original = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(io)
+    yield
+    io.string
+  ensure
+    Rails.logger = original
   end
 
   def step_up_token(public_id: "current-session", last_step_up_at: Time.current,

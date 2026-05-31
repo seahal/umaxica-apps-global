@@ -25,7 +25,7 @@ module Preference::Localization
     timezone = preference&.timezone
 
     case timezone.to_s.downcase
-    when "jst"
+    when "jst", "asia/tokyo"
       "Asia/Tokyo"
     when "utc", "etc/utc"
       "Etc/UTC"

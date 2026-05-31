@@ -5,10 +5,10 @@ require "net/http"
 
 module JumpRt
   class ReturnVerifier
-    ALGORITHM = "ES384"
-    TOKEN_TYPE = "JWT"
-    TOKEN_SUBJECT = "jump-redirect"
-    DEFAULT_MAX_TTL = 5.minutes
+    ALGORITHM = Security::Jwt::JumpRtTokenCodec::ALGORITHM
+    TOKEN_TYPE = Security::Jwt::JumpRtTokenCodec::TOKEN_TYPE
+    TOKEN_SUBJECT = Security::Jwt::JumpRtTokenCodec::TOKEN_SUBJECT
+    DEFAULT_MAX_TTL = Security::TokenLifetimes::JUMP_RT_TTL
     LEEWAY = 60
     MAX_TOKEN_LENGTH = 8_192
     CACHE_TTL = 5.minutes
@@ -17,8 +17,8 @@ module JumpRt
     HTTP_OPEN_TIMEOUT = 1
     HTTP_READ_TIMEOUT = 2
     MAX_JWKS_BYTES = 64.kilobytes
-    REQUIRED_JWK_FIELDS = %w(kty crv kid alg use x y).freeze
-    PRIVATE_JWK_FIELDS = %w(d p q dp dq qi oth k).freeze
+    REQUIRED_JWK_FIELDS = Security::Jwt::JumpRtTokenCodec::REQUIRED_JWK_FIELDS
+    PRIVATE_JWK_FIELDS = Security::Jwt::JumpRtTokenCodec::PRIVATE_JWK_FIELDS
 
     Result =
       Data.define(:success, :payload, :error) do
@@ -75,33 +75,20 @@ module JumpRt
     end
 
     def valid_header?(header)
-      return false unless header["typ"] == TOKEN_TYPE
-      return false unless header["alg"] == ALGORITHM
-      return false if header["kid"].blank?
-      return false if %w(crit jku jwk x5u).any? { |key| header.key?(key) }
-
-      true
+      Security::Jwt::JumpRtTokenCodec.valid_header?(header)
     end
 
     def decode_with_jwks(kid)
       key = public_key_for(kid)
       raise JWT::DecodeError, "unknown kid" unless key
 
-      payload, = JWT.decode(
-        token,
-        key,
-        true,
-        algorithms: [ALGORITHM],
-        required_claims: %w(schema iss aud sub iat nbf exp jti src dst url),
+      Security::Jwt::JumpRtTokenCodec.decode_with_key(
+        token: token,
+        key: key,
+        issuer: jump_origin,
+        audience: request_base_url,
         leeway: LEEWAY,
-        verify_iat: true,
-        verify_exp: true,
-        verify_iss: true,
-        iss: jump_origin,
-        verify_aud: true,
-        aud: request_base_url,
       )
-      payload
     end
 
     def public_key_for(kid)
@@ -174,19 +161,7 @@ module JumpRt
     end
 
     def normalized_public_jwk(entry)
-      return nil unless entry.is_a?(Hash)
-
-      source = entry.stringify_keys
-      return nil if PRIVATE_JWK_FIELDS.any? { |field| source.key?(field) }
-
-      jwk = source.slice(*REQUIRED_JWK_FIELDS)
-      return nil unless REQUIRED_JWK_FIELDS.all? { |field| jwk[field].present? }
-      return nil unless jwk["alg"] == ALGORITHM
-      return nil unless jwk["use"] == "sig"
-      return nil unless jwk["kty"] == "EC"
-      return nil unless jwk["crv"] == "P-384"
-
-      jwk
+      Security::Jwt::JumpRtTokenCodec.normalized_public_jwk(entry)
     end
 
     def valid_payload?(payload)

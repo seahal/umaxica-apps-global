@@ -137,7 +137,7 @@ Rails.application.configure do
   ).compact_blank
 
   # Skip DNS rebinding protection only for health checks and load balancer probes.
-  config.host_authorization = { exclude: ->(request) { request.path.start_with?("/health") } }
+  config.host_authorization = { exclude: ->(request) { request.path == "/health" } }
 
   ### Added by owner
   # We've configured this production environment to prevent the delivery of public static content.

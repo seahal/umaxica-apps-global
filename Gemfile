@@ -58,8 +58,6 @@ gem "shrine"
 gem "image_processing", require: false
 # AWS SNS client for SMS delivery.
 gem "aws-sdk-sns", require: false
-# AWS Secrets Manager client for secret rotation.
-gem "aws-sdk-secretsmanager", require: false
 # Propshaft asset pipeline.
 gem "propshaft"
 # Tailwind CSS integration.
@@ -102,14 +100,10 @@ gem "action_push_native", require: false
 gem "solid_cache"
 # Solid Queue backend.
 gem "solid_queue"
-# Solid Queue operations UI.
-gem "mission_control-jobs"
 # Turbo Rails integration.
 gem "turbo-rails"
 # Stimulus Rails integration.
 gem "stimulus-rails"
-# Importmap Rails integration.
-gem "importmap-rails"
 # Inertia Rails adapter.
 gem "inertia_rails"
 # Vite Rails integration.
@@ -132,6 +126,8 @@ gem "ruby-vips"
 gem "lograge"
 # json
 gem "json-canonicalization"
+# Solid Queue operations UI.
+gem "mission_control-jobs"
 
 group :development, :test do
   # Test coverage reporting.

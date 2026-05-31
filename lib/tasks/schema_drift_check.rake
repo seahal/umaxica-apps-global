@@ -21,7 +21,7 @@ namespace :db do
       warn "The schema files committed to git do not match what running"
       warn "migrations from a clean DB produces. To fix locally:"
       warn ""
-      warn "  bin/db-reset-all test"
+      warn "  RAILS_ENV=test bin/rails db:migrate:reset"
       warn "  git add db/*_structure.sql"
       warn ""
       abort

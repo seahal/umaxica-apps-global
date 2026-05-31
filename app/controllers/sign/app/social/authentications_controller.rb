@@ -24,12 +24,14 @@ module Sign
         rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
 
         SUPPORTED_PROVIDERS = %w(google_app apple).freeze
+        SOCIAL_LINK_SCOPE = SocialAuthConcern::SOCIAL_LINK_SCOPE
         SOCIAL_UNLINK_SCOPE = "social_unlink"
 
         # Public access for continue (login intent doesn't require auth)
         # For link/step-up intents, auth is checked in prepare_social_auth_intent!
         declare_authentication_mode! :open, only: :continue
         declare_authentication_mode! :private, only: %i(destroy)
+        before_action :require_social_link_step_up!, only: :continue
         before_action :require_social_unlink_step_up!, only: :destroy
         before_action :require_social_unlink_turnstile!, only: :destroy
 
@@ -146,6 +148,24 @@ module Sign
           SocialIdentifiable.normalize_provider(provider)
         end
 
+        def require_social_link_step_up!
+          return true unless params[:intent].to_s == "link"
+          return true unless SUPPORTED_PROVIDERS.include?(params[:provider].to_s)
+          return true unless logged_in? && current_resource.present?
+          return true if step_up_satisfied?(scope: SOCIAL_LINK_SCOPE)
+
+          flash[:alert] = I18n.t("auth.step_up.required")
+          redirect_to(
+            actor_verification_path(
+              scope: SOCIAL_LINK_SCOPE,
+              pt: encoded_relative_pt(social_link_configuration_path(params[:provider])),
+              ri: params[:ri],
+            ),
+            status: :see_other,
+          )
+          false
+        end
+
         def require_social_unlink_step_up!
           return true if step_up_satisfied?(scope: SOCIAL_UNLINK_SCOPE)
 
@@ -159,6 +179,15 @@ module Sign
             status: :see_other,
           )
           false
+        end
+
+        def social_link_configuration_path(provider)
+          case SocialIdentifiable.normalize_provider(provider)
+          when "apple"
+            sign_app_configuration_apple_path(ri: params[:ri])
+          else
+            sign_app_configuration_google_path(ri: params[:ri])
+          end
         end
 
         def require_social_unlink_turnstile!

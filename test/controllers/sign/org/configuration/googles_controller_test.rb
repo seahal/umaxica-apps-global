@@ -22,13 +22,24 @@ class Sign::Org::Configuration::GooglesControllerTest < ActionDispatch::Integrat
   end
 
   test "create redirects to google social session" do
-    mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
+    # Linking (intent: "link") requires a recent step-up bound to the social_link scope.
+    mark_token_step_up_satisfied_for_test(@token, scope: "social_link")
 
     post sign_org_configuration_google_url(ri: "jp"), headers: @headers
 
     assert_match(%r{/auth/google_org\?state=}, response.location)
     assert_predicate session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY], :present?
     assert_equal "google_org", session[SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY]
+  end
+
+  test "create does not start link flow with a step-up bound to a different scope" do
+    # A recent step-up for an unrelated scope must not satisfy the social_link requirement.
+    mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
+
+    post sign_org_configuration_google_url(ri: "jp"), headers: @headers
+
+    assert_no_match(%r{/auth/google_org\?state=}, response.location.to_s)
+    assert_nil session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY]
   end
 
   test "show offers connect when google login is not linked" do

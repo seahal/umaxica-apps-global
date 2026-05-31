@@ -92,6 +92,7 @@ module Verification
       return false if step_up_session_revoked?
       return if step_up_satisfied?(scope: scope, required_aal: required_aal)
 
+      log_step_up_required!(scope: scope, required_aal: required_aal)
       require_verification!(scope)
       return false unless enforce_step_up_prereqs!(scope_override: scope)
 
@@ -219,6 +220,29 @@ module Verification
         )
       end
       false
+    end
+
+    def log_step_up_required!(scope:, required_aal:)
+      step_up = defined?(Actor) ? Actor.step_up : nil
+
+      Rails.logger.info(
+        Jit::LogEvent.format(
+          "auth.step_up.required",
+          controller: self.class.name,
+          action: action_name,
+          method: request.request_method,
+          format: request.format&.to_s,
+          surface: (defined?(Actor) ? Actor.tld : nil),
+          actor_type: (defined?(Actor) ? Actor.actor_type : nil),
+          scope: scope,
+          required_aal: required_aal,
+          step_up_satisfied: step_up&.satisfied?,
+          step_up_usable_token: step_up&.usable_token?,
+          step_up_method: step_up&.method,
+          step_up_scope: step_up&.scope,
+          step_up_expires_at: step_up&.expires_at&.iso8601,
+        ),
+      )
     end
 
     def verification_entry_request?

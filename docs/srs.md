@@ -57,8 +57,9 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - **Runtime & language**: Ruby 3.4.7 / Rails 8.x monolith with multi-database (`connects_to`)
   separation (identity, universal, guest, profile, token, etc.) backed by PostgreSQL 18 (primary +
   replica).
-- **Frontend toolchain**: pnpm-managed JS tooling (Biome) with Turbo/React entrypoints under
-  `app/javascript`; assets are served via importmap and Rails Tailwind CLI for CSS.
+- **Frontend toolchain**: Vite Rails with pnpm-managed Vite Plus tooling for Turbo/Stimulus/React
+  entrypoints under `app/javascript`; CSS and static assets continue through Rails Tailwind CLI and
+  Propshaft.
 - **Caching & session adjuncts**: Valkey (Redis-compatible) powers request rate limiting, `Memorize`
   ephemeral storage, signed preference cookies, and Rack session backing for Action Cable.
 - **Security & identity**: JWT auth cookies (ES256) via the `Authn` concern, WebAuthn passkeys,

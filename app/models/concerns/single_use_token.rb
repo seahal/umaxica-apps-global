@@ -22,11 +22,13 @@ module SingleUseToken
 
       consumed_at = now
       consumed = nil
-      transaction do
-        record = lock_consumable_by_digest(digest, now: consumed_at)
-        next unless record
+      with_writing_role do
+        transaction do
+          record = lock_consumable_by_digest(digest, now: consumed_at)
+          next unless record
 
-        consumed = consume_record!(record, now: consumed_at)
+          consumed = consume_record!(record, now: consumed_at)
+        end
       end
       consumed
     end
@@ -35,14 +37,16 @@ module SingleUseToken
       replacement = nil
       raw_refresh_token = nil
 
-      transaction do
-        consumed = lock_consumable_by_digest(presented_digest, now: now)
-        next unless consumed
+      with_writing_role do
+        transaction do
+          consumed = lock_consumable_by_digest(presented_digest, now: now)
+          next unless consumed
 
-        consume_record!(consumed, now: now)
-        replacement = create_rotated_record!(consumed, now: now)
-        link_consumed_record_to_replacement!(consumed, replacement, now: now)
-        raw_refresh_token = replacement.issued_refresh_token
+          consume_record!(consumed, now: now)
+          replacement = create_rotated_record!(consumed, now: now)
+          link_consumed_record_to_replacement!(consumed, replacement, now: now)
+          raw_refresh_token = replacement.issued_refresh_token
+        end
       end
 
       return nil unless replacement
@@ -90,7 +94,7 @@ module SingleUseToken
     end
 
     def link_consumed_record_to_replacement!(consumed, replacement, now:)
-      consumed.update_columns(replaced_by_id: replacement.id, updated_at: now)
+      consumed.update!(replaced_by_id: replacement.id, updated_at: now)
     end
 
     def migrate_preference_children!(from:, to:)
@@ -99,16 +103,31 @@ module SingleUseToken
           prefix = from.class.model_name.singular
           PREFERENCE_CHILD_SUFFIXES.each do |suffix|
             association_name = "#{prefix}_#{suffix}"
-            next unless from.respond_to?(association_name)
+            unless from.class.respond_to?(:reflect_on_association)
+              child = from.public_send(association_name) if from.respond_to?(association_name)
+              child&.update!(preference_id: to.id) if child&.respond_to?(:preference_id)
+              next
+            end
 
-            child = from.public_send(association_name)
-            next unless child&.respond_to?(:preference_id)
+            reflection = from.class.reflect_on_association(association_name.to_sym)
+            next unless reflection
 
-            child.update!(preference_id: to.id)
+            reflection.klass.where(reflection.foreign_key => from.id).update_all(
+              reflection.foreign_key => to.id,
+              :updated_at => Time.current,
+            )
           end
         end
 
       defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
+    end
+
+    def with_writing_role(&)
+      if connection_class_for_self.current_role == ActiveRecord.writing_role
+        yield
+      else
+        connection_class_for_self.connected_to(role: :writing, &)
+      end
     end
   end
 

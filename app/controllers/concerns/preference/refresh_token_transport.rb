@@ -186,6 +186,7 @@ module Preference::RefreshTokenTransport
 
       clear_preference_auth_cookies!
       @preference_refresh_failed = true
+      log_preference_refresh_rotation_failed(preference, @refresh_public_id)
       return
     end
 

@@ -164,6 +164,13 @@ class PreferenceTokenModelTest < ActiveSupport::TestCase
     assert_nil Preference::Token.extract_jti({})
   end
 
+  test "internal codec helpers are not exposed through preference token facade" do
+    assert_not_respond_to Preference::Token, :build_payload
+    assert_not_respond_to Preference::Token, :decode_options
+    assert_not_respond_to Preference::Token, :valid_header?
+    assert_not_respond_to Preference::Token, :resolve_public_key
+  end
+
   test "handle invalid signature gracefully" do
     with_jwt_keys do
       token = Preference::Token.encode(

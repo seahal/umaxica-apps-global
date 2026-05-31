@@ -5,6 +5,11 @@ module Dbsc
   # Validates the common DBSC JWT proof envelope before a service mutates state.
   class ProofValidator
     ALLOWED_ALGORITHMS = %w(ES256 RS256).freeze
+    # W3C DBSC permits RSA, but a short RSA modulus is trivially factorable and
+    # would silently weaken the device binding. Reject anything below the
+    # NIST-recommended 2048-bit floor. ES256 keys are fixed-size (P-256), so no
+    # equivalent floor is needed there.
+    RSA_MIN_KEY_BITS = 2048
     CHALLENGE_TTL = 5.minutes
     IAT_LEEWAY = 30.seconds
 
@@ -37,6 +42,11 @@ module Dbsc
     end
 
     def verify_signature(public_key, algorithm)
+      return SignatureResult.new(ok: false, message: "rsa_key_too_short") unless rsa_key_length_ok?(
+        public_key,
+        algorithm,
+      )
+
       JWT.decode(proof, public_key, true, algorithms: [algorithm])
       SignatureResult.new(ok: true, message: nil)
     rescue JWT::DecodeError, JWT::JWKError, JSON::ParserError, ArgumentError => e
@@ -44,6 +54,15 @@ module Dbsc
     end
 
     private
+
+    # Enforce the RSA modulus floor for RS256. Non-RSA keys (ES256) and keys
+    # that do not expose a modulus pass through unchanged.
+    def rsa_key_length_ok?(public_key, algorithm)
+      return true unless algorithm.to_s == "RS256"
+      return true unless public_key.is_a?(OpenSSL::PKey::RSA)
+
+      public_key.n.present? && public_key.n.num_bits >= RSA_MIN_KEY_BITS
+    end
 
     attr_reader :proof, :challenge, :challenge_issued_at, :now, :expected_audience
 

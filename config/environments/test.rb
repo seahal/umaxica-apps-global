@@ -62,8 +62,8 @@ Rails.application.configure do
   # Raise on deprecation warnings to catch issues early.
   config.active_support.deprecation = :raise
 
-  # Raise error for missing translations.
-  config.i18n.raise_on_missing_translations = true
+  # Raise error for missing translations in controllers, views, and models.
+  config.i18n.raise_on_missing_translations = :strict
 
   # Annotate rendered view with file names.
   # config.action_view.annotate_rendered_view_with_filenames = true
@@ -98,9 +98,10 @@ Rails.application.configure do
   config.sms_provider = "test"
   config.x.security.allow_turnstile_validation_override = true
 
-  # Use PostgreSQL unlogged tables for faster test performance
+  # Keep test tables logged. Unlogged tables require PostgreSQL shared memory
+  # that is too small in the local multi-DB test container.
   ActiveSupport.on_load(:active_record_postgresqladapter) do
-    self.create_unlogged_tables = true
+    self.create_unlogged_tables = false
   end
 
   config.after_initialize do

@@ -113,6 +113,10 @@ method is in the policy-allowed method set, and the recorded session/token bindi
 current request. A generic verification event must not satisfy scoped sensitive actions such as
 withdrawal, credential removal, or session revoke-all.
 
+On `app`, social-login linking and unlinking use separate exact scopes. Linking Google or Apple
+requires `social_link`; unlinking Google or Apple requires `social_unlink`. A step-up completed for
+ordinary configuration scopes such as `configuration_email` must not authorize social-linking.
+
 Credential registration is not Step-Up satisfaction. Adding a new email, TOTP credential, passkey,
 telephone, or recovery secret may update method availability, but it must not update token Step-Up
 freshness. Sensitive actions must still complete a normal Step-Up challenge after bootstrap.

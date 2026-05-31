@@ -63,7 +63,7 @@ class ApplicationRecord < ActiveRecord::Base
   end
 
   def self.fixed_ids_present?(ids)
-    where(primary_key => ids).distinct.count(primary_key) == ids.size
+    ids.all? { |id| exists?(primary_key => id) }
   end
 
   private_class_method :fixed_ids_present?

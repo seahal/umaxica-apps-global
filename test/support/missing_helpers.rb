@@ -289,7 +289,7 @@ module MissingHelpers
         user_headers = as_user_headers(user, host: host)
         if intent.to_s == "link"
           token = ClientToken.find_by(public_id: user_headers["X-TEST-SESSION-PUBLIC-ID"])
-          mark_token_step_up_satisfied_for_test(token) if token
+          mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE) if token
         end
         headers = headers.merge(user_headers)
       end

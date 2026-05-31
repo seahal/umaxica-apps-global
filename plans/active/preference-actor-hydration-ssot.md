@@ -25,7 +25,7 @@ Status: B案 実装完了（2026-05-30）。長期 A案は
 > **注意（構造ダンプ）:** リポジトリの `db/*_structure.sql`
 > は現状 18 行のスタブ（このブランチは migration 直実行で DB を構築している）。`bin/rails db:migrate`
 > を回すと全 27 ダンプが環境依存フォーマットで全面書き換えされる（並行作業の migration も巻き込む）ため、構造ダンプはスタブのまま据え置いた。正規ダンプ再生成は
-> `bin/db-reset-all` ワークフローで別途行うこと。`db:verify_no_schema_drift`
+> `bin/rails db:migrate:reset` ワークフローで別途行うこと。`db:verify_no_schema_drift`
 > はスタブ相手では意味を成さない。
 
 ## Context（なぜ）
@@ -88,7 +88,7 @@ _明示的に ja を選んだ_ ように見え、ユーザールール（**未�
 - セッション側 `AppPreference` / `ComPreference` / `OrgPreference`（各 setting DB:
   `app_setting`/`com_setting`/`org_setting`）に `explicit_fields`(jsonb, default `[]`, not
   null) 等を追加。**3 DB それぞれにマイグレーション**（soft bubble は別個）。
-  - 可逆・後方互換・スキーマ/データ分離。`bin/db-reset-all`
+  - 可逆・後方互換・スキーマ/データ分離。`bin/rails db:migrate:reset`
     ではなく通常マイグレで可（rename ではない）。
   - push 前に `bin/rails db:verify_no_schema_drift`。
 - 明示 update 経路でフラグを立てる:

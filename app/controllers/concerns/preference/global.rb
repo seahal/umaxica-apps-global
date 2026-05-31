@@ -182,7 +182,6 @@ module Preference::Global
     %w(
       utc
       etc/utc
-      jst
       asia/tokyo
       america/new_york
       america/chicago
@@ -257,6 +256,7 @@ module Preference::Global
       query.delete("lx") if query.key?("lx") && !valid_requested_context_value?(:lx, query["lx"])
       query.delete("ct") if query.key?("ct") && !valid_requested_context_value?(:ct, query["ct"])
       query.delete("tz") if query.key?("tz") && !valid_requested_context_value?(:tz, query["tz"])
+      query["tz"] = RequestContext::Contract.normalize(:tz, query["tz"]) if query.key?("tz")
     end
   end
 
@@ -295,6 +295,8 @@ module Preference::Global
   def normalize_timezone_value(value)
     case value.to_s.downcase
     when "jst"
+      "Asia/Tokyo"
+    when "asia/tokyo"
       "Asia/Tokyo"
     when "utc", "etc/utc"
       "Etc/UTC"

@@ -270,6 +270,37 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       assert_no_match(/ct=/, location)
       assert_no_match(/tz=/, location)
     end
+
+    test "#{domain[:name]} jst timezone param is removed from theme edit URL" do
+      host!(domain[:host])
+
+      surface = domain[:name].delete_prefix("sign_")
+      get public_send("edit_sign_#{surface}_preference_theme_url", ri: "us", lx: "en", tz: "jst")
+
+      assert_response :redirect
+      location = URI.parse(response.headers.fetch("Location"))
+      query = Rack::Utils.parse_query(location.query)
+
+      assert_equal "/preference/theme/edit", location.path
+      assert_equal "us", query["ri"]
+      assert_equal "en", query["lx"]
+      assert_not query.key?("tz")
+    end
+
+    test "#{domain[:name]} canonicalizes timezone param in request URL to lowercase" do
+      host!(domain[:host])
+
+      surface = domain[:name].delete_prefix("sign_")
+      get public_send("edit_sign_#{surface}_preference_theme_url", ri: "jp", tz: "Asia/Tokyo")
+
+      assert_response :redirect
+      location = URI.parse(response.headers.fetch("Location"))
+      query = Rack::Utils.parse_query(location.query)
+
+      assert_equal "/preference/theme/edit", location.path
+      assert_equal "jp", query["ri"]
+      assert_equal "asia/tokyo", query["tz"]
+    end
   end
 
   # =============================================================================

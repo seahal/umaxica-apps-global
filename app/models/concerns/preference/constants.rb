@@ -9,7 +9,7 @@ module Preference
     # Keys used in preference cookies and URL parameters
     # lx: language (ja, en)
     # ri: region (jp, us)
-    # tz: timezone (jst, utc)
+    # tz: timezone request context (asia/tokyo, etc/utc, utc)
     # ct: color theme (sy=system, dr=dark, li=light)
     PREFERENCE_KEYS = %w(lx ri tz ct).freeze
 
@@ -17,7 +17,7 @@ module Preference
     DEFAULT_PREFERENCES = {
       "lx" => "ja", # Japanese language
       "ri" => "jp", # Japan region
-      "tz" => "jst", # Japan Standard Time
+      "tz" => "asia/tokyo", # Japan Standard Time request context
       "ct" => "sy", # System theme (follows OS preference)
     }.freeze
 

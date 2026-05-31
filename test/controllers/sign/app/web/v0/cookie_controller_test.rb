@@ -81,11 +81,18 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_includes set_cookie, "#{Preference::CookieName.access}="
   end
 
-  test "PATCH update without access jwt raises instead of silently dropping persistence" do
+  test "PATCH update without access jwt writes consent buffer without persisting preference" do
     cookies.delete(Preference::CookieName.access)
 
-    assert_raises(RuntimeError, match: /missing_preference_access_token/) do
+    assert_no_difference -> { AppPreference.count } do
       patch sign_app_web_v0_cookie_path, params: { consented: true }, as: :json
     end
+
+    assert_response :ok
+    assert response.parsed_body["consented"]
+    set_cookie = response.headers["Set-Cookie"].to_s
+
+    assert_includes set_cookie, "preference_consented=1"
+    assert_not_includes set_cookie, "#{Preference::CookieName.access}="
   end
 end

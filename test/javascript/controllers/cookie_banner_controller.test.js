@@ -27,8 +27,10 @@ describe("CookieBannerController", () => {
       set cookie(val) {
         cookieValue = val;
       },
+      querySelector: vi.fn().mockReturnValue({ content: "csrf-token" }),
     });
 
+    window.history.pushState({}, "", "/preference/cookie/edit?ct=dr&lx=en&ri=us&tz=asia/tokyo");
     vi.stubGlobal("fetch", vi.fn());
   });
 
@@ -88,18 +90,65 @@ describe("CookieBannerController", () => {
       expect(element.remove).toHaveBeenCalled();
     });
 
-    test("accept: クッキーを設定して要素を削除する", () => {
+    test("accept: サーバに同意を送信してクッキーを設定し要素を削除する", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+
       controller.accept(event);
       expect(event.preventDefault).toHaveBeenCalled();
-      expect(document.cookie).toContain("cookie_consent=accepted");
-      expect(element.remove).toHaveBeenCalled();
+
+      await vi.waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith(
+          "http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo",
+          {
+            method: "PATCH",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              "X-CSRF-Token": "csrf-token",
+            },
+            body: JSON.stringify({ consented: true }),
+          },
+        );
+        expect(document.cookie).toContain("cookie_consent=accepted");
+        expect(element.remove).toHaveBeenCalled();
+      });
     });
 
-    test("reject: クッキーを設定して要素を削除する", () => {
+    test("reject: サーバに拒否を送信してクッキーを設定し要素を削除する", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+
       controller.reject(event);
       expect(event.preventDefault).toHaveBeenCalled();
-      expect(document.cookie).toContain("cookie_consent=rejected");
-      expect(element.remove).toHaveBeenCalled();
+
+      await vi.waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith(
+          "http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo",
+          {
+            method: "PATCH",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              "X-CSRF-Token": "csrf-token",
+            },
+            body: JSON.stringify({ consented: false }),
+          },
+        );
+        expect(document.cookie).toContain("cookie_consent=rejected");
+        expect(element.remove).toHaveBeenCalled();
+      });
+    });
+
+    test("reject: サーバ更新に失敗した場合は要素を削除しない", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+      controller.reject(event);
+      expect(event.preventDefault).toHaveBeenCalled();
+
+      await vi.waitFor(() => {
+        expect(fetch).toHaveBeenCalled();
+      });
+      expect(document.cookie).not.toContain("cookie_consent=rejected");
+      expect(element.remove).not.toHaveBeenCalled();
     });
 
     test("openSettings: open-settings イベントをディスパッチする", async () => {

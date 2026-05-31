@@ -50,7 +50,13 @@ const documentMock = {
   addEventListener: vi.fn(),
 };
 
-const windowMock = { matchMedia: vi.fn(() => ({ matches: false, addEventListener: vi.fn() })) };
+const windowMock = {
+  location: {
+    origin: "http://localhost:3000",
+    search: "?ct=dr&lx=en&ri=us&tz=asia/tokyo",
+  },
+  matchMedia: vi.fn(() => ({ matches: false, addEventListener: vi.fn() })),
+};
 
 function makeController() {
   const controller = new ThemeController();
@@ -67,6 +73,10 @@ beforeEach(() => {
   documentMock.getElementById.mockReturnValue(null);
   documentMock.querySelector.mockReturnValue(null);
   documentMock.addEventListener.mockReset();
+  windowMock.location = {
+    origin: "http://localhost:3000",
+    search: "?ct=dr&lx=en&ri=us&tz=asia/tokyo",
+  };
 
   vi.stubGlobal("document", documentMock);
   vi.stubGlobal("window", windowMock);
@@ -361,6 +371,7 @@ describe("fetchAndSyncTheme", () => {
 
     await controller.fetchAndSyncTheme();
 
+    expect(fetch).toHaveBeenCalledWith("http://localhost:3000/web/v0/theme?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo");
     expect(syncSpy).toHaveBeenCalledWith("dr");
     expect(applySpy).toHaveBeenCalledWith("dr");
   });

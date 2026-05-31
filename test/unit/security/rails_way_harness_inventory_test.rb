@@ -52,6 +52,8 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/models/concerns/withdrawal_flow.rb" => [10, "legacy withdrawal flow state concern"],
   }.freeze
 
+  RAILS_WAY_DIRECTORY_PATTERN = %r{\Aapp/(?:services|use_cases|interactors|operations|commands|domain|application)\z}
+
   BRANCH_EXCEPTION_PATTERN =
     /\b(?:raise\s+(?:[A-Za-z0-9_:]+::)?(?:[A-Za-z0-9_]*(?:Required|Unauthorized|StepUp)[A-Za-z0-9_]*)(?:\b|\.new)|
           rescue_from\s+[^\n]*(?:Required|Unauthorized|StepUp))\b/x
@@ -83,7 +85,8 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     assert_reviewed_inventory(
       REVIEWED_MODEL_CONCERN_SIDE_EFFECTS,
       actual,
-      "Model concern included-do side effects changed. Move Rails DSL to the model or update this allowlist intentionally.",
+      "Model concern included-do side effects changed. " \
+      "Move Rails DSL to the model or update this allowlist intentionally",
     )
   end
 
@@ -97,7 +100,8 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     assert_reviewed_inventory(
       REVIEWED_BRANCH_EXCEPTIONS,
       actual,
-      "Do not use Required/Unauthorized/StepUp exceptions as ordinary branches. Use predicates plus render/redirect/return.",
+      "Do not use Required/Unauthorized/StepUp exceptions as ordinary branches. " \
+      "Use predicates plus render/redirect/return",
     )
   end
 
@@ -105,7 +109,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     actual =
       Rails.root.glob("app/*").select(&:directory?).filter_map do |path|
         relative = path.relative_path_from(Rails.root).to_s
-        relative if relative.match?(%r{\Aapp/(?:services|use_cases|interactors|operations|commands|domain|application)\z})
+        relative if relative.match?(RAILS_WAY_DIRECTORY_PATTERN)
       end.sort
 
     assert_equal REVIEWED_RAILS_WAY_DIRECTORIES.keys.sort, actual,

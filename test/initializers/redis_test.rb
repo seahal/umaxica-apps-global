@@ -39,6 +39,31 @@ class RedisInitializerTest < ActiveSupport::TestCase
     assert_no_match(/:secret_credential@/, message)
   end
 
+  test "development redis connection failure raises by default" do
+    redis_client = Class.new do
+      def ping
+        raise Redis::CannotConnectError, "connection refused"
+      end
+    end.new
+    env = ActiveSupport::StringInquirer.new("development")
+
+    with_env(
+      "REDIS_NORMAL_URL" => "redis://localhost:6379/0",
+      "REDIS_SMOKE_TEST" => nil,
+      "REDIS_FAIL_FAST" => nil,
+    ) do
+      with_reloaded_redis_client do
+        Redis.stub(:new, redis_client) do
+          Rails.stub(:env, env) do
+            Rails.logger.stub(:error, ->(_message) { }) do
+              assert_raises(Redis::CannotConnectError) { load INITIALIZER_PATH }
+            end
+          end
+        end
+      end
+    end
+  end
+
   private
 
   def with_reloaded_redis_client

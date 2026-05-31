@@ -121,6 +121,22 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
   end
 
+  test "Google configuration link rejects configuration step-up scope" do
+    user = create_social_client
+    token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    mark_token_step_up_satisfied_for_test(token, scope: "configuration_email")
+
+    post(
+      continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+      headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
+    )
+
+    assert_response :see_other
+    assert_match %r{/verification}, response.location
+    assert_match "scope=social_link", response.location
+    assert_nil session[SocialAuthConcern::SOCIAL_FLOW_ID_SESSION_KEY]
+  end
+
   test "Google configuration unlink rejects passcode as the only remaining method" do
     user = create_social_client
     google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "passcode_google")
@@ -349,7 +365,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def token_bound_step_up_for_social_link(user)
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    mark_token_step_up_satisfied_for_test(token)
+    mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
     token
   end
 

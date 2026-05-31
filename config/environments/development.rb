@@ -78,8 +78,8 @@ Rails.application.configure do
   # Disallow deprecated .connection usage (must use .with_connection for multi-DB)
   config.active_record.permanent_connection_checkout = :deprecated
 
-  # Raise error for missing translations.
-  config.i18n.raise_on_missing_translations = true
+  # Raise error for missing translations in controllers, views, and models.
+  config.i18n.raise_on_missing_translations = :strict
 
   # Annotate rendered view with file names.
   config.action_view.annotate_rendered_view_with_filenames = true

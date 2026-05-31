@@ -12,4 +12,16 @@ class Acme::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_select "title",
                   "#{ENV.fetch("BRAND_NAME", "UMAXICA").upcase} (com) | #{I18n.t("acme.com.preferences.footer.home")}"
   end
+
+  # Regression: the public landing page must not perform a per-request
+  # preference create/rotate write (DBSC performance plan).
+  test "does not create preference records on root" do
+    host! ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+
+    assert_no_difference("ComPreference.count") do
+      get acme_com_root_url(ri: "jp")
+    end
+
+    assert_response :success
+  end
 end

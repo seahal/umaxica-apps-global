@@ -10,12 +10,14 @@ redis_config = { url: default_redis_url }
 
 REDIS_CLIENT = Redis.new(redis_config)
 
-# Connection smoke test (skip in test).
-# Default: only fail fast in production. Opt-in for dev via env vars.
+fail_fast_redis_by_default = Rails.env.development? || Rails.env.production?
+
+# Connection smoke test (skip in test). Development and production fail fast so
+# missing Redis is noticed before request-time behavior diverges.
 should_smoke_test =
-  ENV.fetch("REDIS_SMOKE_TEST", Rails.env.production? ? "1" : "0") == "1"
+  ENV.fetch("REDIS_SMOKE_TEST", fail_fast_redis_by_default ? "1" : "0") == "1"
 fail_fast =
-  ENV.fetch("REDIS_FAIL_FAST", Rails.env.production? ? "1" : "0") == "1"
+  ENV.fetch("REDIS_FAIL_FAST", fail_fast_redis_by_default ? "1" : "0") == "1"
 
 if should_smoke_test && !Rails.env.test?
   begin

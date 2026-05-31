@@ -28,6 +28,7 @@ module Jit
             issuers = Registry.reload!
 
             assert_equal "auth-kid", issuers.fetch("auth").current_kid
+            assert_equal %w(umaxica-api), issuers.fetch("auth").audiences
             assert_equal "pref-kid", issuers.fetch("preference").current_kid
             assert_equal "sign-app-kid", issuers.fetch("surface:SIGN_APP").current_kid
             assert_predicate issuers.fetch("surface:SIGN_APP").jwks.fetch(:keys), :present?
@@ -44,6 +45,47 @@ module Jit
 
             assert_includes kids, "auth-kid"
             assert_includes kids, "auth-legacy-kid"
+          end
+        end
+
+        test "grace public key verifies old tokens without retaining old private key" do
+          with_registry_inputs do
+            Registry.reload!
+
+            token = JWT.encode(
+              {
+                "iss" => "issuer",
+                "aud" => "audience",
+                "sub" => "subject",
+                "exp" => 5.minutes.from_now.to_i,
+                "iat" => Time.current.to_i,
+              },
+              @auth_legacy_key,
+              Registry::ALGORITHM,
+              { kid: "auth-legacy-kid", typ: "auth-access-token;client" },
+            )
+
+            public_key = Registry.public_key_for("auth", "auth-legacy-kid")
+
+            assert_nil Registry.private_key_for("auth", "auth-legacy-kid")
+            assert_not_nil public_key
+            assert_nothing_raised do
+              JWT.decode(token, public_key, true, algorithms: [Registry::ALGORITHM])
+            end
+          end
+        end
+
+        test "jwks never exposes private key material" do
+          with_registry_inputs do
+            Registry.reload!
+
+            Registry.jwks_for("auth").fetch(:keys).each do |jwk|
+              assert_empty Registry::PRIVATE_JWK_FIELDS & jwk.keys
+              assert_equal Registry::ALGORITHM, jwk.fetch("alg")
+              assert_equal "sig", jwk.fetch("use")
+              assert_equal "EC", jwk.fetch("kty")
+              assert_equal Registry::CURVE, jwk.fetch("crv")
+            end
           end
         end
 
@@ -96,6 +138,59 @@ module Jit
           end
         end
 
+        test "does not allow insecure default kid outside local environments" do
+          with_registry_inputs(
+            "AUTH_JWT_ACTIVE_KID" => "default",
+            "JWT_ALLOW_INSECURE_DEFAULT_KID" => "1",
+          ) do
+            Rails.env.stub(:local?, false) do
+              error = assert_raises(Registry::ConfigurationError) { Registry.reload! }
+
+              assert_match(/active kid must not be "default"/, error.message)
+            end
+          end
+        end
+
+        test "rejects non-empty records without issuer" do
+          record = issuer_record(issuer: nil)
+
+          error = assert_raises(Registry::ConfigurationError) { Registry.validate_record!(record) }
+
+          assert_match(/auth issuer is missing/, error.message)
+        end
+
+        test "rejects non-empty records without audiences" do
+          record = issuer_record(audiences: [])
+
+          error = assert_raises(Registry::ConfigurationError) { Registry.validate_record!(record) }
+
+          assert_match(/auth audiences are missing/, error.message)
+        end
+
+        test "allows empty optional surface records without issuer or audiences" do
+          record = IssuerRecord.new(
+            id: "surface:ACME_APP",
+            namespace: "ACME_APP",
+            issuer: nil,
+            audiences: [],
+            current_kid: nil,
+            keys: {},
+            revoked_kids: Set.new,
+          )
+
+          assert_nothing_raised { Registry.validate_record!(record) }
+        end
+
+        test "rejects records whose active key is not published in jwks" do
+          record = issuer_record(
+            key_state: "retired",
+          )
+
+          error = assert_raises(Registry::ConfigurationError) { Registry.validate_record!(record) }
+
+          assert_match(/active key "auth-kid" is missing from JWKS/, error.message)
+        end
+
         test "does not retain invalid registry after failed reload" do
           with_registry_inputs do
             valid_records = Registry.reload!
@@ -109,6 +204,26 @@ module Jit
         end
 
         private
+
+        def issuer_record(issuer: "issuer", audiences: ["audience"], key_state: "active")
+          IssuerRecord.new(
+            id: "auth",
+            namespace: "AUTH",
+            issuer: issuer,
+            audiences: audiences,
+            current_kid: "auth-kid",
+            keys: {
+              "auth-kid" => KeyRecord.new(
+                kid: "auth-kid",
+                private_key: @auth_key,
+                public_key: @auth_key,
+                public_jwk: Registry.export_public_jwk(@auth_key, kid: "auth-kid"),
+                state: key_state,
+              ),
+            },
+            revoked_kids: Set.new,
+          )
+        end
 
         def with_registry_inputs(extra_env = {})
           legacy_jwk = Registry.export_public_jwk(OpenSSL::PKey::EC.generate("secp384r1"), kid: "legacy-kid")

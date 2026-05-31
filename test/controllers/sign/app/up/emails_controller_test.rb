@@ -27,7 +27,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "div[id^='cf-turnstile-']", count: 1
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
     assert_includes response.body, 'data-turnstile-mode-value="render"'
-    assert_select "script[nonce]", minimum: 1
+    assert_select "script[type='module'][src*='vite']", minimum: 1
     assert_nil response.headers["Content-Security-Policy-Report-Only"]
     assert_includes response.headers["Content-Security-Policy"], "default-src 'self'"
     assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"

@@ -100,6 +100,55 @@ module Authentication
       end
     end
 
+    test "does not refresh when access token cookie is already present" do
+      controller = build_controller(method: "GET")
+      controller.send(:cookies)[Authentication::Base::ACCESS_COOKIE_KEY] = "access-token"
+      controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh-token"
+      refresh_calls = 0
+      controller.define_singleton_method(:refresh_access_token) do |_refresh_plain|
+        refresh_calls += 1
+        { user: Object.new }
+      end
+
+      controller.transparent_refresh_access_token
+
+      assert_equal 0, refresh_calls
+      assert_nil controller.request.env[Auth::IoKeys::Env::AUTH_REFRESHED_FLAG]
+      assert_nil controller.instance_variable_get(:@current_resource)
+    end
+
+    test "does not refresh more than once in the same request" do
+      controller = build_controller(method: "GET")
+      resource = Object.new
+      controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh-token"
+      refresh_calls = 0
+      controller.define_singleton_method(:refresh_access_token) do |_refresh_plain|
+        refresh_calls += 1
+        { user: resource }
+      end
+
+      controller.transparent_refresh_access_token
+      controller.transparent_refresh_access_token
+
+      assert_equal 1, refresh_calls
+      assert_equal resource, controller.instance_variable_get(:@current_resource)
+      assert controller.request.env[Auth::IoKeys::Env::AUTH_REFRESHED_FLAG]
+    end
+
+    test "clears auth cookies when refresh cookie cannot be exchanged" do
+      controller = build_controller(method: "GET")
+      controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh-token"
+      cleared = false
+      controller.define_singleton_method(:refresh_access_token) { |_refresh_plain| nil }
+      controller.define_singleton_method(:clear_auth_cookies!) { cleared = true }
+
+      controller.transparent_refresh_access_token
+
+      assert cleared
+      assert controller.request.env[Auth::IoKeys::Env::AUTH_REFRESHED_FLAG]
+      assert_nil controller.instance_variable_get(:@current_resource)
+    end
+
     private
 
     def build_controller(method:, accept: "text/html")

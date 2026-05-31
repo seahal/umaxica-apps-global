@@ -13,10 +13,29 @@ class StepUp::ScopeCatalogTest < ActiveSupport::TestCase
   end
 
   test "later step up scopes remain registered" do
+    assert StepUp::ScopeCatalog::APP.key?("social_link")
     assert StepUp::ScopeCatalog::APP.key?("configuration_connection")
     assert StepUp::ScopeCatalog::COM.key?("configuration_connection")
     assert StepUp::ScopeCatalog::ORG.key?("configuration_connection")
     assert StepUp::ScopeCatalog::ORG.key?("operator_lifecycle")
+  end
+
+  test "social link scope is offered on app and org and matches social configuration pages" do
+    app_pattern = StepUp::ScopeCatalog::APP.fetch("social_link")
+
+    assert_match app_pattern, "/configuration/google"
+    assert_match app_pattern, "/configuration/apple?ri=jp"
+    assert_no_match app_pattern, "/social/auth/google_app/continue"
+    assert_no_match app_pattern, "/configuration/emails"
+
+    # Org links Google only (no Apple); com offers no social linking.
+    org_pattern = StepUp::ScopeCatalog::ORG.fetch("social_link")
+
+    assert_match org_pattern, "/configuration/google"
+    assert_match org_pattern, "/configuration/google?ri=jp"
+    assert_no_match org_pattern, "/configuration/apple"
+    assert_no_match org_pattern, "/social/auth/google_org/continue"
+    assert_not StepUp::ScopeCatalog::COM.key?("social_link")
   end
 
   test "configuration birthdate scope only matches the birthdate path" do

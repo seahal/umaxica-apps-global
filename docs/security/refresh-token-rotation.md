@@ -21,6 +21,29 @@ The active implementation is `Sign::RefreshTokenService`.
 - Refreshed access tokens return to the default `AAL1` context; step-up / `AAL2` state is not sticky
   across refresh.
 
+## Browser Transparent Refresh
+
+Browser controllers may run `transparent_refresh_access_token` before authentication checks. This is
+only a browser HTML recovery path for expired or missing access cookies; it is not a protocol token
+endpoint.
+
+Transparent refresh is allowed only when all of the following are true:
+
+- the request is `GET` or `HEAD`;
+- the negotiated request format is HTML;
+- the access-token cookie is absent;
+- the refresh-token cookie is present;
+- the current request has not already attempted transparent refresh.
+
+Transparent refresh must not run for state-changing methods, JSON requests, malformed HTML-like
+`Accept` headers, requests that already carry an access-token cookie, or explicit token endpoints.
+Token endpoints skip the callback and use their explicit refresh actions instead.
+
+On successful transparent refresh, the refresh token rotates using the same
+`Sign::RefreshTokenService` contract as explicit refresh, new auth cookies are issued, and the
+current request is marked as refreshed. On failed exchange, auth cookies are cleared and the request
+continues unauthenticated.
+
 ## Replay Behavior
 
 Reusing an already-rotated refresh token is treated as compromise.
@@ -52,6 +75,7 @@ Primary regression coverage:
 - `test/services/sign/refresh_token_service_test.rb`
 - `test/models/user_token_test.rb`
 - `test/models/staff_token_test.rb`
+- `test/controllers/concerns/authentication/transparent_refresh_test.rb`
 - `test/controllers/sign/app/edge/v0/token/refreshes_controller_test.rb`
 - `test/controllers/sign/org/edge/v0/token/refreshes_controller_test.rb`
 

@@ -16,4 +16,13 @@ class Sign::Com::PreferencesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href*='/preference/email']", count: 0
   end
+
+  test "show uses explicit English locale for all preference labels" do
+    get sign_com_preference_url(ri: "us", lx: "en", ct: "dr")
+
+    assert_response :success
+    assert_select "html[lang='en']"
+    assert_select "span", text: "R18 Display Stopper"
+    assert_select "span", text: "R18表示設定", count: 0
+  end
 end

@@ -192,6 +192,125 @@ module Preference
     end
   end
 
+  class ConnectionRoleFallbackTest < ActiveSupport::TestCase
+    setup do
+      @controller = PreferenceSanitizeTestController.new
+    end
+
+    test "with_preference_connection falls back to writing when reading role is not configured" do
+      calls = []
+      owner =
+        Class.new do
+          define_singleton_method(:connected_to) do |role:, &block|
+            calls << role
+            raise ActiveRecord::ConnectionNotDefined, "No reading role" if role == :reading
+
+            block.call
+          end
+        end
+
+      @controller.define_singleton_method(:preference_connection_owner) { owner }
+
+      result = @controller.send(:with_preference_connection, :reading) { :loaded }
+
+      assert_equal :loaded, result
+      assert_equal %i(reading writing), calls
+    end
+
+    test "with_preference_connection does not hide missing writing role" do
+      owner =
+        Class.new do
+          define_singleton_method(:connected_to) do |role:, &|
+            raise ActiveRecord::ConnectionNotDefined, "No #{role} role"
+          end
+        end
+
+      @controller.define_singleton_method(:preference_connection_owner) { owner }
+
+      assert_raises(ActiveRecord::ConnectionNotDefined) do
+        @controller.send(:with_preference_connection, :writing) { :loaded }
+      end
+    end
+  end
+
+  class AccessTokenIssuerJtiTest < ActiveSupport::TestCase
+    PREFERENCE_CASES = [
+      ["app", AppPreference, AppPreferenceStatus],
+      ["com", ComPreference, ComPreferenceStatus],
+      ["org", OrgPreference, OrgPreferenceStatus],
+    ].freeze
+
+    setup do
+      @controller = PreferenceSanitizeTestController.new
+      @controller.response = ActionDispatch::TestResponse.new
+    end
+
+    PREFERENCE_CASES.each do |surface, preference_class, status_class|
+      test "issuing #{surface} access token twice keeps the first token current" do
+        preference = create_preference_record(preference_class, status_class, token_label: "#{surface}-stable")
+        @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.#{surface}.localhost")
+        @controller.test_controller_path = "sign/#{surface}/preferences"
+        @controller.define_singleton_method(:preference_class) { preference_class }
+
+        with_preference_jwt_keys(host: @controller.request.host) do
+          @controller.send(:issue_access_token_from, preference)
+          first_token = @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
+          first_payload = Preference::Token.decode(
+            first_token,
+            host: @controller.request.host,
+            jwt_issuer_id: @controller.send(:preference_jwt_issuer_id),
+          )
+          first_jti = preference.reload.jti
+
+          @controller.send(:issue_access_token_from, preference)
+
+          assert_equal first_jti, preference.reload.jti
+          assert @controller.send(:preference_access_token_current?, preference, first_payload)
+        end
+      end
+    end
+
+    PREFERENCE_CASES.each do |surface, preference_class, status_class|
+      test "explicit #{surface} jti rotation rejects an older preference access token" do
+        preference = create_preference_record(
+          preference_class,
+          status_class,
+          token_label: "#{surface}-explicit-rotate",
+        )
+        @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.#{surface}.localhost")
+        @controller.test_controller_path = "sign/#{surface}/preferences"
+        @controller.define_singleton_method(:preference_class) { preference_class }
+
+        with_preference_jwt_keys(host: @controller.request.host) do
+          @controller.send(:issue_access_token_from, preference)
+          first_token = @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
+          first_payload = Preference::Token.decode(
+            first_token,
+            host: @controller.request.host,
+            jwt_issuer_id: @controller.send(:preference_jwt_issuer_id),
+          )
+          first_jti = preference.reload.jti
+
+          @controller.send(:issue_access_token_from, preference, rotate_jti: true)
+
+          assert_not_equal first_jti, preference.reload.jti
+          assert_not @controller.send(:preference_access_token_current?, preference, first_payload)
+        end
+      end
+    end
+
+    private
+
+    def create_preference_record(preference_class, status_class, token_label:)
+      preference_class.create!(
+        status_id: status_class::NOTHING,
+        discarded_at: 1.day.from_now,
+        token_digest: preference_class.digest_refresh_token("#{token_label}-refresh"),
+        jti: "jti-#{token_label}",
+      )
+    end
+  end
+
   class JwtConfigurationTest < ActiveSupport::TestCase
     test "active_kid returns value from ENV" do
       with_env("PREFERENCE_JWT_ACTIVE_KID" => "test_kid") do
@@ -948,24 +1067,44 @@ module Preference
       @controller.define_singleton_method(:preference_class) { AppPreference }
       @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.app.localhost")
       @controller.request.request_id = "request-1"
+      @controller.test_params = { controller: "acme/app/preferences", action: "show" }
 
       preference = FakePreferenceState.new(public_id: "pref-public")
-      @controller.send(:handle_preference_refresh_failed, preference, nil)
+      refresh_failed_logs = []
+
+      Rails.logger.stub(:warn, ->(message) { refresh_failed_logs << message }) do
+        @controller.send(:handle_preference_refresh_failed, preference, "refresh-public")
+      end
 
       assert @controller.send(:preference_refresh_failed?)
+      assert_match(/preference\.token\.refresh\.failed/, refresh_failed_logs.last)
+      assert_match(/"request_id":"request-1"/, refresh_failed_logs.last)
+      assert_match(%r{"controller":"acme/app/preferences"}, refresh_failed_logs.last)
+      assert_match(/"action":"show"/, refresh_failed_logs.last)
+      assert_match(/"preference_public_id":"pref-public"/, refresh_failed_logs.last)
+      assert_match(/"refresh_public_id":"refresh-public"/, refresh_failed_logs.last)
 
       @controller.send(:clear_preference_refresh_failure!)
       @controller.instance_variable_set(:@preference_refresh_binding_reason, "missing")
-      @controller.send(:handle_preference_refresh_binding_denied, preference, nil)
+      binding_denied_logs = []
+
+      Rails.logger.stub(:warn, ->(message) { binding_denied_logs << message }) do
+        @controller.send(:handle_preference_refresh_binding_denied, preference, "refresh-public")
+      end
 
       assert @controller.send(:preference_refresh_failed?)
       assert @controller.instance_variable_get(:@preference_refresh_binding_denied)
+      assert_match(/preference\.token\.refresh\.binding_denied/, binding_denied_logs.last)
+      assert_match(/"reason":"missing"/, binding_denied_logs.last)
+      assert_match(/"request_id":"request-1"/, binding_denied_logs.last)
 
       rendered = []
       headed = []
       @controller.define_singleton_method(:render) { |**kwargs| rendered << kwargs }
       @controller.define_singleton_method(:head) { |status| headed << status }
 
+      @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.app.localhost")
+      @controller.request.request_id = "request-1"
       @controller.request.set_header("HTTP_ACCEPT", "application/json")
       @controller.send(:render_preference_refresh_error!)
 
@@ -1006,13 +1145,33 @@ module Preference
 
       @controller.instance_variable_set(:@refresh_token_value, "old-refresh")
       @controller.instance_variable_set(:@refresh_presented_digest, "digest")
+      @controller.instance_variable_set(:@refresh_public_id, "refresh-public")
       @controller.define_singleton_method(:find_preference_by_presented_token) { replay }
       @controller.define_singleton_method(:handle_preference_refresh_replay!) { |pref| @handled_replay = pref }
+      rotation_failed_logs = []
+      @controller.request.request_id = "request-2"
+      @controller.test_params = { controller: "acme/app/preferences", action: "show" }
 
       rotated_class.rotated = nil
-      @controller.send(:refresh_refresh_token_lifetime, preference)
+      Rails.logger.stub(:warn, ->(message) { rotation_failed_logs << message }) do
+        @controller.send(:refresh_refresh_token_lifetime, preference)
+      end
 
       assert_equal replay, @controller.instance_variable_get(:@handled_replay)
+      assert_empty rotation_failed_logs
+
+      @controller.define_singleton_method(:find_preference_by_presented_token) { nil }
+      @controller.instance_variable_set(:@handled_replay, nil)
+      @controller.instance_variable_set(:@preference_refresh_failed, false)
+
+      Rails.logger.stub(:warn, ->(message) { rotation_failed_logs << message }) do
+        @controller.send(:refresh_refresh_token_lifetime, preference)
+      end
+
+      assert @controller.send(:preference_refresh_failed?)
+      assert_match(/preference\.token\.refresh\.rotation_failed/, rotation_failed_logs.last)
+      assert_match(/"refresh_public_id":"refresh-public"/, rotation_failed_logs.last)
+      assert_match(%r{"controller":"acme/app/preferences"}, rotation_failed_logs.last)
 
       rotated = FakePreferenceState.new(
         binding_method: :dbsc,

@@ -3,6 +3,7 @@
 
 require "jwt"
 require "json"
+require "jit/security/jwt/jwk"
 require "jit/security/jwt/registry"
 
 module Jit
@@ -11,8 +12,8 @@ module Jit
       module JwksService
         module_function
 
-        REQUIRED_JWK_FIELDS = %w(kty crv kid alg use x y).freeze
-        PRIVATE_JWK_FIELDS = %w(d p q dp dq qi oth k).freeze
+        REQUIRED_JWK_FIELDS = Jwk::REQUIRED_PUBLIC_FIELDS
+        PRIVATE_JWK_FIELDS = Jwk::PRIVATE_FIELDS
 
         def jwk_set(namespace = nil)
           return Registry.jwks_for("auth") if namespace.blank?
@@ -25,17 +26,9 @@ module Jit
         end
 
         def normalized_public_jwk(entry)
-          return nil unless entry.is_a?(Hash)
-
-          jwk = entry.stringify_keys.slice(*REQUIRED_JWK_FIELDS)
-          return nil unless REQUIRED_JWK_FIELDS.all? { |field| jwk[field].present? }
-          return nil if PRIVATE_JWK_FIELDS.any? { |field| entry.key?(field) || entry.key?(field.to_sym) }
-          return nil unless jwk["alg"] == Authentication::TokenService::JWT_ALGORITHM
-          return nil unless jwk["use"] == "sig"
-          return nil unless jwk["kty"] == "EC"
-          return nil unless jwk["crv"] == "P-384"
-
-          jwk
+          Jwk.normalize_public(entry)
+        rescue Jwk::Error
+          nil
         end
       end
     end

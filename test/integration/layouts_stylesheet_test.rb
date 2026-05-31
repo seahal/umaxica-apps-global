@@ -4,7 +4,7 @@
 require "test_helper"
 
 class StylesheetTagsTest < ActiveSupport::TestCase
-  IMPORTMAP_LAYOUT_PATHS = [
+  VITE_LAYOUT_PATHS = [
     "app/views/layouts/acme/app/application.html.erb",
     "app/views/layouts/acme/com/application.html.erb",
     "app/views/layouts/acme/org/application.html.erb",
@@ -47,17 +47,24 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     end
   end
 
-  test "importmap layouts expose csp nonce for turbo head script rendering" do
-    IMPORTMAP_LAYOUT_PATHS.each do |path|
+  test "application layouts load javascript through external vite entrypoint" do
+    VITE_LAYOUT_PATHS.each do |path|
       contents = Rails.root.join(path).read
 
       assert_includes contents, "csp_meta_tag", "missing csp_meta_tag in #{path}"
-      assert_operator(
-        contents.index("csp_meta_tag"),
-        :<,
-        contents.index("javascript_importmap_tags"),
-        "csp_meta_tag must appear before javascript_importmap_tags in #{path}",
+      assert_includes contents, 'vite_javascript_tag "application"', "missing Vite entrypoint in #{path}"
+      assert_includes contents, "nonce: true", "Vite entrypoint must carry CSP nonce in #{path}"
+      assert_includes(
+        contents,
+        '"data-turbo-eval": "false"',
+        "Vite entrypoint must not be re-evaluated by Turbo with a response-local nonce in #{path}",
       )
+      assert_not_includes(
+        contents,
+        'vite_javascript_tag "application", nonce: true, "data-turbo-track": "reload"',
+        "Vite entrypoint nonce changes per response, so Turbo reload tracking would loop in #{path}",
+      )
+      assert_not_includes contents, "javascript_importmap_tags", "inline importmap must not be used in #{path}"
     end
   end
 end

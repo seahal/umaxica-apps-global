@@ -1,11 +1,10 @@
 # typed: false
 # frozen_string_literal: true
 
-require "base64"
-require "json"
 require "jwt"
-require "openssl"
-require "set"
+require "jit/security/jwt/issuer_builder"
+require "jit/security/jwt/key_source"
+require "jit/security/jwt/jwk"
 
 module Jit
   module Security
@@ -13,10 +12,10 @@ module Jit
       module Registry
         module_function
 
-        ALGORITHM = "ES384"
-        CURVE = "P-384"
-        REQUIRED_JWK_FIELDS = %w(kty crv kid alg use x y).freeze
-        PRIVATE_JWK_FIELDS = %w(d p q dp dq qi oth k).freeze
+        ALGORITHM = Jwk::ALGORITHM
+        CURVE = Jwk::CURVE
+        REQUIRED_JWK_FIELDS = Jwk::REQUIRED_PUBLIC_FIELDS
+        PRIVATE_JWK_FIELDS = Jwk::PRIVATE_FIELDS
         SURFACE_NAMESPACES = %w(
           SIGN_APP SIGN_COM SIGN_ORG
           ACME_APP ACME_COM ACME_ORG
@@ -36,34 +35,8 @@ module Jit
 
         ConfigurationError = Class.new(StandardError)
 
-        VERIFY_STATES = %w(active grace).freeze
-        PUBLISH_STATES = %w(active grace).freeze
         DEFAULT_KID = "default"
-
-        KeyRecord = Data.define(:kid, :private_key, :public_key, :public_jwk, :state)
-        IssuerRecord =
-          Data.define(:id, :namespace, :issuer, :audiences, :current_kid, :keys, :revoked_kids) do
-            def current_key = keys.fetch(current_kid, nil)
-
-            def public_key_for(kid)
-              key = keys.fetch(kid.to_s, nil)
-              return nil unless key
-              return nil if revoked_kids.include?(kid.to_s)
-              return nil unless VERIFY_STATES.include?(key.state)
-
-              key.public_key
-            end
-
-            def jwks
-              {
-                keys: keys.values.filter_map do |key|
-                  next unless PUBLISH_STATES.include?(key.state)
-
-                  key.public_jwk
-                end,
-              }
-            end
-          end
+        DEFAULT_AUTH_AUDIENCES = ["umaxica-api"].freeze
 
         def configure!
           records = build_issuers
@@ -132,98 +105,67 @@ module Jit
         end
 
         def build_issuers
+          source = KeySource.new
           records = {}
           records["auth"] = build_keyset_issuer(
+            source: source,
             id: "auth",
             private_keyset_name: :AUTH_JWT_PRIVATE_KEYSET,
             public_keyset_name: :AUTH_JWT_PUBLIC_KEYSET,
-            active_kid: ENV.fetch("AUTH_JWT_ACTIVE_KID", nil),
-            issuer: ENV.fetch("AUTH_JWT_ISSUER", nil),
-            audiences: split_csv(ENV["AUTH_JWT_AUDIENCES"]),
-            revoked_kids: split_csv(ENV["AUTH_JWT_REVOKED_KIDS"]),
+            active_kid: source.fetch("AUTH_JWT_ACTIVE_KID", nil),
+            issuer: source.fetch("AUTH_JWT_ISSUER", nil),
+            audiences: source.csv("AUTH_JWT_AUDIENCES").presence || DEFAULT_AUTH_AUDIENCES,
+            revoked_kids: source.csv("AUTH_JWT_REVOKED_KIDS"),
           )
           records["preference"] = build_keyset_issuer(
+            source: source,
             id: "preference",
             private_keyset_name: :PREFERENCE_JWT_PRIVATE_KEYSET,
             public_keyset_name: :PREFERENCE_JWT_PUBLIC_KEYSET,
-            active_kid: ENV.fetch("PREFERENCE_JWT_ACTIVE_KID", nil),
-            issuer: ENV.fetch("PREFERENCE_JWT_ISSUER", nil),
-            audiences: split_csv(ENV["PREFERENCE_JWT_AUDIENCES"]),
-            revoked_kids: split_csv(ENV["PREFERENCE_JWT_REVOKED_KIDS"]),
+            active_kid: source.fetch("PREFERENCE_JWT_ACTIVE_KID", nil),
+            issuer: source.fetch("PREFERENCE_JWT_ISSUER", nil),
+            audiences: source.csv("PREFERENCE_JWT_AUDIENCES"),
+            revoked_kids: source.csv("PREFERENCE_JWT_REVOKED_KIDS"),
           )
 
           SURFACE_NAMESPACES.each do |namespace|
-            records["surface:#{namespace}"] = build_surface_issuer(namespace)
+            records["surface:#{namespace}"] = build_surface_issuer(namespace, source: source)
           end
 
           records.freeze
         end
 
-        def build_keyset_issuer(id:, private_keyset_name:, public_keyset_name:, active_kid:, issuer:, audiences:,
-                                revoked_kids:)
-          private_keys = parse_private_keyset(creds_option(private_keyset_name), source: private_keyset_name)
-          public_keys = parse_public_jwk_collection(creds_option(public_keyset_name), source: public_keyset_name)
-          current_kid = active_kid.presence || private_keys.keys.first
-          keys = merge_keys(
-            private_keys: private_keys, public_jwks: public_keys, current_kid: current_kid,
-            revoked_kids: revoked_kids,
-          )
-
-          IssuerRecord.new(
+        def build_keyset_issuer(source:, id:, private_keyset_name:, public_keyset_name:, active_kid:, issuer:,
+                                audiences:, revoked_kids:)
+          IssuerBuilder.build_keyset_issuer(
             id: id,
-            namespace: id.upcase,
+            private_keyset: source.value(private_keyset_name),
+            private_keyset_source: private_keyset_name,
+            public_keyset: source.value(public_keyset_name),
+            public_keyset_source: public_keyset_name,
+            active_kid: active_kid,
             issuer: issuer,
             audiences: audiences,
-            current_kid: current_kid,
-            keys: keys,
-            revoked_kids: revoked_kids.to_set.freeze,
+            revoked_kids: revoked_kids,
           )
+        rescue IssuerBuilder::Error => e
+          raise ConfigurationError, e.message
         end
 
-        def build_surface_issuer(namespace)
-          active_kid = ENV["JWT_#{namespace}_ACTIVE_KID"].presence
-          private_key = decode_private_key(
-            creds_option("JWT_#{namespace}_PRIVATE_KEY"),
-            source: "JWT_#{namespace}_PRIVATE_KEY",
-          )
-          current_public_jwk = (active_kid && private_key) ? export_public_jwk(private_key, kid: active_kid) : nil
-          legacy_jwks = parse_public_jwk_collection(
-            ENV["JWT_#{namespace}_PUBLIC_KEYSET"],
-            source: "JWT_#{namespace}_PUBLIC_KEYSET",
-          )
-          revoked_kids = split_csv(ENV["JWT_#{namespace}_REVOKED_KIDS"]).to_set
-          public_jwks = {}
-          legacy_jwks.each { |kid, jwk| public_jwks[kid] = jwk }
-          if active_kid && current_public_jwk && public_jwks[active_kid] &&
-              public_jwks[active_kid].except("state") != current_public_jwk
-            raise ConfigurationError, "surface:#{namespace} active public JWK does not match active private key"
-          end
-
-          public_jwks[active_kid] = current_public_jwk.merge("state" => "active") if current_public_jwk
-
-          keys = public_jwks.each_with_object({}) do |(kid, jwk), acc|
-            state = key_state_for(
-              kid: kid, current_kid: active_kid, configured_state: jwk["state"],
-              revoked_kids: revoked_kids,
-            )
-            acc[kid] = KeyRecord.new(
-              kid: kid,
-              private_key: (kid == active_kid) ? private_key : nil,
-              public_key: JWT::JWK.import(jwk.except("state")).public_key,
-              public_jwk: jwk.except("state"),
-              state: state,
-            )
-          end.freeze
-
-          IssuerRecord.new(
-            id: "surface:#{namespace}",
+        def build_surface_issuer(namespace, source:)
+          IssuerBuilder.build_surface_issuer(
             namespace: namespace,
+            active_kid: source.value("JWT_#{namespace}_ACTIVE_KID"),
+            private_key: source.value("JWT_#{namespace}_PRIVATE_KEY"),
+            private_key_source: "JWT_#{namespace}_PRIVATE_KEY",
+            public_keyset: source.fetch("JWT_#{namespace}_PUBLIC_KEYSET", nil),
+            public_keyset_source: "JWT_#{namespace}_PUBLIC_KEYSET",
+            revoked_kids: source.csv("JWT_#{namespace}_REVOKED_KIDS"),
             issuer: surface_issuer_origin(namespace),
-            audiences: [ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")].freeze,
-            current_kid: active_kid,
-            keys: keys,
-            revoked_kids: revoked_kids.freeze,
+            audiences: [source.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")].freeze,
           )
+        rescue IssuerBuilder::Error => e
+          raise ConfigurationError, e.message
         end
 
         def validate!(records = issuers)
@@ -234,6 +176,8 @@ module Jit
 
         def validate_record!(record)
           return if record.current_kid.blank? && record.keys.empty?
+          raise ConfigurationError, "#{record.id} issuer is missing" if record.issuer.blank?
+          raise ConfigurationError, "#{record.id} audiences are missing" if record.audiences.blank?
           raise ConfigurationError, "#{record.id} active kid is missing" if record.current_kid.blank?
           if insecure_default_kid?(record.current_kid)
             raise ConfigurationError,
@@ -250,6 +194,9 @@ module Jit
 
           current = record.keys.fetch(record.current_kid)
           raise ConfigurationError, "#{record.id} active private key is missing" if current.private_key.nil?
+          unless record.jwks.fetch(:keys).any? { |jwk| jwk.fetch("kid") == record.current_kid }
+            raise ConfigurationError, "#{record.id} active key #{record.current_kid.inspect} is missing from JWKS"
+          end
 
           record.keys.each_value do |key|
             validate_public_jwk!(key.public_jwk, source: "#{record.id}:#{key.kid}")
@@ -275,154 +222,18 @@ module Jit
           end
         end
 
-        def merge_keys(private_keys:, public_jwks:, current_kid:, revoked_kids:)
-          merged = {}
-          public_jwks.each do |kid, jwk|
-            merged[kid] = KeyRecord.new(
-              kid: kid,
-              private_key: nil,
-              public_key: import_public_key(jwk),
-              public_jwk: jwk.except("state"),
-              state: key_state_for(
-                kid: kid, current_kid: current_kid, configured_state: jwk["state"],
-                revoked_kids: revoked_kids,
-              ),
-            )
-          end
-
-          private_keys.each do |kid, private_key|
-            derived_jwk = export_public_jwk(private_key, kid: kid)
-            if public_jwks[kid] && public_jwks[kid].except("state") != derived_jwk
-              raise ConfigurationError, "active/private key #{kid.inspect} does not match configured public JWK"
-            end
-
-            state = key_state_for(
-              kid: kid, current_kid: current_kid, configured_state: public_jwks.dig(kid, "state"),
-              revoked_kids: revoked_kids,
-            )
-            merged[kid] = KeyRecord.new(
-              kid: kid,
-              private_key: private_key,
-              public_key: private_key,
-              public_jwk: derived_jwk,
-              state: state,
-            )
-          end
-
-          merged.freeze
-        end
-
-        def parse_private_keyset(raw, source:)
-          return {} if raw.blank?
-
-          parsed = parse_json_hash(raw, source: source)
-          parsed.transform_values { |value| decode_private_key(value, source: source) }.compact
-        end
-
-        def parse_public_jwk_collection(raw, source:)
-          return {} if raw.blank?
-
-          parsed = JSON.parse(raw)
-          entries =
-            case parsed
-            when Array
-              parsed
-            when Hash
-              unless parsed["keys"].is_a?(Array)
-                raise ConfigurationError, "#{source} must be a JWK Set object with keys array"
-              end
-
-              parsed.fetch("keys")
-
-            else
-              raise ConfigurationError, "#{source} must be a JWK Set JSON object or array"
-            end
-
-          entries.each_with_object({}) do |entry, acc|
-            jwk = normalize_public_jwk(entry, source: source)
-            acc[jwk.fetch("kid")] = jwk
-          end
-        rescue JSON::ParserError => e
-          raise ConfigurationError, "#{source} contains invalid JSON: #{e.message}"
-        end
-
-        def parse_json_hash(raw, source:)
-          parsed = JSON.parse(raw)
-          raise ConfigurationError, "#{source} must be a JSON object" unless parsed.is_a?(Hash)
-
-          parsed
-        rescue JSON::ParserError => e
-          raise ConfigurationError, "#{source} contains invalid JSON: #{e.message}"
-        end
-
-        def normalize_public_jwk(entry, source:)
-          raise ConfigurationError, "#{source} entry must be a JSON object" unless entry.is_a?(Hash)
-
-          source_hash = entry.stringify_keys
-          if PRIVATE_JWK_FIELDS.any? { |field| source_hash.key?(field) }
-            raise ConfigurationError,
-                  "#{source} entry #{source_hash["kid"].inspect} contains private JWK material"
-          end
-
-          jwk = source_hash.slice(*(REQUIRED_JWK_FIELDS + ["state"]))
-          validate_public_jwk!(jwk, source: source)
-          validate_public_key_import!(jwk, source: source)
-          jwk
-        end
-
         def validate_public_jwk!(jwk, source:)
-          missing = REQUIRED_JWK_FIELDS.reject { |field| jwk[field].present? }
-          raise ConfigurationError, "#{source} public JWK is missing #{missing.join(", ")}" if missing.present?
-          raise ConfigurationError, "#{source} public JWK alg must be #{ALGORITHM}" unless jwk["alg"] == ALGORITHM
-          raise ConfigurationError, "#{source} public JWK use must be sig" unless jwk["use"] == "sig"
-          raise ConfigurationError, "#{source} public JWK kty must be EC" unless jwk["kty"] == "EC"
-          raise ConfigurationError, "#{source} public JWK crv must be #{CURVE}" unless jwk["crv"] == CURVE
+          Jwk.validate_public!(jwk)
+        rescue Jwk::Error => e
+          raise ConfigurationError, "#{source} #{e.message}"
         end
 
         def export_public_jwk(key, kid:)
-          JWT::JWK.new(key, kid: kid).export.stringify_keys.except(*PRIVATE_JWK_FIELDS).merge(
-            "alg" => ALGORITHM,
-            "use" => "sig",
-          )
-        end
-
-        def import_public_key(jwk)
-          JWT::JWK.import(jwk.except("state")).public_key
-        end
-
-        def validate_public_key_import!(jwk, source:)
-          import_public_key(jwk)
-        rescue JWT::JWKError, OpenSSL::PKey::PKeyError, ArgumentError => e
-          raise ConfigurationError, "#{source} contains invalid public JWK material: #{e.class.name}"
-        end
-
-        def decode_private_key(value, source:)
-          return nil if value.blank?
-
-          raw = value.to_s
-          key = raw.include?("BEGIN") ? OpenSSL::PKey.read(raw) : OpenSSL::PKey::EC.new(Base64.decode64(raw))
-          raise ConfigurationError, "#{source} must be an EC private key" unless key.is_a?(OpenSSL::PKey::EC)
-
-          key
-        rescue OpenSSL::PKey::PKeyError, ArgumentError => e
-          raise ConfigurationError, "#{source} contains invalid EC key material: #{e.class.name}"
+          Jwk.export_public(key, kid: kid)
         end
 
         def surface_issuer_origin(namespace)
           SURFACE_ISSUER_ORIGINS.fetch(namespace)
-        end
-
-        def split_csv(value)
-          list = value.to_s.split(",").map(&:strip)
-          list.reject!(&:empty?)
-          list.freeze
-        end
-
-        def key_state_for(kid:, current_kid:, configured_state:, revoked_kids:)
-          return "revoked" if revoked_kids.include?(kid)
-          return "active" if kid == current_kid
-
-          configured_state.presence || "grace"
         end
 
         def insecure_default_kid?(kid)
@@ -430,11 +241,7 @@ module Jit
         end
 
         def insecure_default_kid_allowed?(kid)
-          kid.to_s == DEFAULT_KID && ENV["JWT_ALLOW_INSECURE_DEFAULT_KID"] == "1"
-        end
-
-        def creds_option(key)
-          ENV[key.to_s].presence || Rails.app.creds.option(key)
+          kid.to_s == DEFAULT_KID && Rails.env.local? && ENV["JWT_ALLOW_INSECURE_DEFAULT_KID"] == "1"
         end
       end
     end

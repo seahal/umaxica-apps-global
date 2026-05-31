@@ -157,8 +157,6 @@ jobs:
         run: bundle exec rubocop --fail-fast --format github
       - name: Run ERB Lint
         run: bundle exec erb_lint --lint-all
-      - name: Check importmap integrity
-        run: bin/importmap audit
   # ====================
   # CORE TESTS
   # ====================

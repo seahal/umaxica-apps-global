@@ -19,6 +19,9 @@ Social login availability is surface-specific.
   sequence.
 - On `app`, a registered Google or Apple identity enters the login sequence. It must not be treated
   as a new sign-up unless required sign-up setup is still incomplete.
+- On `app`, linking Google or Apple from account configuration requires recent token-bound Step-Up
+  scope `social_link`. This is separate from `social_unlink`, so a Step-Up completed for one social
+  credential operation does not authorize the other.
 - `org` Google social login is bound through the provider UID stored on `OperatorSocialGoogle`.
   Google email-address matching is not an authentication boundary and must not authorize login.
 

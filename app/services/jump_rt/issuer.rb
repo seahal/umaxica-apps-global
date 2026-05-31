@@ -5,13 +5,13 @@ require "jwt"
 
 module JumpRt
   class Issuer
-    ALGORITHM = "ES384"
+    ALGORITHM = Security::Jwt::JumpRtTokenCodec::ALGORITHM
     AUDIENCE_ENV = "JUMP_GATEWAY_URL"
     TTL_ENV = "JUMP_RT_TTL_SECONDS"
     DEFAULT_AUDIENCE = "https://jump.umaxica.net"
-    DEFAULT_TTL = 5.minutes
-    MAX_TTL = 5.minutes
-    TOKEN_SUBJECT = "jump-redirect"
+    DEFAULT_TTL = Security::TokenLifetimes::JUMP_RT_TTL
+    MAX_TTL = Security::TokenLifetimes::JUMP_RT_TTL
+    TOKEN_SUBJECT = Security::Jwt::JumpRtTokenCodec::TOKEN_SUBJECT
     VALID_DESTINATIONS = %w(internal external).freeze
     VALID_REPLAY_POLICIES = %w(reuse once).freeze
     # Defense in depth: strip redirect-target query keys from the signed URL so
@@ -47,12 +47,7 @@ module JumpRt
       private_key = JumpRt::Keyring.private_key(namespace)
       return nil if kid.blank? || private_key.blank?
 
-      JWT.encode(
-        payload(normalized_url),
-        private_key,
-        ALGORITHM,
-        { typ: "JWT", kid: kid },
-      )
+      Security::Jwt::JumpRtTokenCodec.encode(payload(normalized_url), private_key: private_key, kid: kid)
     end
 
     private
@@ -61,19 +56,16 @@ module JumpRt
 
     def payload(normalized_url)
       issued_at = now.to_i
-      {
-        schema: 1,
-        iss: JumpRt::Surface.issuer_origin(namespace),
-        aud: jump_audience,
-        sub: TOKEN_SUBJECT,
-        iat: issued_at,
-        nbf: issued_at,
-        exp: issued_at + ttl.to_i,
-        jti: jti,
+      Security::Jwt::JumpRtTokenCodec.build_issue_payload(
+        namespace: namespace,
+        normalized_url: normalized_url,
         dst: dst,
-        rpl: replay_policy,
-        url: normalized_url,
-      }
+        replay_policy: replay_policy,
+        ttl: ttl,
+        now: Time.zone.at(issued_at),
+        jti: jti,
+        audience: jump_audience,
+      )
     end
 
     def normalize_url(value)

@@ -157,7 +157,7 @@ Supported optional request values:
 
 - `lx`: `ja`, `en`
 - `ct`: `li`, `dr`, `sy`, or their long forms `light`, `dark`, `system`
-- `tz`: `utc`, `etc/utc`, `jst`, `asia/tokyo`
+- `tz`: `utc`, `etc/utc`, `asia/tokyo`
 - `tf`: `12`, `24`, or their long forms `hour_12`, `hour_24`
 - `mo`: `st`, `rd`, or their long forms `standard`, `reduced`
 - `dn`: `st`, `cp`, or their long forms `standard`, `compact`

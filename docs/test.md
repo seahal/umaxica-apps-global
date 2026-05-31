@@ -64,7 +64,11 @@ detailed cases, and acceptance criteria derived from the SRS and HLD.
 
 - **Unit tests (Ruby)**: `bin/rails test` covers models (e.g., `ServiceSiteContact`,
   `UserIdentityEmail`, `TimeBasedOneTimePassword`), controllers, concerns, services, consumers.
-  Fixtures stored under `test/fixtures`; multi-database fixtures split by context.
+  Fixtures stored under `test/fixtures`; multi-database fixtures split by context. The test
+  database configuration uses Rails' standard process parallelization with a conservative default
+  of 1 worker for low-shared-memory local containers, overridable via `PARALLEL_WORKERS`, disables PostgreSQL query/maintenance
+  parallelism for test connections, and prepares separate writer/reader database names for each
+  configured connection.
 - **Unit tests (JS/TS)**: `vp test` is the JavaScript test baseline. `pnpm test` remains a package
   alias for `vp test run`.
 - **Integration/system tests**: Rails integration and system tests remain the automated baseline.

@@ -88,7 +88,6 @@ module RequestContext
 
     def normalize(key, value)
       return value.to_s if redirect_target_key?(key)
-      return value.to_s if key.to_sym == :tz
 
       normalized = value.to_s.downcase
       case key.to_sym

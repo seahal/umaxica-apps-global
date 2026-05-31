@@ -241,8 +241,23 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
          headers: as_user_headers(@user_one, host: @host)
 
-    assert_response :redirect
-    assert_match %r{/configuration}, response.location
+    assert_response :see_other
+    assert_match %r{/verification}, response.location
+    assert_match "scope=social_link", response.location
+    assert_nil session[SOCIAL_FLOW_ID_SESSION_KEY]
+  end
+
+  test "link intent rejects token-bound step up for a different scope" do
+    headers = as_user_headers(@user_one, host: @host)
+    token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
+    mark_token_step_up_satisfied_for_test(token, scope: "configuration_email")
+
+    post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+         headers: headers
+
+    assert_response :see_other
+    assert_match %r{/verification}, response.location
+    assert_match "scope=social_link", response.location
     assert_nil session[SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -323,7 +338,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   def social_link_headers(user)
     headers = as_user_headers(user, host: @host)
     token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
-    mark_token_step_up_satisfied_for_test(token)
+    mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
     headers
   end
 

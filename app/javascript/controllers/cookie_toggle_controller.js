@@ -37,11 +37,17 @@ export default class extends Controller {
   }
 
   async fetchCookieConsent() {
-    const response = await fetch("/web/v0/cookie");
+    const response = await fetch(this.cookieEndpointUrl());
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
+  }
+
+  cookieEndpointUrl() {
+    const endpoint = new URL("/web/v0/cookie", window.location.origin);
+    endpoint.search = window.location.search;
+    return endpoint.toString();
   }
 
   syncCheckboxesFromAPI(consentState) {

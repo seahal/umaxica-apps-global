@@ -372,6 +372,50 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal "Client", snapshot["authorization_user_class"]
   end
 
+  test "sequential app and org requests rebuild actor context without cross surface leakage" do
+    app_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    org_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    user = Client.create!(
+      status_id: ClientStatus::ACTIVE,
+      public_id: SecureRandom.hex(10),
+      created_at: Time.current,
+      updated_at: Time.current,
+    )
+    staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
+
+    host!(app_host)
+    get "/actor-support/acme-app", params: { ri: "jp" }, headers: {
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+    }
+
+    assert_response :success
+    app_snapshot = response.parsed_body
+
+    assert_equal "Client", app_snapshot["actor_class"]
+    assert_equal user.id, app_snapshot["actor_id"]
+    assert_equal "client", app_snapshot["actor_type"]
+    assert_equal "app", app_snapshot["tld"]
+    assert_equal Unauthenticated.instance, Actor.actor
+    assert_nil Actor.tld
+
+    host!(org_host)
+    get "/actor-support/acme-org", params: { ri: "jp" }, headers: {
+      "X-TEST-CURRENT-STAFF" => staff.id.to_s,
+    }
+
+    assert_response :success
+    org_snapshot = response.parsed_body
+
+    assert_equal "Operator", org_snapshot["actor_class"]
+    assert_equal staff.id, org_snapshot["actor_id"]
+    assert_equal "operator", org_snapshot["actor_type"]
+    assert_equal "org", org_snapshot["tld"]
+    assert_not_equal app_snapshot["actor_type"], org_snapshot["actor_type"]
+    assert_not_equal app_snapshot["tld"], org_snapshot["tld"]
+    assert_equal Unauthenticated.instance, Actor.actor
+    assert_nil Actor.tld
+  end
+
   test "action policy fails closed for unauthenticated app request" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
 

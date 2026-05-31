@@ -21,6 +21,12 @@ describe("CookieToggleController", () => {
 
   beforeEach(() => {
     controller = new CookieToggleController();
+    vi.stubGlobal("window", {
+      location: {
+        origin: "http://localhost:3000",
+        search: "?ct=dr&lx=en&ri=us&tz=asia/tokyo",
+      },
+    });
     vi.stubGlobal("fetch", vi.fn());
   });
 
@@ -148,5 +154,16 @@ describe("CookieToggleController", () => {
   test("fetchCookieConsent: レスポンスが OK でないときエラーを投げる", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
     await expect(controller.fetchCookieConsent()).rejects.toThrow("HTTP error! status: 500");
+  });
+
+  test("fetchCookieConsent: 現在の context query を引き継ぐ", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ consented: false }) }),
+    );
+
+    await controller.fetchCookieConsent();
+
+    expect(fetch).toHaveBeenCalledWith("http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo");
   });
 });

@@ -30,7 +30,7 @@ module Preference
     include Preference::RefreshTokenTransport
     include Preference::Transport
 
-    ACCESS_TOKEN_TTL = 7.days
+    ACCESS_TOKEN_TTL = Security::TokenLifetimes::PREFERENCE_JWT_TTL
     REFRESH_TOKEN_TTL = 400.days
     THEME_COOKIE_KEY = Preference::IoKeys::Cookies::THEME
     LANGUAGE_COOKIE_KEY = Preference::IoKeys::Cookies::LANGUAGE
@@ -515,6 +515,10 @@ module Preference
       return yield if connection_owner.blank?
 
       connection_owner.connected_to(role: role) { yield }
+    rescue ActiveRecord::ConnectionNotDefined
+      raise unless role == :reading
+
+      connection_owner.connected_to(role: :writing) { yield }
     end
 
     # ==========================================================================
@@ -798,13 +802,11 @@ module Preference
       @preference_refresh_binding_denied = true
 
       Rails.logger.warn(
-        {
-          message: "Preference refresh denied",
+        Jit::LogEvent.format(
+          "preference.token.refresh.binding_denied",
           reason: @preference_refresh_binding_reason || "missing",
-          preference_type: preference_class.name,
-          preference_public_id: preference&.public_id || refresh_public_id,
-          request_id: request.request_id,
-        },
+          **preference_refresh_log_context(preference, refresh_public_id),
+        ),
       )
     end
 
@@ -813,12 +815,10 @@ module Preference
       @preference_refresh_failed = true
 
       Rails.logger.warn(
-        {
-          message: "Preference refresh failed",
-          preference_type: preference_class.name,
-          preference_public_id: preference&.public_id || refresh_public_id,
-          request_id: request.request_id,
-        },
+        Jit::LogEvent.format(
+          "preference.token.refresh.failed",
+          **preference_refresh_log_context(preference, refresh_public_id),
+        ),
       )
     end
 
@@ -874,12 +874,33 @@ module Preference
       Rails.logger.info(
         Jit::LogEvent.format(
           "preference.token.refresh.replay_detected",
-          preference_type: preference_class.name,
-          preference_public_id: preference.public_id,
           replaced_by_id: preference.replaced_by_id,
-          request_id: request.request_id,
+          **preference_refresh_log_context(preference, preference.public_id),
         ),
       )
+    end
+
+    def log_preference_refresh_rotation_failed(preference, refresh_public_id)
+      Rails.logger.warn(
+        Jit::LogEvent.format(
+          "preference.token.refresh.rotation_failed",
+          **preference_refresh_log_context(preference, refresh_public_id),
+        ),
+      )
+    end
+
+    def preference_refresh_log_context(preference, refresh_public_id)
+      {
+        preference_type: preference_class.name,
+        preference_public_id: preference&.public_id || refresh_public_id,
+        refresh_public_id: refresh_public_id || @refresh_public_id,
+        controller: controller_path,
+        action: action_name.presence || params[:action],
+        request_method: request.request_method,
+        path: request.path,
+        format: request.format&.ref,
+        request_id: request.request_id,
+      }.compact
     end
 
     # ==========================================================================

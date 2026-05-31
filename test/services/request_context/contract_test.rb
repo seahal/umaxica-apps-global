@@ -54,10 +54,10 @@ module RequestContext
       assert_not Contract.redirect_target_key?(:lx)
     end
 
-    test "normalize lowercases overlay values but preserves target and tz casing" do
+    test "normalize lowercases overlay values but preserves target casing" do
       assert_equal "en", Contract.normalize(:lx, "EN")
       assert_equal "dark", Contract.normalize(:ct, "Dark")
-      assert_equal "Asia/Tokyo", Contract.normalize(:tz, "Asia/Tokyo")
+      assert_equal "asia/tokyo", Contract.normalize(:tz, "Asia/Tokyo")
       assert_equal "12", Contract.normalize(:tf, "hour_12")
       assert_equal "24", Contract.normalize(:tf, "24")
       assert_equal "rd", Contract.normalize(:mo, "reduced")

@@ -27,6 +27,10 @@ At boot, `Jit::Security::Jwt::Registry` builds immutable issuer/key records:
 The JWKS endpoint must only render the prebuilt public JWKS. It must not read private keys,
 credentials, files, KMS, or the network while serving a request.
 
+JumpRT token-family behavior is implemented through `Security::Jwt::JumpRtTokenCodec` while
+`JumpRt::Issuer` and `JumpRt::ReturnVerifier` remain the service entry points. URL normalization,
+return-policy checks, JWKS fetch/cache behavior, and one-time replay caching stay in JumpRT services.
+
 ## Key States
 
 - `active`: used for new signing and included in JWKS.
@@ -72,6 +76,11 @@ also be retained while its public key is in `grace`.
 10. Keep the old public key in JWKS for `max token TTL + leeway + CDN max stale`.
 11. Remove the old public key from `PUBLIC_KEYSET`.
 12. Keep the old private key secret version until rollback is closed.
+
+The normal old-kid verification window is
+`Security::TokenLifetimes::JUMP_RT_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
+Old verification keys should be public JWKs only after rollback no longer needs the previous
+private signer.
 
 ## Rollback
 

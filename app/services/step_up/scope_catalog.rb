@@ -4,6 +4,7 @@
 module StepUp
   module ScopeCatalog
     APP = {
+      "social_link" => %r{\A/configuration/(?:google|apple)(?:\z|[?#])},
       "social_unlink" => %r{\A/?(?:social/|configuration/(?:google|apple)(?:\z|[?#]))},
       "session_revoke_all" => %r{\A/configuration/sessions},
       "withdrawal" => %r{\A/configuration/withdrawal},
@@ -17,9 +18,13 @@ module StepUp
       "configuration_connection" => %r{\A/configuration/connections},
     }.freeze
 
-    COM = APP.except("configuration_totp").freeze
+    COM = APP.except("configuration_totp", "social_link").freeze
 
     ORG = {
+      # Org links/unlinks only Google (no Apple). Link gating is enforced by
+      # SocialAuthConcern via SOCIAL_LINK_SCOPE; org must therefore offer a
+      # "social_link" scope or operator Google linking can never satisfy step-up.
+      "social_link" => %r{\A/configuration/google(?:\z|[?#])},
       "social_unlink" => %r{\A/?(?:social/|configuration/google(?:\z|[?#]))},
       "session_revoke_all" => %r{\A/configuration/sessions},
       "withdrawal" => %r{\A/configuration/withdrawal},

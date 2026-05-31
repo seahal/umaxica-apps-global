@@ -115,7 +115,7 @@ rewrite なし) のため軽い。ただし `clients` は最大テーブルの�
 
 - index 削除は `algorithm: :concurrently` で online 実行
 - `safety_assured do` ブロックで `strong_migrations` の警告を意図的に承認
-- migration 前後で `bin/db-reset-all` ではなく、本番相当のサンプルデータで local 検証
+- migration 前後で本番相当のサンプルデータを使って local 検証
 
 test:
 

@@ -68,7 +68,7 @@ export default class extends Controller {
 
   async fetchAndSyncTheme() {
     try {
-      const response = await fetch("/web/v0/theme");
+      const response = await fetch(this.themeEndpointUrl());
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -80,6 +80,12 @@ export default class extends Controller {
       this.syncRadio();
       applyThemeFromCookie();
     }
+  }
+
+  themeEndpointUrl() {
+    const endpoint = new URL("/web/v0/theme", window.location.origin);
+    endpoint.search = window.location.search;
+    return endpoint.toString();
   }
 
   syncRadio() {

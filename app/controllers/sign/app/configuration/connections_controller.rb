@@ -20,6 +20,8 @@ module Sign
 
         def show = super
 
+        def destroy = super
+
         private
 
         def authenticate_connection_actor!

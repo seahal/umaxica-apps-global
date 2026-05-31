@@ -3,8 +3,8 @@
 
 module Oidc
   class IdTokenIssuer < ApplicationService
-    TOKEN_TTL = 5.minutes
-    TOKEN_TYPE = "id-token+jwt"
+    TOKEN_TTL = Security::Jwt::OidcIdTokenCodec::TOKEN_TTL
+    TOKEN_TYPE = Security::Jwt::OidcIdTokenCodec::TOKEN_TYPE
 
     def initialize(resource:, client:, nonce:, issued_at: Time.current, expires_at: nil, acr: nil, amr: nil,
                    jwt_issuer_id: nil, issuer: nil, subject: nil, sid: nil, auth_time: nil, step_up_until: nil)
@@ -27,7 +27,7 @@ module Oidc
     def call
       raise ArgumentError, "nonce is required" if nonce.blank?
 
-      Jit::Security::Jwt::Keyring.encode(payload, issuer_id: resolved_jwt_issuer_id)
+      Security::Jwt::OidcIdTokenCodec.encode(payload, issuer_id: resolved_jwt_issuer_id)
     end
 
     private
@@ -36,30 +36,24 @@ module Oidc
                 :issuer, :subject, :sid, :auth_time, :step_up_until
 
     def payload
-      {
-        "iss" => issuer.presence || Oidc::Issuer.for_client(client),
-        "sub" => subject.presence || Oidc::Subject.for(resource, resource_type: token_resource_type),
-        "aud" => client.client_id,
-        "exp" => Integer(expires_at.to_i),
-        "iat" => Integer(issued_at.to_i),
-        "jti" => Jit::Security::Jwt::JtiGenerator.generate,
-        "typ" => TOKEN_TYPE,
-        "act" => token_resource_type,
-        "sid" => sid.presence || SecureRandom.urlsafe_base64(18),
-        "nonce" => nonce,
-        "acr" => acr.presence || "aal1",
-      }.tap do |claims|
-        claims["amr"] = Array(amr) if amr.present?
-        claims["auth_time"] = Integer(auth_time.to_i) if auth_time.present?
-        claims["step_up_until"] = Integer(step_up_until.to_i) if step_up_until.present?
-      end
+      Security::Jwt::OidcIdTokenCodec.build_payload(
+        resource: resource,
+        client: client,
+        nonce: nonce,
+        issued_at: issued_at,
+        expires_at: expires_at,
+        acr: acr,
+        amr: amr,
+        issuer: issuer,
+        subject: subject,
+        sid: sid,
+        auth_time: auth_time,
+        step_up_until: step_up_until,
+      )
     end
 
     def token_resource_type
-      return "operator" if %w(operator staff).include?(client.resource_type)
-      return "visitor" if %w(visitor customer).include?(client.resource_type)
-
-      "client"
+      Security::Jwt::OidcIdTokenCodec.resource_type_for_client(client)
     end
 
     def resolved_jwt_issuer_id

@@ -11,7 +11,7 @@ module Preference
 
     def update
       apply_consented_update_from_request!
-      set_consented_buffer_cookie!
+      set_consented_buffer_cookie! unless cookie_consent_state_overridden?
       render json: cookie_consent_state, status: :ok
     end
   end

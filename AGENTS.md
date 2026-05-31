@@ -213,9 +213,9 @@ Migrations must be reversible, backward-compatible, and safe for production.
 - Do not define a local `rename_table_if_present` or any other "skip if missing" wrapper around
   `rename_table`. The silent-skip pattern hides partial-rename failures and produces schema drift
   that surfaces days later as broken fixtures and unrunnable tests.
-- While a rename migration is in flight on a branch, use `bin/db-reset-all` instead of
-  `bin/rails db:migrate` for dev and test DBs. Incremental migrations against a half-renamed DB
-  silently drift further; reload from the committed schema_dump every time.
+- While a rename migration is in flight on a branch, rebuild dev and test DBs with
+  `bin/rails db:migrate:reset` instead of incremental `bin/rails db:migrate`. Incremental
+  migrations against a half-renamed DB silently drift further; rebuild from migrations every time.
 - Before pushing a branch that adds rename migrations, run `bin/rails db:verify_no_schema_drift` to
   confirm the committed schema_dump files match what migrations produce from a clean DB.
 

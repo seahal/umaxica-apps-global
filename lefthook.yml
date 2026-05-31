@@ -46,15 +46,6 @@ pre-commit:
         else
           docker compose run core bundle exec bundler-audit check --update
         fi
-    ruby_importmap_audit:
-      run: |
-        #!/bin/sh
-        set -eu
-        if [ -f /.dockerenv ]; then
-          bin/importmap audit
-        else
-          docker compose run core bin/importmap audit
-        fi
     ruby_brakeman:
       run: |
         #!/bin/sh
