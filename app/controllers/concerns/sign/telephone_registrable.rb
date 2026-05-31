@@ -5,11 +5,6 @@ module Sign
   module TelephoneRegistrable
     extend ActiveSupport::Concern
 
-    included do
-      include Common::Redirect
-      include Common::Otp
-    end
-
     TELEPHONE_VERIFICATION_RATE_LIMIT = 5
     TELEPHONE_VERIFICATION_RATE_WINDOW = 60
 

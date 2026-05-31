@@ -9,10 +9,12 @@ module Sign
 
         AUTHENTICATION_MODE = :private
         before_action :authenticate_visitor!
+        before_action :set_session, only: %i(destroy)
         before_action :authorize_sessions!, only: %i(index)
         before_action :authorize_session!, only: %i(destroy)
         before_action :authorize_session_revoke_others!, only: %i(others)
         before_action :authorize_session_revoke_all!, only: %i(revoke_all)
+        helper_method :current_session_record?
         def index = super
 
         def destroy = super

@@ -27,6 +27,9 @@ module Sign
         include SocialOmniauthCallbackFlow
 
         AUTHENTICATION_MODE = :deny_all
+        rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
+        rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
+        before_action :verify_social_callback_request!, only: [:omniauth], raise: false
 
         # Allow unauthenticated access for login intent
         # For link intent, auth is checked in prepare_social_auth_intent!

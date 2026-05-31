@@ -6,6 +6,10 @@ module SingleUseToken
   include RefreshTokenShared
 
   PREFERENCE_REFRESH_TTL = 400.days
+  PREFERENCE_CHILD_SUFFIXES = %w(
+    cookie region timezone language theme currency date_format time_format
+    motion density page_size adult_content_gate
+  ).freeze
 
   included do
     scope :active, -> { where(arel_table[:discarded_at].gt(Time.current)) }
@@ -37,7 +41,7 @@ module SingleUseToken
 
         consume_record!(consumed, now: now)
         replacement = create_rotated_record!(consumed, now: now)
-        consumed.update!(replaced_by_id: replacement.id)
+        link_consumed_record_to_replacement!(consumed, replacement, now: now)
         raw_refresh_token = replacement.issued_refresh_token
       end
 
@@ -85,11 +89,15 @@ module SingleUseToken
       replacement
     end
 
+    def link_consumed_record_to_replacement!(consumed, replacement, now:)
+      consumed.update_columns(replaced_by_id: replacement.id, updated_at: now)
+    end
+
     def migrate_preference_children!(from:, to:)
       operation =
         lambda do
           prefix = from.class.model_name.singular
-          %w(cookie region timezone language theme).each do |suffix|
+          PREFERENCE_CHILD_SUFFIXES.each do |suffix|
             association_name = "#{prefix}_#{suffix}"
             next unless from.respond_to?(association_name)
 

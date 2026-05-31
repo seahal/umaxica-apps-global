@@ -19,12 +19,8 @@ module Sign
         # Step-up / Turnstile / WebAuthn-challenge guards remain in place for the registration ceremony.
         before_action :authorize_passkeys!, only: %i(index)
         before_action :authorize_passkey_create!, only: %i(create)
-        before_action only: %i(new create options verification) do
-          require_step_up_unless_bootstrap!(scope: verification_scope)
-        end
-        before_action only: %i(edit update destroy) do
-          require_step_up!(scope: verification_scope)
-        end
+        step_up only: %i(new create options verification), bootstrap: true
+        step_up only: %i(edit update destroy)
         before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_configuration_passkey_turnstile!, only: %i(options update destroy)
 

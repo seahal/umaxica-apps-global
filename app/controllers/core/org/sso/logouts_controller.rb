@@ -8,6 +8,7 @@ module Core
         include ::Oidc::RpLogout
 
         AUTHENTICATION_MODE = :open
+        declare_authentication_mode! :open
       end
     end
   end

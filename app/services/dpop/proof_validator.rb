@@ -13,12 +13,21 @@ module Dpop
         def valid? = valid
       end
 
-    def initialize(proof_jwt:, request_method:, request_uri:, access_token: nil, resource_type: "client")
+    # record_jti:
+    #   true  — persist the jti for replay detection (login, refresh, token
+    #           exchange, step-up; low-frequency, security-critical paths).
+    #   false — stateless validation with no DB write. Used for per-request API
+    #           access where binding is already enforced by cnf.jkt + ath, and a
+    #           write per request would be a hot-path cost. The jti claim is still
+    #           required (RFC 9449 §4.2) but its uniqueness is not tracked.
+    def initialize(proof_jwt:, request_method:, request_uri:, access_token: nil, resource_type: "client",
+                   record_jti: true)
       @proof_jwt = proof_jwt.to_s
       @request_method = request_method.to_s.upcase
       @request_uri = request_uri.to_s
       @access_token = access_token
       @resource_type = resource_type
+      @record_jti = record_jti
     end
 
     def call
@@ -54,8 +63,15 @@ module Dpop
       end
 
       jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
-      replay_result = record_jti(payload["jti"], jkt: jkt, payload: payload)
-      return replay_result unless replay_result.valid?
+
+      # jti is REQUIRED on every proof, but its uniqueness is only persisted on
+      # stateful paths (record_jti: true). Per-request validation stays stateless.
+      return Result.new(valid: false, error: "missing_jti") if payload["jti"].blank?
+
+      if @record_jti
+        replay_result = record_jti(payload["jti"], jkt: jkt, payload: payload)
+        return replay_result unless replay_result.valid?
+      end
 
       nonce_result = verify_nonce(payload["nonce"])
       return nonce_result unless nonce_result.valid?

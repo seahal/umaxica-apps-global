@@ -1500,6 +1500,10 @@ Rails/SkipsModelValidations:
     - "test/**/*.rb"
     - "app/models/application_record.rb"
 
+Rails/ApplicationController:
+  Exclude:
+    - "app/controllers/**/bare_controller.rb"
+
 ThreadSafety/ClassInstanceVariable:
   Exclude:
     - "test/**/*.rb"

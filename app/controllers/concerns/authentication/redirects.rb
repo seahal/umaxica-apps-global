@@ -7,10 +7,6 @@ module Authentication
     include Common::Redirect
     include ::Redirects::SignedTargetSupport
 
-    included do
-      helper_method :signed_pt_param if respond_to?(:helper_method)
-    end
-
     DEFAULT_PT_SESSION_KEY = Auth::IoKeys::Session::DEFAULT_PT
     PATH_TARGET_TOKEN_SALT = "path_target_token"
     PATH_TARGET_TOKEN_PURPOSE = :path_target

@@ -240,6 +240,56 @@ class AppPreferenceTest < ActiveSupport::TestCase
     assert_equal rotated.id, preference.reload.replaced_by_id
   end
 
+  test "rotate! moves all preference child records to replacement" do
+    [
+      AppPreferenceRegionOption,
+      AppPreferenceTimezoneOption,
+      AppPreferenceLanguageOption,
+      AppPreferenceThemeOption,
+      AppPreferenceCurrencyOption,
+      AppPreferenceDateFormatOption,
+      AppPreferenceTimeFormatOption,
+      AppPreferenceMotionOption,
+      AppPreferenceDensityOption,
+      AppPreferencePageSizeOption,
+      AppPreferenceAdultContentGateOption,
+    ].each(&:ensure_defaults!)
+
+    digest = AppPreference.digest_refresh_token("rotate-with-children")
+    preference = AppPreference.create!(
+      status_id: AppPreferenceStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      token_digest: digest,
+      jti: SecureRandom.uuid,
+    )
+
+    child_records =
+      {
+        app_preference_cookie: preference.create_app_preference_cookie!(functional: true),
+        app_preference_region: preference.create_app_preference_region!(option_id: AppPreferenceRegionOption::JP),
+        app_preference_timezone: preference.create_app_preference_timezone!(option_id: AppPreferenceTimezoneOption::ASIA_TOKYO),
+        app_preference_language: preference.create_app_preference_language!(option_id: AppPreferenceLanguageOption::JA),
+        app_preference_theme: preference.create_app_preference_theme!(option_id: AppPreferenceThemeOption::DARK),
+        app_preference_currency: preference.create_app_preference_currency!(option_id: AppPreferenceCurrencyOption::JPY),
+        app_preference_date_format: preference.create_app_preference_date_format!(option_id: AppPreferenceDateFormatOption::ISO),
+        app_preference_time_format: preference.create_app_preference_time_format!(option_id: AppPreferenceTimeFormatOption::HOUR_24),
+        app_preference_motion: preference.create_app_preference_motion!(option_id: AppPreferenceMotionOption::STANDARD),
+        app_preference_density: preference.create_app_preference_density!(option_id: AppPreferenceDensityOption::STANDARD),
+        app_preference_page_size: preference.create_app_preference_page_size!(option_id: AppPreferencePageSizeOption::PER_20),
+        app_preference_adult_content_gate: preference.create_app_preference_adult_content_gate!(
+          option_id: AppPreferenceAdultContentGateOption::NOTHING,
+        ),
+      }
+
+    rotated = AppPreference.rotate!(presented_digest: digest, now: Time.current)
+
+    child_records.each do |association_name, child|
+      assert_equal rotated.id, child.reload.preference_id, "#{association_name} should move to replacement"
+      assert_equal child.id, rotated.reload.public_send(association_name).id
+    end
+    assert_equal rotated.id, preference.reload.replaced_by_id
+  end
+
   test "rotate! consumes token without device fallback" do
     digest = AppPreference.digest_refresh_token("rotate-wrong-device")
     preference = AppPreference.create!(

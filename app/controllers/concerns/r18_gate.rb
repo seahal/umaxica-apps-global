@@ -8,15 +8,6 @@ module R18Gate
   COOKIE_KEY = :r18_acknowledged
   COOKIE_TTL = 30.days
 
-  included do
-    # `class_attribute` mutation is class-definition-time only — `r18_required`
-    # is invoked from the controller class body during boot, before any
-    # request threads exist. Per-class isolation comes from class_attribute's
-    # inheritance-aware setter.
-    class_attribute :r18_required_actions, default: Set.new # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-    before_action :require_r18_viewing!
-  end
-
   class_methods do
     def r18_required(*actions)
       self.r18_required_actions = r18_required_actions | actions.map(&:to_s).to_set

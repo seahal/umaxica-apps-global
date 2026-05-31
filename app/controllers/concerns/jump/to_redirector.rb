@@ -10,11 +10,6 @@ module Jump::ToRedirector
   JUMP_TARGET_TOKEN_PURPOSE = :jump_target
   JUMP_TARGET_TOKEN_EXPIRES_IN = 15.minutes
 
-  included do
-    skip_before_action :apply_localization_preferences, raise: false
-    before_action :disable_cookie_session
-  end
-
   def show
     return render_not_found if params[:jt].blank?
 

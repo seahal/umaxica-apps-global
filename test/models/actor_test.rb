@@ -123,4 +123,52 @@ class ActorTest < ActiveSupport::TestCase
     assert_predicate Actor.authn.access_claims["scp"], :frozen?
     assert_predicate Actor.authn.access_claims["prf"], :frozen?
   end
+
+  test "anonymous aliases the unauthenticated state" do
+    assert_predicate Actor, :anonymous?
+    assert_not_predicate Actor, :user?
+    assert_not_predicate Actor, :staff?
+
+    Actor.actor_type = :client
+
+    assert_not_predicate Actor, :anonymous?
+  end
+
+  test "user predicate aliases client actor" do
+    Actor.actor_type = :client
+
+    assert_predicate Actor, :user?
+    assert_not_predicate Actor, :staff?
+  end
+
+  test "staff predicate aliases operator actor" do
+    Actor.actor_type = :operator
+
+    assert_predicate Actor, :staff?
+    assert_not_predicate Actor, :user?
+  end
+
+  test "step up predicates are false when no step up is required" do
+    assert_equal Actor::StepUp::NULL, Actor.step_up
+    assert_not_predicate Actor, :step_up_fresh?
+    assert_not_predicate Actor, :requires_step_up?
+  end
+
+  test "requires step up is true when a scope is required but unsatisfied" do
+    Actor.install_context!(
+      step_up: Actor::StepUp::NULL.with(scope: "configuration_email", satisfied: false),
+    )
+
+    assert_predicate Actor, :requires_step_up?
+    assert_not_predicate Actor, :step_up_fresh?
+  end
+
+  test "step up fresh is true and requires step up is false when satisfied" do
+    Actor.install_context!(
+      step_up: Actor::StepUp::NULL.with(scope: "configuration_email", satisfied: true),
+    )
+
+    assert_predicate Actor, :step_up_fresh?
+    assert_not_predicate Actor, :requires_step_up?
+  end
 end

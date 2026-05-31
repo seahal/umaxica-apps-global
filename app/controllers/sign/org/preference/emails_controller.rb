@@ -8,6 +8,7 @@ module Sign
         include Sign::PromotionalEmailUnsubscribeActions
 
         AUTHENTICATION_MODE = :bare
+        before_action :set_promotional_email
 
         private
 

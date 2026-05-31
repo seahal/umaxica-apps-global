@@ -6,6 +6,8 @@ require "test_helper"
 module Auth
   class BaseIncludedDoTest < ActiveSupport::TestCase
     class BaseHarness < ApplicationController
+      include Sign::ErrorResponses
+      include SessionLimitGate
       include Authentication::Base
 
       def resource_type = "user"

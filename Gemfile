@@ -130,6 +130,8 @@ gem "stripe", require: false
 gem "ruby-vips"
 # log
 gem "lograge"
+# json
+gem "json-canonicalization"
 
 group :development, :test do
   # Test coverage reporting.

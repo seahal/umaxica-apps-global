@@ -224,7 +224,7 @@ class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "destroy rejects current session token belonging to another visitor" do
-    other_visitor = create_verified_visitor_with_email(email_address: "com-out-other-#{SecureRandom.hex(4)}@example.com")
+    other_visitor = create_verified_visitor_with_email(email_address: "com-out-oth-#{SecureRandom.hex(4)}@example.com")
     other_token = VisitorToken.create!(visitor: other_visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     other_token.rotate_refresh_token!
 

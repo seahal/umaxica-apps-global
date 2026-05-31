@@ -11,6 +11,8 @@ module Sign::App::In::Passkey
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      CloudflareTurnstile.test_mode = true
+      CloudflareTurnstile.test_validation_response = { "success" => true }
       Jit::Security::TurnstileVerifier.test_mode = true
       Jit::Security::TurnstileVerifier.test_response = { "success" => true }
       # Mock TRUSTED_ORIGINS
@@ -46,6 +48,8 @@ module Sign::App::In::Passkey
 
     teardown do
       Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+      CloudflareTurnstile.test_mode = false
+      CloudflareTurnstile.test_validation_response = nil
       Jit::Security::TurnstileVerifier.test_mode = false
       Jit::Security::TurnstileVerifier.test_response = nil
     end

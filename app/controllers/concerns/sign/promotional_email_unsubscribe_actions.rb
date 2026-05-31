@@ -6,10 +6,6 @@ module Sign
     extend ActiveSupport::Concern
     include ::CloudflareTurnstile
 
-    included do
-      before_action :set_promotional_email
-    end
-
     def edit
     end
 

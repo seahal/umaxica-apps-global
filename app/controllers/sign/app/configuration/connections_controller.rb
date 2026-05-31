@@ -8,10 +8,14 @@ module Sign
         include Sign::OidcConnectionsManagement
 
         AUTHENTICATION_MODE = :private
+        before_action :authenticate_connection_actor!
+        before_action :set_connection, only: %i(show destroy)
         # Object-level authorization (ActionPolicy) for the read paths. Restricts the listing to the
-        # owning actor type on top of the owner-scoped query in the shared concern. `destroy` is
-        # authorized per-record (owner) in Sign::OidcConnectionsManagement, in addition to step-up.
+        # owning actor type on top of the owner-scoped query in the shared concern.
         before_action :authorize_connections!, only: %i(index show)
+        before_action :authorize_connection_destroy!, only: :destroy
+        helper_method :connection_status_label, :connection_scopes_text, :connection_last_used_text,
+                      :connection_path_for, :connections_path, :configuration_path
         def index = super
 
         def show = super

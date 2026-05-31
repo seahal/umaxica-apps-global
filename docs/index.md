@@ -32,6 +32,7 @@ Current content-model references:
 - `docs/architecture/preference.md`
 - `docs/security/session-limit.md`
 - `docs/security/credential-abuse-rate-limits.md`
+- `docs/security/chain_seal.md`
 - `docs/security/observability-boundary.md`
 - `docs/security/security-headers.md`
 - `docs/security/turnstile.md`
@@ -50,6 +51,7 @@ Current content-model references:
 - `docs/security/redirect_targets.md`
 - `docs/operations/jump-rt-key-rotation.md`
 - `docs/operations/jwt-key-rotation.md`
+- `docs/runbooks/chain_seal_key_rotation.md`
 - `docs/dictionary/README.md`
 - `docs/dictionary/access-terms.md`
 - `docs/dictionary/alphabet.md`

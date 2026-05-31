@@ -31,11 +31,6 @@ module SocialAuthConcern
 
   VALID_INTENTS = %w(login link step_up).freeze
 
-  included do
-    rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
-    rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
-  end
-
   private
 
   # Prepare social auth intent before redirecting to OmniAuth provider.

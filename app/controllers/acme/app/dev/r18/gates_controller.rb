@@ -10,6 +10,8 @@ module Acme
           include ::R18Gate
 
           AUTHENTICATION_MODE = :open
+          class_attribute :r18_required_actions, default: Set.new # rubocop:disable ThreadSafety/ClassAndModuleAttributes
+          before_action :require_r18_viewing!
 
           def show
             set_r18_no_store!

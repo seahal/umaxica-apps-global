@@ -80,12 +80,20 @@ module Common
       namespace: jump_rt_issuer_namespace,
       dst: "internal",
       replay_policy: "reuse",
+      preserve_query_keys: [],
       fallback_internal: false,
       **
     )
       token =
         begin
-          JumpRt::Issuer.call(namespace: namespace, url: url, dst: dst, replay_policy: replay_policy)
+          preserve_query_keys |= safe_jump_preserved_query_keys(url)
+          JumpRt::Issuer.call(
+            namespace: namespace,
+            url: url,
+            dst: dst,
+            replay_policy: replay_policy,
+            preserve_query_keys: preserve_query_keys,
+          )
         rescue ArgumentError
           nil
         end
@@ -124,6 +132,29 @@ module Common
       log_redirect_target_failure(result)
       render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
              status: :unprocessable_content
+    end
+
+    def safe_jump_preserved_query_keys(url)
+      uri = URI.parse(url.to_s)
+      query = Rack::Utils.parse_nested_query(uri.query.to_s)
+      return [] unless uri.is_a?(URI::HTTP)
+      return [] unless uri.path == "/oauth/authorize"
+      return [] unless oidc_authorize_host_allowed?(uri.host)
+      return [] unless defined?(Oidc::ClientRegistry)
+      return [] unless Oidc::ClientRegistry.valid_redirect_uri?(query["client_id"], query["redirect_uri"])
+
+      ["redirect_uri"]
+    rescue URI::InvalidURIError
+      []
+    end
+
+    def oidc_authorize_host_allowed?(host)
+      allowed_hosts =
+        %w(ID_SERVICE_URL ID_CORPORATE_URL ID_STAFF_URL).filter_map do |key|
+          Common::Redirect.normalize_host(ENV[key])
+        end
+      allowed_hosts += %w(id.app.localhost id.com.localhost id.org.localhost)
+      allowed_hosts.include?(Common::Redirect.normalize_host(host))
     end
 
     def resolve_redirect_target(priority:, default:)

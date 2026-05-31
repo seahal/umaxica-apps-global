@@ -8,6 +8,8 @@ module Sign
         include SocialAuthConcern
 
         AUTHENTICATION_MODE = :private
+        rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
+        rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
 
         before_action :authenticate_operator!
 

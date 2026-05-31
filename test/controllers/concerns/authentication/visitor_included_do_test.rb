@@ -5,6 +5,7 @@ require "test_helper"
 
 class AuthenticationVisitorIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
+    include AuthorizationAudit
     include Authentication::Visitor
   end
 

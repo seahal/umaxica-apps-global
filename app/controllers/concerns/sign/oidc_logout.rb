@@ -4,12 +4,6 @@
 module Sign
   module OidcLogout
     extend ActiveSupport::Concern
-    include Common::Redirect
-    include Sign::OutNotice
-
-    included do
-      declare_authentication_mode! :open
-    end
 
     def show
       return invalid_post_logout_redirect_uri if params[:post_logout_redirect_uri].present?

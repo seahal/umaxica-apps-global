@@ -26,10 +26,6 @@ module SocialCallbackGuard
 
   REQUEST_PHASE_PATH = %r{\A/auth/(?<provider>google_app|google_org|apple)\z}.freeze
 
-  included do
-    before_action :verify_social_callback_request!, only: [:omniauth], raise: false
-  end
-
   module_function
 
   def verify_request_phase!(env)

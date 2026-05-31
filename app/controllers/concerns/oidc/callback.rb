@@ -7,10 +7,6 @@ module Oidc
 
     InvalidCallbackState = Class.new(StandardError)
 
-    included do
-      declare_authentication_mode! :open
-    end
-
     def show
       validate_state!
       token_result = exchange_code!

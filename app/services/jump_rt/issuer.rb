@@ -23,12 +23,13 @@ module JumpRt
       new(...).call
     end
 
-    def initialize(namespace:, url:, dst: "internal", replay_policy: "reuse", ttl: nil, now: Time.current,
-                   jti: SecureRandom.uuid)
+    def initialize(namespace:, url:, dst: "internal", replay_policy: "reuse", preserve_query_keys: [], ttl: nil,
+                   now: Time.current, jti: SecureRandom.uuid)
       @namespace = JumpRt::Surface.normalize_namespace(namespace)
       @url = url
       @dst = dst.to_s
       @replay_policy = replay_policy.to_s
+      @preserve_query_keys = Array(preserve_query_keys).map(&:to_s)
       @ttl = ttl || default_ttl
       @now = now
       @jti = jti
@@ -56,7 +57,7 @@ module JumpRt
 
     private
 
-    attr_reader :namespace, :url, :dst, :replay_policy, :ttl, :now, :jti
+    attr_reader :namespace, :url, :dst, :replay_policy, :preserve_query_keys, :ttl, :now, :jti
 
     def payload(normalized_url)
       issued_at = now.to_i
@@ -99,8 +100,9 @@ module JumpRt
     def strip_dangerous_query(raw_query)
       return nil if raw_query.blank?
 
+      blocked_keys = DANGEROUS_QUERY_KEYS - preserve_query_keys
       pairs =
-        Rack::Utils.parse_nested_query(raw_query).except(*DANGEROUS_QUERY_KEYS)
+        Rack::Utils.parse_nested_query(raw_query).except(*blocked_keys)
       pairs.present? ? Rack::Utils.build_nested_query(pairs) : nil
     end
 

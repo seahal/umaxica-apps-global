@@ -6,11 +6,6 @@ module ActorSupport
 
   class ResolutionError < StandardError; end
 
-  included do
-    helper_method :current_actor if respond_to?(:helper_method)
-    authorize :actor, through: :current_actor if respond_to?(:authorize)
-  end
-
   def current_actor
     Actor.context
   end

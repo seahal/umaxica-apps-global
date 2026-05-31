@@ -9,6 +9,9 @@ class SignComVerificationBaseIncludedDoTest < ActiveSupport::TestCase
       Class.new(ApplicationController) do
         include Authentication::Base
         include Preference::Base
+        include Authentication::Visitor
+        include Verification::Visitor
+        include Sign::EmailOtpVerificationSupport
         include Sign::ComVerificationBase
       end
 
@@ -20,6 +23,9 @@ class SignComVerificationBaseIncludedDoTest < ActiveSupport::TestCase
       Class.new(ApplicationController) do
         include Authentication::Base
         include Preference::Base
+        include Authentication::Visitor
+        include Verification::Visitor
+        include Sign::EmailOtpVerificationSupport
         include Sign::ComVerificationBase
       end
 

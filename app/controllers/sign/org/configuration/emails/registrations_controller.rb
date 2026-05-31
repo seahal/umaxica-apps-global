@@ -19,9 +19,7 @@ module Sign
           # for the authenticated operator, so gate by actor type. Each flow step builds/looks up the
           # email through current_operator.staff_emails (owner-scoped). Step-up/turnstile remain below.
           before_action :authorize_email_registration!, only: %i(new create edit update)
-          before_action only: %i(new create edit update) do
-            require_step_up!(scope: verification_scope)
-          end
+          step_up only: %i(new create edit update)
 
           def new
             @staff_email = OperatorEmail.new

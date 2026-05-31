@@ -8,6 +8,7 @@ module Sign
         class PasskeysController < Sign::Com::ApplicationController
           include Common::Redirect
 
+          include Sign::Webauthn
           include Sign::PasskeyRegistrationFlow
 
           include Sign::Up::SequenceControllerSupport

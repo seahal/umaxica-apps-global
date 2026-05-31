@@ -30,6 +30,8 @@ module Sign
         include CloudflareTurnstile
 
         AUTHENTICATION_MODE = :guest
+        before_action :start_minimum_response_budget
+        after_action :enforce_minimum_response_budget
 
         def new
         end

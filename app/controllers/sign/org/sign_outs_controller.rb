@@ -13,6 +13,7 @@ module Sign
       AUTHENTICATION_MODE = :open
 
       before_action :authenticate!, only: %i(edit create destroy)
+      helper_method :sign_out_completed_description
 
       def show
         @sign_out_notice = consume_sign_out_notice
@@ -42,6 +43,7 @@ module Sign
         destination = path_from_signed_pt(pt) if pt.present?
 
         return if authorize_current_session_for_sign_out! == false
+
         prepare_sign_out_completion_notice!
         logout_current_session!(reason: "org_operator_logout")
         return render_invalid_return_target! if raw_pt.present? && destination.blank?

@@ -7,6 +7,7 @@ module Acme
       include CspViolationReport
 
       AUTHENTICATION_MODE = :bare
+      rescue_from ActionDispatch::Http::Parameters::ParseError, with: :ignore_malformed_csp_report
 
       def create
         record_csp_violation!

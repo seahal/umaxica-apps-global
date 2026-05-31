@@ -4,10 +4,6 @@
 module CspViolationReport
   extend ActiveSupport::Concern
 
-  included do
-    rescue_from ActionDispatch::Http::Parameters::ParseError, with: :ignore_malformed_csp_report
-  end
-
   private
 
   def record_csp_violation!

@@ -58,7 +58,7 @@ class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
     authorize_params = Rack::Utils.parse_nested_query(URI.parse(location).query)
 
     assert_equal "acme_app", authorize_params.fetch("client_id")
-    assert_not authorize_params.key?("redirect_uri")
+    assert_equal "http://www.example.com/auth/callback", authorize_params.fetch("redirect_uri")
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?
     assert_equal "/oidc/sso", session[:oidc_pt]

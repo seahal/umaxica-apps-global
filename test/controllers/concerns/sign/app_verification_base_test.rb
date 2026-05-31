@@ -39,6 +39,8 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
     def verification_unavailable_redirect_path = "/verification?ri=jp"
 
+    include Sign::VerificationStepUpSessionStore
+    include Sign::VerificationStepUpLifecycle
     include Sign::AppVerificationBase
 
     attr_accessor :user, :user_token, :params_hash, :redirect_args, :hotp_result

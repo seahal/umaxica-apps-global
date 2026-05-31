@@ -6,14 +6,7 @@
 module AuthorizationAudit
   extend ActiveSupport::Concern
 
-  included do
-    include Common::Redirect
-
-    # Log authorization failures for audit purposes
-    if respond_to?(:rescue_from)
-      rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
-    end
-  end
+  include Common::Redirect
 
   private
 
@@ -168,5 +161,5 @@ module AuthorizationAudit
     nil
   end
 
-  alias_method :current_user_or_staff, :current_client_or_staff
+  def current_user_or_staff = current_client_or_staff
 end

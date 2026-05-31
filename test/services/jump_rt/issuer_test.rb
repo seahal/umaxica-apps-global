@@ -132,6 +132,38 @@ class JumpRt::IssuerTest < ActiveSupport::TestCase
     end
   end
 
+  test "strips redirect uri by default before signing the url" do
+    with_env("JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a") do
+      JumpRt::Keyring.stub(:private_key, @private_key) do
+        token = JumpRt::Issuer.call(
+          namespace: "SIGN_APP",
+          url: "https://target.example/path?redirect_uri=https%3A%2F%2Fwww.example.com%2Fauth%2Fcallback&ok=1",
+        )
+        payload, = JWT.decode(token, nil, false)
+
+        assert_equal "https://target.example/path?ok=1", payload["url"]
+      end
+    end
+  end
+
+  test "preserves explicitly allowed redirect uri inside the signed url" do
+    with_env("JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a") do
+      JumpRt::Keyring.stub(:private_key, @private_key) do
+        token = JumpRt::Issuer.call(
+          namespace: "SIGN_APP",
+          url: "https://target.example/path?redirect_uri=https%3A%2F%2Fwww.example.com%2Fauth%2Fcallback&rt=stale&ok=1",
+          preserve_query_keys: ["redirect_uri"],
+        )
+        payload, = JWT.decode(token, nil, false)
+        query = Rack::Utils.parse_nested_query(URI.parse(payload["url"]).query)
+
+        assert_equal "https://www.example.com/auth/callback", query["redirect_uri"]
+        assert_equal "1", query["ok"]
+        assert_not query.key?("rt")
+      end
+    end
+  end
+
   test "drops query entirely when only redirect-target keys are present" do
     with_env("JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a") do
       JumpRt::Keyring.stub(:private_key, @private_key) do

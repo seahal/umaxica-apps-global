@@ -21,7 +21,7 @@
     [label.presence || ActiveSupport::TimeZone[option.name]&.to_s || option.name, option.id]
   end %>
 
-  <%= form_with model: @preference_timezone, scope: :preference_timezone, url: sign_com_preference_region_timezone_path, method: :patch, data: { turbo: false } do |f| %>
+  <%= form_with model: @preference_timezone, scope: :preference_timezone, url: sign_com_preference_region_timezone_path, method: :patch do |f| %>
     <div>
       <%= f.label :option_id,
                   t("acme.com.preference.timezone.edit.timezone_label") %>

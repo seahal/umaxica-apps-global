@@ -17,12 +17,14 @@ module Sign
         include ::Verification::Operator
 
         AUTHENTICATION_MODE = :deny_all
+        rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
+        rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
 
         SUPPORTED_PROVIDERS = %w(google_org).freeze
 
         declare_authentication_mode! :open, only: :continue
         declare_authentication_mode! :private, only: :destroy
-        before_action -> { require_step_up!(scope: "social_unlink") }, only: :destroy
+        step_up only: :destroy, scope: "social_unlink"
 
         # POST /social/auth/:provider/continue
         # Prepares intent/state in session, then redirects to OmniAuth provider.

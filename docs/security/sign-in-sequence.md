@@ -173,9 +173,14 @@ active actor, region, persona, and surface. Ordinary dashboard access must not c
 
 ## Relying-Party Entry
 
-The acme relying-party surfaces (`www.*`) expose one browser entry point for authentication:
-`GET /sso/authorize`. The RP starts OIDC Authorization Code + PKCE from that route without a sign-up
-screen hint. Sign-in and sign-up selection belongs to the IdP (`id.*`) sign surface.
+The acme and core relying-party surfaces expose one browser entry point for authentication:
+`GET /sso/authorize`. Private RP endpoints use the same OIDC initiator when authentication is
+required. The RP starts OIDC Authorization Code + PKCE from that route without a sign-up screen
+hint. Sign-in and sign-up selection belongs to the IdP (`id.*`) sign surface.
+
+RP entry redirects are sent through Jump with a signed `rt`; the OIDC `redirect_uri` remains an OIDC
+protocol field inside the signed target URL only when it exactly matches the client registry. Do not
+treat OIDC `state`, Jump `rt`, or the RP local post-auth path as interchangeable values.
 
 The sign IdP exposes protocol endpoints under protocol namespaces:
 

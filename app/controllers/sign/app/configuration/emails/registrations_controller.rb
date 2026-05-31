@@ -6,19 +6,22 @@ module Sign
     module Configuration
       module Emails
         class RegistrationsController < Sign::App::ApplicationController
+          include ::CloudflareTurnstile
+          include Common::Redirect
+          include Common::Otp
+          include Sign::EmailRegistrable
           include Sign::EmailRegistrationFlow
 
           include ::Verification::Client
 
           AUTHENTICATION_MODE = :private
           before_action :authenticate_client!
+          before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update resend)
           # Object-level authorization (ActionPolicy): registering an email is a fresh-record action
           # for the authenticated client, so gate by actor type. Each flow step builds/looks up the
           # email through current_client.client_emails (owner-scoped). Step-up/turnstile remain below.
           before_action :authorize_email_registration!, only: %i(new create edit update)
-          before_action only: %i(new create edit update) do
-            require_step_up_unless_bootstrap!(scope: verification_scope)
-          end
+          step_up only: %i(new create edit update), bootstrap: true
           def new = super
 
           def edit = super

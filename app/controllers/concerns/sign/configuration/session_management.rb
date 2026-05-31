@@ -6,11 +6,6 @@ module Sign
     module SessionManagement
       extend ActiveSupport::Concern
 
-      included do
-        before_action :set_session, only: %i(destroy)
-        helper_method :current_session_record?
-      end
-
       def index
         @sessions = preload_device_session(visible_sessions.order(created_at: :desc))
 

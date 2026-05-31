@@ -8,10 +8,6 @@ module Sign
     SIGN_OUT_NOTICE_SESSION_KEY = :sign_out_notice
     SIGN_OUT_NOTICE_TTL = 5.minutes
 
-    included do
-      helper_method :sign_out_completed_description if respond_to?(:helper_method)
-    end
-
     private
 
     def prepare_sign_out_completion_notice!

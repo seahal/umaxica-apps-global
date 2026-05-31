@@ -65,20 +65,20 @@ module JumpRt
         env_origin("CORE_SERVICE_URL", "www.jp.umaxica.app") => env_sources(
           destination_env: "CORE_SERVICE_URL",
           destination_default: "www.jp.umaxica.app",
-          issuer_env: "CORE_SERVICE_URL",
-          issuer_default: "www.jp.umaxica.app",
+          issuer_env: "ID_SERVICE_URL",
+          issuer_default: "id.umaxica.app",
         ),
         env_origin("CORE_CORPORATE_URL", "www.jp.umaxica.com") => env_sources(
           destination_env: "CORE_CORPORATE_URL",
           destination_default: "www.jp.umaxica.com",
-          issuer_env: "CORE_CORPORATE_URL",
-          issuer_default: "www.jp.umaxica.com",
+          issuer_env: "ID_CORPORATE_URL",
+          issuer_default: "id.umaxica.com",
         ),
         env_origin("CORE_STAFF_URL", "www.jp.umaxica.org") => env_sources(
           destination_env: "CORE_STAFF_URL",
           destination_default: "www.jp.umaxica.org",
-          issuer_env: "CORE_STAFF_URL",
-          issuer_default: "www.jp.umaxica.org",
+          issuer_env: "ID_STAFF_URL",
+          issuer_default: "id.umaxica.org",
         ),
       }.compact
     end

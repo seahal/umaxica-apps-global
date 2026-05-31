@@ -11,6 +11,7 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
       def skip_before_action(*) = nil
     end
 
+    include Sign::EmailRegistrable
     include Sign::EmailRegistrationFlow
 
     attr_accessor :session_hash, :flash_hash, :reset_called, :target_user, :params_hash, :render_args, :redirect_args

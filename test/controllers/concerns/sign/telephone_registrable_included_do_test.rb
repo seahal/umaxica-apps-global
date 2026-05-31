@@ -5,14 +5,16 @@ require "test_helper"
 
 class SignTelephoneRegistrableIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
+    include Common::Redirect
+    include Common::Otp
     include Sign::TelephoneRegistrable
   end
 
-  test "included do includes Common::Redirect module" do
+  test "terminal controller includes Common::Redirect explicitly" do
     assert_includes Harness.included_modules, Common::Redirect
   end
 
-  test "included do includes Common::Otp module" do
+  test "terminal controller includes Common::Otp explicitly" do
     assert_includes Harness.included_modules, Common::Otp
   end
 

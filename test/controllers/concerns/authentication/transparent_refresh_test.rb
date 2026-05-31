@@ -12,10 +12,9 @@ class AuthenticationTransparentRefreshHarnessController < ApplicationController
 
   %i(transparent_refresh_access_token current_resource logged_in?).each do |method_name|
     next unless method_defined?(method_name) || private_method_defined?(method_name)
-  end
-  public
 
-  method_name
+    send(:public, method_name)
+  end
 end
 
 module Authentication

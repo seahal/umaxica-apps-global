@@ -8,6 +8,8 @@ module Sign
         class RegistrationsController < Sign::App::ApplicationController
           include CloudflareTurnstile
 
+          include Common::Redirect
+          include Common::Otp
           include Sign::TelephoneRegistrable
 
           include ::Verification::Client

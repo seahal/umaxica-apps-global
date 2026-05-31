@@ -11,7 +11,7 @@ module Acme
 
         def show
           url = initiate_oidc_session!
-          redirect_to_jump_url(url)
+          redirect_to_oidc_authorization_url(url)
         end
       end
     end

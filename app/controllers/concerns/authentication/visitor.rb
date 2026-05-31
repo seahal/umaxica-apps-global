@@ -13,18 +13,15 @@ module Authentication
     REFRESH_TOKEN_TTL = Authentication::Base::REFRESH_TOKEN_TTL
     AUDIT_EVENTS = Authentication::Base::AUDIT_EVENTS
 
-    included do
-      helper_method :current_visitor, :logged_in?, :active_visitor?,
-                    :logged_in_visitor? if respond_to?(:helper_method)
-      alias_method :current_visitor, :current_resource
-      alias_method :authenticate_visitor!, :authenticate!
-      alias_method :logged_in_visitor?, :logged_in?
-      include ::AuthorizationAudit
-    end
-
     def audit_visitor_login_failed(visitor)
       record_audit(AUDIT_EVENTS[:login_failed], resource: visitor, actor: nil) if visitor
     end
+
+    def current_visitor = current_resource
+
+    def authenticate_visitor! = authenticate!
+
+    def logged_in_visitor? = logged_in?
 
     def active_visitor?
       current_visitor.present? && current_visitor.active?

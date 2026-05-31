@@ -91,21 +91,23 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
 
   test "return verification concern does not register callbacks when included" do
     controller =
-      Class.new(ActionController::Base) do
+      Class.new(ActionController::Base) do # rubocop:disable Rails/ApplicationController
         include JumpRt::ReturnVerification
       end
 
-    before_filters = controller._process_action_callbacks.filter_map do |callback|
-      callback.filter if callback.kind == :before
-    end
+    before_filters =
+      controller._process_action_callbacks.filter_map do |callback|
+        callback.filter if callback.kind == :before
+      end
 
     assert_not_includes before_filters, :verify_jump_return_rt!
   end
 
   test "core app explicitly runs jump return verification before rate limit" do
-    before_filters = Core::App::ApplicationController._process_action_callbacks.filter_map do |callback|
-      callback.filter if callback.kind == :before
-    end
+    before_filters =
+      Core::App::ApplicationController._process_action_callbacks.filter_map do |callback|
+        callback.filter if callback.kind == :before
+      end
 
     assert_includes before_filters, :verify_jump_return_rt!
     assert_operator before_filters.index(:verify_jump_return_rt!), :<, before_filters.index(:check_default_rate_limit)

@@ -5,10 +5,6 @@ module Oidc
   module RpLogout
     extend ActiveSupport::Concern
 
-    included do
-      declare_authentication_mode! :open
-    end
-
     def create
       log_out
       redirect_to(

@@ -13,16 +13,7 @@ module Sign
   module ErrorResponses
     extend ActiveSupport::Concern
 
-    included do
-      include Common::Redirect
-
-      # Automatically set up rescue_from when the concern is included
-      if respond_to?(:rescue_from)
-        rescue_from ActionPolicy::Unauthorized, with: :handle_not_authorized
-        rescue_from ApplicationError, with: :handle_application_error
-        rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
-      end
-    end
+    include Common::Redirect
 
     def handle_application_error(exception)
       respond_to do |format|

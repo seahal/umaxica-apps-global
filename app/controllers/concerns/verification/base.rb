@@ -7,6 +7,7 @@ module Verification
 
     include Common::Redirect
     include ::Redirects::SignedTargetSupport
+    include Verification::StepUpGuard
 
     STEP_UP_TTL = 15.minutes
     STEP_UP_REQUIRED_MESSAGE = "Step-up authentication required\nYour changes have not been saved"

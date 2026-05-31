@@ -14,9 +14,8 @@ module Sign
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!
-        before_action only: %i(new create) do
-          require_step_up!(scope: verification_scope)
-        end
+        before_action :set_no_store_for_secret_credential_pages
+        step_up only: %i(new create)
         before_action :set_secret_credential, only: %i(show edit update destroy regenerate)
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
         before_action :verify_secret_credential_turnstile!, only: %i(create update destroy)

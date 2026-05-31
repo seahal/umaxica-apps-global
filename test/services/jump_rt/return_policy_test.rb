@@ -93,4 +93,26 @@ class JumpRt::ReturnPolicyTest < ActiveSupport::TestCase
     assert_includes sources.keys, "https://www.umaxica.app"
     assert_includes sources["https://www.umaxica.app"], "https://id.umaxica.app"
   end
+
+  test "core destinations allow matching idp sources" do
+    assert JumpRt::ReturnPolicy.allowed_source?(
+      destination_origin: "https://www.jp.umaxica.app",
+      source: "https://id.umaxica.app",
+    )
+    assert JumpRt::ReturnPolicy.allowed_source?(
+      destination_origin: "https://www.jp.umaxica.com",
+      source: "https://id.umaxica.com",
+    )
+    assert JumpRt::ReturnPolicy.allowed_source?(
+      destination_origin: "https://www.jp.umaxica.org",
+      source: "https://id.umaxica.org",
+    )
+  end
+
+  test "core destinations reject cross surface idp sources" do
+    assert_not JumpRt::ReturnPolicy.allowed_source?(
+      destination_origin: "https://www.jp.umaxica.app",
+      source: "https://id.umaxica.org",
+    )
+  end
 end

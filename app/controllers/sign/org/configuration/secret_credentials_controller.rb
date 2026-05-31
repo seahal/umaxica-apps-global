@@ -14,6 +14,7 @@ module Sign
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_operator!
+        before_action :set_no_store_for_secret_credential_pages
         before_action :set_secret_credential, only: %i(show edit update destroy)
         before_action :verify_secret_credential_turnstile!, only: %i(create update destroy)
 

@@ -623,11 +623,15 @@ module Authentication
         )
         store_authentication_return_target!(request.fullpath)
         url = sign_in_url_with_pt(nil)
-        redirect_to_jump_url(
-          url,
+        redirect_options = {
           fallback_internal: true,
           alert: I18n.t("errors.messages.login_required"),
-        )
+        }
+        if respond_to?(:redirect_to_oidc_authorization_url, true)
+          redirect_to_oidc_authorization_url(url, **redirect_options)
+        else
+          redirect_to_jump_url(url, **redirect_options)
+        end
       end
     end
 
@@ -673,20 +677,6 @@ module Authentication
 
     def am_i_owner?
       raise NotImplementedError, "am_i_owner? must be implemented"
-    end
-
-    included do
-      include ActionPolicy::Controller
-      include ::Sign::ErrorResponses
-      include ::SessionLimitGate
-
-      if respond_to?(:rescue_from)
-        rescue_from LoginCooldownError, with: :render_login_cooldown
-      end
-
-      if respond_to?(:helper_method)
-        helper_method :current_account, :current_session_public_id, :current_session_restricted?
-      end
     end
 
     # ==========================================================================

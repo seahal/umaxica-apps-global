@@ -5,11 +5,13 @@ module Sign
   module App
     module Up
       class EmailsController < Sign::App::ApplicationController
+        include ::CloudflareTurnstile
+        include Common::Redirect
+        include Common::Otp
         include Sign::EmailRegistrable
 
-        include ::CloudflareTurnstile
-
         AUTHENTICATION_MODE = :guest
+        before_action :enforce_email_flow!
 
         declare_authentication_mode! :guest, status: :unauthorized,
                                              message: I18n.t("errors.messages.already_authenticated"),

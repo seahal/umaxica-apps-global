@@ -29,14 +29,6 @@ module Sign
     EXISTING_EMAIL_SESSION_KEY = :sign_up_existing_email_id
     EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :sign_up_existing_email_skip_otp
 
-    included do
-      include ::CloudflareTurnstile
-      include Common::Redirect
-      include Common::Otp
-
-      before_action :enforce_email_flow!
-    end
-
     private
 
     def enforce_email_flow!

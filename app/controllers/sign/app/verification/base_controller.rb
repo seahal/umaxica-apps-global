@@ -8,12 +8,33 @@ module Sign
         include ::CloudflareTurnstile
 
         include Sign::AppVerificationBase
+        include ::Preference::Global
+        include Common::Otp
+        include ::Verification::Client
+        include Sign::Webauthn
+        include Sign::VerificationTiming
+        include Sign::VerificationCommonBase
+        include Sign::VerificationAuditAndCookie
+        include Sign::VerificationStepUpSessionStore
+        include Sign::VerificationStepUpLifecycle
+        include Sign::VerificationPasskeyChecks
+        include Sign::VerificationTotpChecks
 
         AUTHENTICATION_MODE = :private
 
+        before_action :apply_localization_preferences
+        before_action :authenticate_client!
+        before_action :set_actor_token
+        before_action :require_ri!
+        before_action :enforce_step_up_prereqs!
         skip_before_action :enforce_verification_if_required, raise: false
+        before_action :authorize_verification_actor!
 
         private
+
+        def authorize_verification_actor!
+          authorize!(current_verification_actor, to: :show?)
+        end
 
         def valid_step_up_session?(rs)
           rs.present? &&

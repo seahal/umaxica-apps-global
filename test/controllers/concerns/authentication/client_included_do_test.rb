@@ -5,6 +5,7 @@ require "test_helper"
 
 class AuthenticationClientIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
+    include AuthorizationAudit
     include Authentication::Client
   end
 

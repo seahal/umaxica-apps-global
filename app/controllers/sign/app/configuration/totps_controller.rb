@@ -15,12 +15,8 @@ module Sign
 
         MAX_TOTPS = 2
         before_action :authenticate_client!
-        before_action only: %i(new create) do
-          require_step_up_unless_bootstrap!(scope: verification_scope)
-        end
-        before_action only: %i(edit update destroy) do
-          require_step_up!(scope: verification_scope)
-        end
+        step_up only: %i(new create), bootstrap: true
+        step_up only: %i(edit update destroy)
 
         def index
           authorize!(ClientTotpCredential, to: :index?)

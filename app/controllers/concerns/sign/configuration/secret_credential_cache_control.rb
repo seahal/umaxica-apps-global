@@ -9,10 +9,6 @@ module Sign
     module SecretCredentialCacheControl
       extend ActiveSupport::Concern
 
-      included do
-        before_action :set_no_store_for_secret_credential_pages
-      end
-
       private
 
       def set_no_store_for_secret_credential_pages

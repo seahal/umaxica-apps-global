@@ -5,6 +5,8 @@ module Sign
   module App
     module Configuration
       class TelephonesController < Sign::App::ApplicationController
+        include Common::Redirect
+        include Common::Otp
         include Sign::TelephoneRegistrable
 
         include ::Verification::Client

@@ -19,6 +19,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
   end
 
   class DummyClass
+    include SessionLimitGate
     include Authentication::Client
 
     attr_accessor :session, :cookies, :request, :response

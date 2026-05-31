@@ -58,6 +58,21 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     end
   end
 
+  # Guards against the silent-degradation case where a new surface adds its own
+  # bare_controller.rb but the author forgets to register it in BARE_CONTROLLERS,
+  # letting that controller escape the inheritance assertions above. The runtime
+  # list and the on-disk files must stay in lockstep.
+  test "BARE_CONTROLLERS stays in sync with bare_controller.rb files on disk" do
+    discovered =
+      Rails.root.glob("app/controllers/**/bare_controller.rb").map do |path|
+        relative = path.relative_path_from(Rails.root.join("app/controllers"))
+        relative.to_s.delete_suffix(".rb").camelize.constantize
+      end.sort_by(&:name)
+
+    assert_equal BARE_CONTROLLERS.sort_by(&:name), discovered,
+                 "BARE_CONTROLLERS must list every bare_controller.rb so each is inheritance-checked"
+  end
+
   test "legacy open controller compatibility bases are retired" do
     [
       Acme::App,

@@ -13,6 +13,7 @@ module Acme
       include ::Finisher
 
       AUTHENTICATION_MODE = :deny_all
+      helper_method :current_actor
 
       before_action :check_default_rate_limit
       before_action :set_current_context

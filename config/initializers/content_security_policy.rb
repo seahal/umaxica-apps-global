@@ -20,7 +20,9 @@ Rails.application.configure do
     policy.manifest_src(:self)
     policy.object_src(:none)
     policy.script_src(:self, "https://challenges.cloudflare.com")
+    policy.script_src_elem(:self, "https://challenges.cloudflare.com", "https://static.cloudflareinsights.com")
     policy.style_src(:self, :https)
+    policy.style_src_elem(:self, :https)
     policy.worker_src(:none)
 
     # Wire violation reports to the existing same-origin endpoint (one per surface).
@@ -30,6 +32,6 @@ Rails.application.configure do
   end
 
   config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
-  config.content_security_policy_nonce_directives = %w(script-src)
+  config.content_security_policy_nonce_directives = %w(script-src script-src-elem style-src style-src-elem)
   config.content_security_policy_report_only = false
 end

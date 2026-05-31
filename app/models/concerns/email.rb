@@ -4,6 +4,25 @@
 module Email
   extend ActiveSupport::Concern
 
+  # Requires:
+  # - address
+  # - address_digest
+  # - otp_counter
+  # - otp_private_key
+  # - otp_attempts_count
+  #
+  # Optional:
+  # - address_bidx
+  #
+  # Registers:
+  # - before_validation :normalize_address_from_raw
+  # - before_validation :set_address_digests
+  # - scope :with_address
+  # - after_initialize OTP defaults
+  # - encrypts :address
+  # - validate :validate_email_address
+  # - validates :confirm_policy
+  # - validates :pass_code
   MAX_OTP_ATTEMPTS = 5
   OTP_ATTEMPT_WINDOW = 15.minutes
   OTP_LOCKOUT_DURATION = 15.minutes

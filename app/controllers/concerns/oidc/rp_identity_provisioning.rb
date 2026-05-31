@@ -5,14 +5,6 @@ module Oidc
   module RpIdentityProvisioning
     extend ActiveSupport::Concern
 
-    included do
-      # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-      class_attribute :oidc_rp_actor_class_name, instance_accessor: false
-      class_attribute :oidc_rp_identity_class_name, instance_accessor: false
-      class_attribute :oidc_rp_bridge_class_name, instance_accessor: false
-      # rubocop:enable ThreadSafety/ClassAndModuleAttributes
-    end
-
     class_methods do
       def provisions_oidc_rp_identity(actor_class:, identity_class:, bridge_class: nil)
         self.oidc_rp_actor_class_name = actor_class.to_s

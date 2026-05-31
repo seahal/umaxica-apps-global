@@ -9,6 +9,9 @@ module Core
       include ::Session
       include ::Preference::Global
       include ::Authentication::Visitor
+      include ::Sign::ErrorResponses
+      include ::SessionLimitGate
+      include ::AuthorizationAudit
       include ::Authorization::Visitor
       include ::Verification::Visitor
       include ActionPolicy::Controller
@@ -27,6 +30,13 @@ module Core
       AUTHENTICATION_MODE = :deny_all
 
       authorize :user, through: :current_policy_user
+      authorize :actor, through: :current_actor
+      rescue_from Authentication::Base::LoginCooldownError, with: :render_login_cooldown
+      rescue_from ApplicationError, with: :handle_application_error
+      rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
+      rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
+      helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
+                    :signed_pt_param, :current_visitor, :logged_in?, :active_visitor?, :logged_in_visitor?
 
       # Existing jump-return handling runs before rate limiting; keep that order
       # for this extraction and review the risk in a follow-up lifecycle PR.

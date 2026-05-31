@@ -5,10 +5,6 @@ module Sign
   module PasskeyRegistrationFlow
     extend ActiveSupport::Concern
 
-    included do
-      include Sign::Webauthn
-    end
-
     private
 
     def render_passkey_registration_options

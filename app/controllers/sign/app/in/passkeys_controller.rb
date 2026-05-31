@@ -42,6 +42,8 @@ module Sign
         include CloudflareTurnstile
 
         AUTHENTICATION_MODE = :guest
+        before_action :start_minimum_response_budget
+        after_action :enforce_minimum_response_budget
 
         # GET /in/passkeys/new
         # Render login page with email input and passkey button

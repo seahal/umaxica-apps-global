@@ -17,9 +17,16 @@ of the private key by signing a DPoP proof JWT on each request.
 ## Design Decisions
 
 - **JTI replay detection is not applied at the access token level.** DPoP proof validation on API
-  requests is stateless (signature + htm + htu + iat + ath + cnf.jkt). No Redis lookup per request.
-- **JTI replay detection is applied to refresh token and step-up operations.** These are
-  low-frequency and security-critical.
+  requests is stateless (signature + htm + htu + iat + ath + cnf.jkt). No per-request database
+  write. `Dpop::RequestVerifier` constructs `Dpop::ProofValidator` with `record_jti: false`, so the
+  `jti` claim is still required but its uniqueness is not persisted.
+- **JTI replay detection is applied to refresh token, step-up, login, and token-exchange
+  operations.** These are low-frequency and security-critical, and call `Dpop::ProofValidator`
+  directly with the default `record_jti: true`.
+- **The replay store is relational, not Redis.** `Dpop::JtiReplayGuard` writes through
+  `DpopProofStateable` to per-resource tables (`client_dpop_proof_states`,
+  `operator_dpop_proof_states`, `visitor_dpop_proof_states`) with a 300-second TTL on `expires_at`.
+  Expired rows are pruned by `DpopProofStatePurgeJob` (see Retention below).
 - **This conforms to RFC 9449** where JTI checking is SHOULD, not MUST.
 - **Supported algorithms:** ES256 and ES384 only (no RSA).
 - **Primary use case:** Next.js frontend to Rails API communication via Authorization header.
@@ -28,12 +35,12 @@ of the private key by signing a DPoP proof JWT on each request.
 
 Server-side DPoP support lives in `app/services/dpop/`:
 
-| File                                            | Purpose                                                   |
-| ----------------------------------------------- | --------------------------------------------------------- |
-| `app/services/dpop/proof_validator.rb`          | Core DPoP proof JWT validation (RFC 9449 Section 4.3)     |
-| `app/services/dpop/request_verifier.rb`         | Per-request DPoP verification orchestrator                |
-| `app/services/dpop/jti_replay_guard.rb`         | Redis-backed JTI deduplication (refresh and step-up only) |
-| `lib/jit/security/jwt/thumbprint_calculator.rb` | RFC 7638 JWK Thumbprint and `ath` computation             |
+| File                                            | Purpose                                               |
+| ----------------------------------------------- | ----------------------------------------------------- |
+| `app/services/dpop/proof_validator.rb`          | Core DPoP proof JWT validation (RFC 9449 Section 4.3) |
+| `app/services/dpop/request_verifier.rb`         | Per-request DPoP verification orchestrator            |
+| `app/services/dpop/jti_replay_guard.rb`         | RDB-backed JTI deduplication (stateful paths only)    |
+| `lib/jit/security/jwt/thumbprint_calculator.rb` | RFC 7638 JWK Thumbprint and `ath` computation         |
 
 Token issuance controllers (`Sign::App::TokensController`, `Sign::Org::TokensController`,
 `Sign::Com::TokensController`) forward the `DPoP` proof header, request URI, and request method to
@@ -67,6 +74,14 @@ JWT access tokens include:
 5. `iat` within acceptable time window
 6. If access token provided: `ath == Base64url(SHA256(access_token))`
 7. `cnf.jkt` in the access token matches the thumbprint of the proof's `jwk`
+
+## Retention
+
+JTI replay rows and issued nonces are short-lived. Each row carries `expires_at`
+(`DpopProofStateable::TTL_SECONDS`, 300s). `DpopProofStatePurgeJob` deletes expired rows from
+`client_dpop_proof_states`, `operator_dpop_proof_states`, and `visitor_dpop_proof_states` in
+batches. It is scheduled from `config/recurring.yml` (`dpop_proof_state_purge`). These tables are
+**not** covered by `RetentionPurgeJob`, which is keyed on `purged_at`, not `expires_at`.
 
 ## Relationship to DBSC
 

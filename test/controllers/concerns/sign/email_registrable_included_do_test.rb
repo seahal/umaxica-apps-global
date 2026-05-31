@@ -5,18 +5,21 @@ require "test_helper"
 
 class SignEmailRegistrableIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
+    include CloudflareTurnstile
+    include Common::Redirect
+    include Common::Otp
     include Sign::EmailRegistrable
   end
 
-  test "included do includes CloudflareTurnstile module" do
+  test "terminal controller includes CloudflareTurnstile explicitly" do
     assert_includes Harness.included_modules, CloudflareTurnstile
   end
 
-  test "included do includes Common::Redirect module" do
+  test "terminal controller includes Common::Redirect explicitly" do
     assert_includes Harness.included_modules, Common::Redirect
   end
 
-  test "included do includes Common::Otp module" do
+  test "terminal controller includes Common::Otp explicitly" do
     assert_includes Harness.included_modules, Common::Otp
   end
 

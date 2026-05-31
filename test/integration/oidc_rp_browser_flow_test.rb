@@ -47,6 +47,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal surface[:sign_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
+      assert_equal Oidc::ClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
       assert_equal "S256", query["code_challenge_method"]
       assert_predicate query["state"], :present?
       assert_predicate query["nonce"], :present?

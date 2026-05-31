@@ -5,14 +5,6 @@ module Sign
   module EmailRegistrationFlow
     extend ActiveSupport::Concern
 
-    include Sign::EmailRegistrable
-    include Common::Redirect
-
-    included do
-      skip_before_action :enforce_email_flow!
-      before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update resend)
-    end
-
     def new
       @user_email = ClientEmail.new
     end

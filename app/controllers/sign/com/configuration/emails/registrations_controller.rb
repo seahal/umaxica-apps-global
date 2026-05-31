@@ -22,9 +22,7 @@ module Sign
           # email through current_visitor.visitor_emails (owner-scoped). Step-up/turnstile remain below.
           before_action :authorize_email_registration!, only: %i(new create edit update)
           before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update)
-          before_action only: %i(new create edit update) do
-            require_step_up_unless_bootstrap!(scope: verification_scope)
-          end
+          step_up only: %i(new create edit update), bootstrap: true
 
           def new
             @user_email = VisitorEmail.new

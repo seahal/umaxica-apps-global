@@ -12,26 +12,6 @@ module Sign
 
     ALLOWED_SCOPES = StepUp::ScopeCatalog::APP
 
-    included do
-      include ::Preference::Global
-      include Common::Otp
-      include ::Verification::Client
-      include Sign::Webauthn
-      include Sign::VerificationTiming
-      include Sign::VerificationCommonBase
-      include Sign::VerificationAuditAndCookie
-      include Sign::VerificationStepUpSessionStore
-      include Sign::VerificationStepUpLifecycle
-      include Sign::VerificationPasskeyChecks
-      include Sign::VerificationTotpChecks
-
-      before_action :apply_localization_preferences
-      before_action :authenticate_client!
-      before_action :set_actor_token
-      before_action :require_ri!
-      before_action :enforce_step_up_prereqs!
-    end
-
     private
 
     def verification_params

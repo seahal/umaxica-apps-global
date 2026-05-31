@@ -10,6 +10,8 @@ module Sign
           include ::R18Gate
 
           AUTHENTICATION_MODE = :private
+          class_attribute :r18_required_actions, default: Set.new # rubocop:disable ThreadSafety/ClassAndModuleAttributes
+          before_action :require_r18_viewing!
 
           def show
             render plain: "private r18 ok"

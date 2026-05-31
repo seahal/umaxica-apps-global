@@ -10,6 +10,9 @@ module Sign
       # Adopt anonymous preference cookies into the signed-in user account after authentication.
       include ::Preference::Adoption
       include ::Authentication::Client
+      include ::Sign::ErrorResponses
+      include ::SessionLimitGate
+      include ::AuthorizationAudit
       include ::Authentication::CredentialInventoryReader
       include ::Authorization::Client
       include ::Verification::Client
@@ -32,10 +35,15 @@ module Sign
                            with: :exception
 
       authorize :user, through: :current_policy_user
+      authorize :actor, through: :current_actor
+      rescue_from Authentication::Base::LoginCooldownError, with: :render_login_cooldown
+      rescue_from ApplicationError, with: :handle_application_error
+      rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
+      rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
+      helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
+                    :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?
 
       # NOTE: Order matters (dependencies rely on this sequence)
-      # Layer order: RateLimit -> CurrentContext -> Preference -> AuthN ->
-      # CurrentActor -> side-effect reflection -> Verification -> AuthZ
       before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash

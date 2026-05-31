@@ -5,14 +5,16 @@ require "test_helper"
 
 class SignEmailRegistrationFlowIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
+    include Sign::EmailRegistrable
+    include Common::Redirect
     include Sign::EmailRegistrationFlow
   end
 
-  test "included do includes Sign::EmailRegistrable module" do
+  test "terminal controller includes Sign::EmailRegistrable explicitly" do
     assert_includes Harness.included_modules, Sign::EmailRegistrable
   end
 
-  test "included do includes Common::Redirect module" do
+  test "terminal controller includes Common::Redirect explicitly" do
     assert_includes Harness.included_modules, Common::Redirect
   end
 

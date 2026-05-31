@@ -161,6 +161,26 @@ class Actor < ActiveSupport::CurrentAttributes
       actor.respond_to?(:id) && actor.id.present?
     end
 
+    # Spec-facing predicate aliases. The canonical names in this codebase are
+    # unauthenticated?/client?/operator?; these mirror the actor-context vocabulary
+    # (anonymous/user/staff) without introducing new state.
+    def anonymous? = unauthenticated?
+
+    def user? = client?
+
+    def staff? = operator?
+
+    # Step-up freshness, derived from the resolved step_up context. StepUp::Resolver
+    # already enforces TTL + scope/aal/binding, so a satisfied step_up is a fresh one.
+    def step_up_fresh? = step_up.satisfied?
+
+    # True when the current request demands a step-up that is not yet satisfied.
+    # When verification is not required, step_up is Actor::StepUp::NULL (scope nil),
+    # so this is false.
+    def requires_step_up?
+      step_up.scope.present? && !step_up.satisfied?
+    end
+
     def client
       actor if client?
     end

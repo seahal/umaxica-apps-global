@@ -5,6 +5,17 @@ require "test_helper"
 
 class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
+    include Preference::Global
+    include Common::Otp
+    include Authentication::Operator
+    include Verification::Operator
+    include Sign::Webauthn
+    include Sign::VerificationTiming
+    include Sign::VerificationCommonBase
+    include Sign::VerificationAuditAndCookie
+    include Sign::VerificationStepUpSessionStore
+    include Sign::VerificationStepUpLifecycle
+    include Sign::VerificationPasskeyChecks
     include Sign::OrgVerificationBase
   end
 

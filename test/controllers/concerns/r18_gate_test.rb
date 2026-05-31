@@ -6,6 +6,8 @@ require "test_helper"
 class R18GateTestController < ApplicationController
   include R18Gate
 
+  class_attribute :r18_required_actions, default: Set.new # rubocop:disable ThreadSafety/ClassAndModuleAttributes
+  before_action :require_r18_viewing!
   r18_required :show, :create
 
   class << self

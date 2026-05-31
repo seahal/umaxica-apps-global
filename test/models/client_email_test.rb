@@ -130,6 +130,25 @@ class ClientEmailTest < ActiveSupport::TestCase
     assert_equal expected, user_email.address_digest
   end
 
+  test "normalizes address before deriving digest" do
+    user_email = ClientEmail.create!(
+      raw_address: "  Digest-Order@EXAMPLE.COM  ",
+      confirm_policy: true,
+      user: @user,
+    )
+
+    assert_equal "digest-order@example.com", user_email.address
+    assert_equal IdentifierBlindIndex.bidx_for_email("digest-order@example.com"), user_email.address_digest
+  end
+
+  test "initializes otp defaults for new records" do
+    user_email = ClientEmail.new(@valid_attributes)
+
+    assert_equal "0", user_email.otp_counter
+    assert_not_empty user_email.otp_private_key
+    assert_equal 0, user_email.otp_attempts_count
+  end
+
   test "finds by normalized address" do
     user_email = ClientEmail.create!(
       raw_address: "user-find@example.com",

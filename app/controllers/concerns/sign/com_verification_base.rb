@@ -160,27 +160,5 @@ module Sign
         end
       end
     end
-
-    included do
-      include ::Preference::Global
-      include Common::Otp
-      include ::Authentication::Visitor
-      include ::Verification::Visitor
-      include Sign::Webauthn
-      include Sign::VerificationTiming
-      include Sign::VerificationCommonBase
-      include Sign::VerificationAuditAndCookie
-      include Sign::VerificationStepUpSessionStore
-      include Sign::VerificationStepUpLifecycle
-      include Sign::VerificationPasskeyChecks
-      include Sign::EmailOtpVerificationSupport
-
-      before_action :apply_localization_preferences
-      before_action :authenticate_visitor!
-      before_action :set_actor_token
-      before_action :require_ri!
-      before_action :enforce_step_up_prereqs!
-      prepend Overrides
-    end
   end
 end

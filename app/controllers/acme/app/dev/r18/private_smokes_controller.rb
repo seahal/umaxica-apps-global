@@ -10,7 +10,9 @@ module Acme
           include ::R18Gate
 
           AUTHENTICATION_MODE = :open
+          class_attribute :r18_required_actions, default: Set.new # rubocop:disable ThreadSafety/ClassAndModuleAttributes
           prepend_before_action :require_dev_private_authentication!
+          before_action :require_r18_viewing!
 
           def show
             render plain: "private r18 ok"

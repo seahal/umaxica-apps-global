@@ -9,6 +9,9 @@ module Sign
       include ::Preference::Global
       include ::Preference::Adoption
       include ::Authentication::Operator
+      include ::Sign::ErrorResponses
+      include ::SessionLimitGate
+      include ::AuthorizationAudit
       include ::Authentication::CredentialInventoryReader
       include ::Authorization::Operator
       include ::Verification::Operator
@@ -28,6 +31,13 @@ module Sign
                            with: :exception
 
       authorize :user, through: :current_policy_user
+      authorize :actor, through: :current_actor
+      rescue_from Authentication::Base::LoginCooldownError, with: :render_login_cooldown
+      rescue_from ApplicationError, with: :handle_application_error
+      rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
+      rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
+      helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
+                    :signed_pt_param, :current_operator, :logged_in?, :active_operator?, :logged_in_operator?
 
       # Restricted session guard - explicitly enabled to block restricted sessions
       # from accessing routes other than /in/session

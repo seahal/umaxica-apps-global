@@ -23,7 +23,7 @@ module Oidc
         method: request&.request_method,
       )
       url = sign_in_url_with_pt(encoded_pt(request.original_url))
-      redirect_to_jump_url(url)
+      redirect_to_oidc_authorization_url(url)
     end
 
     def sign_in_url_with_pt(pt)
@@ -46,6 +46,10 @@ module Oidc
       oidc_authorization_url(screen_hint: screen_hint, code_challenge: challenge, state: state, nonce: nonce)
     end
 
+    def redirect_to_oidc_authorization_url(url, **)
+      redirect_to_jump_url(url, preserve_query_keys: oidc_authorization_preserve_query_keys(url), **)
+    end
+
     def oidc_authorization_url(screen_hint:, code_challenge:, state:, nonce:)
       uri = URI::Generic.build(
         scheme: oidc_sign_scheme,
@@ -66,6 +70,20 @@ module Oidc
       query[:screen_hint] = screen_hint if screen_hint.present?
       uri.query = query.to_query
       uri.to_s
+    end
+
+    def oidc_authorization_preserve_query_keys(url)
+      uri = URI.parse(url.to_s)
+      query = Rack::Utils.parse_nested_query(uri.query.to_s)
+      return [] unless uri.is_a?(URI::HTTP)
+      return [] unless uri.host == oidc_sign_host
+      return [] unless uri.path == "/oauth/authorize"
+      return [] unless query["client_id"] == oidc_client_id
+      return [] unless query["redirect_uri"] == oidc_callback_url
+
+      ["redirect_uri"]
+    rescue URI::InvalidURIError
+      []
     end
 
     def oidc_callback_url

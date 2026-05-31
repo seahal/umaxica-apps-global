@@ -239,6 +239,73 @@ module Dpop
       assert_equal "nonce_invalid", result.error
     end
 
+    test "record_jti true persists jti and detects replay" do
+      private_key, jwk = generate_proof_jwk
+      jti = SecureRandom.uuid
+      proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", jti: jti)
+
+      first = ProofValidator.new(
+        proof_jwt: proof,
+        request_method: "GET",
+        request_uri: "http://example.com/api",
+      ).call
+
+      assert_predicate first, :valid?
+      assert_equal 1, ClientDpopProofState.where(jti: jti).count
+
+      replay = ProofValidator.new(
+        proof_jwt: proof,
+        request_method: "GET",
+        request_uri: "http://example.com/api",
+      ).call
+
+      assert_not replay.valid?
+      assert_equal "jti_replay", replay.error
+    end
+
+    test "record_jti false is stateless and does not persist or flag replay" do
+      private_key, jwk = generate_proof_jwk
+      jti = SecureRandom.uuid
+      proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", jti: jti)
+
+      assert_no_difference -> { ClientDpopProofState.count } do
+        first = ProofValidator.new(
+          proof_jwt: proof,
+          request_method: "GET",
+          request_uri: "http://example.com/api",
+          record_jti: false,
+        ).call
+
+        assert_predicate first, :valid?
+
+        # Same proof again still validates because uniqueness is not tracked.
+        second = ProofValidator.new(
+          proof_jwt: proof,
+          request_method: "GET",
+          request_uri: "http://example.com/api",
+          record_jti: false,
+        ).call
+
+        assert_predicate second, :valid?
+      end
+    end
+
+    test "record_jti false still requires jti claim" do
+      private_key, jwk = generate_proof_jwk
+      payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
+      proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
+
+      result = ProofValidator.new(
+        proof_jwt: proof,
+        request_method: "GET",
+        request_uri: "http://example.com/api",
+        record_jti: false,
+      ).call
+
+      assert_not result.valid?
+      assert_equal "missing_jti", result.error
+    end
+
     test "invalid signature returns error" do
       _, jwk = generate_proof_jwk
       other_key = OpenSSL::PKey::EC.generate("prime256v1")
