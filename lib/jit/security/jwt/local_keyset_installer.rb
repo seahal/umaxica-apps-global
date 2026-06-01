@@ -4,6 +4,7 @@
 require "base64"
 require "fileutils"
 require "json"
+require "jit/log_event"
 require "jit/security/jwt/jwk"
 require "openssl"
 

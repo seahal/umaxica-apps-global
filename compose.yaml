@@ -81,11 +81,11 @@ services:
       POSTGRES_INITDB_WAL_LEVEL: replica
       POSTGRES_INITDB_MAX_WAL_SENDERS: 10
       POSTGRES_INITDB_MAX_REPLICATION_SLOTS: 10
-    # Explicit tmpfs cap: 19 shards × up to 32 parallel-test workers create
-    # per-worker DB copies (dbname_<n>) in RAM. Without size= the mount can grow
-    # to ~50% of host RAM; bounding it keeps primary+replica from exhausting RAM.
+    # Explicit tmpfs cap: writer DBs hold dev (~17G) plus 27 writer test DBs ×
+    # up to 32 parallel-test workers (per-worker copies dbname_<n>) in RAM. 64G
+    # gives headroom for that fanout without letting the mount grow unbounded.
     tmpfs:
-    - "/var/lib/postgresql/data:size=32g"
+    - "/var/lib/postgresql/data:size=64g"
     volumes:
     - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
     - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro"
@@ -111,9 +111,12 @@ services:
       POSTGRES_REPLICATION_USER: "${POSTGRESQL_REPLICATION_USER:-replicator}"
       POSTGRES_REPLICATION_PASSWORD: "${POSTGRESQL_REPLICATION_PASSWORD:-development_replication_password}"
       TZ: UTC
-    # Replica holds read-replica + solid_cache/queue copies only; smaller cap.
+    # Replica holds dev read-replica copies plus 27 reader test DBs × up to 32
+    # parallel-test workers (test reader DBs are physically separate per
+    # notes/.../2026-05-31-test-parallel-reader-writer-db-split.md). 48G covers
+    # the expected ~40G working set with margin.
     tmpfs:
-    - "/var/lib/postgresql/data:size=16g"
+    - "/var/lib/postgresql/data:size=48g"
     volumes:
     - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro"
     - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
