@@ -850,6 +850,12 @@ module Preference
     end
 
     def handle_preference_refresh_replay!(preference)
+      replacement = preference_refresh_grace_replacement(preference)
+      if replacement
+        adopt_preference_refresh_grace!(preference, replacement)
+        return :grace
+      end
+
       now = Time.current
 
       with_preference_connection(:writing) do
@@ -876,6 +882,48 @@ module Preference
           "preference.token.refresh.replay_detected",
           replaced_by_id: preference.replaced_by_id,
           **preference_refresh_log_context(preference, preference.public_id),
+        ),
+      )
+      :compromised
+    end
+
+    # Concurrency grace: when a just-rotated parent refresh token is presented
+    # again within the grace window by a sibling request from the same page
+    # load, return its still-usable replacement so the request can be served
+    # without tripping compromise handling. Returns nil for genuine replays
+    # (no replacement, replacement no longer usable, or outside the window).
+    def preference_refresh_grace_replacement(preference)
+      return nil unless preference.respond_to?(:rotated_within_grace?)
+      return nil unless preference.rotated_within_grace?
+
+      replacement =
+        with_preference_connection(:writing) do
+          preference_class
+            .includes(preference_associations_to_preload)
+            .find_by(id: preference.replaced_by_id)
+        end
+
+      valid_refresh_preference?(replacement) ? replacement : nil
+    end
+
+    # Adopt the rotated replacement read-only. We deliberately do NOT issue a
+    # new refresh cookie here: the replacement's raw token is only available to
+    # the request that performed the rotation, and the winning sibling already
+    # set the new cookie. Mutating cookies here would race and clobber it.
+    def adopt_preference_refresh_grace!(preference, replacement)
+      @preferences = replacement
+      @preference_refresh_grace = true
+
+      if respond_to?(:preference_current_resource, true) && respond_to?(:adopt_rotated_preference!, true)
+        resource = preference_current_resource
+        adopt_rotated_preference!(resource, replacement) if resource
+      end
+
+      Rails.logger.info(
+        Jit::LogEvent.format(
+          "preference.token.refresh.grace_reuse",
+          replaced_by_id: preference.replaced_by_id,
+          **preference_refresh_log_context(replacement, preference.public_id),
         ),
       )
     end

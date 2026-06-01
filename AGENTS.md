@@ -134,6 +134,20 @@ skips hide partial migrations and corrupt schema_dump files over time.
 - Prefer existing project patterns over new abstractions.
 - Keep changes scoped to the requested behavior.
 
+### Logging Policy
+
+- Specify important business, security, and accountability events explicitly before implementing
+  them. Purchase events, audit logs, compliance records, and similarly important events must have a
+  defined schema, owner, retention expectation, and access path.
+- Consider whether an important event belongs in a durable datastore from the start. Do not rely on
+  application logs as the authoritative record for purchase, audit, security, or compliance
+  behavior.
+- Keep application logs focused on what is useful to developers and infrastructure operators:
+  debugging, incident response, operational visibility, and failure diagnosis.
+- Follow `adr/application-logging-boundary.md` and `docs/security/observability-boundary.md` when
+  deciding whether something is an access log, application log, telemetry signal, audit/security
+  record, or product analytics event.
+
 ### Controller Inheritance Contract
 
 - Surface-local `ApplicationController` is the normal parent for authentication-aware endpoints.
@@ -214,8 +228,8 @@ Migrations must be reversible, backward-compatible, and safe for production.
   `rename_table`. The silent-skip pattern hides partial-rename failures and produces schema drift
   that surfaces days later as broken fixtures and unrunnable tests.
 - While a rename migration is in flight on a branch, rebuild dev and test DBs with
-  `bin/rails db:migrate:reset` instead of incremental `bin/rails db:migrate`. Incremental
-  migrations against a half-renamed DB silently drift further; rebuild from migrations every time.
+  `bin/rails db:migrate:reset` instead of incremental `bin/rails db:migrate`. Incremental migrations
+  against a half-renamed DB silently drift further; rebuild from migrations every time.
 - Before pushing a branch that adds rename migrations, run `bin/rails db:verify_no_schema_drift` to
   confirm the committed schema_dump files match what migrations produce from a clean DB.
 

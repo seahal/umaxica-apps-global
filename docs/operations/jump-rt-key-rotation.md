@@ -29,7 +29,8 @@ credentials, files, KMS, or the network while serving a request.
 
 JumpRT token-family behavior is implemented through `Security::Jwt::JumpRtTokenCodec` while
 `JumpRt::Issuer` and `JumpRt::ReturnVerifier` remain the service entry points. URL normalization,
-return-policy checks, JWKS fetch/cache behavior, and one-time replay caching stay in JumpRT services.
+return-policy checks, JWKS fetch/cache behavior, and one-time replay caching stay in JumpRT
+services.
 
 ## Key States
 
@@ -78,9 +79,8 @@ also be retained while its public key is in `grace`.
 12. Keep the old private key secret version until rollback is closed.
 
 The normal old-kid verification window is
-`Security::TokenLifetimes::JUMP_RT_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
-Old verification keys should be public JWKs only after rollback no longer needs the previous
-private signer.
+`Security::TokenLifetimes::JUMP_RT_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`. Old verification
+keys should be public JWKs only after rollback no longer needs the previous private signer.
 
 ## Rollback
 

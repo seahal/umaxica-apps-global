@@ -30,6 +30,8 @@ services:
       target: "/home/global/workspace"
     ports:
     - "3001:3000"
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
     networks:
       backend: {}
       frontend:

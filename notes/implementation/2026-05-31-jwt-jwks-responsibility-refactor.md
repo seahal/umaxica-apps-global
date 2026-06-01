@@ -68,15 +68,15 @@
   - A mixed fixture-heavy run hit a PostgreSQL fixture cleanup deadlock/foreign-key error unrelated
     to the new assertions.
 - Documentation or ADR promotion needed:
-  - Once the family registry rewrite is implemented, update the JWT and JumpRT key-rotation
-    runbooks with the final four-family key structure and ENV names.
+  - Once the family registry rewrite is implemented, update the JWT and JumpRT key-rotation runbooks
+    with the final four-family key structure and ENV names.
 
 ## Slice 2 Primitive Extraction
 
-- Added `Jit::Security::Jwt::Jwk` for low-level public JWK normalization, validation,
-  public export, and public-key import.
-- Added `Jit::Security::Jwt::Jwks` for parsing public JWKS collections from either
-  JWK Set objects or arrays.
+- Added `Jit::Security::Jwt::Jwk` for low-level public JWK normalization, validation, public export,
+  and public-key import.
+- Added `Jit::Security::Jwt::Jwks` for parsing public JWKS collections from either JWK Set objects
+  or arrays.
 - Kept existing `Registry` and `JwksService` public APIs intact.
 - Preserved the existing `JwksService.normalized_public_jwk` behavior that accepts structurally
   valid public JWK hashes even when tests use placeholder coordinate values.
@@ -112,8 +112,8 @@
 
 ## Slice 7 Registry Cleanup And Active JWKS Validation
 
-- Removed unused `Registry` helper methods and require statements after extraction to
-  `KeySource`, `IssuerBuilder`, `KeyMaterial`, `Jwk`, and `Jwks`.
+- Removed unused `Registry` helper methods and require statements after extraction to `KeySource`,
+  `IssuerBuilder`, `KeyMaterial`, `Jwk`, and `Jwks`.
 - Kept `Registry.export_public_jwk` as a compatibility helper used by existing tests.
 - Added registry validation that fails fast when the active signing key is not present in the
   generated JWKS document.
@@ -137,8 +137,8 @@
 ## Slice 10 Auth Access Token Codec
 
 - Added `Security::Jwt::AuthAccessTokenCodec` for Auth access JWT encode/decode behavior.
-- Kept `Authentication::TokenService` as the backward-compatible facade used by controllers and
-  OIDC services.
+- Kept `Authentication::TokenService` as the backward-compatible facade used by controllers and OIDC
+  services.
 - Preserved existing constants, encode/decode signatures, allow-expired decode path, claim
   extraction helpers, surface issuer inference, anomaly reasons, and logging behavior.
 
@@ -152,8 +152,8 @@
 
 ## Slice 12 JumpRT Token Codec
 
-- Added `Security::Jwt::JumpRtTokenCodec` for JumpRT JWT signing, issue payload construction,
-  header validation, return token decode options, and public JWK normalization.
+- Added `Security::Jwt::JumpRtTokenCodec` for JumpRT JWT signing, issue payload construction, header
+  validation, return token decode options, and public JWK normalization.
 - Kept `JumpRt::Issuer` and `JumpRt::ReturnVerifier` as existing service entry points.
-- Left URL normalization, JWKS fetch/cache behavior, return policy checks, and replay cache logic
-  in the JumpRT services.
+- Left URL normalization, JWKS fetch/cache behavior, return policy checks, and replay cache logic in
+  the JumpRT services.

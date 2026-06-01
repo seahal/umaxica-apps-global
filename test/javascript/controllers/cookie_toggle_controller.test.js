@@ -164,6 +164,8 @@ describe("CookieToggleController", () => {
 
     await controller.fetchCookieConsent();
 
-    expect(fetch).toHaveBeenCalledWith("http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo");
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo",
+    );
   });
 });

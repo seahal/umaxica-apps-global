@@ -371,7 +371,9 @@ describe("fetchAndSyncTheme", () => {
 
     await controller.fetchAndSyncTheme();
 
-    expect(fetch).toHaveBeenCalledWith("http://localhost:3000/web/v0/theme?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo");
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:3000/web/v0/theme?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo",
+    );
     expect(syncSpy).toHaveBeenCalledWith("dr");
     expect(applySpy).toHaveBeenCalledWith("dr");
   });

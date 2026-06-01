@@ -26,7 +26,10 @@ module Preference::RefreshTokenTransport
 
     if preference.present?
       if preference.replay?
-        handle_preference_refresh_replay!(preference)
+        # A concurrent sibling request may have rotated this token moments ago.
+        # In that grace case the handler adopts the replacement into @preferences
+        # and we serve the request with it instead of failing closed.
+        return [@preferences, false] if handle_preference_refresh_replay!(preference) == :grace
       else
         handle_preference_refresh_failed(preference, refresh_public_id)
       end
@@ -168,6 +171,9 @@ module Preference::RefreshTokenTransport
 
   def refresh_refresh_token_lifetime(preference)
     return if @refresh_token_value.blank? || preference.blank? || @refresh_presented_digest.blank?
+    # A grace-window sibling already adopted the replacement read-only; do not
+    # attempt another rotation against the consumed parent digest.
+    return if @preference_refresh_grace
 
     rotated_preference =
       with_preference_connection(:writing) do

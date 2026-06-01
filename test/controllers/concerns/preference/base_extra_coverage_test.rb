@@ -166,6 +166,56 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
     assert @harness.instance_variable_get(:@preference_refresh_failed)
   end
 
+  test "handle_preference_refresh_replay! adopts the replacement within the grace window" do
+    replacement = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+    parent = AppPreference.create!(
+      status_id: AppPreferenceStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      used_at: Time.current,
+      replaced_by_id: replacement.id,
+    )
+    @harness.cookies["app_preference_refresh"] = "stale-cookie"
+
+    result = @harness.send(:handle_preference_refresh_replay!, parent)
+
+    assert_equal :grace, result
+    assert_equal replacement.id, @harness.instance_variable_get(:@preferences).id
+    assert_nil @harness.instance_variable_get(:@preference_refresh_failed)
+    # Grace must not clear cookies; the winning sibling request owns the rotation.
+    assert_equal "stale-cookie", @harness.cookies["app_preference_refresh"]
+    assert_not replacement.reload.replay?, "replacement stays unconsumed for the sibling"
+  end
+
+  test "handle_preference_refresh_replay! treats a consumed token past the grace window as compromise" do
+    replacement = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING, discarded_at: 1.day.from_now)
+    window = SingleUseToken::PREFERENCE_REFRESH_GRACE_WINDOW
+    parent = AppPreference.create!(
+      status_id: AppPreferenceStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      used_at: window.ago - 1.second,
+      replaced_by_id: replacement.id,
+    )
+
+    result = @harness.send(:handle_preference_refresh_replay!, parent)
+
+    assert_equal :compromised, result
+    assert @harness.instance_variable_get(:@preference_refresh_failed)
+    assert_not_equal replacement.id, @harness.instance_variable_get(:@preferences)&.id
+  end
+
+  test "handle_preference_refresh_replay! treats a missing replacement as compromise" do
+    parent = AppPreference.create!(
+      status_id: AppPreferenceStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+      used_at: Time.current,
+    )
+
+    result = @harness.send(:handle_preference_refresh_replay!, parent)
+
+    assert_equal :compromised, result
+    assert @harness.instance_variable_get(:@preference_refresh_failed)
+  end
+
   test "handle_preference_refresh_binding_denied sets flags" do
     @harness.send(:handle_preference_refresh_binding_denied, nil, "p1")
 

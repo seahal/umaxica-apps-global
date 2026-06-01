@@ -48,6 +48,10 @@ and host. Do not add domain behavior to Lograge.
 
 Application logs are logs written by application code, Rails internals, or gems.
 
+Application logs are for developers and infrastructure operators. Use them for debugging, incident
+response, operational visibility, and failure diagnosis. Do not make application logs the
+authoritative record for important business, security, compliance, or accountability events.
+
 Application code should use:
 
 ```ruby
@@ -133,6 +137,11 @@ Primary audience:
 Audit and security records are not the same as product analytics. Durable security-relevant records
 should live in the appropriate audit or occurrence tables where the application already has those
 models. A logger call may support incident response, but it is not a durable audit record.
+
+Important audit, security, compliance, purchase, and other accountability events must be specified
+before implementation. The specification must define the event schema, owner, retention expectation,
+and access path. When such an event is needed, consider durable datastore registration from the
+start instead of treating the application log as the source of truth.
 
 ## Layer 3: Product Analytics
 

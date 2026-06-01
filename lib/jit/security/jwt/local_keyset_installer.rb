@@ -49,7 +49,10 @@ module Jit
           return false if complete_env?(active_name, private_name, public_name)
 
           env_values =
-            store.fetch(prefix) do
+            if store.key?(prefix)
+              store.fetch(prefix)
+            else
+              warn_local_keyset_regenerated(issuer: prefix, kid: kid)
               keyset_issuer_env(kid)
             end
           store[prefix] = env_values
@@ -68,7 +71,10 @@ module Jit
 
           store_key = "JWT_#{namespace}"
           env_values =
-            store.fetch(store_key) do
+            if store.key?(store_key)
+              store.fetch(store_key)
+            else
+              warn_local_keyset_regenerated(issuer: store_key, kid: kid)
               surface_issuer_env(kid)
             end
           store[store_key] = env_values
@@ -81,6 +87,26 @@ module Jit
 
         def complete_env?(*names)
           names.all? { |name| ENV[name].present? }
+        end
+
+        # Freshly minted local signing keys mean any token issued before this
+        # boot (still sitting in a browser cookie) will fail verification. In
+        # dev/test that surfaces as "access token rejected after restart →
+        # cookie discarded → new token issued". The store normally prevents it
+        # by persisting keys across boots, so a regeneration almost always means
+        # the store under tmp/ was cleared (rails tmp:clear, fresh clone, CI,
+        # container rebuild). Warn loudly so the cause is obvious in the log.
+        def warn_local_keyset_regenerated(issuer:, kid:)
+          Rails.logger.warn(
+            Jit::LogEvent.format(
+              "jwt.local_keyset.regenerated",
+              issuer: issuer,
+              kid: kid,
+              env: Rails.env,
+              store_path: DEFAULT_STORE_PATH.to_s,
+              impact: "tokens issued before this boot for this issuer will fail verification until reissued",
+            ),
+          )
         end
 
         def load_store(path)

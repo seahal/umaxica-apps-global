@@ -32,6 +32,129 @@ en:
   jump:
     redirector:
       unavailable: This jump link is unavailable.
+  attributes:
+    ack_deactivate_today: Deactivation confirmation
+    ack_schedule_purge: Purge schedule confirmation
+    address: Email address
+    active_avatars: Active avatars
+    app_posts: Posts
+    app_post_reviews: Post reviews
+    app_preferences: App preferences
+    app_preference_languages: Language preferences
+    app_preference_regions: Region preferences
+    app_preference_themes: Theme preferences
+    app_preference_timezones: Timezone preferences
+    area_occurrence_id: Area occurrence
+    attempt_count: Attempt count
+    avatars: Avatars
+    base: Base
+    birthdate: Birthdate
+    body: Body
+    client_emails: Email addresses
+    client_id: Client ID
+    client_preference_themes: Theme preferences
+    client_preference_timezones: Timezone preferences
+    client_telephones: Telephone numbers
+    client_tokens: Tokens
+    capability_id: Capability
+    code: Code
+    code_challenge: Code challenge
+    code_challenge_method: Code challenge method
+    com_preference_languages: Language preferences
+    com_preference_regions: Region preferences
+    com_preference_themes: Theme preferences
+    com_preference_timezones: Timezone preferences
+    confirm_policy: Terms of service
+    confirm_reset: Reset confirmation
+    confirm_using_mfa: MFA confirmation
+    cooldown_until: Cooldown until
+    current_refresh_token: Current refresh token
+    description: Description
+    discarded_at: Discarded at
+    divisions: Divisions
+    domain_occurrence_id: Domain occurrence
+    email: Email address
+    email_occurrence_id: Email occurrence
+    enabled: Enabled
+    ends_at: Ends at
+    entry_method: Entry method
+    event_id: Event
+    error_message: Error message
+    event_type: Event type
+    expires_at: Expires at
+    functional: Functional
+    handle_id: Handle
+    handle: Handle
+    id: ID
+    identifier: Identifier
+    initiator_actor_id: Initiator actor
+    invited_by: Invited by
+    ip_occurrence_id: IP occurrence
+    jti: JTI
+    kind_id: Kind
+    kid: KID
+    last_otp_at: Last OTP at
+    metadata: Metadata
+    method: Method
+    member_id: Member
+    moniker: Moniker
+    name: Name
+    number: Telephone number
+    occurred_at: Occurred at
+    operator: Operator
+    option: Option
+    org_preferences: Organization preferences
+    org_preference_languages: Language preferences
+    org_preference_regions: Region preferences
+    org_preference_themes: Theme preferences
+    org_preference_timezones: Timezone preferences
+    organization: Organization
+    organization_id: Organization
+    pass_code: Verification code
+    password_digest: Password digest
+    preference: Preference
+    preference_id: Preference
+    private_key: Private key
+    publish_at: Publish at
+    public_id: Public ID
+    raw_number: Telephone number
+    redirect_uri: Redirect URI
+    redirect_url: Redirect URL
+    recipient_actor_id: Recipient actor
+    request_host: Request host
+    response_mode: Response mode
+    role: Role
+    performant: Performance
+    secret_credential_value: Secret
+    social_provider: Social provider
+    sign_count: Sign count
+    staff: Staff
+    staff_chronicles: Staff chronicles
+    staff_emails: Email addresses
+    staff_id: Staff
+    staff_occurrence_id: Staff occurrence
+    staff_preference_languages: Language preferences
+    staff_preference_themes: Theme preferences
+    staff_preference_timezones: Timezone preferences
+    staff_secret_credential_kind: Secret credential kind
+    staff_telephones: Telephone numbers
+    staff_tokens: Tokens
+    status: Status
+    status_id: Status
+    subject_id: Subject
+    subject_type: Subject type
+    target_operator: Target operator
+    targetable: Targeting
+    telephone_occurrence_id: Telephone occurrence
+    token: Token
+    token_expires_at: Token expiration
+    uid: UID
+    user: User
+    user_id: User
+    user_occurrence_id: User occurrence
+    user_secret_credential_kind: Secret credential kind
+    visitor: Visitor
+    webauthn_id: WebAuthn ID
   auth:
     session_expired: Your session has expired. Please sign in again.
   session_limit:

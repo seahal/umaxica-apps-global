@@ -103,9 +103,12 @@ acceptable for development and test.
 
 Current old-kid verification windows are:
 
-- Auth access JWT: `Security::TokenLifetimes::AUTH_ACCESS_JWT_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
-- Preference JWT: `Security::TokenLifetimes::PREFERENCE_JWT_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
-- OIDC ID Token: `Security::TokenLifetimes::OIDC_ID_TOKEN_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
+- Auth access JWT:
+  `Security::TokenLifetimes::AUTH_ACCESS_JWT_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
+- Preference JWT:
+  `Security::TokenLifetimes::PREFERENCE_JWT_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
+- OIDC ID Token:
+  `Security::TokenLifetimes::OIDC_ID_TOKEN_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
 - JumpRT: `Security::TokenLifetimes::JUMP_RT_TTL + JWKS_ROTATION_LEEWAY + CDN_STALE_LEEWAY`.
 
 Old verification keys should be public JWKs only. Do not keep old private keys in production runtime

@@ -152,15 +152,44 @@ module Jit
           FileUtils.mkdir_p(File.dirname(@store_path))
           File.write(@store_path, "not-json")
 
-          logged = nil
-          Rails.logger.stub(:warn, ->(message) { logged = message }) do
+          logged = []
+          Rails.logger.stub(:warn, ->(message) { logged << message }) do
             LocalKeysetInstaller.install!(store_path: @store_path)
           end
           Registry.reload!
 
-          assert_includes logged, "jwt.local_keyset_store.malformed"
+          assert(logged.any? { |message| message.include?("jwt.local_keyset_store.malformed") })
           assert Registry.private_key_for("preference")
           assert Registry.public_key_for("preference", ENV.fetch("PREFERENCE_JWT_ACTIVE_KID"))
+        end
+
+        test "generating fresh local keys warns that prior tokens will fail verification" do
+          warnings = []
+          Rails.logger.stub(:warn, ->(message) { warnings << message }) do
+            LocalKeysetInstaller.install!(store_path: @store_path)
+          end
+
+          regenerated = warnings.select { |message| message.include?("jwt.local_keyset.regenerated") }
+
+          assert_predicate regenerated, :present?,
+                           "first install with no store should warn that local keys were minted"
+          assert(regenerated.any? { |message| message.include?("PREFERENCE") })
+          assert(regenerated.all? { |message| message.include?("will fail verification") })
+        end
+
+        test "reinstalling from an existing store does not warn about regeneration" do
+          LocalKeysetInstaller.install!(store_path: @store_path)
+
+          clear_local_jwt_env!
+          ENV["PREFERENCE_JWT_AUDIENCES"] = "id.umaxica.app"
+
+          warnings = []
+          Rails.logger.stub(:warn, ->(message) { warnings << message }) do
+            LocalKeysetInstaller.install!(store_path: @store_path)
+          end
+
+          assert_empty warnings.select { |message| message.include?("jwt.local_keyset.regenerated") },
+                       "reusing persisted keys must not look like a key rotation"
         end
 
         test "explicit local jwt env values are not replaced" do
