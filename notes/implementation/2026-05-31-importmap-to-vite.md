@@ -17,6 +17,10 @@
     `importmap-rails`.
 - Decision: make `@hotwired/stimulus` and `@hotwired/turbo-rails` runtime npm dependencies.
   - Why: Vite now resolves those browser imports instead of importmap pins.
+- Decision: keep the Rails public file server enabled in development.
+  - Why: Vite Rails can emit auto-built files under `public/vite-dev`; if the Vite dev server is not
+    serving a request directly, Rails still needs to return those files instead of routing the
+    request to the application and producing a 404.
 
 ## Deviations From Plan
 

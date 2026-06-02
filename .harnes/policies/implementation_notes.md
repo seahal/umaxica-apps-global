@@ -5,6 +5,11 @@
 Implementation notes preserve the decisions made while carrying out a plan. They are for durable
 handoff context, not transcripts or source-of-truth documentation.
 
+Implementation notes must be written in English. Do not add Japanese or other non-English prose
+unless the note explicitly covers localization, translation fixtures, or a quoted source whose
+original language matters. Chat with the user may use the user's language, but repository notes must
+remain English.
+
 ## When To Write
 
 Write an implementation note when a non-trivial task involves any of the following:

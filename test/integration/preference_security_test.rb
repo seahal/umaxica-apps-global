@@ -44,16 +44,16 @@ class PreferenceSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "timezone update rejects unknown raw strings even with a slash" do
-    get edit_sign_app_preference_region_timezone_url(ri: "jp")
+    get edit_sign_app_preference_timezone_url(ri: "jp")
 
     assert_response :success
 
-    patch sign_app_preference_region_timezone_url(ri: "jp"),
+    patch sign_app_preference_timezone_url(ri: "jp"),
           params: { preference_timezone: { option_id: "../etc/passwd" } }
 
     # The fix routes invalid input through PreferenceOperationError and
     # redirects back with a localized alert, never writing to session/cookie.
-    assert_redirected_to edit_sign_app_preference_region_timezone_url(ri: "jp")
+    assert_redirected_to edit_sign_app_preference_timezone_url(ri: "jp")
     assert_equal I18n.t("errors.messages.preference_operation_failed"), flash[:alert]
 
     follow_redirect!

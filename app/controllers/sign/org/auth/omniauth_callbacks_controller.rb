@@ -10,10 +10,8 @@ module Sign
       #   GET /auth/google_org/callback -> #omniauth
       #   GET /auth/failure            -> #failure
       #
-      # Operator continue signs in existing staff only:
-      # - Extracts email from Google auth hash
-      # - Looks up Operator via OperatorEmail by that email
-      # - Signs in the operator if found and active
+      # Operator continue signs in existing staff only by provider + uid.
+      # Temporary signup is isolated in Sign::Social::OrgOperatorProvisioner.
       class OmniauthCallbacksController < Sign::Org::ApplicationController
         include SocialAuthConcern
 
@@ -38,6 +36,12 @@ module Sign
         end
 
         def handle_omniauth_callback(auth)
+          if current_social_auth_entry == "sign_up"
+            return redirect_google_signup_disabled unless google_signup_enabled?
+          else
+            return redirect_google_signin_disabled unless google_signin_enabled?
+          end
+
           validate_social_auth_state!
           SocialAuth::VerifiedProviderAssertion.call(
             auth_hash: auth,
@@ -65,6 +69,30 @@ module Sign
 
         private
 
+        def google_signin_enabled?
+          Sign::Social::OrgGoogleSigninGate.enabled?
+        end
+
+        def google_signup_enabled?
+          Sign::Social::TemporarySignupGate.signup_enabled?
+        end
+
+        def redirect_google_signin_disabled
+          clear_social_auth_intent!
+          redirect_to(
+            new_sign_org_sign_in_path,
+            alert: I18n.t("sign.org.social.sessions.create.failure"),
+          )
+        end
+
+        def redirect_google_signup_disabled
+          clear_social_auth_intent!
+          redirect_to(
+            new_sign_org_sign_up_path,
+            alert: I18n.t("sign.org.social.sessions.create.failure"),
+          )
+        end
+
         def social_omniauth_callback_received_event
           "sign.social.org.omniauth.callback_received"
         end
@@ -82,7 +110,11 @@ module Sign
         end
 
         def find_staff_from_auth(auth)
-          staff = find_active_staff_by_google_identity(auth, intent: current_social_auth_intent)
+          staff = find_active_staff_by_google_identity(
+            auth,
+            intent: current_social_auth_intent,
+            entry: current_social_auth_entry,
+          )
           Rails.logger.debug(Jit::LogEvent.format("sign.social.org.omniauth.staff_found", staff_id: staff&.id)) if staff
           staff
         end
@@ -114,11 +146,15 @@ module Sign
         end
 
         def login_and_redirect(staff, auth)
-          login_result = log_in(
-            staff,
-            record_login_audit: true,
-            audit_context: social_login_audit_context(auth),
-          )
+          login_result = OrgPrincipalRecord.connected_to(role: :writing) do
+            OrgTicketRecord.connected_to(role: :writing) do
+              log_in(
+                staff,
+                record_login_audit: true,
+                audit_context: social_login_audit_context(auth),
+              )
+            end
+          end
           provider_name = SocialIdentifiable.normalize_provider(auth.provider).humanize
           handle_login_result(login_result, provider_name)
         end
@@ -130,15 +166,20 @@ module Sign
           }
         end
 
-        def extract_email_from_auth(auth)
-          email = auth.dig("info", "email") || auth.dig(:info, :email)
-          email&.strip&.downcase
-        end
-
-        def find_active_staff_by_google_identity(auth, intent: "login")
+        def find_active_staff_by_google_identity(auth, intent: "login", entry: nil)
           uid = OperatorGoogleIdentity.extract_uid(auth)
           provider = OperatorGoogleIdentity.provider_from_auth(auth)
           return nil if uid.blank? || provider.blank?
+
+          if entry.to_s == "sign_up"
+            identity = OrgPrincipalRecord.connected_to(role: :writing) do
+              OperatorGoogleIdentity.find_by(uid: uid, provider: provider)
+            end
+            staff = Sign::Social::OrgOperatorProvisioner.call(auth, identity: identity)
+            return staff if staff&.status_id == OperatorStatus::ACTIVE && staff.login_allowed?
+
+            return nil
+          end
 
           staff = nil
           OrgPrincipalRecord.connected_to(role: :writing) do
@@ -153,7 +194,7 @@ module Sign
             end
           end
 
-          staff if staff&.status_id == OperatorStatus::ACTIVE
+          staff if staff&.status_id == OperatorStatus::ACTIVE && staff.login_allowed?
         end
 
         def link_google_identity!(identity, auth)

@@ -39,6 +39,54 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     assert_kind_of Integer, result.token_response[:expires_in]
   end
 
+  test "exchanges valid code with private_key_jwt client assertion" do
+    code_record = issue_code!
+    token_url = "https://id.umaxica.app/oauth/token"
+
+    with_oidc_client_key("CORE_APP") do
+      assertion = Oidc::ClientAssertionJwt.issue(client_id: "core_app", token_url: token_url)
+
+      result = Oidc::TokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: @redirect_uri,
+        client_id: "core_app",
+        client_assertion_type: Oidc::ClientAssertionJwt::ASSERTION_TYPE,
+        client_assertion: assertion,
+        code_verifier: @code_verifier,
+        token_endpoint_uri: token_url,
+      )
+
+      assert_predicate result, :success?
+      assert_predicate result.token_response[:id_token], :present?
+    end
+  end
+
+  test "rejects private_key_jwt client assertion with wrong token endpoint audience" do
+    code_record = issue_code!
+
+    with_oidc_client_key("CORE_APP") do
+      assertion = Oidc::ClientAssertionJwt.issue(
+        client_id: "core_app",
+        token_url: "https://id.umaxica.app/oauth/token",
+      )
+
+      result = Oidc::TokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: @redirect_uri,
+        client_id: "core_app",
+        client_assertion_type: Oidc::ClientAssertionJwt::ASSERTION_TYPE,
+        client_assertion: assertion,
+        code_verifier: @code_verifier,
+        token_endpoint_uri: "https://id.umaxica.app/oauth/token-alt",
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+    end
+  end
+
   test "marks code as consumed after exchange" do
     code_record = issue_code!
 
@@ -706,6 +754,36 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
                      },
     ) do
       block.call
+    end
+  end
+
+  def with_oidc_client_key(namespace)
+    key = OpenSSL::PKey::EC.generate("secp384r1")
+    kid = "#{namespace.downcase.tr("_", "-")}-oidc-test"
+    env = {
+      "OIDC_CLIENT_#{namespace}_ACTIVE_KID" => kid,
+      "OIDC_CLIENT_#{namespace}_PRIVATE_KEY" => Base64.strict_encode64(key.to_der),
+    }
+    previous = Jit::Security::Jwt::Registry.instance_variable_get(:@issuers)
+
+    with_env(env) do
+      Jit::Security::Jwt::Registry.reload!
+      yield
+    ensure
+      Jit::Security::Jwt::Registry.instance_variable_set(:@issuers, previous)
+    end
+  end
+
+  def with_env(values)
+    previous = {}
+    values.each do |key, value|
+      previous[key] = ENV[key]
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
+    yield
+  ensure
+    previous.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
     end
   end
 end

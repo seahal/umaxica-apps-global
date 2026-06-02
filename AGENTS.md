@@ -79,6 +79,28 @@ If an ADR or doc conflicts with current code, call out the conflict before choos
 implementation path. If implementing an active plan changes stable behavior, update the relevant
 `docs/` file or mention that documentation still needs to be updated.
 
+## Repository Language Policy
+
+Repository files must be written in English unless a file is explicitly about localization,
+translation fixtures, customer-visible copy in a non-English locale, or a quoted external source
+whose original language matters.
+
+This applies to:
+
+- `AGENTS.md`, `.harnes/`, `adr/`, `docs/`, `plans/`, `notes/`, and `memos/`
+- code comments, test names, commit-facing summaries, and implementation notes
+- newly added or substantially edited documentation, plans, ADRs, notes, and memos
+
+When updating an existing file that contains Japanese or another non-English language, translate the
+touched material to English in the same change unless the content belongs to an explicit
+localization exception. Do not add new Japanese prose to repository files as an implementation note,
+handoff note, memo, plan, ADR, or harness instruction.
+
+Conversation with the user may follow the user's language. The English-only policy is for committed
+repository content, not chat replies.
+
+See `docs/reference/repository-language-policy.md` for the stable policy and review checklist.
+
 ## Working Notes
 
 - Use `notes/implementation/` for implementation decisions, plan deviations, compromises, and

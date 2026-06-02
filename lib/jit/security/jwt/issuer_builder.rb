@@ -38,6 +38,22 @@ module Jit
 
         def build_surface_issuer(namespace:, active_kid:, private_key:, private_key_source:, public_keyset:,
                                  public_keyset_source:, revoked_kids:, issuer:, audiences:)
+          build_surface_issuer_record(
+            namespace: namespace,
+            id: "surface:#{namespace}",
+            active_kid: active_kid,
+            private_key: private_key,
+            private_key_source: private_key_source,
+            public_keyset: public_keyset,
+            public_keyset_source: public_keyset_source,
+            revoked_kids: revoked_kids,
+            issuer: issuer,
+            audiences: audiences,
+          )
+        end
+
+        def build_surface_issuer_record(namespace:, id:, active_kid:, private_key:, private_key_source:, public_keyset:,
+                                        public_keyset_source:, revoked_kids:, issuer:, audiences:)
           active_private_key = decode_private_key(private_key, source: private_key_source)
           current_public_jwk =
             (active_kid && active_private_key) ? Jwk.export_public(active_private_key, kid: active_kid) : nil
@@ -68,7 +84,7 @@ module Jit
           end.freeze
 
           IssuerRecord.new(
-            id: "surface:#{namespace}",
+            id: id,
             namespace: namespace,
             issuer: issuer,
             audiences: audiences.freeze,

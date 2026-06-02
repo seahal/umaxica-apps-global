@@ -73,7 +73,7 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
 
       surface = domain[:name].delete_prefix("sign_")
-      get public_send("edit_sign_#{surface}_preference_region_timezone_url", ri: "jp", lx: "ja")
+      get public_send("edit_sign_#{surface}_preference_timezone_url", ri: "jp", lx: "ja")
 
       assert_response :success
       assert_select "html[lang='ja']"

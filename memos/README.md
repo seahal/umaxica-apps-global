@@ -3,6 +3,9 @@
 This directory holds exploratory notes, rough analysis, and provisional observations that do not
 affect implementation.
 
+Write memos in English. Do not add Japanese or other non-English prose unless the memo explicitly
+covers localization, translation fixtures, or a quoted source whose original language matters.
+
 Use it for material that is useful to keep around but is not yet stable enough for:
 
 - `docs/` for current, stable documentation

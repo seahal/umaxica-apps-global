@@ -12,7 +12,7 @@ module Oidc
     VisitorAccount =
       Data.define(
         :client_id, :client_secret, :redirect_uris, :aud, :resource_type,
-        :name, :domains,
+        :name, :domains, :token_endpoint_auth_method, :jwt_namespace,
       )
     CLIENTS_MUTEX = Mutex.new
     CLIENTS_CACHE = Concurrent::AtomicReference.new(nil)
@@ -36,6 +36,8 @@ module Oidc
         resource_type: config[:resource_type],
         name: config[:name],
         domains: domains_from_redirect_uris(config[:redirect_uris]),
+        token_endpoint_auth_method: config[:token_endpoint_auth_method] || default_auth_method(client_id.to_s),
+        jwt_namespace: config[:jwt_namespace],
       )
     end
 
@@ -65,6 +67,17 @@ module Oidc
       return false if client.client_secret.blank? || secret_credential.blank?
 
       ActiveSupport::SecurityUtils.secure_compare(client.client_secret, secret_credential)
+    end
+
+    def authenticate_assertion(client_id, assertion, token_url:)
+      client = find(client_id)
+      return false unless client&.token_endpoint_auth_method == "private_key_jwt"
+
+      Oidc::ClientAssertionJwt.valid?(client_id: client_id, assertion: assertion, token_url: token_url)
+    end
+
+    def jwt_namespace_for(client_id)
+      find(client_id)&.jwt_namespace
     end
 
     def client_ids
@@ -104,18 +117,24 @@ module Oidc
           aud: "umaxica-acme-app",
           resource_type: "client",
           name: "Acme App",
+          token_endpoint_auth_method: "private_key_jwt",
+          jwt_namespace: "ACME_APP",
         },
         "acme_org" => {
           redirect_uris: build_redirect_uris("ACME_STAFF_URL", "www.org.localhost"),
           aud: "umaxica-acme-org",
           resource_type: "operator",
           name: "Acme Org",
+          token_endpoint_auth_method: "private_key_jwt",
+          jwt_namespace: "ACME_ORG",
         },
         "acme_com" => {
           redirect_uris: build_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost"),
           aud: "umaxica-acme-com",
           resource_type: "visitor",
           name: "Acme Com",
+          token_endpoint_auth_method: "private_key_jwt",
+          jwt_namespace: "ACME_COM",
         },
         # Core
         "core_app" => {
@@ -123,18 +142,24 @@ module Oidc
           aud: "umaxica-core-app",
           resource_type: "client",
           name: "Core App",
+          token_endpoint_auth_method: "private_key_jwt",
+          jwt_namespace: "CORE_APP",
         },
         "core_org" => {
           redirect_uris: build_redirect_uris("CORE_STAFF_URL", "www.jp.umaxica.org"),
           aud: "umaxica-core-org",
           resource_type: "operator",
           name: "Core Org",
+          token_endpoint_auth_method: "private_key_jwt",
+          jwt_namespace: "CORE_ORG",
         },
         "core_com" => {
           redirect_uris: build_redirect_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
           aud: "umaxica-core-com",
           resource_type: "visitor",
           name: "Core Com",
+          token_endpoint_auth_method: "private_key_jwt",
+          jwt_namespace: "CORE_COM",
         },
         # Docs
         "docs_app" => {
@@ -216,6 +241,10 @@ module Oidc
       Rails.app.creds.option(credential_key_for(client_id))
     end
 
+    def default_auth_method(client_id)
+      resolve_secret_credential(client_id).present? ? "client_secret_post" : "none"
+    end
+
     def domains_from_redirect_uris(redirect_uris)
       redirect_uris.filter_map { |uri| URI.parse(uri).host.presence }.uniq
     rescue URI::InvalidURIError
@@ -236,6 +265,6 @@ module Oidc
 
     private_class_method :clients, :build_clients, :build_redirect_uris, :public_host?,
                          :resolve_secret_credential, :domains_from_redirect_uris, :credential_key_for,
-                         :normalize_resource_type
+                         :normalize_resource_type, :default_auth_method
   end
 end

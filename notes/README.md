@@ -3,6 +3,9 @@
 This directory holds non-authoritative notes that are useful for implementation handoff and later
 promotion.
 
+Write notes in English. Do not add Japanese or other non-English prose unless the note explicitly
+covers localization, translation fixtures, or a quoted source whose original language matters.
+
 Use it for:
 
 - ADR-adjacent notes that are not accepted architecture decisions.

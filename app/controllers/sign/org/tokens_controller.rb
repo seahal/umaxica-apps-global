@@ -23,6 +23,8 @@ module Sign
           redirect_uri: params[:redirect_uri],
           client_id: params[:client_id],
           client_secret: params[:client_secret],
+          client_assertion_type: params[:client_assertion_type],
+          client_assertion: params[:client_assertion],
           code_verifier: params[:code_verifier],
           dpop_proof: request.headers["DPoP"],
           token_endpoint_uri: request.original_url,

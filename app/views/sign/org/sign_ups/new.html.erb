@@ -10,6 +10,14 @@
   </div>
 
   <div>
+    <% if @google_signup_enabled %>
+      <%# TEMP(org-google-social-gateway): remove before production cleanup %>
+      <%= button_to signup_sign_org_social_authentication_path(provider: "google_org", ri: params[:ri]),
+                    method: :post,
+                    data: { turbo: false } do %>
+        <span><%= t("sign.org.authentication.new.links.google") %></span>
+      <% end %>
+    <% end %>
 
     <div>
       <p>

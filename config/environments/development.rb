@@ -151,8 +151,9 @@ Rails.application.configure do
     read_timeout: 10,
   }
 
-  # static file serve
-  config.public_file_server.enabled = false
+  # Serve Vite's auto-built files from public/vite-dev when the Vite dev server
+  # is not the active asset host for a request.
+  config.public_file_server.enabled = true
 
   # SMS Provider Configuration - Use test provider in development
   config.sms_provider = ENV.fetch("SMS_PROVIDER", "test")

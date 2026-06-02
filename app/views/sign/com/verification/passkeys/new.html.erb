@@ -15,19 +15,19 @@
     <%= f.hidden_field :scope, value: params.dig(:verification, :scope).presence || params[:scope], name: "verification[scope]" %>
     <%= f.hidden_field :pt, value: params.dig(:verification, :pt).presence || params[:pt], name: "verification[pt]" %>
     <div
-      data-controller="step_up-passkey"
-      data-step_up-passkey-options-value="<%= options_json %>"
-      data-step_up-passkey-challenge-id-value="<%= @passkey_challenge_id.to_s %>">
+      data-controller="step-up-passkey"
+      data-step-up-passkey-options-value="<%= options_json %>"
+      data-step-up-passkey-challenge-id-value="<%= @passkey_challenge_id.to_s %>">
 
-      <%= f.hidden_field :challenge_id, value: @passkey_challenge_id.to_s, data: { "step_up-passkey-target": "challengeId" }, name: "verification[challenge_id]" %>
-      <%= f.hidden_field :credential_json, value: "", data: { "step_up-passkey-target": "credentialJson" }, name: "verification[credential_json]" %>
+      <%= f.hidden_field :challenge_id, value: @passkey_challenge_id.to_s, data: { "step-up-passkey-target": "challengeId" }, name: "verification[challenge_id]" %>
+      <%= f.hidden_field :credential_json, value: "", data: { "step-up-passkey-target": "credentialJson" }, name: "verification[credential_json]" %>
 
       <button type="button"
-              data-action="click->step_up-passkey#authenticate">
+              data-action="click->step-up-passkey#authenticate">
         <%= t("sign.app.verification.edit.authenticate_with_passkey") %>
       </button>
-      <p data-step_up-passkey-target="error" class="hidden"></p>
-      <p data-step_up-passkey-target="status" class="hidden"></p>
+      <p data-step-up-passkey-target="error" class="hidden"></p>
+      <p data-step-up-passkey-target="status" class="hidden"></p>
     </div>
   <% end %>
 

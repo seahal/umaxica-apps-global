@@ -21,6 +21,10 @@ module Jit
           ACME_APP ACME_COM ACME_ORG
           CORE_APP CORE_COM CORE_ORG
         ).freeze
+        OIDC_CLIENT_NAMESPACES = %w(
+          ACME_APP ACME_COM ACME_ORG
+          CORE_APP CORE_COM CORE_ORG
+        ).freeze
         SURFACE_ISSUER_ORIGINS = {
           "SIGN_APP" => "https://id.umaxica.app",
           "SIGN_COM" => "https://id.umaxica.com",
@@ -63,6 +67,10 @@ module Jit
 
         def surface(namespace)
           issuer("surface:#{normalize_namespace(namespace)}")
+        end
+
+        def oidc_client(namespace)
+          issuer("oidc_client:#{normalize_oidc_client_namespace(namespace)}")
         end
 
         def auth = issuer("auth")
@@ -131,6 +139,9 @@ module Jit
           SURFACE_NAMESPACES.each do |namespace|
             records["surface:#{namespace}"] = build_surface_issuer(namespace, source: source)
           end
+          OIDC_CLIENT_NAMESPACES.each do |namespace|
+            records["oidc_client:#{namespace}"] = build_oidc_client_issuer(namespace, source: source)
+          end
 
           records.freeze
         end
@@ -163,6 +174,23 @@ module Jit
             revoked_kids: source.csv("JWT_#{namespace}_REVOKED_KIDS"),
             issuer: surface_issuer_origin(namespace),
             audiences: [source.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")].freeze,
+          )
+        rescue IssuerBuilder::Error => e
+          raise ConfigurationError, e.message
+        end
+
+        def build_oidc_client_issuer(namespace, source:)
+          IssuerBuilder.build_surface_issuer_record(
+            namespace: namespace,
+            id: "oidc_client:#{namespace}",
+            active_kid: source.value("OIDC_CLIENT_#{namespace}_ACTIVE_KID"),
+            private_key: source.value("OIDC_CLIENT_#{namespace}_PRIVATE_KEY"),
+            private_key_source: "OIDC_CLIENT_#{namespace}_PRIVATE_KEY",
+            public_keyset: source.fetch("OIDC_CLIENT_#{namespace}_PUBLIC_KEYSET", nil),
+            public_keyset_source: "OIDC_CLIENT_#{namespace}_PUBLIC_KEYSET",
+            revoked_kids: source.csv("OIDC_CLIENT_#{namespace}_REVOKED_KIDS"),
+            issuer: "oidc_client:#{namespace.downcase}",
+            audiences: ["oidc-token-endpoint"].freeze,
           )
         rescue IssuerBuilder::Error => e
           raise ConfigurationError, e.message
@@ -234,6 +262,14 @@ module Jit
 
         def surface_issuer_origin(namespace)
           SURFACE_ISSUER_ORIGINS.fetch(namespace)
+        end
+
+        def normalize_oidc_client_namespace(namespace)
+          value = namespace.to_s.upcase
+          raise ConfigurationError,
+                "unsupported OIDC client JWT namespace: #{namespace.inspect}" unless OIDC_CLIENT_NAMESPACES.include?(value)
+
+          value
         end
 
         def insecure_default_kid?(kid)

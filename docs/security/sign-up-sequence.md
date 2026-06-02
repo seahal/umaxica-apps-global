@@ -746,6 +746,34 @@ Target state-machine path:
 Org is not an app/com-style public sign-up surface. A public org request must not create an
 `Operator` directly. Operator creation, mutation, and withdrawal are controlled lifecycle events.
 
+### Temporary Google Gateway Exception
+
+2026-06-02: `adr/google-social-temporary-gateway-exception.md` と
+`plans/active/org-com-google-social-temporary-gateway-plan.md` により、QA と com/org 実装検証中だけ
+`org Google signup` を temporary gateway として扱える。一時例外であり、本番仕様ではない。
+
+- `org Google signup` は `ORG_GOOGLE_SIGNUP_ENABLED` で制御する。
+- `org Google signup` の provisioning gate は最初は allowlist とする。
+- `org Google signup` の provisioning は `Sign::Social::OrgOperatorProvisioner` に隔離し、
+  no-migration marker として `OperatorChronicle` context に
+  `source: "org_google_social_temporary_gateway"`、`temporary_gateway: true`、`provider: "google_org"`
+  を記録する。
+- temporary gateway では `OperatorEmail` を作成しない。Google email は allowlist の補助条件であり、
+  signin 認証境界は `OperatorGoogleIdentity` の provider + uid とする。
+- 招待制と operator lifecycle request は将来の恒久設計候補として残す。
+- `org Google signin` は `Sign::Social::OrgGoogleSigninGate` で制御し、本番に残す候補とする。この gate
+  は temporary cleanup 対象ではない。
+- `com` に temporary Google gateway を追加する場合は、`Visitor` / `VisitorGoogleIdentity`
+  相当の境界に閉じる。`Client` や app social signup sequence に寄せない。
+- 現状 `VisitorSignUpFlow` は social provider を許可しない設計なので、temporary
+  gateway 実装には migration と model validation の明示レビューが必要である。
+- production 推奨値は `ORG_GOOGLE_SIGNUP_ENABLED=false`、 `ORG_GOOGLE_SIGNIN_ENABLED=true`。
+- production で `ORG_GOOGLE_SIGNUP_ENABLED=true` を検出した場合は boot fail とする。
+- temporary signup 実装には `TEMP(org-google-social-gateway): remove before production cleanup`
+  と retirement test を必須にする。
+- 本番前 cleanup では `org` は Google signin のみ残す。
+- この例外は public self-service operator signup を恒久仕様に昇格しない。
+
 ### External Candidate Inquiry
 
 Target path:

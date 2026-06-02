@@ -23,11 +23,14 @@ class ApplicationRecord < ActiveRecord::Base
     fixed_ids = ids.uniq
     seed_key = "#{name}:#{connection_db_config&.name || "default"}:#{fixed_ids.sort.join(",")}"
 
-    # Cache hit check - only if all IDs are actually present
-    present = defined?(Prosopite) ? Prosopite.pause { fixed_ids_present?(fixed_ids) } : fixed_ids_present?(fixed_ids)
-    return if FIXED_ID_SEED_CACHE[seed_key] && present
-
-    missing_ids = fixed_ids - where(primary_key => fixed_ids).pluck(primary_key)
+    present_ids =
+      if defined?(Prosopite)
+        Prosopite.pause { where(primary_key => fixed_ids).pluck(primary_key) }
+      else
+        where(primary_key => fixed_ids).pluck(primary_key)
+      end
+    missing_ids = fixed_ids - present_ids
+    return if FIXED_ID_SEED_CACHE[seed_key] && missing_ids.blank?
     return if missing_ids.blank?
 
     operation =
@@ -61,10 +64,4 @@ class ApplicationRecord < ActiveRecord::Base
 
     FIXED_ID_SEED_CACHE[seed_key] = true
   end
-
-  def self.fixed_ids_present?(ids)
-    ids.all? { |id| exists?(primary_key => id) }
-  end
-
-  private_class_method :fixed_ids_present?
 end

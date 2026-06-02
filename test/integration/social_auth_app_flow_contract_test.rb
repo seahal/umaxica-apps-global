@@ -96,6 +96,40 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
 
+  test "Apple configuration link succeeds again after unlink while Google remains available" do
+    user = create_social_client
+    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "relink_backup_google")
+    apple_identity = create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "relink_old_apple")
+
+    delete_with_verified_session(user, PROVIDERS.fetch(:apple))
+
+    assert_redirected_to sign_app_configuration_url(ri: "jp")
+    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
+
+    new_uid = "relink_new_apple_#{SecureRandom.hex(4)}"
+    setup_mock_auth(PROVIDERS.fetch(:apple), uid: new_uid, token: "relinked_apple_token")
+    state = seed_social_auth_session(provider: "apple", intent: "link", user: user, ri: "jp")
+
+    assert_no_difference("Client.count") do
+      assert_difference("ClientAppleIdentity.count", 1) do
+        perform_social_callback(
+          PROVIDERS.fetch(:apple),
+          params: { state: state },
+          headers: @callback_headers,
+        )
+      end
+    end
+
+    assert_redirected_to sign_app_configuration_url(ri: "jp")
+    relinked_identity = ClientAppleIdentity.find_by!(uid: new_uid)
+
+    assert_equal user.id, relinked_identity.user_id
+    assert_equal ClientAppleIdentityStatus::ACTIVE, relinked_identity.status_id
+    assert_equal "relinked_apple_token", relinked_identity.token
+    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+  end
+
   test "Google configuration unlink keeps the last active login method" do
     assert_last_social_unlink_rejected(PROVIDERS.fetch(:google_app))
   end
@@ -248,7 +282,6 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   def assert_configuration_link_contract(config)
     uid = "#{config.fetch(:normalized)}_link_#{SecureRandom.hex(4)}"
     user = create_social_client
-    token = token_bound_step_up_for_social_link(user)
 
     setup_mock_auth(config, uid:, token: "linked_token")
     state = seed_social_auth_session(provider: config.fetch(:provider), intent: "link", user: user, ri: "jp")
@@ -258,7 +291,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
         perform_social_callback(
           config,
           params: { state: state },
-          headers: @callback_headers.merge(as_user_headers(user, host: @host, session_public_id: token.public_id)),
+          headers: @callback_headers,
         )
       end
     end
@@ -274,7 +307,6 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def assert_configuration_replacement_rejected(config)
     user = create_social_client
-    token = token_bound_step_up_for_social_link(user)
     existing = create_social_identity(config, user:, uid: "existing_#{config.fetch(:normalized)}", token: "keep_token")
 
     setup_mock_auth(config, uid: "different_#{config.fetch(:normalized)}", token: "wrong_token")
@@ -284,7 +316,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       perform_social_callback(
         config,
         params: { state: state },
-        headers: @callback_headers.merge(as_user_headers(user, host: @host, session_public_id: token.public_id)),
+        headers: @callback_headers,
       )
     end
 

@@ -32,8 +32,23 @@ module Jit
             assert_equal "pref-kid", issuers.fetch("preference").current_kid
             assert_equal "sign-app-kid", issuers.fetch("surface:SIGN_APP").current_kid
             assert_predicate issuers.fetch("surface:SIGN_APP").jwks.fetch(:keys), :present?
+            assert_equal 6, issuers.keys.grep(/\Aoidc_client:/).size
             assert Registry.public_key_for("auth", "auth-legacy-kid")
             assert Registry.public_key_for("preference", "pref-legacy-kid")
+          end
+        end
+
+        test "loads configured OIDC client assertion issuer" do
+          with_registry_inputs(
+            "OIDC_CLIENT_ACME_APP_ACTIVE_KID" => "oidc-acme-app-kid",
+            "OIDC_CLIENT_ACME_APP_PRIVATE_KEY" => base64_der(@surface_key),
+          ) do
+            issuers = Registry.reload!
+            issuer = issuers.fetch("oidc_client:ACME_APP")
+
+            assert_equal "oidc-acme-app-kid", issuer.current_kid
+            assert_equal "oidc_client:acme_app", issuer.issuer
+            assert_predicate issuer.jwks.fetch(:keys), :present?
           end
         end
 
@@ -240,6 +255,13 @@ module Jit
             env["JWT_#{namespace}_ACTIVE_KID"] = nil
             env["JWT_#{namespace}_PUBLIC_KEYSET"] = nil
             env["JWT_#{namespace}_REVOKED_KIDS"] = nil
+          end
+          Jit::Security::Jwt::Registry::OIDC_CLIENT_NAMESPACES.each do |namespace|
+            next if env.key?("OIDC_CLIENT_#{namespace}_ACTIVE_KID")
+
+            env["OIDC_CLIENT_#{namespace}_ACTIVE_KID"] = nil
+            env["OIDC_CLIENT_#{namespace}_PUBLIC_KEYSET"] = nil
+            env["OIDC_CLIENT_#{namespace}_REVOKED_KIDS"] = nil
           end
           env["AUTH_JWT_PRIVATE_KEYSET"] =
             JSON.generate((env["AUTH_JWT_ACTIVE_KID"] || "auth-kid") => base64_der(@auth_key))

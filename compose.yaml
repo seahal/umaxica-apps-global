@@ -86,6 +86,10 @@ services:
     # gives headroom for that fanout without letting the mount grow unbounded.
     tmpfs:
     - "/var/lib/postgresql/data:size=64g"
+    # PG allocates 32MB DSM segments from /dev/shm for parallel query and
+    # column-metadata joins. The default 64MB container shm exhausts under
+    # 32 Rails parallel workers; 4G covers worst-case fanout with margin.
+    shm_size: 4gb
     volumes:
     - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
     - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro"
@@ -117,6 +121,9 @@ services:
     # the expected ~40G working set with margin.
     tmpfs:
     - "/var/lib/postgresql/data:size=48g"
+    # Match primary: parallel query + metadata-join DSM segments under 32 Rails
+    # workers exceed the 64MB default container shm.
+    shm_size: 4gb
     volumes:
     - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro"
     - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"

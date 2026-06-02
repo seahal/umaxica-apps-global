@@ -83,37 +83,21 @@ scope module: :sign, as: :sign do
       # Preferences
       resource :preference, only: [:show]
       namespace :preference do
-        # Region settings
-        resource :region, only: [:edit, :update]
-        namespace :region do
-          # Locale and timezone settings
-          resource :timezone, only: [:edit, :update]
-          resource :language, only: [:edit, :update]
-          resource :currency, only: [:edit, :update]
-          resource :date, only: [:edit, :update]
-          resource :time, only: [:edit, :update]
-        end
-
-        namespace :accessibility do
-          resource :motion, only: [:edit, :update]
-          resource :density, only: [:edit, :update]
-        end
-
-        namespace :display do
-          resource :page_size, only: [:edit, :update]
-          resource :adult_content_gate, only: [:edit, :update]
-        end
-
-        # Display and privacy settings
-        resource :theme, only: [:edit, :update]
-        resource :cookie, only: [:edit, :update]
-
-        # Non-sign-in-only email preferences
-        resources :email, only: %i(edit destroy)
-        post "email/:id", to: "emails#create"
-
-        # Reset preferences
-        resource :reset, only: [:edit, :destroy]
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :page_size, only: %i(edit update)
+        resource :adult_content_gate, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
+        resource :reset, only: %i(edit destroy)
+        resources :emails, only: %i(edit destroy)
+        post "emails/:id", to: "emails#create"
       end
 
       # Sign-up and sign-in
@@ -338,35 +322,21 @@ scope module: :sign, as: :sign do
       # Preferences
       resource :preference, only: [:show]
       namespace :preference do
-        # Region settings
-        resource :region, only: [:edit, :update]
-        namespace :region do
-          # Locale and timezone settings
-          resource :timezone, only: [:edit, :update]
-          resource :language, only: [:edit, :update]
-          resource :currency, only: [:edit, :update]
-          resource :date, only: [:edit, :update]
-          resource :time, only: [:edit, :update]
-        end
-
-        namespace :accessibility do
-          resource :motion, only: [:edit, :update]
-          resource :density, only: [:edit, :update]
-        end
-
-        namespace :display do
-          resource :page_size, only: [:edit, :update]
-          resource :adult_content_gate, only: [:edit, :update]
-        end
-
-        # Display and privacy settings
-        resource :theme, only: [:edit, :update]
-        resources :email, only: %i(edit destroy)
-        post "email/:id", to: "emails#create"
-        resource :cookie, only: [:edit, :update]
-
-        # Reset preferences
-        resource :reset, only: [:edit, :destroy]
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :page_size, only: %i(edit update)
+        resource :adult_content_gate, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
+        resources :emails, only: %i(edit destroy)
+        post "emails/:id", to: "emails#create"
+        resource :reset, only: %i(edit destroy)
       end
 
       # Sign-up and sign-in
@@ -545,37 +515,26 @@ scope module: :sign, as: :sign do
       # Preferences
       resource :preference, only: [:show]
       namespace :preference do
-        # Region settings
-        resource :region, only: [:edit, :update]
-        namespace :region do
-          # Locale and timezone settings
-          resource :timezone, only: [:edit, :update]
-          resource :language, only: [:edit, :update]
-          resource :currency, only: [:edit, :update]
-          resource :date, only: [:edit, :update]
-          resource :time, only: [:edit, :update]
-        end
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
 
-        namespace :accessibility do
-          resource :motion, only: [:edit, :update]
-          resource :density, only: [:edit, :update]
-        end
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
 
-        namespace :display do
-          resource :page_size, only: [:edit, :update]
-          resource :adult_content_gate, only: [:edit, :update]
-        end
+        resource :page_size, only: %i(edit update)
+        resource :adult_content_gate, only: %i(edit update)
 
-        # Display and privacy settings
-        resource :theme, only: [:edit, :update]
-        resources :email, only: %i(edit destroy)
-        post "email/:id", to: "emails#create"
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
 
-        # Reset preferences
-        resource :reset, only: [:edit, :destroy]
+        resources :emails, only: %i(edit destroy)
+        post "emails/:id", to: "emails#create"
 
-        # ePrivacy settings
-        resource :cookie, only: [:edit, :update]
+        resource :reset, only: %i(edit destroy)
       end
 
       # Sign-up: email registration and staff invitation flows
@@ -593,6 +552,7 @@ scope module: :sign, as: :sign do
                   param: :provider,
                   only: [:destroy] do
           post :continue, on: :member
+          post :signup, on: :member
         end
       end
 

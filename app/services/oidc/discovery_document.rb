@@ -20,7 +20,7 @@ module Oidc
         grant_types_supported: ["authorization_code"],
         subject_types_supported: ["public"],
         id_token_signing_alg_values_supported: [Authentication::TokenService::JWT_ALGORITHM],
-        token_endpoint_auth_methods_supported: ["client_secret_post"],
+        token_endpoint_auth_methods_supported: %w(private_key_jwt client_secret_post),
         code_challenge_methods_supported: ["S256"],
         scopes_supported: %w(openid profile email),
         claims_supported: %w(sub iss aud exp iat auth_time nonce acr amr sid email email_verified name),

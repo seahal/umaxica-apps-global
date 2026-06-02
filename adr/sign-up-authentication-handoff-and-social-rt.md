@@ -4,6 +4,14 @@
 
 Accepted
 
+## Temporary Exception
+
+2026-06-02: `adr/google-social-temporary-gateway-exception.md` は Google social temporary
+gateway 作業の QA-only 例外を追加する。この ADR の production target は変更しない。 `org` public
+signup は恒久的な self-service operator creation path ではなく、`com` は production
+cleanup 前に social-free へ戻す。この例外の実装 plan は
+`plans/active/org-com-google-social-temporary-gateway-plan.md`.
+
 ## Context
 
 The sign surfaces currently have different registration and post-authentication behavior:

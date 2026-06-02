@@ -1,6 +1,15 @@
 # Org Operator Acquisition And Lifecycle Implementation Plan
 
-Status: backlog
+Status: deprecated
+
+Deprecated: 2026-06-02
+
+Deprecated 理由: この backlog plan は、未知の `org` social
+identity を必ず non-provisioning とし、operator acquisition を public social
+signup の外側に置く。これは production target としては維持するが、明示的な ENV flag 配下で
+`org Google signup` を QA temporary gateway として許可する今回方針とは一時的に衝突する。
+
+後継 plan: `plans/active/org-com-google-social-temporary-gateway-plan.md`.
 
 ## Purpose
 

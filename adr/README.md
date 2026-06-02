@@ -2,6 +2,8 @@
 
 This directory stores accepted architecture and design decisions.
 
+- Write ADRs in English. Do not add Japanese or other non-English prose unless the ADR explicitly
+  discusses localization, translation data, or a quoted source whose original language matters.
 - Keep decision records focused on what was decided and why.
 - Include tradeoffs when they matter to future readers.
 - Update `docs/` separately when implementation changes become current behavior.

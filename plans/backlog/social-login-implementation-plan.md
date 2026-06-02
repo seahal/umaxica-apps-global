@@ -1,5 +1,15 @@
 # Social Login Implementation Plan
 
+Status: deprecated
+
+Deprecated: 2026-06-02
+
+Deprecated 理由: この古い plan は unified OAuth/provider
+architecture を提案し、Apple 向け実装作業も含む。現在の方針は surface 別、Rails Way 優先、`org`
+と後続 `com` slice の Google temporary gateway に限定する。Apple は対象外。
+
+後継 plan: `plans/active/org-com-google-social-temporary-gateway-plan.md`.
+
 ## Overview
 
 Implement an architecture that supports two social login providers: Google and Apple. Facebook and

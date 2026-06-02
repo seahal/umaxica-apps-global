@@ -11,6 +11,9 @@ Repository documents are separated by purpose.
 
 Rules:
 
+- Write repository documentation in English. Non-English text is allowed only for explicit
+  localization material, translation fixtures, or quoted external sources where the original
+  language matters. See `docs/reference/repository-language-policy.md`.
 - Keep non-authoritative implementation notes out of `docs/`, `plans/`, and `adr/`; use `notes/`
   instead.
 - Keep exploratory notes that do not affect implementation in `memos/`.
@@ -57,4 +60,5 @@ Current content-model references:
 - `docs/dictionary/alphabet.md`
 - `docs/dictionary/glossary.md`
 - `docs/reference/forbidden-rails-methods.md`
+- `docs/reference/repository-language-policy.md`
 - `docs/reference/ruby-static-analysis.md`

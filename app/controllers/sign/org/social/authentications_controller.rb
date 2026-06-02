@@ -22,7 +22,7 @@ module Sign
 
         SUPPORTED_PROVIDERS = %w(google_org).freeze
 
-        declare_authentication_mode! :open, only: :continue
+        declare_authentication_mode! :open, only: %i(continue signup)
         declare_authentication_mode! :private, only: :destroy
         step_up only: :destroy, scope: "social_unlink"
 
@@ -37,12 +37,35 @@ module Sign
               alert: I18n.t("sign.org.social.sessions.invalid_provider"),
             )
           end
+          return redirect_google_signin_disabled unless google_signin_enabled?
 
           state = prepare_social_auth_intent!("login", provider: provider)
 
           safe_redirect_to(
             omniauth_authorize_path(provider, state: state),
             fallback: new_sign_org_sign_in_path,
+          )
+        rescue SocialAuth::BaseError => e
+          handle_social_auth_error(e)
+        end
+
+        # TEMP(org-google-social-gateway): remove before production cleanup
+        def signup
+          provider = params[:provider]
+
+          unless SUPPORTED_PROVIDERS.include?(provider)
+            return redirect_to(
+              new_sign_org_sign_up_path,
+              alert: I18n.t("sign.org.social.sessions.invalid_provider"),
+            )
+          end
+          return redirect_google_signup_disabled unless google_signup_enabled?
+
+          state = prepare_social_auth_intent!("login", provider: provider, entry: "sign_up")
+
+          safe_redirect_to(
+            omniauth_authorize_path(provider, state: state),
+            fallback: new_sign_org_sign_up_path,
           )
         rescue SocialAuth::BaseError => e
           handle_social_auth_error(e)
@@ -68,6 +91,28 @@ module Sign
         end
 
         private
+
+        def google_signin_enabled?
+          Sign::Social::OrgGoogleSigninGate.enabled?
+        end
+
+        def redirect_google_signin_disabled
+          redirect_to(
+            new_sign_org_sign_in_path,
+            alert: I18n.t("sign.org.social.sessions.create.failure"),
+          )
+        end
+
+        def google_signup_enabled?
+          Sign::Social::TemporarySignupGate.signup_enabled?
+        end
+
+        def redirect_google_signup_disabled
+          redirect_to(
+            new_sign_org_sign_up_path,
+            alert: I18n.t("sign.org.social.sessions.create.failure"),
+          )
+        end
 
         def unlink_google_org!
           identity = current_operator.operator_google_identity

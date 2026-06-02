@@ -65,6 +65,91 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:notice], :present?, "Should have success message"
   end
 
+  test "Google login with existing identity completes welcome sequence before dashboard" do
+    existing_uid = "existing_google_welcome_#{SecureRandom.hex(4)}"
+    existing_user = Client.create!(
+      status_id: ClientStatus::NOTHING,
+      public_id: "wel_#{SecureRandom.hex(4)}",
+      birthdate: "2000-01-01",
+    )
+    ClientGoogleIdentity.create!(
+      user: existing_user,
+      uid: existing_uid,
+      provider: "google_app",
+      token: "old_token",
+      expires_at: 1.week.from_now.to_i,
+      user_google_identity_status: client_google_identity_statuses(:active),
+    )
+    setup_google_mock_auth(uid: existing_uid)
+
+    state = start_social_auth_flow(provider: "google_app", intent: "login")
+
+    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
+
+    assert_redirected_to sign_app_in_checkpoint_url(ri: "jp")
+
+    follow_redirect!
+
+    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
+
+    cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
+
+    assert_equal ClientSignInFlowStatus::DASHBOARD_PENDING, cycle.status_id
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select "h1", "ようこそ!"
+    assert_select "a[href=?]", sign_app_dashboard_path(ri: "jp"), "次へ"
+    assert_equal ClientSignInFlowStatus::COMPLETED, cycle.reload.status_id
+  end
+
+  test "Google sign up entry with existing identity falls through to sign in flow" do
+    existing_uid = "existing_google_signup_entry_#{SecureRandom.hex(4)}"
+    existing_user = Client.create!(
+      status_id: ClientStatus::NOTHING,
+      public_id: "sug_#{SecureRandom.hex(4)}",
+      birthdate: "2000-01-01",
+    )
+    ClientGoogleIdentity.create!(
+      user: existing_user,
+      uid: existing_uid,
+      provider: "google_app",
+      token: "old_token",
+      expires_at: 1.week.from_now.to_i,
+      user_google_identity_status: client_google_identity_statuses(:active),
+    )
+    setup_google_mock_auth(uid: existing_uid)
+
+    user_count_before = Client.count
+
+    state = start_social_auth_flow(provider: "google_app", intent: "login", entry: "sign_up")
+
+    sign_up_cycle = ClientSignUpFlow.order(:id).last
+
+    assert_equal "google", sign_up_cycle.entry_method
+    assert_equal "social_callback", sign_up_cycle.step
+
+    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
+
+    assert_redirected_to sign_app_in_checkpoint_url(ri: "jp")
+    assert_equal user_count_before, Client.count
+
+    sign_in_cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
+
+    assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, sign_in_cycle.status_id
+
+    follow_redirect!
+
+    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
+    assert_equal ClientSignInFlowStatus::DASHBOARD_PENDING, sign_in_cycle.reload.status_id
+    assert_equal "social_callback", sign_up_cycle.reload.step
+  end
+
   test "Apple login with existing identity does not create new user" do
     existing_uid = "existing_apple_user_#{SecureRandom.hex(4)}"
 
@@ -89,6 +174,50 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
          headers: browser_headers.merge(@callback_headers)
 
     assert_equal user_count_before, Client.count
+  end
+
+  test "Apple sign up entry with existing identity falls through to sign in flow" do
+    existing_uid = "existing_apple_signup_entry_#{SecureRandom.hex(4)}"
+    existing_user = Client.create!(
+      status_id: ClientStatus::NOTHING,
+      public_id: "sua_#{SecureRandom.hex(4)}",
+      birthdate: "2000-01-01",
+    )
+    ClientAppleIdentity.create!(
+      user: existing_user,
+      uid: existing_uid,
+      provider: "apple",
+      token: "old_token",
+      expires_at: 1.week.from_now.to_i,
+      user_apple_identity_status: client_apple_identity_statuses(:active),
+    )
+    setup_apple_mock_auth(uid: existing_uid)
+
+    user_count_before = Client.count
+
+    state = start_social_auth_flow(provider: "apple", intent: "login", entry: "sign_up")
+
+    sign_up_cycle = ClientSignUpFlow.order(:id).last
+
+    assert_equal "apple", sign_up_cycle.entry_method
+    assert_equal "social_callback", sign_up_cycle.step
+
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+         params: { state: state },
+         headers: browser_headers.merge(@callback_headers)
+
+    assert_redirected_to sign_app_in_checkpoint_url(ri: "jp")
+    assert_equal user_count_before, Client.count
+
+    sign_in_cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
+
+    assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, sign_in_cycle.status_id
+
+    follow_redirect!
+
+    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
+    assert_equal ClientSignInFlowStatus::DASHBOARD_PENDING, sign_in_cycle.reload.status_id
+    assert_equal "social_callback", sign_up_cycle.reload.step
   end
 
   # ============================================================================

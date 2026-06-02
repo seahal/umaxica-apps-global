@@ -39,6 +39,8 @@ class ClientAppleIdentity < AppPrincipalRecord
   include Retainable
   include SocialIdentifiable
 
+  self.filter_attributes += %w(token refresh_token uid)
+
   alias_attribute :expires_at, :token_expires_at
   attribute :status_id, default: ClientAppleIdentityStatus::ACTIVE
 

@@ -50,9 +50,15 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
     location = response.headers["Location"]
     uri = URI.parse(jump_rt_url_from_location(location))
     query = URI.decode_www_form(uri.query).to_h
+    token = Rack::Utils.parse_query(URI.parse(location).query).fetch("rt")
+    payload, = JWT.decode(token, nil, false)
 
     assert_predicate query["code"], :present?, "Should include authorization code"
     assert_equal "test_state", query["state"]
+    assert_equal "internal", payload["dst"]
+    payload_uri = URI.parse(payload["url"])
+
+    assert_equal @redirect_uri, "#{payload_uri.scheme}://#{payload_uri.host}#{payload_uri.path}"
   end
 
   test "returns error for missing client_id" do

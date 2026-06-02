@@ -26,6 +26,12 @@ Rails.application.config.filter_parameters += %i(
   ssn
   cvv
   cvc
+  rt
+  pt
+  code
+  oauth_code
+  authorization_code
+  uid
   state
   session_id
   credential_id

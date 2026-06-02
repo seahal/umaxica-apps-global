@@ -15,7 +15,7 @@ module Sign
         )
 
         if result.success?
-          redirect_to_external_jump_url(result.redirect_url, allowed_urls: [result.redirect_uri])
+          redirect_to_jump_url(result.redirect_url)
         else
           render json: { error: result.error, error_description: result.error_description },
                  status: :bad_request

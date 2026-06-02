@@ -59,10 +59,6 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       count: 5,
       classification: "mixed legacy inventory; each site needs follow-up before changing behavior",
     },
-    "app/controllers/concerns/authentication/token_service.rb" => {
-      count: 1,
-      classification: "token issue/verify service error response boundary",
-    },
     "app/controllers/concerns/sign/passkey_authentication.rb" => {
       count: 1,
       classification: "WebAuthn error response boundary",

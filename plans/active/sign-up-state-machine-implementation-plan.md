@@ -2,6 +2,12 @@
 
 Status: active planning
 
+Temporary exception note (2026-06-02): この plan の production target は維持する。つまり `com`
+signup は social-free、`org` は app/com public self-service signup の対象外である。QA 中だけ
+`plans/active/org-com-google-social-temporary-gateway-plan.md` が Google temporary
+gateway 例外を定義する。この例外を、この plan の production
+boundary の恒久変更として扱ってはならない。
+
 ## Purpose
 
 Implement sign-up as explicit state-machine driven flows for `app` and `com`.
@@ -33,6 +39,8 @@ app-only and too narrow for the accepted ADR.
 - `com` supports email and telephone sign-up only. It must not gain social sign-up.
 - `org` is out of scope for this implementation plan. Do not add org public self-service sign-up,
   operator creation, operator mutation, or org session issuance here.
+- Temporary exception: `org` と後続 `com` の QA-only Google gateway 作業は、この state-machine
+  plan ではなく `plans/active/org-com-google-social-temporary-gateway-plan.md` に属する。
 - Sign-up checkpoint is separate from sign-in checkpoint.
 - Sign-up finalization and sign-in/session issuance are separate failure domains.
 - Durable sign-up completion must not be undone because later sign-in/session issuance failed.

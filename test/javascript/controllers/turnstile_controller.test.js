@@ -162,17 +162,19 @@ describe("TurnstileController", () => {
     const c = createController();
     c.modeValue = "execute";
     c.completed = false;
+    render.mockReturnValue("widget-id");
 
     c.scheduleChallenge();
 
-    expect(execute).toHaveBeenCalledOnce();
-    expect(execute).toHaveBeenCalledWith(
+    expect(render).toHaveBeenCalledOnce();
+    expect(render).toHaveBeenCalledWith(
       c.containerTarget,
       expect.objectContaining({
         sitekey: "site-key",
       }),
     );
-    expect(render).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledOnce();
+    expect(execute).toHaveBeenCalledWith("widget-id");
   });
 
   test("scheduleChallenge does nothing when already completed", () => {

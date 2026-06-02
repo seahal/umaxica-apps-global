@@ -143,7 +143,11 @@ module Sign
         end
 
         def verify_totp(private_key, token)
-          ROTP::TOTP.new(private_key).verify(token)
+          ROTP::TOTP.new(private_key).verify(normalized_totp_token(token))
+        end
+
+        def normalized_totp_token(token)
+          token.to_s.gsub(/\D/, "")
         end
 
         def account_id

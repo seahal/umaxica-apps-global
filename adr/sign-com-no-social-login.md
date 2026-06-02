@@ -2,6 +2,18 @@
 
 **Status:** Accepted (2026-05-05)
 
+## Temporary Exception
+
+2026-06-02: `adr/google-social-temporary-gateway-exception.md` は、`com`
+actor/model 境界が決まった後の `com Google signup/signin` QA-only future
+exception を記録する。この ADR は production target として維持する。`com` は production 前に Google
+signup/signin を削除または無効化しなければならない。Apple は引き続き対象外。
+
+2026-06-02: `com` Google temporary gateway を検討する場合も、production
+target は no-social のままとする。実装するなら `Visitor` / `VisitorGoogleIdentity` 相当の
+`ComPrincipalRecord` 境界に閉じ、`Client` 系 model/policy/session を流用しない。
+`OmniAuthCorporateGuard` の穴あけは非 production かつ `google_com` に限定する。
+
 ## Context
 
 The IdP runs three host scopes: `:app` (`id.umaxica.app`, service users), `:com` (`id.umaxica.com`,

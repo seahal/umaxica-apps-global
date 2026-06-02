@@ -6,6 +6,7 @@ module Sign::Org
     AUTHENTICATION_MODE = :guest
 
     def new
+      @google_signin_enabled = Sign::Social::OrgGoogleSigninGate.enabled?
     end
   end
 end

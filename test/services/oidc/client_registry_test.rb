@@ -125,6 +125,24 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     assert_equal 15, ids.size
   end
 
+  test "acme and core clients use private_key_jwt namespaces" do
+    expectations = {
+      "acme_app" => "ACME_APP",
+      "acme_com" => "ACME_COM",
+      "acme_org" => "ACME_ORG",
+      "core_app" => "CORE_APP",
+      "core_com" => "CORE_COM",
+      "core_org" => "CORE_ORG",
+    }
+
+    expectations.each do |client_id, namespace|
+      client = Oidc::ClientRegistry.find!(client_id)
+
+      assert_equal "private_key_jwt", client.token_endpoint_auth_method
+      assert_equal namespace, client.jwt_namespace
+    end
+  end
+
   test "core clients are registered to regional redirect hosts" do
     expectations = {
       "core_app" => {

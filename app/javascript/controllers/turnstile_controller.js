@@ -46,12 +46,14 @@ export default class extends Controller {
       return;
     }
 
-    this.completed = true;
     if (this.modeValue === "execute") {
-      window.turnstile.execute(this.containerTarget, this.challengeOptions());
+      this.completed = true;
+      const widgetId = window.turnstile.render(this.containerTarget, this.challengeOptions());
+      window.turnstile.execute(widgetId);
       return;
     }
 
+    this.completed = true;
     window.turnstile.render(this.containerTarget, this.challengeOptions());
   };
 

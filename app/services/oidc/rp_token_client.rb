@@ -36,14 +36,22 @@ module Oidc
     attr_reader :token_url, :client_id, :client_secret, :code, :redirect_uri, :code_verifier
 
     def request_params
-      {
+      params = {
         grant_type: "authorization_code",
         code: code,
         redirect_uri: redirect_uri,
         client_id: client_id,
-        client_secret: client_secret,
         code_verifier: code_verifier,
       }
+      assertion = Oidc::ClientAssertionJwt.issue(client_id: client_id, token_url: token_url)
+      if assertion.present?
+        params.merge(
+          client_assertion_type: Oidc::ClientAssertionJwt::ASSERTION_TYPE,
+          client_assertion: assertion,
+        )
+      else
+        params.merge(client_secret: client_secret)
+      end
     end
   end
 end

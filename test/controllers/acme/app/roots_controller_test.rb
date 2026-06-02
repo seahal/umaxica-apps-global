@@ -11,6 +11,7 @@ class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "title",
                   "#{ENV.fetch("BRAND_NAME", "UMAXICA").upcase} (app) | #{I18n.t("acme.app.preferences.footer.home")}"
+    assert_select "main a[href*='/preference']", false
   end
 
   # Regression: the public landing page must not perform a per-request

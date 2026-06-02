@@ -24,10 +24,10 @@ This plan supersedes these older or narrower plans where they overlap:
 
 - `plans/backlog/controller-boundary-exception-retirement.md`
 - `plans/backlog/static-guest-controller-flag-retirement.md`
-- controller-lifecycle parts of `plans/active/actor-current-context-api-cleanup.md`
+- controller-lifecycle parts of `plans/archive/actor-current-context-api-cleanup.md`
 
-`plans/active/actor-current-context-api-cleanup.md` remains relevant for the lower-level Actor API
-cleanup until all migration-only direct readers are removed.
+`plans/archive/actor-current-context-api-cleanup.md` is now completed/retired (2026-06-01): the
+lower-level Actor API cleanup is done and no migration-only direct readers remain.
 
 ## Goals
 

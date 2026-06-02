@@ -8,7 +8,8 @@ module Oidc
         def success? = success
       end
 
-    def initialize(grant_type:, code:, redirect_uri:, client_id:, client_secret:, code_verifier:,
+    def initialize(grant_type:, code:, redirect_uri:, client_id:, client_secret: nil, code_verifier:,
+                   client_assertion_type: nil, client_assertion: nil,
                    dpop_proof: nil, token_endpoint_uri: nil, request_method: "POST")
       super()
       @grant_type = grant_type
@@ -16,6 +17,8 @@ module Oidc
       @redirect_uri = redirect_uri
       @client_id = client_id
       @client_secret = client_secret
+      @client_assertion_type = client_assertion_type
+      @client_assertion = client_assertion
       @code_verifier = code_verifier
       @dpop_proof = dpop_proof
       @token_endpoint_uri = token_endpoint_uri
@@ -43,7 +46,8 @@ module Oidc
 
     private
 
-    attr_reader :grant_type, :code, :redirect_uri, :client_id, :client_secret, :code_verifier,
+    attr_reader :grant_type, :code, :redirect_uri, :client_id, :client_secret, :client_assertion_type,
+                :client_assertion, :code_verifier,
                 :dpop_proof, :token_endpoint_uri, :request_method
 
     def valid_grant_type?
@@ -51,7 +55,20 @@ module Oidc
     end
 
     def authenticated_client?
+      return authenticated_client_assertion? if client_assertion.present? || client_assertion_type.present?
+
       Oidc::ClientRegistry.authenticate(client_id, client_secret)
+    end
+
+    def authenticated_client_assertion?
+      return false unless client_assertion_type == Oidc::ClientAssertionJwt::ASSERTION_TYPE
+      return false if token_endpoint_uri.blank?
+
+      Oidc::ClientRegistry.authenticate_assertion(
+        client_id,
+        client_assertion,
+        token_url: token_endpoint_uri,
+      )
     end
 
     def find_code

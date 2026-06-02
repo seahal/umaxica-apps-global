@@ -102,6 +102,21 @@ class ApplicationRecordTest < ActiveSupport::TestCase
     end
   end
 
+  test "insert_missing_fixed_ids! checks cached fixed rows with one id lookup" do
+    ids = [561, 562, 563]
+    ApplicationRecordTestModel.insert_missing_fixed_ids!(ids)
+
+    queries =
+      capture_test_model_sql do
+        ApplicationRecordTestModel.insert_missing_fixed_ids!(ids)
+      end
+
+    table_selects = queries.grep(/FROM "application_record_test_models"/)
+
+    assert_equal 1, table_selects.size
+    assert_match(/SELECT "application_record_test_models"."id"/, table_selects.first)
+  end
+
   test "insert_missing_fixed_ids! repairs stale cache when a fixed row is missing" do
     ApplicationRecordTestModel.insert_missing_fixed_ids!([601])
     ApplicationRecordTestModel.where(id: 601).delete_all
@@ -111,5 +126,23 @@ class ApplicationRecordTest < ActiveSupport::TestCase
     end
 
     assert ApplicationRecordTestModel.exists?(id: 601)
+  end
+
+  private
+
+  def capture_test_model_sql
+    queries = []
+    subscription =
+      ActiveSupport::Notifications.subscribe("sql.active_record") do |_name, _start, _finish, _id, payload|
+        next if payload[:name] == "SCHEMA"
+        next if payload[:cached]
+
+        queries << payload[:sql].to_s
+      end
+
+    yield
+    queries
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscription) if subscription
   end
 end

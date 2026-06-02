@@ -15,7 +15,9 @@
     </div>
 
     <div>
-      <%= form_with model: @totp, url: sign_app_configuration_totps_path do |form| %>
+      <%= form_with model: @totp,
+                    scope: :user_totp_credential,
+                    url: sign_app_configuration_totps_path(ri: params[:ri]) do |form| %>
         <div>
           <% if @totp.errors.any? %>
             <div>
@@ -60,7 +62,7 @@
             <div>
               <%= form.label :first_token, t("views.sign.app.configuration.totps.new.first_token_label") %>
               <div>
-                <%= form.text_field :first_token, placeholder: "000000", maxlength: 6, inputmode: "numeric", pattern: "[0-9]*" %>
+                <%= form.text_field :first_token, placeholder: "000000", maxlength: 16, inputmode: "numeric", autocomplete: "one-time-code" %>
               </div>
               <p><%= t("views.sign.app.configuration.totps.new.first_token_help") %></p>
             </div>
@@ -70,7 +72,7 @@
         </div>
 
         <div>
-          <%= link_to t('actions.cancel'), sign_app_configuration_totps_path %>
+          <%= link_to t('actions.cancel'), sign_app_configuration_totps_path(ri: params[:ri]) %>
           <%= form.submit t('actions.save') %>
         </div>
       <% end %>

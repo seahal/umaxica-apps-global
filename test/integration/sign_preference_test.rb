@@ -150,15 +150,15 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       state = default_state.merge(tz: "etc/utc")
 
       assert_no_difference -> { domain[:preference_model].count } do
-        get public_send("edit_sign_#{domain[:name]}_preference_region_timezone_url", state)
+        get public_send("edit_sign_#{domain[:name]}_preference_timezone_url", state)
 
         assert_response :success
 
-        patch public_send("sign_#{domain[:name]}_preference_region_timezone_url", state),
+        patch public_send("sign_#{domain[:name]}_preference_timezone_url", state),
               params: { preference_timezone: { option_id: "Etc/UTC" } }
 
         assert_redirected_to public_send(
-          "edit_sign_#{domain[:name]}_preference_region_timezone_url",
+          "edit_sign_#{domain[:name]}_preference_timezone_url",
           default_state.merge(tz: nil),
         )
       end
@@ -175,13 +175,13 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       state = default_state.merge(lx: "en", tz: "Asia/Tokyo")
 
-      patch public_send("sign_#{domain[:name]}_preference_region_timezone_url", state),
+      patch public_send("sign_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Pacific/Honolulu" } }
 
       location = URI.parse(response.headers.fetch("Location"))
       query = Rack::Utils.parse_query(location.query)
 
-      assert_equal "/preference/region/timezone/edit", location.path
+      assert_equal "/preference/timezone/edit", location.path
       assert_equal "jp", query["ri"]
       assert_equal "en", query["lx"]
       assert_not query.key?("tz")
@@ -211,15 +211,15 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       state = default_state.merge(lx: "en")
 
       assert_no_difference -> { domain[:preference_model].count } do
-        get public_send("edit_sign_#{domain[:name]}_preference_region_language_url", state)
+        get public_send("edit_sign_#{domain[:name]}_preference_language_url", state)
 
         assert_response :success
 
-        patch public_send("sign_#{domain[:name]}_preference_region_language_url", state),
+        patch public_send("sign_#{domain[:name]}_preference_language_url", state),
               params: { preference_language: { option_id: "EN" } }
 
         assert_redirected_to public_send(
-          "edit_sign_#{domain[:name]}_preference_region_language_url",
+          "edit_sign_#{domain[:name]}_preference_language_url",
           default_state.merge(lx: nil),
         )
       end
@@ -236,7 +236,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       # Update language to English
       state = default_state.merge(lx: "en")
-      patch public_send("sign_#{domain[:name]}_preference_region_language_url", state),
+      patch public_send("sign_#{domain[:name]}_preference_language_url", state),
             params: { preference_language: { option_id: "EN" } }
 
       # Visit a page without language param to verify DB preference is applied
@@ -254,7 +254,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       # Update language to Japanese
       state = default_state.merge(lx: "ja")
-      patch public_send("sign_#{domain[:name]}_preference_region_language_url", state),
+      patch public_send("sign_#{domain[:name]}_preference_language_url", state),
             params: { preference_language: { option_id: "JA" } }
 
       # Visit a page without language param to verify DB preference is applied
@@ -290,22 +290,22 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       # Update timezone to UTC
       state = default_state.merge(tz: "etc/utc")
-      patch public_send("sign_#{domain[:name]}_preference_region_timezone_url", state),
+      patch public_send("sign_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Etc/UTC" } }
 
       # Visit a page to verify DB preference is applied to Time.zone
-      get public_send("edit_sign_#{domain[:name]}_preference_region_timezone_url", default_state)
+      get public_send("edit_sign_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_response :success
       assert_equal "Etc/UTC", Time.zone.name
 
       # Update timezone to Asia/Tokyo
       state = default_state.merge(tz: "asia/tokyo")
-      patch public_send("sign_#{domain[:name]}_preference_region_timezone_url", state),
+      patch public_send("sign_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Asia/Tokyo" } }
 
       # Visit a page to verify DB preference is applied to Time.zone
-      get public_send("edit_sign_#{domain[:name]}_preference_region_timezone_url", default_state)
+      get public_send("edit_sign_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_response :success
       assert_equal "Asia/Tokyo", Time.zone.name
@@ -316,11 +316,11 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       pref, = assert_preference_created(domain)
 
-      patch public_send("sign_#{domain[:name]}_preference_region_timezone_url", ri: "us"),
+      patch public_send("sign_#{domain[:name]}_preference_timezone_url", ri: "us"),
             params: { preference_timezone: { option_id: "Etc/UTC" } }
 
       assert_redirected_to public_send(
-        "edit_sign_#{domain[:name]}_preference_region_timezone_url",
+        "edit_sign_#{domain[:name]}_preference_timezone_url",
         ri: "us",
       )
       follow_redirect!
@@ -334,7 +334,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
     test "#{domain[:name]} domain language select uses localized options" do
       host!(domain[:host])
-      get public_send("edit_sign_#{domain[:name]}_preference_region_language_url", default_state)
+      get public_send("edit_sign_#{domain[:name]}_preference_language_url", default_state)
 
       # We expect the native names for Japanese and English to appear in both locales
       assert_select "select[name='preference_language[option_id]']" do
@@ -389,7 +389,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
     test "#{domain[:name]} domain timezone select omits blank option" do
       host!(domain[:host])
-      get public_send("edit_sign_#{domain[:name]}_preference_region_timezone_url", default_state)
+      get public_send("edit_sign_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_select "select[name='preference_timezone[option_id]'] option[value='']", count: 0
     end
@@ -503,18 +503,18 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     test "#{domain[:name]} domain surfaces localized timezone errors" do
       host!(domain[:host])
       state = { ri: "jp" }
-      patch public_send("sign_#{domain[:name]}_preference_region_timezone_url", state),
+      patch public_send("sign_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Invalid/Zone" } }
 
       # Expect redirect back to edit with current params
-      assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_region_timezone_url", state)
+      assert_redirected_to public_send("edit_sign_#{domain[:name]}_preference_timezone_url", state)
       assert_equal I18n.t("errors.messages.preference_operation_failed"), flash[:alert]
     end
 
     test "#{domain[:name]} domain timezone edit links to region edit" do
       host!(domain[:host])
 
-      get public_send("edit_sign_#{domain[:name]}_preference_region_timezone_url", default_state)
+      get public_send("edit_sign_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_response :success
 
@@ -524,7 +524,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     test "#{domain[:name]} domain language edit links to region edit" do
       host!(domain[:host])
 
-      get public_send("edit_sign_#{domain[:name]}_preference_region_language_url", default_state)
+      get public_send("edit_sign_#{domain[:name]}_preference_language_url", default_state)
 
       assert_response :success
 
@@ -545,9 +545,9 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       assert_response :success
 
       assert_select "a[href=?]",
-                    public_send("edit_sign_#{domain[:name]}_preference_region_timezone_path", state)
+                    public_send("edit_sign_#{domain[:name]}_preference_timezone_path", state)
       assert_select "a[href=?]",
-                    public_send("edit_sign_#{domain[:name]}_preference_region_language_path", state)
+                    public_send("edit_sign_#{domain[:name]}_preference_language_path", state)
     end
 
     test "#{domain[:name]} domain updates extended preference options" do
@@ -556,12 +556,12 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       Prosopite.pause do
         [
-          [:region_currency, :preference_currency, :currency, "usd", 1],
-          [:region_date, :preference_date_format, :date_format, "uk", 2],
-          [:region_time, :preference_time_format, :time_format, "hour_12", 2],
-          [:accessibility_motion, :preference_motion, :motion, "reduced", 2],
-          [:accessibility_density, :preference_density, :density, "compact", 2],
-          [:display_page_size, :preference_page_size, :page_size, "50", 3],
+          [:currency, :preference_currency, :currency, "usd", 1],
+          [:date, :preference_date_format, :date_format, "uk", 2],
+          [:time, :preference_time_format, :time_format, "hour_12", 2],
+          [:motion, :preference_motion, :motion, "reduced", 2],
+          [:density, :preference_density, :density, "compact", 2],
+          [:page_size, :preference_page_size, :page_size, "50", 3],
         ].each do |route_suffix, param_scope, association_suffix, submitted_value, expected_id|
           get public_send("edit_sign_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
@@ -588,9 +588,9 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     state = { ri: "us", lx: "ja" }
 
     [
-      edit_sign_org_preference_region_currency_url(state),
-      edit_sign_org_preference_region_date_url(state),
-      edit_sign_org_preference_region_time_url(state),
+      edit_sign_org_preference_currency_url(state),
+      edit_sign_org_preference_date_url(state),
+      edit_sign_org_preference_time_url(state),
     ].each do |url|
       get url
 
@@ -611,9 +611,9 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     headers = as_user_headers(user, host: DOMAINS.first[:host])
 
     [
-      edit_sign_app_preference_accessibility_motion_url(ri: "jp"),
-      edit_sign_app_preference_accessibility_density_url(ri: "jp"),
-      edit_sign_app_preference_display_page_size_url(ri: "jp"),
+      edit_sign_app_preference_motion_url(ri: "jp"),
+      edit_sign_app_preference_density_url(ri: "jp"),
+      edit_sign_app_preference_page_size_url(ri: "jp"),
     ].each do |url|
       get url, headers: headers
 
@@ -622,8 +622,8 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     end
 
     [
-      edit_sign_app_preference_accessibility_motion_url(ri: "jp"),
-      edit_sign_app_preference_accessibility_density_url(ri: "jp"),
+      edit_sign_app_preference_motion_url(ri: "jp"),
+      edit_sign_app_preference_density_url(ri: "jp"),
     ].each do |url|
       get url, headers: headers
 
@@ -642,9 +642,9 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
     Prosopite.pause do
       [
-        [:app_preference_currency, edit_sign_app_preference_region_currency_url(ri: "jp")],
-        [:app_preference_date_format, edit_sign_app_preference_region_date_url(ri: "jp")],
-        [:app_preference_time_format, edit_sign_app_preference_region_time_url(ri: "jp")],
+        [:app_preference_currency, edit_sign_app_preference_currency_url(ri: "jp")],
+        [:app_preference_date_format, edit_sign_app_preference_date_url(ri: "jp")],
+        [:app_preference_time_format, edit_sign_app_preference_time_url(ri: "jp")],
       ].each do |association, url|
         pref.public_send(association).destroy!
         pref.reload
@@ -853,13 +853,13 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
   def preference_route_suffix(kind)
     case kind
     when :language, :timezone
-      "region_#{kind}"
+      kind.to_s
     when :date_format
-      "region_date"
+      "date"
     when :time_format
-      "region_time"
+      "time"
     when :density
-      "accessibility_density"
+      "density"
     else
       kind.to_s
     end

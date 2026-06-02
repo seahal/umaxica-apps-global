@@ -146,6 +146,9 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
     assert_select "a[href=?]", sign_app_configuration_totps_path(ri: "jp")
+    assert_select "form[action=?]", sign_app_configuration_totps_path(ri: "jp")
+    assert_select "input[name='user_totp_credential[title]']"
+    assert_select "input[name='user_totp_credential[first_token]'][pattern]", count: 0
     assert_select "input[name='cf-turnstile-response']"
   end
 
@@ -157,7 +160,9 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     assert_response :success
     assert_equal @totp.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
-    assert_select "a[href=?]", sign_app_configuration_totps_path(ri: "jp")
+    assert_select "a[href=?]", sign_app_configuration_totps_path(ri: "jp"), count: 2
+    assert_select "form[action=?]", sign_app_configuration_totp_path(@totp.public_id, ri: "jp"), count: 2
+    assert_select "input[name='user_totp_credential[title]']"
   end
 
   test "should update title with public_id" do
@@ -264,6 +269,29 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     end
   end
 
+  test "should create totp with pasted token containing spaces" do
+    @user.client_totp_credentials.destroy_all
+
+    with_mocked_totp do |secret_credential|
+      with_prosopite_paused do
+        get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
+      end
+
+      raw_token = ROTP::TOTP.new(secret_credential).now
+      pasted_token = "#{raw_token.first(3)} #{raw_token.last(3)}"
+
+      assert_difference("ClientTotpCredential.count", 1) do
+        with_prosopite_paused do
+          post sign_app_configuration_totps_url(ri: "jp"),
+               params: { user_totp_credential: { first_token: pasted_token, title: "Pasted TOTP" } },
+               headers: @headers
+        end
+      end
+    end
+
+    assert_redirected_to sign_app_configuration_totps_url(ri: "jp")
+  end
+
   test "should not create totp with invalid token" do
     with_prosopite_paused do
       get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
@@ -281,6 +309,25 @@ class Sign::App::Configuration::TotpsControllerTest < ActionDispatch::Integratio
     end
 
     assert_response :unprocessable_content
+  end
+
+  test "should not create totp with empty token" do
+    with_prosopite_paused do
+      get new_sign_app_configuration_totp_url(ri: "jp"), headers: @headers
+    end
+
+    assert_response :success
+
+    assert_no_difference("ClientTotpCredential.count") do
+      with_prosopite_paused do
+        post sign_app_configuration_totps_url(ri: "jp"),
+             params: { user_totp_credential: { first_token: "", title: "" } },
+             headers: @headers
+      end
+    end
+
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("sign.app.configuration.totps.invalid_code")
   end
 
   test "should not create totp when turnstile stealth fails" do

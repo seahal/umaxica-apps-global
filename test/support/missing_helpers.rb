@@ -394,7 +394,7 @@ module MissingHelpers
   def extract_verification_challenge_id
     match =
       response.body.match(/name="verification\[challenge_id\]" value="([^"]+)"/) ||
-      response.body.match(/data-step_up-passkey-challenge-id-value="([^"]+)"/)
+      response.body.match(/data-step-up-passkey-challenge-id-value="([^"]+)"/)
     match&.[](1)
   end
 

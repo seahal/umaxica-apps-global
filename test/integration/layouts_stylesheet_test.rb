@@ -67,4 +67,42 @@ class StylesheetTagsTest < ActiveSupport::TestCase
       assert_not_includes contents, "javascript_importmap_tags", "inline importmap must not be used in #{path}"
     end
   end
+
+  test "application-owned importmap entrypoints are retired" do
+    assert_not Rails.root.join("config/importmap.rb").exist?, "config/importmap.rb must not be restored"
+    assert_not Rails.root.join("bin/importmap").exist?, "bin/importmap must not be restored"
+
+    gemfile = Rails.root.join("Gemfile").read
+
+    assert_no_match(/^\s*gem\s+["']importmap-rails["']/, gemfile)
+  end
+
+  test "development can serve vite auto-build output" do
+    development_config = Rails.root.join("config/environments/development.rb").read
+
+    assert_includes(
+      development_config,
+      "config.public_file_server.enabled = true",
+      "development must serve public/vite-dev assets when Vite autoBuild emits static files",
+    )
+  end
+
+  test "step up passkey views use vite stimulus identifier" do
+    paths = [
+      "app/views/sign/app/verification/passkeys/new.html.erb",
+      "app/views/sign/com/verification/passkeys/new.html.erb",
+      "app/views/sign/org/verification/passkeys/new.html.erb",
+      "app/views/sign/app/in/challenge/passkeys/new.html.erb",
+      "app/views/sign/org/in/challenge/passkeys/new.html.erb",
+    ]
+
+    paths.each do |path|
+      contents = Rails.root.join(path).read
+
+      assert_includes contents, 'data-controller="step-up-passkey"', "missing Vite Stimulus identifier in #{path}"
+      assert_not_includes contents, "step_up-passkey", "legacy importmap-style identifier must not be used in #{path}"
+      assert_not_includes contents, "step_up_passkey",
+                          "source filename must not be used as a Stimulus identifier in #{path}"
+    end
+  end
 end
