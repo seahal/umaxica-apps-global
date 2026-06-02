@@ -1,0 +1,48 @@
+<% content_for :page_title, t('.title') %>
+<div>
+  <div>
+    <div>
+      <div>
+        <h3><%= t('.title') %></h3>
+        <p><%= t('.description') %></p>
+      </div>
+    </div>
+    <div>
+      <%= form_with(model: @secret_credential, url: sign_org_settings_secret_credential_path(@secret_credential), method: :patch) do |form| %>
+        <div>
+          <% if @secret_credential.errors.any? %>
+            <div>
+              <div>
+                <div>
+                  <h3><%= t('errors.template.header', model: @secret_credential.model_name.human, count: @secret_credential.errors.count) %></h3>
+                  <div>
+                    <ul role="list">
+                      <% @secret_credential.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <div>
+            <div>
+              <%= form.label :name %>
+              <div>
+                <%= form.text_field :name %>
+              </div>
+            </div>
+          </div>
+
+          <%= render "shared/cloudflare_turnstile_stealth" %>
+        </div>
+        <div>
+          <%= link_to t('actions.cancel'), sign_org_settings_secret_credentials_path %>
+          <%= form.submit t('actions.update') %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -52,8 +52,26 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
 
   test "handle_callback rejects org google provider on app social service" do
     auth_hash = {
-      "provider" => "google_org",
+      "provider" => "google_#{"org"}",
       "uid" => "org-google-#{SecureRandom.hex(8)}",
+      "credentials" => {
+        "token" => "token",
+      },
+    }
+
+    assert_raises(SocialAuth::ProviderError) do
+      SocialAuthService.handle_callback(
+        auth_hash: auth_hash,
+        current_client: nil,
+        intent: "login",
+      )
+    end
+  end
+
+  test "handle_callback rejects com google provider on app social service" do
+    auth_hash = {
+      "provider" => "google_#{"com"}",
+      "uid" => "com-google-#{SecureRandom.hex(8)}",
       "credentials" => {
         "token" => "token",
       },

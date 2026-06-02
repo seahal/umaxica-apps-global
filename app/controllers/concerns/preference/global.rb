@@ -294,9 +294,7 @@ module Preference::Global
 
   def normalize_timezone_value(value)
     case value.to_s.downcase
-    when "jst"
-      "Asia/Tokyo"
-    when "asia/tokyo"
+    when "jst", "asia/tokyo"
       "Asia/Tokyo"
     when "utc", "etc/utc"
       "Etc/UTC"

@@ -30,7 +30,6 @@
 #
 # IMPORTANT: Google Cloud Console Setup
 # - App client: register /auth/google_app/callback
-# - Org client: register /auth/google_org/callback
 #
 # =============================================================================
 
@@ -38,10 +37,6 @@
 # App (user) Google credentials
 google_app_client_id = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_APP_CLIENT_ID)
 google_app_client_secret = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_APP_CLIENT_SECRET)
-# Org (staff) Google credentials - separate OAuth client for staff domain
-google_org_client_id = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_ORG_CLIENT_ID)
-google_org_client_secret = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_ORG_CLIENT_SECRET)
-
 apple_client_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_CLIENT_ID)
 apple_team_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_TEAM_ID)
 apple_key_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_KEY_ID)
@@ -112,21 +107,6 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
            {
              name: "google_app",
              callback_path: "/auth/google_app/callback",
-             scope: "openid",
-             access_type: "offline",
-             prompt: "select_account",
-           }
-
-  # ---------------------------------------------------------------------------
-  # Google OAuth2 - Org (staff sign-in only)
-  # ---------------------------------------------------------------------------
-  # Callback: GET /auth/google_org/callback
-  provider :google_oauth2,
-           google_org_client_id,
-           google_org_client_secret,
-           {
-             name: "google_org",
-             callback_path: "/auth/google_org/callback",
              scope: "openid",
              access_type: "offline",
              prompt: "select_account",

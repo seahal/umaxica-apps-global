@@ -30,5 +30,5 @@ The authenticated `org` actor is named `Operator`.
 - JWT actor claims for the org surface use `operator`.
 - Remaining `staff_*` table and association names are credential, preference, or compatibility
   storage names until those records are renamed separately.
-- Existing OIDC clients or database rows that still say `staff` are legacy storage/configuration
-  inputs only; runtime issuance and validation normalize the authenticated actor to `operator`.
+- Existing OIDC clients or database rows that still say `staff` are legacy storage/settings inputs
+  only; runtime issuance and validation normalize the authenticated actor to `operator`.

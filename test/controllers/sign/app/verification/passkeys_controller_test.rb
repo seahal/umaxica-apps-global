@@ -27,57 +27,57 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   end
 
   test "creates verification on success" do
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(sign_app_settings_emails_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
-          get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+          get sign_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
               headers: @headers
 
           assert_response :success
 
           get new_sign_app_verification_passkey_url(
             ri: "jp",
-            scope: "configuration_email",
+            scope: "settings_email",
             return_to: return_to,
           ), headers: @headers
 
           assert_response :redirect
-          assert_redirected_to sign_app_configuration_url(ri: "jp")
+          assert_redirected_to sign_app_settings_url(ri: "jp")
         end
       end
     end
   end
 
   test "new keeps scope and return_to in form hidden fields" do
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(sign_app_settings_emails_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
-        get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+        get sign_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
         assert_response :success
 
         get new_sign_app_verification_passkey_url(
           ri: "jp",
-          scope: "configuration_email",
+          scope: "settings_email",
           return_to: return_to,
         ), headers: @headers
 
         assert_response :redirect
-        assert_redirected_to sign_app_configuration_url(ri: "jp")
+        assert_redirected_to sign_app_settings_url(ri: "jp")
       end
     end
   end
 
   test "new keeps scope and pt in form hidden fields" do
-    return_to = Base64.urlsafe_encode64(new_sign_app_configuration_passkey_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(new_sign_app_settings_passkey_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
-        get sign_app_verification_url(scope: "configuration_passkey", return_to: return_to, ri: "jp"),
+        get sign_app_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),
             headers: @headers
 
         assert_response :success
@@ -85,12 +85,12 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
         get new_sign_app_verification_passkey_url(
           ri: "jp",
-          scope: "configuration_passkey",
+          scope: "settings_passkey",
           pt: return_to,
         ), headers: @headers
 
         assert_response :redirect
-        assert_redirected_to sign_app_configuration_url(ri: "jp")
+        assert_redirected_to sign_app_settings_url(ri: "jp")
       end
     end
   end

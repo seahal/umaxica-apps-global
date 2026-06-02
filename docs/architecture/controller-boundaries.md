@@ -79,7 +79,8 @@ preferences, current actor setup, and request finishing in the established order
 Common examples:
 
 - dashboards;
-- account configuration;
+- signed-in user settings under `/setting`;
+- operator-controlled configuration under `/configurator`;
 - credential management;
 - authenticated APIs tied to the current actor.
 

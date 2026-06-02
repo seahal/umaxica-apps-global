@@ -37,12 +37,12 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     # Make token old enough to require step-up
     @token.update!(created_at: 1.hour.ago)
 
-    # Try to access email configuration (requires step-up)
-    get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    # Try to access email settings (requires step-up)
+    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     assert_match %r{/verification}, response.location
-    assert_match(/scope=configuration_email/, response.location)
+    assert_match(/scope=settings_email/, response.location)
     assert_match(/pt=/, response.location)
   end
 
@@ -50,19 +50,19 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     # Make token old enough to require step-up
     @token.update!(created_at: 1.hour.ago)
 
-    # Try to access email configuration (requires step-up)
-    head sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    # Try to access email settings (requires step-up)
+    head sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     assert_match %r{/verification}, response.location
-    assert_match(/scope=configuration_email/, response.location)
+    assert_match(/scope=settings_email/, response.location)
     assert_match(/pt=/, response.location)
   end
 
   test "successful passkey verification redirects to return_to" do
     @token.update!(created_at: 1.hour.ago)
 
-    get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
     verification_uri = URI.parse(response.location)
     pt = Rack::Utils.parse_query(verification_uri.query).fetch("pt")
@@ -70,7 +70,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
-          get sign_app_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+          get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
               headers: @headers
           get new_sign_app_verification_passkey_url(ri: "jp"), headers: @headers
 
@@ -79,7 +79,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
                headers: @headers
 
           assert_response :redirect
-          assert_redirected_to sign_app_configuration_emails_url(ri: "jp")
+          assert_redirected_to sign_app_settings_emails_url(ri: "jp")
         end
       end
     end

@@ -179,7 +179,7 @@ module Sign::App::In
         }
 
         # Should log in
-        post verification_sign_app_in_passkeys_path(ri: "jp", pt: "/configuration/emails"), params: params
+        post verification_sign_app_in_passkeys_path(ri: "jp", pt: "/settings/emails"), params: params
 
         assert_response :ok
         json = response.parsed_body

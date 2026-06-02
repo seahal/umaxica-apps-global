@@ -329,8 +329,8 @@ distributed as follows.
    - `deletable_at` Backfill the value of `scheduled_purge_at` to renamed `purge_at` (Adopts
      `LEAST(purge_at, scheduled_purge_at)`)
    - drop `scheduled_purge_at`
-   - Related views (`app/views/sign/app/configurations/edit.html.erb`,
-     `sign/com/configurations/edit.html.erb`) Rewrite `current_user.scheduled_purge_at` reference to
+   - Related views (`app/views/sign/app/settingss/edit.html.erb`,
+     `sign/com/settingss/edit.html.erb`) Rewrite `current_user.scheduled_purge_at` reference to
      `purge_at`
    - `scheduled_purge_at` assignment of `withdrawals_controller.rb` (both app/com) to `purge_at`
      Rewrite to assignment (`||= deactivated_at + 31.days`)
@@ -434,9 +434,9 @@ distributed as follows.
 | `app/controllers/concerns/verification/base.rb`                          | `expiry_column` Delete branch (line 185)                                                                                                                                                |
 | `app/controllers/concerns/authentication/base/refresh_token_handlers.rb` | Same as above                                                                                                                                                                           |
 | `app/controllers/concerns/authentication/base/dbsc_helpers.rb`           | Same as above                                                                                                                                                                           |
-| `app/controllers/sign/{app,com}/configuration/withdrawals_controller.rb` | `scheduled_purge_at` reference merged into `purge_at` (line 56, 139, 140, 149)                                                                                                          |
-| `app/views/sign/app/configurations/edit.html.erb`                        | `current_user.scheduled_purge_at` → `current_user.purge_at`, INFINITY judgment added (when displayed only for `purge_at != Float::INFINITY`)                                            |
-| `app/views/sign/{app,org}/configuration/sessions/index.html.erb`         | `session.refresh_expires_at` → `session.lapses_at`                                                                                                                                      |
+| `app/controllers/sign/{app,com}/settings/withdrawals_controller.rb`      | `scheduled_purge_at` reference merged into `purge_at` (line 56, 139, 140, 149)                                                                                                          |
+| `app/views/sign/app/settingss/edit.html.erb`                             | `current_user.scheduled_purge_at` → `current_user.purge_at`, INFINITY judgment added (when displayed only for `purge_at != Float::INFINITY`)                                            |
+| `app/views/sign/{app,org}/settings/sessions/index.html.erb`              | `session.refresh_expires_at` → `session.lapses_at`                                                                                                                                      |
 
 ### Solid Queue retention job
 
@@ -579,9 +579,9 @@ The old `purge_expired_risk_occurrences` entry has been deleted (the risk occurr
 - `app/controllers/concerns/verification/base.rb`
 - `app/controllers/concerns/authentication/base/refresh_token_handlers.rb`
 - `app/controllers/concerns/authentication/base/dbsc_helpers.rb`
-- `app/controllers/sign/{app,com}/configuration/withdrawals_controller.rb`
-- `app/views/sign/{app,com}/configurations/edit.html.erb`
-- `app/views/sign/{app,org}/configuration/sessions/index.html.erb`
+- `app/controllers/sign/{app,com}/settings/withdrawals_controller.rb`
+- `app/views/sign/{app,com}/settingss/edit.html.erb`
+- `app/views/sign/{app,org}/settings/sessions/index.html.erb`
 
 **Renovations (config)**:
 

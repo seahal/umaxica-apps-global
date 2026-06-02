@@ -31,7 +31,7 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => @host, "X-TEST-CURRENT-USER" => @user.id }
 
     assert_response :success
-    assert_select "a[href=?]", sign_app_configuration_path(ri: "jp")
+    assert_select "a[href=?]", sign_app_settings_path(ri: "jp")
   end
 
   test "edit page renders a direct logout form" do
@@ -56,7 +56,7 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
          params: { confirm: "0" }
 
     assert_redirected_to edit_sign_app_sign_out_path(ri: "jp")
-    assert_equal I18n.t("views.sign.app.configuration.outs.edit.confirm_label"), flash[:alert]
+    assert_equal I18n.t("views.sign.app.settings.outs.edit.confirm_label"), flash[:alert]
   end
 
   test "create logs out with confirmed user session" do
@@ -181,7 +181,7 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
                    "X-TEST-CURRENT-USER" => @user.id,
                    "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
     session[:authentication_return_target_nonce] = SecureRandom.urlsafe_base64(16)
-    pt = signed_return_target(sign_app_configuration_path(ri: "jp"), surface: "app")
+    pt = signed_return_target(sign_app_settings_path(ri: "jp"), surface: "app")
 
     delete sign_app_sign_out_url(ri: "jp", pt: pt),
            headers: { "Host" => @host,
@@ -211,7 +211,7 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user: @user)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    legacy_pt = Base64.urlsafe_encode64(sign_app_configuration_path(ri: "jp"))
+    legacy_pt = Base64.urlsafe_encode64(sign_app_settings_path(ri: "jp"))
 
     delete sign_app_sign_out_url(ri: "jp", pt: legacy_pt),
            headers: { "Host" => @host,

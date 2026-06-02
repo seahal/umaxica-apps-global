@@ -3,7 +3,7 @@
 
 # Authorization for the app (client) telephone listing.
 #
-# `Sign::App::Configuration::TelephonesController` and its registration subcontroller scope every
+# `Sign::App::Settings::TelephonesController` and its registration subcontroller scope every
 # query to `current_client.client_telephones`, so row-level ownership is enforced by those queries.
 # `index?`/`create?` gate the actor *type*; per-record write rules require ownership
 # (record.user_id == client.id). Other defaults stay deny-all (allowlist).

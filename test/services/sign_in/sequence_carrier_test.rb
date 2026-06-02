@@ -18,7 +18,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
       method: :email_otp,
       state: "CHECKPOINT_PENDING",
       participant: :checkpoint,
-      pt: "/configuration",
+      pt: "/settings",
     )
 
     assert_equal sequence.id, session.fetch(:app_sign_in_sequence).fetch("id")

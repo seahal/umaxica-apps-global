@@ -3,7 +3,7 @@
 
 # Authorization for the com (visitor) secret-credential management.
 #
-# `Sign::Com::Configuration::SecretCredentialsController` scopes every lookup to
+# `Sign::Com::Settings::SecretCredentialsController` scopes every lookup to
 # `current_visitor.visitor_secret_credentials`, so row-level ownership is enforced by the
 # controller. This policy adds object-level authorization: listing/registration are allowed for
 # any visitor actor; per-record actions require ownership (record.visitor_id == user.id). Step-up

@@ -1,5 +1,11 @@
 # Withdrawal State Machine Implementation Plan
 
+> **Deprecated by Identity Authority inversion where this plan assigns account lifecycle, session,
+> token, or step-up freshness authority to `sign/id`:** `acme/www` now owns Session, Token, Account,
+> Preference, Authorization, and downstream-token authority. `sign/id` is ceremony-only. Physical DB
+> movement is out of scope. Implementation details in this plan must not be used to reintroduce
+> sign-side authority.
+
 Status: implemented, keep as regression checklist
 
 ## Purpose

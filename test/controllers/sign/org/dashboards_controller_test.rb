@@ -23,7 +23,7 @@ class Sign::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "Dashboard"
-    assert_select "a[href=?]", sign_org_configuration_path(ri: "jp")
+    assert_select "a[href=?]", sign_org_settings_path(ri: "jp")
     assert_select "footer" do
       assert_select "a[href=?]", sign_org_dashboard_url(ri: "jp"),
                     text: I18n.t("sign.org.preferences.footer.dashboard")

@@ -26,6 +26,7 @@ Rules:
 
 Current content-model references:
 
+- `docs/identity/authority-boundary.md`
 - `docs/architecture/actor-naming.md`
 - `docs/architecture/current_context.md`
 - `docs/architecture/database-boundaries.md`
@@ -34,6 +35,17 @@ Current content-model references:
 - `docs/architecture/i18n.md`
 - `docs/architecture/preference.md`
 - `docs/security/session-limit.md`
+- `docs/security/credential-gateway.md`
+- `docs/security/ceremony-grant-result.md`
+- `docs/security/session-token-authority.md`
+- `docs/security/step-up-ceremony-delegation.md`
+- `docs/security/webauthn-rp-id-origin-boundary.md`
+- `docs/security/social-callback-boundary.md`
+- `docs/security/logout-session-management.md`
+- `docs/security/preference-settings-authority.md`
+- `docs/security/downstream-token-authority.md`
+- `docs/security/redirect-vs-ceremony-result.md`
+- `docs/qa/identity-authority-regression-checklist.md`
 - `docs/security/credential-abuse-rate-limits.md`
 - `docs/security/chain_seal.md`
 - `docs/security/observability-boundary.md`

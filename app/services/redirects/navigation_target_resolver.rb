@@ -19,9 +19,9 @@ module Redirects
           ri: params[:ri],
         )
       },
-      configuration_security: ->(routes, params) {
+      settings_security: ->(routes, params) {
         routes.public_send(
-          "sign_#{Redirects::NavigationTargetResolver.surface(params)}_configuration_path",
+          "sign_#{Redirects::NavigationTargetResolver.surface(params)}_settings_path",
           ri: params[:ri],
         )
       },
@@ -33,7 +33,7 @@ module Redirects
 
     SCOPES = {
       authentication: %i(checkpoint selector dashboard signed_out home).freeze,
-      configuration: %i(configuration_security dashboard home).freeze,
+      settings: %i(settings_security dashboard home).freeze,
       public: %i(home signed_out).freeze,
     }.freeze
 

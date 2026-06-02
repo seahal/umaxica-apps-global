@@ -55,7 +55,7 @@ module Sign
           discarded_at: 1.day.from_now,
           public_id: "test_step_up_#{SecureRandom.hex(4)}",
           last_step_up_at: 1.minute.ago,
-          last_step_up_scope: "configuration_email",
+          last_step_up_scope: "settings_email",
         )
 
         Engine.stub(:score, 60) do
@@ -77,7 +77,7 @@ module Sign
           discarded_at: 1.day.from_now,
           public_id: "stf_#{SecureRandom.hex(4)}",
           last_step_up_at: 1.minute.ago,
-          last_step_up_scope: "configuration_passkey",
+          last_step_up_scope: "settings_passkey",
         )
 
         Engine.stub(:score, 60) do

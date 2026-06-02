@@ -58,11 +58,6 @@ class Avatar < AvatarRecord
   has_many :avatar_monikers, dependent: :restrict_with_error
   has_many :avatar_memberships, dependent: :restrict_with_error
   has_many :avatar_ownership_periods, dependent: :restrict_with_error
-  has_many :app_posts,
-           class_name: "AppPost",
-           foreign_key: :author_avatar_id,
-           dependent: :restrict_with_error,
-           inverse_of: :author_avatar
 
   # Avatar assignments (role-based access control)
   has_many :avatar_assignments, dependent: :destroy

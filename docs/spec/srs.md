@@ -1,5 +1,11 @@
 # Software Requirements Specification
 
+> **Partially superseded by Identity Authority inversion:** Identity requirements in this document
+> must be read through `docs/identity/authority-boundary.md`. `acme/www` owns session, token,
+> account, preference, authorization, and downstream-token authority. `sign/id` is ceremony-only. Do
+> not use this document to reintroduce sign-side token lifecycle, sessions, preference, dashboard,
+> account lifecycle, logout, or step-up freshness.
+
 ## 1. Purpose
 
 This specification defines the target Rails architecture for the global application. The system is a

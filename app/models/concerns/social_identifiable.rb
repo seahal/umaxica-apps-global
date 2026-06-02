@@ -8,9 +8,7 @@ module SocialIdentifiable
 
   PROVIDER_MAP = {
     "google_app" => "google",
-    "google_org" => "google",
     "apple" => "apple",
-    "microsoft_graph" => "microsoft",
   }.freeze
 
   included do
@@ -27,8 +25,6 @@ module SocialIdentifiable
       case provider.to_s
       when "google_app", "google"
         ClientGoogleIdentity
-      when "google_org"
-        OperatorGoogleIdentity
       when "apple"
         ClientAppleIdentity
       else

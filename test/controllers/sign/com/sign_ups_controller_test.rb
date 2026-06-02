@@ -9,35 +9,32 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows email and telephone registration methods" do
-    get new_sign_com_sign_up_url(ri: "jp"), headers: default_headers
+    get new_sign_com_sign_up_url(ct: "dr", ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "[data-test-id=?]", "registration-method", count: 2
-    assert_select "a[href=?]", new_sign_com_up_email_path(ri: "jp"), count: 1
-    assert_select "a[href=?]", new_sign_com_up_telephone_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", new_sign_com_up_email_path(ct: "dr", ri: "jp"), count: 1
+    assert_select "a[href=?]", new_sign_com_up_telephone_path(ct: "dr", ri: "jp"), count: 1
   end
 
-  test "does not show social login buttons" do
-    get new_sign_com_sign_up_url(ri: "jp"), headers: default_headers
+  test "does not show social login buttons when flag is off" do
+    get new_sign_com_sign_up_url(ct: "dr", ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "form[action*=?]", "/social/auth/google_app/continue", count: 0
     assert_select "form[action*=?]", "/social/auth/apple/continue", count: 0
+    assert_select "form[action*=?]", "/social/auth/google", count: 0
+    assert_select "form[action*=?]", "/auth/google", count: 0
   end
 
-  test "does not route social sign up providers on com" do
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "https://#{host}/social/auth/google_app/continue",
-        method: :post,
-      )
+  test "does not show temporary google signup button when legacy flag is on" do
+    with_env("COM_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
+      get new_sign_com_sign_up_url(ct: "dr", ri: "jp"), headers: default_headers
     end
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "https://#{host}/social/auth/apple/continue",
-        method: :post,
-      )
-    end
+
+    assert_response :success
+    assert_select "form[action*=?]", "/social/auth/google", count: 0
+    assert_select "form[action*=?]", "/auth/google", count: 0
   end
 
   test "rejects when logged in" do
@@ -67,5 +64,13 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
   def host
     ENV["ID_CORPORATE_URL"] || "id.com.localhost"
+  end
+
+  def with_env(values)
+    original = values.keys.index_with { |key| ENV[key] }
+    values.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    yield
+  ensure
+    original.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
   end
 end

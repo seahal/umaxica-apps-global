@@ -6,11 +6,11 @@ module Jit
     module Jwt
       KeyRecord = Data.define(:kid, :private_key, :public_key, :public_jwk, :state)
 
+      VERIFY_STATES = %w(active grace).freeze
+      PUBLISH_STATES = %w(active grace).freeze
+
       IssuerRecord =
         Data.define(:id, :namespace, :issuer, :audiences, :current_kid, :keys, :revoked_kids) do
-          VERIFY_STATES = %w(active grace).freeze
-          PUBLISH_STATES = %w(active grace).freeze
-
           def current_key = keys.fetch(current_kid, nil)
 
           def public_key_for(kid)

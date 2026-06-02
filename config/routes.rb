@@ -12,6 +12,4 @@ Rails.application.routes.draw do
   draw :core
   # direct message
   draw :line
-  # entrypoint for post
-  draw :post
 end

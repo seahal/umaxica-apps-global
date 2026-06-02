@@ -24,7 +24,7 @@ module Email::Com
     def verification_url
       return if @verification_token.blank? || @public_id.blank?
 
-      Rails.application.routes.url_helpers.edit_sign_com_configuration_email_url(
+      Rails.application.routes.url_helpers.edit_sign_com_settings_email_url(
         @public_id,
         token: @verification_token,
         host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),

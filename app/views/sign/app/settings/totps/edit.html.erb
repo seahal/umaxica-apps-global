@@ -1,0 +1,70 @@
+<%= link_to t('sign.app.settings.show.back'), sign_app_settings_totps_path(ri: params[:ri]) %>
+
+<% content_for :page_title, t('sign.app.setting.totp.edit.title') %>
+<div>
+  <div>
+    <div>
+      <div>
+        <h3>
+          <%= t('sign.app.setting.totp.edit.title') %>
+        </h3>
+        <p>
+          <%= t('sign.app.setting.totp.edit.description') %>
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <%= form_with model: @totp,
+                    scope: :user_totp_credential,
+                    url: sign_app_settings_totp_path(@totp.public_id, ri: params[:ri]),
+                    method: :patch do |form| %>
+        <div>
+          <% if @totp.errors.any? %>
+            <div>
+              <div>
+                <div>
+                  <h3>
+                    <%= t('errors.template.header', count: @totp.errors.count) %>
+                  </h3>
+                  <div>
+                    <ul role="list">
+                      <% @totp.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <div>
+            <div>
+              <%= form.label :title, t('activerecord.attributes.user_totp_credential.title') %>
+              <div>
+                <%= form.text_field :title, maxlength: 32, placeholder: t('messages.totp_title_placeholder') %>
+              </div>
+              <p>
+                <%= t('sign.app.setting.totp.edit.title_hint') %>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div>
+            <%= link_to t('actions.cancel'), sign_app_settings_totps_path(ri: params[:ri]) %>
+            <%= form.submit t('actions.save') %>
+          </div>
+        </div>
+      <% end %>
+      <div>
+        <%= button_to t('actions.delete'),
+                      sign_app_settings_totp_path(@totp.public_id, ri: params[:ri]),
+                      method: :delete,
+                      form: { data: { turbo_confirm: t('messages.confirm_delete_totp') } } %>
+      </div>
+    </div>
+  </div>
+</div>

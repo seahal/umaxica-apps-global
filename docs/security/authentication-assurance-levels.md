@@ -1,5 +1,12 @@
 # Authentication Assurance Levels
 
+> **Partially superseded by Identity Authority inversion:** The AAL vocabulary in this document
+> remains useful only where it does not assign session, token, authorization, or step-up freshness
+> authority to `sign/id`. `acme/www` is the Session, Token, Account, Preference, Authorization, and
+> downstream-token Authority. `sign/id` is ceremony-only. Existing sign-side physical tables/models
+> do not imply sign-side authority. Do not use this document to reintroduce sign-side sessions,
+> refresh, preference, dashboard, account lifecycle, token issuance, logout, or step-up freshness.
+
 This product uses `AAL1`, `AAL2`, and `AAL3` as authentication-boundary terms.
 
 The terminology is inspired by NIST SP 800-63, but this document does not claim strict NIST
@@ -25,7 +32,7 @@ Current AAL1 sign-in methods are surface-aware:
 | ------- | --------------------------------------------------------------- |
 | `app`   | email OTP, passkey, TOTP, Google social, Apple social, passcode |
 | `com`   | email OTP, passkey, passcode                                    |
-| `org`   | passkey, Google social, passcode                                |
+| `org`   | passkey, passcode                                               |
 
 `passcode` means the current sign-in code path implemented by the existing secret-backed models and
 routes.
@@ -115,7 +122,7 @@ withdrawal, credential removal, or session revoke-all.
 
 On `app`, social-login linking and unlinking use separate exact scopes. Linking Google or Apple
 requires `social_link`; unlinking Google or Apple requires `social_unlink`. A step-up completed for
-ordinary configuration scopes such as `configuration_email` must not authorize social-linking.
+ordinary configuration scopes such as `settings_email` must not authorize social-linking.
 
 Credential registration is not Step-Up satisfaction. Adding a new email, TOTP credential, passkey,
 telephone, or recovery secret may update method availability, but it must not update token Step-Up
@@ -204,18 +211,18 @@ state, and they should not be read from `Actor.authn`.
 
 Use this table when deciding which boundary a method belongs to.
 
-| method              | `app`   | `com`       | `org`       | notes                                            |
-| ------------------- | ------- | ----------- | ----------- | ------------------------------------------------ |
-| email OTP sign-in   | AAL1    | AAL1        | not current | Primary sign-in on app/com.                      |
-| email OTP step-up   | AAL2    | AAL2        | not AAL2    | Org email is credential management, not step-up. |
-| passkey sign-in     | AAL1    | AAL1        | AAL1        | Sign-in remains AAL1 until explicit step-up.     |
-| passkey step-up     | AAL2    | AAL2        | AAL2        | Current phishing-resistant AAL2 method.          |
-| TOTP sign-in        | AAL1    | not current | not current | Current only on app.                             |
-| TOTP step-up        | AAL2    | not current | not current | Current only on app.                             |
-| Google social login | AAL1    | not current | AAL1        | Current on app and org only.                     |
-| Apple social login  | AAL1    | not current | not current | Current on app only.                             |
-| passcode            | AAL1    | AAL1        | AAL1        | Primary or fallback sign-in code, not step-up.   |
-| telephone           | not AAL | not AAL     | not AAL     | Entry point or contact credential only.          |
+| method              | `app`   | `com`       | `org`       | notes                                                               |
+| ------------------- | ------- | ----------- | ----------- | ------------------------------------------------------------------- |
+| email OTP sign-in   | AAL1    | AAL1        | not current | Primary sign-in on app/com.                                         |
+| email OTP step-up   | AAL2    | AAL2        | not AAL2    | Org email is credential management, not step-up.                    |
+| passkey sign-in     | AAL1    | AAL1        | AAL1        | Sign-in remains AAL1 until explicit step-up.                        |
+| passkey step-up     | AAL2    | AAL2        | AAL2        | Current phishing-resistant AAL2 method.                             |
+| TOTP sign-in        | AAL1    | not current | not current | Current on app; org route/controller/view/test inventory is absent. |
+| TOTP step-up        | AAL2    | not current | not current | Current only on app.                                                |
+| Google social login | AAL1    | not current | not current | Current on app only.                                                |
+| Apple social login  | AAL1    | not current | not current | Current on app only.                                                |
+| passcode            | AAL1    | AAL1        | AAL1        | Primary or fallback sign-in code, not step-up.                      |
+| telephone           | not AAL | not AAL     | not AAL     | Entry point or contact credential only.                             |
 
 ## AAL3
 

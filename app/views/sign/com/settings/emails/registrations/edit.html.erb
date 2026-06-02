@@ -1,0 +1,10 @@
+<% content_for :page_title, t("sign.app.settings.email.edit.title") %>
+<h1><%= t("sign.app.settings.email.edit.title") %></h1>
+
+<%= form_with model: @user_email, url: sign_com_settings_emails_registration_path, method: :patch, scope: :visitor_email do |f| %>
+  <%= render "sign/app/emails/registrations/verification_fields", form: f, user_email: @user_email, verification_token: @verification_token %>
+<% end %>
+
+<div>
+  <%= link_to t("sign.app.common.cancel"), sign_com_settings_emails_path(ri: params[:ri]) %>
+</div>

@@ -23,7 +23,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/sign/in/new\?ri=jp}
   end
 
-  test "protected configuration redirects to public sign host and preserves absolute return target" do
+  test "protected settings redirects to public sign host and preserves absolute return target" do
     with_env(
       "ID_CORPORATE_URL" => "id.com.localhost",
       "SIGN_CORPORATE_URL" => "id.umaxica.com",
@@ -31,7 +31,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       Rails.application.reload_routes!
 
       get(
-        "https://id.umaxica.com/configuration/sessions?ri=jp",
+        "https://id.umaxica.com/settings/sessions?ri=jp",
         headers: { "Host" => "id.umaxica.com" },
       )
 
@@ -77,8 +77,8 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     patch sign_com_in_session_url(ri: "jp"), params: { ref: active_token.signed_ref }, headers: headers
 
     assert_response :redirect
-    # Redirect to configuration because restricted session is promoted after revoking the only active session
-    assert_match %r{/configuration\?ri=jp}, response.location
+    # Redirect to settings because restricted session is promoted after revoking the only active session
+    assert_match %r{/settings\?ri=jp}, response.location
     assert_not_nil active_token.reload.discarded_at
     assert_equal VisitorTokenStatus::ACTIVE, @token.reload.visitor_token_status_id
   end
@@ -151,7 +151,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }
     controller.define_singleton_method(:head) { |status| heads << status }
     controller.define_singleton_method(:new_sign_com_sign_in_path) { |ri: nil| "/sign/in/new?ri=#{ri}" }
-    controller.define_singleton_method(:sign_com_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
+    controller.define_singleton_method(:sign_com_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
 
     controller.instance_variable_set(:@logged_in_for_test, true)
     controller.instance_variable_set(:@restricted_for_test, true)
@@ -195,7 +195,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.instance_variable_set(:@return_to_for_test, nil)
     controller.send(:redirect_to_return_path, notice: "promoted")
 
-    assert_equal [["/configuration?ri=jp"], { notice: "promoted" }], redirects.last
+    assert_equal [["/settings?ri=jp"], { notice: "promoted" }], redirects.last
 
     active_token = create_active_session(@visitor)
     restricted_token = @token

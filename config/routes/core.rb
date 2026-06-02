@@ -1,28 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-def core_exact_host_constraint(*hosts)
-  normalized_hosts = hosts.filter_map { |host| core_normalize_route_host(host) }
-  /\A(?:#{normalized_hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
-end
-
-def core_normalize_route_host(host)
-  host.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first.presence
-end
-
-core_app_host = core_exact_host_constraint(
-  ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"),
-  "core.app.localhost",
-)
-core_com_host = core_exact_host_constraint(
-  ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
-  "core.com.localhost",
-)
-core_org_host = core_exact_host_constraint(
-  ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
-  "core.org.localhost",
-)
-
 scope module: :core, as: :core do
   constraints host: core_app_host do
     scope module: :app, as: :app do

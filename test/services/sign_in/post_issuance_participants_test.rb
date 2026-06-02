@@ -89,7 +89,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "/settings?tab=sessions")
 
-      destination = ReturnParticipant.new(cycle: cycle, default_path: "/configuration").consume!
+      destination = ReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
 
       assert_equal "/settings?tab=sessions", destination
       assert_predicate cycle.reload, :sign_in_completed?
@@ -102,9 +102,9 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "https://evil.example/path")
 
-      destination = ReturnParticipant.new(cycle: cycle, default_path: "/configuration").consume!
+      destination = ReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
 
-      assert_equal "/configuration", destination
+      assert_equal "/settings", destination
       assert_predicate cycle.reload, :sign_in_completed?
       assert_nil cycle.return_to
     end
@@ -113,9 +113,9 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "//evil.example/path")
 
-      destination = ReturnParticipant.new(cycle: cycle, default_path: "/configuration").consume!
+      destination = ReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
 
-      assert_equal "/configuration", destination
+      assert_equal "/settings", destination
       assert_predicate cycle.reload, :sign_in_completed?
       assert_nil cycle.return_to
     end

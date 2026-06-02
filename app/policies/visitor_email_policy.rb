@@ -3,7 +3,7 @@
 
 # Authorization for the com (visitor) email listing.
 #
-# `Sign::Com::Configuration::EmailsController` and its registration subcontroller scope every
+# `Sign::Com::Settings::EmailsController` and its registration subcontroller scope every
 # query to `current_visitor.visitor_emails`, so row-level ownership is enforced by those queries.
 # `index?`/`create?` gate the actor *type*; the per-record write rules require ownership
 # (record.visitor_id == visitor.id). Other defaults stay deny-all (allowlist).

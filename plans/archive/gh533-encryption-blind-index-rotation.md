@@ -95,9 +95,9 @@ Each step ships independently and has its own rollback story.
    - `test/models/staff_email_test.rb`
    - `test/models/staff_telephone_test.rb`
    - `test/integration/identifier_encryption_rotation_drill_test.rb`
-   - `test/controllers/sign/app/configuration/emails/registrations_controller_test.rb`
+   - `test/controllers/sign/app/settings/emails/registrations_controller_test.rb`
    - `test/controllers/sign/app/in/emails_controller_security_test.rb`
-   - `test/controllers/sign/org/configuration/emails/registrations_controller_test.rb`
+   - `test/controllers/sign/org/settings/emails/registrations_controller_test.rb`
 
 4. **Switch off `deterministic: true`.** Complete. Removed the flag from auth email/telephone
    identifier encryption and hoisted `set_*_digests` callbacks into the shared concerns so user /
@@ -140,7 +140,7 @@ Each step ships independently and has its own rollback story.
 
 2026-05-10 verification:
 
-- `bin/rails test test/models/user_email_test.rb test/models/user_telephone_test.rb test/models/staff_email_test.rb test/models/staff_telephone_test.rb test/models/customer_email_test.rb test/models/customer_telephone_test.rb test/services/identifier_blind_index_backfill_test.rb test/services/identifier_encryption_reencrypt_test.rb test/integration/identifier_encryption_rotation_drill_test.rb test/controllers/sign/org/configuration/emails/registrations_controller_test.rb test/controllers/sign/app/configuration/emails/registrations_controller_test.rb test/controllers/sign/app/in/emails_controller_security_test.rb`
+- `bin/rails test test/models/user_email_test.rb test/models/user_telephone_test.rb test/models/staff_email_test.rb test/models/staff_telephone_test.rb test/models/customer_email_test.rb test/models/customer_telephone_test.rb test/services/identifier_blind_index_backfill_test.rb test/services/identifier_encryption_reencrypt_test.rb test/integration/identifier_encryption_rotation_drill_test.rb test/controllers/sign/org/settings/emails/registrations_controller_test.rb test/controllers/sign/app/settings/emails/registrations_controller_test.rb test/controllers/sign/app/in/emails_controller_security_test.rb`
   passed: 122 runs, 338 assertions.
 
 ## Related

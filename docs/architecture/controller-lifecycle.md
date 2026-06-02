@@ -23,9 +23,10 @@ Current implementation work should follow these documents in this order:
 2. `adr/static-and-guest-controller-boundaries.md`
 3. `adr/actor-current-facade.md`
 4. `adr/preference-soft-bubble-doctrine.md`
-5. `docs/architecture/controller-boundaries.md`
-6. `docs/architecture/current_context.md`
-7. `docs/architecture/preference.md`
+5. `adr/preference-setting-configurator-url-boundaries.md`
+6. `docs/architecture/controller-boundaries.md`
+7. `docs/architecture/current_context.md`
+8. `docs/architecture/preference.md`
 
 `adr/three-tier-controller-base.md` and `adr/public-controller-base.md` are historical context only.
 Do not use them as the current implementation contract.
@@ -127,6 +128,11 @@ Here, "shared preference" means `AppPreference`, `OrgPreference`, or `ComPrefere
 login-independent surface preference state. "Actor-local preference" means `UserPreference`,
 `OperatorPreference`, or `VisitorPreference`: the account-local state for the current runtime actor.
 This is not Rails `session`, and it is not the `Actor` CurrentAttributes object.
+
+`/preference`, `/setting`, and `/configurator` are distinct URL responsibilities. `/preference` owns
+login-independent preference edits, `/setting` owns signed-in user self-service settings, and
+`/configurator` owns operator-managed configuration. Existing plural `/settings` routes are a
+compatibility gap, not the target language for new route work.
 
 ## Cookie Key Compatibility
 

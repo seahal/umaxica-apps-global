@@ -44,7 +44,7 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
 
   test "show renders only email and passkey method links" do
     return_to = signed_return_target(
-      return_to: sign_com_configuration_emails_path(ri: "jp"),
+      return_to: sign_com_settings_emails_path(ri: "jp"),
       flow: "step_up.bootstrap",
       surface: "com",
       session_nonce: @headers["X-TEST-SESSION-PUBLIC-ID"],
@@ -58,7 +58,7 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
       status_id: VisitorPasskeyStatus::ACTIVE,
     )
 
-    get sign_com_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+    get sign_com_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :success

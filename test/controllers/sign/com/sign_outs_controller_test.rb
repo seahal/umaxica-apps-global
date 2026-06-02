@@ -42,7 +42,7 @@ class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
          params: { confirm: "0" }
 
     assert_redirected_to edit_sign_com_sign_out_path(ri: "jp")
-    assert_equal I18n.t("views.sign.app.configuration.outs.edit.confirm_label"), flash[:alert]
+    assert_equal I18n.t("views.sign.app.settings.outs.edit.confirm_label"), flash[:alert]
   end
 
   test "create logs out with confirmed visitor session" do
@@ -159,7 +159,7 @@ class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
                    "X-TEST-CURRENT-RESOURCE" => @visitor.id,
                    "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
     session[:authentication_return_target_nonce] = SecureRandom.urlsafe_base64(16)
-    pt = signed_return_target(sign_com_configuration_path(ri: "jp"), surface: "com")
+    pt = signed_return_target(sign_com_settings_path(ri: "jp"), surface: "com")
 
     delete sign_com_sign_out_url(ri: "jp", pt: pt),
            headers: { "Host" => @host,
@@ -189,7 +189,7 @@ class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     refresh_plain = token.rotate_refresh_token!
     cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    legacy_pt = Base64.urlsafe_encode64(sign_com_configuration_path(ri: "jp"))
+    legacy_pt = Base64.urlsafe_encode64(sign_com_settings_path(ri: "jp"))
 
     delete sign_com_sign_out_url(ri: "jp", pt: legacy_pt),
            headers: { "Host" => @host,

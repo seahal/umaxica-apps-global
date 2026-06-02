@@ -24,7 +24,7 @@ class Sign::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "Dashboard"
-    assert_select "a[href=?]", sign_app_configuration_path(ri: "jp")
+    assert_select "a[href=?]", sign_app_settings_path(ri: "jp")
     assert_select "footer" do
       assert_select "a[href=?]", sign_app_dashboard_url(ri: "jp"),
                     text: I18n.t("sign.app.preferences.footer.dashboard")

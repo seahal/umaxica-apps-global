@@ -84,11 +84,6 @@ class Operator < OrgPrincipalRecord
                           inverse_of: :staff
   has_many :operator_emails, class_name: "OperatorEmail", foreign_key: :staff_id,
                              inverse_of: :staff
-  has_one :operator_google_identity,
-          class_name: "OperatorGoogleIdentity",
-          foreign_key: :staff_id,
-          dependent: :destroy,
-          inverse_of: :staff
   has_many :staff_telephones, class_name: "OperatorTelephone", dependent: :restrict_with_error,
                               inverse_of: :staff
   has_many :operator_telephones, class_name: "OperatorTelephone", foreign_key: :staff_id,

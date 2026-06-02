@@ -34,14 +34,14 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   end
 
   test "GET sensitive page redirects to verification when step-up is not satisfied" do
-    get new_sign_app_configuration_emails_registration_url(ri: "jp"), headers: @headers
+    get new_sign_app_settings_emails_registration_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification", uri.path
-    assert_equal "configuration_email", query["scope"]
+    assert_equal "settings_email", query["scope"]
     assert_equal "jp", query["ri"]
     assert_predicate query["pt"], :present?
   end
@@ -49,19 +49,19 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "fresh sign-in token does not satisfy step-up without recorded step-up" do
     @token.update!(created_at: 1.minute.ago, last_step_up_at: nil, last_step_up_scope: nil)
 
-    get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification", uri.path
-    assert_equal "configuration_email", query["scope"]
+    assert_equal "settings_email", query["scope"]
     assert_predicate query["pt"], :present?
   end
 
   test "POST sensitive action returns 401 when step-up is not satisfied" do
-    post sign_app_configuration_emails_registration_url(ri: "jp"),
+    post sign_app_settings_emails_registration_url(ri: "jp"),
          params: { user_email: { address: "new@example.com" } },
          headers: @headers
 
@@ -72,21 +72,21 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "scope mismatch redirects to verification" do
     mark_step_up_satisfied!(@token, at: 3.minutes.ago, scope: "withdrawal")
 
-    get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification", uri.path
-    assert_equal "configuration_email", query["scope"]
+    assert_equal "settings_email", query["scope"]
     assert_predicate query["pt"], :present?
   end
 
   test "step-up older than 15 minutes redirects to verification" do
-    mark_step_up_satisfied!(@token, at: 15.minutes.ago, scope: "configuration_email")
+    mark_step_up_satisfied!(@token, at: 15.minutes.ago, scope: "settings_email")
 
-    get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -97,31 +97,31 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
   test "step-up within TTL and matching scope passes through" do
     satisfy_user_verification(@token)
-    mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "configuration_email")
+    mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
 
-    get sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :success
   end
 
   test "HEAD sensitive page redirects to verification when step-up is not satisfied" do
-    head new_sign_app_configuration_emails_registration_url(ri: "jp"), headers: @headers
+    head new_sign_app_settings_emails_registration_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_query(uri.query)
 
     assert_equal "/verification", uri.path
-    assert_equal "configuration_email", query["scope"]
+    assert_equal "settings_email", query["scope"]
     assert_equal "jp", query["ri"]
     assert_predicate query["pt"], :present?
   end
 
   test "HEAD step-up within TTL and matching scope passes through" do
     satisfy_user_verification(@token)
-    mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "configuration_email")
+    mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
 
-    head sign_app_configuration_emails_url(ri: "jp"), headers: @headers
+    head sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :success
   end

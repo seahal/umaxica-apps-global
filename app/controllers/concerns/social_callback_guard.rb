@@ -15,16 +15,14 @@ module SocialCallbackGuard
   REQUEST_ALLOWED_METHODS_BY_PROVIDER = {
     "apple" => %w(POST GET).freeze,
     "google_app" => %w(POST GET).freeze,
-    "google_org" => %w(POST GET).freeze,
   }.freeze
 
   CALLBACK_ALLOWED_METHODS_BY_PROVIDER = {
     "apple" => %w(POST GET).freeze,
     "google_app" => %w(GET).freeze,
-    "google_org" => %w(GET).freeze,
   }.freeze
 
-  REQUEST_PHASE_PATH = %r{\A/auth/(?<provider>google_app|google_org|apple)\z}.freeze
+  REQUEST_PHASE_PATH = %r{\A/auth/(?<provider>google_app|apple)\z}.freeze
 
   module_function
 
@@ -103,6 +101,8 @@ module SocialCallbackGuard
             SIGN_SERVICE_URL
             ID_STAFF_URL
             SIGN_STAFF_URL
+            ID_CORPORATE_URL
+            SIGN_CORPORATE_URL
           ).filter_map { |key| normalize_host_port(ENV[key]) }
 
         if Rails.env.local?

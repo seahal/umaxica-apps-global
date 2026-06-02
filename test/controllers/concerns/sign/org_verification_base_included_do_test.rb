@@ -73,7 +73,7 @@ class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
 
   test "ALLOWED_SCOPES constant is defined" do
     assert_kind_of Hash, Sign::OrgVerificationBase::ALLOWED_SCOPES
-    assert Sign::OrgVerificationBase::ALLOWED_SCOPES.key?("configuration_passkey")
-    assert Sign::OrgVerificationBase::ALLOWED_SCOPES.key?("configuration_mfa")
+    assert Sign::OrgVerificationBase::ALLOWED_SCOPES.key?("settings_passkey")
+    assert Sign::OrgVerificationBase::ALLOWED_SCOPES.key?("settings_mfa")
   end
 end

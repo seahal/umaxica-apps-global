@@ -6,7 +6,7 @@ module Authentication
   # clears auth cookies, and resets the Rails session.
   #
   # "Sign out from all devices" must be invoked explicitly via
-  # `logout_all_sessions_for!` from a dedicated endpoint (configuration UI,
+  # `logout_all_sessions_for!` from a dedicated endpoint (settings UI,
   # password rotation, lifecycle transition, etc.). Do NOT call it from this
   # path: a user clicking "Sign out" expects only the current browser to be
   # signed out.
@@ -44,7 +44,7 @@ module Authentication
     end
 
     # Explicit "sign out from all devices". Callers must be dedicated
-    # endpoints (configuration UI, admin tools, lifecycle hooks) — never the
+    # endpoints (settings UI, admin tools, lifecycle hooks) — never the
     # ordinary "Sign out" button.
     def logout_all_sessions_for!(resource:, reason:)
       begin

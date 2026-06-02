@@ -169,7 +169,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       assert_response :redirect
       assert_equal "http://#{surface[:host]}/", response.location
-      assert_match "/configuration/sessions", flash[:notice]
+      assert_match "/settings/sessions", flash[:notice]
       assert_match surface[:sign_host], flash[:notice]
     end
   end

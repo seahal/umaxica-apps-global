@@ -25,12 +25,12 @@ class Sign::Org::Verification::SetupsControllerTest < ActionDispatch::Integratio
   end
 
   test "new shows a back link above registration methods when pt is present" do
-    pt = Base64.urlsafe_encode64(sign_org_configuration_passkeys_path(ri: "jp"))
+    pt = Base64.urlsafe_encode64(sign_org_settings_passkeys_path(ri: "jp"))
 
     get new_sign_org_verification_setup_url(ri: "jp", pt: pt), headers: @headers
 
     assert_response :success
-    assert_select "a[href=?]", sign_org_configuration_path(ri: "jp"), count: 0
+    assert_select "a[href=?]", sign_org_settings_path(ri: "jp"), count: 0
     assert_select "ul"
   end
 end

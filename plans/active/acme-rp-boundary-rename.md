@@ -1,5 +1,10 @@
 # Acme RP Boundary Rename
 
+> **Deprecated by Identity Authority inversion:** `acme/www` now owns Session, Token, Account,
+> Preference, Authorization, and downstream-token authority. `sign/id` is ceremony-only. Physical DB
+> movement is out of scope. Implementation details in this plan must not be used to reintroduce
+> sign-side authority.
+
 ## Summary
 
 Rename the RP-facing global Rails boundary from `acme` / `Acme` to `acme` / `Acme`.

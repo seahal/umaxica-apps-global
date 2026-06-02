@@ -3,7 +3,7 @@
 
 # Authorization for the org (operator) secret-credential management.
 #
-# `Sign::Org::Configuration::SecretCredentialsController` scopes every lookup to
+# `Sign::Org::Settings::SecretCredentialsController` scopes every lookup to
 # `current_operator.staff_secret_credentials`, so row-level ownership is enforced by the
 # controller. This policy adds object-level authorization: listing/registration are allowed for
 # any operator actor; per-record actions require ownership (record.staff_id == user.id). Step-up

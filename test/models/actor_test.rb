@@ -156,7 +156,7 @@ class ActorTest < ActiveSupport::TestCase
 
   test "requires step up is true when a scope is required but unsatisfied" do
     Actor.install_context!(
-      step_up: Actor::StepUp::NULL.with(scope: "configuration_email", satisfied: false),
+      step_up: Actor::StepUp::NULL.with(scope: "settings_email", satisfied: false),
     )
 
     assert_predicate Actor, :requires_step_up?
@@ -165,7 +165,7 @@ class ActorTest < ActiveSupport::TestCase
 
   test "step up fresh is true and requires step up is false when satisfied" do
     Actor.install_context!(
-      step_up: Actor::StepUp::NULL.with(scope: "configuration_email", satisfied: true),
+      step_up: Actor::StepUp::NULL.with(scope: "settings_email", satisfied: true),
     )
 
     assert_predicate Actor, :step_up_fresh?

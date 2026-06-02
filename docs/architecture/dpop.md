@@ -1,5 +1,10 @@
 # OAuth 2.0 Demonstrating Proof of Possession (DPoP)
 
+> **Partially superseded by Identity Authority inversion:** The DPoP vocabulary in this document
+> remains useful only where it does not assign token authority to `sign/id`. `acme/www` is the
+> Session, Token, Account, Preference, Authorization, and downstream-token Authority. `sign/id` is
+> ceremony-only. Existing sign-side physical tables/models do not imply sign-side authority.
+
 ## Specification
 
 The DPoP implementation in this application is based on the following specifications:

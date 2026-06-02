@@ -400,15 +400,15 @@ module SocialAuthConcern
     provider = provider.presence || session[SOCIAL_PROVIDER_SESSION_KEY] || params[:provider] || provider_from_path
 
     if provider.to_s == "apple"
-      return sign_app_configuration_apple_path if respond_to?(:sign_app_configuration_apple_path, true)
-      if Rails.application.routes.url_helpers.respond_to?(:sign_app_configuration_apple_path)
-        return Rails.application.routes.url_helpers.sign_app_configuration_apple_path
+      return sign_app_settings_apple_path if respond_to?(:sign_app_settings_apple_path, true)
+      if Rails.application.routes.url_helpers.respond_to?(:sign_app_settings_apple_path)
+        return Rails.application.routes.url_helpers.sign_app_settings_apple_path
       end
     end
 
-    return sign_app_configuration_path if respond_to?(:sign_app_configuration_path, true)
-    if Rails.application.routes.url_helpers.respond_to?(:sign_app_configuration_path)
-      return Rails.application.routes.url_helpers.sign_app_configuration_path
+    return sign_app_settings_path if respond_to?(:sign_app_settings_path, true)
+    if Rails.application.routes.url_helpers.respond_to?(:sign_app_settings_path)
+      return Rails.application.routes.url_helpers.sign_app_settings_path
     end
 
     social_auth_failure_redirect_path

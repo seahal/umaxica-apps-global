@@ -1,90 +1,121 @@
 # Refresh Token Rotation
 
-## Current Contract
+## Authority
+
+Refresh token families are acme authority.
+
+`acme/www` owns refresh token issuance, rotation, replay detection, family revocation, compromise
+state, DBSC/device binding interaction, transparent refresh, explicit refresh endpoints, and audit.
+
+`sign/id` must not issue, rotate, refresh, revoke, or list refresh tokens. It must not issue access
+tokens or downstream tokens.
+
+Logical authority moves now; physical storage may remain where it is. Existing sign-side tables,
+models, services, controllers, namespaces, and tests do not imply sign-side authority.
+
+## Legacy Namespace References
+
+References such as `Sign::RefreshTokenService` are legacy namespace or storage implementation
+details. They do not make sign/id the refresh-token Authority.
+
+During migration, code may still live in sign-named modules or use sign-side physical tables. That
+placement must be treated as compatibility implementation until the code is moved or renamed. The
+authority decision is already acme.
+
+## Rotation Contract
 
 Refresh tokens are stateful records. A successful refresh consumes the presented refresh token and
 returns a newly issued token in the same family.
 
-The active implementation is `Sign::RefreshTokenService`.
+Acme refresh rotation must:
 
-## Rotation Behavior
+- store verifiers only as digests;
+- preserve a family identifier across rotations;
+- issue a replacement refresh token atomically with access-token reissue;
+- mark the previous token as rotated or retired;
+- run on the writing role so row locks and mutation hit the primary database;
+- keep access-token `jti`, protocol `sid`, and refresh-token family identifiers distinct;
+- return refreshed access tokens to the default AAL1 context unless acme policy explicitly says
+  otherwise.
 
-- Refresh token values use the `public_id.verifier` format.
-- The verifier is stored only as a digest.
-- Token row `public_id`, protocol `oidc_sid`, and protocol `oidc_jti` are separate identifiers.
-  JWT/OIDC `sid` is issued from `oidc_sid`; JWT/OIDC `jti` is issued from the current token row's
-  `oidc_jti`.
-- Refresh runs on the writing role so row locking and updates hit the primary database.
-- A valid refresh creates a new token row, increments `refresh_token_generation`, preserves
-  `refresh_token_family_id`, preserves `oidc_sid`, lets the replacement row receive a fresh
-  `oidc_jti`, and marks the previous row with `rotated_at`.
-- Refreshed access tokens return to the default `AAL1` context; step-up / `AAL2` state is not sticky
-  across refresh.
+Step-up freshness is not sticky across refresh. A refresh must not extend `recent_auth`, `sudo`,
+`last_step_up_at`, or equivalent freshness.
 
 ## Browser Transparent Refresh
 
-Browser controllers may run `transparent_refresh_access_token` before authentication checks. This is
-only a browser HTML recovery path for expired or missing access cookies; it is not a protocol token
-endpoint.
+Transparent refresh is an acme browser recovery path for expired or missing access cookies. It is
+not a sign credential ceremony and not a sign token endpoint.
 
-Transparent refresh is allowed only when all of the following are true:
+Transparent refresh is allowed only when acme policy permits it, typically when:
 
 - the request is `GET` or `HEAD`;
 - the negotiated request format is HTML;
-- the access-token cookie is absent;
+- the access-token cookie is absent or expired;
 - the refresh-token cookie is present;
 - the current request has not already attempted transparent refresh.
 
 Transparent refresh must not run for state-changing methods, JSON requests, malformed HTML-like
-`Accept` headers, requests that already carry an access-token cookie, or explicit token endpoints.
-Token endpoints skip the callback and use their explicit refresh actions instead.
+`Accept` headers, requests that already carry a valid access-token cookie, or credential ceremony
+routes on sign/id.
 
-On successful transparent refresh, the refresh token rotates using the same
-`Sign::RefreshTokenService` contract as explicit refresh, new auth cookies are issued, and the
-current request is marked as refreshed. On failed exchange, auth cookies are cleared and the request
-continues unauthenticated.
+## Replay And Compromise
 
-## Replay Behavior
+Reusing an already-rotated refresh token is compromise evidence.
 
-Reusing an already-rotated refresh token is treated as compromise.
+When replay is detected, acme owns the response:
 
-When replay is detected:
+- reject the refresh;
+- revoke or quarantine the refresh token family according to policy;
+- update session compromise state;
+- clean up or invalidate related device/session binding state when required;
+- clear or invalidate affected access cookies;
+- emit audit and security telemetry without logging raw verifiers.
 
-- the service raises `Sign::InvalidRefreshToken` with `refresh_token_reuse_detected`;
-- all tokens for the same actor are revoked by setting `discarded_at`;
-- `Sign::Risk::Emitter` emits `refresh_reuse_detected`;
-- `Rails.logger` emits `authentication.refresh.reuse_detected`;
-- raw refresh verifiers are never logged.
+Revoked or expired tokens remain invalid but do not automatically imply replay compromise unless
+acme policy classifies them that way.
 
-Revoked or expired tokens remain invalid but are not treated as replay compromise by themselves.
+## DBSC And Device Binding
+
+DBSC and device binding are attached to acme session and refresh-token authority. Refresh rotation
+must evaluate the expected device/session binding and reject mismatches according to acme policy.
+
+`sign/id` may execute credential ceremonies that help prove an actor or credential, but it must not
+use DBSC/device binding to rotate refresh tokens or update session state.
+
+## Downstream Tokens
+
+Downstream tokens must be acme-issued. `core`, `line`, and future downstream services must not trust
+sign-issued session, access, refresh, or downstream tokens.
+
+Refresh rotation may result in new acme access tokens or downstream-token eligibility, but sign/id
+does not mint those tokens.
 
 ## Grace Window Decision
 
-There is no Redis-backed JTI deduplication or short grace window today. Redis / Valkey backed
-session-state is not part of the token-rotation design. The current security baseline is strict
-one-time consume plus replay revocation.
+There is no Redis-backed JTI deduplication or short grace window today. Redis, Valkey, and other
+cache-backed session-state stores are not the refresh-token authority.
 
-Any future grace / overlap behavior must be DB-backed, must not weaken replay detection, and must
-have tests for concurrent reuse, stale-token replay, binding mismatch, and revoked-token handling.
-The active design work is tracked in `plans/active/token-rotation-concurrency-hardening.md`.
+Any future grace or overlap behavior must be DB-backed or otherwise explicitly accepted by a current
+ADR, must preserve replay detection, and must have tests for concurrent reuse, stale-token replay,
+binding mismatch, revoked-token handling, and compromise-state updates.
 
 ## Verification
 
-Primary regression coverage:
+Regression coverage should prove:
 
-- `test/services/sign/refresh_token_service_test.rb`
-- `test/models/user_token_test.rb`
-- `test/models/staff_token_test.rb`
-- `test/controllers/concerns/authentication/transparent_refresh_test.rb`
-- `test/controllers/sign/app/edge/v0/token/refreshes_controller_test.rb`
-- `test/controllers/sign/org/edge/v0/token/refreshes_controller_test.rb`
+- sign/id cannot issue or rotate refresh tokens;
+- acme rotates refresh token families atomically;
+- replay revokes or quarantines the correct family;
+- device/session binding mismatch fails closed;
+- refreshed access returns to default AAL1 context;
+- downstream services reject sign-issued tokens.
 
-Related decision record:
+Existing tests with sign-named paths or services are compatibility tests until the implementation is
+renamed. They must not assert sign-side authority.
 
-- `adr/refresh-revoke-aal-downgrade-and-replay-hardening.md`
-- `adr/cookie-domain-scope-by-surface.md` — authentication tokens are host-only; cross-subdomain SSO
-  is carried by the apex-scoped preference refresh token.
+## Related
 
-Related behavior reference:
-
+- `docs/identity/authority-boundary.md`
+- `docs/security/session-token-authority.md`
+- `docs/security/downstream-token-authority.md`
 - `docs/security/cookie-domain-scope.md`

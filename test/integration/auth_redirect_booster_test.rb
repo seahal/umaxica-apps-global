@@ -81,10 +81,10 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "redirect_with_notice with pt" do
-    pt = "/configuration?x=1"
+    pt = "/settings?x=1"
     get "/auth_redirect/notice", params: { pt: pt }
     # jump_to_generated_url redirects
-    assert_redirected_to "/configuration?x=1"
+    assert_redirected_to "/settings?x=1"
     assert_equal "This is a notice", flash[:notice]
   end
 
@@ -104,7 +104,7 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
   end
 
   test "path_from_signed_pt rejects raw internal path" do
-    pt = "/configuration?x=1"
+    pt = "/settings?x=1"
     get "/auth_redirect/safe_rt", params: { pt: pt }
 
     assert_response :success

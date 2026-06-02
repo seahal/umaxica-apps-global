@@ -530,7 +530,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
       address: "redirect_login_test_#{SecureRandom.hex(4)}@example.com",
     )
 
-    redirect_url = sign_app_configuration_path(ri: "jp")
+    redirect_url = sign_app_settings_path(ri: "jp")
     pt = redirect_url
 
     # Start authentication with pt parameter

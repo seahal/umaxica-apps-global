@@ -81,16 +81,16 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     visitor = create_verified_visitor_with_email(email_address: "com-start-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor)
     harness = Harness.new(visitor: visitor, visitor_token: token)
-    return_to = "/configuration/emails/new"
+    return_to = "/settings/emails/new"
 
     travel_to Time.zone.local(2026, 1, 1, 12, 0, 0) do
-      harness.send(:start_step_up_session!, scope: "configuration_email", pt_param: return_to)
+      harness.send(:start_step_up_session!, scope: "settings_email", pt_param: return_to)
 
       session = token.reload.step_up_session
 
       assert_equal token.id, session.visitor_token_id
-      assert_equal "configuration_email", session.scope
-      assert_equal "/configuration/emails/new", session.return_to
+      assert_equal "settings_email", session.scope
+      assert_equal "/settings/emails/new", session.return_to
       assert_in_delta 15.minutes.from_now, session.discarded_at, 1.second
     end
   end
@@ -101,20 +101,20 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
     harness = Harness.new(visitor: visitor, visitor_token: token)
 
     assert_raises(ActionController::BadRequest) do
-      harness.send(:start_step_up_session!, scope: "configuration_email", pt_param: "https://evil.example")
+      harness.send(:start_step_up_session!, scope: "settings_email", pt_param: "https://evil.example")
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "unknown",
-                                 pt_param: "/configuration/emails",
+                                 pt_param: "/settings/emails",
       )
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
-        :start_step_up_session!, scope: "configuration_email",
-                                 pt_param: "/configuration/secret_credentials",
+        :start_step_up_session!, scope: "settings_email",
+                                 pt_param: "/settings/secret_credentials",
       )
     end
   end
@@ -210,7 +210,7 @@ class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
 
   private
 
-  def create_visitor_step_up_session(visitor_token:, scope: "configuration_email", return_to: "/configuration/emails")
+  def create_visitor_step_up_session(visitor_token:, scope: "settings_email", return_to: "/settings/emails")
     VisitorStepUpSession.create!(
       visitor_token: visitor_token,
       scope: scope,

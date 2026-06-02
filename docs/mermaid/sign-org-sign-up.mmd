@@ -2,6 +2,9 @@
 title: Org Operator Sign-Up State Machine
 ---
 
+%% Partially superseded by Identity Authority inversion.
+%% sign/id is ceremony-only; acme/www commits account and session state.
+
 stateDiagram-v2
   [*] --> STARTED: begin operator acquisition cycle
   STARTED --> IDENTITY_PENDING: select or receive identity strategy

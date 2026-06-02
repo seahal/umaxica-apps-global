@@ -1,0 +1,75 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
+  setup do
+    @staff_host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @service_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+  end
+
+  test "app Google provider request on staff host returns 404" do
+    host! @staff_host
+
+    post "/auth/google_app"
+
+    assert_response :not_found
+  end
+
+  test "staff Google provider request on staff host returns 404" do
+    host! @staff_host
+
+    post "/auth/google_#{"org"}"
+
+    assert_response :not_found
+  end
+
+  test "Apple provider request on staff host returns 404" do
+    host! @staff_host
+
+    post "/auth/apple"
+
+    assert_response :not_found
+  end
+
+  test "staff sign-in page does not contain social login buttons" do
+    host! @staff_host
+
+    get "/sign/in/new?ri=jp"
+
+    assert_response :success
+    assert_not_includes response.body, "/auth/google_app"
+    assert_not_includes response.body, "/auth/google_#{"org"}"
+    assert_not_includes response.body, "/auth/google_#{"com"}"
+    assert_not_includes response.body, "/auth/apple"
+  end
+
+  test "legacy staff Google flag does not enable social auth" do
+    host! @staff_host
+
+    with_env("ORG_#{"GOOGLE"}_SIGNIN_ENABLED" => "true", "ORG_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
+      post "/auth/google_#{"org"}"
+    end
+
+    assert_response :not_found
+  end
+
+  test "app social route remains available on app host" do
+    host! @service_host
+
+    post "/auth/google_app"
+
+    assert_not_equal 404, response.status
+  end
+
+  private
+
+  def with_env(values)
+    original = values.keys.index_with { |key| ENV[key] }
+    values.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    yield
+  ensure
+    original.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+  end
+end

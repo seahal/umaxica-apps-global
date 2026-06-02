@@ -14,7 +14,7 @@ module Jit
             env: { "AUTH_JWT_PRIVATE_KEYSET" => "env-value" },
             credentials: Object.new.tap do |credentials|
               def credentials.option(*)
-                raise "credentials should not be read when env is present"
+                raise RuntimeError, "credentials should not be read when env is present"
               end
             end,
           )

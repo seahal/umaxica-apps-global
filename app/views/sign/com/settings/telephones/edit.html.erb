@@ -1,0 +1,22 @@
+<% content_for :page_title, t("sign.app.settings.telephone.edit.title") %>
+<div>
+  <div>
+    <h1><%= t("sign.app.settings.telephone.edit.title") %></h1>
+  </div>
+
+  <div>
+    <div>
+      <p><%= @user_telephone.number %></p>
+    </div>
+
+    <div>
+      <%= button_to t("sign.app.settings.telephone.index.delete"),
+                    sign_com_settings_telephone_path(@user_telephone, ri: params[:ri]),
+                    method: :delete,
+                    data: { turbo_confirm: t("sign.app.settings.telephone.index.delete_confirm") } %>
+    </div>
+    <div>
+      <%= link_to t("sign.app.common.cancel"), sign_com_settings_telephones_path(ri: params[:ri]) %>
+    </div>
+  </div>
+</div>

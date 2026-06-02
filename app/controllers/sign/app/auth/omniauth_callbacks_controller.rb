@@ -230,7 +230,7 @@ module Sign
           Rails.logger.debug(
             Jit::LogEvent.format(
               "sign.social.omniauth.link_intent",
-              message: "Redirecting to configuration",
+              message: "Redirecting to settings",
             ),
           )
           default_notice = I18n.t(
@@ -239,7 +239,7 @@ module Sign
             default: "%{provider} linked",
           )
           redirect_to(
-            sign_app_configuration_path,
+            sign_app_settings_path,
             notice: I18n.t(
               "sign.app.social.sessions.link.success",
               provider: provider_name,
@@ -440,7 +440,7 @@ module Sign
         end
 
         def social_auth_success_redirect_path
-          sign_app_configuration_path
+          sign_app_settings_path
         end
 
         def duplicate_google_callback_failure_after_success?(message, strategy)

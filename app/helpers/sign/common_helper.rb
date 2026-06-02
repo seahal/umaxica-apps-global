@@ -127,11 +127,7 @@ module Sign::CommonHelper
   end
 
   def sign_up_birthdate_part_label(part)
-    case part
-    when "year" then "YYYY"
-    when "month" then "MM"
-    else "DD"
-    end
+    t("sign.common.birthdate_parts.%{part}", part: part)
   end
 
   def sign_up_birthdate_part_placeholder(part)

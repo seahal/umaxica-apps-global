@@ -64,7 +64,7 @@ module Sign
 
       private
 
-      # Redirect logged-in users from guest-only pages to the configuration page.
+      # Redirect logged-in users from guest-only pages to the settings page.
       # Overrides Authentication::Base#after_login_path. ri is added automatically via default_url_options.
       def after_login_path
         sign_org_dashboard_path

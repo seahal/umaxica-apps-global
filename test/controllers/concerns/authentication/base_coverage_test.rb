@@ -597,7 +597,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:risk_actor_payload) { |_| {} }
     @controller.request.request_id = "request-1"
 
-    assert_equal "/configuration/withdrawal", @controller.withdrawal_gate_redirect_path
+    assert_equal "/settings/withdrawal", @controller.withdrawal_gate_redirect_path
     assert_nil @controller.handle_missing_refresh_token("missing-public-id")
     assert_equal :unauthorized, @controller.refresh_failure_status
 
@@ -979,9 +979,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   # encoding alone is not accepted as redirect authority.
 
   test "path_from_signed_pt accepts a signed internal non-welcome path" do
-    encoded = @controller.signed_pt_token("/configuration?x=1")
+    encoded = @controller.signed_pt_token("/settings?x=1")
 
-    assert_equal "/configuration?x=1",
+    assert_equal "/settings?x=1",
                  @controller.path_from_signed_pt(encoded)
   end
 
@@ -1004,7 +1004,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "path_from_signed_pt rejects a tampered signed token" do
-    encoded_external = @controller.signed_pt_token("/configuration?x=1")
+    encoded_external = @controller.signed_pt_token("/settings?x=1")
     tampered = encoded_external.sub(/.\z/, encoded_external.end_with?("A") ? "B" : "A")
 
     assert_nil @controller.path_from_signed_pt(tampered)
@@ -1026,20 +1026,20 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "path_from_signed_pt rejects legacy base64 return targets" do
-    legacy = Base64.urlsafe_encode64("/configuration?x=1")
+    legacy = Base64.urlsafe_encode64("/settings?x=1")
 
     assert_nil @controller.path_from_signed_pt(legacy)
   end
 
   test "signed_pt_token returns signed values and refuses unsafe destinations" do
-    safe_encoded = @controller.signed_pt_token("/configuration?x=1")
+    safe_encoded = @controller.signed_pt_token("/settings?x=1")
 
     assert_equal safe_encoded, @controller.signed_pt_token(safe_encoded)
     assert_nil @controller.signed_pt_token("/welcome?x=1")
     assert_equal "/dashboard?x=1",
                  @controller.path_from_signed_pt(@controller.signed_pt_token("/dashboard?x=1"))
     assert_nil @controller.signed_pt_token("https://evil.example.test")
-    assert_nil @controller.signed_pt_token(Base64.urlsafe_encode64("/configuration"))
+    assert_nil @controller.signed_pt_token(Base64.urlsafe_encode64("/settings"))
     assert_nil @controller.signed_pt_token("not-base64-and-not-internal")
     assert_nil @controller.signed_pt_token(nil)
   end

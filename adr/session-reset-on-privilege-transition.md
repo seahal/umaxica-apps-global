@@ -4,6 +4,13 @@
 
 Accepted (2026-05-19)
 
+> **Supersession (2026-06-02):** This ADR's IdP/RP-centered authority model is superseded by
+> `adr/identity-authority-boundary.md`. `acme/www` is now the Session, Token, Account, Preference,
+> and Authorization Authority. `sign/id` is no longer the IdP; it is a Credential Gateway and
+> Credential Ceremony Zone only. Historical implementation details in this ADR must not be used to
+> reintroduce sign-side sessions, refresh tokens, preference writes, dashboards, account lifecycle,
+> downstream token issuance, authorization decisions, or step-up freshness.
+
 ## Context
 
 To prevent session fixation attacks, it is necessary to rotate the Rails session ID
@@ -79,7 +86,7 @@ reached, so it is safe from fixed attacks):
   of behavior difference of flow-specific arguments.
 - **AAL promotion bypass**: `last_step_up_at` without going through `consume_step_up_session!`
   Directly update routes (risk enforcement for `app/services/sign/risk/enforcer.rb`,
-  `sign/app/configuration/` secrets/totps/passkeys/ telephones registrations/emails registrations).
+  `sign/app/settings/` secrets/totps/passkeys/ telephones registrations/emails registrations).
   Because these are bootstrap/risk paths and not interactive step-ups. `reset_session` Not
   applicable.
 - **Using Com's Client constants**: `verification_success_*` of `Sign::ComVerificationBase` /

@@ -154,8 +154,8 @@ module Auth
         query.any? ? "#{path}?#{query.join("&")}" : path
       end
 
-      def sign_app_configuration_path(ri: nil)
-        ri.present? ? "/configuration?ri=#{ri}" : "/configuration"
+      def sign_app_settings_path(ri: nil)
+        ri.present? ? "/settings?ri=#{ri}" : "/settings"
       end
 
       def sign_app_in_checkpoint_path(ri: nil, pt: nil)
@@ -290,14 +290,14 @@ module Auth
       assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("pt")
       assert_nil harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
 
-      safe_result = harness.send(:begin_sign_in_sequence!, pt: "/configuration", checkpoint_required: true)
+      safe_result = harness.send(:begin_sign_in_sequence!, pt: "/settings", checkpoint_required: true)
 
       assert_equal :success, safe_result.status
       stored_rt = harness.session.fetch(:app_sign_in_sequence).fetch("pt")
       stored_safe_return_path = harness.session.fetch(:app_sign_in_sequence).fetch("safe_return_path")
 
-      assert_equal "/configuration", harness.path_from_signed_pt(stored_rt)
-      assert_equal "/configuration", harness.path_from_signed_pt(stored_safe_return_path)
+      assert_equal "/settings", harness.path_from_signed_pt(stored_rt)
+      assert_equal "/settings", harness.path_from_signed_pt(stored_safe_return_path)
 
       welcome_rt = "/welcome?ri=jp"
       welcome_result = harness.send(:begin_sign_in_sequence!, pt: welcome_rt, checkpoint_required: true)

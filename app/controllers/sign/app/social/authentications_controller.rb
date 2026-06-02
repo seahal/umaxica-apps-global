@@ -91,7 +91,7 @@ module Sign
           end
 
           redirect_to(
-            sign_app_configuration_path,
+            sign_app_settings_path,
             notice: I18n.t(
               "sign.app.social.sessions.unlink.success",
               provider: normalized_provider.humanize,
@@ -158,7 +158,7 @@ module Sign
           redirect_to(
             actor_verification_path(
               scope: SOCIAL_LINK_SCOPE,
-              pt: encoded_relative_pt(social_link_configuration_path(params[:provider])),
+              pt: encoded_relative_pt(social_link_settings_path(params[:provider])),
               ri: params[:ri],
             ),
             status: :see_other,
@@ -173,7 +173,7 @@ module Sign
           redirect_to(
             actor_verification_path(
               scope: SOCIAL_UNLINK_SCOPE,
-              pt: encoded_relative_pt(social_unlink_configuration_path(params[:provider])),
+              pt: encoded_relative_pt(social_unlink_settings_path(params[:provider])),
               ri: params[:ri],
             ),
             status: :see_other,
@@ -181,12 +181,12 @@ module Sign
           false
         end
 
-        def social_link_configuration_path(provider)
+        def social_link_settings_path(provider)
           case SocialIdentifiable.normalize_provider(provider)
           when "apple"
-            sign_app_configuration_apple_path(ri: params[:ri])
+            sign_app_settings_apple_path(ri: params[:ri])
           else
-            sign_app_configuration_google_path(ri: params[:ri])
+            sign_app_settings_google_path(ri: params[:ri])
           end
         end
 
@@ -194,19 +194,19 @@ module Sign
           return true if cloudflare_turnstile_stealth_validation["success"]
 
           redirect_to(
-            social_unlink_configuration_path(params[:provider]),
+            social_unlink_settings_path(params[:provider]),
             alert: I18n.t("turnstile_error"),
             status: :see_other,
           )
           false
         end
 
-        def social_unlink_configuration_path(provider)
+        def social_unlink_settings_path(provider)
           case SocialIdentifiable.normalize_provider(provider)
           when "apple"
-            sign_app_configuration_apple_path(ri: params[:ri])
+            sign_app_settings_apple_path(ri: params[:ri])
           else
-            sign_app_configuration_google_path(ri: params[:ri])
+            sign_app_settings_google_path(ri: params[:ri])
           end
         end
 

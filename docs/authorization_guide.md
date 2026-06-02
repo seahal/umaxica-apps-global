@@ -123,7 +123,7 @@ end
 に登録するのが本アプリの慣用パターン:
 
 ```ruby
-class Sign::App::Configuration::SessionsController < ...
+class Sign::App::Settings::SessionsController < ...
   before_action :authorize_sessions!, only: %i(index)
 
   private
@@ -139,7 +139,7 @@ end
 ### スコープ適用
 
 一覧取得は `authorized_scope` で `relation_scope` を適用する（例:
-`app/controllers/sign/app/configuration/passkeys_controller.rb`）:
+`app/controllers/sign/app/settings/passkeys_controller.rb`）:
 
 ```ruby
 @passkeys = authorized_scope(current_client.client_passkeys).order(created_at: :desc)

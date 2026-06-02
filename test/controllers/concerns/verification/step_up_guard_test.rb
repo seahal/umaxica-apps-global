@@ -12,7 +12,7 @@ module Verification
 
     # Builds a throwaway controller-like class that records before_action
     # registrations and stubs the underlying step-up helpers.
-    def build_controller(verification_scope: "configuration_default")
+    def build_controller(verification_scope: "settings_default")
       Class.new do
         @registrations = []
 
@@ -61,12 +61,12 @@ module Verification
     end
 
     test "defaults scope to the controller verification_scope" do
-      klass = build_controller(verification_scope: "configuration_birthdate")
+      klass = build_controller(verification_scope: "settings_birthdate")
       klass.step_up(only: :show)
 
       _options, calls = run_registration(klass)
 
-      assert_equal [[:require_step_up!, { scope: "configuration_birthdate" }]], calls
+      assert_equal [[:require_step_up!, { scope: "settings_birthdate" }]], calls
     end
 
     test "uses an explicit literal scope when provided" do
@@ -79,12 +79,12 @@ module Verification
     end
 
     test "bootstrap option routes to require_step_up_unless_bootstrap!" do
-      klass = build_controller(verification_scope: "configuration_email")
+      klass = build_controller(verification_scope: "settings_email")
       klass.step_up(only: %i(new create), bootstrap: true)
 
       _options, calls = run_registration(klass)
 
-      assert_equal [[:require_step_up_unless_bootstrap!, { scope: "configuration_email" }]], calls
+      assert_equal [[:require_step_up_unless_bootstrap!, { scope: "settings_email" }]], calls
     end
 
     test "forwards required_aal only when given" do
@@ -93,7 +93,7 @@ module Verification
 
       _options, calls = run_registration(klass)
 
-      assert_equal [[:require_step_up!, { scope: "configuration_default", required_aal: :aal3 }]], calls
+      assert_equal [[:require_step_up!, { scope: "settings_default", required_aal: :aal3 }]], calls
     end
   end
 end

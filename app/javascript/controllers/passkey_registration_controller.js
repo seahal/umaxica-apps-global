@@ -6,8 +6,8 @@ import { normalizePublicKeyOptions } from "controllers/webauthn_utils";
 //
 // Usage:
 //   <div data-controller="passkey-registration"
-//        data-passkey-registration-options-url-value="/configuration/passkeys/options"
-//        data-passkey-registration-verification-url-value="/configuration/passkeys/verification">
+//        data-passkey-registration-options-url-value="/settings/passkeys/options"
+//        data-passkey-registration-verification-url-value="/settings/passkeys/verification">
 //     <input type="text" data-passkey-registration-target="description" placeholder="Passkey name">
 //     <button data-action="click->passkey-registration#register">Register Passkey</button>
 //     <p data-passkey-registration-target="error" class="hidden text-red-600"></p>

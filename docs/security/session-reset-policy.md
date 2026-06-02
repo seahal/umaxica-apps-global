@@ -1,5 +1,12 @@
 # Session Reset Policy
 
+> **Partially superseded by Identity Authority inversion:** The reset-session vocabulary in this
+> document remains useful only where it does not assign session, logout, token, or step-up freshness
+> authority to `sign/id`. `acme/www` is the Session, Token, Account, Preference, Authorization, and
+> downstream-token Authority. `sign/id` is ceremony-only. Existing sign-side physical tables/models
+> do not imply sign-side authority. Do not use this document to reintroduce sign-side sessions,
+> refresh, preference, dashboard, account lifecycle, token issuance, logout, or step-up freshness.
+
 This document is `app` / `com` / `org` This article describes the current behavior of Rails session
 ID rotation (`reset_session`) as a countermeasure against session fixation attacks, which is common
 to all three surfaces. The background to the design decision See

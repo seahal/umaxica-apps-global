@@ -33,7 +33,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
           Request.new(
             parameters: { "pt" => rt_param.to_s },
             host: "id.app.localhost",
-            fullpath: "/configuration/passkeys",
+            fullpath: "/settings/passkeys",
             request_id: "req-1",
           )
         end
@@ -63,7 +63,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
 
   test "accepts a signed token whose surface and session match" do
     token = signed_return_target(
-      return_to: "/configuration/passkeys/123",
+      return_to: "/settings/passkeys/123",
       flow: "step_up.bootstrap",
       surface: "app",
       session_nonce: "nonce-1",
@@ -72,12 +72,12 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
     h.rt_param = token
     h.session_token = TokenStub.new("nonce-1")
 
-    assert_equal "/configuration/passkeys/123", h.send(:bootstrap_return_path, "/default")
+    assert_equal "/settings/passkeys/123", h.send(:bootstrap_return_path, "/default")
   end
 
   test "rejects a signed token whose surface does not match the harness class" do
     token = signed_return_target(
-      return_to: "/configuration/passkeys/123",
+      return_to: "/settings/passkeys/123",
       flow: "step_up.bootstrap",
       surface: "com",
       session_nonce: "nonce-1",
@@ -91,7 +91,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
 
   test "rejects a signed token whose session nonce does not match" do
     token = signed_return_target(
-      return_to: "/configuration/passkeys/123",
+      return_to: "/settings/passkeys/123",
       flow: "step_up.bootstrap",
       surface: "app",
       session_nonce: "issued-for-other-session",
@@ -104,7 +104,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
   end
 
   test "rejects legacy Base64 path when pt is not a signed token" do
-    legacy = Base64.urlsafe_encode64("/configuration/passkeys/legacy")
+    legacy = Base64.urlsafe_encode64("/settings/passkeys/legacy")
     h = Sign::App::BootstrapHarness.new
     h.rt_param = legacy
     h.session_token = TokenStub.new("nonce-1")
@@ -131,7 +131,7 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
 
   test "infers surface = com from the harness class name" do
     token = signed_return_target(
-      return_to: "/configuration/passkeys/com-route",
+      return_to: "/settings/passkeys/com-route",
       flow: "step_up.bootstrap",
       surface: "com",
       session_nonce: "nonce-1",
@@ -140,12 +140,12 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
     h.rt_param = token
     h.session_token = TokenStub.new("nonce-1")
 
-    assert_equal "/configuration/passkeys/com-route", h.send(:bootstrap_return_path, "/default")
+    assert_equal "/settings/passkeys/com-route", h.send(:bootstrap_return_path, "/default")
   end
 
   test "infers surface = org from the harness class name" do
     token = signed_return_target(
-      return_to: "/configuration/passkeys/org-route",
+      return_to: "/settings/passkeys/org-route",
       flow: "step_up.bootstrap",
       surface: "org",
       session_nonce: "nonce-1",
@@ -154,12 +154,12 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
     h.rt_param = token
     h.session_token = TokenStub.new("nonce-1")
 
-    assert_equal "/configuration/passkeys/org-route", h.send(:bootstrap_return_path, "/default")
+    assert_equal "/settings/passkeys/org-route", h.send(:bootstrap_return_path, "/default")
   end
 
   test "expired signed token returns default" do
     token = signed_return_target(
-      return_to: "/configuration/passkeys/123",
+      return_to: "/settings/passkeys/123",
       flow: "step_up.bootstrap",
       surface: "app",
       session_nonce: "nonce-1",

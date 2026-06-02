@@ -4,6 +4,13 @@
 
 Accepted (2026-05-20)
 
+> **Supersession (2026-06-02):** This ADR's IdP/RP-centered authority model is superseded by
+> `adr/identity-authority-boundary.md`. `acme/www` is now the Session, Token, Account, Preference,
+> and Authorization Authority. `sign/id` is no longer the IdP; it is a Credential Gateway and
+> Credential Ceremony Zone only. Historical implementation details in this ADR must not be used to
+> reintroduce sign-side sessions, refresh tokens, preference writes, dashboards, account lifecycle,
+> downstream token issuance, authorization decisions, or step-up freshness.
+
 ## Context
 
 サインアウト / ログアウトの実装は、IdP 側のセッション管理を中心に「現セッション 1 件だけ消す」フローと「全アクティブセッションを消す」フローの 2 種類が必要になる。

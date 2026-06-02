@@ -200,7 +200,7 @@ module Sign::App::Up
 
       assert_response :created
 
-      get sign_app_configuration_url(ri: "jp")
+      get sign_app_settings_url(ri: "jp")
 
       assert_equal "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}#{new_sign_app_sign_in_path(ri: "jp")}",
                    jump_rt_url_from_location(response.location)

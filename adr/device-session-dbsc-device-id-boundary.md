@@ -4,6 +4,12 @@
 
 Accepted (2026-05-20)
 
+> **Partial supersession (2026-06-02):** Session and refresh-token authority ownership in this ADR
+> is superseded by `adr/acme-session-and-token-authority.md`. The stable device-session, DBSC, and
+> device-id vocabulary remains useful, but `acme/www` owns user sessions, refresh token families,
+> device/session listing, compromise state, and step-up freshness. `sign/id` must not issue,
+> refresh, rotate, revoke, list, or display user sessions.
+
 ## Context
 
 Auth session state previously treated the surface token row (`ClientToken` / `OperatorToken` /

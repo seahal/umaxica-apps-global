@@ -225,6 +225,42 @@ ALTER SEQUENCE public.visitor_dpop_proof_states_id_seq OWNED BY public.visitor_d
 
 
 --
+-- Name: visitor_oauth_callback_states; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_oauth_callback_states (
+    id bigint NOT NULL,
+    state_digest character varying NOT NULL,
+    provider character varying NOT NULL,
+    intent character varying,
+    issued_at timestamp(6) with time zone NOT NULL,
+    expires_at timestamp(6) with time zone NOT NULL,
+    consumed_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: visitor_oauth_callback_states_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_oauth_callback_states_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_oauth_callback_states_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_oauth_callback_states_id_seq OWNED BY public.visitor_oauth_callback_states.id;
+
+
+--
 -- Name: visitor_oidc_connections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -812,6 +848,13 @@ ALTER TABLE ONLY public.visitor_dpop_proof_states ALTER COLUMN id SET DEFAULT ne
 
 
 --
+-- Name: visitor_oauth_callback_states id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_oauth_callback_states ALTER COLUMN id SET DEFAULT nextval('public.visitor_oauth_callback_states_id_seq'::regclass);
+
+
+--
 -- Name: visitor_oidc_connections id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1013,6 +1056,14 @@ ALTER TABLE ONLY public.visitor_device_sessions
 
 ALTER TABLE ONLY public.visitor_dpop_proof_states
     ADD CONSTRAINT visitor_dpop_proof_states_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_oauth_callback_states visitor_oauth_callback_states_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_oauth_callback_states
+    ADD CONSTRAINT visitor_oauth_callback_states_pkey PRIMARY KEY (id);
 
 
 --
@@ -1218,6 +1269,20 @@ CREATE UNIQUE INDEX index_visitor_dpop_proof_states_on_jti ON public.visitor_dpo
 --
 
 CREATE UNIQUE INDEX index_visitor_dpop_proof_states_on_nonce ON public.visitor_dpop_proof_states USING btree (nonce) WHERE (nonce IS NOT NULL);
+
+
+--
+-- Name: index_visitor_oauth_callback_states_on_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_oauth_callback_states_on_expires_at ON public.visitor_oauth_callback_states USING btree (expires_at);
+
+
+--
+-- Name: index_visitor_oauth_callback_states_on_state_digest; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_oauth_callback_states_on_state_digest ON public.visitor_oauth_callback_states USING btree (state_digest);
 
 
 --
@@ -1717,6 +1782,7 @@ ALTER TABLE ONLY public.visitor_sign_up_flows
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260602000000'),
 ('20260530031000'),
 ('20260528183002'),
 ('20260528162102'),

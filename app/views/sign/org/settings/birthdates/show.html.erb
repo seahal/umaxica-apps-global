@@ -1,0 +1,21 @@
+<% content_for :page_title, t("sign.org.settings.birthdate.show.page_title") %>
+
+<%= link_to t("sign.org.settings.show.back"), sign_org_settings_path(ri: params[:ri]) %>
+
+<section>
+  <h1><%= t("sign.org.settings.birthdate.show.page_title") %></h1>
+  <p><%= t("sign.org.settings.birthdate.show.description") %></p>
+
+  <dl>
+    <dt><%= t("sign.org.settings.birthdate.show.birthdate_label") %></dt>
+    <dd>
+      <% if current_operator.birthdate.present? %>
+        <span data-birthdate><%= current_operator.birthdate %></span>
+      <% else %>
+        <%= t("sign.org.settings.birthdate.show.not_set") %>
+      <% end %>
+    </dd>
+  </dl>
+
+  <p><%= t("sign.org.settings.birthdate.show.change_unavailable") %></p>
+</section>

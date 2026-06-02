@@ -129,14 +129,14 @@ module Sign
         return if telephone_registration_allowed_path?
 
         redirect_to(
-          new_sign_com_configuration_telephones_registration_path(ri: params[:ri]),
+          new_sign_com_settings_telephones_registration_path(ri: params[:ri]),
           notice: t("sign.app.registration.telephone.create.verification_code_sent"),
         )
       end
 
       def telephone_registration_allowed_path?
         allowed = [
-          "sign/com/configuration/telephones/registrations",
+          "sign/com/settings/telephones/registrations",
           "sign/com/sign_outs",
         ]
         allowed.include?(controller_path)

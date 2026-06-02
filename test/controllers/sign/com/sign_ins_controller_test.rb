@@ -18,7 +18,7 @@ module Sign
       end
 
       test "authentication links carry pt" do
-        pt = Base64.urlsafe_encode64("https://id.umaxica.com/configuration/sessions?ri=jp", padding: false)
+        pt = Base64.urlsafe_encode64("https://id.umaxica.com/settings/sessions?ri=jp", padding: false)
 
         get new_sign_com_sign_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
@@ -33,8 +33,19 @@ module Sign
 
         assert_response :success
         assert_select "form[action='/auth/google_app']", count: 0
-        assert_select "form[action='/auth/google_org']", count: 0
         assert_select "form[action='/auth/apple']", count: 0
+        assert_select "form[action*=?]", "/social/auth/", count: 0
+        assert_select "form[action*=?]", "/auth/google", count: 0
+      end
+
+      test "does not show temporary google signin button when legacy flag is set" do
+        with_env("COM_#{"GOOGLE"}_SIGNIN_ENABLED" => "true") do
+          get new_sign_com_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+        end
+
+        assert_response :success
+        assert_select "form[action*=?]", "/social/auth/google", count: 0
+        assert_select "form[action*=?]", "/auth/google", count: 0
       end
 
       test "redirects to dashboard when logged in" do
@@ -47,6 +58,16 @@ module Sign
         get new_sign_com_sign_in_url(ri: "jp"), headers: as_visitor_headers(visitor, host: @host)
 
         assert_redirected_to sign_com_dashboard_url(ri: "jp")
+      end
+
+      private
+
+      def with_env(values)
+        original = values.keys.index_with { |key| ENV[key] }
+        values.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+        yield
+      ensure
+        original.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
       end
     end
   end

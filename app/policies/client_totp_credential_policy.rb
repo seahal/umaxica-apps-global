@@ -3,7 +3,7 @@
 
 # Authorization for the app (client) TOTP credential management.
 #
-# `Sign::App::Configuration::TotpsController` scopes every lookup to
+# `Sign::App::Settings::TotpsController` scopes every lookup to
 # `current_client.client_totp_credentials`, so row-level ownership is enforced by the controller.
 # This policy adds object-level authorization: listing/registration are allowed for any client
 # actor; per-record actions (edit/update/destroy) require ownership. Step-up freshness is enforced

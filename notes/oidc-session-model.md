@@ -120,7 +120,7 @@ revocation model is required.
 
 Session revoke invalidates a specific session lineage.
 
-This is the appropriate model for session-management UI such as `/configuration/session` style
+This is the appropriate model for session-management UI such as `/settings/session` style
 operations.
 
 ### Global Sign-out

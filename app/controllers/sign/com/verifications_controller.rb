@@ -15,7 +15,7 @@ module Sign
       end
 
       def verification_invalid_request_redirect_path(ri:)
-        sign_com_configuration_path(ri: ri)
+        sign_com_settings_path(ri: ri)
       end
     end
   end

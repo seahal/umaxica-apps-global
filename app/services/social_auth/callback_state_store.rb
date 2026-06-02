@@ -21,8 +21,6 @@ module SocialAuth
         case provider.to_s
         when "google_app", "apple"
           ClientOauthCallbackState
-        when "google_org"
-          OperatorOauthCallbackState
         end
       end
     end

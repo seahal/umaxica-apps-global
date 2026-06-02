@@ -766,6 +766,22 @@ if defined?(Sign::Org::Auth::OmniauthCallbacksController)
   end
 end
 
+if defined?(Sign::Com::Auth::OmniauthCallbacksController)
+  class Sign::Com::Auth::OmniauthCallbacksController
+    def omniauth
+      request.env["omniauth.auth"] ||= mock_auth_from_test_mode
+      super
+    end
+
+    private
+
+    def mock_auth_from_test_mode
+      provider = params[:provider].to_s
+      OmniAuth.config.mock_auth[provider.to_sym] || OmniAuth.config.mock_auth[provider]
+    end
+  end
+end
+
 module AuthHelpers
   MODERN_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" unless const_defined?(:MODERN_USER_AGENT)
 end

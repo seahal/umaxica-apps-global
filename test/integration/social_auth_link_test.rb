@@ -250,7 +250,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "link intent rejects token-bound step up for a different scope" do
     headers = as_user_headers(@user_one, host: @host)
     token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
-    mark_token_step_up_satisfied_for_test(token, scope: "configuration_email")
+    mark_token_step_up_satisfied_for_test(token, scope: "settings_email")
 
     post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
          headers: headers

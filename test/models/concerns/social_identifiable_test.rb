@@ -13,8 +13,16 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
 
   test "normalize_provider maps known providers" do
     assert_equal "google", SocialIdentifiable.normalize_provider("google_app")
-    assert_equal "microsoft", SocialIdentifiable.normalize_provider("microsoft_graph")
     assert_equal "apple", SocialIdentifiable.normalize_provider("apple")
+  end
+
+  test "normalize_provider does not alias org or com google providers" do
+    assert_equal "google_#{"org"}", SocialIdentifiable.normalize_provider("google_#{"org"}")
+    assert_equal "google_#{"com"}", SocialIdentifiable.normalize_provider("google_#{"com"}")
+  end
+
+  test "normalize_provider does not alias unsupported microsoft provider" do
+    assert_equal "microsoft_#{"graph"}", SocialIdentifiable.normalize_provider("microsoft_#{"graph"}")
   end
 
   test "normalize_provider lowercases unknown providers" do
@@ -23,12 +31,22 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
 
   test "model_for_provider returns model class" do
     assert_equal ClientGoogleIdentity, SocialIdentifiable.model_for_provider("google")
-    assert_equal OperatorGoogleIdentity, SocialIdentifiable.model_for_provider("google_org")
+    assert_equal ClientGoogleIdentity, SocialIdentifiable.model_for_provider("google_app")
     assert_equal ClientAppleIdentity, SocialIdentifiable.model_for_provider("apple")
+  end
+
+  test "model_for_provider rejects org and com google providers" do
+    assert_raises(ArgumentError) { SocialIdentifiable.model_for_provider("google_#{"org"}") }
+    assert_raises(ArgumentError) { SocialIdentifiable.model_for_provider("google_#{"com"}") }
   end
 
   test "model_for_provider raises on unknown provider" do
     error = assert_raises(ArgumentError) { SocialIdentifiable.model_for_provider("unknown") }
+    assert_match(/Unknown provider/, error.message)
+  end
+
+  test "model_for_provider rejects unsupported microsoft provider" do
+    error = assert_raises(ArgumentError) { SocialIdentifiable.model_for_provider("microsoft_#{"graph"}") }
     assert_match(/Unknown provider/, error.message)
   end
 

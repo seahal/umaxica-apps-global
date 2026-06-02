@@ -36,24 +36,24 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   end
 
   test "deactivated user accessing normal page redirects to withdrawal status" do
-    get sign_app_configuration_sessions_url(ri: "jp"), headers: @headers
+    get sign_app_settings_sessions_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
-    assert_redirected_to edit_sign_app_configuration_withdrawal_path(ri: "jp")
+    assert_redirected_to edit_sign_app_settings_withdrawal_path(ri: "jp")
   end
 
   test "deactivated user can access allowlisted pages" do
-    get new_sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+    get new_sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :success
 
-    get edit_sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+    get edit_sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :success
   end
 
   test "deactivated user accessing API returns 403" do
-    get sign_app_configuration_sessions_url(ri: "jp"), headers: @headers.merge("Accept" => "application/json")
+    get sign_app_settings_sessions_url(ri: "jp"), headers: @headers.merge("Accept" => "application/json")
 
     assert_response :forbidden
     json_response = response.parsed_body
@@ -79,7 +79,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => normal_token.public_id,
     }
 
-    get sign_app_configuration_url(ri: "jp"), headers: headers
+    get sign_app_settings_url(ri: "jp"), headers: headers
 
     assert_response :success
   end

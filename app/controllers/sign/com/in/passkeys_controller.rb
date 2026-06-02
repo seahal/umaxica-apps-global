@@ -151,7 +151,7 @@ module Sign
         end
 
         def passkey_default_redirect_url
-          sign_com_configuration_path(ri: params[:ri])
+          sign_com_settings_path(ri: params[:ri])
         end
 
         def minimum_response_budget_enabled?

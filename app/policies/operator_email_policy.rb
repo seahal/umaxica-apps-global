@@ -3,7 +3,7 @@
 
 # Authorization for the org (operator) email listing.
 #
-# `Sign::Org::Configuration::EmailsController` and its registration subcontroller scope every
+# `Sign::Org::Settings::EmailsController` and its registration subcontroller scope every
 # query to `current_operator.staff_emails`, so row-level ownership is enforced by those queries.
 # `index?`/`create?` gate the actor *type*; the per-record write rules require ownership
 # (record.staff_id == operator.id). Other defaults stay deny-all (allowlist).

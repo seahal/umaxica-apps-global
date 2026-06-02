@@ -1,5 +1,11 @@
 # Test Specification
 
+> **Partially superseded by Identity Authority inversion:** Identity test expectations in this
+> document must be read through `docs/qa/identity-authority-regression-checklist.md`. `acme/www`
+> commits session, token, account, preference, authorization, and freshness state. `sign/id` is
+> ceremony-only and must not be tested as the owner of sessions, refresh, preference, dashboards,
+> account lifecycle, token issuance, logout, or step-up freshness.
+
 ## Scope
 
 This document defines how the Rails platform is verified across the current boundary model:

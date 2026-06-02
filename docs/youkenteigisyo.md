@@ -164,7 +164,7 @@ Telephone all deletion conditions
 
 1 or more emails exist
 
-8. Activity display (/configuration/activity) purpose
+8. Activity display (/settings/activity) purpose
 
 Users can check their own login history and operation history
 

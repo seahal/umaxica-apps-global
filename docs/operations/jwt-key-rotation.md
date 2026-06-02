@@ -1,5 +1,10 @@
 # JWT Key Rotation
 
+> **Partially superseded by Identity Authority inversion:** JWT key rotation remains required, but
+> token authority belongs to `acme/www`. `sign/id` is ceremony-only and must not issue sessions,
+> refresh tokens, downstream tokens, or step-up freshness. Existing sign-side physical tables/models
+> do not imply sign-side authority.
+
 ## Scope
 
 This runbook covers Auth access tokens, Preference tokens, OIDC ID Tokens, and issuer-surface JWKS.

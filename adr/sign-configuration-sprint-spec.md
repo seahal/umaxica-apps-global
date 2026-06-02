@@ -1,5 +1,10 @@
 # Sign Configuration Sprint Spec (2026-02-06)
 
+> **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
+> useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
+> owns session, token, account, preference, authorization, downstream-token trust, and step-up
+> freshness. `sign/id` owns only credential inventory and short-lived credential ceremony state.
+
 This document fixes the remaining ambiguous points and is the source of truth for this sprint.
 
 ## Implementation Status
@@ -52,7 +57,7 @@ This document fixes the remaining ambiguous points and is the source of truth fo
 
 - `AuthMethodGuard.last_method?(actor, excluding:)` checks remaining auth methods
 - Controllers use `require_step_up!(scope: "social_unlink")` for sensitive actions
-- Flash message: `t("sign.app.configuration.email.destroy.last_method")`
+- Flash message: `t("sign.app.settings.email.destroy.last_method")`
 
 ### What counts as an authentication method
 
@@ -93,7 +98,7 @@ This document fixes the remaining ambiguous points and is the source of truth fo
 
 - Two-way model is **"withdraw (reversible)" ↔ "recover"** within a fixed recovery window.
 - Permanent deletion is **not** available via UI in this sprint.
-- `/configuration/withdrawal` should present **only the reversible path**.
+- `/setting/withdrawal` should present **only the reversible path**.
 - If permanent deletion is needed later, it must be moved to a separate flow (support or delayed
   job).
 

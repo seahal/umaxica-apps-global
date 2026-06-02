@@ -31,7 +31,7 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
           Request.new(
             parameters: { "pt" => rt_param.to_s },
             host: "id.app.localhost",
-            fullpath: request_fullpath || "/configuration/passkeys",
+            fullpath: request_fullpath || "/settings/passkeys",
             request_id: "req-1",
           )
         end
@@ -68,31 +68,31 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
     h = Sign::App::RtHarness.new
     h.session_token = TokenStub.new("nonce-1")
 
-    pt = h.send(:encoded_relative_pt, "/configuration/passkeys/9")
+    pt = h.send(:encoded_relative_pt, "/settings/passkeys/9")
 
     assert_includes pt, "--", "expected signed format (verifier appends -- separator), got: #{pt.inspect}"
 
     resolved = h.send(:resolve_step_up_pt, pt)
 
-    assert_equal "/configuration/passkeys/9", resolved
+    assert_equal "/settings/passkeys/9", resolved
   end
 
   test "encoded_step_up_pt issues a signed token derived from request.fullpath" do
     h = Sign::App::RtHarness.new
     h.session_token = TokenStub.new("nonce-1")
-    h.request_fullpath = "/configuration/secret_credentials"
+    h.request_fullpath = "/settings/secret_credentials"
 
     pt = h.send(:encoded_step_up_pt)
 
     assert_includes pt, "--", "expected signed format"
-    assert_equal "/configuration/secret_credentials", h.send(:resolve_step_up_pt, pt)
+    assert_equal "/settings/secret_credentials", h.send(:resolve_step_up_pt, pt)
   end
 
   test "issue_step_up_pt returns nil when surface cannot be inferred" do
     h = NoSurface::RtHarness.new
     h.session_token = TokenStub.new("nonce-1")
 
-    pt = h.send(:encoded_relative_pt, "/configuration/passkeys/9")
+    pt = h.send(:encoded_relative_pt, "/settings/passkeys/9")
 
     assert_nil pt
   end
@@ -101,7 +101,7 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
     h = Sign::App::RtHarness.new
     h.session_token = nil
 
-    pt = h.send(:encoded_relative_pt, "/configuration/passkeys/9")
+    pt = h.send(:encoded_relative_pt, "/settings/passkeys/9")
 
     assert_nil pt
   end
@@ -109,7 +109,7 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
   test "resolve_step_up_pt rejects signed tokens cross-surface" do
     issuer = Sign::App::RtHarness.new
     issuer.session_token = TokenStub.new("nonce-1")
-    pt = issuer.send(:encoded_relative_pt, "/configuration/passkeys/9")
+    pt = issuer.send(:encoded_relative_pt, "/settings/passkeys/9")
 
     consumer = Sign::Com::RtHarness.new
     consumer.session_token = TokenStub.new("nonce-1")
@@ -120,7 +120,7 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
   test "resolve_step_up_pt rejects signed tokens issued for a different session" do
     issuer = Sign::App::RtHarness.new
     issuer.session_token = TokenStub.new("nonce-issuer")
-    pt = issuer.send(:encoded_relative_pt, "/configuration/passkeys/9")
+    pt = issuer.send(:encoded_relative_pt, "/settings/passkeys/9")
 
     consumer = Sign::App::RtHarness.new
     consumer.session_token = TokenStub.new("nonce-consumer")
@@ -131,10 +131,10 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
   test "decode_pt_path accepts signed tokens and rejects legacy tokens" do
     h = Sign::App::RtHarness.new
     h.session_token = TokenStub.new("nonce-1")
-    signed = h.send(:encoded_relative_pt, "/configuration/passkeys/9")
-    legacy = Base64.urlsafe_encode64("/configuration/legacy")
+    signed = h.send(:encoded_relative_pt, "/settings/passkeys/9")
+    legacy = Base64.urlsafe_encode64("/settings/legacy")
 
-    assert_equal "/configuration/passkeys/9", h.send(:decode_pt_path, signed)
+    assert_equal "/settings/passkeys/9", h.send(:decode_pt_path, signed)
     assert_nil h.send(:decode_pt_path, legacy)
     assert_nil h.send(:decode_pt_path, "garbage~~")
     assert_nil h.send(:decode_pt_path, nil)
@@ -145,23 +145,23 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
     h = Sign::App::RtHarness.new
     h.session_token = TokenStub.new("nonce-1")
 
-    inner_rt = h.send(:encoded_relative_pt, "/configuration/passkeys/9")
+    inner_rt = h.send(:encoded_relative_pt, "/settings/passkeys/9")
     nested_path = "/sign/app/verification?ri=jp&pt=#{inner_rt}"
 
     unwrapped = h.send(:unwrap_verification_pt_path, nested_path)
 
-    assert_equal "/configuration/passkeys/9", unwrapped
+    assert_equal "/settings/passkeys/9", unwrapped
   end
 
   test "existing_step_up_pt_path resolves signed params and rejects legacy params" do
     h = Sign::App::RtHarness.new
     h.session_token = TokenStub.new("nonce-1")
-    signed = h.send(:encoded_relative_pt, "/configuration/passkeys/9")
+    signed = h.send(:encoded_relative_pt, "/settings/passkeys/9")
     h.rt_param = signed
 
-    assert_equal "/configuration/passkeys/9", h.send(:existing_step_up_pt_path)
+    assert_equal "/settings/passkeys/9", h.send(:existing_step_up_pt_path)
 
-    h.rt_param = Base64.urlsafe_encode64("/configuration/legacy")
+    h.rt_param = Base64.urlsafe_encode64("/settings/legacy")
 
     assert_nil h.send(:existing_step_up_pt_path)
   end

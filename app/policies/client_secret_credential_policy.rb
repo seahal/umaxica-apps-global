@@ -3,7 +3,7 @@
 
 # Authorization for the app (client) secret-credential management.
 #
-# `Sign::App::Configuration::SecretCredentialsController` scopes every lookup to
+# `Sign::App::Settings::SecretCredentialsController` scopes every lookup to
 # `current_client.client_secret_credentials`, so row-level ownership is enforced by the controller.
 # This policy adds object-level authorization: listing/registration are allowed for any client
 # actor; per-record actions require ownership (record.user_id == user.id). Step-up and Turnstile

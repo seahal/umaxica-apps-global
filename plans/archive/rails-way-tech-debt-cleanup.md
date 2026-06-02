@@ -213,7 +213,7 @@ Total of 3 files (per-boundary). 13 files (current Align to the structure of
 - The part where `occurred_at: Time.current` is passed in the audit write part is `app/services/**`,
   `app/controllers/concerns/**`, `app/controllers/sign/**` There are many locations (approximately
   25 locations, available at `grep -rn "occurred_at: Time.current"`).
-- The display side is `app/controllers/sign/{app,com,org}/configuration/activities_controller.rb`.
+- The display side is `app/controllers/sign/{app,com,org}/settings/activities_controller.rb`.
   `COALESCE(occurred_at, created_at) DESC` and `activity.occurred_at || activity.created_at` This is
   a patchwork implementation of
   ``Records without occurrence_at fall back to created_at'' (= already For operational purposes, it is assumed that `occurred_at`
@@ -251,7 +251,7 @@ Total of 3 files (per-boundary). 13 files (current Align to the structure of
    `app/controllers/concerns/authorization_audit.rb`,
    `app/controllers/concerns/authentication/customer.rb`,
    `app/controllers/concerns/ preference/base.rb`,
-   `app/controllers/sign/{com,app}/configuration/{telephones,emails}_ controller.rb`,
+   `app/controllers/sign/{com,app}/settings/{telephones,emails}_ controller.rb`,
    `app/controllers/sign/app/in/secrets_controller.rb`.
 2. `app/lib/sign/risk/event.rb` and `app/lib/sign/risk/emitter.rb` of `occurred_at` Leave the name
    as the field name of the domain event (CloudEvents style). This is not a DB column.
@@ -385,7 +385,7 @@ Since there are a large number of tables, we will go through the dual write peri
   ARIA attribute.
 - Example: `app/views/sign/app/in/emails/new.html.erb` is nested 4 times with `<div>` and empty
   `<div>` (line 38) and there is no `role="alert"` in the form error area.
-- Example: `app/views/sign/app/configurations/show.html.erb` is structurally valid (`<section>` +
+- Example: `app/views/sign/app/settingss/show.html.erb` is structurally valid (`<section>` +
   `<h2>` + `<ul>`) However, `<section>` does not have `aria-labelledby`.
 - Example: `app/views/sign/app/in/sessions/show.html.erb` (line 105) has a correct list structure,
   but the only representation of "current session" is a visual flag (`<span>(current)</span>`),
@@ -426,7 +426,7 @@ Since there are a large number of tables, we will go through the dual write peri
 
 1. Login/signup system (high frequency): `app/views/sign/{app,com,org}/in/**`,
    `app/views/sign/{app,com,org}/up/**`, `app/views/sign/{app,com,org}/ins/new.html.erb`.
-2. Setting system (medium frequency): `app/views/sign/{app,com,org}/configuration/**`.
+2. Setting system (medium frequency): `app/views/sign/{app,com,org}/settings/**`.
 3. Preferences: `app/views/sign/{app,com,org}/preference/**`.
 4. Root view: `app/views/sign/{app,com,org}/roots/**`, `app/views/acme/{app,com,org}/roots/**`,
    `app/views/sign/{dev,net}/roots/**` (integrated with task 5).

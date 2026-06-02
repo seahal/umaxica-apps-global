@@ -15,13 +15,13 @@
     <% if @missing_methods.include?(:email_otp) %>
     <li>
       <%= link_to t("sign.app.verification.setup.methods.email"),
-                  new_sign_com_configuration_emails_registration_path(ri: params[:ri], pt: @pt) %>
+                  new_sign_com_settings_emails_registration_path(ri: params[:ri], pt: @pt) %>
     </li>
     <% end %>
     <% if @missing_methods.include?(:passkey) %>
     <li>
       <%= link_to t("sign.app.verification.setup.methods.passkey"),
-                  new_sign_com_configuration_passkey_path(ri: params[:ri], pt: @pt) %>
+                  new_sign_com_settings_passkey_path(ri: params[:ri], pt: @pt) %>
     </li>
     <% end %>
   </ul>

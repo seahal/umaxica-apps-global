@@ -32,10 +32,10 @@ describe("PasskeyRegistrationController", () => {
 
   beforeEach(() => {
     controller = new PasskeyRegistrationController();
-    controller.optionsUrlValue = "/configuration/passkeys/options";
-    controller.verificationUrlValue = "/configuration/passkeys/verification";
-    controller.beginUrlValue = "/configuration/passkeys/begin";
-    controller.finishUrlValue = "/configuration/passkeys/finish";
+    controller.optionsUrlValue = "/settings/passkeys/options";
+    controller.verificationUrlValue = "/settings/passkeys/verification";
+    controller.beginUrlValue = "/settings/passkeys/begin";
+    controller.finishUrlValue = "/settings/passkeys/finish";
     controller.successRedirectUrlValue = "/settings";
     controller.turnstileSiteKeyValue = "sitekey123";
     controller.turnstileResponseTarget.value = "turnstile-token";
@@ -149,7 +149,7 @@ describe("PasskeyRegistrationController", () => {
 
   test("requestBeginUrl: beginUrlValue がなければ optionsUrlValue を使う", () => {
     controller.hasBeginUrlValue = false;
-    expect(controller.requestBeginUrl).toBe("/configuration/passkeys/options");
+    expect(controller.requestBeginUrl).toBe("/settings/passkeys/options");
   });
 
   test("requestFinishUrl: finishUrlValue を優先する", () => {
@@ -159,7 +159,7 @@ describe("PasskeyRegistrationController", () => {
 
   test("requestFinishUrl: finishUrlValue がなければ verificationUrlValue を使う", () => {
     controller.hasFinishUrlValue = false;
-    expect(controller.requestFinishUrl).toBe("/configuration/passkeys/verification");
+    expect(controller.requestFinishUrl).toBe("/settings/passkeys/verification");
   });
 
   test("redirectUrl: successRedirectUrlValue を優先する", () => {

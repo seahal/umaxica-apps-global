@@ -3,7 +3,7 @@
 
 # Authorization for the app (client) self-service withdrawal flow.
 #
-# Every action in `Sign::App::Configuration::WithdrawalsController` operates on `current_client`
+# Every action in `Sign::App::Settings::WithdrawalsController` operates on `current_client`
 # itself (schedule/deactivate/recover/terminate the actor's own account), so authorization is a
 # pure owner-self check. This is deliberately NOT routed through `ClientPolicy`, whose `create?`/
 # `destroy?` carry user-management semantics (operator-only) that do not apply to a client closing

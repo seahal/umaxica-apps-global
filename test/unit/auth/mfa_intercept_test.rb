@@ -69,11 +69,11 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
 
   test "resolve_mfa_return_to decodes base64 internal path" do
     controller = build_test_controller
-    encoded = Base64.urlsafe_encode64("/configuration")
+    encoded = Base64.urlsafe_encode64("/settings")
 
     result = controller.send(:resolve_mfa_return_to, encoded)
 
-    assert_equal "/configuration", result
+    assert_equal "/settings", result
   end
 
   test "resolve_mfa_return_to rejects external URLs without allowed host" do

@@ -191,13 +191,13 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
   end
 
   test "safe return path accepts same-host absolute url as internal path" do
-    result = @harness.send(:safe_return_path, "https://example.com/configuration/sessions?ri=jp")
+    result = @harness.send(:safe_return_path, "https://example.com/settings/sessions?ri=jp")
 
-    assert_equal "/configuration/sessions?ri=jp", result
+    assert_equal "/settings/sessions?ri=jp", result
   end
 
   test "safe return path rejects external absolute url" do
-    result = @harness.send(:safe_return_path, "https://evil.example/configuration/sessions?ri=jp")
+    result = @harness.send(:safe_return_path, "https://evil.example/settings/sessions?ri=jp")
 
     assert_nil result
   end

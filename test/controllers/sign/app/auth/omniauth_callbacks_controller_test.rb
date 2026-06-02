@@ -56,7 +56,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
     controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
     controller.define_singleton_method(:new_sign_app_sign_up_path) { |ri: nil| "/sign/up/new#{ri ? "?ri=#{ri}" : ""}" }
-    controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
@@ -64,7 +64,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_in_checkpoint_path) do |ri: nil, pt: nil|
       "/sign/in/checkpoint?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     end
-    controller.define_singleton_method(:social_auth_success_redirect_path) { "/configuration" }
+    controller.define_singleton_method(:social_auth_success_redirect_path) { "/settings" }
     controller.define_singleton_method(:issue_bulletin!) { @issue_bulletin_for_test }
     controller.define_singleton_method(:logged_in?) { @logged_in_for_test }
     controller.define_singleton_method(:current_resource) { @resource_for_test }
@@ -74,7 +74,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     controller.send(:handle_link_intent, "Apple")
 
-    assert_match "/configuration", redirects.last.first.first
+    assert_match "/settings", redirects.last.first.first
 
     controller.instance_variable_set(:@issue_bulletin_for_test, true)
     controller.send(:redirect_for_existing_account, "Apple")
@@ -177,7 +177,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
-    controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }

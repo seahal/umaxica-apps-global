@@ -46,19 +46,19 @@ response
 
 ### Group 4: Phone number registration system
 
-| #   | File path                                                                             | Number of lines         | stub target method                                                          |
-| --- | ------------------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------- |
-| 1   | `test/controllers/sign/org/configuration/telephones/registrations_controller_test.rb` | 63, 67                  | `:current_registration_telephone`, `:complete_staff_telephone_verification` |
-| 2   | `test/controllers/sign/app/configuration/telephones/registrations_controller_test.rb` | 154, 178, 201, 224, 241 | Same as above + `set_registration_session`                                  |
+| #   | File path                                                                        | Number of lines         | stub target method                                                          |
+| --- | -------------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------- |
+| 1   | `test/controllers/sign/org/settings/telephones/registrations_controller_test.rb` | 63, 67                  | `:current_registration_telephone`, `:complete_staff_telephone_verification` |
+| 2   | `test/controllers/sign/app/settings/telephones/registrations_controller_test.rb` | 154, 178, 201, 224, 241 | Same as above + `set_registration_session`                                  |
 
 **Conversion method**: Alternative implementation of session operations or testing in real flow
 
 ### Group 5: Individual cases
 
-| #   | File path                                                             | Number of lines | stub target method                           |
-| --- | --------------------------------------------------------------------- | --------------- | -------------------------------------------- |
-| 1   | `test/controllers/sign/org/configuration/passkeys_controller_test.rb` | 103             | `OperatorPasskey.any_instance.stub(:valid?)` |
-| 2   | `test/controllers/acme/app/web/v0/cookie_controller_test.rb`          | 141             | `:issue_access_token_from`                   |
+| #   | File path                                                        | Number of lines | stub target method                           |
+| --- | ---------------------------------------------------------------- | --------------- | -------------------------------------------- |
+| 1   | `test/controllers/sign/org/settings/passkeys_controller_test.rb` | 103             | `OperatorPasskey.any_instance.stub(:valid?)` |
+| 2   | `test/controllers/acme/app/web/v0/cookie_controller_test.rb`     | 141             | `:issue_access_token_from`                   |
 
 ## conversion strategy
 
@@ -118,12 +118,12 @@ end
 
 ```ruby
 test "creates verification on success via real flow" do
-  return_to = Base64.urlsafe_encode64(sign_app_configuration_passkeys_path(ri: "jp"))
+  return_to = Base64.urlsafe_encode64(sign_app_settings_passkeys_path(ri: "jp"))
 
   # Execute the actual step-up authentication flow
   user = users_with_passkey(:one) # Prepare fixture with passkey
 
-  get sign_app_verification_url(scope: "configuration_passkey", return_to: return_to), ...
+  get sign_app_verification_url(scope: "settings_passkey", return_to: return_to), ...
 
   follow_redirect!
   assert_response :success
@@ -133,7 +133,7 @@ test "creates verification on success via real flow" do
   }
 
   assert_response :redirect
-  assert_redirected_to sign_app_configuration_passkeys_url(ri: "jp")
+  assert_redirected_to sign_app_settings_passkeys_url(ri: "jp")
 end
 ```
 
@@ -141,14 +141,14 @@ end
 
 ```ruby
 test "creates verification on success with service mock" do
-  return_to = Base64.urlsafe_encode64(sign_app_configuration_passkeys_path(ri: "jp"))
+  return_to = Base64.urlsafe_encode64(sign_app_settings_passkeys_path(ri: "jp"))
 
   # Mock Service method
   mock_service = Minitest::Mock.new
   mock_service.expect :call, true, [User, String, Hash]
 
   Sign::App::PasskeyVerificationService.stub :verify!, mock_service do
-    get sign_app_verification_url(scope: "configuration_passkey", return_to: return_to), ...
+    get sign_app_verification_url(scope: "settings_passkey", return_to: return_to), ...
 
     get new_sign_app_verification_passkey_url(ri: "jp"), ...
 
@@ -193,7 +193,7 @@ end
 
 ```ruby
 def set_registration_session(id)
-  Sign::App::Configuration::Telephones::RegistrationsController.any_instance.stub(
+  Sign::App::Settings::Telephones::RegistrationsController.any_instance.stub(
     :current_registration_telephone,
     UserTelephone.find(id),
   ) do
@@ -207,7 +207,7 @@ end
 ```ruby
 def set_registration_session(telephone)
   # Save to actual session
-  post sign_app_configuration_telephones_registrations_path(ri: "jp"),
+  post sign_app_settings_telephones_registrations_path(ri: "jp"),
        params: { user_telephone: { raw_number: telephone.raw_number } }
   assert_response :redirect # Confirmation code sent successfully
 end
@@ -234,7 +234,7 @@ end
 
 ### Phase 3: Group 5 (individual case) (0.5 days)
 
-- [ ] `sign/org/configuration/passkeys_controller_test.rb` - stub to `OperatorPasskey`
+- [ ] `sign/org/settings/passkeys_controller_test.rb` - stub to `OperatorPasskey`
 - [ ] `acme/app/web/v0/cookie_controller_test.rb` - line 141
 
 ### Phase 4: Group 4 (phone number registration) (1 day)

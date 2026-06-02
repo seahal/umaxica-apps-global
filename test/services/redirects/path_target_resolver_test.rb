@@ -6,7 +6,7 @@ class Redirects::PathTargetResolverTest < ActiveSupport::TestCase
   test "allows path only targets" do
     assert_equal "/dashboard", resolve("/dashboard").value
     assert_equal "/dashboard?tab=security", resolve("/dashboard?tab=security").value
-    assert_equal "/configuration/security", resolve("/configuration/security").value
+    assert_equal "/settings/security", resolve("/settings/security").value
     assert_equal "/sign/out/complete?x=1", resolve("/sign/out/complete?x=1").value
   end
 

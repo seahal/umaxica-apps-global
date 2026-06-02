@@ -17,7 +17,7 @@ class OmniauthTest < ActiveSupport::TestCase
 
   test "callback origin uses https for configured org sign host" do
     env = Rack::MockRequest.env_for(
-      "http://id.umaxica.org/auth/google_org",
+      "http://id.umaxica.org/auth/failure",
       "HTTP_HOST" => "id.umaxica.org",
     )
 

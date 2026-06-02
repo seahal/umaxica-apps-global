@@ -120,25 +120,6 @@ class AvatarTest < ActiveSupport::TestCase
     assert_not_empty duplicate.errors[:public_id]
   end
 
-  test "association deletion: restriction by posts" do
-    avatar = Avatar.create!(
-      moniker: "AppPost Author",
-      capability: @capability,
-      active_handle: @handle,
-    )
-    status = AppPostStatus.find_or_create_by!(id: AppPostStatus::NOTHING)
-    AppPost.create!(
-      author_avatar: avatar,
-      app_post_status: status,
-      body: "Test AppPost",
-      permalink: "post-author",
-      created_by_actor_id: "user-1",
-    )
-
-    assert_not avatar.destroy
-    assert_not_empty avatar.errors[:base]
-  end
-
   test "create_with_owner creates avatar and assigns owner" do
     create_user_and_status
     user = Client.find_by!(public_id: "one_id")

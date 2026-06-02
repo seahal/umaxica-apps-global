@@ -3,7 +3,7 @@
 
 # Authorization for the org (operator) telephone listing.
 #
-# `Sign::Org::Configuration::TelephonesController` and its registration subcontroller scope every
+# `Sign::Org::Settings::TelephonesController` and its registration subcontroller scope every
 # query to `current_operator.staff_telephones`, so row-level ownership is enforced by those queries.
 # `index?`/`create?` gate the actor *type*; per-record write rules require ownership
 # (record.staff_id == operator.id). Other defaults stay deny-all (allowlist).

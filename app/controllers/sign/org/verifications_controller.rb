@@ -15,6 +15,6 @@ class Sign::Org::VerificationsController < Sign::Org::Verification::BaseControll
   end
 
   def verification_invalid_request_redirect_path(ri:)
-    sign_org_configuration_path(ri: ri)
+    sign_org_settings_path(ri: ri)
   end
 end

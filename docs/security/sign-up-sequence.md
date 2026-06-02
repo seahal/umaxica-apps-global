@@ -1,5 +1,12 @@
 # Sign-Up Sequence
 
+> **Partially superseded by Identity Authority inversion:** The routing and state-machine vocabulary
+> in this document remains useful only where it does not assign authority to `sign/id`. `acme/www`
+> is the Session, Token, Account, Preference, Authorization, and downstream-token Authority.
+> `sign/id` is ceremony-only. Existing sign-side physical tables/models do not imply sign-side
+> authority. Do not use this document to reintroduce sign-side sessions, refresh, preference,
+> dashboard, account lifecycle, token issuance, logout, or step-up freshness.
+
 This document records the current sign-up routing sequence for the `app` and `com` sign surfaces,
 and the operator acquisition/lifecycle routing sequence for `org`. It is intentionally descriptive:
 it captures the behavior that exists today so a future sign-up state machine can replace the
@@ -32,6 +39,14 @@ separate ADR changes that policy.
 
 1. External candidate inquiry.
 2. Operator lifecycle request.
+
+Current surface terminology and inventory:
+
+| Surface | Term                                           | Actor/resource                                         | Identifier                                                            | Credential setup                                                                                            | Challenge                                                                          | Verification                                                                         | Session/token                                                                       | Chronicle/audit                        | Routes/controllers/views/tests                                                                                                                          |
+| ------- | ---------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app`   | User/client registration                       | `Client`, contact identifiers, app social identities   | Email, telephone, Google provider assertion, Apple provider assertion | Birthdate checkpoint, passkey checkpoint, passcode checkpoint, and social identity binding where applicable | Sign-up checkpoint requirements; provider callback state validation for app social | Email/telephone OTP verification and checkpoint completion before durable completion | Post-finalization handoff enters the app sign-in/session sequence                   | Client sign-up chronicle/audit events  | `config/routes/sign.rb` app `sign/up`, `social`, and `auth`; `app/controllers/sign/app/up/**`; app social callback controllers/views/tests              |
+| `com`   | Public/corporate visitor entry or inquiry flow | `Visitor`, visitor contact identifiers                 | Email, telephone                                                      | Birthdate checkpoint, passkey checkpoint, passcode checkpoint                                               | Sign-up checkpoint requirements                                                    | Email/telephone OTP verification and checkpoint completion before durable completion | Post-finalization handoff enters the com sign-in/session sequence                   | Visitor sign-up chronicle/audit events | `config/routes/sign.rb` com `sign/up`; `app/controllers/sign/com/up/**`; com sign-up/no-social tests                                                    |
+| `org`   | Operator acquisition / staff onboarding        | `Operator`, invitation and lifecycle request resources | Invitation token or lifecycle request context                         | Passkey and secret credential setup through staff onboarding or signed-in settings where implemented        | No public social sign-up challenge                                                 | Invitation/lifecycle approval and local credential setup boundaries                  | Operator session is established only through org sign-in after local authentication | Operator chronicle/audit events        | `config/routes/sign.rb` org `sign/up/invitations` and settings lifecycle request routes; `app/controllers/sign/org/up/**`; org sign-up/onboarding tests |
 
 The app/com sign-up checkpoint owns required registration setup before durable account finalization.
 Birthdate is a sign-up checkpoint requirement for app/com end-user registration.
@@ -746,33 +761,17 @@ Target state-machine path:
 Org is not an app/com-style public sign-up surface. A public org request must not create an
 `Operator` directly. Operator creation, mutation, and withdrawal are controlled lifecycle events.
 
-### Temporary Google Gateway Exception
+### Withdrawn Google Gateway Exception
 
-2026-06-02: `adr/google-social-temporary-gateway-exception.md` と
-`plans/active/org-com-google-social-temporary-gateway-plan.md` により、QA と com/org 実装検証中だけ
-`org Google signup` を temporary gateway として扱える。一時例外であり、本番仕様ではない。
+The 2026-06-02 temporary Google gateway exception for `org` and `com` is withdrawn. Org signup must
+not create an operator through an external social provider, and com signup must not create a visitor
+through an external social provider.
 
-- `org Google signup` は `ORG_GOOGLE_SIGNUP_ENABLED` で制御する。
-- `org Google signup` の provisioning gate は最初は allowlist とする。
-- `org Google signup` の provisioning は `Sign::Social::OrgOperatorProvisioner` に隔離し、
-  no-migration marker として `OperatorChronicle` context に
-  `source: "org_google_social_temporary_gateway"`、`temporary_gateway: true`、`provider: "google_org"`
-  を記録する。
-- temporary gateway では `OperatorEmail` を作成しない。Google email は allowlist の補助条件であり、
-  signin 認証境界は `OperatorGoogleIdentity` の provider + uid とする。
-- 招待制と operator lifecycle request は将来の恒久設計候補として残す。
-- `org Google signin` は `Sign::Social::OrgGoogleSigninGate` で制御し、本番に残す候補とする。この gate
-  は temporary cleanup 対象ではない。
-- `com` に temporary Google gateway を追加する場合は、`Visitor` / `VisitorGoogleIdentity`
-  相当の境界に閉じる。`Client` や app social signup sequence に寄せない。
-- 現状 `VisitorSignUpFlow` は social provider を許可しない設計なので、temporary
-  gateway 実装には migration と model validation の明示レビューが必要である。
-- production 推奨値は `ORG_GOOGLE_SIGNUP_ENABLED=false`、 `ORG_GOOGLE_SIGNIN_ENABLED=true`。
-- production で `ORG_GOOGLE_SIGNUP_ENABLED=true` を検出した場合は boot fail とする。
-- temporary signup 実装には `TEMP(org-google-social-gateway): remove before production cleanup`
-  と retirement test を必須にする。
-- 本番前 cleanup では `org` は Google signin のみ残す。
-- この例外は public self-service operator signup を恒久仕様に昇格しない。
+- Org remains an invitation and operator-lifecycle surface, not a public social self-registration
+  surface.
+- Com remains an email/telephone local registration surface, not a social registration surface.
+- The app Google and Apple social signup sequence remains unchanged.
+- Any future org/com social provider work requires a new accepted ADR.
 
 ### External Candidate Inquiry
 
@@ -812,12 +811,12 @@ Target path:
   - The actor must already be an org operator.
   - The actor completes the normal org sign-in sequence.
 
-- Lifecycle request form: `GET /configuration/operator_lifecycle_requests/new`
+- Lifecycle request form: `GET /settings/operator_lifecycle_requests/new`
   - Used for operator create, update, withdrawal, or related lifecycle actions.
   - The request records the intended action, target operator or target email, organization, role,
     and reason.
 
-- Lifecycle request submission: `POST /configuration/operator_lifecycle_requests`
+- Lifecycle request submission: `POST /settings/operator_lifecycle_requests`
   - Require AAL2 step-up with scope `operator_lifecycle`.
   - Create an `OperatorLifecycleRequest`.
   - Do not execute privileged lifecycle changes directly from an unauthenticated public route.
@@ -833,11 +832,11 @@ Target path:
 
 Current path:
 
-1. An authenticated operator opens `GET /configuration/operator_lifecycle_requests/new`.
-2. `POST /configuration/operator_lifecycle_requests` requires step-up scope `operator_lifecycle`.
+1. An authenticated operator opens `GET /settings/operator_lifecycle_requests/new`.
+2. `POST /settings/operator_lifecycle_requests` requires step-up scope `operator_lifecycle`.
 3. The request is persisted as an `OperatorLifecycleRequest`.
 4. Approval, rejection, and execution are handled under
-   `/configuration/operator_lifecycle_requests/:id/...`.
+   `/settings/operator_lifecycle_requests/:id/...`.
 
 ### Org Invitation Routes
 

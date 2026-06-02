@@ -54,9 +54,9 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
 
     def resource_class = Client
 
-    def sign_app_configuration_path = "/configuration"
+    def sign_app_settings_path = "/settings"
 
-    def sign_app_configuration_apple_path = "/configuration/apple"
+    def sign_app_settings_apple_path = "/settings/apple"
 
     def new_sign_app_sign_in_path = "/sign/in"
 
@@ -147,9 +147,9 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     assert_equal "/auth/google", harness.send(:omniauth_authorize_path, "google")
     assert_equal clients(:one), harness.send(:social_auth_user)
     assert_equal "/", harness.send(:social_auth_success_redirect_path)
-    assert_equal "/configuration/apple",
+    assert_equal "/settings/apple",
                  harness.send(:social_auth_failure_redirect_path_for_intent, intent: "link", provider: "apple")
-    assert_equal "/configuration",
+    assert_equal "/settings",
                  harness.send(:social_auth_failure_redirect_path_for_intent, intent: "link", provider: "google")
 
     harness.send(:clear_social_auth_intent!)

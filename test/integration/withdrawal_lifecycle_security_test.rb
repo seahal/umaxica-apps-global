@@ -15,7 +15,7 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
 
   test "confirmed withdrawal revokes other sessions but preserves the continuation session" do
     freeze_time do
-      patch sign_app_configuration_withdrawal_url(ri: "jp"),
+      patch sign_app_settings_withdrawal_url(ri: "jp"),
             params: { ack_deactivate_today: "1" },
             headers: headers_for(@token)
     end
@@ -30,19 +30,19 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
 
   test "withdrawal recovery is rejected before one hour and after purge deadline" do
     freeze_time do
-      patch sign_app_configuration_withdrawal_url(ri: "jp"),
+      patch sign_app_settings_withdrawal_url(ri: "jp"),
             params: { ack_deactivate_today: "1" },
             headers: headers_for(@token)
 
       travel 10.minutes
-      post sign_app_configuration_withdrawal_url(ri: "jp"), headers: headers_for(@token)
+      post sign_app_settings_withdrawal_url(ri: "jp"), headers: headers_for(@token)
 
       assert_response :see_other
       assert_not_nil @user.reload.deactivated_at
 
       @user.update_columns(deactivated_at: 31.days.ago, discarded_at: 31.days.ago, purged_at: 1.minute.ago)
       mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
-      post sign_app_configuration_withdrawal_url(ri: "jp"), headers: headers_for(@token)
+      post sign_app_settings_withdrawal_url(ri: "jp"), headers: headers_for(@token)
 
       assert_response :see_other
       assert_not_nil @user.reload.deactivated_at

@@ -460,7 +460,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     controller.define_singleton_method(:redirect_to_pt_or_default!) { |pt, default_path:|
       redirects << [pt || default_path, {}]
     }
-    controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
@@ -570,7 +570,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs|
       failures << kwargs.merge(reason: :hard_reject)
     }
-    controller.define_singleton_method(:sign_app_configuration_path) { |ri: nil| "/configuration?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
     controller.define_singleton_method(:sign_app_in_checkpoint_path) { |pt: nil, ri: nil|
       "/sign/in/checkpoint?pt=#{pt}&ri=#{ri}"

@@ -1,5 +1,10 @@
 # Regional And Global Delivery Boundary
 
+> **Partially superseded by Identity Authority inversion:** The old RP vocabulary in this document
+> must not be used to treat `acme/www` as an RP-only boundary. `acme/www` is now the Session, Token,
+> Account, Preference, Authorization, and downstream-token Authority. `core`, `line`, and future
+> downstream services trust acme-issued downstream tokens.
+
 ## Status
 
 Regional delivery is no longer part of this repository's stable application architecture. Per

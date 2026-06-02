@@ -63,8 +63,6 @@ ja:
     ack_schedule_purge: 削除予定確認
     address: メールアドレス
     active_avatars: active avatars
-    app_posts: 投稿
-    app_post_reviews: app post reviews
     app_preferences: アプリ設定
     app_preference_languages: 言語設定
     app_preference_regions: 地域設定
@@ -293,11 +291,11 @@ ja:
   activemodel:
     errors:
       models:
-        sign/app/configuration/withdrawal/schedule_form:
+        sign/app/settings/withdrawal/schedule_form:
           attributes:
             ack_schedule_purge:
               accepted: チェックが必要です
-        sign/app/configuration/withdrawal/deactivate_form:
+        sign/app/settings/withdrawal/deactivate_form:
           attributes:
             ack_deactivate_today:
               accepted: チェックが必要です
@@ -427,7 +425,7 @@ ja:
       layout:
         nav:
           log_in: ログイン
-          configuration: 設定
+          settings: 設定
           logout: ログアウト
           contact: お問い合わせ
       preferences:
@@ -512,7 +510,7 @@ ja:
             promotional_messages_description: プロモーションやイベント情報を受け取ります。
             submit: スタッフ設定を保存
   sign:
-    configuration:
+    settings:
       connections:
         index:
           page_title: 連携RP
@@ -617,7 +615,7 @@ ja:
             body: アカウントの作成が完了しました。ご利用ありがとうございます。
           forbidden: アクセス権限がありません
           timeout: timeout しました
-      configuration:
+      settings:
         show:
           page_title: 設定
           security_settings: セキュリティ設定
@@ -651,7 +649,7 @@ ja:
           home: ホーム
           dashboard: ダッシュボード
           preference: プリファレンス
-          configuration: 設定
+          settings: 設定
     app:
       common:
         cancel: キャンセル
@@ -906,7 +904,7 @@ ja:
             invalid_request: Appleへのリクエストが無効です。もう一度お試しください。
             invalid_redirect_uri: AppleサインインのリダイレクトURLの設定に問題があります。
           user_cancelled_authorize: Appleサインインがキャンセルされました。必要な場合はもう一度お試しください。
-      configuration:
+      settings:
         totps:
           invalid_code: 認証コードが正しくありません。
           limit_reached: 2件以上は登録できないです
@@ -1234,14 +1232,14 @@ ja:
         nav:
           sign_up: 新規登録
           log_in: ログイン
-          configuration: 設定
+          settings: 設定
           logout: ログアウト
       preferences:
         footer:
           home: ホーム
           dashboard: ダッシュボード
           preference: プリファレンス
-          configuration: 設定
+          settings: 設定
     org:
       registration:
         email:
@@ -1286,7 +1284,7 @@ ja:
             body: スタッフアカウントの作成が完了しました。ご利用ありがとうございます。
           forbidden: アクセス権限がありません
           timeout: timeout しました
-      configuration:
+      settings:
         show:
           page_title: 設定
           description: アカウントの高度なセキュリティ設定を管理します。
@@ -1661,14 +1659,14 @@ ja:
         nav:
           sign_up: 新規登録
           log_in: ログイン
-          configuration: 設定
+          settings: 設定
           logout: ログアウト
       preferences:
         title: おこのみせってい
         footer:
           home: ホーム
           preference: プリファレンス
-          configuration: 設定
+          settings: 設定
           dashboard: ダッシュボード
       root:
         title: サイン へようこそ
@@ -1677,6 +1675,10 @@ ja:
         authentication: ログイン
     common:
       cancel: キャンセル
+      birthdate_parts:
+        year: 年
+        month: 月
+        day: 日
     default_passkey_description: パスキー
     registration:
       email:
@@ -1766,7 +1768,7 @@ ja:
       outs:
         destroy:
           success: ログアウトしました
-      configuration:
+      settings:
         passkeys:
           new:
             page_title: パスキーを登録
@@ -2087,7 +2089,7 @@ ja:
               success: ログインしました。
           destroy:
             jump_obj: sign in with email
-        configuration:
+        settings:
           show:
             page_title: 設定
           index:
@@ -2162,7 +2164,7 @@ ja:
         footer:
           home: ホーム
           preference: プリファレンス
-          configuration: 設定
+          settings: 設定
         cookie_settings: クッキーの設定
         region_settings: 地域の設定
         locale_settings: 言語の設定
@@ -2373,7 +2375,7 @@ ja:
         themes:
           updated: 管理テーマを%{theme}に更新しました
           invalid: 無効な管理テーマが選択されました
-      configurations:
+      settings:
         title: コンフィギュレーション
         description: 組織向けの設定を確認・調整できます。
         i18n_settings: 言語・地域の設定
@@ -2627,7 +2629,7 @@ ja:
           confirm: 本当によろしいですか？
           destroyed: 設定をリセットしました
           back: 設定一覧に戻る
-      configurations:
+      settings:
         title: コンフィギュレーション
         description: サービス設定を確認・調整できます。
         i18n_settings: 言語・地域の設定
@@ -3341,7 +3343,7 @@ ja:
               confirm_policy_label: 利用規約に同意する
             edit:
               submit: 確認する
-        configuration:
+        settings:
           emails:
             index:
               verified: 認証済み
@@ -3362,7 +3364,7 @@ ja:
               unverified: 未認証
               empty: 電話番号は登録されていません。
       org:
-        configuration:
+        settings:
           telephones:
             index:
               verified: 認証済み
@@ -3378,7 +3380,7 @@ ja:
           show:
             no_methods: passkey を登録してください
       app:
-        configuration:
+        settings:
           outs:
             edit:
               confirm_label: ろぐあうとしますか？

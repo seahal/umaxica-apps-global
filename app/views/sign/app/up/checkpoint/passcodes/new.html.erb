@@ -24,7 +24,7 @@
   <div>
     <p>Secret</p>
     <p><%= @raw_secret_credential %></p>
-    <p><%= t("views.sign.app.configuration.secret_credentials.new.one_time_notice") %></p>
+    <p><%= t("views.sign.app.settings.secret_credentials.new.one_time_notice") %></p>
   </div>
 
   <%= link_to t("actions.cancel"), sign_app_up_checkpoint_path(ri: params[:ri], pt: signed_pt_param) %>

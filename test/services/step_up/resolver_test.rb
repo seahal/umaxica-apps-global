@@ -77,22 +77,22 @@ module StepUp
 
     test "blank requested scope is never satisfied" do
       now = Time.zone.parse("2026-05-25 00:00:00")
-      token = token_at(now - 1.minute, scope: "configuration_email")
+      token = token_at(now - 1.minute, scope: "settings_email")
 
       assert_not Resolver.call(token: token, scope: nil, now: now).satisfied?
       assert_not Resolver.call(token: token, scope: "", now: now).satisfied?
-      assert_not Resolver.call(token: token, scope: "configuration_passkey", now: now).satisfied?
+      assert_not Resolver.call(token: token, scope: "settings_passkey", now: now).satisfied?
     end
 
     test "rejects wrong method, unsupported aal, and binding mismatch" do
       now = Time.zone.parse("2026-05-25 00:00:00")
-      token = token_at(now - 1.minute, scope: "configuration_passkey", method: "email_otp")
+      token = token_at(now - 1.minute, scope: "settings_passkey", method: "email_otp")
 
-      assert_not Resolver.call(token: token, scope: "configuration_passkey", now: now).satisfied?
-      assert_not Resolver.call(token: token, scope: "configuration_passkey", required_aal: :aal3, now: now).satisfied?
+      assert_not Resolver.call(token: token, scope: "settings_passkey", now: now).satisfied?
+      assert_not Resolver.call(token: token, scope: "settings_passkey", required_aal: :aal3, now: now).satisfied?
       assert_not Resolver.call(
-        token: token_at(now - 1.minute, scope: "configuration_passkey"),
-        scope: "configuration_passkey",
+        token: token_at(now - 1.minute, scope: "settings_passkey"),
+        scope: "settings_passkey",
         session_binding: "other_session",
         token_binding: "token_1",
         now: now,
@@ -103,12 +103,12 @@ module StepUp
       now = Time.zone.parse("2026-05-25 00:00:00")
       token = token_at(
         now - 1.minute,
-        scope: "configuration_email",
+        scope: "settings_email",
         purpose: "step_up",
         audience: "step_up:app",
       )
       requirement = Requirement.new(
-        scope: "configuration_email",
+        scope: "settings_email",
         purpose: "step_up",
         audience: "step_up:app",
       )
@@ -116,12 +116,12 @@ module StepUp
       assert_predicate Resolver.call(token: token, requirement: requirement, now: now), :satisfied?
 
       wrong_purpose = Requirement.new(
-        scope: "configuration_email",
+        scope: "settings_email",
         purpose: "other",
         audience: "step_up:app",
       )
       wrong_audience = Requirement.new(
-        scope: "configuration_email",
+        scope: "settings_email",
         purpose: "step_up",
         audience: "step_up:org",
       )

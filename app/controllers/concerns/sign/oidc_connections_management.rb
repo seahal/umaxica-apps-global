@@ -14,13 +14,13 @@ module Sign
     end
 
     def destroy
-      return if require_step_up!(scope: "configuration_connection") == false
+      return if require_step_up!(scope: "settings_connection") == false
 
       Oidc::ConnectionRevoker.call(connection: @connection)
       redirect_to(
         connections_path,
         status: :see_other,
-        notice: t("sign.configuration.connections.destroy.success"),
+        notice: t("sign.settings.connections.destroy.success"),
       )
     end
 
@@ -40,8 +40,8 @@ module Sign
 
     def connection_status_label(connection)
       key = {
-        "active" => "sign.configuration.connections.statuses.active",
-        "revoked" => "sign.configuration.connections.statuses.revoked",
+        "active" => "sign.settings.connections.statuses.active",
+        "revoked" => "sign.settings.connections.statuses.revoked",
       }.fetch(connection.status)
 
       t(key)

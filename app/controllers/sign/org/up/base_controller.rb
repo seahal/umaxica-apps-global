@@ -42,7 +42,7 @@ module Sign
         private
 
         def after_login_path
-          sign_org_configuration_path
+          sign_org_settings_path
         end
       end
     end

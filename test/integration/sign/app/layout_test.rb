@@ -22,7 +22,7 @@ class Sign::App::LayoutTest < ActionDispatch::IntegrationTest
     assert_select "nav" do
       assert_select "a[href*=?]", new_sign_app_sign_up_path, text: I18n.t("sign.app.layout.nav.sign_up")
       assert_select "a[href*=?]", new_sign_app_sign_in_path, text: I18n.t("sign.app.layout.nav.log_in")
-      assert_select "a[href*=?]", "/setting", count: 0
+      assert_select "a[href*=?]", "/configuration", count: 0
       assert_select "a[href*=?][data-turbo-method='delete']", "/authentication", count: 0
     end
   end
@@ -36,7 +36,7 @@ class Sign::App::LayoutTest < ActionDispatch::IntegrationTest
   #   assert_select "nav" do
   #     assert_select "a[href=?]", new_sign_app_sign_up_path
   #     assert_select "a[href=?]", new_sign_app_sign_in_path
-  #     assert_select "a[href*=?]", "/setting", count: 0
+  #     assert_select "a[href*=?]", "/configuration", count: 0
   #     assert_select "a[href*=?][data-turbo-method='delete']", "/authentication", count: 0
   #   end
   # end

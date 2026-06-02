@@ -29,7 +29,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
     StepUp::ConfiguredMethods.stub(:call, []) do
       StepUp::AvailableMethods.stub(:call, []) do
-        get edit_sign_app_configuration_email_url(@email.public_id, ri: "jp"), headers: @headers
+        get edit_sign_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
       end
     end
 
@@ -44,7 +44,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
     StepUp::ConfiguredMethods.stub(:call, [:email_otp]) do
       StepUp::AvailableMethods.stub(:call, []) do
-        get edit_sign_app_configuration_email_url(@email.public_id, ri: "jp"), headers: @headers
+        get edit_sign_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
       end
     end
 
@@ -64,7 +64,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       last_otp_at: Time.zone.at(0),
     )
 
-    get edit_sign_app_configuration_email_url(@email.public_id, ri: "jp"), headers: @headers
+    get edit_sign_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -80,7 +80,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       last_otp_at: Time.zone.at(0),
     )
 
-    post sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+    post sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
     assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
@@ -95,7 +95,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       last_otp_at: Time.zone.at(0),
     )
 
-    get new_sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+    get new_sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     redirect_uri = URI.parse(response.location)
@@ -114,7 +114,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
          headers: @headers
 
     assert_response :redirect
-    assert_redirected_to new_sign_app_configuration_withdrawal_url(ri: "jp")
+    assert_redirected_to new_sign_app_settings_withdrawal_url(ri: "jp")
     assert response_has_cookie?(ClientVerification.cookie_name)
 
     assert ClientVerification.active.exists?(user_token_id: @token.id)
@@ -126,7 +126,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       subject_id: @user.id,
     )
 
-    post sign_app_configuration_withdrawal_url(ri: "jp"), headers: @headers
+    post sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_not_equal 401, response.status
   end

@@ -7,14 +7,14 @@ Completed (2026-05-07).
 > **Completion notes (2026-05-07):**
 >
 > - `:com` view overrides exist at `app/views/sign/com/ins/new.html.erb` and
->   `app/views/sign/com/configurations/show.html.erb` with all Google / Apple UI removed.
+>   `app/views/sign/com/settingss/show.html.erb` with all Google / Apple UI removed.
 > - `OmniAuthCorporateGuard` middleware is defined in `config/initializers/omniauth.rb` and inserted
 >   before `OmniAuth::Builder`; it returns 404 for `/auth/...` requests when the host matches
 >   `ENV["ID_CORPORATE_URL"]`.
 > - i18n: `sign.com.*` keys added in both `config/locales/ja.yml` and `config/locales/en.yml`
 >   without any `google` / `apple` / `social.*` keys (their absence is the load-bearing signal).
 > - Tests: `test/controllers/sign/com/ins_controller_test.rb` and
->   `test/controllers/sign/com/configurations_controller_test.rb` assert no social references in the
+>   `test/controllers/sign/com/settingss_controller_test.rb` assert no social references in the
 >   response body. Integration tests `test/integration/com_social_login_blocked_test.rb` and
 >   `test/integration/app_social_login_works_test.rb` cover both the `:com` 404 path and the `:app`
 >   redirect path.
@@ -25,7 +25,7 @@ Completed (2026-05-07).
 ## Summary
 
 The corporate IdP host (`id.umaxica.com` in production, `id.com.localhost` in development) currently
-renders a "Sign in with Google" button on `/in/new` and Google/Apple links on `/configuration`, even
+renders a "Sign in with Google" button on `/in/new` and Google/Apple links on `/settings`, even
 though social login is not intended for `:com`. The cause is template-lookup fallback:
 
 `app/controllers/sign/com/application_controller.rb:47-55` overrides `local_prefixes` so that any
@@ -34,7 +34,7 @@ Most `:com` controllers have no dedicated views; they implicitly render the `:ap
 those `:app` templates carry Google / Apple UI:
 
 - `app/views/sign/app/ins/new.html.erb:13-15` — `button_to "/auth/google_app"` (Google sign-in)
-- `app/views/sign/app/configurations/show.html.erb:28-29` — Google and Apple configuration links
+- `app/views/sign/app/settingss/show.html.erb:28-29` — Google and Apple configuration links
 
 In addition, the OmniAuth Rack middleware (`config/initializers/omniauth.rb:50-116`) handles
 `/auth/google_app`, `/auth/google_org`, `/auth/apple` regardless of host, so a direct
@@ -69,8 +69,8 @@ Out:
   per-`:com` overrides).
 - OmniAuth strategy registration in `config/initializers/omniauth.rb` (still registers `google_app`,
   `google_org`, `apple` — strategies are not `:com`-aware, the Rack guard is).
-- `:com` configuration `/configuration/google` / `/configuration/apple` routes — these never existed
-  on `:com`, no change.
+- `:com` configuration `/settings/google` / `/settings/apple` routes — these never existed on
+  `:com`, no change.
 
 ## Changes
 
@@ -89,12 +89,12 @@ helper exists for `:com` (`new_sign_com_in_email_path`, `new_sign_com_in_passkey
 `new_sign_com_in_secret_path`, `new_sign_com_up_path`) before linking. Drop links whose `:com`
 helper does not exist.
 
-#### b) `app/views/sign/com/configurations/show.html.erb`
+#### b) `app/views/sign/com/settingss/show.html.erb`
 
-Source: `app/views/sign/app/configurations/show.html.erb`. Remove L28-29 (the Google and Apple
-`<li>` entries). Update remaining `sign_app_configuration_*` helpers to `sign_com_configuration_*`.
-Drop any list entry that points to a `:com`-nonexistent route. Keep email / passkey / telephone /
-secret / session / activity entries that exist in `:com` routes.
+Source: `app/views/sign/app/settingss/show.html.erb`. Remove L28-29 (the Google and Apple `<li>`
+entries). Update remaining `sign_app_settings_*` helpers to `sign_com_settings_*`. Drop any list
+entry that points to a `:com`-nonexistent route. Keep email / passkey / telephone / secret / session
+/ activity entries that exist in `:com` routes.
 
 #### c) `app/views/sign/com/in/emails/new.html.erb` — review and decide
 
@@ -177,8 +177,8 @@ Add or extend tests so this regression cannot reappear silently.
 - `test/controllers/sign/com/ins_controller_test.rb` — assert response body contains no
   `/auth/google_app`, `/auth/google_org`, `/auth/apple` references and no Google / Apple i18n
   strings.
-- `test/controllers/sign/com/configurations_controller_test.rb` (or equivalent) — assert response
-  body contains no `/configuration/google`, `/configuration/apple` references.
+- `test/controllers/sign/com/settingss_controller_test.rb` (or equivalent) — assert response body
+  contains no `/settings/google`, `/settings/apple` references.
 - `test/integration/com_social_login_blocked_test.rb` (new) — set host to
   `ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")` and assert:
   - `post "/auth/google_app"` → 404
@@ -211,7 +211,7 @@ Add or extend tests so this regression cannot reappear silently.
    - `http://id.org.localhost:3001/in/new?ri=jp` → Google button visible (staff), click works
    - `curl -X POST http://id.com.localhost:3001/auth/google_app -i` → `HTTP/1.1 404`
    - `curl -X POST http://id.app.localhost:3001/auth/google_app -i` → `HTTP/1.1 302` (Google)
-   - `http://id.com.localhost:3001/configuration` (after sign-in) → no Google / Apple links
+   - `http://id.com.localhost:3001/settings` (after sign-in) → no Google / Apple links
 
 4. **Regression sweep**
 
@@ -225,7 +225,7 @@ Add or extend tests so this regression cannot reappear silently.
 ## Acceptance
 
 - `:com` sign-in page (`/in/new`) renders without any social login button or social i18n strings.
-- `:com` configuration page (`/configuration`) renders without Google / Apple links.
+- `:com` configuration page (`/settings`) renders without Google / Apple links.
 - `POST /auth/google_app`, `POST /auth/google_org`, `POST /auth/apple` on the `:com` host return 404
   before reaching OmniAuth.
 - `:app` and `:org` behavior is unchanged: social login still works there.

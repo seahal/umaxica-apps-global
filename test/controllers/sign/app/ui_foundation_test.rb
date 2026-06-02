@@ -11,9 +11,9 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     @host = ENV["ID_SERVICE_URL"]
   end
 
-  test "should render configuration page with new UI foundation" do
+  test "should render settings page with new UI foundation" do
     head = { "X-TEST-CURRENT-USER" => @user.id, "Host" => @host }
-    get "/configuration", headers: head
+    get "/settings", headers: head
     follow_redirect!(headers: head) if response.redirect?
 
     assert_response :success
@@ -27,25 +27,25 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   test "PageHeader renders correct up_to link" do
     head = as_user_headers(@user, host: @host)
-    get "/configuration", headers: head
+    get "/settings", headers: head
     follow_redirect!(headers: head) if response.redirect?
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.configuration.show.page_title")
+    assert_select "h1", text: I18n.t("sign.app.settings.show.page_title")
   end
 
-  test "PageHeader on sub-pages points back to configuration" do
+  test "PageHeader on sub-pages points back to settings" do
     head = as_user_headers(@user, host: @host)
     pages = [
-      sign_app_configuration_totps_path(ri: "jp"),
-      sign_app_configuration_passkeys_path(ri: "jp"),
-      sign_app_configuration_mfa_challenge_path(ri: "jp"),
-      sign_app_configuration_secret_credentials_path(ri: "jp"),
-      sign_app_configuration_emails_path(ri: "jp"),
-      sign_app_configuration_telephones_path(ri: "jp"),
-      sign_app_configuration_sessions_path(ri: "jp"),
-      sign_app_configuration_google_path(ri: "jp"),
-      new_sign_app_configuration_withdrawal_path(ri: "jp"),
+      sign_app_settings_totps_path(ri: "jp"),
+      sign_app_settings_passkeys_path(ri: "jp"),
+      sign_app_settings_mfa_challenge_path(ri: "jp"),
+      sign_app_settings_secret_credentials_path(ri: "jp"),
+      sign_app_settings_emails_path(ri: "jp"),
+      sign_app_settings_telephones_path(ri: "jp"),
+      sign_app_settings_sessions_path(ri: "jp"),
+      sign_app_settings_google_path(ri: "jp"),
+      new_sign_app_settings_withdrawal_path(ri: "jp"),
       edit_sign_app_sign_out_path(ri: "jp"),
     ]
 
@@ -62,7 +62,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "dark mode class is rendered based on cookie" do
     # Testing the theme_html_class helper's effect via integration
     headers = as_user_headers(@user, host: @host)
-    get sign_app_configuration_url(ct: "dark"), headers: headers
+    get sign_app_settings_url(ct: "dark"), headers: headers
 
     follow_redirect!(headers: headers) if response.redirect?
 
@@ -71,7 +71,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'class="theme-dark dark"'
 
     headers = as_user_headers(@user, host: @host)
-    get sign_app_configuration_url(ct: "light"), headers: headers
+    get sign_app_settings_url(ct: "light"), headers: headers
 
     follow_redirect!(headers: headers) if response.redirect?
 
@@ -82,14 +82,14 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   test "UI components are used in the page" do
     head = as_user_headers(@user, host: @host)
-    get sign_app_configuration_url, headers: head
+    get sign_app_settings_url, headers: head
 
     follow_redirect!(headers: head) if response.redirect?
 
     assert_response :success
 
     assert_select "section", minimum: 3
-    assert_select "a[href*='configuration/totps']"
-    assert_select "a[href*='configuration/passkeys']"
+    assert_select "a[href*='settings/totps']"
+    assert_select "a[href*='settings/passkeys']"
   end
 end

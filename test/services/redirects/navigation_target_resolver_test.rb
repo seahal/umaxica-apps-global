@@ -11,14 +11,14 @@ class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
 
       def sign_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
 
-      def sign_app_configuration_path(ri:) = "/configuration?ri=#{ri}"
+      def sign_app_settings_path(ri:) = "/settings?ri=#{ri}"
     end
 
   test "resolves registered navigation keys" do
     assert_equal "/sign/in/checkpoint?ri=jp", resolve(:checkpoint).value
     assert_equal "/sign/in?ri=jp", resolve(:selector).value
     assert_equal "/dashboard?ri=jp", resolve(:dashboard).value
-    assert_equal "/configuration?ri=jp", resolve(:configuration_security, scope: :configuration).value
+    assert_equal "/settings?ri=jp", resolve(:settings_security, scope: :settings).value
   end
 
   test "rejects unknown raw url and raw path keys" do
@@ -28,7 +28,7 @@ class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
   end
 
   test "enforces flow scope" do
-    result = resolve(:configuration_security, scope: :authentication)
+    result = resolve(:settings_security, scope: :authentication)
 
     assert_not result.ok?
     assert_equal "scope_denied", result.failure_reason

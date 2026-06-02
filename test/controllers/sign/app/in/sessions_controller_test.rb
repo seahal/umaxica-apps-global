@@ -40,7 +40,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       Rails.application.reload_routes!
 
       get(
-        "https://id.umaxica.app/configuration/sessions?ri=jp",
+        "https://id.umaxica.app/settings/sessions?ri=jp",
         headers: browser_headers.merge("Host" => "id.umaxica.app"),
       )
 
@@ -317,7 +317,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # update -- redirect after promotion
   # ===================================================================
 
-  test "update promotes and redirects to configuration path by default" do
+  test "update promotes and redirects to settings path by default" do
     active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
@@ -331,7 +331,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
           headers: headers
 
     assert_response :redirect
-    assert_match %r{/configuration}, response.location
+    assert_match %r{/settings}, response.location
   end
 
   test "update with pt param redirects to the requested path" do
@@ -343,7 +343,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     headers = as_user_headers_with_token(@user, restricted_token, host: @host)
 
-    pt = "/configuration"
+    pt = "/settings"
 
     patch sign_app_in_session_url(ri: "jp", pt: pt),
           params: { revoke_refs: [active_token.signed_ref] },
@@ -354,7 +354,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal ClientTokenStatus::ACTIVE, restricted_token.user_token_status_id
 
     assert_response :redirect
-    assert_match %r{/configuration}, response.location
+    assert_match %r{/settings}, response.location
   end
 
   test "update with invalid pt param falls back to default path" do
@@ -375,7 +375,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal ClientTokenStatus::ACTIVE, restricted_token.user_token_status_id
 
     assert_response :redirect
-    assert_match %r{/configuration}, response.location
+    assert_match %r{/settings}, response.location
   end
 
   # ===================================================================
@@ -545,8 +545,8 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     token = create_restricted_session(@user)
     headers = as_user_headers_with_token(@user, token, host: @host)
 
-    # Try to access configuration page (not /in/sessions)
-    get sign_app_configuration_url(ri: "jp"), headers: headers
+    # Try to access settings page (not /in/sessions)
+    get sign_app_settings_url(ri: "jp"), headers: headers
 
     assert_response :locked
     assert_equal "きんそくじこうです", response.body

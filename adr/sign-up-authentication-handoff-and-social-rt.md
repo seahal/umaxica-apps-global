@@ -4,6 +4,13 @@
 
 Accepted
 
+> **Supersession (2026-06-02):** This ADR's IdP/RP-centered authority model is superseded by
+> `adr/identity-authority-boundary.md`. `acme/www` is now the Session, Token, Account, Preference,
+> and Authorization Authority. `sign/id` is no longer the IdP; it is a Credential Gateway and
+> Credential Ceremony Zone only. Historical implementation details in this ADR must not be used to
+> reintroduce sign-side sessions, refresh tokens, preference writes, dashboards, account lifecycle,
+> downstream token issuance, authorization decisions, or step-up freshness.
+
 ## Temporary Exception
 
 2026-06-02: `adr/google-social-temporary-gateway-exception.md` は Google social temporary

@@ -58,7 +58,7 @@ module Sign::App::In
     end
 
     test "new redirects to sign in when pending_mfa is missing" do
-      # skip "Route helper new_sign_app_in_mfa_passkey_path is undefined - needs route configuration fix"
+      # skip "Route helper new_sign_app_in_mfa_passkey_path is undefined - needs route settings fix"
       get new_sign_app_in_challenge_passkey_path(ri: "jp")
 
       assert_response :see_other
@@ -67,7 +67,7 @@ module Sign::App::In
     end
 
     test "create verifies passkey and finalizes login with pending_mfa" do
-      # skip "Route helper new_sign_app_in_mfa_passkey_path is undefined - needs route configuration fix"
+      # skip "Route helper new_sign_app_in_mfa_passkey_path is undefined - needs route settings fix"
       establish_pending_mfa_via_secret_credential!
 
       get new_sign_app_in_challenge_passkey_path(ri: "jp")

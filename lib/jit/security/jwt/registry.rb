@@ -266,8 +266,10 @@ module Jit
 
         def normalize_oidc_client_namespace(namespace)
           value = namespace.to_s.upcase
-          raise ConfigurationError,
-                "unsupported OIDC client JWT namespace: #{namespace.inspect}" unless OIDC_CLIENT_NAMESPACES.include?(value)
+          unless OIDC_CLIENT_NAMESPACES.include?(value)
+            raise ConfigurationError,
+                  "unsupported OIDC client JWT namespace: #{namespace.inspect}"
+          end
 
           value
         end

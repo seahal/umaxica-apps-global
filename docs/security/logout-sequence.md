@@ -1,111 +1,81 @@
 # Logout Sequence
 
-This document records the current sign-out and logout behavior for the `app`, `com`, and `org` sign
-surfaces.
+## Authority
 
-## Ordinary Sign-Out
+Logout is acme/www session mutation.
 
-Ordinary sign-out means "sign out this browser session". It must not revoke every active session for
-the actor.
+`acme/www` owns current-session logout, all-session logout, session revoke, session-management UI,
+refresh-token family mutation, device binding cleanup, step-up freshness cleanup, and logout audit.
 
-The shared boundary is:
+`sign/id` must not revoke sessions, rotate or revoke refresh tokens, clear acme sessions, list
+sessions, display session-management UI, or write authoritative logout state.
 
-1. `Sign::{App,Com,Org}::OutsController#create` receives the confirmed form submission.
-2. `#destroy` validates any signed return target before mutating logout state.
-3. `Authentication::Logoutable#logout_current_session!` calls `Authentication::LogoutCurrentSession`
-   once.
-4. `Authentication::LogoutCurrentSession` creates a surface-local sign-out cycle when it can resolve
-   the current token.
-5. The sign-out cycle advances through access discard, logical token revoke, expiry wait, and
-   completion under the token/session revoke primitive.
-6. The logout concern records the current-session audit event when an actor is present.
-7. The logout concern always clears auth cookies, clears `Actor`, and resets the Rails session.
-8. The controller renders the signed-out page or redirects to a validated return target.
+Logical authority moves now; physical storage may remain where it is. Existing sign-side tables,
+models, services, controllers, or namespaces do not imply sign-side authority.
 
-`Authentication::LogoutCurrentSession` is the primitive for one session. Any "all sessions" feature
-must be implemented as a separate composition over that primitive.
+## Sign/ID Redirect-Only Boundary
 
-## Cycle State
+If `/sign/out` is retained, it is redirect-only to the acme logout flow.
 
-Ordinary logout uses the surface-local cycle tables when a current token is available:
+A retained sign-side route may:
 
-- `ClientSignOutCycle` for `app`
-- `VisitorSignOutCycle` for `com`
-- `OperatorSignOutCycle` for `org`
+- inspect request context needed to choose the acme logout entry;
+- clear ceremony-local state that belongs only to the current sign credential ceremony;
+- preserve safe navigation intent through signed redirect primitives;
+- redirect the browser to acme logout.
 
-The state order is fixed:
+It must not:
 
-```text
-REQUESTED
--> ACCESS_DISCARDED
--> LOGICALLY_REVOKED
--> AWAITING_EXPIRY
--> COMPLETED
-```
+- revoke the current session;
+- revoke other sessions;
+- revoke or rotate refresh tokens;
+- clear acme session cookies as the authority;
+- update device/session rows;
+- clear step-up freshness;
+- render an authoritative signed-out result;
+- write authoritative logout or session audit.
 
-`FAILED` is terminal and is used only if the revoke primitive raises after a cycle has started.
-Reverse transitions are rejected by the cycle model. A stale unauthenticated submission does not
-create a cycle because it has no authenticated current token to bind.
+## Acme Current-Session Logout
 
-## Result Contract
+Current-session logout signs out one browser session. It must not revoke every active session for
+the actor unless the user selected an all-session action.
 
-Current-session logout returns a `Logout::Result` shape so controllers can map logout state to HTTP
-responses without reimplementing token mutation.
+The acme current-session logout flow is responsible for:
 
-Supported current-session statuses:
+1. resolving the current acme session;
+2. validating the logout request and any signed navigation target;
+3. revoking or expiring the current session record;
+4. revoking, rotating, or retiring the current refresh token family state as required by policy;
+5. clearing device binding state tied to the session, including DBSC/device binding material where
+   applicable;
+6. clearing session-bound step-up freshness;
+7. clearing acme auth cookies and request-local actor state;
+8. writing authoritative logout audit and security records;
+9. returning the signed-out response or redirecting to a validated navigation target.
 
-- `success`: the current token was processed through the logout primitive.
+Physical sign-out cycle tables may continue to exist during migration. They are compatibility
+storage only unless current docs and ADRs explicitly assign the state to acme.
 
-This state renders the signed-out page with `200 OK` when there is no valid return target. If the
-token is already revoked but still resolvable, the primitive remains idempotent and records a
-completed sign-out cycle for that authenticated request.
+## All-Session Logout And Session Management
 
-## Stale Tab Submissions
+All-session logout, selected-session revoke, restricted-session promotion, device/session listing,
+and session-management UI are acme authority.
 
-`POST /sign/out` and `DELETE /sign/out` require the browser to still be authenticated. This covers
-the stale-tab case without pretending that logout ran twice:
+`sign/id` may not host session-management UI except as a redirect to acme. It may not promote a
+restricted session, revoke another session, or decide whether a session may continue.
 
-1. Tab A displays the sign-out confirmation.
-2. Tab B displays the sign-out confirmation.
-3. Tab B submits sign-out and completes logout.
-4. The browser receives cleared auth cookies and a reset Rails session.
-5. Tab A still displays the old sign-out form.
-6. Tab A submits the form.
-7. `authenticate!` rejects the request and redirects to sign-in with an authentication return target
-   pointing back to `/sign/out`.
+## Stale Sign Routes
 
-The stale-tab path does not call the token revoke primitive, does not write a logout audit event,
-and does not render the signed-out page, because the browser no longer has the access/refresh cookie
-state required to prove an authenticated logout request.
+A stale `/sign/out` form submission must not pretend logout ran on sign. The safe behavior is to
+redirect to acme logout or acme sign-in handling, depending on whether an acme session is still
+present.
 
-Unauthenticated `GET /sign/out/edit` is protected by the same `authenticate!` boundary.
+If no acme session is present, sign may clear ceremony-local state and redirect. It must not create
+a logout cycle or write authoritative logout audit.
 
-## Example
+## Related
 
-For the `app` surface:
-
-1. Tab A opens `https://id.umaxica.app/sign/out?ri=jp`.
-2. Tab B opens `https://id.umaxica.app/sign/out?ri=jp`.
-3. Tab B posts the form and receives the signed-out page.
-4. The browser receives cleared auth cookies and a reset Rails session.
-5. Tab A posts the stale form and is redirected to `/sign/in?...rt=...`; it does not receive the
-   signed-out page.
-
-## Return Targets
-
-Signed return targets are resolved before a successful authenticated logout. Invalid or legacy
-return targets fail closed after the current session is revoked.
-
-A stale unauthenticated submission does not consume a return target because the request is no longer
-authenticated and cannot prove the original logout state.
-
-## Tests
-
-Primary regression coverage lives in:
-
-- `test/controllers/sign/app/outs_controller_test.rb`
-- `test/controllers/sign/com/outs_controller_test.rb`
-- `test/controllers/sign/org/outs_controller_test.rb`
-- `test/controllers/concerns/authentication/logoutable_test.rb`
-- `test/controllers/concerns/authentication/logout_current_session_test.rb`
-- `test/controllers/concerns/authentication/logout_all_sessions_test.rb`
+- `docs/identity/authority-boundary.md`
+- `docs/security/logout-session-management.md`
+- `docs/security/session-token-authority.md`
+- `docs/security/redirect-vs-ceremony-result.md`

@@ -10,13 +10,13 @@
 
     <div>
       <label for="description">
-        <%= t("sign.app.configuration.passkeys.new.description_label") %>
+        <%= t("sign.app.settings.passkeys.new.description_label") %>
       </label>
       <input type="text"
              id="description"
              autocomplete="off"
              data-passkey-registration-target="description"
-             placeholder="<%= t("sign.app.configuration.passkeys.new.description_placeholder") %>"
+             placeholder="<%= t("sign.app.settings.passkeys.new.description_placeholder") %>"
              maxlength="100">
     </div>
 
@@ -26,7 +26,7 @@
     <div>
       <button type="button"
               data-action="click->passkey-registration#register">
-        <%= t("sign.app.configuration.passkeys.new.submit") %>
+        <%= t("sign.app.settings.passkeys.new.submit") %>
       </button>
     </div>
   </div>

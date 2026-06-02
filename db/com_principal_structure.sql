@@ -198,6 +198,72 @@ ALTER SEQUENCE public.visitor_emails_id_seq OWNED BY public.visitor_emails.id;
 
 
 --
+-- Name: visitor_google_identities; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_google_identities (
+    id bigint NOT NULL,
+    visitor_id bigint NOT NULL,
+    provider character varying DEFAULT 'google_com'::character varying NOT NULL,
+    uid character varying DEFAULT ''::character varying NOT NULL,
+    token character varying DEFAULT ''::character varying NOT NULL,
+    refresh_token character varying DEFAULT ''::character varying NOT NULL,
+    token_expires_at integer NOT NULL,
+    status_id bigint DEFAULT 1 NOT NULL,
+    last_authenticated_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: visitor_google_identities_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_google_identities_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_google_identities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_google_identities_id_seq OWNED BY public.visitor_google_identities.id;
+
+
+--
+-- Name: visitor_google_identity_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_google_identity_statuses (
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: visitor_google_identity_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_google_identity_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_google_identity_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_google_identity_statuses_id_seq OWNED BY public.visitor_google_identity_statuses.id;
+
+
+--
 -- Name: visitor_mfa_levels; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1433,6 +1499,20 @@ ALTER TABLE ONLY public.visitor_emails ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Name: visitor_google_identities id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_google_identities ALTER COLUMN id SET DEFAULT nextval('public.visitor_google_identities_id_seq'::regclass);
+
+
+--
+-- Name: visitor_google_identity_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_google_identity_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_google_identity_statuses_id_seq'::regclass);
+
+
+--
 -- Name: visitor_mfa_levels id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1792,6 +1872,22 @@ ALTER TABLE ONLY public.visitor_email_statuses
 
 ALTER TABLE ONLY public.visitor_emails
     ADD CONSTRAINT visitor_emails_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_google_identities visitor_google_identities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_google_identities
+    ADD CONSTRAINT visitor_google_identities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_google_identity_statuses visitor_google_identity_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_google_identity_statuses
+    ADD CONSTRAINT visitor_google_identity_statuses_pkey PRIMARY KEY (id);
 
 
 --
@@ -2180,6 +2276,34 @@ CREATE INDEX index_visitor_emails_on_visitor_email_status_id ON public.visitor_e
 --
 
 CREATE INDEX index_visitor_emails_on_visitor_id ON public.visitor_emails USING btree (visitor_id);
+
+
+--
+-- Name: index_visitor_google_identities_on_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_google_identities_on_status_id ON public.visitor_google_identities USING btree (status_id);
+
+
+--
+-- Name: index_visitor_google_identities_on_token_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_google_identities_on_token_expires_at ON public.visitor_google_identities USING btree (token_expires_at);
+
+
+--
+-- Name: index_visitor_google_identities_on_uid_and_provider; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_google_identities_on_uid_and_provider ON public.visitor_google_identities USING btree (uid, provider);
+
+
+--
+-- Name: index_visitor_google_identities_on_visitor_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_google_identities_on_visitor_id_unique ON public.visitor_google_identities USING btree (visitor_id) WHERE (visitor_id IS NOT NULL);
 
 
 --
@@ -2655,6 +2779,14 @@ ALTER TABLE ONLY public.visitor_emails
 
 
 --
+-- Name: visitor_google_identities fk_rails_108e6ef5b2; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_google_identities
+    ADD CONSTRAINT fk_rails_108e6ef5b2 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
+
+
+--
 -- Name: visitors fk_rails_15c7fee824; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2951,6 +3083,14 @@ ALTER TABLE ONLY public.visitors
 
 
 --
+-- Name: visitor_google_identities fk_rails_de87adbf83; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_google_identities
+    ADD CONSTRAINT fk_rails_de87adbf83 FOREIGN KEY (status_id) REFERENCES public.visitor_google_identity_statuses(id);
+
+
+--
 -- Name: visitor_secret_credentials fk_rails_e1dad63cb9; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2981,6 +3121,7 @@ ALTER TABLE ONLY public.visitor_preference_themes
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260602000000'),
 ('20260530032500'),
 ('20260530032400'),
 ('20260530032200'),

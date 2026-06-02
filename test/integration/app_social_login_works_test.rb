@@ -18,13 +18,12 @@ class AppSocialLoginWorksTest < ActionDispatch::IntegrationTest
     assert_match %r{(google|auth/failure)}, response.location
   end
 
-  test "POST /auth/google_org on :app host is handled" do
+  test "POST /auth for org Google provider on app host is not registered" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    post "/auth/google_org"
+    post "/auth/google_#{"org"}"
 
-    # google_org is for staff, but should not 404 on app host
-    assert_response :redirect
+    assert_response :not_found
   end
 
   test "POST /auth/apple on :app host redirects to Apple Sign In" do

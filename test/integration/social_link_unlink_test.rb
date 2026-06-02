@@ -54,7 +54,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_redirected_to sign_app_configuration_url(ri: "jp")
+    assert_redirected_to sign_app_settings_url(ri: "jp")
     follow_redirect!(headers: @headers)
 
     assert_equal I18n.t("sign.app.social.sessions.unlink.success", provider: "Apple"), flash[:notice]

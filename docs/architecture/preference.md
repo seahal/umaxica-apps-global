@@ -1,5 +1,12 @@
 # Preference Architecture
 
+> **Partially superseded by Identity Authority inversion:** The preference vocabulary in this
+> document remains useful only where it does not assign preference, settings, dashboard, or session
+> authority to `sign/id`. `acme/www` is the Session, Token, Account, Preference, Authorization, and
+> downstream-token Authority. `sign/id` is ceremony-only. Existing sign-side physical tables/models
+> do not imply sign-side authority. Do not use this document to reintroduce sign-side sessions,
+> refresh, preference, dashboard, account lifecycle, token issuance, logout, or step-up freshness.
+
 ## Purpose
 
 The preference system has two different roles.
@@ -12,6 +19,26 @@ The system must keep these roles separate.
 
 Preference setting writes are exposed through the `sign` surfaces. `acme` and `jump` consume
 preference state as read-only runtime context through `Actor.preferences`.
+
+## URL Role Boundary
+
+Preference, setting, and operational configuration routes have separate responsibilities:
+
+- `/preference` is the login-independent preference boundary. It may be used before login, after
+  logout, or while authenticated. It owns shared surface preference state such as language, region,
+  timezone, theme, display options, and cookie consent.
+- `/setting` is the signed-in user setting boundary. It owns account-local and security settings for
+  the current actor, such as credentials, sessions, MFA, contact methods, notification settings, and
+  withdrawal flows.
+- `/configurator` is the operator-controlled configuration boundary. It owns settings an authorized
+  operator manages for an organization, workspace, tenant, public surface, or managed runtime.
+
+Do not move preference writes under `/setting` merely because the actor is authenticated. Do not
+expose account settings through `/preference` merely because a settings page also displays
+preference context. Do not mix operator-managed configuration with user self-service settings.
+
+These URL roles are canonical for new documentation and route work. Existing plural `/settings`
+routes are a compatibility gap and need a separate migration plan before route renaming.
 
 ## Scope
 
@@ -164,11 +191,10 @@ Supported optional request values:
 
 Examples:
 
-- `/configuration?ri=jp&lx=en` uses English for that request.
-- `/configuration?ri=jp&lx=kr` redirects to `/configuration?ri=jp`.
-- `/configuration?ri=jp&ct=purple&tz=Mars/Base` redirects to `/configuration?ri=jp`.
-- `/configuration` redirects to the same route with a valid `ri`, but does not add `lx`, `ct`, or
-  `tz`.
+- `/preference?ri=jp&lx=en` uses English for that request.
+- `/preference?ri=jp&lx=kr` redirects to `/preference?ri=jp`.
+- `/preference?ri=jp&ct=purple&tz=Mars/Base` redirects to `/preference?ri=jp`.
+- `/preference` redirects to the same route with a valid `ri`, but does not add `lx`, `ct`, or `tz`.
 
 ## Runtime Read Contract
 

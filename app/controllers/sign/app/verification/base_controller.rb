@@ -54,7 +54,7 @@ module Sign
           end
 
           safe_redirect_to(
-            sign_app_configuration_path(ri: params[:ri]),
+            sign_app_settings_path(ri: params[:ri]),
             fallback: sign_app_root_path(ri: params[:ri]),
             alert: I18n.t("auth.step_up.session_expired"),
           )

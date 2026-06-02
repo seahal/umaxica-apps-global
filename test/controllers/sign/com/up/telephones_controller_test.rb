@@ -72,7 +72,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal "/configuration/telephones/registration/new?ri=jp", uri.request_uri
+    assert_equal "/settings/telephones/registration/new?ri=jp", uri.request_uri
   end
 
   test "create redirects to edit and creates pending visitor telephone" do

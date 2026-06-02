@@ -3,7 +3,7 @@
 
 # Authorization for the app (client) email listing.
 #
-# `Sign::App::Configuration::EmailsController` and its registration subcontroller scope every
+# `Sign::App::Settings::EmailsController` and its registration subcontroller scope every
 # query to `current_client.client_emails`, so row-level ownership is enforced by those queries.
 # `index?`/`create?` gate the actor *type*; the per-record write rules require ownership
 # (record.user_id == client.id). Other defaults stay deny-all (allowlist).

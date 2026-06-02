@@ -1,5 +1,10 @@
 # Token Rotation Concurrency Hardening
 
+> **Deprecated by Identity Authority inversion where this plan assigns refresh or token authority to
+> `sign/id`:** `acme/www` now owns Session, Token, Account, Preference, Authorization, and
+> downstream-token authority. `sign/id` is ceremony-only. Physical DB movement is out of scope.
+> Implementation details in this plan must not be used to reintroduce sign-side authority.
+
 ## Status
 
 Partially implemented. Remaining overlap-window work is deferred to backlog.

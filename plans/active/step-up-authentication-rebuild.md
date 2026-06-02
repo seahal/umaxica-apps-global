@@ -1,13 +1,19 @@
 # Step-Up Authentication Mechanism Rebuild Plan
 
+> **Deprecated by Identity Authority inversion where this plan assigns step-up freshness, session,
+> or token authority to `sign/id`:** `acme/www` now owns Session, Token, Account, Preference,
+> Authorization, and downstream-token authority. `sign/id` is ceremony-only. Physical DB movement is
+> out of scope. Implementation details in this plan must not be used to reintroduce sign-side
+> authority.
+
 **Status:** Active (2026-05-11) — This file is a specification document that is a prerequisite for
 implementation by another AI. The implementation is not done in this file.
 
 **Refresh note (2026-05-19):** This plan still contains older descriptions that have been
 implemented or superseded by later decisions. The current authoritative DB names are `app_ticket`,
-`com_ticket`, and `org_ticket`. `configuration_connection` and `operator_lifecycle` are step-up
-scopes added by later features, so do not delete them. WebAuthn challenges should remain in the
-session store; the Solid Cache move is treated as canceled.
+`com_ticket`, and `org_ticket`. `settings_connection` and `operator_lifecycle` are step-up scopes
+added by later features, so do not delete them. WebAuthn challenges should remain in the session
+store; the Solid Cache move is treated as canceled.
 
 ## background
 
@@ -40,9 +46,9 @@ broken behaviors that will be resolved upon completion of this plan:
   controller.
 - There is no `session_revoke_all` in `ALLOWED_SCOPES`, and from `session#destroy`
   `ActionController::BadRequest` when it comes to `/verification?scope=session_revoke_all`.
-- `configuration_mfa` regex and route of `ALLOWED_SCOPES` are on all surfaces. Align to
-  `/configuration/mfa/challenge`.
-- `Sign::App::Configuration::GooglesController#destroy` is not implemented, nor is it in routes (not
+- `settings_mfa` regex and route of `ALLOWED_SCOPES` are on all surfaces. Align to
+  `/settings/mfa/challenge`.
+- `Sign::App::Settings::GooglesController#destroy` is not implemented, nor is it in routes (not
   covered by this plan. This will be dealt with in a separate task).
 
 ## How to cut PR
@@ -157,31 +163,31 @@ migration Check manually. Cannot be uploaded to CI (takes time).
 
 **Depends:** Phase 2 (shares the premise of touching `Verification::Base`)
 
-**Purpose:** Fixed two bugs in `ALLOWED_SCOPES`, renamed `manage_totp` → `configuration_totp`.
+**Purpose:** Fixed two bugs in `ALLOWED_SCOPES`, renamed `manage_totp` → `settings_totp`.
 
 **work:**
 
 1. `ALLOWED_SCOPES`(`app/controllers/concerns/sign/app_verification_base.rb` and same com / org
    equivalent concern) to the basic scope and subsequent additional scope of ADR § D. 9 cases are
-   not fixed. `configuration_connection` and `operator_lifecycle` will be left for use by existing
+   not fixed. `settings_connection` and `operator_lifecycle` will be left for use by existing
    functions.
 
    ```ruby
    ALLOWED_SCOPES = {
      "social_unlink"           => %r{\A/social/},
-     "session_revoke_all"      => %r{\A/configuration/sessions},
-     "withdrawal"              => %r{\A/configuration/withdrawal},
-     "configuration_email"     => %r{\A/configuration/emails},
-     "configuration_telephone" => %r{\A/configuration/telephones},
-     "configuration_passkey"   => %r{\A/configuration/passkeys},
-     "configuration_mfa"       => %r{\A/configuration/mfa/challenge},
-     "configuration_secret"    => %r{\A/configuration/secrets},
-     "configuration_totp"      => %r{\A/configuration/totps},
+     "session_revoke_all"      => %r{\A/settings/sessions},
+     "withdrawal"              => %r{\A/settings/withdrawal},
+     "settings_email"     => %r{\A/settings/emails},
+     "settings_telephone" => %r{\A/settings/telephones},
+     "settings_passkey"   => %r{\A/settings/passkeys},
+     "settings_mfa"       => %r{\A/settings/mfa/challenge},
+     "configuration_secret"    => %r{\A/settings/secrets},
+     "settings_totp"      => %r{\A/settings/totps},
    }.freeze
    ```
 
-2. `verification_scope` of `app/controllers/sign/app/configuration/totps_controller.rb` Changed from
-   `"manage_totp"` to `"configuration_totp"`.
+2. `verification_scope` of `app/controllers/sign/app/settings/totps_controller.rb` Changed from
+   `"manage_totp"` to `"settings_totp"`.
 3. grep the `verification_scope` string for all controllers and use `StepUp::ScopeCatalog` Check to
    see if anything that came off is left behind.
 4. surface Another concern(`app_verification_base` / `com_verification_base` /
@@ -292,19 +298,19 @@ completed, `params[:rt]` X' redirect according to
 
 **Work (app example. com/org is also expanded to the same type):**
 
-1. `app/controllers/sign/app/configuration/passkeys_controller.rb`:
-   - `before_action -> { require_step_up_unless_bootstrap!(scope: "configuration_passkey") }, only: %i(new create)`
-   - `before_action -> { require_step_up!(scope: "configuration_passkey") }, only: %i(edit update destroy)`
+1. `app/controllers/sign/app/settings/passkeys_controller.rb`:
+   - `before_action -> { require_step_up_unless_bootstrap!(scope: "settings_passkey") }, only: %i(new create)`
+   - `before_action -> { require_step_up!(scope: "settings_passkey") }, only: %i(edit update destroy)`
    - Added a branch that respects `rt` in redirect when `create` succeeds (see
      `bootstrap_return_path` below).
-2. `app/controllers/sign/app/configuration/totps_controller.rb`:
-   - Same. Use `configuration_totp` scope.
-3. `app/controllers/sign/app/configuration/emails/registrations_controller.rb`:
+2. `app/controllers/sign/app/settings/totps_controller.rb`:
+   - Same. Use `settings_totp` scope.
+3. `app/controllers/sign/app/settings/emails/registrations_controller.rb`:
    - 4 All actions `require_step_up_unless_bootstrap!` to before_action.
    - Respect `rt` when final confirmation (`update`) is successful.
-4. `app/controllers/sign/com/configuration/{passkeys,emails/registrations}_controller.rb`:
+4. `app/controllers/sign/com/settings/{passkeys,emails/registrations}_controller.rb`:
    - Same type as app (com has no TOTP, deleted in Phase 7).
-5. `app/controllers/sign/org/configuration/passkeys_controller.rb`:
+5. `app/controllers/sign/org/settings/passkeys_controller.rb`:
    - Bootstrap exemption is only passkey.
    - org's email registration controllers **does not exempt bootstrap** (`require_step_up!` only).
 6. Put the common helper in `Verification::Base` or a new concern. It must validate `rt` through the
@@ -326,9 +332,9 @@ completed, `params[:rt]` X' redirect according to
 7. On each successful create/update:
    ```ruby
    safe_redirect_to(
-     bootstrap_return_path(sign_app_configuration_path(ri: params[:ri])),
-     fallback: sign_app_configuration_path(ri: params[:ri]),
-     notice: I18n.t("sign.app.configuration.bootstrap.proceed_to_action"),
+     bootstrap_return_path(sign_app_settings_path(ri: params[:ri])),
+     fallback: sign_app_settings_path(ri: params[:ri]),
+     notice: I18n.t("sign.app.settings.bootstrap.proceed_to_action"),
    )
    ```
    (The i18n key will be newly created by the implementer. com / org will also create a key of the
@@ -336,7 +342,7 @@ completed, `params[:rt]` X' redirect according to
 
 **test:**
 
-- `/configuration/passkeys/new` with bootstrap = true(`multi_factor_status_id = 5`) Confirm with
+- `/settings/passkeys/new` with bootstrap = true(`multi_factor_status_id = 5`) Confirm with
   controller test that it can be inserted into the .
 - In the same situation, after `create` succeeds, redirect to the URL specified by a valid,
   session-bound `rt` and set `flash[:notice]`. Invalid, replayed, cross-surface, or cross-flow `rt`
@@ -393,7 +399,7 @@ handling TOTP on com (ADR § E).
 
 1. com side block of `config/routes/sign.rb`:
    - Delete `resource :totp, only: %i(new create)` line in `namespace :verification`.
-   - Delete `resources :totps, ...` line in `namespace :configuration`.
+   - Delete `resources :totps, ...` line in `namespace :settings`.
 2. File deletion:
    - `app/controllers/sign/com/verification/totps_controller.rb`
    - `app/views/sign/com/verification/totps/` (for each directory, if it exists)
@@ -406,7 +412,7 @@ handling TOTP on com (ADR § E).
 
 **test:**
 
-- com's `/configuration/totps` returns 404 (routing test).
+- com's `/settings/totps` returns 404 (routing test).
 - There are no other require / render references to the deleted file (grep + CI).
 
 ---
@@ -429,9 +435,9 @@ handling TOTP on com (ADR § E).
 **test:**
 
 - End-to-end integration test for key user flows 3 scenarios:
-  - **Bob Scenario**: `/configuration/apple#destroy` with an account created only with social-login
-    Step on , setup → passkey registration → automatic bounce → step-up → Apple unlink completed.
-  - **Frank scenario**: passkey + email already registered `/configuration/withdrawal` → step-up →
+  - **Bob Scenario**: `/settings/apple#destroy` with an account created only with social-login Step
+    on , setup → passkey registration → automatic bounce → step-up → Apple unlink completed.
+  - **Frank scenario**: passkey + email already registered `/settings/withdrawal` → step-up →
     Withdrawal starts.
   - **Eve scenario**: 5 consecutive failures with only one passkey → ticket lockout →
     `/verification` "Re-authentication temporarily suspended" is displayed.

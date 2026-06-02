@@ -16,10 +16,8 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "renders authentication links" do
-    with_env("ORG_GOOGLE_SIGNIN_ENABLED" => "true") do
-      get new_sign_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
-    end
+  test "renders local authentication links only" do
+    get new_sign_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
 
@@ -27,21 +25,13 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "a[href=?]", new_sign_org_in_passkey_path(query)
     assert_select "a[href=?]", new_sign_org_in_secret_credential_path(query)
-    assert_select "form[action=?]", continue_sign_org_social_authentication_path(query.merge(provider: "google_org"))
-  end
-
-  test "does not render google signin when org google signin flag is off" do
-    with_env("ORG_GOOGLE_SIGNIN_ENABLED" => "false") do
-      get new_sign_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
-    end
-
-    assert_response :success
-    assert_select "form[action=?]", continue_sign_org_social_authentication_path(provider: "google_org", ri: "jp"),
-                  count: 0
+    assert_select "form[action*=?]", "/social/auth/", count: 0
+    assert_select "form[action*=?]", "/auth/google", count: 0
+    assert_select "form[action*=?]", "/auth/apple", count: 0
   end
 
   test "authentication links carry pt" do
-    pt = Base64.urlsafe_encode64("https://id.umaxica.org/configuration/sessions?ri=jp", padding: false)
+    pt = Base64.urlsafe_encode64("https://id.umaxica.org/settings/sessions?ri=jp", padding: false)
 
     get new_sign_org_sign_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
@@ -72,15 +62,5 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to sign_org_dashboard_url(ri: "jp")
-  end
-
-  private
-
-  def with_env(values)
-    original = values.keys.index_with { |key| ENV[key] }
-    values.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
-    yield
-  ensure
-    original.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
   end
 end

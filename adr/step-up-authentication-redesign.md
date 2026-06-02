@@ -2,9 +2,21 @@
 
 **Status:** Accepted (2026-05-11)
 
-**Correction (2026-05-19):** The current route contract for `configuration_mfa` is
-`/configuration/mfa/challenge` on every sign surface. WebAuthn challenge state remains in the Rails
+> **Supersession (2026-06-02):** This ADR's IdP/RP-centered authority model is superseded by
+> `adr/identity-authority-boundary.md`. `acme/www` is now the Session, Token, Account, Preference,
+> and Authorization Authority. `sign/id` is no longer the IdP; it is a Credential Gateway and
+> Credential Ceremony Zone only. Historical implementation details in this ADR must not be used to
+> reintroduce sign-side sessions, refresh tokens, preference writes, dashboards, account lifecycle,
+> downstream token issuance, authorization decisions, or step-up freshness.
+
+**Correction (2026-05-19):** The current route contract for `settings_mfa` is
+`/settings/mfa/challenge` on every sign surface. WebAuthn challenge state remains in the Rails
 session store; only email OTP step-up state uses the cache-backed `step_up_session:*` keys.
+
+**URL boundary supersession (2026-06-02):** `adr/preference-setting-configurator-url-boundaries.md`
+sets the target URL language. User self-service account settings belong under canonical `/setting`,
+and existing plural `/settings` references in this ADR describe the implementation-era route
+contract until a route migration plan replaces them.
 
 ## Context
 
@@ -24,7 +36,7 @@ result was a half-built system with multiple regressions:
   (e.g., org supports passkey only).
 - Configuration registration controllers (`Configuration::PasskeysController#new`, etc.) do not
   honor `params[:rt]`, so the "setup → register → return to the original sensitive action" loop is
-  silently broken. The user lands on `/configuration` instead of the action they were trying to do.
+  silently broken. The user lands on `/settings` instead of the action they were trying to do.
 - `ClientStepUpSession` / `VisitorStepUpSession` / `OperatorStepUpSession` exist with full schemas
   (`status, attempt_count, verified_at, discarded_at, method`, `Retainable`) but no controllers wire
   them. Controllers store step-up state in cookie sessions instead. Two parallel mechanisms, only
@@ -34,9 +46,8 @@ result was a half-built system with multiple regressions:
 - `ALLOWED_SCOPES` (in `Sign::AppVerificationBase` and equivalents) is missing `session_revoke_all`,
   which is used by all three surfaces' session controllers. Entering
   `/verification?scope=session_revoke_all&...` raises `ActionController::BadRequest`. The
-  `configuration_mfa` regex matches `/configuration/mfa`, but the actual route is
-  `/configuration/challenge`.
-- `Sign::App::Configuration::GooglesController#destroy` does not exist and is not routed; Google
+  `settings_mfa` regex matches `/settings/mfa`, but the actual route is `/settings/challenge`.
+- `Sign::App::Settings::GooglesController#destroy` does not exist and is not routed; Google
   identities cannot be unlinked (Apple can).
 
 Because credentials cannot be cleanly removed and bootstrap users (social-login-only accounts with
@@ -118,22 +129,21 @@ redesign decisions agreed in the 2026-05-11 design dialogue.
 
 ### D. Scope catalog (nine scopes)
 
-| scope                     | path regex                       |
-| ------------------------- | -------------------------------- |
-| `social_unlink`           | `\A/social/`                     |
-| `session_revoke_all`      | `\A/configuration/sessions`      |
-| `withdrawal`              | `\A/configuration/withdrawal`    |
-| `configuration_email`     | `\A/configuration/emails`        |
-| `configuration_telephone` | `\A/configuration/telephones`    |
-| `configuration_passkey`   | `\A/configuration/passkeys`      |
-| `configuration_mfa`       | `\A/configuration/mfa/challenge` |
-| `configuration_secret`    | `\A/configuration/secrets`       |
-| `configuration_totp`      | `\A/configuration/totps`         |
+| scope                  | path regex                  |
+| ---------------------- | --------------------------- |
+| `social_unlink`        | `\A/social/`                |
+| `session_revoke_all`   | `\A/settings/sessions`      |
+| `withdrawal`           | `\A/settings/withdrawal`    |
+| `settings_email`       | `\A/settings/emails`        |
+| `settings_telephone`   | `\A/settings/telephones`    |
+| `settings_passkey`     | `\A/settings/passkeys`      |
+| `settings_mfa`         | `\A/settings/mfa/challenge` |
+| `configuration_secret` | `\A/settings/secrets`       |
+| `settings_totp`        | `\A/settings/totps`         |
 
-`session_revoke_all` is newly added (fixes the missing-scope `BadRequest` bug).
-`configuration_mfa`'s regex is corrected to match the actual route. `manage_totp` is renamed
-`configuration_totp` for naming consistency. Each `verification_scope` in the registration
-controllers must be updated to match.
+`session_revoke_all` is newly added (fixes the missing-scope `BadRequest` bug). `settings_mfa`'s
+regex is corrected to match the actual route. `manage_totp` is renamed `settings_totp` for naming
+consistency. Each `verification_scope` in the registration controllers must be updated to match.
 
 The scope catalog is an allowed vocabulary, not the source of truth for a sensitive action's
 requirement. Authorization policy owns the required AAL, method set, and scope for a concrete
@@ -150,7 +160,7 @@ assertions, but runtime enforcement must not use metadata as a second source of 
 
 `step_up_supported_methods` returns the corresponding set per surface.
 
-For com: the `namespace :verification` `resource :totp` route, the `namespace :configuration`
+For com: the `namespace :verification` `resource :totp` route, the `namespace :settings`
 `resources :totps` route, `Sign::Com::Verification::TotpsController`, and any com TOTP views are
 removed.
 
@@ -197,7 +207,7 @@ After a bootstrap registration completes successfully, the registration controll
 
 1. Validates `params[:rt]` as a return-target token bound to the current session, surface, and flow.
 2. Sets `flash[:notice]` with a key that names the next operation (for example,
-   `t("sign.app.configuration.bootstrap.proceed_to_action")` — exact key to be defined by the
+   `t("sign.app.settings.bootstrap.proceed_to_action")` — exact key to be defined by the
    implementer).
 3. Calls
    `safe_redirect_to(return_target.path, fallback: <surface>_configuration_path(ri: params[:ri]))`.
@@ -240,7 +250,7 @@ request.
 
 Out of scope for this ADR (tracked separately):
 
-- `Sign::App::Configuration::GooglesController#destroy` is missing and `resource :google` does not
+- `Sign::App::Settings::GooglesController#destroy` is missing and `resource :google` does not
   include `destroy`. Adding Google unlink symmetric to Apple is a follow-up.
 
 ## Rationale
@@ -282,7 +292,7 @@ operator action or a slow natural process. The safety benefit is small, and the 
 ratchet — users losing all access after operator-led revocation must go through a manual support
 path — is large. The implementer-mistake recovery argument carried decisive weight in the dialogue.
 
-**Why X' (auto-bounce with flash) for setup return.** Z (drop to `/configuration`) makes the user
+**Why X' (auto-bounce with flash) for setup return.** Z (drop to `/settings`) makes the user
 re-navigate to the action they were already trying to do — a UX regression from the intended "one
 credential and you can proceed" experience. Y (explicit confirmation page) adds a click and a "no"
 branch to design. X (silent auto-bounce) is jarring. X' adds one flash line and inherits the same
@@ -294,17 +304,16 @@ code path as X.
   will be carried out by a separate AI agent in phases.
 - Schema migrations keep the step-up tables on the three token databases (`mark`, `symbol`, `token`)
   and key them by token id.
-- Controllers in `configuration/` namespaces gain a new `before_action` helper and now honor
+- Controllers in `settings/` namespaces gain a new `before_action` helper and now honor
   `params[:rt]` on `create` through the return-target token primitive. Existing tests that assert
   post-create redirect destination must be updated.
 - `ALLOWED_SCOPES` and the per-controller `verification_scope` values must be kept in lockstep with
   the table in section D for inventory purposes. Policy remains the runtime source of truth for
   which scope a sensitive action requires. A test asserting the cross-reference is recommended.
-- The `manage_totp` → `configuration_totp` rename requires updating one constant and one
+- The `manage_totp` → `settings_totp` rename requires updating one constant and one
   `verification_scope` return value. No external URL changes.
-- com no longer has TOTP routes or controllers. Any external bookmarks pointing to
-  `/configuration/totps` on the com host break with 404. Acceptable because the feature was never
-  advertised on com.
+- com no longer has TOTP routes or controllers. Any external bookmarks pointing to `/settings/totps`
+  on the com host break with 404. Acceptable because the feature was never advertised on com.
 - The `/verification/setup/new?ri=...&rt=...` URL shape is unchanged. The `rt` value is now an
   opaque return-target token; old Base64-only values are not a compatibility contract.
 

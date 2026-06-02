@@ -54,7 +54,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
 
   test "destroy with checkpoint notice state without sequence authorization is rejected" do
     start_checkpoint_sequence
-    pt = Base64.urlsafe_encode64("/configuration?ri=jp")
+    pt = Base64.urlsafe_encode64("/settings?ri=jp")
 
     delete sign_com_in_checkpoint_url(ri: "jp", pt: pt),
            headers: checkpoint_headers.merge(

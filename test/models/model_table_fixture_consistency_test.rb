@@ -6,39 +6,6 @@ require "test_helper"
 class ModelTableFixtureConsistencyTest < ActiveSupport::TestCase
   fixtures_none!
 
-  PUBLISHER_POST_MODELS = [
-    AppPost,
-    AppPostCategorization,
-    AppPostCategory,
-    AppPostReview,
-    AppPostReviewStatus,
-    AppPostRevision,
-    AppPostStatus,
-    AppPostTagging,
-    AppPostTag,
-    AppPostVersion,
-    ComPost,
-    ComPostCategorization,
-    ComPostCategory,
-    ComPostReview,
-    ComPostReviewStatus,
-    ComPostRevision,
-    ComPostStatus,
-    ComPostTagging,
-    ComPostTag,
-    ComPostVersion,
-    OrgPost,
-    OrgPostCategorization,
-    OrgPostCategory,
-    OrgPostReview,
-    OrgPostReviewStatus,
-    OrgPostRevision,
-    OrgPostStatus,
-    OrgPostTagging,
-    OrgPostTag,
-    OrgPostVersion,
-  ].freeze
-
   test "application record table names follow model tableize convention" do
     Rails.application.eager_load!
 
@@ -63,44 +30,10 @@ class ModelTableFixtureConsistencyTest < ActiveSupport::TestCase
                  "Fixture files without matching model tables remain:\n#{missing_tables.sort.join("\n")}"
   end
 
-  test "legacy unprefixed post compatibility constants are absent" do
-    legacy_constants = %w(
-      Post
-      PostCategory
-      PostCategoryMaster
-      PostReview
-      PostReviewStatus
-      PostRevision
-      PostStatus
-      PostTag
-      PostTagMaster
-      PostVersion
-    )
-
-    remaining = legacy_constants.select { |constant_name| Object.const_defined?(constant_name) }
-
-    assert_empty remaining, "Legacy unprefixed post constants remain: #{remaining.join(", ")}"
-  end
-
-  test "publisher post associations use surface-prefixed names and foreign keys" do
-    PUBLISHER_POST_MODELS.each do |model|
-      surface_prefix = model.name.match(/\A(App|Com|Org)/)[1].underscore
-      model.reflect_on_all_associations.each do |association|
-        next if association.options[:polymorphic]
-        next unless association.klass.name.start_with?(surface_prefix.camelize)
-        next if association.name.in?(%i(parent children latest_version_record latest_revision_record latest_post))
-
-        assert_match(/\A#{Regexp.escape(surface_prefix)}_post/, association.name.to_s)
-        assert_match(/\A(?:latest_)?#{Regexp.escape(surface_prefix)}_post/, association.foreign_key.to_s) if
-          association.macro == :belongs_to
-      end
-    end
-  end
-
   private
   def application_record_models
     ApplicationRecord.descendants.reject do |model|
-      model.abstract_class? || model.name.include?("::")
+      model.abstract_class? || model.name.blank? || model.name.include?("::")
     end
   end
 end

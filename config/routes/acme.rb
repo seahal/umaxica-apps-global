@@ -1,28 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-def exact_host_constraint(*hosts)
-  normalized_hosts = hosts.filter_map { |host| normalize_route_host(host) }
-  /\A(?:#{normalized_hosts.map { |host| Regexp.escape(host) }.join("|")})\z/
-end
-
-def normalize_route_host(host)
-  host.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first.presence
-end
-
-acme_app_host = exact_host_constraint(
-  ENV.fetch("ACME_SERVICE_URL", "app.localhost"), "app.localhost",
-  "www.app.localhost",
-)
-acme_com_host = exact_host_constraint(
-  ENV.fetch("ACME_CORPORATE_URL", "com.localhost"), "com.localhost",
-  "www.com.localhost",
-)
-acme_org_host = exact_host_constraint(
-  ENV.fetch("ACME_STAFF_URL", "org.localhost"), "org.localhost",
-  "www.org.localhost",
-)
-
 scope module: :acme, as: :acme do
   constraints host: acme_app_host do
     scope module: :app, as: :app do

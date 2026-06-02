@@ -3,7 +3,7 @@
 
 # Authorization for the app (client) OIDC connection listing.
 #
-# `Sign::App::Configuration::ConnectionsController` already scopes every query to
+# `Sign::App::Settings::ConnectionsController` already scopes every query to
 # `current_client.oidc_connections`, so row-level ownership is enforced by the controller.
 # This policy gates the actor *type* allowed to reach a listing at all (defense in depth on the
 # app surface). `show` shares the rule because the controller exposes the same owned resource.

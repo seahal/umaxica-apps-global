@@ -512,7 +512,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   test "direct controller private branches for flow and existing verification" do
     controller = Sign::Com::Up::EmailsController.new
     session_hash = {}
-    params_hash = ActionController::Parameters.new(ri: "jp", pt: "/configuration")
+    params_hash = ActionController::Parameters.new(ri: "jp", pt: "/settings")
     redirects = []
     renders = []
 

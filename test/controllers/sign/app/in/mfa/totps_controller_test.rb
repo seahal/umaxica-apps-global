@@ -64,7 +64,7 @@ module Sign::App::In
       assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
     end
 
-    test "create with valid TOTP code redirects to configuration" do
+    test "create with valid TOTP code redirects to settings" do
       with_prosopite_paused do
         establish_pending_mfa_via_secret_credential!
       end

@@ -22,23 +22,23 @@ class Sign::Org::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show with scope and return_to params" do
-    return_to = Base64.urlsafe_encode64("/org/configuration")
+    return_to = Base64.urlsafe_encode64("/org/settings")
 
-    get sign_org_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+    get sign_org_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :success
   end
 
-  test "show redirects to configuration when return_to is invalid" do
-    get sign_org_verification_url(scope: "configuration_email", return_to: "%%%INVALID%%%", ri: "jp"),
+  test "show redirects to settings when return_to is invalid" do
+    get sign_org_verification_url(scope: "settings_email", return_to: "%%%INVALID%%%", ri: "jp"),
         headers: @headers
 
     assert_response :success
   end
 
   test "show handles recent verification" do
-    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "configuration_email")
+    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_email")
 
     get sign_org_verification_url(ri: "jp"), headers: @headers
 

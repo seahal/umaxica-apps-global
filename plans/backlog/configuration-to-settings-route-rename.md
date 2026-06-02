@@ -2,7 +2,7 @@
 
 ## Summary
 
-Audit found that `/configuration` is stiff and system-oriented for end-user account settings. Use
+Audit found that `/settings` is stiff and system-oriented for end-user account settings. Use
 `/settings` for the user-facing settings surface, but do not implement this rename in the current
 model/controller naming cleanup slice because it touches routes, helpers, views, tests, and i18n
 across all sign surfaces.
@@ -14,8 +14,8 @@ GitHub issue: https://github.com/seahal/umaxica-apps-global/issues/812
 
 ## Recommended Rename
 
-- Rename user-facing account settings URLs from `/configuration` to `/settings`.
-- Rename `Sign::*::ConfigurationsController` to `Sign::*::SettingsController`.
+- Rename user-facing account settings URLs from `/settings` to `/settings`.
+- Rename `Sign::*::SettingsController` to `Sign::*::SettingsController`.
 - Rename `Sign::*::Configuration::*` namespaces to `Sign::*::Settings::*` where those controllers
   are account settings screens.
 - Keep the domain concept as "account settings" in user-facing text. Avoid "configuration" in UI
@@ -32,10 +32,10 @@ Apply the rename across the three sign surfaces as one controller-layer slice:
 Expected impact:
 
 - `config/routes/sign.rb`
-- `app/controllers/sign/{app,com,org}/configurations_controller.rb`
-- `app/controllers/sign/{app,com,org}/configuration/**/*`
-- `app/views/sign/{app,com,org}/configurations/**/*` and `configuration/**/*`
-- route helper call sites such as `sign_app_configuration_path`
+- `app/controllers/sign/{app,com,org}/settingss_controller.rb`
+- `app/controllers/sign/{app,com,org}/settings/**/*`
+- `app/views/sign/{app,com,org}/settingss/**/*` and `settings/**/*`
+- route helper call sites such as `sign_app_settings_path`
 - controller and integration tests under `test/controllers/sign/**` and `test/integration/**`
 - i18n keys under `config/locales/**`
 
@@ -59,7 +59,7 @@ Expected impact:
 
 ## Acceptance Criteria
 
-- No `/configuration` routes remain for user-facing account settings screens.
+- No `/settings` routes remain for user-facing account settings screens.
 - Public route helpers and controller class names use `settings`.
 - Views and locale keys no longer expose "configuration" for account settings UI.
 - Controller and integration tests pass without compatibility aliases.

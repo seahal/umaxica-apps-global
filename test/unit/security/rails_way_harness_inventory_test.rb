@@ -34,8 +34,6 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/models/concerns/oidc_connection_record.rb" => [3, "legacy OIDC connection query concern"],
     "app/models/concerns/preference/resettable.rb" => [1, "legacy preference reset callback concern"],
     "app/models/concerns/public_id.rb" => [3, "legacy public id generation concern"],
-    "app/models/concerns/publisher_post_document.rb" => [14, "legacy publisher post document DSL concern"],
-    "app/models/concerns/publisher_post_master.rb" => [2, "legacy publisher post master defaults"],
     "app/models/concerns/refresh_tokenable.rb" => [5, "legacy refresh-token lifecycle concern"],
     "app/models/concerns/retainable.rb" => [6, "legacy retention timestamp concern"],
     "app/models/concerns/secret_credential.rb" => [2, "legacy secret credential validation concern"],

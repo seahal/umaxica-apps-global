@@ -199,8 +199,8 @@ registered email address.
 | credential.email.register.new | session      |     - |     2 |      5 |    10 |     30 |      60 |    300 |     1e18 | valkey         | target         | pending |
 | credential.email.register.new | ip           |     - |     5 |     20 |    80 |    200 |     500 |   2000 |     1e18 | valkey         | target         | pending |
 
-This event maps to configuration email registration flows such as
-`/configuration/emails/registration`, not public sign-up email registration.
+This event maps to configuration email registration flows such as `/settings/emails/registration`,
+not public sign-up email registration.
 
 ### Email Sign-In Targets
 

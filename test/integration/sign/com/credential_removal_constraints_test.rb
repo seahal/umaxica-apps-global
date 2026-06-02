@@ -35,12 +35,12 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_verified_telephone(visitor, "+819022220000")
 
     assert_no_difference("VisitorEmail.count") do
-      delete sign_com_configuration_email_url(email.public_id, ri: "jp"),
-             headers: visitor_headers(visitor, scope: "configuration_email")
+      delete sign_com_settings_email_url(email.public_id, ri: "jp"),
+             headers: visitor_headers(visitor, scope: "settings_email")
     end
 
-    assert_redirected_to sign_com_configuration_emails_url(ri: "jp")
-    assert_equal I18n.t("sign.app.configuration.email.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_com_settings_emails_url(ri: "jp")
+    assert_equal I18n.t("sign.app.settings.email.destroy.last_method"), flash[:alert]
   end
 
   test "telephone removal preserves contactability even when aal methods remain" do
@@ -49,12 +49,12 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(visitor)
 
     assert_no_difference("VisitorTelephone.count") do
-      delete sign_com_configuration_telephone_url(telephone.public_id, ri: "jp"),
-             headers: visitor_headers(visitor, scope: "configuration_telephone")
+      delete sign_com_settings_telephone_url(telephone.public_id, ri: "jp"),
+             headers: visitor_headers(visitor, scope: "settings_telephone")
     end
 
-    assert_redirected_to sign_com_configuration_telephones_url(ri: "jp")
-    assert_equal I18n.t("sign.app.configuration.telephone.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_com_settings_telephones_url(ri: "jp")
+    assert_equal I18n.t("sign.app.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
   test "passkey removal preserves aal2 when only secret_credential remains for aal1" do
@@ -64,11 +64,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     passkey = create_active_passkey(visitor)
 
     assert_no_difference("VisitorPasskey.count") do
-      delete sign_com_configuration_passkey_url(passkey.public_id, ri: "jp"),
-             headers: visitor_headers(visitor, scope: "configuration_passkey")
+      delete sign_com_settings_passkey_url(passkey.public_id, ri: "jp"),
+             headers: visitor_headers(visitor, scope: "settings_passkey")
     end
 
-    assert_redirected_to sign_com_configuration_passkeys_url(ri: "jp")
+    assert_redirected_to sign_com_settings_passkeys_url(ri: "jp")
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
@@ -80,12 +80,12 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     assert_no_difference(
       "VisitorSecretCredential.where(visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE).count",
     ) do
-      delete sign_com_configuration_secret_credential_url(secret_credential.public_id, ri: "jp"),
-             headers: visitor_headers(visitor, scope: "configuration_secret_credential")
+      delete sign_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
+             headers: visitor_headers(visitor, scope: "settings_secret_credential")
     end
 
-    assert_redirected_to sign_com_configuration_secret_credentials_url(ri: "jp")
-    assert_equal I18n.t("sign.app.configuration.secret_credentials.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_com_settings_secret_credentials_url(ri: "jp")
+    assert_equal I18n.t("sign.app.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
   test "email and passkey removals are allowed when all dimensions remain" do
@@ -96,13 +96,13 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(visitor)
 
     assert_difference("VisitorEmail.count", -1) do
-      delete sign_com_configuration_email_url(email.public_id, ri: "jp"),
-             headers: visitor_headers(visitor, scope: "configuration_email")
+      delete sign_com_settings_email_url(email.public_id, ri: "jp"),
+             headers: visitor_headers(visitor, scope: "settings_email")
     end
 
     assert_difference("VisitorPasskey.count", -1) do
-      delete sign_com_configuration_passkey_url(passkey.public_id, ri: "jp"),
-             headers: visitor_headers(visitor, scope: "configuration_passkey")
+      delete sign_com_settings_passkey_url(passkey.public_id, ri: "jp"),
+             headers: visitor_headers(visitor, scope: "settings_passkey")
     end
   end
 

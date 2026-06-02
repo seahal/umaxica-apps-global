@@ -8,7 +8,7 @@ Completed (2026-05-07).
 >
 > - `config/routes/sign.rb` has four `scope path: "sign" do` blocks (one each for `:app`'s `:up` and
 >   `:in`, one each for `:com`, and the `:org` block separates `:up` and `:in` around the
->   social/auth routes). All other routes (`/configuration`, `/preference`, `/auth`, `/social`,
+>   social/auth routes). All other routes (`/settings`, `/preference`, `/auth`, `/social`,
 >   `/verification`, `/health`, `/robots.txt`, `/sitemap.xml`, `/web/v0/*`, `/edge/v0/*`,
 >   `/authorize`, `/token`, `/jwks`, root) stay outside the `/sign/` prefix.
 > - `app/controllers/concerns/authentication/base.rb` rescue fallbacks updated to
@@ -33,7 +33,7 @@ The IdP runs on `id.umaxica.{app,com,org}` (production) and `id.{app,com,org}.lo
 `config/routes/sign.rb:6` declares `scope module: :sign, as: :sign do` which sets module + helper
 name prefix only, not a path prefix. Move only the `:in` and `:up` resources/namespaces under a
 `/sign/` URL prefix so the live URLs become e.g. `id.umaxica.app/sign/in/new`,
-`id.umaxica.app/sign/up/new`. Everything else (`/configuration`, `/preference`, `/auth`, `/social`,
+`id.umaxica.app/sign/up/new`. Everything else (`/settings`, `/preference`, `/auth`, `/social`,
 `/verification`, `/health`, `/robots.txt`, `/sitemap.xml`, `/web/v0/*`, `/edge/v0/*`, `/authorize`,
 `/token`, `/jwks`, root `/`) stays where it is.
 
@@ -168,8 +168,8 @@ may be updated for consistency or skipped.
    - `GET /sign/in/new` → renders sign-in
    - `GET /sign/up/new` → renders sign-up
    - `POST /sign/up/emails` → sign-up email OTP flow proceeds
-   - `GET /configuration`, `/preference`, `/auth/google_app/callback`, `/health`, `/` → still work,
-     not moved
+   - `GET /settings`, `/preference`, `/auth/google_app/callback`, `/health`, `/` → still work, not
+     moved
    - Old paths `GET /in/new`, `/up/new` → 404 (expected; no compat redirect)
 
 ## Acceptance

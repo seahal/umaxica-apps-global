@@ -34,7 +34,7 @@ module Oidc
         scheme: oidc_sign_scheme,
         host: oidc_sign_host,
         port: oidc_port,
-        path: "/configuration/sessions",
+        path: "/settings/sessions",
       )
       uri.query = { ri: ri }.to_query
       uri.to_s

@@ -55,6 +55,8 @@ module OauthCallbackStateable
         AppTicketRecord
       elsif self <= OrgTicketRecord
         OrgTicketRecord
+      elsif self <= ComTicketRecord
+        ComTicketRecord
       else
         ActiveRecord::Base
       end

@@ -135,7 +135,7 @@ Surface-specific:
 - Actor class (`User`, `Staff`, `Customer`).
 - Token model (`UserToken`, `OperatorToken`, `CustomerToken`).
 - Route helpers.
-- Dashboard/configuration paths.
+- Dashboard/settings paths.
 - Session-limit constants.
 - Available MFA methods.
 

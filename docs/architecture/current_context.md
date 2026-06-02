@@ -138,8 +138,8 @@ preference-free paths that are designed to run without a preference token.
 Authentication state is exposed as an immutable value object through `Actor.authn`.
 
 Use `Actor.authn.login_public_id` for the current login/session identifier. This is the same kind of
-identifier used to mark the current row on `/configuration/sessions`, but it intentionally does not
-use the bare name `session` because Rails session state is a different concept.
+identifier used to mark the current row on `/setting/sessions`, but it intentionally does not use
+the bare name `session` because Rails session state is a different concept.
 
 Do not treat raw access-token payloads as the normal application contract. Prefer typed readers on
 `Actor.authn`, such as:

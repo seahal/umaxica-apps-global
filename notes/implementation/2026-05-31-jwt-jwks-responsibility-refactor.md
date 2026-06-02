@@ -94,7 +94,7 @@
 
 - Added `Jit::Security::Jwt::IssuerRecord` and `KeyRecord` as low-level immutable record types.
 - Moved active/grace verification and JWKS publication state filtering out of `Registry`.
-- Kept `Registry` as the registry/configuration facade used by existing callers.
+- Kept `Registry` as the registry/settings facade used by existing callers.
 
 ## Slice 5 Issuer Builder Extraction
 

@@ -40,8 +40,6 @@ en:
     ack_schedule_purge: Purge schedule confirmation
     address: Email address
     active_avatars: Active avatars
-    app_posts: Posts
-    app_post_reviews: Post reviews
     app_preferences: App preferences
     app_preference_languages: Language preferences
     app_preference_regions: Region preferences
@@ -192,7 +190,11 @@ en:
   sign:
     common:
       cancel: Cancel
-    configuration:
+      birthdate_parts:
+        year: YYYY
+        month: MM
+        day: DD
+    settings:
       connections:
         index:
           page_title: Connected RPs
@@ -288,7 +290,7 @@ en:
             body: Your account has been created. Thank you for using the service.
           forbidden: You are not authorized to access this page.
           timeout: The checkpoint timed out.
-      configuration:
+      settings:
         show:
           page_title: Settings
           security_settings: Security Settings
@@ -322,7 +324,7 @@ en:
           home: HOME
           dashboard: DASHBOARD
           preference: PREFERENCES
-          configuration: CONFIGURATION
+          settings: SETTINGS
         title: Preferences
         cookie_settings: Cookie Settings
         region_settings: Region Settings
@@ -457,9 +459,9 @@ en:
       outs:
         destroy:
           success: You have been signed out.
-      configuration:
+      settings:
         show:
-          page_title: Configuration
+          page_title: Settings
           description: Manage advanced security controls for your account.
           security_settings: Security Settings
           totp_desc: Configure 2FA
@@ -750,7 +752,7 @@ en:
         nav:
           sign_up: Sign Up
           log_in: Log In
-          configuration: Settings
+          settings: Settings
           logout: Log Out
       registration:
         cancelled_retry_later: Registration cancelled. Please wait a while before registering again.
@@ -849,7 +851,7 @@ en:
           home: HOME
           dashboard: DASHBOARD
           preference: PREFERENCES
-          configuration: CONFIGURATION
+          settings: SETTINGS
       root:
         title: Welcome to Sign
         description: Choose an action to get started
@@ -1008,9 +1010,9 @@ en:
       outs:
         destroy:
           success: You have been signed out.
-      configuration:
+      settings:
         show:
-          page_title: Configuration
+          page_title: Settings
           description: Manage advanced security controls for your account.
           back: Back
           withdrawal: Withdrawal
@@ -1235,7 +1237,7 @@ en:
           home: HOME
           dashboard: DASHBOARD
           preference: PREFERENCES
-          configuration: CONFIGURATION
+          settings: SETTINGS
         locale_settings: Language Settings
         back_to_settings: Back to Preferences
         regions:
@@ -1272,7 +1274,7 @@ en:
         nav:
           sign_up: Sign Up
           log_in: Log In
-          configuration: Settings
+          settings: Settings
           logout: Log Out
       preference:
         cookie:
@@ -1384,11 +1386,11 @@ en:
   activemodel:
     errors:
       models:
-        sign/app/configuration/withdrawal/schedule_form:
+        sign/app/settings/withdrawal/schedule_form:
           attributes:
             ack_schedule_purge:
               accepted: You must check this box.
-        sign/app/configuration/withdrawal/deactivate_form:
+        sign/app/settings/withdrawal/deactivate_form:
           attributes:
             ack_deactivate_today:
               accepted: You must check this box.
@@ -1686,7 +1688,7 @@ en:
       layout:
         nav:
           sign_up: Sign Up
-          configuration: Configuration
+          settings: Settings
       preferences:
         footer:
           home: Home
@@ -1752,8 +1754,8 @@ en:
             heading: Language Settings
             description: Change the display language for the organization console.
             language_label: Language
-      configurations:
-        title: Configuration
+      settings:
+        title: Settings
         description: Review and adjust your organization settings.
         i18n_settings: Locale settings
         i18n_settings_description: Update the default language and region for this organization.
@@ -1812,8 +1814,8 @@ en:
           select_region_prompt: Choose your region...
         description: Manage language, theme, and other preferences in one place.
     app:
-      configurations:
-        title: Configuration
+      settings:
+        title: Settings
         description: Review and adjust your service settings.
         i18n_settings: Locale settings
         i18n_settings_description: Update the default language and region for this browser.
@@ -1964,8 +1966,8 @@ en:
         update_settings: Update Settings
         submitting: Submitting...
     com:
-      configurations:
-        title: Configuration
+      settings:
+        title: Settings
         description: Review and adjust your service settings.
         i18n_settings: Locale settings
         i18n_settings_description: Update the default language and region for this browser.
@@ -2271,7 +2273,7 @@ en:
   controller:
     sign:
       app:
-        configuration:
+        settings:
           show:
             page_title: Settings
           index:
@@ -2328,7 +2330,7 @@ en:
         new:
           page_title: Use a recovery code
           description: Enter one of your saved recovery codes to regain access to your account.
-      configuration:
+      settings:
         withdrawal:
           show:
             title: Withdrawal Status
@@ -2489,8 +2491,8 @@ en:
             submit: Save theme preference
     acme:
     app:
-      configurations:
-        title: Configuration
+      settings:
+        title: Settings
         description: Review and adjust your application settings.
         i18n_settings: Language & region
         i18n_settings_description: Change default language and region preferences.
@@ -2622,7 +2624,7 @@ en:
         nav:
           sign_up: Sign Up
           log_in: Log In
-          configuration: Settings
+          settings: Settings
           logout: Log Out
       withdrawal:
         create:
@@ -3252,7 +3254,7 @@ en:
               confirm_policy_label: I agree to the terms of service
             edit:
               submit: Verify
-        configuration:
+        settings:
           emails:
             index:
               verified: Verified
@@ -3273,7 +3275,7 @@ en:
               unverified: Unverified
               empty: No phone numbers registered.
       org:
-        configuration:
+        settings:
           telephones:
             index:
               verified: Verified
@@ -3289,7 +3291,7 @@ en:
           show:
             no_methods: Please register a passkey.
       app:
-        configuration:
+        settings:
           outs:
             edit:
               confirm_label: Do you want to log out?

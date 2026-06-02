@@ -24,12 +24,12 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new sends otp and redirects to edit" do
-    return_to = sign_com_configuration_emails_path(ri: "jp")
+    return_to = sign_com_settings_emails_path(ri: "jp")
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-        get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+        get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
             headers: @headers
 
         assert_response :success
@@ -48,11 +48,11 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
   test "new sends otp for email verified during signup" do
     @visitor.visitor_emails.update_all(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
-    return_to = sign_com_configuration_emails_path(ri: "jp")
+    return_to = sign_com_settings_emails_path(ri: "jp")
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-      get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+      get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
 
       assert_response :success
@@ -67,12 +67,12 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "update verifies otp and redirects to return_to" do
-    return_to = sign_com_configuration_emails_path(ri: "jp")
+    return_to = sign_com_settings_emails_path(ri: "jp")
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-        get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+        get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
             headers: @headers
 
         assert_response :success
@@ -90,7 +90,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
                   headers: @headers
 
             assert_response :redirect
-            assert_redirected_to sign_com_configuration_emails_url(ri: "jp")
+            assert_redirected_to sign_com_settings_emails_url(ri: "jp")
             assert_nil @token.reload.step_up_session
           end
         end
@@ -99,10 +99,10 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "invalid otp keeps back link from step_up session when request params are missing" do
-    return_to = sign_com_configuration_emails_path(ri: "jp")
+    return_to = sign_com_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+    get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -115,15 +115,15 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
           headers: @headers
 
     assert_response :unprocessable_content
-    assert_match %r{/verification\?pt=.*&amp;ri=jp&amp;scope=configuration_email}, response.body
+    assert_match %r{/verification\?pt=.*&amp;ri=jp&amp;scope=settings_email}, response.body
     assert_select "input[name='verification[pt]']", count: 1
   end
 
   test "resend sends a new otp and returns to edit page" do
-    return_to = sign_com_configuration_emails_path(ri: "jp")
+    return_to = sign_com_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+    get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -135,23 +135,23 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
       post resend_sign_com_verification_email_url(
         nonce,
         ri: "jp",
-        scope: "configuration_email",
+        scope: "settings_email",
         pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
       ), headers: @headers
     end
 
     assert_response :redirect
-    assert_match %r{/verification/emails/#{Regexp.escape(nonce)}/edit\?pt=.*&ri=jp&scope=configuration_email},
+    assert_match %r{/verification/emails/#{Regexp.escape(nonce)}/edit\?pt=.*&ri=jp&scope=settings_email},
                  response.location
     assert_equal I18n.t("otp.resend.sent"), flash[:notice]
     assert Rails.cache.exist?(email_otp_cache_key)
   end
 
   test "resend is rate limited" do
-    return_to = sign_com_configuration_emails_path(ri: "jp")
+    return_to = sign_com_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+    get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -172,10 +172,10 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new renders translated error when no verified email is available" do
-    return_to = sign_com_configuration_emails_path(ri: "jp")
+    return_to = sign_com_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get sign_com_verification_url(scope: "configuration_email", pt: pt, ri: "jp"),
+    get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -212,11 +212,11 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     }
     controller.define_singleton_method(:generate_hotp_code) { ["secret_credential", 1, "123456"] }
 
-    return_to = sign_com_configuration_emails_path(ri: "jp")
+    return_to = sign_com_settings_emails_path(ri: "jp")
     pt_param = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
     controller.send(
       :start_step_up_session!,
-      scope: "configuration_email",
+      scope: "settings_email",
       pt_param: pt_param,
     )
     step_up_session = @token.reload.step_up_session
@@ -227,7 +227,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
       controller.send(:start_step_up_session!, scope: "unknown", pt_param: return_to)
     end
     assert_raises(ActionController::BadRequest) do
-      controller.send(:start_step_up_session!, scope: "configuration_email", pt_param: "%%%")
+      controller.send(:start_step_up_session!, scope: "settings_email", pt_param: "%%%")
     end
 
     Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "old" })
@@ -254,7 +254,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     controller.define_singleton_method(:require_method_available!) { |method| @available_method_for_test == method }
     controller.define_singleton_method(:email_otp_session_active?) { @email_active_for_test }
     controller.define_singleton_method(:ensure_email_nonce!) { "nonce" }
-    controller.define_singleton_method(:current_step_up_scope) { "configuration_email" }
+    controller.define_singleton_method(:current_step_up_scope) { "settings_email" }
     controller.define_singleton_method(:current_step_up_pt_param) { "return-token" }
     controller.define_singleton_method(:edit_sign_com_verification_email_path) { |nonce, **kwargs|
       "/verification/emails/#{nonce}/edit?#{kwargs.to_query}"

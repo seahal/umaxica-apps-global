@@ -1,5 +1,10 @@
 # Database Boundaries
 
+> **Partially superseded by Identity Authority inversion:** Physical database names and table/model
+> placement do not imply logical identity authority. `acme/www` is the Session, Token, Account,
+> Preference, Authorization, and downstream-token Authority. `sign/id` is ceremony-only. Existing
+> sign-side physical tables/models do not imply sign-side authority.
+
 ## Purpose
 
 This document records the accepted database connection naming model for surface-owned data.

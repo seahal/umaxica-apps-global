@@ -852,8 +852,6 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
   def preference_route_suffix(kind)
     case kind
-    when :language, :timezone
-      kind.to_s
     when :date_format
       "date"
     when :time_format

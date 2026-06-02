@@ -41,9 +41,9 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
          params: { state: state },
          headers: @callback_headers.merge(as_user_headers(user, host: @host))
 
-    # Should redirect to success path (configuration page)
+    # Should redirect to success path (settings page)
     assert_response :redirect
-    assert_redirected_to sign_app_configuration_url(ri: "jp")
+    assert_redirected_to sign_app_settings_url(ri: "jp")
     follow_redirect!
 
     # Should show link success message

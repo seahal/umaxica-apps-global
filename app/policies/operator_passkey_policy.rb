@@ -3,7 +3,7 @@
 
 # Authorization for the org (operator) passkey listing.
 #
-# `Sign::Org::Configuration::PasskeysController` scopes every query to
+# `Sign::Org::Settings::PasskeysController` scopes every query to
 # `current_operator.staff_passkeys`. `index?`/`create?` gate the actor *type*; the per-record
 # rules require ownership (record.staff_id == operator.id). Mirrors ClientPasskeyPolicy.
 class OperatorPasskeyPolicy < ApplicationPolicy

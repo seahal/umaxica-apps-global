@@ -122,7 +122,7 @@ module SingleUseToken
             reflection = from.class.reflect_on_association(association_name.to_sym)
             next unless reflection
 
-            reflection.klass.where(reflection.foreign_key => from.id).update_all(
+            reflection.klass.where(reflection.foreign_key => from.id).update(
               reflection.foreign_key => to.id,
               :updated_at => Time.current,
             )

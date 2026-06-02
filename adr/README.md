@@ -10,6 +10,36 @@ This directory stores accepted architecture and design decisions.
 - Keep non-authoritative decision notes and implementation handoff notes in `notes/`, not under
   `adr/`.
 
+Current identity authority decision:
+
+- `adr/identity-authority-boundary.md` — current source of truth for Session, Token, Account,
+  Preference, Authorization, Credential Gateway, ceremony-result, and downstream-token authority.
+- `adr/acme-session-and-token-authority.md` — refines the identity authority boundary for `acme/www`
+  owned user sessions, refresh-token families, step-up freshness, logout, session listing,
+  compromise state, and downstream token issuance.
+- `adr/sign-credential-gateway-surface.md` — refines the identity authority boundary for permitted
+  `sign/id` credential inventory, ceremony state, ceremony execution, signed ceremony results, and
+  ceremony-only audit records.
+
+Superseded IdP/RP-centered ADRs:
+
+- `adr/split-into-regional-and-global-repos.md`
+- `adr/acme-rp-boundary-naming.md`
+- `adr/oidc-claims-decision.md`
+- `adr/oidc-authn-hardening-implementation-decisions.md`
+- `adr/refresh-revoke-aal-downgrade-and-replay-hardening.md`
+- `adr/logout-primitive-and-composition.md`
+- `adr/session-reset-on-privilege-transition.md`
+- `adr/authentication-assurance-level-boundaries.md`
+- `adr/step-up-authentication-redesign.md`
+- `adr/sign-configuration-sprint-spec.md`
+- `adr/sign-up-authentication-handoff-and-social-rt.md`
+- `adr/sign-up-cycle-cancellation-retention.md`
+- `adr/sign-withdrawal-and-membership-surface-policy.md`
+- `adr/cookie-domain-scope-by-surface.md`
+- `adr/preference-soft-bubble-doctrine.md`
+- `adr/preference-setting-configurator-url-boundaries.md`
+
 Current database naming decisions:
 
 - `adr/actor-db-naming-policy.md`
@@ -20,11 +50,13 @@ Current audit / chronicle decisions:
 - `adr/chronicle-audit-db-consolidation.md`
 - `adr/chronicle-audit-implementation-guidance.md`
 
-Current preference decisions:
+Preference decisions:
 
 - `adr/app-actor-client-naming.md`
 - `adr/com-actor-visitor-naming.md`
 - `adr/org-actor-operator-naming.md`
+- `adr/preference-setting-configurator-url-boundaries.md` — superseded where it assigns preference
+  authority outside `acme/www`; retained for historical URL-boundary context.
 - `adr/preference-relogin-reconciliation-record-recency.md`
 - `adr/preference-extended-option-reference-tables.md`
 
@@ -55,27 +87,45 @@ Current controller-boundary decisions:
 - `adr/static-and-guest-controller-boundaries.md` — deprecated on 2026-05-24 and superseded by the
   two-base authentication mode direction; retained only as historical context.
 
-Current sign configuration decisions:
+Sign configuration decisions:
 
-- `adr/authentication-assurance-level-boundaries.md`
+- `adr/authentication-assurance-level-boundaries.md` — partially superseded for authority ownership;
+  AAL vocabulary remains useful.
 - `adr/finite-nonnegative-rate-limit-counts.md`
-- `adr/sign-up-authentication-handoff-and-social-rt.md`
+- `adr/sign-up-authentication-handoff-and-social-rt.md` — superseded where it assigns session,
+  account, or authorization authority to `sign/id`.
 - `adr/sign-up-checkpoint-turnstile-boundary.md`
-- `adr/sign-up-cycle-cancellation-retention.md`
+- `adr/sign-up-cycle-cancellation-retention.md` — superseded where it assigns account lifecycle to
+  `sign/id`.
 - `adr/turnstile-visible-placement-policy.md`
-- `adr/sign-withdrawal-and-membership-surface-policy.md`
+- `adr/sign-withdrawal-and-membership-surface-policy.md` — superseded where it assigns account
+  lifecycle to `sign/id`.
 - `adr/mfa-reset-account-recovery.md`
 - `adr/identifier-hmac-emergency-rotation.md`
 
-Current session-reset decisions:
+Session and token decisions:
 
-- `adr/session-reset-on-privilege-transition.md`
-- `adr/logout-primitive-and-composition.md`
-- `adr/device-session-dbsc-device-id-boundary.md`
+- `adr/acme-session-and-token-authority.md`
+- `adr/token-lifetime-policy-by-surface.md` — per-surface access/refresh token lifetimes (`app` vs
+  `org`); implementation tracked in
+  `plans/backlog/token-lifetime-policy-by-surface-implementation.md`.
+- `adr/session-reset-on-privilege-transition.md` — superseded where it assigns session issuance or
+  step-up freshness to `sign/id`.
+- `adr/logout-primitive-and-composition.md` — superseded where it assigns session authority to
+  `sign/id`.
+- `adr/device-session-dbsc-device-id-boundary.md` — partially superseded for authority ownership;
+  device-session, DBSC, and device-id vocabulary remains useful.
 
-Current cookie / session-transport decisions:
+Credential gateway decisions:
 
-- `adr/cookie-domain-scope-by-surface.md`
+- `adr/sign-credential-gateway-surface.md`
+- `adr/sign-prefix-routing.md` — partially superseded where it describes `sign/id` as an IdP host;
+  retained for historical route-prefix context.
+
+Cookie / session-transport decisions:
+
+- `adr/cookie-domain-scope-by-surface.md` — partially superseded for authority ownership; cookie
+  security vocabulary remains useful.
 
 Current tooling / code-quality decisions:
 
@@ -90,10 +140,12 @@ Current retention / deletion decisions:
 - `adr/retainable-concern-and-retention-purge.md`
 - `adr/retention-lifecycle-column-boundary.md`
 
-Current repository / application boundary decisions:
+Repository / application boundary decisions:
 
-- `adr/split-into-regional-and-global-repos.md`
-- `adr/acme-rp-boundary-naming.md`
+- `adr/split-into-regional-and-global-repos.md` — superseded where it treats `sign/id` as IdP and
+  `acme/www` as RP.
+- `adr/acme-rp-boundary-naming.md` — superseded where it treats `acme/www` as an RP boundary instead
+  of the identity authority boundary.
 
 Historical engine-era ADRs are retained for traceability only. They do not authorize reintroducing
 `engines/`, wrapper apps under `apps/<name>`, `Jit::<EngineName>` namespaces, or `isolate_namespace`

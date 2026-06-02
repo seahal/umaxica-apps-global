@@ -3,7 +3,7 @@
 
 # Authorization for the com (visitor) passkey listing.
 #
-# `Sign::Com::Configuration::PasskeysController` scopes every query to
+# `Sign::Com::Settings::PasskeysController` scopes every query to
 # `current_visitor.visitor_passkeys`. `index?`/`create?` gate the actor *type*; the per-record
 # rules require ownership (record.visitor_id == visitor.id). Mirrors ClientPasskeyPolicy.
 class VisitorPasskeyPolicy < ApplicationPolicy

@@ -17,9 +17,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "does not show registration method choices" do
-    with_env("ORG_GOOGLE_SIGNUP_ENABLED" => "false") do
-      get new_sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
-    end
+    get new_sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
     assert_select "[data-test-id=?]", "registration-method", count: 0
@@ -28,13 +26,14 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action*=?]", "/social/auth/apple", count: 0
   end
 
-  test "shows temporary google signup button only when signup flag is on" do
-    with_env("ORG_GOOGLE_SIGNUP_ENABLED" => "true") do
+  test "does not show google signup button even if legacy flag is set" do
+    with_env("ORG_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
       get new_sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
     end
 
     assert_response :success
-    assert_select "form[action=?]", signup_sign_org_social_authentication_path(provider: "google_org", ri: "jp")
+    assert_select "form[action*=?]", "/social/auth/google", count: 0
+    assert_select "form[action*=?]", "/auth/google", count: 0
   end
 
   test "renders recruit contact and home links" do

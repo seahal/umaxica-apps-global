@@ -35,7 +35,6 @@ class FilterParameterLoggingTest < ActiveSupport::TestCase
 
     assert_empty sensitive_attributes - ClientAppleIdentity.filter_attributes
     assert_empty sensitive_attributes - ClientGoogleIdentity.filter_attributes
-    assert_empty sensitive_attributes - OperatorGoogleIdentity.filter_attributes
   end
 
   test "does not emit oauth credential values in active record sql logs" do
@@ -53,10 +52,6 @@ class FilterParameterLoggingTest < ActiveSupport::TestCase
     apple_token = "apple-token-#{SecureRandom.hex(6)}"
     apple_refresh = "apple-refresh-#{SecureRandom.hex(6)}"
     apple_uid = "apple-uid-#{SecureRandom.hex(6)}"
-    org_token = "org-token-#{SecureRandom.hex(6)}"
-    org_refresh = "org-refresh-#{SecureRandom.hex(6)}"
-    org_uid = "org-uid-#{SecureRandom.hex(6)}"
-
     ClientGoogleIdentity.create!(
       user: clients(:one),
       uid: google_uid,
@@ -73,14 +68,6 @@ class FilterParameterLoggingTest < ActiveSupport::TestCase
       expires_at: 1.week.from_now.to_i,
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
-    OperatorGoogleIdentity.create!(
-      staff: operators(:one),
-      uid: org_uid,
-      token: org_token,
-      refresh_token: org_refresh,
-      token_expires_at: 1.week.from_now.to_i,
-    )
-
     log_output = log_io.string
 
     assert_no_match(/#{Regexp.escape(google_token)}/, log_output)
@@ -89,9 +76,6 @@ class FilterParameterLoggingTest < ActiveSupport::TestCase
     assert_no_match(/#{Regexp.escape(apple_token)}/, log_output)
     assert_no_match(/#{Regexp.escape(apple_refresh)}/, log_output)
     assert_no_match(/#{Regexp.escape(apple_uid)}/, log_output)
-    assert_no_match(/#{Regexp.escape(org_token)}/, log_output)
-    assert_no_match(/#{Regexp.escape(org_refresh)}/, log_output)
-    assert_no_match(/#{Regexp.escape(org_uid)}/, log_output)
   ensure
     Rails.logger = original_rails_logger
     ActiveRecord::Base.logger = original_active_record_logger

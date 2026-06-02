@@ -77,7 +77,7 @@ class SignAppVerificationBaseIncludedDoTest < ActiveSupport::TestCase
 
   test "ALLOWED_SCOPES constant is defined" do
     assert_kind_of Hash, Sign::AppVerificationBase::ALLOWED_SCOPES
-    assert Sign::AppVerificationBase::ALLOWED_SCOPES.key?("configuration_email")
-    assert Sign::AppVerificationBase::ALLOWED_SCOPES.key?("configuration_telephone")
+    assert Sign::AppVerificationBase::ALLOWED_SCOPES.key?("settings_email")
+    assert Sign::AppVerificationBase::ALLOWED_SCOPES.key?("settings_telephone")
   end
 end

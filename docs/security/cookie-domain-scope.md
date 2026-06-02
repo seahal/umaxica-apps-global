@@ -1,5 +1,10 @@
 # Cookie Domain Scope
 
+> **Partially superseded by Identity Authority inversion:** Cookie scope does not imply logical
+> authority. `acme/www` is the Session, Token, Account, Preference, Authorization, and
+> downstream-token Authority. `sign/id` is ceremony-only. Existing sign-side physical tables/models
+> do not imply sign-side authority.
+
 ## Current Behavior
 
 Cookie domain scope is split by surface and is intentional. Do not "normalize" the two surfaces to

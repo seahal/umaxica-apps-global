@@ -32,8 +32,8 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
                     text: I18n.t("sign.com.preferences.footer.home")
       assert_select "a[href=?]", sign_com_preference_url(ri: "jp"),
                     text: I18n.t("sign.com.preferences.footer.preference")
-      assert_select "a[href=?]", sign_com_configuration_url(ri: "jp"),
-                    text: I18n.t("sign.com.preferences.footer.configuration")
+      assert_select "a[href=?]", sign_com_settings_url(ri: "jp"),
+                    text: I18n.t("sign.com.preferences.footer.settings")
     end
   end
 

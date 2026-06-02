@@ -16,12 +16,12 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   end
 
   test "creates verification on success" do
-    pt = signed_step_up_pt(sign_org_configuration_passkeys_path(ri: "jp"))
+    pt = signed_step_up_pt(sign_org_settings_passkeys_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
-          get sign_org_verification_url(scope: "configuration_passkey", pt: pt, ri: "jp"),
+          get sign_org_verification_url(scope: "settings_passkey", pt: pt, ri: "jp"),
               headers: @headers
 
           assert_response :success
@@ -35,12 +35,12 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
                headers: @headers
 
           assert_response :redirect
-          assert_redirected_to sign_org_configuration_passkeys_url(ri: "jp")
+          assert_redirected_to sign_org_settings_passkeys_url(ri: "jp")
 
           @token.reload
 
           assert_not_nil @token.last_step_up_at
-          assert_equal "configuration_passkey", @token.last_step_up_scope
+          assert_equal "settings_passkey", @token.last_step_up_scope
           assert_nil @token.step_up_session
           assert_nil session[:step_up]
         end

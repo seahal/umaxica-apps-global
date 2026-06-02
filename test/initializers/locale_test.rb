@@ -23,7 +23,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_equal [:ja, :en], I18n.fallbacks[:ja]
   end
 
-  test "provides english labels for app configuration links" do
+  test "provides english labels for app settings links" do
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do

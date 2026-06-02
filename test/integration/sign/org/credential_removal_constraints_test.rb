@@ -23,12 +23,12 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_secret_credential(operator)
 
     assert_no_difference("OperatorEmail.count") do
-      delete sign_org_configuration_email_url(email.public_id, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_email")
+      delete sign_org_settings_email_url(email.public_id, ri: "jp"),
+             headers: operator_headers(operator, scope: "settings_email")
     end
 
-    assert_redirected_to sign_org_configuration_emails_url(ri: "jp")
-    assert_equal I18n.t("sign.org.configuration.email.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_org_settings_emails_url(ri: "jp")
+    assert_equal I18n.t("sign.org.settings.email.destroy.last_method"), flash[:alert]
   end
 
   test "telephone removal preserves contactability even when aal methods remain" do
@@ -38,12 +38,12 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_secret_credential(operator)
 
     assert_no_difference("OperatorTelephone.count") do
-      delete sign_org_configuration_telephone_url(telephone.id, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_telephone")
+      delete sign_org_settings_telephone_url(telephone.id, ri: "jp"),
+             headers: operator_headers(operator, scope: "settings_telephone")
     end
 
-    assert_redirected_to sign_org_configuration_telephones_url(ri: "jp")
-    assert_equal I18n.t("sign.org.configuration.telephone.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_org_settings_telephones_url(ri: "jp")
+    assert_equal I18n.t("sign.org.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
   test "passkey removal preserves aal2" do
@@ -53,11 +53,11 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     passkey = create_active_passkey(operator)
 
     assert_no_difference("OperatorPasskey.count") do
-      delete sign_org_configuration_passkey_url(passkey, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_passkey")
+      delete sign_org_settings_passkey_url(passkey, ri: "jp"),
+             headers: operator_headers(operator, scope: "settings_passkey")
     end
 
-    assert_redirected_to sign_org_configuration_passkeys_url(ri: "jp")
+    assert_redirected_to sign_org_settings_passkeys_url(ri: "jp")
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
@@ -67,12 +67,12 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     secret_credential = create_active_secret_credential(operator)
 
     assert_no_difference("OperatorSecretCredential.count") do
-      delete sign_org_configuration_secret_credential_url(secret_credential.public_id, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_secret_credential")
+      delete sign_org_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
+             headers: operator_headers(operator, scope: "settings_secret_credential")
     end
 
-    assert_redirected_to sign_org_configuration_secret_credentials_url(ri: "jp")
-    assert_equal I18n.t("sign.org.configuration.secret_credentials.destroy.last_method"), flash[:alert]
+    assert_redirected_to sign_org_settings_secret_credentials_url(ri: "jp")
+    assert_equal I18n.t("sign.org.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
   test "email telephone passkey and secret_credential removals are allowed when dimensions remain" do
@@ -86,23 +86,23 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_secret_credential(operator)
 
     assert_difference("OperatorEmail.count", -1) do
-      delete sign_org_configuration_email_url(email.public_id, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_email")
+      delete sign_org_settings_email_url(email.public_id, ri: "jp"),
+             headers: operator_headers(operator, scope: "settings_email")
     end
 
     assert_difference("OperatorTelephone.count", -1) do
-      delete sign_org_configuration_telephone_url(telephone.id, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_telephone")
+      delete sign_org_settings_telephone_url(telephone.id, ri: "jp"),
+             headers: operator_headers(operator, scope: "settings_telephone")
     end
 
     assert_difference("OperatorPasskey.count", -1) do
-      delete sign_org_configuration_passkey_url(passkey, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_passkey")
+      delete sign_org_settings_passkey_url(passkey, ri: "jp"),
+             headers: operator_headers(operator, scope: "settings_passkey")
     end
 
     assert_difference("OperatorSecretCredential.count", -1) do
-      delete sign_org_configuration_secret_credential_url(secret_credential.public_id, ri: "jp"),
-             headers: operator_headers(operator, scope: "configuration_secret_credential")
+      delete sign_org_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
+             headers: operator_headers(operator, scope: "settings_secret_credential")
     end
   end
 

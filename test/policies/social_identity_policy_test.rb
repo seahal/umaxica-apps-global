@@ -25,14 +25,4 @@ class SocialIdentityPolicyTest < ActiveSupport::TestCase
     assert_not ClientAppleIdentityPolicy.new(identity, user: other).destroy?
     assert_not ClientAppleIdentityPolicy.new(identity, user: operators(:one)).destroy?
   end
-
-  test "operator identity destroy allows owner only" do
-    owner = operators(:one)
-    other = operators(:two)
-    identity = OperatorGoogleIdentity.new(staff_id: owner.id)
-
-    assert_predicate OperatorIdentityPolicy.new(identity, user: owner), :destroy?
-    assert_not OperatorIdentityPolicy.new(identity, user: other).destroy?
-    assert_not OperatorIdentityPolicy.new(identity, user: clients(:one)).destroy?
-  end
 end

@@ -143,10 +143,10 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
 
     if return_path.present?
       flash[:notice] = notice
-      destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_org_configuration_path
+      destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_org_settings_path
       redirect_to_pt_destination!(destination)
     else
-      redirect_to(sign_org_configuration_path, notice: notice)
+      redirect_to(sign_org_settings_path, notice: notice)
     end
   end
 

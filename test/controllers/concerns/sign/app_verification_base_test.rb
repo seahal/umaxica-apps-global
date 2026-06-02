@@ -64,8 +64,8 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
       "/verification?#{params.to_query}"
     end
 
-    def sign_app_configuration_path(params = {})
-      "/configuration?#{params.to_query}"
+    def sign_app_settings_path(params = {})
+      "/settings?#{params.to_query}"
     end
 
     def signed_pt_to_safe_path(value)
@@ -129,22 +129,22 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
   test "verification params and incoming redirect helpers prefer verification payload" do
     user = ClientStruct.new(7, "user-public-id", [], [])
     harness = Harness.new(user: user)
-    return_to = "/configuration/emails"
+    return_to = "/settings/emails"
     harness.params_hash = {
       ri: "jp",
-      scope: "configuration_secret_credential",
-      pt: "/configuration/secret_credentials",
+      scope: "settings_secret_credential",
+      pt: "/settings/secret_credentials",
       verification: {
-        scope: "configuration_email",
+        scope: "settings_email",
         return_to: return_to,
         ignored: "value",
       },
     }
 
-    assert_equal "configuration_email", harness.send(:incoming_scope)
-    assert_equal "/configuration/secret_credentials", harness.send(:incoming_pt)
+    assert_equal "settings_email", harness.send(:incoming_scope)
+    assert_equal "/settings/secret_credentials", harness.send(:incoming_pt)
     assert_equal(
-      { ri: "jp", scope: "configuration_email", pt: "/configuration/secret_credentials" },
+      { ri: "jp", scope: "settings_email", pt: "/settings/secret_credentials" },
       harness.send(:verification_recovery_redirect_params),
     )
     assert_equal %w(scope), harness.app_call(:verification_params).keys
@@ -173,7 +173,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
     assert_predicate nonce, :present?
     assert_equal nonce, harness.app_call(:ensure_email_nonce!)
-    assert_equal "configuration_email", harness.app_call(:current_step_up_scope)
+    assert_equal "settings_email", harness.app_call(:current_step_up_scope)
     assert_match(/--/, harness.app_call(:current_step_up_pt_param))
   end
 
@@ -194,8 +194,8 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.scope = "" })
     assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.return_to = "" })
 
-    return_to = "/configuration/emails"
-    harness.params_hash = { scope: "configuration_email", return_to: return_to }
+    return_to = "/settings/emails"
+    harness.params_hash = { scope: "settings_email", return_to: return_to }
 
     assert_not harness.app_call(:restore_step_up_session_from_params!)
 
@@ -214,7 +214,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
     assert_not harness.app_call(:handle_invalid_step_up_session!)
     assert_nil Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp")
-    assert_match "/configuration?", harness.redirect_args.first.first
+    assert_match "/settings?", harness.redirect_args.first.first
   end
 
   test "app verification exposes user specific models and values" do
@@ -281,7 +281,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
   private
 
-  def create_user_step_up_session(user_token:, scope: "configuration_email", return_to: "/configuration/emails")
+  def create_user_step_up_session(user_token:, scope: "settings_email", return_to: "/settings/emails")
     ClientStepUpSession.create!(
       user_token: user_token,
       scope: scope,

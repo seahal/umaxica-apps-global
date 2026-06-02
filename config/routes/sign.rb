@@ -3,10 +3,6 @@
 # typed: false
 # frozen_string_literal: true
 
-def sign_normalize_route_host(host)
-  host.to_s.strip.sub(/\Ahttps?:\/\//, "").split("/").first.presence
-end
-
 scope module: :sign, as: :sign do
   # User auth service (id.app domain)
   constraints host: sign_normalize_route_host(ENV["SIGN_SERVICE_URL"]) do
@@ -24,10 +20,12 @@ scope module: :sign, as: :sign do
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-
+      # FIXME: Remove this once we've migrated to the new welcome flow
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
+      # TODO: Check this entrypoint is still needed
       resource :selector, only: :show
+      # for those who are logged in
       resource :dashboard, only: :show
 
       # Public web API: OTP delivery, cookie consent, theme
@@ -202,13 +200,13 @@ scope module: :sign, as: :sign do
       end
 
       # MFA reset
-      namespace :mfa, module: "configuration/mfa" do
+      namespace :mfa, module: "settings/mfa" do
         resource :reset, only: %i(show create)
       end
 
       # Account settings and linked identity management
-      resource :configuration, only: :show
-      namespace :configuration do
+      resource :settings, only: :show
+      namespace :settings do
         resources :totps, only: %i(index new create edit update destroy)
 
         resources :passkeys do
@@ -410,8 +408,8 @@ scope module: :sign, as: :sign do
       end
 
       # Account settings and linked identity management
-      resource :configuration, only: :show
-      namespace :configuration do
+      resource :settings, only: :show
+      namespace :settings do
         resources :passkeys do
           collection do
             post :options
@@ -545,28 +543,6 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # Social auth: Google continue for staff. Unknown staff are not created.
-      namespace :social do
-        resources :authentications,
-                  path: "auth",
-                  param: :provider,
-                  only: [:destroy] do
-          post :continue, on: :member
-          post :signup, on: :member
-        end
-      end
-
-      # OmniAuth callbacks: Google uses GET.
-      namespace :auth, path: "auth" do
-        get ":provider/callback",
-            to: "omniauth_callbacks#omniauth",
-            constraints: { provider: /google_org/ },
-            as: :callback
-
-        get "failure",
-            to: "omniauth_callbacks#failure"
-      end
-
       # Sign-in: credential entry and session establishment
       scope path: "sign" do
         resource :sign_in, path: "in", controller: "sign_ins", only: [:new]
@@ -613,8 +589,8 @@ scope module: :sign, as: :sign do
       end
 
       # Account settings and identity management
-      resource :configuration, only: :show
-      namespace :configuration do
+      resource :settings, only: :show
+      namespace :settings do
         resources :passkeys do
           collection do
             post :options
@@ -648,7 +624,6 @@ scope module: :sign, as: :sign do
         resources :telephones, only: %i(index new edit create destroy)
 
         resource :birthdate, only: :show
-        resource :google, only: %i(show create)
         resources :activities, only: :index
         resource :withdrawal, only: %i(show)
 

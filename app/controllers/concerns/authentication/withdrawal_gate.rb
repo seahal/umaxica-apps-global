@@ -30,12 +30,12 @@ module Authentication
       end
 
       # HTML: redirect to the withdrawal lifecycle surface
-      safe_redirect_to(withdrawal_gate_redirect_path, fallback: "/configuration/withdrawal", status: :found)
+      safe_redirect_to(withdrawal_gate_redirect_path, fallback: "/settings/withdrawal", status: :found)
     end
 
     def withdrawal_gate_allowlisted?
-      return true if controller_path.end_with?("configuration/withdrawals") && %w(show new edit update
-                                                                                  create destroy).include?(action_name)
+      return true if controller_path.end_with?("settings/withdrawals") && %w(show new edit update
+                                                                             create destroy).include?(action_name)
 
       # Allowlist: health/assets (rarely needed but safe)
       return true if controller_path == "rails/health"
@@ -53,11 +53,11 @@ module Authentication
 
     def withdrawal_gate_redirect_path
       ri = params[Auth::IoKeys::Params::RI]
-      return edit_sign_app_configuration_withdrawal_path(ri: ri) if controller_path.start_with?("sign/app/")
-      return edit_sign_com_configuration_withdrawal_path(ri: ri) if controller_path.start_with?("sign/com/")
-      return sign_org_configuration_withdrawal_path(ri: ri) if controller_path.start_with?("sign/org/")
+      return edit_sign_app_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/app/")
+      return edit_sign_com_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/com/")
+      return sign_org_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/org/")
 
-      "/configuration/withdrawal"
+      "/settings/withdrawal"
     rescue StandardError => e
       Rails.logger.error(
         Jit::LogEvent.format(
@@ -65,7 +65,7 @@ module Authentication
                                                          exception: e,
         ),
       )
-      "/configuration/withdrawal"
+      "/settings/withdrawal"
     end
   end
 end

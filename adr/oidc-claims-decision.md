@@ -4,6 +4,11 @@
 
 Accepted as the current design direction.
 
+> **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
+> useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
+> owns session, token, account, preference, authorization, downstream-token trust, and step-up
+> freshness. `sign/id` owns only credential inventory and short-lived credential ceremony state.
+
 ## Decision
 
 For OIDC-facing identity claims, the repository will use:

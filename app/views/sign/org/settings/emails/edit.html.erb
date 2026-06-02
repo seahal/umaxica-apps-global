@@ -1,0 +1,47 @@
+<% content_for :page_title, t("sign.org.settings.email.edit.title") %>
+
+<h1><%= t("sign.org.settings.email.edit.title") %></h1>
+
+<p><%= @staff_email.address %></p>
+
+<%= form_with model: @staff_email,
+              url: sign_org_settings_email_path(@staff_email.public_id, ri: params[:ri]),
+              method: :patch,
+              scope: :staff_email do |f| %>
+  <div>
+    <label>
+      <%= t("sign.org.settings.email.edit.always_on") %>
+    </label>
+    <p><%= t("sign.org.settings.email.edit.always_on_description") %></p>
+  </div>
+
+  <div>
+    <%= f.check_box :promotional %>
+    <%= f.label :promotional, t("sign.org.settings.email.edit.promotional_label") %>
+    <p><%= t("sign.org.settings.email.edit.promotional_description") %></p>
+  </div>
+
+  <div>
+    <%= f.check_box :notifiable %>
+    <%= f.label :notifiable, t("sign.org.settings.email.edit.notifiable_label") %>
+    <p><%= t("sign.org.settings.email.edit.notifiable_description") %></p>
+  </div>
+
+  <div>
+    <%= render "shared/cloudflare_turnstile_stealth" %>
+  </div>
+
+  <div>
+    <%= f.submit t("sign.org.settings.email.edit.save") %>
+  </div>
+<% end %>
+
+<%= button_to t("sign.org.settings.email.index.delete"),
+              sign_org_settings_email_path(@staff_email),
+              method: :delete,
+              data: { turbo_confirm: t("sign.org.settings.email.index.delete_confirm") } %>
+
+<div>
+  <%= link_to t("sign.common.cancel"),
+              sign_org_settings_emails_path %>
+</div>

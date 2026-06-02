@@ -1,5 +1,11 @@
 # プラン: Actor.preferences を Preference JWT(=DB の署名付き射影) から hydrate する（B案で実装 → 長期 A案へ）
 
+> **Deprecated by Identity Authority inversion where this plan assigns preference authority to
+> `sign/id`:** `acme/www` now owns Session, Token, Account, Preference, Authorization, and
+> downstream-token authority. `sign/id` is ceremony-only. Physical DB movement is out of scope.
+> Implementation details in this plan must not be used to reintroduce sign-side authority. Existing
+> sign-side tables/models do not imply sign-side authority.
+
 Status: B案 実装完了（2026-05-30）。長期 A案は
 `plans/backlog/preference-explicit-child-records-model-a.md` に残置。関連:
 `plans/active/preference-jwt-runtime-cache-migration.md`、ADR `preference-soft-bubble-doctrine.md` /

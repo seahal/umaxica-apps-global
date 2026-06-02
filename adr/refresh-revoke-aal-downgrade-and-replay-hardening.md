@@ -4,6 +4,11 @@
 
 Accepted on 2026-04-07.
 
+> **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
+> useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
+> owns session, token, account, preference, authorization, downstream-token trust, and step-up
+> freshness. `sign/id` owns only credential inventory and short-lived credential ceremony state.
+
 ## Context
 
 GitHub issue `#612` tracked three concrete requirements in the authentication pipeline:

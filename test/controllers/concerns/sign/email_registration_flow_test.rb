@@ -43,7 +43,7 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
     end
 
     def build_notice_params(message, _session_key = nil)
-      { notice: message, pt: signed_pt_token("/configuration/emails") }
+      { notice: message, pt: signed_pt_token("/settings/emails") }
     end
 
     def reset_email_flow!
@@ -87,7 +87,7 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
 
     assert_empty empty_params
 
-    safe_path = "/configuration/emails"
+    safe_path = "/settings/emails"
     params = { pt: safe_path }
 
     harness.send(:sanitize_redirect_params!, params)
@@ -170,7 +170,7 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
     harness.update
 
     assert_predicate harness, :reset_called
-    assert_equal ["/emails/new?pt=signed%3A%2Fconfiguration%2Femails"], harness.redirect_args
+    assert_equal ["/emails/new?pt=signed%3A%2Fsettings%2Femails"], harness.redirect_args
   end
 
   test "abstract path hooks raise not implemented" do

@@ -25,7 +25,7 @@
     <% unless logged_in? %>
       <%= link_to "#{t('sign.org.layout.nav.sign_up')} / #{t('sign.org.layout.nav.log_in')}", acme_org_sso_authorization_path %>
     <% else %>
-      <%= link_to t("sign.org.layout.nav.configuration"), sign_org_configuration_url(host: ENV.fetch('ID_STAFF_URL', 'id.org.localhost')) %>
+      <%= link_to t("sign.org.layout.nav.settings"), sign_org_settings_url(host: ENV.fetch('ID_STAFF_URL', 'id.org.localhost')) %>
       <%= button_to t("sign.org.layout.nav.logout"), acme_org_sso_logout_path, method: :post %>
     <% end %>
   </nav>

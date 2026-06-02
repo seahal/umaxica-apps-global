@@ -51,7 +51,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
 
   test "destroy consumes bulletin and continues to dashboard with pt" do
     start_checkpoint_sequence
-    pt = Base64.urlsafe_encode64("/configuration")
+    pt = Base64.urlsafe_encode64("/settings")
 
     delete sign_org_in_checkpoint_url(ri: "jp", pt: pt),
            headers: checkpoint_headers.merge(
@@ -91,7 +91,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
 
   test "destroy still redirects when expired" do
     start_checkpoint_sequence
-    pt = Base64.urlsafe_encode64("/configuration")
+    pt = Base64.urlsafe_encode64("/settings")
 
     delete sign_org_in_checkpoint_url(ri: "jp", pt: pt),
            headers: checkpoint_headers.merge(

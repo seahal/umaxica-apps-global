@@ -337,7 +337,7 @@ module Verification
       return nil if path.blank?
 
       uri = URI.parse(path)
-      return root_path if uri.path.start_with?("/configuration/") && uri.path != root_path
+      return root_path if uri.path.start_with?("/settings/") && uri.path != root_path
 
       path
     rescue URI::InvalidURIError

@@ -75,7 +75,7 @@ class VerificationBaseStepUpLoggingTest < ActiveSupport::TestCase
     token = Token.new(
       public_id: "session-public-id-must-not-be-logged",
       last_step_up_at: 1.minute.ago,
-      last_step_up_scope: "configuration_email",
+      last_step_up_scope: "settings_email",
       last_step_up_aal: "aal2",
       last_step_up_method: "passkey",
       last_step_up_session_public_id: "session-public-id-must-not-be-logged",
@@ -87,7 +87,7 @@ class VerificationBaseStepUpLoggingTest < ActiveSupport::TestCase
     logs = []
 
     Rails.logger.stub(:info, ->(message) { logs << JSON.parse(message, symbolize_names: true) }) do
-      assert_not harness.require_step_up!(scope: "configuration_passkey")
+      assert_not harness.require_step_up!(scope: "settings_passkey")
     end
 
     event = logs.find { |entry| entry[:event] == "auth.step_up.required" }
@@ -101,12 +101,12 @@ class VerificationBaseStepUpLoggingTest < ActiveSupport::TestCase
     assert_equal "text/html", data[:format]
     assert_equal "app", data[:surface]
     assert_equal "client", data[:actor_type]
-    assert_equal "configuration_passkey", data[:scope]
+    assert_equal "settings_passkey", data[:scope]
     assert_equal "aal2", data[:required_aal]
     assert_not data[:step_up_satisfied]
     assert data[:step_up_usable_token]
     assert_equal "passkey", data[:step_up_method]
-    assert_equal "configuration_passkey", data[:step_up_scope]
+    assert_equal "settings_passkey", data[:step_up_scope]
     assert_match(/\A\d{4}-\d{2}-\d{2}T/, data[:step_up_expires_at])
 
     serialized = event.to_json

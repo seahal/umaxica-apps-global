@@ -106,10 +106,10 @@ module Sign
 
           if return_path.present?
             flash[:notice] = notice
-            destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_com_configuration_path
+            destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_com_settings_path
             redirect_to_pt_destination!(destination)
           else
-            redirect_to(sign_com_configuration_path(ri: params[:ri]), notice: notice)
+            redirect_to(sign_com_settings_path(ri: params[:ri]), notice: notice)
           end
         end
 

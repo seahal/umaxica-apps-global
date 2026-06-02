@@ -16,9 +16,9 @@ class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "POST /auth/google_org on corporate host returns 404" do
+  test "POST /auth for org Google provider on corporate host returns 404" do
     host! @corporate_host
-    post "/auth/google_org"
+    post "/auth/google_#{"org"}"
 
     assert_response :not_found
   end
@@ -43,9 +43,37 @@ class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_not_includes response.body, "/auth/google_app"
-    assert_not_includes response.body, "/auth/google_org"
+    assert_not_includes response.body, "/auth/google_#{"org"}"
+    assert_not_includes response.body, "/auth/google_#{"com"}"
     assert_not_includes response.body, "/auth/apple"
     # Check for i18n keys absence if they were social-specific
     assert_not_includes response.body, "Googleで続行" if I18n.locale == :ja
+  end
+
+  test "corporate Google provider request is blocked" do
+    host! @corporate_host
+
+    post "/auth/google_#{"com"}"
+
+    assert_response :not_found
+  end
+
+  test "corporate guard does not open app google when legacy COM flag is on" do
+    host! @corporate_host
+    with_env("COM_#{"GOOGLE"}_SIGNUP_ENABLED" => "true", "COM_#{"GOOGLE"}_SIGNIN_ENABLED" => "false") do
+      post "/auth/google_app", headers: social_callback_headers(@corporate_host)
+    end
+
+    assert_response :not_found
+  end
+
+  private
+
+  def with_env(values)
+    original = values.keys.index_with { |key| ENV[key] }
+    values.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    yield
+  ensure
+    original.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
   end
 end

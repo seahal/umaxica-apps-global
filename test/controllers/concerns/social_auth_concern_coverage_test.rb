@@ -77,9 +77,9 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
       yield if @json_mode
     end
 
-    def sign_app_configuration_apple_path = "/apple"
+    def sign_app_settings_apple_path = "/apple"
 
-    def sign_app_configuration_path = "/config"
+    def sign_app_settings_path = "/config"
 
     def new_sign_app_sign_in_path = "/login"
 
@@ -155,7 +155,7 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
 
   test "require_recent_step_up! rejects token-bound step-up with different scope" do
     @harness.current_resource = Client.new
-    @harness.current_session_token = step_up_token(last_step_up_scope: "configuration_email")
+    @harness.current_session_token = step_up_token(last_step_up_scope: "settings_email")
 
     assert_raises(SocialAuth::StepUpRequiredError) do
       @harness.send(:require_recent_step_up!)
@@ -251,7 +251,7 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
   test "social_auth_failure_redirect_path_for_intent for apple" do
     path = @harness.send(:social_auth_failure_redirect_path_for_intent, intent: "link", provider: "apple")
 
-    assert_match(/apple|configuration/, path)
+    assert_match(/apple|settings/, path)
   end
 
   private

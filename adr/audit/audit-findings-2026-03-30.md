@@ -133,17 +133,17 @@ All `*_application_controller.rb` files across acme/core/docs/help/news/sign con
 
 ### N+1 — `.count` in Controllers (9)
 
-| #   | Location                                                        | Description                    |
-| --- | --------------------------------------------------------------- | ------------------------------ |
-| 66  | `app/controllers/sign/app/configuration/totps_controller.rb:20` | MAX_TOTPS check always hits DB |
-| 67  | `app/controllers/concerns/authentication/base.rb:2115`          | UserToken session count        |
-| 68  | `app/controllers/concerns/authentication/base.rb:2117`          | OperatorToken session count    |
-| 69  | `app/controllers/concerns/authentication/base.rb:2119`          | CustomerToken session count    |
-| 70  | `app/controllers/sign/app/in/sessions_controller.rb:164`        | Active session count           |
-| 71  | `app/controllers/sign/com/in/sessions_controller.rb:117`        | Same                           |
-| 72  | `app/controllers/sign/org/in/sessions_controller.rb:179`        | Same                           |
-| 73  | `app/controllers/docs/com/edge/v0/posts_controller.rb:69`       | `.count` in query chain        |
-| 74  | `app/controllers/docs/com/edge/v0/posts_controller.rb:77`       | `documents_scope.count`        |
+| #   | Location                                                   | Description                    |
+| --- | ---------------------------------------------------------- | ------------------------------ |
+| 66  | `app/controllers/sign/app/settings/totps_controller.rb:20` | MAX_TOTPS check always hits DB |
+| 67  | `app/controllers/concerns/authentication/base.rb:2115`     | UserToken session count        |
+| 68  | `app/controllers/concerns/authentication/base.rb:2117`     | OperatorToken session count    |
+| 69  | `app/controllers/concerns/authentication/base.rb:2119`     | CustomerToken session count    |
+| 70  | `app/controllers/sign/app/in/sessions_controller.rb:164`   | Active session count           |
+| 71  | `app/controllers/sign/com/in/sessions_controller.rb:117`   | Same                           |
+| 72  | `app/controllers/sign/org/in/sessions_controller.rb:179`   | Same                           |
+| 73  | `app/controllers/docs/com/edge/v0/posts_controller.rb:69`  | `.count` in query chain        |
+| 74  | `app/controllers/docs/com/edge/v0/posts_controller.rb:77`  | `documents_scope.count`        |
 
 ### N+1 — `.count`/`.size` in Views (7)
 
@@ -158,17 +158,17 @@ All `*_application_controller.rb` files across acme/core/docs/help/news/sign con
 
 ### Implicit Authorization — Missing `authorize` Calls (10)
 
-| #   | Location                                                             | Description                              |
-| --- | -------------------------------------------------------------------- | ---------------------------------------- |
-| 81  | `app/controllers/sign/com/configuration/emails_controller.rb:19`     | Relies on scoping, no explicit authorize |
-| 82  | `app/controllers/sign/com/configuration/telephones_controller.rb:26` | Same                                     |
-| 83  | `app/controllers/sign/com/configuration/secrets_controller.rb:70`    | Same                                     |
-| 84  | `app/controllers/sign/app/configuration/emails_controller.rb:19`     | Same                                     |
-| 85  | `app/controllers/sign/app/configuration/secrets_controller.rb:71`    | Same                                     |
-| 86  | `app/controllers/sign/app/configuration/totps_controller.rb:97`      | Same                                     |
-| 87  | `app/controllers/sign/app/configuration/passkeys_controller.rb:206`  | Same                                     |
-| 88  | `app/controllers/sign/app/configuration/sessions_controller.rb:77`   | Same                                     |
-| 89  | `app/controllers/sign/com/configuration/sessions_controller.rb:73`   | Same                                     |
+| #   | Location                                                        | Description                              |
+| --- | --------------------------------------------------------------- | ---------------------------------------- |
+| 81  | `app/controllers/sign/com/settings/emails_controller.rb:19`     | Relies on scoping, no explicit authorize |
+| 82  | `app/controllers/sign/com/settings/telephones_controller.rb:26` | Same                                     |
+| 83  | `app/controllers/sign/com/settings/secrets_controller.rb:70`    | Same                                     |
+| 84  | `app/controllers/sign/app/settings/emails_controller.rb:19`     | Same                                     |
+| 85  | `app/controllers/sign/app/settings/secrets_controller.rb:71`    | Same                                     |
+| 86  | `app/controllers/sign/app/settings/totps_controller.rb:97`      | Same                                     |
+| 87  | `app/controllers/sign/app/settings/passkeys_controller.rb:206`  | Same                                     |
+| 88  | `app/controllers/sign/app/settings/sessions_controller.rb:77`   | Same                                     |
+| 89  | `app/controllers/sign/com/settings/sessions_controller.rb:73`   | Same                                     |
 
 ### Unclear Comments — `# what is this?` / `# FIXME: what is this method?` (5)
 

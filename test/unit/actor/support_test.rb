@@ -351,10 +351,10 @@ class ActorSupportTest < ActiveSupport::TestCase
 
   test "resolved_current_step_up uses required verification scope and aal" do
     @host.define_singleton_method(:verification_required?) { true }
-    @host.define_singleton_method(:verification_scope) { "configuration_secret_credential" }
+    @host.define_singleton_method(:verification_scope) { "settings_secret_credential" }
     @host.define_singleton_method(:verification_required_aal) { :aal3 }
 
-    assert_equal "configuration_secret_credential", @host.resolved_current_step_up_scope
+    assert_equal "settings_secret_credential", @host.resolved_current_step_up_scope
     assert_equal :aal3, @host.resolved_current_step_up_required_aal
   end
 

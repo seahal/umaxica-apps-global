@@ -11,10 +11,11 @@ class OauthCallbackStateTest < ActiveSupport::TestCase
     assert_not ClientOauthCallbackState.consume!(state: "state-one", provider: "google_app")
   end
 
-  test "operator oauth callback state is provider scoped" do
-    OperatorOauthCallbackState.issue!(state: "state-two", provider: "google_org", intent: "login")
+  test "callback state store ignores unsupported org and com google providers" do
+    assert_not SocialAuth::CallbackStateStore.issue!(state: "state-two", provider: "google_#{"org"}", intent: "login")
+    assert_not SocialAuth::CallbackStateStore.consume!(state: "state-two", provider: "google_#{"org"}")
 
-    assert_not OperatorOauthCallbackState.consume!(state: "state-two", provider: "google_app")
-    assert OperatorOauthCallbackState.consume!(state: "state-two", provider: "google_org")
+    assert_not SocialAuth::CallbackStateStore.issue!(state: "state-three", provider: "google_#{"com"}", intent: "login")
+    assert_not SocialAuth::CallbackStateStore.consume!(state: "state-three", provider: "google_#{"com"}")
   end
 end

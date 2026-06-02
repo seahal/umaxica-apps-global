@@ -41,9 +41,9 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show renders method links when scope and return_to are provided" do
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_emails_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(sign_app_settings_emails_path(ri: "jp"))
 
-    get sign_app_verification_url(scope: "configuration_email", return_to: return_to, ri: "jp"),
+    get sign_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -51,7 +51,7 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show handles bad request error" do
-    get sign_app_verification_url(scope: "configuration_email", return_to: "%%%INVALID%%%", ri: "jp"),
+    get sign_app_verification_url(scope: "settings_email", return_to: "%%%INVALID%%%", ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -59,21 +59,21 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show handles scope and return target mismatch without redirecting back to verification" do
-    return_to = Base64.urlsafe_encode64(sign_app_configuration_mfa_challenge_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(sign_app_settings_mfa_challenge_path(ri: "jp"))
 
-    get sign_app_verification_url(scope: "configuration_email", pt: return_to, ri: "jp"),
+    get sign_app_verification_url(scope: "settings_email", pt: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :redirect
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_settings_path(ri: "jp")
   end
 
   test "show discards expired step_up session instead of redirecting to itself" do
     token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
     ClientStepUpSession.create!(
       user_token: token,
-      scope: "configuration_email",
-      return_to: sign_app_configuration_emails_path(ri: "jp"),
+      scope: "settings_email",
+      return_to: sign_app_settings_emails_path(ri: "jp"),
       status: "PENDING",
       discarded_at: 1.minute.ago,
       purged_at: 1.minute.from_now,
@@ -82,14 +82,14 @@ class Sign::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_verification_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
-    assert_redirected_to sign_app_configuration_path(ri: "jp")
+    assert_redirected_to sign_app_settings_path(ri: "jp")
     assert_nil token.reload.step_up_session
   end
 
   test "show with recent verification shows success message" do
     # Create a token with recent step_up
     token = ClientToken.find_by(user_id: @user.id)
-    token&.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "configuration_email")
+    token&.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_email")
 
     get sign_app_verification_url(ri: "jp"), headers: @headers
 

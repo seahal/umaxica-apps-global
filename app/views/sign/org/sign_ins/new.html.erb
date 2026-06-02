@@ -19,14 +19,6 @@
       <span><%= t("sign.org.authentication.new.links.secret_credential") %></span>
     <% end %>
 
-    <% if @google_signin_enabled %>
-      <%= button_to continue_sign_org_social_authentication_path(provider: "google_org", ri: params[:ri]),
-                    method: :post,
-                    data: { turbo: false } do %>
-        <span><%= t("sign.org.authentication.new.links.google") %></span>
-      <% end %>
-    <% end %>
-
     <div>
       <%= link_to acme_org_root_path do %>
         <span><%= t("sign.org.authentication.new.back_to_root") %></span>

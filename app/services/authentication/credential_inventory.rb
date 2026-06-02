@@ -156,7 +156,6 @@ module Authentication
       methods = []
       methods << :google if active_client_google?
       methods << :apple if active_client_apple?
-      methods << :google if active_operator_google?
       methods
     end
 
@@ -172,13 +171,6 @@ module Authentication
 
       identity = actor.user_apple_identity
       identity&.status_id == ClientAppleIdentityStatus::ACTIVE && !excluded?(identity)
-    end
-
-    def active_operator_google?
-      return false unless actor.respond_to?(:operator_google_identity)
-
-      identity = actor.operator_google_identity
-      identity&.status_id == OperatorGoogleIdentityStatus::ACTIVE && !excluded?(identity)
     end
 
     def aal1_email_count

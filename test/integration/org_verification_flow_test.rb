@@ -23,7 +23,7 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
       public_id: "ovf#{SecureRandom.hex(4)}",
       discarded_at: 1.day.from_now,
     )
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "configuration_passkey")
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_passkey")
     @headers = as_staff_headers(@staff, host: @host)
     @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
   end
@@ -51,12 +51,12 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "org can verify with passkey" do
-    return_to = Base64.urlsafe_encode64(sign_org_configuration_passkeys_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(sign_org_settings_passkeys_path(ri: "jp"))
 
     StepUp::AvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
-          get sign_org_verification_url(scope: "configuration_passkey", return_to: return_to, ri: "jp"),
+          get sign_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),
               headers: @headers
           get new_sign_org_verification_passkey_url(ri: "jp"), headers: @headers
 
@@ -65,7 +65,7 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
                headers: @headers
 
           assert_response :redirect
-          assert_redirected_to sign_org_configuration_url(ri: "jp")
+          assert_redirected_to sign_org_settings_url(ri: "jp")
         end
       end
     end

@@ -2,6 +2,12 @@
 
 **Status:** Accepted (2026-05-05)
 
+> **Partial supersession (2026-06-02):** The `sign/id` routing vocabulary in this ADR is refined by
+> `adr/sign-credential-gateway-surface.md`. `sign/id` routes are Credential Gateway / ceremony
+> routes, not IdP application-session routes. Routing details in this ADR must not be used to add
+> `sign/id` sessions, preference writes, dashboards, account lifecycle, authorization decisions, or
+> downstream token issuance.
+
 ## Context
 
 The IdP runs on dedicated hosts: `id.umaxica.{app,com,org}` in production and
@@ -37,11 +43,11 @@ user is in an authentication step. It also separates auth entry points from acco
 and infrastructure endpoints on the same host, which makes log filtering, CSP source rules, and
 operational dashboards easier to scope.
 
-Limiting the prefix to `:in` and `:up` matches the user-facing meaning of "sign". `/configuration`,
-`/preference`, OIDC endpoints, OmniAuth callbacks, and infra paths are not part of the sign-in or
-sign-up step in the same sense and have established external contracts (especially the OmniAuth
-callback URL). Keeping them at their current paths avoids forcing provider-side reconfiguration and
-avoids touching every reference to those routes.
+Limiting the prefix to `:in` and `:up` matches the user-facing meaning of "sign". `/setting`,
+`/preference`, `/configurator`, OIDC endpoints, OmniAuth callbacks, and infra paths are not part of
+the sign-in or sign-up step in the same sense and have established external contracts (especially
+the OmniAuth callback URL). Keeping them at their current paths avoids forcing provider-side
+reconfiguration and avoids touching every reference to those routes.
 
 Keeping the existing `as: :sign` and `module: :sign` declarations preserves the controller layout
 under `app/controllers/sign/` and the helper name surface (`sign_app_in_*`, etc.). The only
@@ -69,8 +75,8 @@ on a controlled host, in line with the project's preference for direct migration
 ## Alternatives Considered
 
 - **Move the entire sign module under `/sign/`** by adding `path: "sign"` to the outer
-  `scope module: :sign, as: :sign` declaration. Rejected because it would also relocate
-  `/configuration`, `/preference`, OIDC endpoints, OmniAuth callbacks, health/robots/sitemap, and
+  `scope module: :sign, as: :sign` declaration. Rejected because it would also relocate `/setting`,
+  `/preference`, `/configurator`, OIDC endpoints, OmniAuth callbacks, health/robots/sitemap, and
   web/v0/edge/v0 — forcing OAuth provider redirect URI changes and breaking infra probe paths
   without clear benefit.
 - **Move only `/in` and keep `/up` bare** (or vice versa). Rejected for asymmetry; sign-in and

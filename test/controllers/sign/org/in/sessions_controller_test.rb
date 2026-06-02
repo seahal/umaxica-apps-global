@@ -32,7 +32,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{/sign/in/new}, response.location
   end
 
-  test "protected configuration redirects to public sign host and preserves absolute return target" do
+  test "protected settings redirects to public sign host and preserves absolute return target" do
     with_env(
       "ID_STAFF_URL" => "id.org.localhost",
       "SIGN_STAFF_URL" => "id.umaxica.org",
@@ -40,7 +40,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       Rails.application.reload_routes!
 
       get(
-        "https://id.umaxica.org/configuration/sessions?ri=jp",
+        "https://id.umaxica.org/settings/sessions?ri=jp",
         headers: browser_headers.merge("Host" => "id.umaxica.org"),
       )
 
@@ -287,7 +287,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # update -- redirect after promotion
   # ===================================================================
 
-  test "update promotes and redirects to configuration path by default" do
+  test "update promotes and redirects to settings path by default" do
     active_token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
 
@@ -301,7 +301,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
           headers: headers
 
     assert_response :redirect
-    assert_match %r{/configuration}, response.location
+    assert_match %r{/settings}, response.location
   end
 
   test "update with pt param redirects to the requested path" do
@@ -312,7 +312,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     restricted_token.rotate_refresh_token!
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
-    pt = "/configuration"
+    pt = "/settings"
 
     patch sign_org_in_session_url(ri: "jp", pt: pt),
           params: { revoke_refs: [active_token.signed_ref] },
@@ -322,7 +322,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal OperatorTokenStatus::ACTIVE, restricted_token.staff_token_status_id
     assert_response :redirect
-    assert_match %r{/configuration}, response.location
+    assert_match %r{/settings}, response.location
   end
 
   test "update with invalid pt param falls back to default path" do
@@ -342,7 +342,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal OperatorTokenStatus::ACTIVE, restricted_token.staff_token_status_id
     assert_response :redirect
-    assert_match %r{/configuration}, response.location
+    assert_match %r{/settings}, response.location
   end
 
   # ===================================================================
@@ -515,8 +515,8 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
-    # Try to access configuration page (not /in/sessions)
-    get sign_org_configuration_url(ri: "jp"), headers: headers
+    # Try to access settings page (not /in/sessions)
+    get sign_org_settings_url(ri: "jp"), headers: headers
 
     assert_response :locked
     assert_equal "きんそくじこうです", response.body

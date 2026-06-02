@@ -182,7 +182,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
       }
 
       # Should log in
-      post verification_sign_org_in_passkeys_url(ri: "jp", pt: "/configuration/passkeys"), params: params
+      post verification_sign_org_in_passkeys_url(ri: "jp", pt: "/settings/passkeys"), params: params
 
       assert_response :ok
       json = response.parsed_body

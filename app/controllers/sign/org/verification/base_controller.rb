@@ -46,8 +46,8 @@ module Sign
         def handle_invalid_step_up_session!
           clear_step_up_state!
           safe_redirect_to(
-            sign_org_configuration_path(ri: params[:ri]),
-            fallback: "/configuration",
+            sign_org_settings_path(ri: params[:ri]),
+            fallback: "/settings",
             alert: I18n.t("auth.step_up.session_expired"),
           )
           false

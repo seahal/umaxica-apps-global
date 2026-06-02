@@ -1,5 +1,13 @@
 # Authentication / Authorization Requirements Specification (Phase 1)
 
+> **Deprecated / partially superseded by Identity Authority inversion:** `acme/www` is the Session,
+> Token, Account, Preference, Authorization, and downstream-token Authority. `sign/id` is
+> ceremony-only: it may host credential entry points and execute delegated credential ceremonies,
+> but it must not own sessions, refresh tokens, preference writes, dashboards, account lifecycle,
+> token issuance, logout, or step-up freshness. Existing sign-side physical tables/models do not
+> imply sign-side authority. Do not use this document to reintroduce sign-side sessions, refresh,
+> preference, dashboard, account lifecycle, token issuance, logout, or step-up freshness.
+
 ## 1. Purpose and Background
 
 This system aims to provide users with safe and flexible authentication and authorization features,
@@ -173,7 +181,7 @@ or more to 0.
 
 - At least one Email exists
 
-## 8. Activity Display (`/configuration/activity`)
+## 8. Activity Display (`/settings/activity`)
 
 ### Purpose
 

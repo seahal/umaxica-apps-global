@@ -1,194 +1,121 @@
 # Sign-In Sequence
 
-This document records the current sign-in routing sequence after primary credential verification.
-Sign-in establishes the product's `AAL1` boundary. The surface-specific AAL1 methods are listed in
-`docs/security/authentication-assurance-levels.md`.
+## Authority
 
-## Sequence
+Sign-in has two boundaries:
 
-Successful sign-in proceeds through these gates in order:
+- `sign/id` hosts unauthenticated sign-in entry points and executes credential ceremonies.
+- `acme/www` consumes the ceremony result and commits session, actor/session, OIDC, and token state.
 
-1. Primary credential verification.
-2. MFA challenge when the actor requires MFA and the primary method does not bypass MFA.
-3. Session-limit handling.
-4. Guardrail.
-5. Checkpoint.
-6. Selector.
-7. Session issuance.
-8. Welcome.
-9. Final return path or dashboard.
+Sign-in completion means the credential ceremony is complete on sign and the session commit is
+complete on acme. A credential ceremony alone is not a signed-in session.
 
-The DB-backed sign-in cycle uses these states for the authoritative lifecycle:
+Logical authority moves now; physical storage may remain where it is. Existing sign-side tables,
+models, services, controllers, route names, or namespaces do not imply sign-side authority.
 
-| State                      | Meaning                                                                   |
-| -------------------------- | ------------------------------------------------------------------------- |
-| `PRIMARY_PENDING`          | Primary credential verification is in progress.                           |
-| `MFA_PENDING`              | Sign-in MFA must complete before the sequence can continue.               |
-| `SESSION_LIMIT_PENDING`    | Session-limit handling must complete before selector or normal issuance.  |
-| `GUARDRAIL_PENDING`        | Pre-activation guardrail checks must stop or clear.                       |
-| `CHECKPOINT_PENDING`       | Pre-activation checkpoint participants must stop or clear.                |
-| `SELECTOR_PENDING`         | Region/persona activation selection must commit before welcome or return. |
-| `SESSION_ISSUANCE_PENDING` | Selector has committed and the normal signed-in session may be issued.    |
-| `DASHBOARD_PENDING`        | Legacy state; it is not an authentication boundary for new flows.         |
-| `RETURN_PENDING`           | Legacy state; final return is post-auth UX for new flows.                 |
-| `COMPLETED`                | The sign-in sequence has completed.                                       |
-| `FAILED`                   | The sign-in sequence failed or was abandoned.                             |
+## Sign/ID Responsibilities
 
-Session-limit handling happens before selector and before active token issuance. If the active
-session limit is full and no restricted session exists, sign-in stores a pending cycle credential
-and redirects to the session-management gate. If a pending/restricted session already exists,
-sign-in is rejected through the guardrail path.
+`sign/id` may:
 
-`SignIn::SessionLimitManager` is the cycle-backed session-limit boundary. Legacy `SessionLimitGate`
-session keys remain only as compatibility fallback for sign-in entry points that have not yet been
-fully wired to DB-backed cycle locators.
+- host unauthenticated sign-in entry points;
+- collect identifiers needed to start a credential ceremony;
+- execute passkey/WebAuthn, OTP, TOTP, passcode, and social callback ceremonies where supported;
+- host MFA ceremony steps that are part of sign-in credential proof;
+- consume or introspect an acme session only to decide whether a ceremony is needed;
+- keep credential inventory and short-lived ceremony state;
+- return a signed, one-shot ceremony result to acme.
 
-## Signed-In Actor Re-entry
+`sign/id` must not:
 
-A signed-in actor must not start a new sign-in sequence without first signing out. Attempting to
-enter sign-in while already signed in is an abnormal request.
+- create, rotate, continue, revoke, list, or display user sessions;
+- issue access tokens, refresh tokens, OIDC tokens, or downstream tokens;
+- store step-up freshness, `recent_auth`, `sudo`, or `last_step_up_at`;
+- redirect to a sign dashboard as signed-in authority;
+- commit actor/session state;
+- decide authorization for product behavior.
 
-The server must reject that request with a status code and a plain-text message. It must not
-redirect to dashboard, continue a return path, start another sign-in sequence, or sign the actor out
-on their behalf.
+## Acme/WWW Responsibilities
 
-## Guardrail
+`acme/www` owns:
 
-Guardrail is the sign-in stop point for cases where the system must not continue toward selector or
-issue a signed-in session. Examples include login cooldown, sign-in ban or suspension notices, and
-hard session-limit rejections.
+- session creation and continuation;
+- actor/session state;
+- sign-in guardrails that depend on account/session/product policy;
+- session-limit decisions and session-management UI;
+- dashboard and post-auth navigation as authenticated product surfaces;
+- OIDC authorization, token issuance, and JWKS authority;
+- refresh token family issuance and rotation;
+- downstream token issuance;
+- step-up freshness confirmation when sign-in is not enough for a later sensitive action.
 
-Guardrail is different from checkpoint:
+`core`, `line`, and future downstream services must trust acme-issued downstream tokens, not
+sign-issued tokens.
 
-- Guardrail happens during the sign-in process before selector and normal session issuance.
-- Checkpoint happens before selector. The actor is identity-proofed but not signed in yet.
+## Ceremony Result Flow
 
-`/sign/in/guardrail` returns plain text. It must not redirect to welcome, checkpoint, or a return
-path. Direct access without a valid in-sequence guardrail state is rejected with plain text instead
-of being treated as a normal page view.
+The sign-in flow uses the credential grant/result boundary:
 
-## Checkpoint
+1. The browser enters a sign/id unauthenticated sign-in route.
+2. sign/id executes the requested credential ceremony.
+3. sign/id returns a signed ceremony result that is audience-bound to acme, purpose-bound, one-shot,
+   expiring, and bound to the acme transaction or session where applicable.
+4. acme validates and consumes the result.
+5. acme commits or rejects session creation and actor/session state.
+6. acme performs post-auth navigation, dashboard routing, OIDC continuation, or downstream token
+   issuance as acme-owned behavior.
 
-Checkpoint is the pre-activation interstitial for actionable notices or requirements. A DB-backed
-sign-in cycle at `CHECKPOINT_PENDING` is the preferred authority. The legacy sign-in checkpoint
-session carrier can still be read as compatibility fallback for flows that have not yet issued a
-DB-backed cycle locator.
+Redirect targets, OAuth/OIDC `state`, Jump `rt`, and local return paths are navigation state. They
+must not carry authentication result facts. The signed ceremony result is the security object.
 
-If the checkpoint stack has items, the actor is routed to the checkpoint page. If the checkpoint
-stack is empty and the current state machine position is the checkpoint participant, the sequence
-advances to the next step instead of returning an error.
+## Sequence Vocabulary
 
-## Selector
+The old sign-in state-machine vocabulary remains useful only as ceremony or compatibility routing
+vocabulary:
 
-Selector is the activation boundary after checkpoint and before active session issuance. It
-determines which region/persona/account binding becomes active for the session. Current app/com/org
-flows have one activation candidate, so selector auto-commits through the same service path that
-future manual selection must use.
+| Vocabulary                   | Current meaning                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| Primary credential           | The first credential ceremony executed by sign/id.                                  |
+| MFA challenge during sign-in | Additional credential ceremony before sign returns evidence to acme.                |
+| Guardrail                    | A policy stop. If it depends on session/account/product state, acme owns it.        |
+| Checkpoint                   | A required pre-session or post-auth requirement. acme owns session/account effects. |
+| Selector                     | Acme-owned actor/session selection before session commit.                           |
+| Session issuance             | Acme-owned session creation, never sign-owned.                                      |
+| Welcome/dashboard            | Acme-owned post-auth navigation or product surface.                                 |
 
-No active token or active actor exists while the DB-backed sign-in cycle is at `SELECTOR_PENDING`.
-Private routes must therefore fail as unauthenticated/forbidden rather than deriving access from the
-pending cycle. Selector commit must be server-derived and row-locked. Client params are not
-authoritative activation candidates. A stale, expired, mismatched, or already advanced cycle must
-fail closed.
+Existing DB-backed sign-in cycle rows may remain physically where they are during migration. They do
+not make sign the session authority.
 
-## Welcome And Dashboard
+## Surface Inventory
 
-Welcome is available only after authentication. It follows selector-triggered session issuance in
-the sign-in sequence.
+The supported credential methods remain surface-aware:
 
-Current sign routes expose these authenticated top-level routes:
+| Surface | sign/id ceremony methods                                            | acme-owned commit                                            |
+| ------- | ------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `app`   | email OTP, passkey, TOTP where implemented, passcode, Google, Apple | Client session, account/session state, OIDC/token issuance   |
+| `com`   | email OTP, passkey, passcode                                        | Visitor session, account/session state, OIDC/token issuance  |
+| `org`   | passkey, passcode                                                   | Operator session, account/session state, OIDC/token issuance |
 
-- `GET /welcome`: post-auth sequence participant for `app`, `com`, and `org`.
-- `GET /dashboard`: ordinary authenticated home for `app`, `com`, and `org`.
+Org production sign-in does not use external social providers. Google, Apple, Microsoft, and other
+external social providers are not org sign-in methods.
 
-In `config/routes/sign.rb`, `welcome` belongs beside `dashboard` in every sign surface:
+## Signed-In Re-Entry
 
-```ruby
-root to: "roots#index"
-resource :welcome, only: :show
-resource :dashboard, only: :show
-```
+If a browser already has an acme session, sign/id may introspect or consume that fact only to decide
+whether a credential ceremony is needed. It must not create a second sign-owned session, redirect to
+a sign dashboard as authority, or mutate acme session state.
 
-Only the welcome participant consumes the preserved `rt` return path. Ordinary dashboard access must
-not treat a query parameter as a post-auth handoff.
+## OIDC And Token Authority
 
-If `/welcome` receives a safe `rt`, it consumes that return path and redirects there. If `rt` is
-missing, blank, invalid, unsafe, expired, or points back to `/welcome`, the actor is redirected to
-`/dashboard`. `/dashboard` is a normal authenticated landing page and can be opened directly or
-refreshed repeatedly without consuming `rt`.
+OIDC survives, but OIDC is acme authority.
 
-`/welcome` is not a permanent page. Before redirecting to `/welcome`, the server clears any previous
-welcome gate for the surface and issues a new session gate with `remaining = 5`, `issued_at`, and
-`expires_at`. Each `/welcome` request decrements `remaining`. When `remaining <= 0`, or when the
-current time is at or after `expires_at`, the welcome gate is cleared and the actor is redirected to
-`/dashboard`. The expiry is absolute and is not extended by refresh.
+Protocol endpoints or route namespaces may remain in compatibility locations during migration. That
+does not make sign/id the token authority. Acme owns OIDC authorization, token issuance, ID tokens,
+access tokens, refresh tokens, JWKS authority, and downstream token issuance.
 
-Guardrail, checkpoint, selector, and welcome are sequence participants whose content can grow or
-disappear over time. The sequence should decide whether each participant has required content before
-it routes the actor forward.
+## Related
 
-## Sequence Participants
-
-Guardrail, checkpoint, selector, and welcome should be implemented as sequence participants, not as
-fixed single-purpose pages. Each participant evaluates a list of requirement items for the current
-actor, surface, and flow.
-
-The participant contract is:
-
-- `stack`: ordered requirement items that may be empty.
-- `blocking?`: whether any stack item prevents advancing.
-- `cleared?`: whether every required stack item has passed.
-- `response`: the participant-specific rendering or stop behavior.
-- `next`: the next sequence participant when all required items are cleared.
-
-The all-pass rule is simple: the sequence advances only when the current participant's stack is
-empty or every required stack item is cleared. Optional items can be displayed without blocking, but
-blocking items must explicitly clear before the actor can advance.
-
-Expected behavior by participant:
-
-- Guardrail: if the stack is empty, advance without displaying a page. If the stack has any blocking
-  item, render plain text and do not redirect or advance.
-- Checkpoint: if the stack is empty, advance without displaying a page. If the stack has any
-  blocking item, render the checkpoint and keep the actor at checkpoint until all blocking items
-  clear.
-- Selector: if exactly one server-derived candidate exists, auto-commit it and continue to welcome.
-  Future multi-candidate selection must commit through the same selector service.
-- Welcome: if the sequence welcome stack is empty, continue to the safe return path or dashboard. If
-  the stack has items, display them within the welcome gate, but do not treat welcome as an
-  incomplete login state.
-
-Adding or removing a requirement must not require changing the route order. New behavior should be
-added by registering a new item evaluator for the participant.
-
-## Return Path
-
-Return-path values are preserved only when they resolve to safe same-origin paths. Unsafe external
-return targets are discarded before they are carried into guardrail, checkpoint, selector, or
-welcome URLs. The return path never skips guardrail, checkpoint, selector, or welcome.
-
-For DB-backed cycles, the return target is stored as cycle intent before `reset_session`; after
-selector-triggered session issuance, welcome/final redirect revalidates that target against the
-active actor, region, persona, and surface. Ordinary dashboard access must not consume `rt`.
-
-## Relying-Party Entry
-
-The acme and core relying-party surfaces expose one browser entry point for authentication:
-`GET /sso/authorize`. Private RP endpoints use the same OIDC initiator when authentication is
-required. The RP starts OIDC Authorization Code + PKCE from that route without a sign-up screen
-hint. Sign-in and sign-up selection belongs to the IdP (`id.*`) sign surface.
-
-RP entry redirects are sent through Jump with a signed `rt`; the OIDC `redirect_uri` remains an OIDC
-protocol field inside the signed target URL only when it exactly matches the client registry. Do not
-treat OIDC `state`, Jump `rt`, or the RP local post-auth path as interchangeable values.
-
-The sign IdP exposes protocol endpoints under protocol namespaces:
-
-- `GET /oauth/authorize`
-- `POST /oauth/token`
-- `GET /oauth/jwks`
-- `GET /oidc/logout`
-
-RP-initiated logout requests to `/oidc/logout` must include a short-lived signed `logout_request`
-issued by the RP. The IdP does not accept `post_logout_redirect_uri`; logout completion stays on the
-sign surface.
+- `docs/identity/authority-boundary.md`
+- `docs/security/credential-gateway.md`
+- `docs/security/ceremony-grant-result.md`
+- `docs/security/session-token-authority.md`
+- `docs/security/redirect-vs-ceremony-result.md`

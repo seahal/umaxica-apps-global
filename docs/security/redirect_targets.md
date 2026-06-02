@@ -1,5 +1,11 @@
 # Redirect Targets
 
+> **Partially superseded by Identity Authority inversion:** Redirect vocabulary in this document
+> remains useful, but redirects are navigation only. They are not credential ceremony results and
+> must not carry authentication, account, token, or step-up freshness results. `acme/www` is the
+> Session, Token, Account, Preference, Authorization, and downstream-token Authority. `sign/id` is
+> ceremony-only.
+
 Redirect targets are split into three separate lanes. These names are public contract names and
 controller/service code should use them consistently.
 
@@ -31,7 +37,7 @@ Allowed examples:
 
 - `/dashboard`
 - `/dashboard?tab=security`
-- `/configuration/security`
+- `/settings/security`
 - `/sign/out/complete?x=1`
 
 Rejected `pt` values produce a `Redirects::TargetResult` with `failure_reason` and, when a value was

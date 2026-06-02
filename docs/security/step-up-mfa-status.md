@@ -1,5 +1,13 @@
 # Step-Up MFA Status
 
+> **Partially superseded by Identity Authority inversion:** The credential availability vocabulary
+> in this document remains useful only where it does not assign step-up freshness, session, token,
+> or settings authority to `sign/id`. `acme/www` is the Session, Token, Account, Preference,
+> Authorization, and downstream-token Authority. `sign/id` is ceremony-only. Existing sign-side
+> physical tables/models do not imply sign-side authority. Do not use this document to reintroduce
+> sign-side sessions, refresh, preference, dashboard, account lifecycle, token issuance, logout, or
+> step-up freshness.
+
 This document describes the current step-up gate used by the `app`, `com`, and `org` sign
 configuration surfaces.
 
@@ -73,7 +81,7 @@ operator passkey.
 
 Controllers use `multi_factor_status_id` through the shared verification concern. They do not decide
 bootstrap by checking only their own credential type. For example, an `app` user with a verified
-email has status `ACTIVE`, so `/configuration/totps` requires step-up even if the user has no TOTP.
+email has status `ACTIVE`, so `/settings/totps` requires step-up even if the user has no TOTP.
 
 Successful credential registration updates the status through model callbacks. The standard
 credential registration audit events continue to record the actual registration.

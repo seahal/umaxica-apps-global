@@ -57,6 +57,29 @@ class Sign::CommonHelperTest < ActionView::TestCase
     Actor.preferences = original
   end
 
+  test "sign up birthdate labels are localized" do
+    original = Actor.preferences
+    Actor.preferences = Actor::Preference.new(date_format: "iso")
+
+    I18n.with_locale(:en) do
+      html = sign_up_birthdate_fields(nil)
+      fragment = Nokogiri::HTML.fragment(html)
+
+      assert_equal %w(YYYY MM DD), fragment.css("label").map { |label| label.text.split.first }
+      assert_equal %w(YYYY MM DD), fragment.css("input").pluck("placeholder")
+    end
+
+    I18n.with_locale(:ja) do
+      html = sign_up_birthdate_fields(nil)
+      fragment = Nokogiri::HTML.fragment(html)
+
+      assert_equal %w(年 月 日), fragment.css("label").map { |label| label.text.split.first }
+      assert_equal %w(年 月 日), fragment.css("input").pluck("placeholder")
+    end
+  ensure
+    Actor.preferences = original
+  end
+
   test "get_timezone returns request timezone context" do
     assert_equal "asia/tokyo", get_timezone
   end
