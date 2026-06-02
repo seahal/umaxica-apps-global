@@ -32,10 +32,14 @@ Rails.application.configure do
   config.force_ssl = true
 
   # Rails emits HSTS as a safe default; the CDN may override or replace this header.
+  # includeSubDomains is enabled so every subdomain is HTTPS-only. preload stays off:
+  # preload-list registration is effectively irreversible and requires every subdomain to
+  # serve HTTPS, so it is deferred until a deliberate review (see
+  # adr/session-token-hardening-baseline.md).
   config.ssl_options = {
     hsts: {
       expires: 365.days,
-      subdomains: false,
+      subdomains: true,
       preload: false,
     },
   }

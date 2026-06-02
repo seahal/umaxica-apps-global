@@ -158,7 +158,7 @@ class CookieServiceTest < ActiveSupport::TestCase
       options = service.auth_cookie_deletion_options
 
       assert_equal "/", options[:path]
-      assert_equal :lax, options[:same_site]
+      assert_equal :strict, options[:same_site]
       assert options[:secure]
       assert options[:partitioned]
       assert_not options.key?(:domain)

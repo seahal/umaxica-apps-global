@@ -26,8 +26,9 @@ Theme edit/update flows exist on `app`, `org`, and `com`, and the shared UI expo
 
 ## Evidence
 
-- `app/config/preference/io_keys.rb` defines the cookie key contract and keeps theme as `ct`.
-- `test/config/auth/io_keys_test.rb` asserts the contract directly.
+- `app/controllers/concerns/preference/io_keys.rb` defines the cookie key contract and keeps theme
+  as `ct`.
+- `test/controllers/concerns/preference/io_keys_test.rb` asserts the contract directly.
 - `test/controllers/concerns/preference/base_test.rb` and
   `test/controllers/concerns/preference/jwt_and_color_theme_test.rb` assert
   `Preference::Base::THEME_COOKIE_KEY == "ct"`.

@@ -10,6 +10,9 @@ This plan implements the current ADR direction established by:
 - `adr/acme-session-and-token-authority.md`
 - `adr/sign-credential-gateway-surface.md`
 
+The first implementation slice is tracked in
+`plans/active/identity-authority-inversion-first-slice.md`.
+
 ## Context
 
 The identity architecture has moved away from a `sign/id` IdP and `acme/www` RP model. `acme/www` is
@@ -26,8 +29,25 @@ are deprecated for those authority assignments.
 - Do not rewrite the whole sign-in, sign-up, logout, preference, or step-up implementation in one
   slice.
 - Do not delete historical plans.
-- Do not update stable `docs/` until the implementation slices have established current behavior.
-- Do not change application code as part of this plan-maintenance slice.
+- Do not treat existing stable `docs/` as proof that implementation has already completed the
+  inversion. Where docs state the accepted boundary before code has caught up, the implementation
+  gap must be called out in the active slice.
+- Do not change application code as part of plan-maintenance work.
+
+## Current Implementation Gaps
+
+The following known implementation gaps must be resolved or fenced by active slices:
+
+- sign `/sign/out` still performs direct session logout in existing controllers.
+- sign edge token refresh still performs refresh token mutation.
+- sign OAuth/OIDC token routes still expose token authority behavior.
+- sign dashboard, welcome, settings, preference, session-management, and withdrawal routes still
+  exist as sign-side authority-looking surfaces.
+- sign step-up ceremony code still writes session-freshness fields directly.
+- sign social callback and sign-up flows still perform some account linking or account finalization.
+
+These gaps are compatibility implementation only. They do not override the accepted authority
+boundary.
 
 ## Authority Boundary
 

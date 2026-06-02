@@ -305,7 +305,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_not @controller.cookie_deletion_options.key?(:expires)
     assert_not @controller.cookie_options.key?(:domain)
     assert_not @controller.cookie_deletion_options.key?(:domain)
-    assert_equal :lax, @controller.cookie_options[:same_site]
+    assert_equal :strict, @controller.cookie_options[:same_site]
   end
 
   test "cookie deletion options preserve secure attributes for host-prefixed production cookies" do
@@ -315,7 +315,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
       options = @controller.cookie_deletion_options
 
       assert_equal "/", options[:path]
-      assert_equal :lax, options[:same_site]
+      assert_equal :strict, options[:same_site]
       assert options[:secure]
       assert options[:partitioned]
       assert_not options.key?(:domain)
@@ -334,7 +334,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
       assert_equal "auth_refresh", Authentication::CookieName.refresh
       assert_equal "auth_dbsc", Authentication::CookieName.dbsc
       assert_equal "/", options[:path]
-      assert_equal :lax, options[:same_site]
+      assert_equal :strict, options[:same_site]
       assert_not options[:secure]
       assert_not options.key?(:partitioned)
       assert_not options.key?(:domain)
@@ -353,7 +353,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
       assert_equal "auth_refresh", Authentication::CookieName.refresh
       assert_equal "auth_dbsc", Authentication::CookieName.dbsc
       assert_equal "/", options[:path]
-      assert_equal :lax, options[:same_site]
+      assert_equal :strict, options[:same_site]
       assert_not options[:secure]
       assert_not options.key?(:partitioned)
       assert_not options.key?(:domain)

@@ -34,8 +34,8 @@ exceed it.
 
 These values are applied uniformly across surfaces today. The `org` (staff / operator) surface
 carries stronger business authority than the `app` (end-user) surface, so a uniform refresh horizon
-over-exposes staff sessions. A long-lived refresh horizon (cookie-driven one-year reach, or any
-multi-month refresh) on a staff surface is too aggressive for the privilege it grants.
+over-exposes staff sessions. A long-lived refresh horizon (any multi-month refresh, up to a one-year
+reach) on a staff surface is too aggressive for the privilege it grants.
 
 ## Decision
 

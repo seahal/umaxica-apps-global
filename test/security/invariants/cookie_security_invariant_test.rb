@@ -66,7 +66,7 @@ module Security
       def assert_auth_cookie_options(options)
         assert options[:secure]
         assert options[:httponly]
-        assert_equal :lax, options[:same_site]
+        assert_equal :strict, options[:same_site]
         assert_equal "/", options[:path]
         assert_not options.key?(:domain), "__Host- cookies must not carry a Domain attribute"
       end

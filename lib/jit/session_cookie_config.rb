@@ -7,7 +7,10 @@ module Jit
 
     # Determines whether to force secure cookie settings.
     # Returns true outside development/test, or when FORCE_SECURE_COOKIES=1.
-    def force_secure?(id_service_host:, rails_env: Rails.env)
+    # `id_service_host` is currently unused but kept for caller compatibility and
+    # potential host-based policy; it is optional so non-session callers
+    # (auth/verification cookie naming) can reuse this predicate.
+    def force_secure?(id_service_host: nil, rails_env: Rails.env)
       _ = id_service_host
       return false if rails_env.test?
 

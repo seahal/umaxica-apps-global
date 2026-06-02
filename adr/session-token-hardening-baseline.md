@@ -4,10 +4,13 @@
 
 Accepted (2026-06-02)
 
-Implementation is deferred. The codebase is under large-scale editing, so this ADR records the
-accepted posture only. The implementation steps and open gaps are tracked in
-`plans/backlog/session-token-hardening-implementation.md`. No code or configuration is changed by
-this ADR.
+Partially implemented. The cookie hardening pieces are done in code — `SameSite=Strict` for auth
+cookies, production HSTS `includeSubDomains`, the `__Host-`/`__Secure-` prefix policy, and unifying
+the prefix gating on `Jit::SessionCookieConfig.force_secure?`. The remaining items
+(credential-change revocation, idle/renewal timeouts, step-up re-issue decision, optional global
+`no-store`, HSTS `preload`) are deferred while the codebase is under large-scale editing.
+Implementation status and open gaps are tracked in
+`plans/backlog/session-token-hardening-implementation.md`.
 
 ## Context
 
@@ -32,8 +35,25 @@ end-state and records where the build deliberately diverges from the raw checkli
 ### Cookie hardening (point 1)
 
 Production auth cookies use `__Host-` prefix + host-only (no `Domain`) + `Secure` + `HttpOnly` +
-**`SameSite=Strict`** + `Partitioned`. The current code applies all of these except `SameSite`,
-which is `:lax`; the decided target is `:strict`.
+**`SameSite=Strict`** + `Partitioned`. `SameSite=Strict` is implemented in
+`Authentication::CookieService` (`auth_cookie_options` and `auth_cookie_deletion_options`); it
+applies to the auth cookies (access / refresh / DBSC) in all environments. The Rails session cookie
+and preference cookies remain `SameSite=Lax` and are out of scope for this ADR.
+
+**Cookie name prefix policy.** Host-only cookies use the `__Host-` prefix; cookies that must be
+readable across subdomains use `__Secure-` (which permits a `Domain` attribute, forbidden under
+`__Host-`).
+
+- `__Host-`: auth cookies (access / refresh / DBSC), the Rails session cookie (`__Host-session`),
+  and the step-up verification cookie. All are host-only (no `Domain`), `Path=/`, and `Secure`.
+- `__Secure-`: preference cookies (access / refresh / DBSC). They are intentionally scoped to the
+  apex domain (`Core::CookieDomain.for`, via `Core::CookieOptions` default `domain: true`) for
+  cross-subdomain reads, so they cannot use `__Host-`.
+
+The prefix is gated on `Jit::SessionCookieConfig.force_secure?` (true in production or when
+`FORCE_SECURE_COOKIES=1`), unifying auth, verification, and session cookies on one predicate.
+Because `force_secure?` implies the `Secure` attribute, the prefix is never applied to a non-Secure
+cookie.
 
 Known tradeoff of `Strict`: an inbound top-level navigation from an external origin (an emailed link
 or a link on another site) does not carry the auth cookie on the first request, so the first hit
@@ -82,10 +102,11 @@ Ratified as already implemented: one-time-consume rotation with a generation cou
 
 ### Transport and logout (point 6)
 
-- HSTS: keep HSTS enabled in production and make it **stricter** — enable `includeSubDomains` and
-  `preload` with a long max-age. The CDN may override or replace the header. `preload` and
-  `includeSubDomains` are a long-lived commitment for every subdomain; the asset and regional
-  domains must be reviewed before enabling `preload`.
+- HSTS: production HSTS is stricter — `includeSubDomains` is **enabled** with a one-year max-age
+  (`config/environments/production.rb`). `preload` stays **off**: preload-list registration is
+  effectively irreversible and requires every subdomain to serve HTTPS, so it is deferred until a
+  deliberate review of the asset and regional domains. The CDN may override or replace the header.
+  Only production is changed.
 - CSP: out of scope for this ADR; tracked on a separate track.
 - `Cache-Control: no-store`: currently applied selectively to sensitive endpoints. Broadening it to
   authenticated HTML responses is an optional follow-up.

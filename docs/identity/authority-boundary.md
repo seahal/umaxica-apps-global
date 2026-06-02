@@ -10,6 +10,21 @@ Authority.
 Logical authority moves now; physical DB movement is out of scope. Existing sign-side tables,
 models, namespaces, and route names do not imply sign-side authority.
 
+## Implementation Status
+
+This document describes the accepted authority boundary. The implementation is still being inverted.
+Some existing `sign/id` routes and controllers may remain reachable as compatibility routes until
+the active implementation slices move or redirect them.
+
+Compatibility routes must not be treated as new authority assignments. If implementation currently
+mutates session, refresh, preference, dashboard, withdrawal, token, account, or step-up freshness
+state from a sign-side route, that behavior is a migration gap tracked by the Identity Authority
+inversion plans, not a competing source of truth.
+
+The first implementation slice is limited to route/controller classification, acme authority entry
+points, and sign-to-acme redirects or delegates for authority surfaces. It does not physically move
+tables and does not implement the full ceremony grant/result protocol.
+
 ## Acme/WWW Authority
 
 `acme/www` owns:

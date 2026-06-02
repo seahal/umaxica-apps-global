@@ -45,8 +45,8 @@ class Sign::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     access_cookie = cookie_lines.find { |line| line.start_with?("#{Authentication::Base::ACCESS_COOKIE_KEY}=") }.to_s
     refresh_cookie = cookie_lines.find { |line| line.start_with?("#{Authentication::Base::REFRESH_COOKIE_KEY}=") }.to_s
 
-    assert_match(/samesite=lax/i, access_cookie)
-    assert_match(/samesite=lax/i, refresh_cookie)
+    assert_match(/samesite=strict/i, access_cookie)
+    assert_match(/samesite=strict/i, refresh_cookie)
 
     json = response.parsed_body
 

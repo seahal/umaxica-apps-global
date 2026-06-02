@@ -20,3 +20,7 @@ Current identity authority implementation plan:
   the Identity Authority inversion. It supersedes old plan directions that assign settings,
   preference, dashboard, session-management, token issuance, account lifecycle, authorization,
   downstream-token issuance, or step-up freshness authority to `sign/id`.
+- `plans/active/identity-authority-inversion-first-slice.md` is the first active implementation
+  slice. It records the current implementation conflicts and limits the first code slice to
+  route/controller classification, acme authority entry points, and sign-to-acme redirects or
+  compatibility delegates.

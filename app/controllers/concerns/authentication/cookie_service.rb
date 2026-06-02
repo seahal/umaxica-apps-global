@@ -29,7 +29,9 @@ module Authentication
         surface: Core::Surface.current(request),
         request: request,
         httponly: httponly,
-        same_site: :lax,
+        # Strict so the auth cookie is never sent on cross-site requests. The
+        # deletion options below must match for the browser to clear the cookie.
+        same_site: :strict,
         path: "/",
         expires: expires,
         domain: false,
@@ -40,7 +42,7 @@ module Authentication
       Core::CookieOptions.for(
         surface: Core::Surface.current(request),
         request: request,
-        same_site: :lax,
+        same_site: :strict,
         path: "/",
         domain: false,
       ).except(:expires, :httponly)

@@ -21,6 +21,11 @@ Current identity authority decision:
   `sign/id` credential inventory, ceremony state, ceremony execution, signed ceremony results, and
   ceremony-only audit records.
 
+Implementation note: the accepted authority boundary is ahead of parts of the current code. Active
+implementation work is tracked in `plans/identity-authority-inversion-implementation.md` and
+`plans/active/identity-authority-inversion-first-slice.md`; existing sign-side compatibility routes
+or storage do not create a competing ADR-level authority assignment.
+
 Superseded IdP/RP-centered ADRs:
 
 - `adr/split-into-regional-and-global-repos.md`
@@ -109,6 +114,11 @@ Session and token decisions:
 - `adr/token-lifetime-policy-by-surface.md` — per-surface access/refresh token lifetimes (`app` vs
   `org`); implementation tracked in
   `plans/backlog/token-lifetime-policy-by-surface-implementation.md`.
+- `adr/session-token-hardening-baseline.md` — accepted hardening posture for production auth cookies
+  (`__Host-`/host-only/Secure/HttpOnly/`SameSite=Strict`/Partitioned), opaque-refresh + JWT-access,
+  rotation/reuse/family-revoke, re-issue on security events, server-side timeouts, HSTS, and IP/UA
+  as risk signal; implementation tracked in
+  `plans/backlog/session-token-hardening-implementation.md`.
 - `adr/session-reset-on-privilege-transition.md` — superseded where it assigns session issuance or
   step-up freshness to `sign/id`.
 - `adr/logout-primitive-and-composition.md` — superseded where it assigns session authority to

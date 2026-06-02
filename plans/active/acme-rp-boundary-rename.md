@@ -88,7 +88,7 @@ The sign IdP and Acme RP must be updated together.
 
 Update:
 
-- `app/config/oidc/client_registry.rb`
+- `app/services/oidc/client_registry.rb`
 - Acme callback controllers
 - Acme SSO initiators
 - sign logout handling tests

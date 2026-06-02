@@ -4,18 +4,18 @@
 require "test_helper"
 
 class VerificationCookieableTest < ActiveSupport::TestCase
-  test "cookie_name is secure only in production" do
+  test "cookie_name uses __Host- prefix only in secure-context environments" do
     {
       ClientVerification => "verification",
       OperatorVerification => "verification",
       VisitorVerification => "verification",
     }.each do |klass, plain_name|
-      Rails.env.stub(:production?, false) do
+      Jit::SessionCookieConfig.stub(:force_secure?, false) do
         assert_equal plain_name, klass.cookie_name
       end
 
-      Rails.env.stub(:production?, true) do
-        assert_equal "__Secure-#{plain_name}", klass.cookie_name
+      Jit::SessionCookieConfig.stub(:force_secure?, true) do
+        assert_equal "__Host-#{plain_name}", klass.cookie_name
       end
     end
   end
