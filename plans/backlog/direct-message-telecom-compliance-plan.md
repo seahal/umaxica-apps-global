@@ -8,16 +8,13 @@ Affairs and Communications.
 
 ## Summary
 
-This repository already contains a message domain skeleton:
+This repository previously contained a local direct-message skeleton. The route placeholder and
+`DirectMessageThread` model/table were retired in June 2026 because current boundary docs classify
+direct message behavior as regional `line` work, not global-repository behavior.
 
-- message routes on app/com/org surfaces
-- edge API placeholder controllers
-- a dedicated `message` database with message-related tables
-
-Current boundary docs classify direct message behavior as regional `line` work. That creates an
-explicit boundary conflict with this repository-local skeleton: before any production direct message
-implementation proceeds, an ADR or active plan must decide whether the skeleton is retired,
-migrated, or kept only as a temporary placeholder.
+Current boundary docs classify direct message behavior as regional `line` work. Before any
+production direct message implementation proceeds, an ADR or active plan must decide which
+repository owns it and how telecom compliance gates are enforced.
 
 However, the current implementation does not yet show the legal and operational controls that are
 normally required when a service mediates user-to-user communication in Japan.
@@ -38,17 +35,15 @@ The implementation must not proceed as a normal CRUD feature only. It needs:
 
 ## Confirmed Repository State
 
-The following primary sources exist in the repository today:
+The following state is current after the June 2026 retirement:
 
-- `config/routes/core.rb` exposes `messages` endpoints on app/com/org
-- `app/controllers/core/*/edge/v0/messages_controller.rb` returns a placeholder JSON contract
-- `app/controllers/concerns/core/edge/v0/messages_endpoint.rb` contains shared placeholder logic
-- `db/message_schema.rb` contains `user_messages`, `member_messages`, `staff_messages`,
-  `operator_messages`, and `client_messages`
-- `test/integration/core_message_edge_v0_test.rb` verifies the placeholder API contract
+- `config/routes/line.rb` and `draw :line` are removed.
+- `DirectMessageThread` and its model test are removed.
+- `direct_message_threads` is dropped by a reversible message-database migration.
+- The `message` database connection remains temporarily so the drop migration can run before the
+  connection is fully retired.
 
-This means the codebase already signals product intent for a message feature, even though the
-behavior is not complete.
+This means the codebase no longer signals an active local direct-message product skeleton.
 
 ## Scope
 
@@ -112,7 +107,7 @@ Minimum outputs:
 
 1. Freeze the current legal assumption in a plan document.
 2. Open GitHub issues for the legal, document, and operations tracks.
-3. Keep the message endpoints as placeholders until the legal gate is satisfied.
+3. Do not reintroduce message endpoints or message persistence until the legal gate is satisfied.
 4. Implement the user-facing documents before any production-ready messaging workflow.
 5. Design the operations flow for retention, disclosure response, and incidents.
 6. Only then move to full message persistence and product rollout.

@@ -8,6 +8,8 @@ module Sign
     module Settings
       class TotpsController < Sign::App::ApplicationController
         include ::CloudflareTurnstile
+        include ::Sign::AcmeAuthorityRedirect
+        include ::Sign::TotpCeremonyDelegation
 
         include ::Verification::Client
 
@@ -16,11 +18,11 @@ module Sign
         MAX_TOTPS = 2
         before_action :authenticate_client!
         step_up only: %i(new create), bootstrap: true
-        step_up only: %i(edit update destroy)
+        step_up only: []
+        before_action :accept_app_totp_ceremony_grant!, only: %i(new create)
 
         def index
-          authorize!(ClientTotpCredential, to: :index?)
-          @totps = current_client.client_totp_credentials
+          redirect_to_acme_settings_authority!
         end
 
         def new
@@ -30,12 +32,12 @@ module Sign
           end
 
           @totp = ClientTotpCredential.new
+          start_totp_ceremony!(surface: "app", actor: current_client, session_ref: current_session_public_id)
           generate_totp_session
         end
 
         def edit
-          @totp = find_totp
-          authorize!(@totp)
+          redirect_to_acme_settings_authority!
         end
 
         def create
@@ -74,13 +76,28 @@ module Sign
         end
 
         def handle_success(last_otp_at)
-          @totp.last_otp_at = Time.zone.at(last_otp_at)
-          @totp.save!
-          record_totp_registration_step_up!
+          last_otp_at_time = Time.zone.at(last_otp_at)
+          finish_totp_ceremony!(
+            surface: "app",
+            actor: current_client,
+            session_ref: current_session_public_id,
+            private_key: @totp.private_key,
+            title: @totp.title,
+            last_otp_at: last_otp_at_time,
+          )
           session[:private_key] = nil
+          reset_totp_ceremony_session!
           redirect_to(
-            bootstrap_return_path(sign_app_settings_totps_path),
+            bootstrap_return_path(
+              acme_app_settings_totps_url(
+                ri: params[:ri],
+                host: ENV.fetch(
+                  "ACME_SERVICE_URL", "www.app.localhost",
+                ),
+              ),
+            ),
             notice: t("messages.totp_successfully_created"),
+            allow_other_host: true,
           )
         end
 
@@ -92,40 +109,28 @@ module Sign
         end
 
         def update
-          @totp = find_totp
-          authorize!(@totp)
-          if @totp.update(update_params)
-            redirect_to(
-              sign_app_settings_totps_path,
-              notice: t("messages.totp_successfully_updated"),
-            )
-          else
-            render :edit, status: :unprocessable_content
-          end
+          redirect_to_acme_settings_authority!
         end
 
         def destroy
-          @totp = find_totp
-          authorize!(@totp)
-          unless AuthMethodGuard.can_remove_totp?(current_client, @totp)
-            redirect_to(
-              sign_app_settings_totps_path,
-              alert: t(".last_method"),
-            )
-            return
-          end
-
-          @totp.destroy!
-          redirect_to(
-            sign_app_settings_totps_path,
-            notice: t("messages.totp_successfully_deleted"),
-          )
+          redirect_to_acme_settings_authority!
         end
 
         private
 
         def find_totp
           current_client.client_totp_credentials.find_by!(public_id: params(:id))
+        end
+
+        def accept_app_totp_ceremony_grant!
+          return true if accept_totp_ceremony_grant!(surface: "app")
+
+          redirect_to(
+            acme_app_settings_totps_path(ri: params[:ri]),
+            alert: I18n.t("errors.messages.invalid"),
+            status: :see_other,
+          )
+          false
         end
 
         def generate_totp_session
@@ -162,22 +167,17 @@ module Sign
           params(user_totp_credential: [:title])
         end
 
-        def record_totp_registration_step_up!
-          Identity::Audit.record!(
-            actor: current_client,
-            event_id: ClientChronicleEvent::TOTP_ENABLED,
-            action: "totp.enable",
-            ip_address: request.remote_ip,
-            user_agent: request.user_agent,
-          )
-        end
-
         def verification_required_action?
-          step_up_bootstrap_active?
+          step_up_bootstrap_active? && %w(new create).include?(action_name)
         end
 
         def verification_scope
           "settings_totp"
+        end
+
+        # Compatibility entry only. acme/www owns account-facing TOTP lifecycle.
+        def redirect_to_acme_settings_authority!
+          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
       end
     end

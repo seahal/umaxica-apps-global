@@ -23,10 +23,11 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/sign/in/new\?ri=jp}
   end
 
-  test "protected settings redirects to public sign host and preserves absolute return target" do
+  test "protected settings sessions redirects to acme session authority" do
     with_env(
       "ID_CORPORATE_URL" => "id.com.localhost",
       "SIGN_CORPORATE_URL" => "id.umaxica.com",
+      "ACME_CORPORATE_URL" => "www.umaxica.com",
     ) do
       Rails.application.reload_routes!
 
@@ -36,14 +37,11 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       )
 
       assert_response :redirect
-      location = URI.parse(jump_rt_url_from_location(response.location))
-      params = Rack::Utils.parse_query(location.query)
+      location = URI.parse(response.location)
 
-      assert_equal "https", location.scheme
-      assert_equal "id.umaxica.com", location.host
-      assert_equal "/sign/in/new", location.path
-      assert_equal "jp", params["ri"]
-      assert_not params.key?("pt")
+      assert_equal "www.umaxica.com", location.host
+      assert_equal "/settings/sessions", location.path
+      assert_equal "ri=jp", location.query
     end
   ensure
     Rails.application.reload_routes!

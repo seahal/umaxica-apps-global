@@ -304,6 +304,22 @@ module MissingHelpers
     end
   end
 
+  def submit_social_completion_if_present!
+    return unless response.media_type == "text/html"
+    return unless response.body.include?("social-completion-form")
+
+    form = Nokogiri::HTML(response.body).at_css("form#social-completion-form")
+    raise StandardError, "social completion form missing" unless form
+
+    params = {}
+    form.css("input").each do |input|
+      name = input["name"]
+      params[name] = input["value"] if name.present?
+    end
+
+    post(form["action"], params: params, headers: { "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") })
+  end
+
   def with_social_auth_csrf_route
     Rails.application.routes.append do
       get("/test_social_auth_csrf", to: "social_auth_test_csrf#show")

@@ -7,24 +7,26 @@ module Sign
   module Org
     module Preference
       class RegionsControllerTest < ActionDispatch::IntegrationTest
-        fixtures :operators, :operator_preferences
-
         setup do
           @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-          @staff = operators(:one)
+          @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
           host! @host
         end
 
-        test "PATCH update syncs region to staff preference" do
-          patch sign_org_preference_region_path,
-                params: { preference_region: { option_id: "us" } },
-                headers: as_staff_headers(@staff, host: @host)
+        test "sign region edit redirects to acme preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            get edit_sign_org_preference_region_url(ri: "jp", lx: "en")
+          end
 
-          assert_redirected_to edit_sign_org_preference_region_url(ri: "us")
+          assert_redirected_to edit_acme_org_preference_region_url(ri: "jp", lx: "en", host: @acme_host)
+        end
 
-          @staff.staff_preference.reload
+        test "sign region mutation redirects without local preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            patch sign_org_preference_region_url(ri: "jp"), params: { preference_region: { option_id: "test" } }
+          end
 
-          assert_equal "us", @staff.staff_preference.region
+          assert_redirected_to acme_org_preference_region_url(ri: "jp", host: @acme_host)
         end
       end
     end

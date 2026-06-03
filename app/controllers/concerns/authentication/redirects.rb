@@ -155,12 +155,13 @@ module Authentication
       attrs[Auth::IoKeys::Params::PT] = safe_pt if safe_pt.present?
       _ = id
 
-      if respond_to?(:sign_app_welcome_entry_path, true)
-        sign_app_welcome_entry_path(**attrs)
-      elsif respond_to?(:sign_org_welcome_entry_path, true)
-        sign_org_welcome_entry_path(**attrs)
-      elsif respond_to?(:sign_com_welcome_entry_path, true)
-        sign_com_welcome_entry_path(**attrs)
+      case sign_in_surface
+      when :app
+        acme_app_welcome_entry_url(**attrs, host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      when :com
+        acme_com_welcome_entry_url(**attrs, host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+      when :org
+        acme_org_welcome_entry_url(**attrs, host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
       else
         path = "/welcome"
         query = attrs.compact.to_query
@@ -171,12 +172,13 @@ module Authentication
     def sign_in_dashboard_path(pt: nil)
       _ = pt
 
-      if respond_to?(:sign_app_dashboard_path, true)
-        sign_app_dashboard_path(ri: params[:ri])
-      elsif respond_to?(:sign_org_dashboard_path, true)
-        sign_org_dashboard_path(ri: params[:ri])
-      elsif respond_to?(:sign_com_dashboard_path, true)
-        sign_com_dashboard_path(ri: params[:ri])
+      case sign_in_surface
+      when :app
+        acme_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      when :com
+        acme_com_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+      when :org
+        acme_org_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
       else
         "/dashboard"
       end
@@ -187,6 +189,14 @@ module Authentication
     end
 
     alias after_dashboard_path after_welcome_path
+
+    def sign_in_surface
+      case self.class.name
+      when /\A(Sign|Acme)::App::/ then :app
+      when /\A(Sign|Acme)::Com::/ then :com
+      when /\A(Sign|Acme)::Org::/ then :org
+      end
+    end
 
     def path_from_signed_pt(pt_param)
       return nil if pt_param.blank?

@@ -118,7 +118,11 @@ class Sign::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       end
     end
 
-    assert_redirected_to sign_org_settings_telephones_url(ri: "jp")
+    assert_redirected_to acme_org_settings_telephones_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+    )
+    assert_equal OperatorTelephoneStatus::VERIFIED, tel.reload.staff_telephone_status_id
   end
 
   test "update rejects when turnstile fails" do
@@ -140,6 +144,22 @@ class Sign::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       assert_includes response.body, I18n.t("turnstile_error")
       assert_equal OperatorTelephoneStatus::UNVERIFIED, tel.reload.staff_telephone_status_id
     end
+  end
+
+  test "otp verification concern does not directly mark staff telephone verified" do
+    controller = Sign::Org::Settings::Telephones::RegistrationsController.new
+    telephone = OperatorTelephone.create!(
+      staff: @staff,
+      raw_number: "+18888888885",
+      staff_telephone_status_id: OperatorTelephoneStatus::UNVERIFIED,
+      otp_private_key: ROTP::Base32.random_base32,
+      otp_expires_at: 10.minutes.from_now,
+    )
+    otp_data = telephone.get_otp
+    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+    assert_equal :success, controller.send(:complete_staff_telephone_verification, telephone.id, pass_code)
+    assert_equal OperatorTelephoneStatus::UNVERIFIED, telephone.reload.staff_telephone_status_id
   end
 
   private

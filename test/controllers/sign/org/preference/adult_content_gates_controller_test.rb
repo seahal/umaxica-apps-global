@@ -6,47 +6,28 @@ require "test_helper"
 module Sign
   module Org
     module Preference
-      module Display
-        class AdultContentGatesControllerTest < ActionDispatch::IntegrationTest
-          fixtures :operators, :operator_preferences
+      class AdultContentGatesControllerTest < ActionDispatch::IntegrationTest
+        setup do
+          @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+          @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+          host! @host
+        end
 
-          setup do
-            @host = ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org")
-            @staff = operators(:one)
-            host! @host
+        test "sign adult_content_gate edit redirects to acme preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            get edit_sign_org_preference_adult_content_gate_url(ri: "jp", lx: "en")
           end
 
-          test "preferences index links to r18 display stopper settings" do
-            get sign_org_preference_url(ri: "jp", lx: "en"),
-                headers: as_staff_headers(@staff, host: @host)
+          assert_redirected_to edit_acme_org_preference_adult_content_gate_url(ri: "jp", lx: "en", host: @acme_host)
+        end
 
-            assert_response :success
-            assert_select "a[href*=?]", edit_sign_org_preference_adult_content_gate_path
+        test "sign adult_content_gate mutation redirects without local preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            patch sign_org_preference_adult_content_gate_url(ri: "jp"),
+                  params: { preference_adult_content_gate: { option_id: "test" } }
           end
 
-          test "edit renders unset approved and deny choices" do
-            get edit_sign_org_preference_adult_content_gate_url(ri: "jp", lx: "en"),
-                headers: as_staff_headers(@staff, host: @host)
-
-            assert_response :success
-            assert_select "select[name='preference_adult_content_gate[option_id]'] option[value='0']"
-            assert_select "select[name='preference_adult_content_gate[option_id]'] option[value='1']"
-            assert_select "select[name='preference_adult_content_gate[option_id]'] option[value='2']"
-            assert_select "select[name='preference_adult_content_gate[option_id]'] option[value='2']", count: 1
-          end
-
-          test "PATCH update stores approved preference" do
-            patch sign_org_preference_adult_content_gate_url(ri: "jp", lx: "en"),
-                  params: { preference_adult_content_gate: { option_id: "1" } },
-                  headers: as_staff_headers(@staff, host: @host)
-
-            assert_response :redirect
-
-            preference = @staff.reload.staff_preference
-
-            assert_equal OperatorPreferenceAdultContentGateOption::APPROVED,
-                         preference.operator_preference_adult_content_gate.option_id
-          end
+          assert_redirected_to acme_org_preference_adult_content_gate_url(ri: "jp", host: @acme_host)
         end
       end
     end

@@ -81,10 +81,9 @@ module Sign
         return :invalid_code
       end
 
+      # sign/id verifies the OTP; acme/www performs the final account commit.
       clear_otp(@user_telephone)
-      @user_telephone.user_telephone_status_id = ClientTelephoneStatus::VERIFIED
-
-      yield(@user_telephone) if block_given?
+      @user_telephone.save! if @user_telephone.changed?
 
       :success
     end

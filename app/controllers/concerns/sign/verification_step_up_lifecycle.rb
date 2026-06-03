@@ -22,32 +22,70 @@ module Sign
 
       now = Time.current
       ActiveRecord::Base.connected_to(role: :writing) do
-        verification, raw_token = verification_model.issue_for_token!(token: actor_token)
-        actor_token.update!(step_up_token_attributes(now: now, scope: scope, method: method))
+        transaction = current_step_up_ceremony_transaction!(scope: scope, now: now)
+        result_token = issue_step_up_result!(transaction:, scope:, method:, rs:, now:)
+
+        if acme_step_up_completion_required?(transaction)
+          clear_step_up_state!
+          rs.destroy!
+          clear_acme_step_up_completion_state! if respond_to?(:clear_acme_step_up_completion_state!, true)
+          return render_acme_step_up_completion!(result_token: result_token, ri: params[:ri])
+        end
+
+        complete_step_up_verification!(transaction:, result_token:, scope:, now:)
+        clear_step_up_state!
+        rs.destroy!
+      end
+
+      reset_session
+
+      flash[:notice] = I18n.t(verification_success_notice_key)
+      safe_redirect_to(return_to, fallback: verification_success_fallback_path)
+    end
+
+    def issue_step_up_result!(transaction:, scope:, method:, rs:, now:)
+      Identity::StepUpCeremony::ResultIssuer.issue!(
+        surface: step_up_ceremony_surface,
+        actor_ref: step_up_ceremony_actor_ref,
+        session_ref: actor_token.public_id,
+        transaction_id: transaction.transaction_id,
+        grant_jti: transaction.grant_jti,
+        scope: scope,
+        aal: "aal2",
+        method: method,
+        challenge_id: rs.id,
+        expires_at: [transaction.expires_at, rs.discarded_at].compact.min,
+        attempt_count: rs.attempt_count,
+        now: now,
+      )
+    end
+
+    def complete_step_up_verification!(transaction:, result_token:, scope:, now:)
+      verification, raw_token = verification_model.issue_for_token!(token: actor_token)
+      consumption = Identity::StepUpCeremony::ResultConsumer.new(
+        transaction: transaction,
+        now: now,
+      ).call(result_token)
+      Identity::StepUpCeremony::FreshnessCommitter.call!(
+        result_token: result_token,
+        token: actor_token,
+        expected_scope: consumption.transaction.required_scope,
+        expected_aal: consumption.transaction.required_aal,
+        expected_method: consumption.transaction.method,
+        audience: step_up_audience,
+        now: now,
+      )
+      if defined?(Actor)
         Actor.install_context!(
           step_up: StepUp::Resolver.call(
             token: actor_token,
             requirement: step_up_requirement(scope: scope),
             now: now,
           ),
-        ) if defined?(Actor)
-        set_verification_cookie!(raw_token, expires_at: verification.discarded_at)
-        create_audit_event!(verification_success_event_id, subject: current_verification_actor)
-
-        clear_step_up_state!
-        rs.destroy!
+        )
       end
-
-      # Session-fixation defense: rotate the Rails session id at the AAL1->AAL2
-      # privilege elevation, mirroring Authentication::Base#log_in. Safe here
-      # because the WebAuthn challenge was already consumed by verify_passkey!,
-      # return_to/scope are local vars, and the step-up session is DB-backed
-      # (rs.destroy!). Must precede the flash assignment since flash is stored
-      # in the session and reset_session would otherwise discard it.
-      reset_session
-
-      flash[:notice] = I18n.t(verification_success_notice_key)
-      safe_redirect_to(return_to, fallback: verification_success_fallback_path)
+      set_verification_cookie!(raw_token, expires_at: verification.discarded_at)
+      create_audit_event!(verification_success_event_id, subject: current_verification_actor)
     end
 
     def valid_step_up_session?(_session_data)
@@ -75,25 +113,6 @@ module Sign
       StepUp::CooldownStamp.call(current_verification_actor, method) if current_verification_actor.present?
     end
 
-    def step_up_token_attributes(now:, scope:, method:)
-      attributes = {
-        last_step_up_at: now,
-        last_step_up_scope: scope,
-      }
-      attributes[:last_step_up_aal] = "aal2" if token_has_attribute?(:last_step_up_aal)
-      attributes[:last_step_up_method] = method.to_s if method.present? && token_has_attribute?(:last_step_up_method)
-      attributes[:last_step_up_purpose] = "step_up" if token_has_attribute?(:last_step_up_purpose)
-      attributes[:last_step_up_audience] = step_up_audience if token_has_attribute?(:last_step_up_audience)
-      if token_has_attribute?(:last_step_up_session_public_id)
-        attributes[:last_step_up_session_public_id] = actor_token.public_id
-      end
-      attributes
-    end
-
-    def token_has_attribute?(attribute)
-      actor_token.respond_to?(:has_attribute?) && actor_token.has_attribute?(attribute.to_s)
-    end
-
     def verification_model
       raise NotImplementedError, "#{self.class} must define #verification_model"
     end
@@ -108,6 +127,83 @@ module Sign
 
     def verification_success_fallback_path
       raise NotImplementedError, "#{self.class} must define #verification_success_fallback_path"
+    end
+
+    def step_up_ceremony_surface
+      case actor_token.class.name
+      when "ClientToken" then "app"
+      when "VisitorToken" then "com"
+      when "OperatorToken" then "org"
+      else
+        raise NotImplementedError, "unsupported step-up token class: #{actor_token.class.name}"
+      end
+    end
+
+    def step_up_ceremony_actor_ref
+      current_verification_actor.public_id
+    end
+
+    def current_step_up_ceremony_transaction!(scope:, now: Time.current)
+      transaction =
+        Identity::StepUpCeremony::ReplayStore
+          .for(step_up_ceremony_surface)
+          .latest_pending_for(
+            actor_ref: step_up_ceremony_actor_ref,
+            session_ref: actor_token.public_id,
+            required_scope: scope,
+            now: now,
+          )
+      return transaction if transaction.present?
+
+      # Compatibility for direct sign verification entries until every caller
+      # starts through an acme intent route.
+      Identity::StepUpCeremony::GrantIssuer.issue!(
+        surface: step_up_ceremony_surface,
+        actor_ref: step_up_ceremony_actor_ref,
+        session_ref: actor_token.public_id,
+        required_scope: scope,
+        required_aal: verification_required_aal,
+        allowed_methods: available_step_up_methods,
+        return_to: current_step_up_session&.return_to,
+        expires_at: current_step_up_session&.discarded_at,
+        now: now,
+      ).transaction
+    end
+
+    def acme_step_up_completion_required?(transaction)
+      state = session[:acme_step_up_completion]
+      state.present? &&
+        state["transaction_id"].to_s == transaction.transaction_id.to_s &&
+        state["surface"].to_s == step_up_ceremony_surface
+    end
+
+    def render_acme_step_up_completion!(result_token:, ri:)
+      render(
+        "sign/shared/step_up_completion",
+        locals: {
+          completion_url: acme_step_up_completion_url_for(step_up_ceremony_surface),
+          result_token: result_token,
+          ri: ri,
+          csrf_token: acme_step_up_completion_csrf_token,
+        },
+      )
+    end
+
+    def acme_step_up_completion_csrf_token
+      session[:acme_step_up_completion].to_h["csrf_token"].presence
+    end
+
+    def acme_step_up_completion_url_for(surface)
+      case surface.to_s
+      when "app"
+        completion_acme_app_verification_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      when "com"
+        completion_acme_com_verification_url(host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+      when "org"
+        completion_acme_org_verification_url(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+      else
+        raise NotImplementedError, "unsupported step-up surface: #{surface}"
+      end
     end
   end
 end

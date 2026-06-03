@@ -107,7 +107,10 @@ module Authentication
 
           cycle.reload.update!(changes)
         end
-        redirect_to(issue_welcome_gate_and_path(pt: cycle.return_to, sequence_id: cycle.public_id))
+        redirect_to(
+          issue_welcome_gate_and_path(pt: cycle.return_to, sequence_id: cycle.public_id),
+          allow_other_host: after_login_allows_other_host?,
+        )
         return
       end
 
@@ -205,7 +208,10 @@ module Authentication
       result = issue_active_session_for_selector!(cycle.reload)
       return reject_invalid_sign_in_sequence! unless result[:status] == :success
 
-      redirect_to(issue_welcome_gate_and_path(pt: cycle.reload.return_to, sequence_id: cycle.public_id))
+      redirect_to(
+        issue_welcome_gate_and_path(pt: cycle.reload.return_to, sequence_id: cycle.public_id),
+        allow_other_host: after_login_allows_other_host?,
+      )
     rescue SignIn::SelectorParticipant::Error
       reject_invalid_sign_in_sequence!
     end

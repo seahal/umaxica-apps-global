@@ -107,7 +107,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_email_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
-    assert_redirected_to sign_com_dashboard_url(ri: "jp")
+    assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
   end
 
   test "create rejects when visitor is already logged in" do

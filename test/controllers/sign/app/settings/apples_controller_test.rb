@@ -48,7 +48,24 @@ module Sign::App::Settings
 
       assert_response :success
       assert_select "form[action=?]", sign_app_social_authentication_path(provider: "apple"), count: 0
-      assert_select "form[action*=?]", "/social/auth/apple/continue", count: 1
+      assert_select "form[action*=?]", "/settings/connections/social/apple/link", count: 1
+    end
+
+    test "show posts apple unlink to acme authority" do
+      ClientAppleIdentity.create!(
+        user: @user,
+        uid: "active-apple-config",
+        provider: "apple",
+        token: "token",
+        expires_at: 1.hour.from_now.to_i,
+        user_apple_identity_status: client_apple_identity_statuses(:active),
+      )
+
+      get sign_app_settings_apple_url(ri: "jp"), headers: @headers
+
+      assert_response :success
+      assert_select "form[action=?]", sign_app_social_authentication_path(provider: "apple"), count: 0
+      assert_select "form[action*=?]", "/settings/connections/social/apple", count: 1
     end
   end
 end

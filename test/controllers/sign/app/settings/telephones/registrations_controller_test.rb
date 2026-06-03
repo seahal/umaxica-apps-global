@@ -109,6 +109,18 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
+  test "new rejects invalid telephone ceremony grant without starting sign authority" do
+    get new_sign_app_settings_telephones_registration_url(
+      ri: "jp",
+      telephone_ceremony_grant: "invalid",
+    ), headers: request_headers
+
+    assert_redirected_to acme_app_settings_telephones_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
+  end
+
   test "create rejects when turnstile fails" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
@@ -205,6 +217,7 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
+    step_up_before = @token.reload.last_step_up_at
     set_registration_session(tel.id) do
       with_complete_telephone_verification(:success, tel) do
         assert_difference(
@@ -224,15 +237,19 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
                 headers: request_headers
         end
 
-        assert_redirected_to sign_app_settings_telephones_url(ri: "jp")
+        assert_redirected_to acme_app_settings_telephones_url(
+          ri: "jp",
+          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        )
         assert_equal I18n.t("sign.app.registration.telephone.update.success"), flash[:notice]
-        assert_not_nil @token.reload.last_step_up_at
+        assert_equal step_up_before, @token.reload.last_step_up_at
         assert_equal "settings_telephone", @token.last_step_up_scope
+        assert_equal ClientTelephoneStatus::VERIFIED, tel.reload.user_telephone_status_id
       end
     end
   end
 
-  test "telephone registration satisfies telephone settings step-up" do
+  test "telephone registration does not commit step-up freshness on sign" do
     tel = ClientTelephone.create!(
       user: @user,
       raw_number: "+18888888888",
@@ -240,6 +257,7 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       otp_private_key: "secret_credential",
       otp_expires_at: 10.minutes.from_now,
     )
+    step_up_before = @token.reload.last_step_up_at
 
     set_registration_session(tel.id) do
       with_complete_telephone_verification(:success, tel) do
@@ -249,9 +267,28 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       end
     end
 
-    assert_redirected_to sign_app_settings_telephones_url(ri: "jp")
+    assert_redirected_to acme_app_settings_telephones_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
     assert_equal "settings_telephone", @token.reload.last_step_up_scope
-    assert_not_nil @token.reload.last_step_up_at
+    assert_equal step_up_before, @token.reload.last_step_up_at
+  end
+
+  test "otp verification concern does not directly mark telephone verified" do
+    controller = Sign::App::Settings::Telephones::RegistrationsController.new
+    telephone = ClientTelephone.create!(
+      user: @user,
+      raw_number: "+18888888887",
+      user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
+      otp_private_key: ROTP::Base32.random_base32,
+      otp_expires_at: 10.minutes.from_now,
+    )
+    otp_data = telephone.get_otp
+    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+    assert_equal :success, controller.send(:complete_telephone_verification, telephone.id, pass_code)
+    assert_equal ClientTelephoneStatus::UNVERIFIED, telephone.reload.user_telephone_status_id
   end
 
   test "update handles session_expired from verification" do

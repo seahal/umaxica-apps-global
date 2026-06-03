@@ -142,7 +142,7 @@ module Sign
       true
     end
 
-    def complete_email_verification!(id, submitted_code, token = nil)
+    def complete_email_verification!(id, submitted_code, token = nil, commit_verified_status: true)
       @user_email = ClientEmail.find_by(public_id: id)
 
       # Session validation should be done in controller
@@ -172,9 +172,10 @@ module Sign
       begin
         @user_email.transaction do
           clear_otp(@user_email)
-          @user_email.user_email_status_id = verified_email_status_id
+          @user_email.user_email_status_id = verified_email_status_id if commit_verified_status
 
           yield(@user_email) if block_given?
+          @user_email.save! if @user_email.changed?
         end
       rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
         # Transaction rolled back

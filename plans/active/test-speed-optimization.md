@@ -6,8 +6,8 @@ The test suite already has strong fundamentals:
 
 - Parallel workers with `CpuWorkers.detect` and work-stealing
 - PostgreSQL 18 unlogged tables on tmpfs (zero disk I/O)
-- 16 sharded test databases (guest, principal, setting, search, token, symbol, mark, notification,
-  cache, queue, storage, occurrence, chronicle, operator, avatar, redirector)
+- 15 sharded test databases (guest, principal, setting, search, token, symbol, mark, notification,
+  cache, queue, storage, occurrence, chronicle, operator, avatar)
 - `strict_loading_by_default = :raise` to catch N+1 immediately
 - `test-prof` 1.6.1 bundled (`Gemfile:111`)
 - 774 test files, 194 fixtures (~882 KB)

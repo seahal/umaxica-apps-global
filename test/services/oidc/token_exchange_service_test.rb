@@ -688,6 +688,13 @@ class Oidc::TokenExchangeServiceTest < ActiveSupport::TestCase
     assert_equal [@client.aud], Array(access_token.fetch("aud"))
     assert_equal %w(openid profile), access_token.fetch("scp")
     assert_predicate access_token.fetch("auth_time"), :present?
+
+    acme_kids = Jit::Security::Jwt::Registry.jwks_for("surface:ACME_APP").fetch(:keys).map { |key| key.fetch("kid") }
+    access_header = Jit::Security::Jwt::Keyring.parse_header(result.token_response.fetch(:access_token))
+    id_header = Jit::Security::Jwt::Keyring.parse_header(result.token_response.fetch(:id_token))
+
+    assert_includes acme_kids, access_header.fetch("kid")
+    assert_includes acme_kids, id_header.fetch("kid")
   end
 
   private

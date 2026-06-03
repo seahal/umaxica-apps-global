@@ -200,10 +200,11 @@ module Sign::App::Up
 
       assert_response :created
 
-      get sign_app_settings_url(ri: "jp")
+      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      get acme_app_settings_url(ri: "jp", host: acme_host)
 
-      assert_equal "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}#{new_sign_app_sign_in_path(ri: "jp")}",
-                   jump_rt_url_from_location(response.location)
+      assert_response :redirect
+      assert_not_equal acme_app_settings_url(ri: "jp", host: acme_host), response.location
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 

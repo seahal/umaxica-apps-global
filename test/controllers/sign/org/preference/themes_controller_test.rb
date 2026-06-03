@@ -7,31 +7,26 @@ module Sign
   module Org
     module Preference
       class ThemesControllerTest < ActionDispatch::IntegrationTest
-        fixtures :operators, :operator_preferences
-
         setup do
           @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-          @staff = operators(:one)
+          @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
           host! @host
         end
 
-        test "PATCH update returns updated preference payload and syncs auth preference" do
-          patch sign_org_preference_theme_path,
-                params: { preference_theme: { option_id: "dr" } },
-                headers: as_staff_headers(@staff, host: @host),
-                as: :json
+        test "sign theme edit redirects to acme preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            get edit_sign_org_preference_theme_url(ri: "jp", lx: "en")
+          end
 
-          assert_response :ok
-          assert_equal "dr", response.parsed_body.dig("preference", "ct")
-          assert_equal "ja", response.parsed_body.dig("preference", "lx")
-          assert_includes(
-            response.headers["Set-Cookie"].to_s,
-            "#{::Preference::CookieName.access(surface: :org)}=",
-          )
+          assert_redirected_to edit_acme_org_preference_theme_url(ri: "jp", lx: "en", host: @acme_host)
+        end
 
-          @staff.staff_preference.reload
+        test "sign theme mutation redirects without local preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            patch sign_org_preference_theme_url(ri: "jp"), params: { preference_theme: { option_id: "test" } }
+          end
 
-          assert_equal "dr", @staff.staff_preference.theme
+          assert_redirected_to acme_org_preference_theme_url(ri: "jp", host: @acme_host)
         end
       end
     end

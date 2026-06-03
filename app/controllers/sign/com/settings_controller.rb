@@ -3,16 +3,8 @@
 
 module Sign
   module Com
-    class SettingsController < Sign::Com::ApplicationController
-      AUTHENTICATION_MODE = :private
-
-      before_action :authenticate_visitor! # FIXME: I don't think this is needed
-
-      # Object-level authorization (ActionPolicy): the settings dashboard is account-self; gate
-      # owner-self via VisitorPolicy#show?.
-      def show
-        authorize!(current_visitor, to: :show?)
-      end
+    class SettingsController < Sign::RedirectOnlyController
+      include ::Sign::SettingsAuthorityRedirect
     end
   end
 end

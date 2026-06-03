@@ -6,27 +6,27 @@ require "test_helper"
 module Sign
   module Org
     module Preference
-      module Region
-        class TimezonesControllerTest < ActionDispatch::IntegrationTest
-          fixtures :operators, :operator_preferences
+      class TimezonesControllerTest < ActionDispatch::IntegrationTest
+        setup do
+          @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+          @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+          host! @host
+        end
 
-          setup do
-            @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-            @staff = operators(:one)
-            host! @host
+        test "sign timezone edit redirects to acme preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            get edit_sign_org_preference_timezone_url(ri: "jp", lx: "en")
           end
 
-          test "PATCH update syncs timezone to staff preference" do
-            patch sign_org_preference_timezone_path,
-                  params: { preference_timezone: { option_id: OrgPreferenceTimezoneOption::ETC_UTC } },
-                  headers: as_staff_headers(@staff, host: @host)
+          assert_redirected_to edit_acme_org_preference_timezone_url(ri: "jp", lx: "en", host: @acme_host)
+        end
 
-            assert_redirected_to edit_sign_org_preference_timezone_url(ri: "jp")
-
-            @staff.staff_preference.reload
-
-            assert_equal "Etc/UTC", @staff.staff_preference.timezone
+        test "sign timezone mutation redirects without local preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            patch sign_org_preference_timezone_url(ri: "jp"), params: { preference_timezone: { option_id: "test" } }
           end
+
+          assert_redirected_to acme_org_preference_timezone_url(ri: "jp", host: @acme_host)
         end
       end
     end

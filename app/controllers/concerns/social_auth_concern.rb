@@ -26,6 +26,7 @@ module SocialAuthConcern
   SOCIAL_PT_SESSION_KEY = :social_auth_pt
   SOCIAL_ENTRY_SESSION_KEY = :social_auth_entry
   SOCIAL_RI_SESSION_KEY = :social_auth_ri
+  SOCIAL_CEREMONY_GRANT_SESSION_KEY = :social_ceremony_grant
   STATE_TTL = 5.minutes
   STEP_UP_TTL = 10.minutes
   SOCIAL_LINK_SCOPE = "social_link"
@@ -151,6 +152,7 @@ module SocialAuthConcern
     session.delete(SOCIAL_PT_SESSION_KEY)
     session.delete(SOCIAL_ENTRY_SESSION_KEY)
     session.delete(SOCIAL_RI_SESSION_KEY)
+    session.delete(SOCIAL_CEREMONY_GRANT_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_STARTED_AT_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
@@ -228,17 +230,98 @@ module SocialAuthConcern
     entry = current_social_auth_entry
     authorize_social_auth_link!(social_auth_user) if intent == "link"
 
-    result = SocialAuthService.handle_callback(
-      auth_hash: auth_hash,
-      current_client: social_auth_user,
-      intent: intent,
-      sign_up_entry: intent == "login",
-    )
+    result =
+      if social_ceremony_grant_token.present? && social_ceremony_grant_operation == "link"
+        process_social_ceremony_link_callback(auth_hash)
+      elsif social_ceremony_grant_token.present? && social_ceremony_grant_operation == "login" &&
+          acme_social_login_completion_supported?(auth_hash)
+        process_social_ceremony_login_callback(auth_hash)
+      else
+        # Compatibility entry only. acme/www owns grant-backed social link authority and
+        # established-account social login; unknown signup remains legacy for now.
+        SocialAuthService.handle_callback(
+          auth_hash: auth_hash,
+          current_client: social_auth_user,
+          intent: intent,
+          sign_up_entry: intent == "login",
+        )
+      end
     result[:pt] = pt if pt.present?
     result[:entry] = entry if entry.present?
 
     clear_social_auth_intent!
     result
+  end
+
+  def process_social_ceremony_link_callback(auth_hash)
+    result_token = Identity::SocialCeremony::ResultIssuer.issue!(
+      grant_token: social_ceremony_grant_token,
+      auth_hash: auth_hash,
+      surface: "app",
+      actor_ref: social_auth_user.public_id,
+      session_ref: current_session_public_id,
+      operation: "link",
+      challenge_id: extract_callback_state,
+    )
+    commit = Identity::SocialCeremony::FinalCommitter.call!(
+      result_token: result_token,
+      auth_hash: auth_hash,
+      actor: social_auth_user,
+      session_ref: current_session_public_id,
+      surface: "app",
+      ip_address: request.remote_ip,
+      user_agent: request.user_agent,
+    )
+    {
+      user: social_auth_user,
+      identity: commit.identity,
+      jwt_payload: { user_id: social_auth_user.id },
+      step_up_authenticated: false,
+      existing_account: nil,
+    }
+  end
+
+  def process_social_ceremony_login_callback(auth_hash)
+    grant = social_ceremony_grant
+    result_token = Identity::SocialCeremony::ResultIssuer.issue!(
+      grant_token: social_ceremony_grant_token,
+      auth_hash: auth_hash,
+      surface: "app",
+      actor_ref: grant["actor_ref"],
+      session_ref: grant["session_ref"],
+      operation: "login",
+      challenge_id: extract_callback_state,
+    )
+    clear_social_auth_intent!
+    render(
+      "sign/shared/social_completion",
+      locals: {
+        completion_url: completion_acme_app_social_authentication_url(
+          provider: auth_hash["provider"] || auth_hash[:provider],
+          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        ),
+        result_token: result_token,
+        ri: params[:ri],
+      },
+      layout: false,
+    )
+    { user: nil, identity: nil, jwt_payload: {}, existing_account: nil, social_completion_rendered: true }
+  end
+
+  def acme_social_login_completion_supported?(auth_hash)
+    identity = social_auth_identity_for_callback(auth_hash)
+
+    identity&.user&.birthdate.present?
+  end
+
+  def social_auth_identity_for_callback(auth_hash)
+    provider = auth_hash["provider"] || auth_hash[:provider]
+    uid = SocialAuth::UidExtractor.call(auth_hash: auth_hash)
+    return nil if provider.blank? || uid.blank?
+
+    SocialIdentifiable.model_for_provider(provider).find_by(uid: uid, provider: provider)
+  rescue SocialAuth::BaseError, ArgumentError
+    nil
   end
 
   def omniauth_auth_hash
@@ -276,6 +359,44 @@ module SocialAuthConcern
     return if social_auth_link_allowed?(resource)
 
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.not_logged_in")
+  end
+
+  def store_social_ceremony_grant!(token)
+    grant = Identity::SocialCeremony::Grant.decode(
+      token.to_s,
+      issuer_id: Identity::SocialCeremony::Contract.acme_issuer_id("app"),
+    )
+    unless %w(link login).include?(grant["operation"].to_s)
+      raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
+    end
+
+    if grant["operation"].to_s == "link"
+      raise SocialAuth::UnauthorizedError.new("errors.social_auth.user_changed") unless grant["actor_ref"].to_s ==
+        current_resource&.public_id.to_s
+      raise SocialAuth::UnauthorizedError.new("errors.social_auth.user_changed") unless grant["session_ref"].to_s ==
+        current_session_public_id.to_s
+    end
+
+    session[SOCIAL_CEREMONY_GRANT_SESSION_KEY] = token.to_s
+  rescue Identity::SocialCeremony::Error
+    raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
+  end
+
+  def social_ceremony_grant_token
+    session[SOCIAL_CEREMONY_GRANT_SESSION_KEY].presence
+  end
+
+  def social_ceremony_grant
+    @social_ceremony_grant ||= Identity::SocialCeremony::Grant.decode(
+      social_ceremony_grant_token.to_s,
+      issuer_id: Identity::SocialCeremony::Contract.acme_issuer_id("app"),
+    )
+  end
+
+  def social_ceremony_grant_operation
+    social_ceremony_grant["operation"].to_s
+  rescue Identity::SocialCeremony::Error
+    nil
   end
 
   def social_auth_authorization_resource

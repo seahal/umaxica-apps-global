@@ -1,0 +1,12 @@
+<% content_for :page_title, t("sign.app.settings.passkeys.show.title") %>
+<%= link_to t("sign.app.settings.show.back"), acme_app_settings_passkeys_path(ri: params[:ri]) %>
+
+<h3><%= @passkey.description %></h3>
+<dl>
+  <dt><%= t("activerecord.attributes.user_passkey.created_at") %></dt>
+  <dd><%= l @passkey.created_at, format: :long %></dd>
+  <dt><%= t("activerecord.attributes.user_passkey.last_used_at") %></dt>
+  <dd><%= @passkey.last_used_at ? l(@passkey.last_used_at, format: :long) : t("defaults.never") %></dd>
+</dl>
+
+<%= link_to t("actions.edit"), edit_acme_app_settings_passkey_path(@passkey, ri: params[:ri]) %>

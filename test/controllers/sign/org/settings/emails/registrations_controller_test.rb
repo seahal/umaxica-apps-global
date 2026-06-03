@@ -13,7 +13,7 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_email")
+    mark_token_step_up_satisfied_for_test(@token, scope: "settings_email")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -93,7 +93,10 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           params: { staff_email: { pass_code: code } },
           headers: request_headers
 
-    assert_redirected_to sign_org_settings_emails_url(ri: "jp")
+    assert_redirected_to acme_org_settings_emails_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+    )
     assert_equal OperatorEmailStatus::VERIFIED, staff_email.reload.staff_email_status_id
   end
 

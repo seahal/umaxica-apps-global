@@ -9,6 +9,7 @@ module Sign
           include ::CloudflareTurnstile
 
           include ::Common::Otp
+          include Sign::EmailCeremonyDelegation
 
           include ::Verification::Operator
 
@@ -23,6 +24,17 @@ module Sign
 
           def new
             @staff_email = OperatorEmail.new
+            reset_registration_session!
+            return if accept_email_ceremony_grant!(surface: "org")
+
+            redirect_to(
+              acme_org_settings_emails_url(
+                ri: params[:ri],
+                host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+              ),
+              notice: t("sign.org.registration.email.edit.session_expired"),
+              allow_other_host: true,
+            )
           end
 
           def edit
@@ -65,6 +77,12 @@ module Sign
             ).create.deliver_later
 
             session[registration_session_key] = @staff_email.public_id
+            start_email_ceremony!(
+              surface: "org",
+              actor: current_operator,
+              session_ref: current_session_public_id,
+              candidate: @staff_email,
+            )
             redirect_to(
               edit_sign_org_settings_emails_registration_path,
               notice: t("sign.org.registration.email.create.verification_code_sent"),
@@ -73,55 +91,16 @@ module Sign
 
           def update
             @staff_email = current_registration_email
-            unless valid_registration_session?
-              reset_registration_session!
-              redirect_to(
-                new_sign_org_settings_emails_registration_path,
-                notice: t("sign.org.registration.email.edit.session_expired"),
-              )
-              return
-            end
-
-            unless cloudflare_turnstile_stealth_validation["success"]
-              @staff_email.errors.add(:base, t("turnstile_error"))
-              flash.now[:alert] = t("turnstile_error")
-              render(:edit, status: :unprocessable_content)
-              return
-            end
+            return fail_registration_session unless valid_registration_session?
+            return fail_turnstile unless cloudflare_turnstile_stealth_validation["success"]
 
             submitted_code = params.dig(:staff_email, :pass_code)
-            if submitted_code.blank?
-              @staff_email.errors.add(:pass_code, t("sign.org.registration.email.update.code_required"))
-              render :edit, status: :unprocessable_content
-              return
-            end
+            return fail_code_required if submitted_code.blank?
 
             result = verify_otp_code(@staff_email, submitted_code)
-            unless result[:success]
-              increment_otp_attempts!(@staff_email)
-              if @staff_email.locked?
-                @staff_email.destroy!
-                reset_registration_session!
-                redirect_to(
-                  new_sign_org_settings_emails_registration_path,
-                  alert: t("sign.org.registration.email.update.attempts_exceeded"),
-                )
-                return
-              end
+            return fail_otp_invalid unless result[:success]
 
-              @staff_email.errors.add(:pass_code, t("sign.org.registration.email.update.invalid_code"))
-              render :edit, status: :unprocessable_content
-              return
-            end
-
-            clear_otp(@staff_email)
-            @staff_email.update!(staff_email_status_id: OperatorEmailStatus::VERIFIED)
-            reset_registration_session!
-
-            redirect_to(
-              bootstrap_return_path(sign_org_settings_emails_path),
-              notice: t("sign.org.registration.email.update.success"),
-            )
+            complete_registration!
           end
 
           private
@@ -146,6 +125,63 @@ module Sign
 
           def reset_registration_session!
             session.delete(registration_session_key)
+            reset_email_ceremony_session!
+          end
+
+          def fail_registration_session
+            reset_registration_session!
+            redirect_to(
+              new_sign_org_settings_emails_registration_path,
+              notice: t("sign.org.registration.email.edit.session_expired"),
+            )
+          end
+
+          def fail_turnstile
+            @staff_email.errors.add(:base, t("turnstile_error"))
+            flash.now[:alert] = t("turnstile_error")
+            render(:edit, status: :unprocessable_content)
+          end
+
+          def fail_code_required
+            @staff_email.errors.add(:pass_code, t("sign.org.registration.email.update.code_required"))
+            render :edit, status: :unprocessable_content
+          end
+
+          def fail_otp_invalid
+            increment_otp_attempts!(@staff_email)
+            if @staff_email.locked?
+              @staff_email.destroy!
+              reset_registration_session!
+              redirect_to(
+                new_sign_org_settings_emails_registration_path,
+                alert: t("sign.org.registration.email.update.attempts_exceeded"),
+              )
+            else
+              @staff_email.errors.add(:pass_code, t("sign.org.registration.email.update.invalid_code"))
+              render :edit, status: :unprocessable_content
+            end
+          end
+
+          def complete_registration!
+            clear_otp(@staff_email)
+            @staff_email.save! if @staff_email.changed?
+            finish_email_ceremony!(
+              surface: "org",
+              actor: current_operator,
+              session_ref: current_session_public_id,
+              candidate: @staff_email,
+            )
+            reset_registration_session!
+            redirect_to(
+              bootstrap_return_path(
+                acme_org_settings_emails_url(
+                  ri: params[:ri],
+                  host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+                ),
+              ),
+              notice: t("sign.org.registration.email.update.success"),
+              allow_other_host: true,
+            )
           end
 
           def verification_required_action?

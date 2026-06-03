@@ -1,0 +1,89 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
+  fixtures :clients, :client_preferences, :client_token_kinds
+
+  SURFACES = {
+    app: {
+      host_env: "ACME_SERVICE_URL",
+      host_default: "www.app.localhost",
+      preference_count: "AppPreference.count",
+    },
+    com: {
+      host_env: "ACME_CORPORATE_URL",
+      host_default: "www.com.localhost",
+      preference_count: "ComPreference.count",
+    },
+    org: {
+      host_env: "ACME_STAFF_URL",
+      host_default: "www.org.localhost",
+      preference_count: "OrgPreference.count",
+    },
+  }.freeze
+
+  test "acme preference root renders for every surface" do
+    SURFACES.each do |surface, config|
+      host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
+      host! host
+
+      get public_send("acme_#{surface}_preference_url", ri: "jp", host: host)
+
+      assert_response :success
+    end
+  end
+
+  test "acme preference screen edit renders for every surface" do
+    SURFACES.each do |surface, config|
+      host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
+      host! host
+
+      get public_send("edit_acme_#{surface}_preference_language_url", ri: "jp", lx: "en", host: host)
+
+      assert_response :success
+    end
+  end
+
+  test "acme preference write updates app user preference" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host! host
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+
+    patch acme_app_preference_theme_url(host: host),
+          params: { preference_theme: { option_id: "dr" } },
+          headers: session_headers(host, token, user),
+          as: :json
+
+    assert_response :ok
+    assert_equal "dr", response.parsed_body.dig("preference", "ct")
+    assert_equal "dr", user.user_preference.reload.theme
+  end
+
+  test "acme preference reset remains destructive and resets app user preference" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host! host
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    user.user_preference.update!(theme: "dr")
+
+    delete acme_app_preference_reset_url(host: host),
+           params: { confirm_reset: "1" },
+           headers: session_headers(host, token, user)
+
+    assert_redirected_to acme_app_preference_url(host: host)
+    assert_equal "sy", user.user_preference.reload.theme
+  end
+
+  private
+
+  def session_headers(host, token, user)
+    {
+      "Host" => host,
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+  end
+end

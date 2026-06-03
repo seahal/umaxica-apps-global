@@ -1,0 +1,23 @@
+<% content_for :page_title, t("sign.app.settings.secret_credentials.edit.title", default: "Edit secret") %>
+<%= link_to t("actions.back"), acme_app_settings_path(ri: params[:ri]) %>
+
+<h3><%= t("sign.app.settings.secret_credentials.edit.title", default: "Edit secret") %></h3>
+
+<%= form_with(model: @secret_credential, url: acme_app_settings_secret_credential_path(@secret_credential, ri: params[:ri]), method: :patch) do |form| %>
+  <% if @secret_credential.errors.any? %>
+    <ul>
+      <% @secret_credential.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <%= form.label :name %>
+  <%= form.text_field :name %>
+  <%= form.check_box :enabled, {}, "1", "0" %>
+  <%= form.label :enabled %>
+  <%= render "shared/cloudflare_turnstile_stealth" %>
+
+  <%= link_to t("actions.cancel"), acme_app_settings_secret_credentials_path(ri: params[:ri]) %>
+  <%= form.submit t("actions.update") %>
+<% end %>

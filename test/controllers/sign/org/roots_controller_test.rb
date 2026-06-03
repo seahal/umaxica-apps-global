@@ -62,6 +62,6 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_org_root_url(ri: "jp"),
         headers: as_staff_headers(staff, host: ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"))
 
-    assert_redirected_to sign_org_dashboard_url(ri: "jp")
+    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
   end
 end

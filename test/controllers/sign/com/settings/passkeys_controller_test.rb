@@ -17,7 +17,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     @headers = as_visitor_headers(@visitor, host: @host)
     @token = VisitorToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
     satisfy_visitor_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_passkey")
+    mark_token_step_up_satisfied_for_test(@token, scope: "settings_passkey")
 
     host_value = @host
     @original_trusted_origins = Webauthn.method(:trusted_origins)
@@ -51,7 +51,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "should get index" do
     get sign_com_settings_passkeys_path(ri: "jp"), headers: @headers
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/passkeys?ri=jp")
   end
 
   test "options returns challenge and options" do
@@ -104,17 +104,31 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "update accepts visitor passkey form params" do
+    description = @passkey.description
+
     patch sign_com_settings_passkey_path(@passkey.public_id, ri: "jp"),
           params: { visitor_passkey: { description: "Updated Passkey" } },
           headers: @headers
 
-    assert_redirected_to sign_com_settings_passkey_path(@passkey.public_id, ri: "jp")
-    assert_equal "Updated Passkey", @passkey.reload.description
+    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
+    assert_equal description, @passkey.reload.description
   end
 
-  test "destroy json returns no content" do
-    delete sign_com_settings_passkey_path(@passkey.id, ri: "jp", format: :json), headers: @headers
+  test "destroy redirects to acme without local mutation" do
+    assert_no_difference("VisitorPasskey.count") do
+      delete sign_com_settings_passkey_path(@passkey.id, ri: "jp"), headers: @headers
+    end
 
-    assert_response :no_content
+    assert_redirected_to_acme("/settings/passkeys/#{@passkey.id}?ri=jp")
+  end
+
+  private
+
+  def assert_redirected_to_acme(path)
+    assert_response :see_other
+    uri = URI.parse(response.location)
+
+    assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), uri.host
+    assert_equal path, uri.request_uri
   end
 end

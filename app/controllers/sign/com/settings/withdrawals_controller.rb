@@ -4,76 +4,22 @@
 module Sign
   module Com
     module Settings
-      class WithdrawalsController < Sign::Com::ApplicationController
-        include ::Verification::Visitor
-        include Common::Redirect
-        include Sign::Settings::WithdrawalFlow
+      class WithdrawalsController < Sign::RedirectOnlyController
+        def new = redirect_to_acme_withdrawal!
 
-        AUTHENTICATION_MODE = :private
+        def edit = redirect_to_acme_withdrawal!
 
-        before_action :authenticate_visitor!
-        # Object-level authorization (ActionPolicy): the withdrawal flow acts on the visitor's own
-        # account, so only the owner may drive it. Uses VisitorWithdrawalPolicy (owner-self).
-        # Step-up guards remain below.
-        before_action :authorize_withdrawal!, only: %i(new edit create update destroy)
+        def create = redirect_to_acme_withdrawal!
 
-        def new
-          render_withdrawal_entry(current_visitor)
-        end
+        def update = redirect_to_acme_withdrawal!
 
-        def edit
-          render_withdrawal_status(current_visitor)
-        end
-
-        def create
-          recover_withdrawal!(current_visitor)
-        end
-
-        def update
-          update_withdrawal!(current_visitor)
-        end
-
-        def destroy
-          terminate_withdrawal!(current_visitor)
-        end
+        def destroy = redirect_to_acme_withdrawal!
 
         private
 
-        def authorize_withdrawal!
-          authorize!(current_visitor, to: :"#{action_name}?", with: VisitorWithdrawalPolicy)
-        end
-
-        def withdrawal_new_path(extra_params = {})
-          new_sign_com_settings_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
-        end
-
-        def withdrawal_edit_path
-          edit_sign_com_settings_withdrawal_path(ri: params[:ri])
-        end
-
-        def withdrawal_settings_path
-          sign_com_settings_path(ri: params[:ri])
-        end
-
-        def handle_deactivation_failure(actor)
-          Rails.logger.info(
-            Jit::LogEvent.format(
-              "visitor.withdrawal.suspension_failed",
-              visitor_id: actor.id,
-              errors: actor.errors.full_messages,
-              ip_address: request.remote_ip,
-            ),
-          )
-          @schedule_confirmed = true
-          render :new, status: :unprocessable_content
-        end
-
-        def verification_required_action?
-          true
-        end
-
-        def verification_scope
-          "withdrawal"
+        # sign/id is redirect-only here. acme/www owns withdrawal mutation.
+        def redirect_to_acme_withdrawal!
+          redirect_to_acme_authority!("/settings/withdrawal")
         end
       end
     end

@@ -9,6 +9,7 @@ module Sign
           include CloudflareTurnstile
 
           include Common::Otp
+          include Sign::TelephoneCeremonyDelegation
 
           include ::Verification::Visitor
 
@@ -25,6 +26,16 @@ module Sign
           def new
             @user_telephone = VisitorTelephone.new
             reset_registration_session!
+            return if accept_telephone_ceremony_grant!(surface: "com")
+
+            redirect_to(
+              acme_com_settings_telephones_url(
+                ri: params[:ri],
+                host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+              ),
+              notice: t("sign.app.registration.telephone.edit.session_expired"),
+              allow_other_host: true,
+            )
           end
 
           def edit
@@ -59,6 +70,12 @@ module Sign
             end
 
             session[registration_session_key] = @user_telephone.id
+            start_telephone_ceremony!(
+              surface: "com",
+              actor: current_visitor,
+              session_ref: current_session_public_id,
+              candidate: @user_telephone,
+            )
             redirect_to(
               edit_sign_com_settings_telephones_registration_path(ri: params[:ri]),
               notice: t("sign.app.registration.telephone.create.verification_code_sent"),
@@ -91,11 +108,7 @@ module Sign
               return
             end
 
-            status =
-              complete_visitor_telephone_verification(@user_telephone.id, submitted_code) do |visitor_telephone|
-                visitor_telephone.visitor = current_visitor
-                visitor_telephone.save!
-              end
+            status = complete_visitor_telephone_verification(@user_telephone.id, submitted_code)
 
             handle_registration_update_status(status)
           end
@@ -109,10 +122,20 @@ module Sign
           def handle_registration_update_status(status)
             case status
             when :success
+              finish_telephone_ceremony!(
+                surface: "com",
+                actor: current_visitor,
+                session_ref: current_session_public_id,
+                candidate: @user_telephone,
+              )
               reset_registration_session!
               redirect_to(
-                sign_com_settings_telephones_path(ri: params[:ri]),
+                acme_com_settings_telephones_url(
+                  ri: params[:ri],
+                  host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+                ),
                 notice: t("sign.app.registration.telephone.update.success"),
+                allow_other_host: true,
               )
             when :session_expired
               reset_registration_session!
@@ -148,6 +171,7 @@ module Sign
 
           def reset_registration_session!
             session.delete(registration_session_key)
+            reset_telephone_ceremony_session!
           end
 
           def verification_required_action?
@@ -212,9 +236,9 @@ module Sign
               return :invalid_code
             end
 
+            # sign/id verifies the OTP; acme/www performs the final account commit.
             clear_otp(@user_telephone)
-            @user_telephone.visitor_telephone_status_id = VisitorTelephoneStatus::VERIFIED
-            yield(@user_telephone) if block_given?
+            @user_telephone.save! if @user_telephone.changed?
             :success
           end
 

@@ -4,20 +4,8 @@
 module Sign
   module App
     module Preference
-      class RegionsController < PreferencesBaseController
-        include ::Preference::SignScreenActions
-
-        AUTHENTICATION_MODE = :open
-
-        before_action :ensure_preferences_record
-
-        def edit
-          edit_region_preference_screen
-        end
-
-        def update
-          update_region_preference_screen
-        end
+      class RegionsController < Sign::RedirectOnlyController
+        include ::Sign::PreferenceAuthorityRedirect
       end
     end
   end

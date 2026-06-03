@@ -34,6 +34,7 @@ module RestrictedSessionGuard
     return false if restricted_session_expired?
 
     controller_path.end_with?("in/sessions") ||
+      controller_path.match?(%r{\Aacme/(?:app|com|org)/settings/sessions\z}) ||
       controller_path == "sign/app/settings/mfa/resets"
   end
 

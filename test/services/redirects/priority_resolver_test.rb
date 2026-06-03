@@ -9,7 +9,7 @@ class Redirects::PriorityResolverTest < ActiveSupport::TestCase
 
       def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
 
-      def sign_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
+      def acme_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
 
       def sign_app_settings_path(ri:) = "/settings?ri=#{ri}"
     end

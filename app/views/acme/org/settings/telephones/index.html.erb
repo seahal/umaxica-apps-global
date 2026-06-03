@@ -1,0 +1,41 @@
+<% content_for :page_title, t("controller.sign.app.setting.index.telephone") %>
+<%= link_to t("sign.org.settings.show.back"), acme_org_settings_path(ri: params[:ri]) %>
+
+<div>
+  <%= button_to t("sign.org.settings.telephone.index.new_link"),
+                acme_org_settings_telephones_registration_path(ri: params[:ri]),
+                method: :post %>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th scope="col"><%= t("activerecord.attributes.staff_telephone.number") %></th>
+      <th scope="col"><%= t("activerecord.attributes.staff_telephone.status") %></th>
+      <th scope="col">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @staff_telephones.each do |telephone| %>
+      <tr>
+        <td><%= telephone.number %></td>
+        <td>
+          <% if [OperatorTelephoneStatus::ACTIVE, OperatorTelephoneStatus::VERIFIED].include?(telephone.staff_telephone_status_id) %>
+            <span><%= t("views.sign.org.settings.telephones.index.verified") %></span>
+          <% else %>
+            <span><%= t("views.sign.org.settings.telephones.index.unverified") %></span>
+          <% end %>
+        </td>
+        <td>
+          <%= link_to t("sign.org.settings.telephone.index.edit"),
+                      edit_sign_org_settings_telephone_path(telephone, ri: params[:ri]) %>
+        </td>
+      </tr>
+    <% end %>
+    <% if @staff_telephones.empty? %>
+      <tr>
+        <td colspan="3"><p><%= t("sign.org.settings.telephone.index.empty") %></p></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

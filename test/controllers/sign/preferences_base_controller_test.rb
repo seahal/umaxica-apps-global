@@ -19,9 +19,9 @@ class SignPreferencesBaseControllerTest < ActiveSupport::TestCase
   end
 
   test "open preference bases keep their surface layouts" do
-    assert_equal "sign/app/application", Sign::App::Preference::TimesController._layout
-    assert_equal "sign/com/application", Sign::Com::Preference::TimesController._layout
-    assert_equal "sign/org/application", Sign::Org::Preference::TimesController._layout
+    assert_equal "sign/app/application", Sign::App::PreferencesBaseController._layout
+    assert_equal "sign/com/application", Sign::Com::PreferencesBaseController._layout
+    assert_equal "sign/org/application", Sign::Org::PreferencesBaseController._layout
   end
 
   test "preference bases authorize writes after actor resolution" do

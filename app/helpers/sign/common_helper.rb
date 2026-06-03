@@ -127,7 +127,7 @@ module Sign::CommonHelper
   end
 
   def sign_up_birthdate_part_label(part)
-    t("sign.common.birthdate_parts.%{part}", part: part)
+    t("sign.common.birthdate_parts." + part)
   end
 
   def sign_up_birthdate_part_placeholder(part)

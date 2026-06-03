@@ -4,6 +4,7 @@
 # Rotates refresh tokens using one-time consume semantics.
 # Old rows are preserved and replay is detected via rotated_at.
 module Sign
+  # Compatibility namespace. Target-path refresh authority is acme/www.
   class RefreshTokenService
     Result =
       Data.define(:success, :token, :refresh_token, :previous_token, :reason) do

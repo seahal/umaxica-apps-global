@@ -54,6 +54,8 @@ module Sign
           intent = current_social_auth_intent
           Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.processing_callback", intent: intent))
           result = process_social_auth_callback
+          return if performed?
+
           user = result[:user]
 
           Rails.logger.debug(

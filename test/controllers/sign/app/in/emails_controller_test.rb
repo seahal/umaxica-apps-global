@@ -575,7 +575,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :redirect
-    assert_redirected_to "/welcome?ri=jp"
+    assert_redirected_to acme_app_welcome_entry_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
     assert_equal "DASHBOARD_PENDING", cycle.reload.state
     assert_nil cycle.return_to
   end

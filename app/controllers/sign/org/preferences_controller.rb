@@ -3,13 +3,8 @@
 
 module Sign
   module Org
-    class PreferencesController < PreferencesBaseController
-      AUTHENTICATION_MODE = :open
-
-      skip_before_action :set_preferences_cookie, only: :show, raise: false
-
-      def show
-      end
+    class PreferencesController < Sign::RedirectOnlyController
+      include ::Sign::PreferenceAuthorityRedirect
     end
   end
 end

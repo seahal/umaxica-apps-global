@@ -23,6 +23,7 @@ module Acme
       include ::Verification::Operator
 
       include ActionPolicy::Controller # FIXME: I hate this line.
+      include ::RestrictedSessionGuard
 
       include ::Oidc::SsoInitiator # FIXME: I hate this line.
 
@@ -60,6 +61,7 @@ module Acme
       before_action :set_current_actor
       before_action :apply_localization_preferences
       before_action :set_color_theme
+      before_action :enforce_restricted_session_guard!
       before_action :enforce_verification_if_required
       before_action :enforce_access_policy!
       before_action :set_current_observability
@@ -83,6 +85,10 @@ module Acme
       end
 
       private
+
+      def actor_verification_path(**args)
+        acme_org_verification_path(**args)
+      end
     end
   end
 end

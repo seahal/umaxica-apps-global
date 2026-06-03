@@ -1,18 +1,12 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::Com::Preference::DensitiesController < Sign::Com::PreferencesBaseController
-  include ::Preference::SignScreenActions
-
-  AUTHENTICATION_MODE = :open
-
-  before_action :ensure_preferences_record
-
-  def edit
-    edit_selectable_preference_screen(:density)
-  end
-
-  def update
-    update_selectable_preference_screen(:density)
+module Sign
+  module Com
+    module Preference
+      class DensitiesController < Sign::RedirectOnlyController
+        include ::Sign::PreferenceAuthorityRedirect
+      end
+    end
   end
 end

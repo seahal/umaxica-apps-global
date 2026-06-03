@@ -11,7 +11,7 @@ module Sign
       # 2. POST /settings/passkeys/options to get WebAuthn challenge
       # 3. Browser performs navigator.credentials.create()
       # 4. POST /settings/passkeys/verification with credential + challenge_id
-      # 5. Server verifies and creates OperatorPasskey record
+      # 5. sign/id verifies the ceremony; acme/www commits the passkey binding
       #
       # CRUD operations:
       # - GET /settings/passkeys (index)
@@ -23,8 +23,10 @@ module Sign
         include ::Verification::Operator
 
         include Sign::Webauthn
+        include Sign::PasskeyCeremonyDelegation
 
         include ::CloudflareTurnstile
+        include ::Sign::AcmeAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
 
@@ -35,27 +37,28 @@ module Sign
         before_action :authorize_passkeys!, only: %i(index)
         before_action :authorize_passkey_create!, only: %i(create)
         step_up only: %i(new create options verification), bootstrap: true
-        step_up only: %i(edit update destroy)
-        before_action :set_passkey, only: %i(show edit update destroy)
-        before_action :verify_settings_passkey_turnstile!, only: %i(options update destroy)
+        before_action :accept_org_passkey_ceremony_grant!, only: %i(new options verification)
+        before_action :set_passkey, only: []
+        before_action :verify_settings_passkey_turnstile!, only: :options
         # GET /settings/passkeys
         def index
-          @passkeys = current_operator.staff_passkeys.order(created_at: :desc)
+          redirect_to_acme_settings_authority!
         end
 
         # GET /settings/passkeys/:id
         def show
-          authorize!(@passkey)
+          redirect_to_acme_settings_authority!
         end
 
         # GET /settings/passkeys/new
         def new
           @passkey = current_operator.staff_passkeys.new
+          start_passkey_ceremony!(surface: "org", actor: current_operator, session_ref: current_session_public_id)
         end
 
         # GET /settings/passkeys/:id/edit
         def edit
-          authorize!(@passkey)
+          redirect_to_acme_settings_authority!
         end
 
         # POST /settings/passkeys
@@ -112,7 +115,7 @@ module Sign
         end
 
         # POST /settings/passkeys/verification
-        # Verify WebAuthn registration response and create passkey
+        # Verify WebAuthn registration response and emit an acme-owned commit result.
         #
         # Request body:
         #   {
@@ -145,20 +148,14 @@ module Sign
             # Verify the credential
             credential.verify(challenge)
 
-            # Create the passkey record
-            passkey = current_operator.staff_passkeys.new(
-              webauthn_id: credential.id,
-              public_key: credential.public_key,
-              sign_count: credential.sign_count,
-              description: passkey_description,
-            )
-
-            passkey.save!
+            passkey = commit_passkey_ceremony!(credential, challenge_id)
 
             render json: {
               status: "ok",
               passkey_id: passkey.id,
-              redirect_url: bootstrap_return_path(sign_org_settings_passkeys_path),
+              redirect_url: bootstrap_return_path(
+                acme_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")),
+              ),
             }, status: :created
           end
         rescue Sign::Webauthn::ChallengeNotFoundError,
@@ -172,6 +169,10 @@ module Sign
           Rails.logger.warn("WebAuthn registration failed: #{e.message}")
           render json: { error: I18n.t("errors.webauthn.verification_failed") },
                  status: :unprocessable_content
+        rescue Identity::PasskeyCeremony::Error => e
+          Rails.logger.warn("WebAuthn passkey commit failed: #{e.message}")
+          render json: { error: I18n.t("errors.webauthn.verification_failed") },
+                 status: :unprocessable_content
         rescue ActiveRecord::RecordNotUnique
           render json: { error: I18n.t("errors.webauthn.credential_already_registered") }, status: :conflict
         rescue ActiveRecord::RecordInvalid => e
@@ -181,60 +182,12 @@ module Sign
 
         # PATCH/PUT /settings/passkeys/:id
         def update
-          authorize!(@passkey)
-          if @passkey.update(update_params)
-            respond_to do |format|
-              format.html do
-                redirect_to(
-                  sign_org_settings_passkey_path(@passkey),
-                  notice: t("messages.passkey_successfully_updated"),
-                )
-              end
-              format.json { render json: { status: "ok" }, status: :ok }
-            end
-          else
-            respond_to do |format|
-              format.html { render :edit, status: :unprocessable_content }
-              format.json {
-                render json: { errors: @passkey.errors.full_messages }, status: :unprocessable_content
-              }
-            end
-          end
+          redirect_to_acme_settings_authority!
         end
 
         # DELETE /settings/passkeys/:id
         def destroy
-          authorize!(@passkey)
-
-          unless AuthMethodGuard.can_remove_passkey?(current_operator, @passkey)
-            respond_to do |format|
-              format.html do
-                redirect_to(
-                  sign_org_settings_passkeys_path,
-                  status: :see_other,
-                  alert: t("messages.cannot_delete_last_passkey"),
-                )
-              end
-              format.json do
-                render json: { error: t("messages.cannot_delete_last_passkey") },
-                       status: :unprocessable_content
-              end
-            end
-            return
-          end
-
-          @passkey.destroy!
-
-          respond_to do |format|
-            format.html do
-              redirect_to(
-                sign_org_settings_passkeys_path,
-                status: :see_other,
-                notice: t("messages.passkey_successfully_destroyed"),
-              )
-            end
-            format.json { head :no_content }
-          end
+          redirect_to_acme_settings_authority!
         end
 
         private
@@ -258,6 +211,22 @@ module Sign
               )
             end
             format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }
+          end
+          false
+        end
+
+        def accept_org_passkey_ceremony_grant!
+          return true if accept_passkey_ceremony_grant!(surface: "org")
+
+          respond_to do |format|
+            format.html do
+              redirect_to(
+                acme_org_settings_passkeys_path(ri: params[:ri]),
+                alert: I18n.t("errors.messages.invalid"),
+                status: :see_other,
+              )
+            end
+            format.json { render json: { error: I18n.t("errors.messages.invalid") }, status: :bad_request }
           end
           false
         end
@@ -287,16 +256,40 @@ module Sign
           params.fetch(key, {}).permit(:description)
         end
 
+        def commit_passkey_ceremony!(credential, challenge_id)
+          candidate = Identity::PasskeyCeremony::ResultIssuer::Candidate.new(
+            webauthn_id: credential.id,
+            public_key: credential.public_key,
+            sign_count: credential.sign_count,
+            description: passkey_description,
+            transports: credential_params[:transports],
+          )
+          commit = finish_passkey_ceremony!(
+            surface: "org",
+            actor: current_operator,
+            session_ref: current_session_public_id,
+            candidate: candidate,
+            challenge_id: challenge_id,
+          )
+          reset_passkey_ceremony_session!
+          commit.passkey
+        end
+
         def passkey_description
           params[:description].presence || I18n.t("sign.default_passkey_description")
         end
 
         def verification_required_action?
-          step_up_bootstrap_active?
+          step_up_bootstrap_active? && %w(new create options verification).include?(action_name)
         end
 
         def verification_scope
           "settings_passkey"
+        end
+
+        # Compatibility entry only. acme/www owns account-facing passkey lifecycle.
+        def redirect_to_acme_settings_authority!
+          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
       end
     end

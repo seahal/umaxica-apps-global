@@ -136,58 +136,6 @@ development:
     database: development_search_db
     host: <%= ENV["POSTGRESQL_SEARCH_SUB"] || default_host %>
     migrations_paths: db/searches_migrate
-  app_publisher:
-    !!merge <<: *default
-    database: development_app_publisher_db
-    host: <%= ENV["POSTGRESQL_APP_PUBLISHER_PUB"] || default_host %>
-    migrations_paths: db/app_publishers_migrate
-    schema_dump: app_publisher_structure.sql
-  app_publisher_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_app_publisher_db
-    host: <%= ENV["POSTGRESQL_APP_PUBLISHER_SUB"] || default_host %>
-    migrations_paths: db/app_publishers_migrate
-    schema_dump: app_publisher_structure.sql
-  com_publisher:
-    !!merge <<: *default
-    database: development_com_publisher_db
-    host: <%= ENV["POSTGRESQL_COM_PUBLISHER_PUB"] || default_host %>
-    migrations_paths: db/com_publishers_migrate
-    schema_dump: com_publisher_structure.sql
-  com_publisher_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_com_publisher_db
-    host: <%= ENV["POSTGRESQL_COM_PUBLISHER_SUB"] || default_host %>
-    migrations_paths: db/com_publishers_migrate
-    schema_dump: com_publisher_structure.sql
-  org_publisher:
-    !!merge <<: *default
-    database: development_org_publisher_db
-    host: <%= ENV["POSTGRESQL_ORG_PUBLISHER_PUB"] || default_host %>
-    migrations_paths: db/org_publishers_migrate
-    schema_dump: org_publisher_structure.sql
-  org_publisher_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_org_publisher_db
-    host: <%= ENV["POSTGRESQL_ORG_PUBLISHER_SUB"] || default_host %>
-    migrations_paths: db/org_publishers_migrate
-    schema_dump: org_publisher_structure.sql
-  message:
-    !!merge <<: *default
-    database: development_message_db
-    host: <%= ENV["POSTGRESQL_MESSAGE_PUB"] || default_host %>
-    migrations_paths: db/messages_migrate
-    schema_dump: message_structure.sql
-  message_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_message_db
-    host: <%= ENV["POSTGRESQL_MESSAGE_SUB"] || default_host %>
-    migrations_paths: db/messages_migrate
-    schema_dump: message_structure.sql
   org_ticket:
     !!merge <<: *default
     database: development_org_ticket_db
@@ -333,19 +281,6 @@ development:
     database: development_avatar_db
     host: <%= ENV["POSTGRESQL_AVATAR_SUB"] || default_host %>
     migrations_paths: db/avatars_migrate
-  redirector:
-    !!merge <<: *default
-    database: development_redirector_db
-    host: <%= ENV["POSTGRESQL_REDIRECTOR_PUB"] || default_host %>
-    migrations_paths: db/redirector_migrate
-    schema_dump: redirector_structure.sql
-  redirector_replica:
-    !!merge <<: *default
-    replica: true
-    database: development_redirector_db
-    host: <%= ENV["POSTGRESQL_REDIRECTOR_SUB"] || default_host %>
-    migrations_paths: db/redirector_migrate
-    schema_dump: redirector_structure.sql
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
@@ -453,54 +388,6 @@ test:
     host: <%= test_host %>
     migrations_paths: db/searches_migrate
     schema_dump: search_structure.sql
-  app_publisher:
-    !!merge <<: *test_default
-    database: test_app_publisher_db
-    host: <%= test_host %>
-    migrations_paths: db/app_publishers_migrate
-    schema_dump: app_publisher_structure.sql
-  app_publisher_replica:
-    !!merge <<: *test_default
-    database: test_app_publisher_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/app_publishers_migrate
-    schema_dump: app_publisher_structure.sql
-  com_publisher:
-    !!merge <<: *test_default
-    database: test_com_publisher_db
-    host: <%= test_host %>
-    migrations_paths: db/com_publishers_migrate
-    schema_dump: com_publisher_structure.sql
-  com_publisher_replica:
-    !!merge <<: *test_default
-    database: test_com_publisher_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/com_publishers_migrate
-    schema_dump: com_publisher_structure.sql
-  org_publisher:
-    !!merge <<: *test_default
-    database: test_org_publisher_db
-    host: <%= test_host %>
-    migrations_paths: db/org_publishers_migrate
-    schema_dump: org_publisher_structure.sql
-  org_publisher_replica:
-    !!merge <<: *test_default
-    database: test_org_publisher_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/org_publishers_migrate
-    schema_dump: org_publisher_structure.sql
-  message:
-    !!merge <<: *test_default
-    database: test_message_db
-    host: <%= test_host %>
-    migrations_paths: db/messages_migrate
-    schema_dump: message_structure.sql
-  message_replica:
-    !!merge <<: *test_default
-    database: test_message_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/messages_migrate
-    schema_dump: message_structure.sql
   org_ticket:
     !!merge <<: *test_default
     database: test_org_ticket_db
@@ -645,18 +532,6 @@ test:
     host: <%= test_host %>
     migrations_paths: db/avatars_migrate
     schema_dump: avatar_structure.sql
-  redirector:
-    !!merge <<: *test_default
-    database: test_redirector_db
-    host: <%= test_host %>
-    migrations_paths: db/redirector_migrate
-    schema_dump: redirector_structure.sql
-  redirector_replica:
-    !!merge <<: *test_default
-    database: test_redirector_replica_db
-    host: <%= test_host %>
-    migrations_paths: db/redirector_migrate
-    schema_dump: redirector_structure.sql
 production:
   com_principal:
     !!merge <<: *default
@@ -819,82 +694,6 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.SEARCH_REPLICA&.PASSWORD %>
     migrations_paths: db/searches_migrate
-  app_publisher:
-    !!merge <<: *default
-    database: production_app_publisher_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_PUBLISHER&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_PUBLISHER&.PASSWORD %>
-    migrations_paths: db/app_publishers_migrate
-    schema_dump: app_publisher_structure.sql
-  app_publisher_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_app_publisher_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.APP_PUBLISHER_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.APP_PUBLISHER_REPLICA&.PASSWORD %>
-    migrations_paths: db/app_publishers_migrate
-    schema_dump: app_publisher_structure.sql
-  com_publisher:
-    !!merge <<: *default
-    database: production_com_publisher_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_PUBLISHER&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_PUBLISHER&.PASSWORD %>
-    migrations_paths: db/com_publishers_migrate
-    schema_dump: com_publisher_structure.sql
-  com_publisher_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_com_publisher_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.COM_PUBLISHER_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.COM_PUBLISHER_REPLICA&.PASSWORD %>
-    migrations_paths: db/com_publishers_migrate
-    schema_dump: com_publisher_structure.sql
-  org_publisher:
-    !!merge <<: *default
-    database: production_org_publisher_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_PUBLISHER&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_PUBLISHER&.PASSWORD %>
-    migrations_paths: db/org_publishers_migrate
-    schema_dump: org_publisher_structure.sql
-  org_publisher_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_org_publisher_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.ORG_PUBLISHER_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.ORG_PUBLISHER_REPLICA&.PASSWORD %>
-    migrations_paths: db/org_publishers_migrate
-    schema_dump: org_publisher_structure.sql
-  message:
-    !!merge <<: *default
-    database: production_message_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.MESSAGE&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.MESSAGE&.PASSWORD %>
-    migrations_paths: db/messages_migrate
-    schema_dump: message_structure.sql
-  message_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_message_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.MESSAGE_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.MESSAGE_REPLICA&.PASSWORD %>
-    migrations_paths: db/messages_migrate
-    schema_dump: message_structure.sql
   chronicle:
     !!merge <<: *default
     database: production_chronicle_db
@@ -1118,22 +917,3 @@ production:
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.AVATAR_REPLICA&.PASSWORD %>
     migrations_paths: db/avatars_migrate
-  redirector:
-    !!merge <<: *default
-    database: production_redirector_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.REDIRECTOR&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.REDIRECTOR&.PASSWORD %>
-    migrations_paths: db/redirector_migrate
-    schema_dump: redirector_structure.sql
-  redirector_replica:
-    !!merge <<: *default
-    replica: true
-    database: production_redirector_db
-    port: <%= ENV.fetch('POSTGRESQL_PORT', 5432) %>
-    host: <%= Rails.application.credentials&.DATABASE&.REDIRECTOR_REPLICA&.HOST %>
-    username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
-    password: <%= Rails.application.credentials&.DATABASE&.REDIRECTOR_REPLICA&.PASSWORD %>
-    migrations_paths: db/redirector_migrate
-    schema_dump: redirector_structure.sql

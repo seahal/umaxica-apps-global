@@ -15,8 +15,6 @@ module Sign
       class AuthenticationsController < Sign::App::ApplicationController
         include ::Verification::Client
 
-        include ::CloudflareTurnstile
-
         include SocialAuthConcern
 
         AUTHENTICATION_MODE = :deny_all
@@ -25,15 +23,12 @@ module Sign
 
         SUPPORTED_PROVIDERS = %w(google_app apple).freeze
         SOCIAL_LINK_SCOPE = SocialAuthConcern::SOCIAL_LINK_SCOPE
-        SOCIAL_UNLINK_SCOPE = "social_unlink"
 
         # Public access for continue (login intent doesn't require auth)
         # For link/step-up intents, auth is checked in prepare_social_auth_intent!
         declare_authentication_mode! :open, only: :continue
         declare_authentication_mode! :private, only: %i(destroy)
         before_action :require_social_link_step_up!, only: :continue
-        before_action :require_social_unlink_step_up!, only: :destroy
-        before_action :require_social_unlink_turnstile!, only: :destroy
 
         # POST /social/auth/:provider/continue
         # Entry point for social auth flow from sign-up and sign-in screens.
@@ -68,6 +63,19 @@ module Sign
             entry: social_auth_entry,
             ri: params[:ri].presence,
           )
+          if params[:social_ceremony_grant].present?
+            store_social_ceremony_grant!(params[:social_ceremony_grant])
+          elsif intent.to_s == "login"
+            issuance = Identity::SocialCeremony::GrantIssuer.issue!(
+              surface: "app",
+              actor_ref: social_login_actor_ref,
+              session_ref: state,
+              operation: "login",
+              provider: provider,
+              return_to: path_from_signed_pt(signed_pt_token(resolved_path_or_navigation_target)),
+            )
+            store_social_ceremony_grant!(issuance.grant)
+          end
           issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
 
           safe_redirect_to(
@@ -82,23 +90,16 @@ module Sign
         # Removes a linked social identity from current user.
         def destroy
           provider = params[:provider]
-          normalized_provider = SocialIdentifiable.normalize_provider(provider)
-          identity = social_identity_for_unlink(provider)
-          authorize!(identity) if identity.present?
-
-          ActiveRecord::Base.connected_to(role: :writing) do
-            SocialAuthService.unlink(provider: provider, client: current_resource)
-          end
-
+          # Compatibility entry only. acme/www owns settings social unlink authority.
           redirect_to(
-            sign_app_settings_path,
-            notice: I18n.t(
-              "sign.app.social.sessions.unlink.success",
-              provider: normalized_provider.humanize,
+            social_unlink_acme_app_settings_connections_url(
+              provider: provider,
+              ri: params[:ri],
+              host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
             ),
+            status: :temporary_redirect,
+            allow_other_host: true,
           )
-        rescue SocialAuth::BaseError => e
-          render plain: e.message, status: e.status_code
         end
 
         private
@@ -144,6 +145,10 @@ module Sign
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
 
+        def social_login_actor_ref
+          "anonymous"
+        end
+
         def social_entry_method(provider)
           SocialIdentifiable.normalize_provider(provider)
         end
@@ -166,56 +171,12 @@ module Sign
           false
         end
 
-        def require_social_unlink_step_up!
-          return true if step_up_satisfied?(scope: SOCIAL_UNLINK_SCOPE)
-
-          flash[:alert] = I18n.t("auth.step_up.required")
-          redirect_to(
-            actor_verification_path(
-              scope: SOCIAL_UNLINK_SCOPE,
-              pt: encoded_relative_pt(social_unlink_settings_path(params[:provider])),
-              ri: params[:ri],
-            ),
-            status: :see_other,
-          )
-          false
-        end
-
         def social_link_settings_path(provider)
           case SocialIdentifiable.normalize_provider(provider)
           when "apple"
             sign_app_settings_apple_path(ri: params[:ri])
           else
             sign_app_settings_google_path(ri: params[:ri])
-          end
-        end
-
-        def require_social_unlink_turnstile!
-          return true if cloudflare_turnstile_stealth_validation["success"]
-
-          redirect_to(
-            social_unlink_settings_path(params[:provider]),
-            alert: I18n.t("turnstile_error"),
-            status: :see_other,
-          )
-          false
-        end
-
-        def social_unlink_settings_path(provider)
-          case SocialIdentifiable.normalize_provider(provider)
-          when "apple"
-            sign_app_settings_apple_path(ri: params[:ri])
-          else
-            sign_app_settings_google_path(ri: params[:ri])
-          end
-        end
-
-        def social_identity_for_unlink(provider)
-          case SocialIdentifiable.normalize_provider(provider)
-          when "apple"
-            current_resource&.user_apple_identity
-          else
-            current_resource&.user_google_identity
           end
         end
 

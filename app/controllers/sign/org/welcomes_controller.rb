@@ -3,13 +3,9 @@
 
 module Sign
   module Org
-    class WelcomesController < Sign::Org::ApplicationController
-      AUTHENTICATION_MODE = :private
-
-      before_action :authenticate_operator!
-      before_action :continue_welcome_sequence_without_content!
-
+    class WelcomesController < Sign::RedirectOnlyController
       def show
+        redirect_to_acme_authority!("/welcome")
       end
     end
   end

@@ -90,7 +90,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     get new_sign_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_redirected_to sign_org_dashboard_url(ri: "jp")
+    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
   end
 
   private

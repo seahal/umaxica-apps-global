@@ -1,0 +1,36 @@
+<% content_for :page_title, t("sign.org.settings.secret_credentials.index.title", default: "Secrets") %>
+
+<h1><%= t("sign.org.settings.secret_credentials.index.title", default: "Secrets") %></h1>
+<p><%= t("sign.org.settings.secret_credentials.index.description", default: "Manage recovery secrets") %></p>
+<%= button_to t("sign.org.settings.secret_credentials.index.new", default: "New secret"),
+              enrollment_acme_org_settings_secret_credentials_path(ri: params[:ri]),
+              method: :post %>
+
+<table>
+  <thead>
+  <tr>
+    <th scope="col"><%= t("activerecord.attributes.staff_secret_credential.name") %></th>
+    <th scope="col"><%= t("activerecord.attributes.staff_secret_credential.created_at") %></th>
+    <th scope="col"><%= t("activerecord.attributes.staff_secret_credential.last_used_at") %></th>
+    <th scope="col"><%= t("actions.actions") %></th>
+  </tr>
+  </thead>
+  <tbody>
+  <% @secret_credentials.each do |secret_credential| %>
+    <tr>
+      <td><%= secret_credential.name %></td>
+      <td><%= l(secret_credential.created_at, format: :short) %></td>
+      <td><%= secret_credential.last_used_at ? l(secret_credential.last_used_at, format: :short) : "-" %></td>
+      <td>
+        <%= link_to t("actions.edit"), edit_acme_org_settings_secret_credential_path(secret_credential, ri: params[:ri]) %>
+        <%= form_with(url: acme_org_settings_secret_credential_path(secret_credential, ri: params[:ri]),
+                      method: :delete,
+                      data: { turbo_confirm: t("messages.confirm_destroy") }) do |form| %>
+          <%= render "shared/cloudflare_turnstile_stealth" %>
+          <%= form.submit t("actions.destroy") %>
+        <% end %>
+      </td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>

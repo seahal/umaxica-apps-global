@@ -81,7 +81,6 @@ decision:
 - `occurrence`
 - `chronicle`
 - `avatar`
-- `redirector`
 
 ## Consequences
 

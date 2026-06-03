@@ -7,31 +7,26 @@ module Sign
   module App
     module Preference
       class ThemesControllerTest < ActionDispatch::IntegrationTest
-        fixtures :clients, :client_preferences
-
         setup do
           @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-          @user = clients(:one)
+          @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
           host! @host
         end
 
-        test "PATCH update returns updated preference payload and syncs auth preference" do
-          patch sign_app_preference_theme_path,
-                params: { preference_theme: { option_id: "dr" } },
-                headers: as_user_headers(@user, host: @host),
-                as: :json
+        test "sign theme edit redirects to acme preference authority" do
+          assert_no_difference("AppPreference.count") do
+            get edit_sign_app_preference_theme_url(ri: "jp", lx: "en")
+          end
 
-          assert_response :ok
-          assert_equal "dr", response.parsed_body.dig("preference", "ct")
-          assert_equal "ja", response.parsed_body.dig("preference", "lx")
-          assert_includes(
-            response.headers["Set-Cookie"].to_s,
-            "#{::Preference::CookieName.access(surface: :app)}=",
-          )
+          assert_redirected_to edit_acme_app_preference_theme_url(ri: "jp", lx: "en", host: @acme_host)
+        end
 
-          @user.user_preference.reload
+        test "sign theme mutation redirects without local preference authority" do
+          assert_no_difference("AppPreference.count") do
+            patch sign_app_preference_theme_url(ri: "jp"), params: { preference_theme: { option_id: "test" } }
+          end
 
-          assert_equal "dr", @user.user_preference.theme
+          assert_redirected_to acme_app_preference_theme_url(ri: "jp", host: @acme_host)
         end
       end
     end

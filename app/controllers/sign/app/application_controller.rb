@@ -67,13 +67,13 @@ module Sign
 
       private
 
-      # TODO: check this public method. I think we remove this method.
-      # App surface lands signed-in users on the dashboard rather than the
-      # default root, so that an already-logged-in user opening /sign/in or
-      # /sign/up arrives at something useful. ri is appended via
-      # default_url_options.
+      # Post-session landing belongs to acme/www.
       def after_login_path
-        sign_app_dashboard_path
+        acme_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      end
+
+      def after_login_allows_other_host?
+        true
       end
     end
   end

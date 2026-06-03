@@ -11,6 +11,7 @@ module Sign
           include Common::Otp
 
           include Common::Redirect
+          include Sign::EmailCeremonyDelegation
 
           include ::Verification::Visitor
 
@@ -26,6 +27,17 @@ module Sign
 
           def new
             @user_email = VisitorEmail.new
+            reset_email_registration_flow!
+            return if accept_email_ceremony_grant!(surface: "com")
+
+            redirect_to(
+              acme_com_settings_emails_url(
+                ri: params[:ri],
+                host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+              ),
+              notice: t("sign.app.registration.email.edit.session_expired"),
+              allow_other_host: true,
+            )
           end
 
           def edit
@@ -50,6 +62,12 @@ module Sign
             end
 
             session[registration_email_session_key] = @user_email.public_id
+            start_email_ceremony!(
+              surface: "com",
+              actor: current_visitor,
+              session_ref: current_session_public_id,
+              candidate: @user_email,
+            )
             redirect_params = build_notice_params(
               t("sign.app.registration.email.create.verification_code_sent"),
               email_registration_pt_session_key,
@@ -92,11 +110,23 @@ module Sign
             end
 
             clear_otp(@user_email)
-            @user_email.update!(visitor_email_status_id: VisitorEmailStatus::VERIFIED)
+            @user_email.save! if @user_email.changed?
+            finish_email_ceremony!(
+              surface: "com",
+              actor: current_visitor,
+              session_ref: current_session_public_id,
+              candidate: @user_email,
+            )
             session.delete(registration_email_session_key)
             redirect_to(
-              email_registration_return_path(sign_com_settings_emails_path(ri: params[:ri])),
+              email_registration_return_path(
+                acme_com_settings_emails_url(
+                  ri: params[:ri],
+                  host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+                ),
+              ),
               notice: t("sign.app.registration.email.update.success"),
+              allow_other_host: true,
             )
           end
 
@@ -166,6 +196,7 @@ module Sign
 
           def reset_email_registration_flow!
             session.delete(registration_email_session_key)
+            reset_email_ceremony_session!
           end
 
           def new_registration_path_with_notice

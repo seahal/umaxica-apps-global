@@ -3,13 +3,9 @@
 
 module Sign
   module App
-    class WelcomesController < Sign::App::ApplicationController
-      AUTHENTICATION_MODE = :private
-
-      before_action :authenticate_client!
-      before_action :continue_welcome_sequence_without_content!
-
+    class WelcomesController < Sign::RedirectOnlyController
       def show
+        redirect_to_acme_authority!("/welcome")
       end
     end
   end

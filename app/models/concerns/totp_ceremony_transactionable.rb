@@ -1,0 +1,122 @@
+# typed: false
+# frozen_string_literal: true
+
+module TotpCeremonyTransactionable
+  extend ActiveSupport::Concern
+
+  STATUS_PENDING = "pending"
+  STATUS_CONSUMED = "consumed"
+  STATUSES = [STATUS_PENDING, STATUS_CONSUMED].freeze
+  RETENTION_PERIOD = 7.days
+
+  included do
+    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
+    class_attribute :ceremony_surface_name, instance_accessor: false
+    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
+
+    scope :expired_at, ->(time) { where(arel_table[:expires_at].lteq(time)) }
+    scope :consumed, -> { where.not(consumed_at: nil).or(where(status: STATUS_CONSUMED)) }
+    scope :active_at, ->(time) {
+      where(arel_table[:expires_at].gt(time)).where(consumed_at: nil, status: STATUS_PENDING)
+    }
+    scope :pending, -> { where(status: STATUS_PENDING, consumed_at: nil) }
+    scope :purgeable_at, lambda { |time, retention_period: RETENTION_PERIOD|
+      cutoff = time - retention_period
+      where(arel_table[:expires_at].lteq(cutoff))
+        .or(where(arel_table[:consumed_at].lteq(cutoff)))
+    }
+
+    validates :transaction_id, :surface, :actor_ref, :session_ref, :operation, :status, :grant_jti, :expires_at,
+              presence: true
+    validates :surface, inclusion: { in: Identity::TotpCeremony::Contract::SURFACES }
+    validates :operation, inclusion: { in: Identity::TotpCeremony::Contract::OPERATIONS }
+    validates :status, inclusion: { in: STATUSES }
+    validate :surface_matches_transaction_class
+    validate :consumed_transaction_has_result
+  end
+
+  class_methods do
+    def ceremony_surface(value = nil)
+      self.ceremony_surface_name = value.to_s if value
+      ceremony_surface_name
+    end
+
+    def create_transaction!(surface: ceremony_surface, actor_ref:, session_ref:, operation:, transaction_id: nil,
+                            grant_jti: nil, credential_candidate_ref: nil, credential_candidate_digest: nil,
+                            expires_at: nil, now: Time.current)
+      connection_owner.connected_to(role: :writing) do
+        create!(
+          transaction_id: transaction_id.presence || SecureRandom.uuid,
+          surface: surface.to_s,
+          actor_ref: actor_ref,
+          session_ref: session_ref,
+          operation: operation,
+          grant_jti: grant_jti.presence || SecureRandom.uuid,
+          credential_candidate_ref: credential_candidate_ref,
+          credential_candidate_digest: credential_candidate_digest,
+          expires_at: expires_at || (now + Identity::TotpCeremony::Transaction::DEFAULT_TTL),
+          created_at: now,
+          updated_at: now,
+        )
+      end
+    end
+
+    def connection_owner
+      if self <= AppTicketRecord
+        AppTicketRecord
+      else
+        ActiveRecord::Base
+      end
+    end
+  end
+
+  def grant_claims(now: Time.current)
+    {
+      "surface" => surface,
+      "actor_ref" => actor_ref,
+      "session_ref" => session_ref,
+      "transaction_id" => transaction_id,
+      "jti" => grant_jti,
+      "operation" => operation,
+      "credential_candidate_ref" => credential_candidate_ref,
+      "credential_candidate_digest" => credential_candidate_digest,
+      "exp" => expires_at.to_i,
+      "iat" => now.to_i,
+    }.compact
+  end
+
+  def expired?(now: Time.current)
+    expires_at.to_i <= now.to_i
+  end
+
+  def consumed? = status == STATUS_CONSUMED
+
+  def consume_result!(result_jti:, consumed_at: Time.current)
+    self.class.connection_owner.connected_to(role: :writing) do
+      self.class.transaction do
+        locked = self.class.lock.find(id)
+        raise Identity::TotpCeremony::Error, "transaction is already consumed" if locked.consumed?
+        raise Identity::TotpCeremony::Error, "transaction is expired" if locked.expired?(now: consumed_at)
+
+        locked.update!(result_jti: result_jti, consumed_at: consumed_at, status: STATUS_CONSUMED)
+        locked
+      end
+    end
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
+    raise Identity::TotpCeremony::Error, "result_jti has already been consumed: #{e.message}"
+  end
+
+  private
+
+  def surface_matches_transaction_class
+    return if self.class.ceremony_surface.blank? || surface == self.class.ceremony_surface
+
+    errors.add(:surface, "does not match transaction store")
+  end
+
+  def consumed_transaction_has_result
+    return unless status == STATUS_CONSUMED && result_jti.blank?
+
+    errors.add(:result_jti, "is required for consumed transaction")
+  end
+end

@@ -8,28 +8,24 @@ class Sign::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
   end
 
-  test "show redirects when not signed in" do
-    get sign_org_dashboard_url(ri: "jp"), headers: host_headers(@host)
-
-    assert_response :redirect
-    assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
-  end
-
-  test "show renders when signed in" do
+  test "show_redirects_to_acme_dashboard_authority" do
     get sign_org_dashboard_url(ri: "jp"), headers: as_staff_headers(@staff, host: @host)
 
-    assert_response :success
-    assert_select "h1", "Dashboard"
-    assert_select "a[href=?]", sign_org_settings_path(ri: "jp")
-    assert_select "footer" do
-      assert_select "a[href=?]", sign_org_dashboard_url(ri: "jp"),
-                    text: I18n.t("sign.org.preferences.footer.dashboard")
-      assert_select "a[href=?]", sign_org_root_url(ri: "jp"),
-                    text: I18n.t("sign.org.preferences.footer.home"),
-                    count: 0
-    end
+    assert_redirect_to_acme_dashboard
+  end
+
+  private
+
+  def assert_redirect_to_acme_dashboard
+    assert_response :see_other
+    location = URI.parse(response.location)
+
+    assert_equal @acme_host, location.host
+    assert_equal "/dashboard", location.path
+    assert_equal "ri=jp", location.query
   end
 end

@@ -349,42 +349,19 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_equal I18n.t("otp.resend.too_soon"), flash[:alert]
   end
 
-  test "step up flow from settings emails returns to original page" do
+  test "settings email management redirects to acme before sign step up" do
     stale_token = ClientToken.create!(user_id: @user.id, created_at: 20.minutes.ago, updated_at: 20.minutes.ago)
     stale_headers = @headers.merge("X-TEST-SESSION-PUBLIC-ID" => stale_token.public_id)
-    @active_token = stale_token
     email = @user.client_emails.where(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES).first
 
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       get edit_sign_app_settings_email_url(email.public_id, ri: "jp"), headers: stale_headers
 
-      assert_response :redirect
-
-      query = Rack::Utils.parse_nested_query(URI(response.location).query)
-      scope = query["scope"]
-      return_to = query["pt"] || query["return_to"]
-
-      assert_equal "settings_email", scope
-      return_to ||= sign_app_settings_emails_path(ri: "jp")
-
-      pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: stale_token.public_id)
-      get sign_app_verification_url(scope: scope, pt: pt, ri: "jp"),
-          headers: stale_headers
-
-      assert_response :success
-
-      Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
-        post sign_app_verification_emails_url(ri: "jp"),
-             params: { verification: { scope: scope,
-                                       pt: signed_step_up_pt_for(
-                                         return_to, surface: "app",
-                                                    session_nonce: stale_token.public_id,
-                                       ), } },
-             headers: stale_headers
-      end
-
-      assert_response :redirect
-      assert_redirected_to sign_app_settings_url(ri: "jp")
+      assert_redirected_to edit_acme_app_settings_email_url(
+        email.public_id,
+        ri: "jp",
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      )
     end
   end
 

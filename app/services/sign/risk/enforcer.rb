@@ -47,16 +47,10 @@ module Sign
         )
       end
 
-      # Risk-triggered force re-step-up. We clear both last_step_up_at and
-      # last_step_up_scope so every subsequent sensitive operation re-runs
-      # step-up verification. Writing a fake scope like "risk_enforced" with
-      # last_step_up_at: Time.current was risky — any reader that only checked
-      # last_step_up_at.present? (without scope) would treat the token as
-      # freshly verified, and verification_recent_for_get? would render a
-      # "verification successful" notice on the step-up page.
+      # Risk-triggered force re-step-up. acme/www owns freshness mutation.
       def self.require_step_up_for_token_set(tokens)
         tokens.currently_usable_at.find_each do |token|
-          token.update!(last_step_up_at: nil, last_step_up_scope: nil)
+          Identity::StepUpCeremony::FreshnessRevoker.call!(token)
         end
       end
 

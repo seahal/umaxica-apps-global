@@ -18,7 +18,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
       user: @user,
     )
     satisfy_user_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_email")
+    mark_token_step_up_satisfied_for_test(@token, scope: "settings_email")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -44,7 +44,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     assert_response :success
     assert_select "input[name='cf-turnstile-response']", count: 1
     assert_includes response.body, 'data-turnstile-mode-value="execute"'
-    assert_select "a[href=?]", sign_app_settings_emails_path(ri: "jp")
+    assert_select "a[href=?]", acme_app_settings_emails_path(ri: "jp")
     assert_select "input[type=checkbox][name='user_email[promotional]']", count: 1
     assert_select "input[type=checkbox][name='user_email[notifiable]']", count: 1
   end
@@ -217,11 +217,60 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
             headers: request_headers
     end
 
-    assert_redirected_to sign_app_settings_emails_url(ri: "jp")
+    assert_redirected_to acme_app_settings_emails_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
     assert_equal @user.id, user_email.user_id
     assert_not_nil @token.reload.last_step_up_at
     assert_equal "settings_email", @token.last_step_up_scope
+  end
+
+  test "acme issued grant drives sign ceremony result and acme email commit" do
+    issuance = Identity::EmailCeremony::GrantIssuer.issue!(
+      surface: "app",
+      actor_ref: @user.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    )
+
+    get new_sign_app_settings_emails_registration_url(
+      ri: "jp",
+      email_ceremony_grant: issuance.grant,
+    ), headers: request_headers
+
+    assert_response :success
+
+    perform_enqueued_jobs do
+      post sign_app_settings_emails_registration_url(ri: "jp"),
+           params: {
+             user_email: {
+               raw_address: "config-acme-grant-commit@example.com",
+             },
+             "cf-turnstile-response": "test",
+           },
+           headers: request_headers
+    end
+
+    user_email = @user.client_emails.order(:created_at).last
+    otp_data = user_email.get_otp
+    code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+    patch sign_app_settings_emails_registration_url(ri: "jp"),
+          params: {
+            user_email: {
+              pass_code: code,
+            },
+          },
+          headers: request_headers
+
+    assert_redirected_to acme_app_settings_emails_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
+    assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
+    assert_predicate issuance.transaction.reload, :consumed?
   end
 
   test "update rejects when turnstile fails" do
@@ -286,16 +335,19 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           },
           headers: bootstrap_headers
 
-    assert_redirected_to sign_app_settings_emails_url(ri: "jp")
+    acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+
+    assert_redirected_to acme_app_settings_emails_url(ri: "jp", host: acme_host)
     assert_equal "settings_email", bootstrap_token.reload.last_step_up_scope
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: bootstrap_headers
+    get acme_app_settings_emails_url(ri: "jp", host: acme_host),
+        headers: bootstrap_headers.merge("Host" => acme_host)
 
     assert_response :success
   end
 
-  test "update returns to preserved pt after verifying OTP" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+  test "update returns to acme email management after verifying OTP" do
+    return_to = acme_app_settings_emails_path(ri: "jp")
     pt = Base64.urlsafe_encode64(return_to)
 
     get new_sign_app_settings_emails_registration_url(ri: "jp", pt: pt), headers: request_headers
@@ -328,7 +380,10 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           },
           headers: request_headers
 
-    assert_redirected_to return_to
+    assert_redirected_to acme_app_settings_emails_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
   end
 

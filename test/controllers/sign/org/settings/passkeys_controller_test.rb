@@ -32,11 +32,10 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "should get index" do
     get sign_org_settings_passkeys_url(ri: "jp"), headers: @headers
 
-    assert_response :success
-    assert_select "h1", I18n.t("sign.org.settings.passkeys.index.title")
+    assert_redirected_to_acme("/settings/passkeys?ri=jp")
   end
 
-  test "should get show" do
+  test "show redirects to acme" do
     passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id",
@@ -48,12 +47,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     get sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
 
-    assert_response :success
-    assert_select "body" do |body|
-      html = body.first.to_html
-
-      assert_operator html.index(sign_org_settings_passkeys_path(ri: "jp")), :<, html.index(passkey.description)
-    end
+    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
   end
 
   test "should get new" do
@@ -123,11 +117,10 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     get edit_sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
 
-    assert_response :success
-    assert_select "input[name='operator_passkey[description]'][value=?]", passkey.description
+    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}/edit?ri=jp")
   end
 
-  test "should patch update" do
+  test "update redirects to acme without local mutation" do
     passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id_3",
@@ -141,11 +134,11 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
           params: { operator_passkey: { description: "Updated Name" } },
           headers: @headers
 
-    assert_redirected_to sign_org_settings_passkey_path(passkey, ri: "jp")
-    assert_equal "Updated Name", passkey.reload.description
+    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
+    assert_equal "Old Name", passkey.reload.description
   end
 
-  test "update with invalid params renders edit" do
+  test "update with invalid params redirects to acme" do
     passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id_4",
@@ -161,11 +154,11 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
             params: { staff_passkey: { description: "" } },
             headers: @headers
 
-      assert_response :unprocessable_content
+      assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
     end
   end
 
-  test "should delete destroy" do
+  test "destroy redirects to acme without local mutation" do
     passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id_5",
@@ -183,14 +176,14 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    assert_difference -> { OperatorPasskey.count }, -1 do
+    assert_no_difference -> { OperatorPasskey.count } do
       delete sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to sign_org_settings_passkeys_path(ri: "jp")
+    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
   end
 
-  test "cannot access other staff's passkey" do
+  test "other staff passkey lookup is not performed on sign" do
     other_staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     other_passkey = OperatorPasskey.create!(
       staff: other_staff,
@@ -203,7 +196,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     get sign_org_settings_passkey_url(other_passkey, ri: "jp"), headers: @headers
 
-    assert_response :not_found
+    assert_redirected_to_acme("/settings/passkeys/#{other_passkey.id}?ri=jp")
   end
 
   test "create redirects for html requests" do
@@ -231,7 +224,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_equal I18n.t("errors.webauthn.challenge_id_required"), response.parsed_body["error"]
   end
 
-  test "update returns ok json when request format is json" do
+  test "update json redirects to acme without local mutation" do
     passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id_json",
@@ -246,12 +239,11 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
           headers: @headers,
           as: :json
 
-    assert_response :ok
-    assert_equal "ok", response.parsed_body["status"]
-    assert_equal "Updated Name", passkey.reload.description
+    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
+    assert_equal "Old Name", passkey.reload.description
   end
 
-  test "destroy returns no content for json requests" do
+  test "destroy json redirects to acme without local mutation" do
     passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id_json_destroy",
@@ -269,8 +261,20 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    delete sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers, as: :json
+    assert_no_difference -> { OperatorPasskey.count } do
+      delete sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers, as: :json
+    end
 
-    assert_response :no_content
+    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
+  end
+
+  private
+
+  def assert_redirected_to_acme(path)
+    assert_response :see_other
+    uri = URI.parse(response.location)
+
+    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal path, uri.request_uri
   end
 end

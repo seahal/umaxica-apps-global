@@ -9,6 +9,7 @@ module Sign
           include CloudflareTurnstile
 
           include Sign::OperatorTelephoneRegistrable
+          include Sign::TelephoneCeremonyDelegation
 
           include ::Verification::Operator
 
@@ -23,6 +24,16 @@ module Sign
           def new
             @staff_telephone = OperatorTelephone.new
             reset_registration_session!
+            return if accept_telephone_ceremony_grant!(surface: "org")
+
+            redirect_to(
+              acme_org_settings_telephones_url(
+                ri: params[:ri],
+                host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+              ),
+              notice: t("sign.org.registration.telephone.edit.session_expired"),
+              allow_other_host: true,
+            )
           end
 
           def edit
@@ -54,6 +65,12 @@ module Sign
             end
 
             session[registration_session_key] = @staff_telephone.id
+            start_telephone_ceremony!(
+              surface: "org",
+              actor: current_operator,
+              session_ref: current_session_public_id,
+              candidate: @staff_telephone,
+            )
             redirect_to(
               edit_sign_org_settings_telephones_registration_path,
               notice: t("sign.org.registration.telephone.create.verification_code_sent"),
@@ -85,11 +102,7 @@ module Sign
               return
             end
 
-            result =
-              complete_staff_telephone_verification(@staff_telephone.id, submitted_code) do |staff_telephone|
-                staff_telephone.staff = current_operator
-                staff_telephone.save!
-              end
+            result = complete_staff_telephone_verification(@staff_telephone.id, submitted_code)
 
             handle_registration_update_result(result)
           end
@@ -103,10 +116,20 @@ module Sign
           def handle_registration_update_result(result)
             case result
             when :success
+              finish_telephone_ceremony!(
+                surface: "org",
+                actor: current_operator,
+                session_ref: current_session_public_id,
+                candidate: @staff_telephone,
+              )
               reset_registration_session!
               redirect_to(
-                sign_org_settings_telephones_path,
+                acme_org_settings_telephones_url(
+                  ri: params[:ri],
+                  host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+                ),
                 notice: t("sign.org.registration.telephone.update.success"),
+                allow_other_host: true,
               )
             when :session_expired
               reset_registration_session!
@@ -141,6 +164,7 @@ module Sign
 
           def reset_registration_session!
             session.delete(registration_session_key)
+            reset_telephone_ceremony_session!
           end
 
           def verification_required_action?

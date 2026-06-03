@@ -7,6 +7,17 @@ module Sign
 
     def new
       @user_email = ClientEmail.new
+      reset_email_registration_flow!
+      return if accept_email_ceremony_grant!(surface: "app")
+
+      redirect_to(
+        acme_app_settings_emails_url(
+          ri: params[:ri],
+          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        ),
+        notice: t("sign.app.registration.email.edit.session_expired"),
+        allow_other_host: true,
+      )
     end
 
     def edit
@@ -34,6 +45,12 @@ module Sign
       end
 
       session[registration_email_session_key] = @user_email.public_id
+      start_email_ceremony!(
+        surface: "app",
+        actor: email_registration_target_user,
+        session_ref: current_session_public_id,
+        candidate: @user_email,
+      )
 
       redirect_params = build_notice_params(
         t("sign.app.registration.email.create.verification_code_sent"),
@@ -68,28 +85,19 @@ module Sign
         return
       end
 
-      result =
-        complete_email_verification!(
-          @user_email.public_id, submitted_code,
-          email_registration_verification_token,
-        ) do |user_email|
-          finalize_registered_email!(user_email)
-        end
-
-      if result == :locked
-        reset_email_registration_flow!
-        flash[:alert] = t("sign.app.registration.email.update.attempts_exceeded")
-        redirect_to(new_email_registration_path)
-        return
-      elsif !result
-        render :edit, status: :unprocessable_content
-        return
-      end
+      return unless complete_registration_verification!(submitted_code)
 
       session.delete(registration_email_session_key)
+      finish_email_ceremony!(
+        surface: "app",
+        actor: email_registration_target_user,
+        session_ref: current_session_public_id,
+        candidate: @user_email,
+      )
       redirect_to(
         after_email_registration_verified_path,
         notice: t("sign.app.registration.email.update.success"),
+        allow_other_host: true,
       )
     end
 
@@ -180,12 +188,34 @@ module Sign
         pending_email_status?(@user_email)
     end
 
+    def complete_registration_verification!(submitted_code)
+      result =
+        complete_email_verification!(
+          @user_email.public_id, submitted_code,
+          email_registration_verification_token,
+          commit_verified_status: false,
+        )
+
+      if result == :locked
+        reset_email_registration_flow!
+        flash[:alert] = t("sign.app.registration.email.update.attempts_exceeded")
+        redirect_to(new_email_registration_path)
+        return false
+      elsif !result
+        render :edit, status: :unprocessable_content
+        return false
+      end
+
+      true
+    end
+
     def registration_email_session_key
       :email_registration_public_id
     end
 
     def reset_email_registration_flow!
       session.delete(registration_email_session_key)
+      reset_email_ceremony_session!
       reset_email_flow!
     end
 

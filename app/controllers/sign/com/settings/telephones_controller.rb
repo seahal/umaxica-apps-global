@@ -40,7 +40,7 @@ module Sign
           tel_params = params(user_telephone: [:raw_number, :number])
           number = tel_params[:raw_number] || tel_params[:number]
           if initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: true)
-            redirect_to(edit_sign_com_settings_telephone_path(@user_telephone.id, ri: params[:ri]))
+            redirect_to(edit_sign_com_settings_telephones_registration_path(ri: params[:ri]))
           else
             render :new, status: :unprocessable_content
           end

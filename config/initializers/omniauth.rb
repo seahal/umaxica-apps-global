@@ -68,10 +68,10 @@ end
 OmniAuth.config.full_host = ->(env) { OmniAuthCallbackOrigin.call(env) }
 
 # =============================================================================
-# Corporate Social Login Guard
+# Non-App Social Login Guard
 # =============================================================================
-# Rejects /auth/... requests on the corporate host to prevent social login bypass.
-class OmniAuthCorporateGuard
+# Rejects /auth/... requests on non-app sign hosts to prevent social login bypass.
+class OmniAuthNonAppSocialGuard
   def initialize(app)
     @app = app
   end
@@ -79,7 +79,7 @@ class OmniAuthCorporateGuard
   def call(env)
     return @app.call(env) unless env["PATH_INFO"].start_with?("/auth/")
 
-    if corporate_host?(env)
+    if blocked_host?(env)
       return [404, { "Content-Type" => "text/plain" }, ["Not Found"]]
     end
 
@@ -88,14 +88,16 @@ class OmniAuthCorporateGuard
 
   private
 
-  def corporate_host?(env)
-    # ENV["ID_CORPORATE_URL"] is hostname-only (e.g. id.com.localhost or id.umaxica.com)
-    corporate = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    Rack::Request.new(env).host == corporate
+  def blocked_host?(env)
+    blocked_hosts = [
+      ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+      ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+    ]
+    blocked_hosts.include?(Rack::Request.new(env).host)
   end
 end
 
-Rails.application.config.middleware.use(OmniAuthCorporateGuard)
+Rails.application.config.middleware.use(OmniAuthNonAppSocialGuard)
 Rails.application.config.middleware.use(OmniAuth::Builder) do
   # ---------------------------------------------------------------------------
   # Google OAuth2 - App (user sign-in/sign-up)

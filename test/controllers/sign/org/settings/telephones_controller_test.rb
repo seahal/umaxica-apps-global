@@ -4,12 +4,13 @@
 require "test_helper"
 
 class Sign::Org::Settings::TelephonesControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_statuses, :operator_email_statuses, :operator_telephone_statuses
+  fixtures :operators, :operator_telephone_statuses
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    host! @host
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
@@ -24,13 +25,50 @@ class Sign::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     }
   end
 
-  test "should get index" do
-    get sign_org_settings_telephones_url(ri: "jp"), headers: request_headers
+  test "sign settings telephones index redirects to acme authority" do
+    get sign_org_settings_telephones_url(ri: "jp")
+
+    assert_redirected_to acme_org_settings_telephones_url(ri: "jp", host: @acme_host)
+  end
+
+  test "legacy sign settings telephone edit remains ceremony account-binding flow" do
+    telephone = OperatorTelephone.create!(
+      number: "+10000000031",
+      staff: @staff,
+      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
+    )
+
+    get edit_sign_org_settings_telephone_url(telephone.id, ri: "jp"), headers: request_headers
+
+    assert_response :success
+    assert_select(
+      "form[action=?]",
+      acme_org_settings_telephone_url(telephone.id, ri: "jp", host: @acme_host),
+      count: 1,
+    )
+  end
+
+  test "sign settings telephone destroy redirects without local account mutation" do
+    telephone = OperatorTelephone.create!(
+      number: "+10000000000",
+      staff: @staff,
+      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
+    )
+
+    assert_no_difference("OperatorTelephone.count") do
+      delete sign_org_settings_telephone_url(telephone.id, ri: "jp")
+    end
+
+    assert_redirected_to acme_org_settings_telephone_url(telephone.id, ri: "jp", host: @acme_host)
+  end
+
+  test "legacy sign settings telephone new remains ceremony entry" do
+    get new_sign_org_settings_telephone_url(ri: "jp"), headers: request_headers
 
     assert_response :success
   end
 
-  test "create registers telephone" do
+  test "legacy sign settings telephone create starts ceremony and redirects to registration edit" do
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("OperatorTelephone.count", 1) do
         post sign_org_settings_telephones_url(ri: "jp"),
@@ -39,45 +77,6 @@ class Sign::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
       end
     end
 
-    created = OperatorTelephone.order(created_at: :desc).first
-
-    assert_redirected_to edit_sign_org_settings_telephone_url(created.id, ri: "jp")
-  end
-
-  test "create reuses existing telephone and sends sms when same number is submitted again" do
-    existing = OperatorTelephone.create!(
-      number: "+10000000012",
-      staff: @staff,
-      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
-    )
-
-    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-      assert_no_difference("OperatorTelephone.count") do
-        post sign_org_settings_telephones_url(ri: "jp"),
-             params: { staff_telephone: { raw_number: "+10000000012" } },
-             headers: request_headers
-      end
-    end
-
-    assert_redirected_to edit_sign_org_settings_telephone_url(existing.id, ri: "jp")
-  end
-
-  test "destroy removes telephone when not last method" do
-    tel1 = OperatorTelephone.create!(
-      number: "+10000000000",
-      staff: @staff,
-      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
-    )
-    OperatorTelephone.create!(
-      number: "+10000000001",
-      staff: @staff,
-      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
-    )
-
-    assert_difference("OperatorTelephone.count", -1) do
-      delete sign_org_settings_telephone_url(tel1, ri: "jp"), headers: request_headers
-    end
-
-    assert_response :see_other
+    assert_redirected_to edit_sign_org_settings_telephones_registration_url(ri: "jp")
   end
 end

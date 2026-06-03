@@ -32,10 +32,11 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{/sign/in/new}, response.location
   end
 
-  test "protected settings redirects to public sign host and preserves absolute return target" do
+  test "protected settings sessions redirects to acme session authority" do
     with_env(
       "ID_STAFF_URL" => "id.org.localhost",
       "SIGN_STAFF_URL" => "id.umaxica.org",
+      "ACME_STAFF_URL" => "www.umaxica.org",
     ) do
       Rails.application.reload_routes!
 
@@ -45,14 +46,11 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       )
 
       assert_response :redirect
-      location = URI.parse(jump_rt_url_from_location(response.location))
-      params = Rack::Utils.parse_query(location.query)
+      location = URI.parse(response.location)
 
-      assert_equal "https", location.scheme
-      assert_equal "id.umaxica.org", location.host
-      assert_equal "/sign/in/new", location.path
-      assert_equal "jp", params["ri"]
-      assert_not params.key?("pt")
+      assert_equal "www.umaxica.org", location.host
+      assert_equal "/settings/sessions", location.path
+      assert_equal "ri=jp", location.query
     end
   ensure
     Rails.application.reload_routes!
@@ -511,12 +509,16 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   # RestrictedSessionGuard -- non-session routes blocked for org
   # ===================================================================
 
-  test "restricted session is blocked on non-session org routes" do
+  test "restricted session is blocked on non-session acme org routes" do
     token = create_restricted_session(@staff)
-    headers = as_staff_headers_with_token(@staff, token, host: @host)
+    acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    headers = {
+      "Host" => acme_host,
+      "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
 
-    # Try to access settings page (not /in/sessions)
-    get sign_org_settings_url(ri: "jp"), headers: headers
+    get acme_org_settings_url(ri: "jp", host: acme_host), headers: headers
 
     assert_response :locked
     assert_equal "きんそくじこうです", response.body

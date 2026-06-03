@@ -5,332 +5,54 @@ require "test_helper"
 
 class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "com-out-#{SecureRandom.hex(4)}@example.com")
-    load_jump_rt_env!
   end
 
-  test "should get edit raises error without session" do
-    get edit_sign_com_sign_out_url(ri: "jp"), headers: { "Host" => @host }
-
-    assert_response :redirect
-
-    assert_equal new_sign_com_sign_in_url(ri: "jp", host: @host, protocol: "https"),
-                 redirect_without_rt(response.location)
-  end
-
-  test "edit page renders a direct logout form" do
-    get edit_sign_com_sign_out_url(ri: "jp"),
-        headers: { "Host" => @host, "X-TEST-CURRENT-RESOURCE" => @visitor.id }
-
-    assert_response :success
-    assert_select "form[action=?][method=?][data-turbo=?]", sign_com_sign_out_path(ri: "jp"), "post", "false" do
-      assert_select "input[name=?][value=?]", "_method", "delete", count: 0
-      assert_select "input[type=?][name=?][value=?]", "hidden", "confirm", "1", count: 1
-      assert_select "button[type=?]", "submit", text: /#{Regexp.escape(I18n.t("sign.shared.sign_out.button"))}/
-    end
-  end
-
-  test "uses shared logout concern" do
-    assert_includes Sign::Com::SignOutsController.included_modules, Authentication::Logoutable
-  end
-
-  test "create without confirmation redirects back to logout confirmation" do
-    post sign_com_sign_out_url(ri: "jp"),
-         headers: { "Host" => @host, "X-TEST-CURRENT-RESOURCE" => @visitor.id },
-         params: { confirm: "0" }
-
-    assert_redirected_to edit_sign_com_sign_out_path(ri: "jp")
-    assert_equal I18n.t("views.sign.app.settings.outs.edit.confirm_label"), flash[:alert]
-  end
-
-  test "create logs out with confirmed visitor session" do
+  test "sign_out_get_redirect_is_not_session_mutation" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    refresh_plain = token.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    access_expires_at = issue_access_cookie!(resource: @visitor, token: token)
 
-    post sign_com_sign_out_url(ri: "jp"),
-         headers: { "Host" => @host,
-                    "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                    "X-TEST-SESSION-PUBLIC-ID" => token.public_id, },
-         params: { confirm: "1" }
+    get sign_com_sign_out_url(ri: "jp"), headers: session_headers(token)
 
-    assert_response :success
-    assert_empty flash.to_hash
-    assert_predicate token.reload, :revoked?
-
-    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
-    assert_includes response.body, I18n.t(
-      "sign.shared.sign_out.completed_description",
-      expires_at: I18n.l(access_expires_at.in_time_zone("Asia/Tokyo"), format: :short),
-    )
+    assert_redirect_to_acme_sign_out
+    assert_predicate token.reload, :currently_usable?
   end
 
-  test "signed out page requires a fresh logout notice" do
-    get sign_com_sign_out_url(ri: "jp"), headers: { "Host" => @host }
-
-    assert_redirected_to edit_sign_com_sign_out_path(ri: "jp")
-  end
-
-  test "destroy without session redirects to sign in" do
-    delete sign_com_sign_out_url(ri: "jp"), headers: { "Host" => @host }
-
-    assert_equal new_sign_com_sign_in_url(ri: "jp", host: @host, protocol: "https"),
-                 redirect_without_rt(response.location)
-  end
-
-  test "stale tab cannot complete logout after another tab already cleared cookies" do
+  test "sign_out_post_redirect_uses_acme_authority" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    refresh_plain = token.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
 
-    get edit_sign_com_sign_out_url(ri: "jp"),
-        headers: { "Host" => @host,
-                   "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                   "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
+    post sign_com_sign_out_url(ri: "jp"), params: { confirm: "1" }, headers: session_headers(token)
 
-    assert_response :success
-
-    post sign_com_sign_out_url(ri: "jp"),
-         headers: { "Host" => @host,
-                    "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                    "X-TEST-SESSION-PUBLIC-ID" => token.public_id, },
-         params: { confirm: "1" }
-
-    assert_response :success
-    assert_predicate token.reload, :revoked?
-
-    post sign_com_sign_out_url(ri: "jp"), headers: { "Host" => @host }, params: { confirm: "1" }
-
-    assert_equal new_sign_com_sign_in_url(ri: "jp", host: @host, protocol: "https"),
-                 redirect_without_rt(response.location)
+    assert_redirect_to_acme_sign_out
+    assert_predicate token.reload, :currently_usable?
   end
 
-  test "destroy resets rails session id to prevent session fixation" do
+  test "sign_out_destroy_redirect_is_not_session_mutation" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    token.rotate_refresh_token!
 
-    get edit_sign_com_sign_out_url(ri: "jp"),
-        headers: { "Host" => @host,
-                   "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                   "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
-    session[:sign_out_fixation_probe] = "attacker-controlled"
-    old_session_id = session.id
+    delete sign_com_sign_out_url(ri: "jp"), headers: session_headers(token)
 
-    delete sign_com_sign_out_url(ri: "jp"),
-           headers: { "Host" => @host,
-                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
-
-    assert_response :success
-    assert_not_nil old_session_id
-    assert_not_nil session.id
-    assert_not_equal old_session_id, session.id
-    assert_nil session[:sign_out_fixation_probe]
-    assert_predicate token.reload, :revoked?
-  end
-
-  test "ordinary destroy does not issue a signed out notice" do
-    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    refresh_plain = token.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-
-    delete sign_com_sign_out_url(ri: "jp"),
-           headers: { "Host" => @host,
-                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
-
-    assert_response :success
-    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
-
-    get sign_com_sign_out_url(ri: "jp"), headers: { "Host" => @host }
-
-    assert_redirected_to edit_sign_com_sign_out_path(ri: "jp")
-  end
-
-  test "destroy rejects pt after logout" do
-    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    refresh_plain = token.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    get edit_sign_com_sign_out_url(ri: "jp"),
-        headers: { "Host" => @host,
-                   "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                   "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
-    session[:authentication_return_target_nonce] = SecureRandom.urlsafe_base64(16)
-    pt = signed_return_target(sign_com_settings_path(ri: "jp"), surface: "com")
-
-    delete sign_com_sign_out_url(ri: "jp", pt: pt),
-           headers: { "Host" => @host,
-                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
-
-    assert_response :unprocessable_content
-    assert_predicate token.reload, :revoked?
-  end
-
-  test "destroy with unsafe pt fails closed after logout" do
-    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    refresh_plain = token.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    pt = "not-a-valid-return-target-token"
-
-    delete sign_com_sign_out_url(ri: "jp", pt: pt),
-           headers: { "Host" => @host,
-                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
-
-    assert_response :unprocessable_content
-    assert_predicate token.reload, :revoked?
-  end
-
-  test "destroy rejects legacy base64 pt after logout" do
-    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    refresh_plain = token.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    legacy_pt = Base64.urlsafe_encode64(sign_com_settings_path(ri: "jp"))
-
-    delete sign_com_sign_out_url(ri: "jp", pt: legacy_pt),
-           headers: { "Host" => @host,
-                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
-
-    assert_response :unprocessable_content
-    assert_predicate token.reload, :revoked?
-  end
-
-  # Regression: ordinary logout must revoke ONLY the current session's
-  # token. Sign-out on one browser must not sign the visitor out on every
-  # other device.
-  test "destroy revokes only the current session token and leaves other devices signed in" do
-    current_token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    other_token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    refresh_plain = current_token.rotate_refresh_token!
-    other_token.rotate_refresh_token!
-
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-
-    delete sign_com_sign_out_url(ri: "jp"),
-           headers: { "Host" => @host,
-                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                      "X-TEST-SESSION-PUBLIC-ID" => current_token.public_id, }
-
-    assert_response :success
-    assert_predicate current_token.reload, :revoked?,
-                     "current session token must be revoked"
-    assert_not other_token.reload.revoked?,
-               "another device's token must remain active after a single-browser logout"
-  end
-
-  test "destroy rejects current session token belonging to another visitor" do
-    other_visitor = create_verified_visitor_with_email(email_address: "com-out-oth-#{SecureRandom.hex(4)}@example.com")
-    other_token = VisitorToken.create!(visitor: other_visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    other_token.rotate_refresh_token!
-
-    delete sign_com_sign_out_url(ri: "jp"),
-           headers: { "Host" => @host,
-                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                      "X-TEST-SESSION-PUBLIC-ID" => other_token.public_id, }
-
-    assert_response :forbidden
-    assert_predicate other_token.reload, :currently_usable?
-  end
-
-  test "logout clears all auth cookies" do
-    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    refresh_plain = token.rotate_refresh_token!
-
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "test_access_token"
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DBSC_COOKIE_KEY] = "test_dbsc_value"
-
-    delete sign_com_sign_out_url(ri: "jp"),
-           headers: { "Host" => @host,
-                      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-                      "X-TEST-SESSION-PUBLIC-ID" => token.public_id, }
-
-    assert_response :success
-
-    assert_empty cookies[Authentication::Base::ACCESS_COOKIE_KEY].to_s
-    assert_empty cookies[Authentication::Base::REFRESH_COOKIE_KEY].to_s
-    assert_empty cookies[Authentication::Base::DBSC_COOKIE_KEY].to_s
+    assert_redirect_to_acme_sign_out
+    assert_predicate token.reload, :currently_usable?
   end
 
   private
 
-  def signed_return_target(return_to, surface:)
-    return_target_token_harness.issue(
-      return_to: return_to,
-      flow: "authentication",
-      surface: surface,
-      session_nonce: session.fetch(:authentication_return_target_nonce),
-    )
+  def session_headers(token)
+    {
+      "Host" => @host,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
   end
 
-  def verified_redirect_return_to(location, surface)
-    return_target_token_harness.verified_return_to(
-      rt_from_location(location),
-      expected_flow: "authentication",
-      expected_surface: surface,
-      session_nonce: session[:authentication_return_target_nonce],
-    )
-  end
+  def assert_redirect_to_acme_sign_out
+    assert_response :see_other
+    location = URI.parse(response.location)
 
-  def return_target_token_harness
-    @return_target_token_harness ||= Class.new do
-      include ::Redirects::SignedTargetSupport
-
-      def issue(return_to:, flow:, surface:, session_nonce:, expires_in: 15.minutes)
-        path = signed_target_internal_path(return_to)
-        claims = signed_target_claims(flow: flow, surface: surface, session_nonce: session_nonce)
-        issue_signed_target_token(
-          payload: claims.merge("return_to" => path),
-          purpose: :return_target,
-          salt: "return_target_token",
-          expires_in: expires_in,
-        )
-      end
-
-      def verified_return_to(token, expected_flow:, expected_surface:, session_nonce:)
-        payload = verified_signed_target_payload(
-          token,
-          purpose: :return_target,
-          salt: "return_target_token",
-          expected_flow: expected_flow,
-          expected_surface: expected_surface,
-          session_nonce: session_nonce,
-        )
-        signed_target_internal_path(payload&.fetch("return_to", nil))
-      end
-    end.new
-  end
-
-  def redirect_without_rt(location)
-    location = jump_rt_url_from_location(location) if URI.parse(location).host == "jump.umaxica.net"
-    uri = URI.parse(location)
-    query = Rack::Utils.parse_nested_query(uri.query).except("pt")
-    uri.query = query.presence&.to_query
-    uri.to_s
-  end
-
-  def rt_from_location(location)
-    location = jump_rt_url_from_location(location) if URI.parse(location).host == "jump.umaxica.net"
-    Rack::Utils.parse_nested_query(URI.parse(location).query).fetch("pt")
-  end
-
-  def issue_access_cookie!(resource:, token:)
-    access_expires_at = 10.minutes.from_now.change(usec: 0)
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = Authentication::Base::Token.encode(
-      resource,
-      host: @host,
-      session_public_id: token.public_id,
-      oidc_sid: token.public_id,
-      resource_type: "visitor",
-      expires_at: access_expires_at,
-      acr: "aal1",
-      jwt_issuer_id: "surface:SIGN_COM",
-    )
-    access_expires_at
+    assert_equal @acme_host, location.host
+    assert_equal "/sign/out", location.path
+    assert_equal "ri=jp", location.query
   end
 end

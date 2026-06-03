@@ -8,7 +8,8 @@ module Sign
         AUTHENTICATION_MODE = :open
 
         def create
-          result = Oidc::TokenRevocationService.call(
+          # Compatibility endpoint only. acme/www owns token revocation.
+          result = ::Oidc::TokenRevocationService.call(
             token: params[:token],
             client_id: params[:client_id],
             client_secret: params[:client_secret],

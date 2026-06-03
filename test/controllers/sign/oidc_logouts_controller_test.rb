@@ -40,7 +40,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_nil response.location
   end
 
-  test "signed logout request completes on sign side" do
+  test "signed logout request delegates completion to acme authority" do
     host! @host
 
     get "/oidc/logout",
@@ -52,12 +52,19 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :see_other
-    assert_redirected_to "/sign/out?ri=jp"
+    location = URI.parse(response.location)
+
+    assert_equal "/sign/out", location.path
+    assert_equal "ri=jp", location.query
 
     get "/sign/out", params: { ri: "jp" }, headers: browser_headers.merge("Host" => @host)
 
-    assert_response :success
-    assert_select "h1", I18n.t("sign.shared.sign_out.completed_title")
+    assert_response :see_other
+    location = URI.parse(response.location)
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal "/sign/out", location.path
+    assert_equal "ri=jp", location.query
   end
 
   test "rejects client id mismatch with signed logout request" do

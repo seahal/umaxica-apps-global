@@ -42,7 +42,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     satisfy_visitor_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
+    mark_token_step_up_satisfied_for_test(@token, scope: "settings_secret_credential")
 
     @secret_credential = VisitorSecretCredential.create!(
       visitor: @visitor,
@@ -69,14 +69,14 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     }
   end
 
-  test "index show new edit and access by public id" do
+  test "index show and edit redirect to acme while new remains on sign" do
     get sign_com_settings_secret_credentials_url(ri: "jp"), headers: request_headers
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
 
     get sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"), headers: request_headers
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
 
     get new_sign_com_settings_secret_credential_url(ri: "jp"), headers: request_headers
 
@@ -85,7 +85,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     get edit_sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
         headers: request_headers
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}/edit?ri=jp")
   end
 
   test "ensure_verified_recovery_identity_for_registration! renders forbidden " \
@@ -114,7 +114,10 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_response :redirect, response.body
-    assert_redirected_to sign_com_settings_secret_credentials_url(ri: "jp")
+    assert_redirected_to acme_com_settings_secret_credentials_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+    )
     assert_predicate flash[:notice], :present?
   end
 
@@ -126,11 +129,11 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
             headers: request_headers
     end
 
-    assert_redirected_to sign_com_settings_secret_credentials_url(ri: "jp")
+    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
     @secret_credential.reload
 
-    assert_equal "Updated Secret", @secret_credential.name
-    assert_equal VisitorSecretCredentialStatus::REVOKED, @secret_credential.visitor_secret_credential_status_id
+    assert_equal "Login Secret", @secret_credential.name
+    assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.visitor_secret_credential_status_id
   end
 
   test "update does not disable last method" do
@@ -140,23 +143,22 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
             headers: request_headers
     end
 
-    assert_redirected_to sign_com_settings_secret_credentials_url(ri: "jp")
-    assert_predicate flash[:alert], :present?
+    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id
   end
 
-  test "destroy redirects when last recovery method would be removed" do
+  test "destroy redirects to acme when last recovery method would be removed" do
     AuthMethodGuard.stub(:last_method?, true) do
       delete sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
              params: { "cf-turnstile-response": "test" },
              headers: request_headers
     end
 
-    assert_redirected_to sign_com_settings_secret_credentials_url(ri: "jp")
-    assert_predicate flash[:alert], :present?
+    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+    assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id
   end
 
-  test "destroy removes secret_credential and regenerate is not implemented" do
+  test "destroy redirects to acme without local mutation and regenerate is not implemented" do
     visitor = create_verified_visitor_with_email(
       email_address: "com-secret_credential-allow-#{SecureRandom.hex(4)}@example.com",
     )
@@ -166,7 +168,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     )
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(token)
-    token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
+    mark_token_step_up_satisfied_for_test(token, scope: "settings_secret_credential")
     secret_credential = VisitorSecretCredential.create!(
       visitor: visitor,
       name: "Destroy Secret",
@@ -185,7 +187,9 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
              }
     end
 
-    assert_response :see_other
+    assert_redirected_to_acme("/settings/secret_credentials/#{secret_credential.public_id}?ri=jp")
+    assert_equal VisitorSecretCredentialStatus::ACTIVE,
+                 secret_credential.reload.visitor_secret_credential_status_id
 
     I18n.backend.store_translations(:ja, messages: { not_implemented: "Not implemented" })
     post regenerate_sign_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp"), headers: {
@@ -221,21 +225,28 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
                     "cf-turnstile-response": "bad", },
           headers: request_headers
 
-    assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("turnstile_error")
+    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
     assert_equal "Login Secret", @secret_credential.reload.name
   end
 
-  test "destroy requires successful stealth turnstile" do
+  test "destroy compatibility redirects before local turnstile validation" do
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
     delete sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
            params: { "cf-turnstile-response": "bad" },
            headers: request_headers
 
-    assert_response :see_other
-    assert_redirected_to sign_com_settings_secret_credentials_url(ri: "jp")
-    assert_predicate flash[:alert], :present?
+    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id
+  end
+
+  private
+
+  def assert_redirected_to_acme(path)
+    assert_response :see_other
+    uri = URI.parse(response.location)
+
+    assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), uri.host
+    assert_equal path, uri.request_uri
   end
 end

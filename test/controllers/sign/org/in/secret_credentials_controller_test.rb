@@ -71,7 +71,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
            },
          }
 
-    assert_redirected_to sign_org_dashboard_path(ri: "jp")
+    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
 
     assert_equal OperatorSecretCredentialStatus::ACTIVE,
                  operator_secret_credentials(:sample_login).reload.staff_secret_status_id

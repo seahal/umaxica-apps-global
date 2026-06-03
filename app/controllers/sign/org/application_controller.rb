@@ -64,10 +64,13 @@ module Sign
 
       private
 
-      # Redirect logged-in users from guest-only pages to the settings page.
-      # Overrides Authentication::Base#after_login_path. ri is added automatically via default_url_options.
+      # Post-session landing belongs to acme/www.
       def after_login_path
-        sign_org_dashboard_path
+        acme_org_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+      end
+
+      def after_login_allows_other_host?
+        true
       end
     end
   end

@@ -116,10 +116,6 @@ module Preference::SignScreenActions
   end
 
   def preference_index_path
-    return sign_app_preference_path if respond_to?(:sign_app_preference_path, true)
-    return sign_com_preference_path if respond_to?(:sign_com_preference_path, true)
-    return sign_org_preference_path if respond_to?(:sign_org_preference_path, true)
-
-    raise NotImplementedError, "preference index path is not configured for this surface"
+    preference_index_url
   end
 end

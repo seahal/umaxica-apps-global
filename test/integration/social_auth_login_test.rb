@@ -50,6 +50,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
     assert_response :redirect
 
@@ -65,7 +66,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:notice], :present?, "Should have success message"
   end
 
-  test "Google login with existing identity completes welcome sequence before dashboard" do
+  test "Google login with existing identity completes through acme dashboard" do
     existing_uid = "existing_google_welcome_#{SecureRandom.hex(4)}"
     existing_user = Client.create!(
       status_id: ClientStatus::NOTHING,
@@ -87,23 +88,69 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
-    assert_redirected_to sign_app_in_checkpoint_url(ri: "jp")
-
-    follow_redirect!
-
-    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
 
     cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
 
-    assert_equal ClientSignInFlowStatus::DASHBOARD_PENDING, cycle.status_id
+    assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, cycle.status_id
+  end
 
-    follow_redirect!
+  test "Google established login callback posts a one-shot result to acme without provider tokens" do
+    existing_uid = "existing_google_transport_#{SecureRandom.hex(4)}"
+    existing_user = Client.create!(
+      status_id: ClientStatus::NOTHING,
+      public_id: "trn_#{SecureRandom.hex(4)}",
+      birthdate: "2000-01-01",
+    )
+    identity = ClientGoogleIdentity.create!(
+      user: existing_user,
+      uid: existing_uid,
+      provider: "google_app",
+      token: "old_token",
+      expires_at: 1.week.from_now.to_i,
+      user_google_identity_status: client_google_identity_statuses(:active),
+    )
+    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
+      provider: "google_app",
+      uid: existing_uid,
+      info: {},
+      credentials: {
+        token: "transport_access_token",
+        refresh_token: "transport_refresh_token",
+        expires_at: 1.week.from_now.to_i,
+      },
+    )
+
+    state = start_social_auth_flow(provider: "google_app", intent: "login")
+
+    assert_no_difference("ClientSignInFlow.count") do
+      get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+          params: { state: state },
+          headers: browser_headers.merge(@callback_headers)
+    end
 
     assert_response :success
-    assert_select "h1", "ようこそ!"
-    assert_select "a[href=?]", sign_app_dashboard_path(ri: "jp"), "次へ"
-    assert_equal ClientSignInFlowStatus::COMPLETED, cycle.reload.status_id
+    assert_includes response.body, "social-completion-form"
+    assert_not_includes response.body, "transport_access_token"
+    assert_not_includes response.body, "transport_refresh_token"
+    assert_not_includes response.body, "old_token"
+
+    form = response.parsed_body.at_css("form#social-completion-form")
+
+    assert_equal "post", form["method"]
+    assert_equal(
+      completion_acme_app_social_authentication_url(
+        provider: "google_app",
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      ),
+      form["action"],
+    )
+    assert form.at_css("input[name='social_ceremony_result']")
+    assert_nil form.at_css("input[name='return_to']")
+
+    assert_equal "old_token", identity.reload.token
   end
 
   test "Google sign up entry with existing identity falls through to sign in flow" do
@@ -135,18 +182,14 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
-    assert_redirected_to sign_app_in_checkpoint_url(ri: "jp")
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
     assert_equal user_count_before, Client.count
 
     sign_in_cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
 
-    assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, sign_in_cycle.status_id
-
-    follow_redirect!
-
-    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
-    assert_equal ClientSignInFlowStatus::DASHBOARD_PENDING, sign_in_cycle.reload.status_id
+    assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, sign_in_cycle.reload.status_id
     assert_equal "social_callback", sign_up_cycle.reload.step
   end
 
@@ -172,6 +215,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
     assert_equal user_count_before, Client.count
   end
@@ -205,18 +249,14 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
-    assert_redirected_to sign_app_in_checkpoint_url(ri: "jp")
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
     assert_equal user_count_before, Client.count
 
     sign_in_cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
 
-    assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, sign_in_cycle.status_id
-
-    follow_redirect!
-
-    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
-    assert_equal ClientSignInFlowStatus::DASHBOARD_PENDING, sign_in_cycle.reload.status_id
+    assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, sign_in_cycle.reload.status_id
     assert_equal "social_callback", sign_up_cycle.reload.step
   end
 
@@ -235,6 +275,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
     assert_response :redirect
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
@@ -265,6 +306,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
     assert_response :redirect
     assert ClientGoogleIdentity.exists?(uid: new_uid)
@@ -308,6 +350,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
     assert_response :redirect
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
@@ -333,6 +376,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
     assert_response :redirect
 
@@ -371,6 +415,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
 
     identity.reload
 

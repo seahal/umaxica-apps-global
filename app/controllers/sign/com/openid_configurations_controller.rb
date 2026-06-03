@@ -16,7 +16,7 @@ module Sign
       skip_before_action :set_color_theme, raise: false
 
       def show
-        render json: Oidc::DiscoveryDocument.for_resource_type("visitor")
+        render json: ::Oidc::DiscoveryDocument.for_resource_type("visitor")
       end
 
       private

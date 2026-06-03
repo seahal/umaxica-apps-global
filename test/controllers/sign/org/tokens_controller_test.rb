@@ -38,6 +38,20 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     assert_predicate body["refresh_token"], :present?
     assert_equal "Bearer", body["token_type"]
     assert_kind_of Integer, body["expires_in"]
+
+    payload = Authentication::TokenService.decode(
+      body.fetch("access_token"),
+      host: Oidc::Issuer.host_for_resource_type("operator"),
+      resource_type: "operator",
+      issuer: Oidc::Issuer.for_resource_type("operator"),
+      audiences: [@client.aud],
+      jwt_issuer_id: Oidc::Issuer.jwt_issuer_id_for_resource_type("operator"),
+    )
+    header = Jit::Security::Jwt::Keyring.parse_header(body.fetch("access_token"))
+    acme_kids = Jit::Security::Jwt::Registry.jwks_for("surface:ACME_ORG").fetch(:keys).map { |key| key.fetch("kid") }
+
+    assert_equal Oidc::Issuer.for_resource_type("operator"), payload.fetch("iss")
+    assert_includes acme_kids, header.fetch("kid")
   end
 
   test "sets no-store cache headers on success" do

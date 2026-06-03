@@ -107,7 +107,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   end
 
   def read(path)
-    Rails.root.join(path).read
+    Rails.root.join(path).binread.force_encoding(Encoding::UTF_8).scrub
   end
 
   def read_if_present(path)

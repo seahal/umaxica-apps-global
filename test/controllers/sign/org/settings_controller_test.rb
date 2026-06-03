@@ -2,37 +2,27 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "base64"
 
-class Sign::Org::SettingssControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_statuses
-
+class Sign::Org::SettingsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     host! @host
-    @staff = operators(:one)
-    @headers = { "X-TEST-CURRENT-STAFF" => @staff.id }.freeze
   end
 
-  test "should get show when logged in" do
-    get sign_org_settings_url(ri: "jp"), headers: @headers
-
-    assert_response :success
-  end
-
-  test "show includes local account links and no social provider links" do
-    get sign_org_settings_url(ri: "jp"), headers: @headers
-
-    assert_response :success
-    assert_select "a[href=?]", sign_org_settings_emails_path(ri: "jp")
-    assert_select "a[href=?]", sign_org_settings_telephones_path(ri: "jp")
-    assert_select "a[href=?]", sign_org_settings_birthdate_path(ri: "jp")
-    assert_select "a[href*=?]", "/settings/google", count: 0
-  end
-
-  test "should redirect show when not logged in" do
+  test "sign settings shell redirects to acme authority" do
     get sign_org_settings_url(ri: "jp")
 
-    assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
+    assert_redirected_to acme_org_settings_url(ri: "jp", host: @acme_host)
+  end
+
+  test "sign credential settings routes still resolve on sign" do
+    get sign_org_settings_passkeys_url(ri: "jp")
+
+    assert_not_equal 404, response.status
+
+    get sign_org_settings_secret_credentials_url(ri: "jp")
+
+    assert_not_equal 404, response.status
   end
 end

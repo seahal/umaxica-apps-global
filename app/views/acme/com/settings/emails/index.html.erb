@@ -1,0 +1,57 @@
+<% content_for :page_title, "Emails" %>
+<%= link_to t("sign.app.settings.show.back"), acme_com_settings_path(ri: params[:ri]) %>
+
+<div>
+  <div>
+    <%= button_to t("sign.app.settings.email.index.new_link"),
+                  acme_com_settings_emails_registration_path(ri: params[:ri]),
+                  method: :post %>
+  </div>
+</div>
+
+<div>
+  <div>
+    <div>
+      <div>
+        <table>
+          <thead>
+          <tr>
+            <th scope="col"><%= t("activerecord.attributes.user_email.address") %></th>
+            <th scope="col"><%= t("activerecord.attributes.user_email.status") %></th>
+            <th scope="col">
+              <span>Actions</span>
+            </th>
+          </tr>
+          </thead>
+          <tbody>
+          <% @client_emails.each do |email| %>
+            <tr>
+              <td><%= email.address %></td>
+              <td>
+                <% if [VisitorEmailStatus::VERIFIED, VisitorEmailStatus::VERIFIED_WITH_SIGN_UP].include?(email.visitor_email_status_id) %>
+                  <span><%= t("views.sign.com.settings.emails.index.verified") %></span>
+                <% else %>
+                  <span><%= t("views.sign.com.settings.emails.index.unverified") %></span>
+                <% end %>
+              </td>
+              <td>
+                <%= link_to t("sign.app.settings.email.index.edit"),
+                            edit_acme_com_settings_email_path(email.public_id, ri: params[:ri]) %>
+              </td>
+            </tr>
+          <% end %>
+          <% if @client_emails.empty? %>
+            <tr>
+              <td colspan="3">
+                <div>
+                  <p><%= t("views.sign.com.settings.emails.index.empty") %></p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

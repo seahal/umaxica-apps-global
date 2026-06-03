@@ -15,7 +15,7 @@ module Redirects
       },
       dashboard: ->(routes, params) {
         routes.public_send(
-          "sign_#{Redirects::NavigationTargetResolver.surface(params)}_dashboard_path",
+          "acme_#{Redirects::NavigationTargetResolver.surface(params)}_dashboard_path",
           ri: params[:ri],
         )
       },

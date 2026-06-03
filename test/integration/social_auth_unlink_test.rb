@@ -11,17 +11,30 @@ require "base64"
 # - Successful unlink removes identity
 # - Unlink requires authentication
 class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
-  fixtures :client_google_identity_statuses, :client_apple_identity_statuses, :client_statuses
+  fixtures :client_google_identity_statuses, :client_apple_identity_statuses, :client_email_statuses,
+           :client_statuses, :client_totp_credential_statuses
 
   setup do
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @sign_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     @user = Client.create!(
       status_id: ClientStatus::NOTHING,
       public_id: "unlink_test_#{SecureRandom.hex(4)}",
+    )
+    ClientEmail.create!(
+      user: @user,
+      address: "unlink-test-#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
+    )
+    ClientTotpCredential.create!(
+      user: @user,
+      private_key: ROTP::Base32.random_base32,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+      last_otp_at: Time.zone.at(0),
     )
     @headers = as_user_headers(@user, host: @host)
     @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
@@ -51,12 +64,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       updated_at: 2.hours.ago,
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: stale_step_up_headers
 
-    assert_response :see_other
-    assert_match %r{/verification}, response.location
-    assert_match "scope=social_unlink", response.location
+    assert_response :unauthorized
     google_identity.reload
 
     assert_equal ClientGoogleIdentityStatus::ACTIVE, google_identity.status_id
@@ -79,12 +90,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       updated_at: 2.hours.ago,
     )
 
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "apple", ri: "jp", host: @host),
            headers: stale_step_up_headers
 
-    assert_response :see_other
-    assert_match %r{/verification}, response.location
-    assert_match "scope=social_unlink", response.location
+    assert_response :unauthorized
     apple_identity.reload
 
     assert_equal ClientAppleIdentityStatus::ACTIVE, apple_identity.status_id
@@ -104,11 +113,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: social_unlink_headers
 
-    assert_response :unprocessable_content
-    assert_equal I18n.t("errors.social_auth.insufficient_login_methods"), response.body
+    assert_redirected_to "http://#{@host}/"
 
     # Identity should still exist
     assert ClientGoogleIdentity.exists?(id: google_identity.id), "Last identity should NOT be deleted"
@@ -117,11 +125,11 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
   def stale_step_up_headers
     token = ClientToken.where(user_id: @user.id).order(created_at: :asc).last
 
-    browser_headers.merge(
+    {
       "Host" => @host,
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    )
+    }
   end
 
   def prepare_step_up_method!
@@ -136,7 +144,11 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
   def social_unlink_headers
     mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
-    as_user_headers(@user, host: @host, session_public_id: @token.public_id)
+    {
+      "Host" => @host,
+      "X-TEST-CURRENT-USER" => @user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    }
   end
 
   test "unlink last Apple identity returns 422 LastIdentityError" do
@@ -149,11 +161,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "apple", ri: "jp", host: @host),
            headers: social_unlink_headers
 
-    assert_response :unprocessable_content
-    assert_equal I18n.t("errors.social_auth.insufficient_login_methods"), response.body
+    assert_redirected_to "http://#{@host}/"
     assert ClientAppleIdentity.exists?(id: apple_identity.id), "Last identity should NOT be deleted"
   end
 
@@ -180,7 +191,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -208,7 +219,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "apple", ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -242,7 +253,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
     email.destroy!
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -273,7 +284,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       description: "Test Passkey",
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -294,7 +305,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -311,7 +322,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:revoked),
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -320,7 +331,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
   test "unlink requires authentication" do
     # No auth header
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: { "Host" => @host }
 
     # Should redirect to login
@@ -329,6 +340,25 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
     assert_equal "jump.umaxica.net", uri.host
     assert_predicate Rack::Utils.parse_query(uri.query)["rt"], :present?
+  end
+
+  test "old sign unlink route method-preserving redirects to acme without local mutation" do
+    google_identity = ClientGoogleIdentity.create!(
+      user: @user,
+      uid: "sign_compat_google_#{SecureRandom.hex(4)}",
+      provider: "google_app",
+      token: "token",
+      expires_at: 1.week.from_now.to_i,
+      user_google_identity_status: client_google_identity_statuses(:active),
+    )
+
+    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @sign_host),
+           headers: social_unlink_headers.merge("Host" => @sign_host)
+
+    assert_response :temporary_redirect
+    assert_equal @host, URI.parse(response.location).host
+    assert_equal "/settings/connections/social/google_app", URI.parse(response.location).path
+    assert ClientGoogleIdentity.exists?(google_identity.id)
   end
 
   test "unlink succeeds when user has only inactive legacy social identity and an active email" do
@@ -359,7 +389,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Apple - should succeed because user has email as backup
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "apple", ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -388,11 +418,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Google - should fail because it's the only ACTIVE identity
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
+    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @host),
            headers: social_unlink_headers
 
-    assert_response :unprocessable_content
-    assert_equal I18n.t("errors.social_auth.insufficient_login_methods"), response.body
+    assert_redirected_to "http://#{@host}/"
 
     # Google should still be ACTIVE (not unlinked)
     google_identity.reload

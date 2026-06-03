@@ -71,7 +71,6 @@ These database names remain independent cross-cutting or infrastructure boundari
 - `occurrence`
 - `chronicle`
 - `avatar`
-- `redirector`
 
 ## Rules
 

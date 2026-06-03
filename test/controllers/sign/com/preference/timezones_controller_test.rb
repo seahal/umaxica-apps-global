@@ -2,53 +2,31 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/preference_jwt_helper"
 
 module Sign
   module Com
     module Preference
-      module Region
-        class TimezonesControllerTest < ActionDispatch::IntegrationTest
-          include PreferenceJwtHelper
+      class TimezonesControllerTest < ActionDispatch::IntegrationTest
+        setup do
+          @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+          @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+          host! @host
+        end
 
-          fixtures :com_preferences
-
-          setup do
-            @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-            @visitor = create_verified_visitor_with_email(
-              email_address: "preference-timezone-#{SecureRandom.hex(4)}@example.com",
-            )
-            @visitor.visitor_telephones.create!(
-              number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
-              visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
-            )
-            host! @host
+        test "sign timezone edit redirects to acme preference authority" do
+          assert_no_difference("ComPreference.count") do
+            get edit_sign_com_preference_timezone_url(ri: "jp", lx: "en")
           end
 
-          test "PATCH update syncs timezone to com preference" do
-            preference = com_preferences(:one)
-            ComPreferenceTimezone.create!(preference: preference, option_id: ComPreferenceTimezoneOption::ASIA_TOKYO)
-            token = encode_preference_jwt(
-              preferences: { "tz" => "Asia/Tokyo" },
-              host: @host,
-              public_id: preference.public_id,
-              preference_type: "ComPreference",
-            )
+          assert_redirected_to edit_acme_com_preference_timezone_url(ri: "jp", lx: "en", host: @acme_host)
+        end
 
-            with_preference_jwt_keys(host: @host) do
-              cookies[::Preference::CookieName.access] = token
-
-              patch sign_com_preference_timezone_path,
-                    params: { preference_timezone: { option_id: ComPreferenceTimezoneOption::ETC_UTC } },
-                    headers: as_visitor_headers(@visitor, host: @host)
-            end
-
-            assert_redirected_to edit_sign_com_preference_timezone_url(ri: "jp")
-
-            preference.reload
-
-            assert_equal ComPreferenceTimezoneOption::ETC_UTC, preference.com_preference_timezone.option_id
+        test "sign timezone mutation redirects without local preference authority" do
+          assert_no_difference("ComPreference.count") do
+            patch sign_com_preference_timezone_url(ri: "jp"), params: { preference_timezone: { option_id: "test" } }
           end
+
+          assert_redirected_to acme_com_preference_timezone_url(ri: "jp", host: @acme_host)
         end
       end
     end

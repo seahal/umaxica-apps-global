@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 scope module: :core, as: :core do
-  constraints host: core_app_host do
+  constraints host: ENV["CORE_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -39,7 +39,7 @@ scope module: :core, as: :core do
     end
   end
 
-  constraints host: core_com_host do
+  constraints host: ENV["CORE_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -76,7 +76,7 @@ scope module: :core, as: :core do
     end
   end
 
-  constraints host: core_org_host do
+  constraints host: ENV["CORE_STAFF_URL"] do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false

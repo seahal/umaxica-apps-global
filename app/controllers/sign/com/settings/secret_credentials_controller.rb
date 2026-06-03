@@ -10,46 +10,64 @@ module Sign
         include ::Sign::Settings::SecretCredentialTurnstileGuard
 
         include ::Sign::Settings::SecretCredentialCacheControl
+        include ::Sign::AcmeAuthorityRedirect
+        include ::Sign::SecretCredentialCeremonyDelegation
 
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!
         before_action :set_no_store_for_secret_credential_pages
-        before_action :set_secret_credential, only: %i(show edit update destroy regenerate)
+        before_action :set_secret_credential, only: :regenerate
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
-        before_action :verify_secret_credential_turnstile!, only: %i(create update destroy)
+        before_action :verify_secret_credential_turnstile!, only: :create
+        before_action :accept_com_secret_credential_ceremony_grant!, only: %i(new create)
 
         def index
-          authorize!(VisitorSecretCredential, to: :index?)
-          @secret_credentials = current_visitor.visitor_secret_credentials.order(created_at: :desc)
+          redirect_to_acme_settings_authority!
         end
 
         def show
-          authorize!(@secret_credential)
+          redirect_to_acme_settings_authority!
         end
 
         def new
           authorize!(VisitorSecretCredential, to: :new?)
           @secret_credential = current_visitor.visitor_secret_credentials.new
+          start_secret_credential_ceremony!(
+            surface: "com", actor: current_visitor,
+            session_ref: current_session_public_id,
+          )
           @raw_secret_credential = VisitorSecretCredential.generate_raw_secret_credential
           session[:visitor_secret_credential_raw] = @raw_secret_credential
           @secret_credential.name = @raw_secret_credential.first(4)
         end
 
         def edit
-          authorize!(@secret_credential)
+          redirect_to_acme_settings_authority!
         end
 
         def create
           authorize!(VisitorSecretCredential, to: :create?)
           raw_secret_credential = session.delete(:visitor_secret_credential_raw)
-          @secret_credential = current_visitor.visitor_secret_credentials.new(create_secret_credential_params)
-          @secret_credential.raw_secret_credential = raw_secret_credential
-          @secret_credential.password = raw_secret_credential
-          @secret_credential.save!
+          finish_secret_credential_ceremony!(
+            surface: "com",
+            actor: current_visitor,
+            session_ref: current_session_public_id,
+            record_class: VisitorSecretCredential,
+            name: create_secret_credential_params[:name].to_s.strip,
+            enabled: secret_credential_params[:enabled],
+            raw_secret_credential: raw_secret_credential,
+          )
+          reset_secret_credential_ceremony_session!
 
           flash[:notice] = t("sign.app.settings.secret_credentials.create.created")
-          redirect_to(sign_com_settings_secret_credentials_path(ri: params[:ri]))
+          redirect_to(
+            acme_com_settings_secret_credentials_url(
+              ri: params[:ri],
+              host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+            ),
+            allow_other_host: true,
+          )
         rescue ActiveRecord::RecordInvalid => e
           @secret_credential ||= e.record
           @raw_secret_credential ||= raw_secret_credential
@@ -57,43 +75,11 @@ module Sign
         end
 
         def update
-          authorize!(@secret_credential)
-          update_params = secret_credential_params
-          if disabling_secret_credential?(update_params) && AuthMethodGuard.last_method?(
-            current_visitor,
-            excluding: @secret_credential,
-          )
-            flash[:alert] = t("sign.app.settings.secret_credentials.update.last_method")
-            return redirect_to(sign_com_settings_secret_credentials_path(ri: params[:ri]))
-          end
-
-          VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::ACTIVE)
-          VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::REVOKED)
-          @secret_credential.name = update_params[:name].to_s.strip if update_params[:name].present?
-          if update_params[:enabled] == "1"
-            @secret_credential.visitor_secret_credential_status_id = VisitorSecretCredential.status_id_for(:active)
-          elsif update_params[:enabled] == "0"
-            @secret_credential.visitor_secret_credential_status_id = VisitorSecretCredential.status_id_for(:revoked)
-          end
-          @secret_credential.save!(validate: false)
-
-          flash[:notice] = t("sign.app.settings.secret_credentials.update.updated")
-          redirect_to(sign_com_settings_secret_credentials_path(ri: params[:ri]))
-        rescue ActiveRecord::RecordInvalid => e
-          @secret_credential = e.record.is_a?(VisitorSecretCredential) ? e.record : @secret_credential
-          render :edit, status: :unprocessable_content
+          redirect_to_acme_settings_authority!
         end
 
         def destroy
-          authorize!(@secret_credential)
-          if AuthMethodGuard.last_method?(current_visitor, excluding: @secret_credential)
-            flash[:alert] = t("sign.app.settings.secret_credentials.destroy.last_method")
-            return redirect_to(sign_com_settings_secret_credentials_path(ri: params[:ri]))
-          end
-
-          @secret_credential.update!(visitor_secret_credential_status_id: VisitorSecretCredentialStatus::DELETED)
-          flash[:notice] = t("sign.app.settings.secret_credentials.destroy.destroyed")
-          redirect_to(sign_com_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
+          redirect_to_acme_settings_authority!
         end
 
         def regenerate
@@ -142,12 +128,28 @@ module Sign
           sign_com_settings_secret_credentials_path(ri: params[:ri])
         end
 
+        def accept_com_secret_credential_ceremony_grant!
+          return true if accept_secret_credential_ceremony_grant!(surface: "com")
+
+          redirect_to(
+            acme_com_settings_secret_credentials_path(ri: params[:ri]),
+            alert: I18n.t("errors.messages.invalid"),
+            status: :see_other,
+          )
+          false
+        end
+
         def verification_required_action?
-          %w(create update destroy regenerate).include?(action_name)
+          %w(create regenerate).include?(action_name)
         end
 
         def verification_scope
           "settings_secret_credential"
+        end
+
+        # Compatibility entry only. acme/www owns account-facing secret credential lifecycle.
+        def redirect_to_acme_settings_authority!
+          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
       end
     end

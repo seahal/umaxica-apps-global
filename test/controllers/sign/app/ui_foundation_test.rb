@@ -4,17 +4,17 @@
 require "test_helper"
 
 class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_statuses
+  fixtures :clients, :client_statuses, :client_token_kinds
 
   setup do
     @user = create_verified_user_with_email(email_address: "ui-foundation-#{SecureRandom.hex(4)}@example.com")
     @host = ENV["ID_SERVICE_URL"]
+    @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
   end
 
   test "should render settings page with new UI foundation" do
-    head = { "X-TEST-CURRENT-USER" => @user.id, "Host" => @host }
-    get "/settings", headers: head
-    follow_redirect!(headers: head) if response.redirect?
+    head = acme_session_headers
+    get acme_app_settings_url(ri: "jp", host: @acme_host), headers: head
 
     assert_response :success
 
@@ -26,31 +26,28 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   end
 
   test "PageHeader renders correct up_to link" do
-    head = as_user_headers(@user, host: @host)
-    get "/settings", headers: head
-    follow_redirect!(headers: head) if response.redirect?
+    head = acme_session_headers
+    get acme_app_settings_url(ri: "jp", host: @acme_host), headers: head
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.settings.show.page_title")
   end
 
   test "PageHeader on sub-pages points back to settings" do
-    head = as_user_headers(@user, host: @host)
+    sign_head = as_user_headers(@user, host: @host)
     pages = [
-      sign_app_settings_totps_path(ri: "jp"),
-      sign_app_settings_passkeys_path(ri: "jp"),
-      sign_app_settings_mfa_challenge_path(ri: "jp"),
-      sign_app_settings_secret_credentials_path(ri: "jp"),
-      sign_app_settings_emails_path(ri: "jp"),
-      sign_app_settings_telephones_path(ri: "jp"),
-      sign_app_settings_sessions_path(ri: "jp"),
-      sign_app_settings_google_path(ri: "jp"),
-      new_sign_app_settings_withdrawal_path(ri: "jp"),
-      edit_sign_app_sign_out_path(ri: "jp"),
+      [acme_app_settings_totps_url(ri: "jp", host: @acme_host), acme_session_headers(scope: "settings_totp")],
+      [acme_app_settings_passkeys_url(ri: "jp", host: @acme_host), acme_session_headers(scope: "settings_passkey")],
+      [
+        acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host),
+        acme_session_headers(scope: "settings_secret_credential"),
+      ],
+      [sign_app_settings_mfa_challenge_path(ri: "jp"), sign_head],
+      [sign_app_settings_google_path(ri: "jp"), sign_head],
     ]
 
     Prosopite.pause do
-      pages.each do |path|
+      pages.each do |path, head|
         get path, headers: head
         follow_redirect!(headers: head) if response.redirect?
 
@@ -59,21 +56,38 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "authority pages redirect to acme instead of rendering sign UI" do
+    head = as_user_headers(@user, host: @host)
+    authority_pages = {
+      sign_app_settings_sessions_path(ri: "jp") => "/settings/sessions",
+      new_sign_app_settings_withdrawal_path(ri: "jp") => "/settings/withdrawal",
+      edit_sign_app_sign_out_path(ri: "jp") => "/sign/out",
+      sign_app_settings_emails_path(ri: "jp") => "/settings/emails",
+      sign_app_settings_telephones_path(ri: "jp") => "/settings/telephones",
+    }
+
+    authority_pages.each do |path, expected_path|
+      get path, headers: head
+
+      assert_response :see_other
+      location = URI.parse(response.location)
+
+      assert_equal ENV.fetch("ACME_SERVICE_URL"), location.host
+      assert_equal expected_path, location.path
+    end
+  end
+
   test "dark mode class is rendered based on cookie" do
     # Testing the theme_html_class helper's effect via integration
-    headers = as_user_headers(@user, host: @host)
-    get sign_app_settings_url(ct: "dark"), headers: headers
-
-    follow_redirect!(headers: headers) if response.redirect?
+    headers = acme_session_headers
+    get acme_app_settings_url(ri: "jp", ct: "dark", host: @acme_host), headers: headers
 
     assert_response :success
 
     assert_includes response.body, 'class="theme-dark dark"'
 
-    headers = as_user_headers(@user, host: @host)
-    get sign_app_settings_url(ct: "light"), headers: headers
-
-    follow_redirect!(headers: headers) if response.redirect?
+    headers = acme_session_headers
+    get acme_app_settings_url(ri: "jp", ct: "light", host: @acme_host), headers: headers
 
     assert_response :success
 
@@ -81,15 +95,31 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   end
 
   test "UI components are used in the page" do
-    head = as_user_headers(@user, host: @host)
-    get sign_app_settings_url, headers: head
-
-    follow_redirect!(headers: head) if response.redirect?
+    head = acme_session_headers
+    get acme_app_settings_url(ri: "jp", host: @acme_host), headers: head
 
     assert_response :success
 
     assert_select "section", minimum: 3
     assert_select "a[href*='settings/totps']"
     assert_select "a[href*='settings/passkeys']"
+  end
+
+  private
+
+  def acme_session_headers(scope: nil)
+    token = ClientToken.new(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+    )
+    token.send(:skip_session_limit_check=, true)
+    token.save!
+    mark_token_step_up_satisfied_for_test(token, scope: scope) if scope.present?
+
+    {
+      "Host" => @acme_host,
+      "X-TEST-CURRENT-USER" => @user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
   end
 end

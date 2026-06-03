@@ -74,7 +74,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
   end
 
   test "index requires step-up when session freshness is stale" do
@@ -85,14 +85,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-    query = Rack::Utils.parse_query(uri.query)
-
-    assert_equal "/verification", uri.path
-    assert_equal "settings_secret_credential", query["scope"]
-    assert_predicate query["pt"], :present?
-    assert_match(/--/, query["pt"])
+    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
   end
 
   test "should show back link on index page" do
@@ -100,8 +93,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
-    assert_response :success
-    assert_select "a[href=?]", sign_app_settings_path(ri: "jp")
+    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
   end
 
   test "index renders destroy as delete form" do
@@ -109,12 +101,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
-    assert_response :success
-    assert_select "form[action=?][method=?]",
-                  sign_app_settings_secret_credential_path(@user_secret_credential, ri: "jp"),
-                  "post" do
-      assert_select "input[name=?][value=?]", "_method", "delete"
-    end
+    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
   end
 
   test "should get show" do
@@ -123,7 +110,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
   end
 
   test "new redirects to setup when MFA is unavailable" do
@@ -186,7 +173,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}/edit?ri=jp")
   end
 
   test "should show back link on edit page" do
@@ -195,9 +182,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_response :success
-    assert_select "a[href=?]", sign_app_settings_path(ri: "jp"),
-                  text: /#{Regexp.escape(I18n.t("actions.back"))}/
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}/edit?ri=jp")
   end
 
   test "should create secret_credential and redirect to index" do
@@ -224,7 +209,10 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to sign_app_settings_secret_credentials_url(ri: "jp")
+    assert_redirected_to acme_app_settings_secret_credentials_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
     assert_predicate flash[:notice], :present?
     assert_nil flash[:raw_secret_credential], "raw secret_credential must not be exposed in flash"
     assert_operator @token.reload.last_step_up_at, :>=, step_up_before - 1.second
@@ -284,7 +272,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "should update secret_credential name and status" do
-    assert_difference(
+    assert_no_difference(
       -> {
         ClientChronicle.where(
           actor_type: "Client",
@@ -301,11 +289,11 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to sign_app_settings_secret_credentials_url(ri: "jp")
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
     @user_secret_credential.reload
 
-    assert_equal "Updated Secret", @user_secret_credential.name
-    assert_equal ClientSecretCredentialStatus::REVOKED, @user_secret_credential.user_identity_secret_status_id
+    assert_equal "Test Secret", @user_secret_credential.name
+    assert_equal ClientSecretCredentialStatus::ACTIVE, @user_secret_credential.user_identity_secret_status_id
   end
 
   test "should get destroy" do
@@ -319,8 +307,8 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_response :see_other
-    assert_redirected_to sign_app_settings_secret_credentials_url(ri: "jp")
-    assert_predicate flash[:notice], :present?
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_nil flash[:notice]
   end
 
   test "URL uses public_id not numeric ID" do
@@ -329,7 +317,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
     # Verify URL contains public_id, not numeric ID
     assert_not_includes request.fullpath, "/#{@user_secret_credential.id}/"
     assert_includes request.fullpath, "/#{@user_secret_credential.public_id}"
@@ -341,7 +329,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_response :success
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
     assert_equal @user_secret_credential.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
@@ -352,7 +340,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_response :not_found
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.id}?ri=jp")
   end
 
   test "should return 404 for other user's secret_credential" do
@@ -370,7 +358,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_response :not_found
+    assert_redirected_to_acme("/settings/secret_credentials/#{other_secret_credential.public_id}?ri=jp")
   end
 
   test "update does not disable last method" do
@@ -400,8 +388,8 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to sign_app_settings_secret_credentials_url(ri: "jp")
-    assert_predicate flash[:alert], :present?
+    assert_redirected_to_acme("/settings/secret_credentials/#{secret_credential.public_id}?ri=jp")
+    assert_nil flash[:alert]
     assert_equal ClientSecretCredentialStatus::ACTIVE, secret_credential.reload.user_identity_secret_status_id
   end
 
@@ -431,8 +419,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
             headers: authenticated_headers
     end
 
-    assert_response :unprocessable_entity
-    assert_includes response.body, I18n.t("turnstile_error")
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
     assert_equal "Test Secret", @user_secret_credential.reload.name
   end
 
@@ -449,8 +436,17 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
+    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_nil flash[:alert]
+  end
+
+  private
+
+  def assert_redirected_to_acme(path)
     assert_response :see_other
-    assert_redirected_to sign_app_settings_secret_credentials_url(ri: "jp")
-    assert_predicate flash[:alert], :present?
+    uri = URI.parse(response.location)
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal path, uri.request_uri
   end
 end

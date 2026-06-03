@@ -40,7 +40,7 @@ module Sign
             return
           end
 
-          redirect_to(edit_sign_org_settings_telephone_path(@staff_telephone.id))
+          redirect_to(edit_sign_org_settings_telephones_registration_path(ri: params[:ri]))
         end
 
         def destroy

@@ -21,6 +21,7 @@ module Acme
       include ::Verification::Visitor
 
       include ActionPolicy::Controller
+      include ::RestrictedSessionGuard
 
       include ::Oidc::SsoInitiator
 
@@ -59,6 +60,7 @@ module Acme
       before_action :apply_localization_preferences
       before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
+      before_action :enforce_restricted_session_guard!
       before_action :enforce_verification_if_required
       before_action :enforce_access_policy!
       before_action :set_current_observability
@@ -80,6 +82,12 @@ module Acme
 
       def oidc_sign_host
         ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+      end
+
+      private
+
+      def actor_verification_path(**args)
+        acme_com_verification_path(**args)
       end
     end
   end

@@ -3,12 +3,9 @@
 
 module Sign
   module Com
-    class DashboardsController < Sign::Com::ApplicationController
-      AUTHENTICATION_MODE = :private
-
-      before_action :authenticate_visitor!
-
+    class DashboardsController < Sign::RedirectOnlyController
       def show
+        redirect_to_acme_authority!("/dashboard")
       end
     end
   end

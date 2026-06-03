@@ -75,6 +75,6 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_root_url(ri: "jp"),
         headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
-    assert_redirected_to sign_app_dashboard_url(ri: "jp")
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
   end
 end

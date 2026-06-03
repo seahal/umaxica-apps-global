@@ -46,7 +46,7 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     get new_sign_com_sign_up_url(ri: "jp"), headers: as_visitor_headers(visitor, host: host)
 
-    assert_redirected_to sign_com_dashboard_url(ri: "jp")
+    assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
   end
 
   test "checkpoint without active registration redirects to sign up start" do

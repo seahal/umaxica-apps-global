@@ -9,7 +9,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host! @host
     @user = create_verified_user_with_email(email_address: "social_link_test@example.com")
     # Ensure @user has at least one auth method to start (e.g. password secret_credential)
@@ -19,6 +19,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     ClientSecretCredentialStatus.find_or_create_by!(id: ClientSecretCredentialStatus::ACTIVE)
     ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::ACTIVE)
     ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::REVOKED)
+    ClientTotpCredentialStatus.find_or_create_by!(id: ClientTotpCredentialStatus::ACTIVE)
 
     ClientSecretCredential.create!(
       user: @user,
@@ -26,10 +27,20 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       password_digest: "digest",
       name: "default",
     )
+    ClientTotpCredential.create!(
+      user: @user,
+      private_key: ROTP::Base32.random_base32,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+      last_otp_at: Time.zone.at(0),
+    )
 
     # Login as user
-    @headers = as_user_headers(@user, host: @host)
-    @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
+    @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    @headers = {
+      "Host" => @host,
+      "X-TEST-CURRENT-USER" => @user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    }
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -49,12 +60,12 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
 
     delete(
-      sign_app_social_authentication_url(provider: "apple", ri: "jp"),
+      social_unlink_acme_app_settings_connections_url(provider: "apple", ri: "jp", host: @host),
       headers: @headers,
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @host)
     follow_redirect!(headers: @headers)
 
     assert_equal I18n.t("sign.app.social.sessions.unlink.success", provider: "Apple"), flash[:notice]
@@ -64,7 +75,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
   test "should prevent unlinking last identity" do
     # Create user with ONLY Apple identity (remove password secret_credential)
     @user.client_secret_credentials.destroy_all
-    @user.client_emails.destroy_all
+    @user.client_emails.update_all(user_email_status_id: ClientEmailStatus::UNVERIFIED)
 
     ClientAppleIdentity.create!(
       user: @user, uid: "apple_uid_solo", provider: "apple",
@@ -75,13 +86,12 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
 
     # Try to unlink Apple
     delete(
-      sign_app_social_authentication_url(provider: "apple", ri: "jp"),
+      social_unlink_acme_app_settings_connections_url(provider: "apple", ri: "jp", host: @host),
       headers: @headers,
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("errors.social_auth.insufficient_login_methods")
+    assert_redirected_to "http://#{@host}/"
 
     # Ensure it wasn't destroyed
     assert ClientAppleIdentity.find_by(uid: "apple_uid_solo")

@@ -37,6 +37,7 @@ module Sign
         step_up_session.assign_attributes(attrs)
         step_up_session.save!
       end
+      issue_step_up_ceremony_grant!(token: token, scope: scope_str, return_to: safe_path)
     end
 
     def current_step_up_session
@@ -78,6 +79,73 @@ module Sign
       else
         raise(NotImplementedError, "#{self.class} must define #step_up_session_token_foreign_key")
       end
+    end
+
+    def issue_step_up_ceremony_grant!(token:, scope:, return_to:)
+      return unless respond_to?(:step_up_ceremony_surface, true)
+
+      grant_token = params[:step_up_ceremony_grant].presence
+      return validate_acme_step_up_ceremony_grant!(
+        grant_token, token: token, scope: scope,
+                     return_to: return_to,
+      ) if grant_token
+
+      # Compatibility entry only. acme/www owns step-up intent and freshness.
+      clear_acme_step_up_completion_state!
+      Identity::StepUpCeremony::GrantIssuer.issue!(
+        surface: step_up_ceremony_surface,
+        actor_ref: step_up_ceremony_actor_ref,
+        session_ref: token.public_id,
+        required_scope: scope,
+        required_aal: verification_required_aal,
+        allowed_methods: available_step_up_methods,
+        return_to: return_to,
+        expires_at: self.class::STEP_UP_TTL.from_now,
+      )
+    end
+
+    def validate_acme_step_up_ceremony_grant!(grant_token, token:, scope:, return_to:)
+      grant = Identity::StepUpCeremony::Grant.decode(
+        grant_token,
+        issuer_id: Identity::StepUpCeremony::Contract.acme_issuer_id(step_up_ceremony_surface),
+      )
+
+      raise ActionController::BadRequest, "grant actor mismatch" unless grant["actor_ref"] == step_up_ceremony_actor_ref
+      raise ActionController::BadRequest, "grant session mismatch" unless grant["session_ref"] == token.public_id
+      raise ActionController::BadRequest, "grant scope mismatch" unless grant["required_scope"] == scope.to_s
+      raise ActionController::BadRequest, "grant return target mismatch" unless grant["return_to"] == return_to
+
+      store_acme_step_up_completion_state!(
+        transaction_id: grant["transaction_id"],
+        surface: grant["surface"],
+      )
+      grant
+    rescue Identity::StepUpCeremony::Error => e
+      raise ActionController::BadRequest, "invalid step-up grant: #{e.message}"
+    end
+
+    def acme_step_up_completion_session_key
+      :acme_step_up_completion
+    end
+
+    def clear_acme_step_up_completion_state!
+      return unless request_available_for_step_up_completion_state?
+
+      session.delete(acme_step_up_completion_session_key)
+    end
+
+    def store_acme_step_up_completion_state!(transaction_id:, surface:)
+      return unless request_available_for_step_up_completion_state?
+
+      session[acme_step_up_completion_session_key] = {
+        "transaction_id" => transaction_id,
+        "surface" => surface,
+        "csrf_token" => params[:step_up_completion_csrf].presence,
+      }
+    end
+
+    def request_available_for_step_up_completion_state?
+      defined?(@_request) && @_request.present?
     end
   end
 end

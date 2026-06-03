@@ -1,18 +1,12 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::Org::Preference::PageSizesController < Sign::Org::PreferencesBaseController
-  include ::Preference::SignScreenActions
-
-  AUTHENTICATION_MODE = :open
-
-  before_action :ensure_preferences_record
-
-  def edit
-    edit_selectable_preference_screen(:page_size)
-  end
-
-  def update
-    update_selectable_preference_screen(:page_size)
+module Sign
+  module Org
+    module Preference
+      class PageSizesController < Sign::RedirectOnlyController
+        include ::Sign::PreferenceAuthorityRedirect
+      end
+    end
   end
 end

@@ -20,6 +20,11 @@ module Acme
         Acme::App::Edge::V0::HealthsController
         Acme::App::HealthsController
         Acme::App::JwksController
+        Acme::App::Oauth::JwksController
+        Acme::App::Oauth::RevocationsController
+        Acme::App::Oauth::TokensController
+        Acme::App::Oauth::UserInfoController
+        Acme::App::OpenidConfigurationsController
         Acme::App::RobotsController
         Acme::App::SitemapsController
       ).freeze

@@ -17,6 +17,7 @@ module Sign
       rate_limit to: 10, within: 1.minute, only: :create
 
       def create
+        # Compatibility endpoint only. acme/www owns token issuance.
         result = ::Oidc::TokenExchangeService.call(
           grant_type: params[:grant_type],
           code: params[:code],

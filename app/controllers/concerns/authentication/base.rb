@@ -531,7 +531,7 @@ module Authentication
         refresh_public_id,
       ) unless refresh_dpop_allowed?(token_record) && refresh_binding_allowed?(token_record)
 
-      result = Sign::RefreshTokenService.call(refresh_token: refresh_plain)
+      result = Acme::RefreshTokenService.call(refresh_token: refresh_plain)
       return handle_invalid_refresh_token_result(result, refresh_public_id, token_record) unless result.success?
 
       previous_token_record = result[:previous_token] || token_record
@@ -2569,7 +2569,11 @@ module Authentication
           "/"
         end
       message = options[:message] || I18n.t("errors.messages.already_authenticated")
-      redirect_to(path, allow_other_host: false, alert: message)
+      redirect_to(path, allow_other_host: after_login_allows_other_host?, alert: message)
+    end
+
+    def after_login_allows_other_host?
+      false
     end
   end
 end

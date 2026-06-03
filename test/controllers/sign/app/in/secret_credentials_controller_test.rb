@@ -596,12 +596,12 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.handle_successful_mfa(@user, secret_credential)
 
-    assert_match %r{\A/dashboard}, redirects.last.first
+    assert_match %r{\Ahttps?://www\.umaxica\.app/dashboard}, redirects.last.first
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.handle_successful_mfa(@user, secret_credential)
 
-    assert_match %r{\A/dashboard\?}, redirects.last.first
+    assert_match %r{\Ahttps?://www\.umaxica\.app/dashboard\?}, redirects.last.first
     assert_includes redirects.last.first, "ri=jp"
     assert_equal({ notice: "sign.app.authentication.secret_credential.create.success" }, redirects.last.second)
 
@@ -633,12 +633,15 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.process_standard_login(@user)
 
-    assert_match %r{\A/dashboard\?}, redirects.last.first
+    assert_match %r{\Ahttps?://www\.umaxica\.app/dashboard\?}, redirects.last.first
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.process_standard_login(@user)
 
-    assert_equal ["/dashboard?ri=jp", { notice: "sign.app.authentication.secret_credential.create.success" }],
-                 redirects.last
+    assert_equal(
+      ["http://www.umaxica.app/dashboard?ri=jp",
+       { notice: "sign.app.authentication.secret_credential.create.success" },],
+      redirects.last,
+    )
   end
 end

@@ -4,20 +4,8 @@
 module Sign
   module App
     module Preference
-      class ResetsController < PreferencesBaseController
-        include ::Preference::SignScreenActions
-
-        AUTHENTICATION_MODE = :open
-
-        before_action :ensure_preferences_record
-
-        def edit
-          edit_reset_preference_screen
-        end
-
-        def destroy
-          destroy_reset_preference_screen
-        end
+      class ResetsController < Sign::RedirectOnlyController
+        include ::Sign::PreferenceAuthorityRedirect
       end
     end
   end

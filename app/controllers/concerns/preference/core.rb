@@ -428,7 +428,10 @@ module Preference::Core
   end
 
   def preference_index_url(params_hash = {})
-    public_send("sign_#{preference_surface_key}_preference_url", compact_url_params(params_hash))
+    public_send(
+      "#{preference_route_authority}_#{preference_surface_key}_preference_url",
+      compact_url_params(params_hash),
+    )
   end
 
   def preference_update_notice
@@ -627,7 +630,11 @@ module Preference::Core
         raise ArgumentError, "Unknown preference screen: #{screen.inspect}"
       end
 
-    "sign_#{preference_surface_key}_preference_#{suffix}_url"
+    "#{preference_route_authority}_#{preference_surface_key}_preference_#{suffix}_url"
+  end
+
+  def preference_route_authority
+    controller_path.to_s.split("/").first.presence || "sign"
   end
 
   def preference_group_screen(screen)

@@ -4,7 +4,8 @@
 require "test_helper"
 
 class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
+  fixtures :client_statuses, :client_email_statuses, :client_totp_credential_statuses,
+           :client_google_identity_statuses, :client_apple_identity_statuses
 
   PROVIDERS = {
     google_app: {
@@ -28,6 +29,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -79,7 +81,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
     assert_not PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
     assert PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
@@ -91,7 +93,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:apple))
 
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
@@ -103,7 +105,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:apple))
 
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
 
@@ -145,13 +147,12 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
     delete(
-      sign_app_social_authentication_url(provider: "google_app", ri: "jp"),
-      headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
+      social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @acme_host),
+      headers: acme_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_response :see_other
-    assert_match %r{/verification}, response.location
+    assert_response :unauthorized
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
   end
 
@@ -178,9 +179,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
-    assert_response :unprocessable_content
+    assert_redirected_to "http://#{@acme_host}/"
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
-    assert_includes response.body, I18n.t("errors.social_auth.insufficient_login_methods")
   end
 
   test "Google settings unlink rejects failed Turnstile before unlinking" do
@@ -192,7 +192,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
     assert_response :see_other
-    assert_redirected_to sign_app_settings_google_url(ri: "jp")
+    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
   end
 
@@ -268,10 +268,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_in_checkpoint_url(ri: "jp")
-    follow_redirect!
-
-    assert_redirected_to sign_app_welcome_entry_url(ri: "jp")
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: @acme_host)
     identity.reload
 
     assert_equal user.id, identity.user_id
@@ -335,9 +332,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, config)
 
-    assert_response :unprocessable_content
+    assert_redirected_to "http://#{@acme_host}/"
     assert config.fetch(:model).exists?(identity.id)
-    assert_includes response.body, I18n.t("errors.social_auth.insufficient_login_methods")
   end
 
   def perform_social_callback(config, params:, headers:)
@@ -346,6 +342,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     else
       get(sign_app_auth_callback_url(provider: config.fetch(:provider), ri: "jp"), params: params, headers: headers)
     end
+    submit_social_completion_if_present!
   end
 
   def setup_mock_auth(config, uid:, token:)
@@ -364,12 +361,24 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   def create_social_client
-    Client.create!(
+    user = Client.create!(
       status_id: ClientStatus::NOTHING,
       public_id: "soc_#{SecureRandom.hex(6)}",
       birthdate: "2000-02-03",
       last_step_up_at: 1.minute.ago,
     )
+    ClientEmail.create!(
+      user: user,
+      address: "social-contract-#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
+    )
+    ClientTotpCredential.create!(
+      user: user,
+      private_key: ROTP::Base32.random_base32,
+      user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+      last_otp_at: Time.zone.at(0),
+    )
+    user
   end
 
   def create_social_identity(config, user:, uid:, token: "token")
@@ -389,10 +398,18 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: "social_unlink")
 
     delete(
-      sign_app_social_authentication_url(provider: config.fetch(:provider), ri: "jp"),
-      headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
+      social_unlink_acme_app_settings_connections_url(provider: config.fetch(:provider), ri: "jp", host: @acme_host),
+      headers: acme_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
+  end
+
+  def acme_user_headers(user, token)
+    {
+      "Host" => @acme_host,
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
   end
 
   def token_bound_step_up_for_social_link(user)

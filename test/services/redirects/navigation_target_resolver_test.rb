@@ -9,7 +9,7 @@ class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
 
       def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
 
-      def sign_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
+      def acme_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
 
       def sign_app_settings_path(ri:) = "/settings?ri=#{ri}"
     end
@@ -36,7 +36,7 @@ class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
 
   test "does not resolve external urls from registry" do
     routes = Class.new do
-      def sign_app_dashboard_path(**) = "https://evil.example"
+      def acme_app_dashboard_path(**) = "https://evil.example"
     end.new
     result = Redirects::NavigationTargetResolver.call(
       :dashboard,

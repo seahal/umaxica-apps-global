@@ -10,47 +10,63 @@ module Sign
         include ::Sign::Settings::SecretCredentialTurnstileGuard
 
         include ::Sign::Settings::SecretCredentialCacheControl
+        include ::Sign::AcmeAuthorityRedirect
+        include ::Sign::SecretCredentialCeremonyDelegation
 
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_operator!
         before_action :set_no_store_for_secret_credential_pages
-        before_action :set_secret_credential, only: %i(show edit update destroy)
-        before_action :verify_secret_credential_turnstile!, only: %i(create update destroy)
+        before_action :set_secret_credential, only: []
+        before_action :verify_secret_credential_turnstile!, only: :create
+        before_action :accept_org_secret_credential_ceremony_grant!, only: %i(new create)
 
         def index
-          authorize!(OperatorSecretCredential, to: :index?)
-          @secret_credentials = current_operator.staff_secret_credentials.order(created_at: :desc)
+          redirect_to_acme_settings_authority!
         end
 
         def show
-          authorize!(@secret_credential)
+          redirect_to_acme_settings_authority!
         end
 
         def new
           authorize!(OperatorSecretCredential, to: :new?)
           @secret_credential = current_operator.staff_secret_credentials.new
+          start_secret_credential_ceremony!(
+            surface: "org", actor: current_operator,
+            session_ref: current_session_public_id,
+          )
           @raw_secret_credential = OperatorSecretCredential.generate_raw_secret_credential
           session[:staff_secret_credential_raw] = @raw_secret_credential
           @secret_credential.name = @raw_secret_credential.first(4)
         end
 
         def edit
-          authorize!(@secret_credential)
+          redirect_to_acme_settings_authority!
         end
 
         def create
           authorize!(OperatorSecretCredential, to: :create?)
           raw_secret_credential = session.delete(:staff_secret_credential_raw)
-          OperatorSecretCredentials::Create.call(
+          finish_secret_credential_ceremony!(
+            surface: "org",
             actor: current_operator,
-            staff: current_operator,
-            params: secret_credential_params,
+            session_ref: current_session_public_id,
+            record_class: OperatorSecretCredential,
+            name: secret_credential_params[:name].to_s.strip,
+            enabled: secret_credential_params[:enabled],
             raw_secret_credential: raw_secret_credential,
           )
+          reset_secret_credential_ceremony_session!
 
           flash[:notice] = t(".created")
-          redirect_to(sign_org_settings_secret_credentials_path)
+          redirect_to(
+            acme_org_settings_secret_credentials_url(
+              ri: params[:ri],
+              host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+            ),
+            allow_other_host: true,
+          )
         rescue ActiveRecord::RecordInvalid => e
           @secret_credential = e.record
           @raw_secret_credential = raw_secret_credential.presence ||
@@ -60,38 +76,11 @@ module Sign
         end
 
         def update
-          authorize!(@secret_credential)
-          if disabling_secret_credential? && AuthMethodGuard.last_method?(
-            current_operator,
-            excluding: @secret_credential,
-          )
-            flash[:alert] = t(".last_method")
-            return redirect_to(sign_org_settings_secret_credentials_path)
-          end
-
-          OperatorSecretCredentials::Update.call(
-            actor: current_operator,
-            secret_credential: @secret_credential,
-            params: secret_credential_params,
-          )
-
-          flash[:notice] = t(".updated")
-          redirect_to(sign_org_settings_secret_credentials_path)
-        rescue ActiveRecord::RecordInvalid => e
-          @secret_credential = e.record.is_a?(OperatorSecretCredential) ? e.record : @secret_credential
-          render :edit, status: :unprocessable_content
+          redirect_to_acme_settings_authority!
         end
 
         def destroy
-          authorize!(@secret_credential)
-          if AuthMethodGuard.last_method?(current_operator, excluding: @secret_credential)
-            flash[:alert] = t(".last_method")
-            return redirect_to(sign_org_settings_secret_credentials_path)
-          end
-
-          OperatorSecretCredentials::Destroy.call(actor: current_operator, secret_credential: @secret_credential)
-          flash[:notice] = t(".destroyed")
-          redirect_to(sign_org_settings_secret_credentials_path, status: :see_other)
+          redirect_to_acme_settings_authority!
         end
 
         private
@@ -121,12 +110,28 @@ module Sign
           sign_org_settings_secret_credentials_path(ri: params[:ri])
         end
 
+        def accept_org_secret_credential_ceremony_grant!
+          return true if accept_secret_credential_ceremony_grant!(surface: "org")
+
+          redirect_to(
+            acme_org_settings_secret_credentials_path(ri: params[:ri]),
+            alert: I18n.t("errors.messages.invalid"),
+            status: :see_other,
+          )
+          false
+        end
+
         def verification_required_action?
-          %w(create update destroy).include?(action_name)
+          action_name == "create"
         end
 
         def verification_scope
           "settings_secret_credential"
+        end
+
+        # Compatibility entry only. acme/www owns account-facing secret credential lifecycle.
+        def redirect_to_acme_settings_authority!
+          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
       end
     end

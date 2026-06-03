@@ -7,59 +7,26 @@ module Sign
   module Org
     module Preference
       class ResetsControllerTest < ActionDispatch::IntegrationTest
-        fixtures :operators, :operator_preferences
-
         setup do
           @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-          @staff = operators(:one)
+          @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
           host! @host
         end
 
-        test "edit renders only the page-level back link" do
-          get edit_sign_org_preference_reset_path(ri: "jp"),
-              headers: as_staff_headers(@staff, host: @host)
+        test "sign reset edit redirects to acme preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            get edit_sign_org_preference_reset_url(ri: "jp", lx: "en")
+          end
 
-          assert_response :success
-          assert_select "section > div:first-child > a", text: I18n.t("acme.org.preferences.regions.back_link"),
-                                                         count: 1
-          assert_select "a", text: I18n.t("acme.org.preference.resets.back"), count: 0
+          assert_redirected_to edit_acme_org_preference_reset_url(ri: "jp", lx: "en", host: @acme_host)
         end
 
-        test "DELETE destroy resets staff preference defaults" do
-          @staff.staff_preference.update!(
-            consented: true,
-            functional: true,
-            performant: true,
-            targetable: true,
-            region: "us",
-            timezone: "UTC",
-            theme: "dr",
-          )
+        test "sign reset mutation redirects without local preference authority" do
+          assert_no_difference("OrgPreference.count") do
+            delete sign_org_preference_reset_url(ri: "jp"), params: { preference_reset: { option_id: "test" } }
+          end
 
-          delete sign_org_preference_reset_path,
-                 params: { confirm_reset: "1" },
-                 headers: as_staff_headers(@staff, host: @host)
-
-          assert_response :see_other
-          assert_redirected_to sign_org_preference_path
-
-          @staff.staff_preference.reload
-
-          assert_not @staff.staff_preference.consented
-          assert_not @staff.staff_preference.functional
-          assert_not @staff.staff_preference.performant
-          assert_not @staff.staff_preference.targetable
-          assert_equal "jp", @staff.staff_preference.region
-          assert_equal "Asia/Tokyo", @staff.staff_preference.timezone
-          assert_equal "sy", @staff.staff_preference.theme
-        end
-
-        test "DELETE destroy redirects anonymous reset to org preference index" do
-          delete sign_org_preference_reset_path,
-                 params: { confirm_reset: "1" }
-
-          assert_response :see_other
-          assert_redirected_to sign_org_preference_path
+          assert_redirected_to acme_org_preference_reset_url(ri: "jp", host: @acme_host)
         end
       end
     end

@@ -3,12 +3,9 @@
 
 module Sign
   module Org
-    class DashboardsController < Sign::Org::ApplicationController
-      AUTHENTICATION_MODE = :private
-
-      before_action :authenticate_operator!
-
+    class DashboardsController < Sign::RedirectOnlyController
       def show
+        redirect_to_acme_authority!("/dashboard")
       end
     end
   end

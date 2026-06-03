@@ -1,18 +1,12 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::App::Preference::AdultContentGatesController < Sign::App::PreferencesBaseController
-  include ::Preference::SignScreenActions
-
-  AUTHENTICATION_MODE = :open
-
-  before_action :ensure_preferences_record
-
-  def edit
-    edit_selectable_preference_screen(:adult_content_gate)
-  end
-
-  def update
-    update_selectable_preference_screen(:adult_content_gate)
+module Sign
+  module App
+    module Preference
+      class AdultContentGatesController < Sign::RedirectOnlyController
+        include ::Sign::PreferenceAuthorityRedirect
+      end
+    end
   end
 end

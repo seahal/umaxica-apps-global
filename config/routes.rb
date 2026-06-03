@@ -10,6 +10,4 @@ Rails.application.routes.draw do
   # Regional application entrypoints
   # main page
   draw :core
-  # direct message
-  draw :line
 end

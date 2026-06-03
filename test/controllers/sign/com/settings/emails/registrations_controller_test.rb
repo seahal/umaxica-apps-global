@@ -17,7 +17,7 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     @headers = as_visitor_headers(@visitor, host: @host)
     @token = VisitorToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
     satisfy_visitor_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_email")
+    mark_token_step_up_satisfied_for_test(@token, scope: "settings_email")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }

@@ -5,7 +5,7 @@
 
 scope module: :sign, as: :sign do
   # User auth service (id.app domain)
-  constraints host: sign_normalize_route_host(ENV["SIGN_SERVICE_URL"]) do
+  constraints host: ENV["SIGN_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -23,7 +23,6 @@ scope module: :sign, as: :sign do
       # FIXME: Remove this once we've migrated to the new welcome flow
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
-      # TODO: Check this entrypoint is still needed
       resource :selector, only: :show
       # for those who are logged in
       resource :dashboard, only: :show
@@ -79,21 +78,21 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show]
+      resource :preference, only: [:show], controller: "preference/redirects"
       namespace :preference do
-        resource :region, only: %i(edit update)
-        resource :timezone, only: %i(edit update)
-        resource :language, only: %i(edit update)
-        resource :currency, only: %i(edit update)
-        resource :date, only: %i(edit update)
-        resource :time, only: %i(edit update)
-        resource :motion, only: %i(edit update)
-        resource :density, only: %i(edit update)
-        resource :page_size, only: %i(edit update)
-        resource :adult_content_gate, only: %i(edit update)
-        resource :theme, only: %i(edit update)
-        resource :cookie, only: %i(edit update)
-        resource :reset, only: %i(edit destroy)
+        resource :region, only: %i(edit update), controller: "redirects"
+        resource :timezone, only: %i(edit update), controller: "redirects"
+        resource :language, only: %i(edit update), controller: "redirects"
+        resource :currency, only: %i(edit update), controller: "redirects"
+        resource :date, only: %i(edit update), controller: "redirects"
+        resource :time, only: %i(edit update), controller: "redirects"
+        resource :motion, only: %i(edit update), controller: "redirects"
+        resource :density, only: %i(edit update), controller: "redirects"
+        resource :page_size, only: %i(edit update), controller: "redirects"
+        resource :adult_content_gate, only: %i(edit update), controller: "redirects"
+        resource :theme, only: %i(edit update), controller: "redirects"
+        resource :cookie, only: %i(edit update), controller: "redirects"
+        resource :reset, only: %i(edit destroy), controller: "redirects"
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
       end
@@ -231,7 +230,8 @@ scope module: :sign, as: :sign do
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
-        resources :telephones, only: %i(index new edit create destroy)
+        resources :telephones, only: %i(new create edit)
+        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
 
         resource :birthdate, only: :show
         resource :apple, only: :show
@@ -248,15 +248,15 @@ scope module: :sign, as: :sign do
           end
         end
 
-        resources :connections, only: %i(index show destroy)
-        resources :activities, only: :index
+        resources :connections, only: %i(index show destroy), controller: "connections"
+        resources :activities, only: :index, controller: "activities"
         resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
   end
 
   # Corporate id service (id.com domain)
-  constraints host: sign_normalize_route_host(ENV["SIGN_CORPORATE_URL"]) do
+  constraints host: ENV["SIGN_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -318,23 +318,23 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show]
+      resource :preference, only: [:show], controller: "preference/redirects"
       namespace :preference do
-        resource :region, only: %i(edit update)
-        resource :timezone, only: %i(edit update)
-        resource :language, only: %i(edit update)
-        resource :currency, only: %i(edit update)
-        resource :date, only: %i(edit update)
-        resource :time, only: %i(edit update)
-        resource :motion, only: %i(edit update)
-        resource :density, only: %i(edit update)
-        resource :page_size, only: %i(edit update)
-        resource :adult_content_gate, only: %i(edit update)
-        resource :theme, only: %i(edit update)
-        resource :cookie, only: %i(edit update)
+        resource :region, only: %i(edit update), controller: "redirects"
+        resource :timezone, only: %i(edit update), controller: "redirects"
+        resource :language, only: %i(edit update), controller: "redirects"
+        resource :currency, only: %i(edit update), controller: "redirects"
+        resource :date, only: %i(edit update), controller: "redirects"
+        resource :time, only: %i(edit update), controller: "redirects"
+        resource :motion, only: %i(edit update), controller: "redirects"
+        resource :density, only: %i(edit update), controller: "redirects"
+        resource :page_size, only: %i(edit update), controller: "redirects"
+        resource :adult_content_gate, only: %i(edit update), controller: "redirects"
+        resource :theme, only: %i(edit update), controller: "redirects"
+        resource :cookie, only: %i(edit update), controller: "redirects"
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
-        resource :reset, only: %i(edit destroy)
+        resource :reset, only: %i(edit destroy), controller: "redirects"
       end
 
       # Sign-up and sign-in
@@ -426,10 +426,11 @@ scope module: :sign, as: :sign do
           resource :registration, only: %i(new create edit update)
         end
 
-        resources :telephones, only: %i(index new edit create destroy)
+        resources :telephones, only: %i(new create edit)
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
+        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
 
         resource :birthdate, only: :show
 
@@ -444,15 +445,15 @@ scope module: :sign, as: :sign do
           end
         end
 
-        resources :connections, only: %i(index show destroy)
-        resources :activities, only: :index
+        resources :connections, only: %i(index show destroy), controller: "connections"
+        resources :activities, only: :index, controller: "activities"
         resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
   end
 
   # Staff auth management
-  constraints host: sign_normalize_route_host(ENV["SIGN_STAFF_URL"]) do
+  constraints host: ENV["SIGN_STAFF_URL"] do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -511,28 +512,28 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show]
+      resource :preference, only: [:show], controller: "preference/redirects"
       namespace :preference do
-        resource :region, only: %i(edit update)
-        resource :timezone, only: %i(edit update)
-        resource :language, only: %i(edit update)
-        resource :currency, only: %i(edit update)
-        resource :date, only: %i(edit update)
-        resource :time, only: %i(edit update)
+        resource :region, only: %i(edit update), controller: "redirects"
+        resource :timezone, only: %i(edit update), controller: "redirects"
+        resource :language, only: %i(edit update), controller: "redirects"
+        resource :currency, only: %i(edit update), controller: "redirects"
+        resource :date, only: %i(edit update), controller: "redirects"
+        resource :time, only: %i(edit update), controller: "redirects"
 
-        resource :motion, only: %i(edit update)
-        resource :density, only: %i(edit update)
+        resource :motion, only: %i(edit update), controller: "redirects"
+        resource :density, only: %i(edit update), controller: "redirects"
 
-        resource :page_size, only: %i(edit update)
-        resource :adult_content_gate, only: %i(edit update)
+        resource :page_size, only: %i(edit update), controller: "redirects"
+        resource :adult_content_gate, only: %i(edit update), controller: "redirects"
 
-        resource :theme, only: %i(edit update)
-        resource :cookie, only: %i(edit update)
+        resource :theme, only: %i(edit update), controller: "redirects"
+        resource :cookie, only: %i(edit update), controller: "redirects"
 
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
 
-        resource :reset, only: %i(edit destroy)
+        resource :reset, only: %i(edit destroy), controller: "redirects"
       end
 
       # Sign-up: email registration and staff invitation flows
@@ -611,7 +612,7 @@ scope module: :sign, as: :sign do
           end
         end
 
-        resources :connections, only: %i(index show destroy)
+        resources :connections, only: %i(index show destroy), controller: "connections"
 
         namespace :emails do
           resource :registration, only: %i(new create edit update)
@@ -621,10 +622,11 @@ scope module: :sign, as: :sign do
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
-        resources :telephones, only: %i(index new edit create destroy)
+        resources :telephones, only: %i(new create edit)
+        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
 
         resource :birthdate, only: :show
-        resources :activities, only: :index
+        resources :activities, only: :index, controller: "activities"
         resource :withdrawal, only: %i(show)
 
         resources :operator_lifecycle_requests, only: %i(index show new create) do

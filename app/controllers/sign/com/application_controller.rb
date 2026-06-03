@@ -119,7 +119,11 @@ module Sign
       end
 
       def after_login_path
-        sign_com_dashboard_path
+        acme_com_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+      end
+
+      def after_login_allows_other_host?
+        true
       end
 
       def enforce_required_telephone_registration!

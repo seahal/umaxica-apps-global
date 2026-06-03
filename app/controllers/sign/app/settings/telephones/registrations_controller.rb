@@ -11,6 +11,7 @@ module Sign
           include Common::Redirect
           include Common::Otp
           include Sign::TelephoneRegistrable
+          include Sign::TelephoneCeremonyDelegation
 
           include ::Verification::Client
 
@@ -25,6 +26,16 @@ module Sign
           def new
             @user_telephone = ClientTelephone.new
             reset_registration_session!
+            return if accept_telephone_ceremony_grant!(surface: "app")
+
+            redirect_to(
+              acme_app_settings_telephones_url(
+                ri: params[:ri],
+                host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+              ),
+              notice: t("sign.app.registration.telephone.edit.session_expired"),
+              allow_other_host: true,
+            )
           end
 
           def edit
@@ -59,6 +70,12 @@ module Sign
             end
 
             session[registration_session_key] = @user_telephone.id
+            start_telephone_ceremony!(
+              surface: "app",
+              actor: current_client,
+              session_ref: current_session_public_id,
+              candidate: @user_telephone,
+            )
             redirect_to(
               edit_sign_app_settings_telephones_registration_path,
               notice: t("sign.app.registration.telephone.create.verification_code_sent"),
@@ -94,11 +111,7 @@ module Sign
               return
             end
 
-            status =
-              complete_telephone_verification(@user_telephone.id, submitted_code) do |user_telephone|
-                user_telephone.user = current_client
-                user_telephone.save!
-              end
+            status = complete_telephone_verification(@user_telephone.id, submitted_code)
 
             handle_registration_update_status(status)
           end
@@ -112,11 +125,20 @@ module Sign
           def handle_registration_update_status(status)
             case status
             when :success
-              record_telephone_registration_step_up!
+              finish_telephone_ceremony!(
+                surface: "app",
+                actor: current_client,
+                session_ref: current_session_public_id,
+                candidate: @user_telephone,
+              )
               reset_registration_session!
               redirect_to(
-                sign_app_settings_telephones_path,
+                acme_app_settings_telephones_url(
+                  ri: params[:ri],
+                  host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                ),
                 notice: t("sign.app.registration.telephone.update.success"),
+                allow_other_host: true,
               )
             when :session_expired
               reset_registration_session!
@@ -150,26 +172,7 @@ module Sign
 
           def reset_registration_session!
             session.delete(registration_session_key)
-          end
-
-          def record_telephone_registration_step_up!
-            create_audit_event!(ClientChronicleEvent::TELEPHONE_REGISTERED)
-          end
-
-          def create_audit_event!(event_id)
-            ChronicleRecord.connected_to(role: :writing) do
-              ClientChronicleEvent.find_or_create_by!(id: event_id)
-              ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
-            end
-
-            ClientChronicle.create!(
-              actor_type: "Client",
-              actor_id: current_client.id,
-              event_id: event_id,
-              subject_id: current_client.id.to_s,
-              subject_type: "Client",
-              occurred_at: Time.current,
-            )
+            reset_telephone_ceremony_session!
           end
 
           def verification_required_action?

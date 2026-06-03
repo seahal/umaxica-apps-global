@@ -46,11 +46,11 @@ module Oidc
     def host_for_resource_type(resource_type)
       case resource_type.to_s
       when "operator", "staff"
-        ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+        ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
       when "visitor", "customer"
-        ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+        ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
       else
-        ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+        ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
       end
     end
 
@@ -61,9 +61,9 @@ module Oidc
     def jwt_issuer_id_for_resource_type(resource_type)
       namespace =
         case resource_type.to_s
-        when "operator", "staff" then "SIGN_ORG"
-        when "visitor", "customer" then "SIGN_COM"
-        else "SIGN_APP"
+        when "operator", "staff" then "ACME_ORG"
+        when "visitor", "customer" then "ACME_COM"
+        else "ACME_APP"
         end
 
       "surface:#{namespace}"

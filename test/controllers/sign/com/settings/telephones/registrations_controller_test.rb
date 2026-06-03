@@ -103,8 +103,7 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       original_method = Sign::Com::Settings::Telephones::RegistrationsController.instance_method(:complete_visitor_telephone_verification)
       Sign::Com::Settings::Telephones::RegistrationsController.define_method(
         :complete_visitor_telephone_verification,
-      ) do |*_args, &block|
-        block.call(telephone)
+      ) do |*_args|
         :success
       end
 
@@ -115,8 +114,12 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
           headers: request_headers,
         )
 
-        assert_redirected_to sign_com_settings_telephones_url(ri: "jp")
+        assert_redirected_to acme_com_settings_telephones_url(
+          ri: "jp",
+          host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+        )
         assert_equal I18n.t("sign.app.registration.telephone.update.success"), flash[:notice]
+        assert_equal VisitorTelephoneStatus::VERIFIED, telephone.reload.visitor_telephone_status_id
       ensure
         Sign::Com::Settings::Telephones::RegistrationsController.define_method(
           :complete_visitor_telephone_verification, original_method,
@@ -149,6 +152,10 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     }
     controller.define_singleton_method(:edit_sign_com_settings_telephones_registration_path) { |ri: nil|
       "/settings/telephones/registration/edit?ri=#{ri}"
+    }
+    controller.define_singleton_method(:acme_com_settings_telephones_url) { |ri: nil, host: nil|
+      host ||= ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+      "http://#{host}/settings/telephones?ri=#{ri}"
     }
     controller.define_singleton_method(:sign_com_settings_telephones_path) { |ri: nil|
       "/settings/telephones?ri=#{ri}"
@@ -237,6 +244,22 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
     assert controller.send(:verification_required_action?)
     assert_equal "settings_telephone", controller.send(:verification_scope)
+  end
+
+  test "otp verification does not directly mark visitor telephone verified" do
+    controller = Sign::Com::Settings::Telephones::RegistrationsController.new
+    telephone = VisitorTelephone.create!(
+      visitor: @visitor,
+      raw_number: "+18888888886",
+      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
+      otp_private_key: ROTP::Base32.random_base32,
+      otp_expires_at: 10.minutes.from_now,
+    )
+    otp_data = telephone.get_otp
+    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+    assert_equal :success, controller.send(:complete_visitor_telephone_verification, telephone.id, pass_code)
+    assert_equal VisitorTelephoneStatus::UNVERIFIED, telephone.reload.visitor_telephone_status_id
   end
 
   private

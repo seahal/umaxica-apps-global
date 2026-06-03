@@ -2,59 +2,31 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/preference_jwt_helper"
 
 module Sign
   module Com
     module Preference
       class RegionsControllerTest < ActionDispatch::IntegrationTest
-        include PreferenceJwtHelper
-
-        fixtures :com_preferences
-
         setup do
           @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-          @visitor = create_verified_visitor_with_email(
-            email_address: "preference-#{SecureRandom.hex(4)}@example.com",
-          )
-          @visitor.visitor_telephones.create!(
-            number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
-            visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
-          )
+          @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
           host! @host
         end
 
-        test "PATCH update syncs region to com preference and visitor preference" do
-          preference = com_preferences(:one)
-          ComPreferenceRegion.create!(preference: preference, option_id: ComPreferenceRegionOption::JP)
-          @visitor.create_visitor_preference!(
-            region: "jp",
-            language: "ja",
-            timezone: "Asia/Tokyo",
-            theme: "sy",
-          )
-          token = encode_preference_jwt(
-            preferences: { "ri" => "jp" },
-            host: @host,
-            public_id: preference.public_id,
-            preference_type: "ComPreference",
-          )
-
-          with_preference_jwt_keys(host: @host) do
-            cookies[::Preference::CookieName.access] = token
-
-            patch sign_com_preference_region_path,
-                  params: { preference_region: { option_id: "us" } },
-                  headers: as_visitor_headers(@visitor, host: @host)
+        test "sign region edit redirects to acme preference authority" do
+          assert_no_difference("ComPreference.count") do
+            get edit_sign_com_preference_region_url(ri: "jp", lx: "en")
           end
 
-          assert_redirected_to edit_sign_com_preference_region_url(ri: "us")
+          assert_redirected_to edit_acme_com_preference_region_url(ri: "jp", lx: "en", host: @acme_host)
+        end
 
-          preference.reload
-          @visitor.visitor_preference.reload
+        test "sign region mutation redirects without local preference authority" do
+          assert_no_difference("ComPreference.count") do
+            patch sign_com_preference_region_url(ri: "jp"), params: { preference_region: { option_id: "test" } }
+          end
 
-          assert_equal ComPreferenceRegionOption::US, preference.com_preference_region.option_id
-          assert_equal "us", @visitor.visitor_preference.region
+          assert_redirected_to acme_com_preference_region_url(ri: "jp", host: @acme_host)
         end
       end
     end

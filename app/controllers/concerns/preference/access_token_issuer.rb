@@ -45,9 +45,9 @@ module Preference::AccessTokenIssuer
 
   def preference_jwt_namespace
     service, surface = controller_path.to_s.split("/", 3)
-    return unless service == "sign"
+    return unless %w(sign acme).include?(service)
 
-    namespace = "SIGN_#{surface.to_s.upcase}"
+    namespace = "#{service.upcase}_#{surface.to_s.upcase}"
     namespace if Jit::Security::Jwt::Registry::SURFACE_NAMESPACES.include?(namespace)
   end
 end

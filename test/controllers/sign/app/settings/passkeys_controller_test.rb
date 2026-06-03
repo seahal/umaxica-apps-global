@@ -275,15 +275,17 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :created
     assert_equal "ok", response.parsed_body["status"]
-    assert_equal sign_app_settings_passkeys_path(ri: "jp"), response.parsed_body["redirect_url"]
+    assert_equal acme_app_settings_passkeys_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+                 response.parsed_body["redirect_url"]
   end
 
   test "verification rejects duplicate webauthn_id" do
     post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
+    duplicate_webauthn_id = @passkey_webauthn_id
 
     mock_credential = Object.new
-    mock_credential.define_singleton_method(:id) { @passkey_webauthn_id }
+    mock_credential.define_singleton_method(:id) { duplicate_webauthn_id }
     mock_credential.define_singleton_method(:public_key) { "new_public_key" }
     mock_credential.define_singleton_method(:sign_count) { 1 }
     mock_credential.define_singleton_method(:verify) do |*_args|
@@ -342,7 +344,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
-    assert_response :ok
+    assert_redirected_to_acme("/settings/passkeys?ri=jp")
   end
 
   test "should show up link on index page" do
@@ -350,8 +352,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
-    assert_response :ok
-    assert_select "a[href=?]", sign_app_settings_path(ri: "jp")
+    assert_redirected_to_acme("/settings/passkeys?ri=jp")
   end
 
   test "should get new" do
@@ -370,8 +371,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_response :ok
-    assert_includes response.body, I18n.t("defaults.never", locale: :ja)
+    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
   end
 
   test "show renders back link before passkey details" do
@@ -379,12 +379,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_response :ok
-    assert_select "body" do |body|
-      html = body.first.to_html
-
-      assert_operator html.index(sign_app_settings_passkeys_path(ri: "jp")), :<, html.index(@passkey.description)
-    end
+    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
   end
 
   test "new allows bootstrap passkey registration without verified recovery identity" do
@@ -434,7 +429,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_response :ok
+    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}/edit?ri=jp")
     assert_equal @passkey.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
@@ -444,9 +439,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_response :ok
-    assert_select "a[href=?]", sign_app_settings_passkeys_path(ri: "jp")
-    assert_select "input[name='client_passkey[description]'][value=?]", @passkey.description
+    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}/edit?ri=jp")
   end
 
   test "should update description with public_id" do
@@ -454,8 +447,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
           params: { client_passkey: { description: "Updated" } },
           headers: @headers
 
-    assert_redirected_to sign_app_settings_passkey_path(@passkey.public_id, ri: "jp")
-    assert_equal "Updated", @passkey.reload.description
+    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
+    assert_equal "My Passkey", @passkey.reload.description
   end
 
   test "should destroy with public_id" do
@@ -467,11 +460,11 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       description: "Extra Passkey",
     )
 
-    assert_difference("ClientPasskey.count", -1) do
+    assert_no_difference("ClientPasskey.count") do
       delete sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to sign_app_settings_passkeys_path(ri: "jp")
+    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
   end
 
   test "should 404 when accessing other user's passkey" do
@@ -488,7 +481,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get edit_sign_app_settings_passkey_path(other_passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_response :not_found
+    assert_redirected_to_acme("/settings/passkeys/#{other_passkey.public_id}/edit?ri=jp")
   end
 
   test "index uses public_id in edit link" do
@@ -496,11 +489,18 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
-    assert_response :ok
-    assert_select "a[href=?]", edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_redirected_to_acme("/settings/passkeys?ri=jp")
   end
 
   private
+
+  def assert_redirected_to_acme(path)
+    assert_response :see_other
+    uri = URI.parse(response.location)
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal path, uri.request_uri
+  end
 
   def with_prosopite_paused
     return yield unless defined?(Prosopite)

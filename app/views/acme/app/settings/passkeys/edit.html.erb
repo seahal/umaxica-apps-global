@@ -1,0 +1,28 @@
+<% content_for :page_title, t("sign.app.settings.passkeys.edit.title") %>
+<%= link_to t("sign.app.settings.show.back"), acme_app_settings_passkeys_path(ri: params[:ri]) %>
+
+<h1><%= t("sign.app.settings.passkeys.edit.title") %></h1>
+
+<%= form_with model: @passkey, url: acme_app_settings_passkey_path(@passkey, ri: params[:ri]), method: :patch do |form| %>
+  <% if @passkey.errors.any? %>
+    <ul>
+      <% @passkey.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <%= form.label :description, t("activerecord.attributes.user_passkey.description") %>
+  <%= form.text_field :description, maxlength: 100 %>
+  <%= render "shared/cloudflare_turnstile_stealth" %>
+
+  <%= form.submit t("actions.save") %>
+  <%= link_to t("sign.common.cancel"), acme_app_settings_passkeys_path(ri: params[:ri]) %>
+<% end %>
+
+<%= form_with url: acme_app_settings_passkey_path(@passkey, ri: params[:ri]),
+              method: :delete,
+              data: { turbo_confirm: t("messages.confirm_destroy") } do |form| %>
+  <%= render "shared/cloudflare_turnstile_stealth" %>
+  <%= form.submit t("actions.delete") %>
+<% end %>

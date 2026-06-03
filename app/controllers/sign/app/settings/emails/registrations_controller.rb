@@ -11,6 +11,7 @@ module Sign
           include Common::Otp
           include Sign::EmailRegistrable
           include Sign::EmailRegistrationFlow
+          include Sign::EmailCeremonyDelegation
 
           include ::Verification::Client
 
@@ -60,7 +61,12 @@ module Sign
           end
 
           def after_email_registration_verified_path
-            email_registration_return_path(sign_app_settings_emails_path(ri: params[:ri]))
+            email_registration_return_path(
+              acme_app_settings_emails_url(
+                ri: params[:ri],
+                host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+              ),
+            )
           end
 
           def verification_required_action?
@@ -80,7 +86,7 @@ module Sign
           end
 
           def on_email_registration_verified!(*)
-            create_audit_event!(ClientChronicleEvent::EMAIL_REGISTERED)
+            nil
           end
 
           def create_audit_event!(event_id)

@@ -1,0 +1,14 @@
+<% content_for :page_title, t("sign.org.settings.passkeys.show.title") %>
+<%= link_to t("sign.org.settings.passkeys.show.back"), acme_org_settings_passkeys_path(ri: params[:ri]) %>
+
+<h3><%= t("sign.org.settings.passkeys.show.title") %></h3>
+<dl>
+  <dt><%= t("activerecord.attributes.staff_passkey.description") %></dt>
+  <dd><%= @passkey.description %></dd>
+  <dt><%= t("activerecord.attributes.staff_passkey.created_at") %></dt>
+  <dd><%= l(@passkey.created_at, format: :long) %></dd>
+  <dt><%= t("activerecord.attributes.staff_passkey.sign_count") %></dt>
+  <dd><%= @passkey.sign_count %></dd>
+</dl>
+
+<%= link_to t("actions.edit"), edit_acme_org_settings_passkey_path(@passkey, ri: params[:ri]) %>
