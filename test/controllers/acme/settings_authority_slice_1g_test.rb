@@ -17,6 +17,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     get acme_app_settings_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
 
     assert_response :success
+    assert_no_match(/id\.umaxica/, response.body)
     assert_select "a[href^=?]", sign_app_settings_passkeys_path(ri: "jp")
     assert_select "a[href^=?]", acme_app_settings_connections_path(ri: "jp")
     assert_select "a[href^=?]", acme_app_settings_activities_path
@@ -35,6 +36,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     get acme_app_settings_activities_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
 
     assert_response :success
+    assert_no_match(/id\.umaxica/, response.body)
     assert_includes response.body, "my-login-event"
     assert_not_includes response.body, "other-login-event"
   end
@@ -52,6 +54,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     get acme_app_settings_connections_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
 
     assert_response :success
+    assert_no_match(/id\.umaxica/, response.body)
     assert_includes response.body, connection.rp_name
     assert_select "a[href=?]", acme_app_settings_path(ri: "jp")
 
@@ -59,6 +62,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
         headers: app_session_headers(host, token, user)
 
     assert_response :success
+    assert_no_match(/id\.umaxica/, response.body)
     assert_includes response.body, connection.client_id
     assert_select "a[href=?]", acme_app_settings_connections_path(ri: "jp")
   end
@@ -92,6 +96,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     get acme_com_settings_url(ri: "jp", host: com_host), headers: com_session_headers(com_host, visitor_token, visitor)
 
     assert_response :success
+    assert_no_match(/id\.umaxica/, response.body)
 
     staff = operators(:one)
     org_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
@@ -99,6 +104,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     get acme_org_settings_url(ri: "jp", host: org_host), headers: org_session_headers(org_host, staff_token, staff)
 
     assert_response :success
+    assert_no_match(/id\.umaxica/, response.body)
   end
 
   private

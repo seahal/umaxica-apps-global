@@ -42,11 +42,22 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
     # rubocop:disable I18n/RailsI18n/DecorateString
     assert_includes sign_service, "Compatibility namespace. Target-path refresh authority is acme/www."
     # rubocop:enable I18n/RailsI18n/DecorateString
+  end
 
-    acme_service = file_content("app/services/acme/refresh_token_service.rb")
+  test "refresh rotation implementation is physically owned by acme not sign" do
+    # Behavior, not file-string: the rotation body lives on Acme; Sign is only a
+    # compatibility subclass that inherits it and adds nothing of its own.
+    assert_operator Sign::RefreshTokenService, :<, Acme::RefreshTokenService,
+                    "Sign::RefreshTokenService must be a compatibility subclass of the acme service"
 
-    assert_includes acme_service, "acme/www owns refresh token rotation"
-    assert_includes acme_service, "< ::Sign::RefreshTokenService"
+    # The sign wrapper must not redefine the rotation entry point; it inherits
+    # `call` straight from acme, so the owning method lives on the acme service.
+    assert_equal Acme::RefreshTokenService.method(:call).owner, Sign::RefreshTokenService.method(:call).owner,
+                 "Sign wrapper must inherit `call` from acme, not define its own refresh authority"
+    assert_equal Acme::RefreshTokenService.singleton_class, Acme::RefreshTokenService.method(:call).owner
+
+    # The shared Result contract is owned by acme and reused by the sign alias.
+    assert_same Acme::RefreshTokenService::Result, Sign::RefreshTokenService::Result
   end
 
   test "unknown social signup compatibility is explicit" do

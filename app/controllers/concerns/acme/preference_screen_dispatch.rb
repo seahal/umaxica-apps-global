@@ -32,6 +32,12 @@ module Acme
 
     private
 
+    def edit_selectable_preference_screen(screen)
+      set_selectable_preference_edit(screen)
+      set_selectable_preference_view_context(screen)
+      render "acme/shared/preference/selectable"
+    end
+
     def dispatch_preference_screen(action)
       screen = params[:preference_screen].to_s
       config = SCREEN_ACTIONS.fetch(screen)
@@ -48,7 +54,18 @@ module Acme
     end
 
     def preference_screen_template
-      "sign/#{preference_surface_key}/preference/#{params[:preference_screen].to_s.pluralize}/edit"
+      "acme/shared/preference/#{preference_screen_template_name}"
+    end
+
+    def preference_screen_template_name
+      case params[:preference_screen].to_s
+      when "region", "timezone", "language", "theme"
+        "option"
+      when "cookie"
+        "cookie"
+      else
+        params[:preference_screen].to_s.pluralize
+      end
     end
   end
 end

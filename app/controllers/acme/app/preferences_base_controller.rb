@@ -8,7 +8,7 @@ module Acme
 
       AUTHENTICATION_MODE = :open
 
-      layout "sign/app/application"
+      layout "acme/app/application"
 
       before_action :authorize_preference_write!, if: :preference_write_request?
 

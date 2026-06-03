@@ -1,0 +1,16 @@
+<% surface = controller.controller_path.split("/").second %>
+<% sign_out_path = public_send("acme_#{surface}_sign_out_path", ri: params[:ri]) %>
+<% settings_path = public_send("acme_#{surface}_settings_path", ri: params[:ri]) %>
+
+<% content_for :page_title, t("sign.shared.sign_out.title") %>
+
+<div>
+  <h1><%= title t("sign.shared.sign_out.title") %></h1>
+  <p><%= t("views.sign.app.settings.outs.edit.confirm_description") %></p>
+  <%= button_to t("sign.shared.sign_out.button"),
+                sign_out_path,
+                method: :post,
+                params: { confirm: "1" },
+                form: { data: { turbo: false } } %>
+  <p><%= link_to t("sign.app.settings.show.back"), settings_path %></p>
+</div>

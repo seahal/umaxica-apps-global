@@ -257,10 +257,24 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
                   params: { verification: { code: "123456" } },
                   headers: @headers
 
-            assert_response :redirect
-            assert_redirected_to sign_app_settings_emails_url(ri: "jp")
+            assert_response :success
+            assert_includes response.body, "step-up-completion-form"
             assert_nil @token.reload.step_up_session
+            assert_nil @token.last_step_up_at
             assert_nil Rails.cache.read(email_otp_cache_key_for_id(@step_up_session_id))
+
+            submit_step_up_completion_if_present!(
+              host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+              headers: as_user_headers(
+                @user,
+                host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                session_public_id: @token.public_id,
+              ),
+            )
+
+            assert_response :redirect
+            assert_predicate @token.reload.last_step_up_at, :present?
+            assert_equal "settings_email", @token.last_step_up_scope
           end
         end
       end

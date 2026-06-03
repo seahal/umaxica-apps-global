@@ -1,0 +1,7 @@
+<% surface = controller.controller_path.split("/").second %>
+<% settings_path = public_send("acme_#{surface}_settings_path", ri: params[:ri]) %>
+
+<h1><%= title "Dashboard" %></h1>
+
+<p>Signed in</p>
+<p><%= link_to "Settings", settings_path %></p>

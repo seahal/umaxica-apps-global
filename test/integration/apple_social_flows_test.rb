@@ -58,20 +58,22 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     assert_equal "Appleで登録を開始しました", flash[:notice]
   end
 
-  test "link succeeds for logged in user" do
+  test "grant-backed link succeeds for logged in user via acme completion" do
     user = clients(:one)
     setup_apple_mock_auth(uid: "apple_flow_link")
 
-    state = start_social_auth_flow(intent: "link", user: user)
+    grant_session = seed_app_social_link_grant_session(provider: "apple", user: user, ri: "jp")
 
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: @callback_headers.merge(as_user_headers(user, host: @host))
+    assert_difference("ClientAppleIdentity.count", 1) do
+      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+           params: { state: grant_session.state },
+           headers: @callback_headers.merge(grant_session.user_headers)
+      submit_social_completion_if_present!
+    end
 
-    assert_response :redirect
-    follow_redirect!
-
-    assert_predicate flash[:notice], :present?
+    assert_redirected_to acme_app_settings_connections_url(
+      ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
 
     identity = ClientAppleIdentity.find_by(uid: "apple_flow_link")
 
@@ -79,26 +81,22 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     assert_equal user.id, identity.user_id
   end
 
-  test "link succeeds even when auth headers are missing on callback" do
+  test "grantless link does not commit even with a logged-in session" do
     user = clients(:one)
     setup_apple_mock_auth(uid: "apple_flow_link_session_only")
 
     state = start_social_auth_flow(intent: "link", user: user)
 
-    # Simulate Apple POST callback without auth cookies/headers
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: @callback_headers
+    # No acme ceremony grant: the sign callback must reject the link and must
+    # not render an acme completion form or create an identity.
+    assert_no_difference("ClientAppleIdentity.count") do
+      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+           params: { state: state },
+           headers: @callback_headers.merge(as_user_headers(user, host: @host))
+    end
 
-    assert_response :redirect
-    follow_redirect!
-
-    assert_predicate flash[:notice], :present?
-
-    identity = ClientAppleIdentity.find_by(uid: "apple_flow_link_session_only")
-
-    assert_not_nil identity
-    assert_equal user.id, identity.user_id
+    assert_nil ClientAppleIdentity.find_by(uid: "apple_flow_link_session_only")
+    assert_not_includes response.body.to_s, "social-completion-form"
   end
 
   test "link conflict returns error" do

@@ -14,7 +14,7 @@ module Acme
         before_action :authorize_withdrawal!, only: :show
 
         def show
-          render "sign/org/settings/withdrawals/show"
+          render "acme/org/settings/withdrawals/show"
         end
 
         private

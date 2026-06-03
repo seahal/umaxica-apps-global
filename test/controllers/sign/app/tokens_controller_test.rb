@@ -38,6 +38,8 @@ class Sign::App::TokensControllerTest < ActionDispatch::IntegrationTest
     assert_predicate body["refresh_token"], :present?
     assert_equal "Bearer", body["token_type"]
     assert_kind_of Integer, body["expires_in"]
+    assert_empty response.headers["Set-Cookie"].to_s,
+                 "OAuth token compatibility must not create a browser session cookie"
 
     payload = Authentication::TokenService.decode(
       body.fetch("access_token"),

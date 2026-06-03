@@ -34,6 +34,8 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_equal "no-cache", response.headers["Pragma"]
     assert_equal "access", response.parsed_body["access_token"]
+    assert_empty response.headers["Set-Cookie"].to_s,
+                 "OAuth token compatibility must not create a browser session cookie"
   end
 
   test "create returns bad request on failure" do

@@ -20,7 +20,7 @@ module Acme
 
         def index
           super
-          render "sign/org/settings/sessions/index" unless performed?
+          render "acme/shared/settings/sessions/index" unless performed?
         end
 
         def destroy = super

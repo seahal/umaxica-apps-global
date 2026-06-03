@@ -45,6 +45,40 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert json["refreshed"]
   end
 
+  test "POST refresh delegates rotation through acme refresh authority" do
+    token_record = ClientToken.create!(user: @user)
+    refresh_plain = token_record.rotate_refresh_token!
+    rotated_plain = nil
+    captured_refresh = nil
+
+    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+
+    Acme::RefreshTokenService.stub(
+      :call,
+      ->(refresh_token:) do
+        captured_refresh = refresh_token
+        rotated_plain = token_record.rotate_refresh_token!
+        Sign::RefreshTokenService::Result.new(
+          success: true,
+          token: token_record,
+          refresh_token: rotated_plain,
+          previous_token: token_record,
+          reason: nil,
+        )
+      end,
+    ) do
+      post "/edge/v0/token/refresh",
+           headers: json_headers(with_csrf: true),
+           as: :json
+    end
+
+    assert_response :ok
+    assert_equal refresh_plain, captured_refresh
+    assert response_has_cookie?(Authentication::Base::ACCESS_COOKIE_KEY)
+    assert response_has_cookie?(Authentication::Base::REFRESH_COOKIE_KEY)
+    assert_includes response.headers["Set-Cookie"].to_s, rotated_plain
+  end
+
   test "POST refresh syncs preference_consented cookie on success" do
     expires_at = Time.utc(2034, 4, 5, 6, 7, 8)
 

@@ -10,7 +10,7 @@ module Acme
       before_action :authenticate_client!
 
       def show
-        render "sign/app/dashboards/show"
+        render "acme/shared/dashboards/show"
       end
     end
   end

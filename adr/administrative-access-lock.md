@@ -7,11 +7,11 @@ Accepted (2026-06-03)
 ## Context
 
 The account withdrawal and retention model already uses lifecycle timestamps such as
-`withdrawal_started_at`, `deactivated_at`, `discarded_at`, `purged_at`, and `terminated_at`.
-Those timestamps describe withdrawal, suspension, retention, and termination behavior.
+`withdrawal_started_at`, `deactivated_at`, `discarded_at`, `purged_at`, and `terminated_at`. Those
+timestamps describe withdrawal, suspension, retention, and termination behavior.
 
-Operational forced access removal is a different security action. It is not ordinary inactivity,
-not self-service withdrawal, and not retention. It immediately removes an actor's ability to use
+Operational forced access removal is a different security action. It is not ordinary inactivity, not
+self-service withdrawal, and not retention. It immediately removes an actor's ability to use
 existing sessions and tokens because an operator or operational process decided access must stop.
 
 `acme/www` is the Session, Token, Account, Preference, and Authorization Authority. Therefore
@@ -57,8 +57,8 @@ When an account is admin-locked:
 - step-up, recovery, credential mutation, API token issuance, WebSocket token issuance, and
   downstream/presigned-token issuance are unavailable through the normal authenticated gates.
 
-`token_valid_after_at` means "the last time all previously issued access tokens became invalid."
-It advances on lock and on unlock. Unlocking must not revive any old session, refresh token, access
+`token_valid_after_at` means "the last time all previously issued access tokens became invalid." It
+advances on lock and on unlock. Unlocking must not revive any old session, refresh token, access
 token, step-up freshness, or downstream token eligibility.
 
 ## Audit Contract
@@ -95,8 +95,8 @@ Initial reason codes:
 
 - Do not overload `dormant`, `deactivated_at`, withdrawal state, or retention state for forced
   operator access removal.
-- Access enforcement must be state-backed. Revoking refresh tokens alone is insufficient when
-  access JWTs are stateless.
+- Access enforcement must be state-backed. Revoking refresh tokens alone is insufficient when access
+  JWTs are stateless.
 - Requests that validate access tokens must consult account state and `token_valid_after_at` on the
   revocation-sensitive path.
 - Operator locking needs a last-enabled-operator safety check so the org surface cannot lock itself

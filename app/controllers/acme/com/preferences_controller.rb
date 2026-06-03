@@ -9,7 +9,7 @@ module Acme
       skip_before_action :set_preferences_cookie, only: :show, raise: false
 
       def show
-        render "sign/com/preferences/show"
+        render "acme/shared/preferences/show"
       end
     end
   end

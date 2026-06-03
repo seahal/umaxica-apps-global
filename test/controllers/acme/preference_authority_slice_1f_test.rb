@@ -43,7 +43,60 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       get public_send("edit_acme_#{surface}_preference_language_url", ri: "jp", lx: "en", host: host)
 
       assert_response :success
+      assert_no_match(/id\.umaxica/, response.body)
+      assert_no_match(%r{/sign/[^"]*/preference}, response.body)
+      assert_match(
+        %r{action="(?:https?://#{Regexp.escape(host)})?/preference/language(?:\?[^"]*)?"},
+        response.body,
+      )
     end
+  end
+
+  test "acme preference reset edit posts to acme for every surface" do
+    SURFACES.each do |surface, config|
+      host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
+      host! host
+
+      get public_send("edit_acme_#{surface}_preference_reset_url", ri: "jp", host: host)
+
+      assert_response :success
+      assert_no_match(/id\.umaxica/, response.body)
+      assert_no_match(%r{/sign/[^"]*/preference}, response.body)
+      assert_match(
+        %r{action="(?:https?://#{Regexp.escape(host)})?/preference/reset(?:\?[^"]*)?"},
+        response.body,
+      )
+    end
+  end
+
+  test "acme org preference region edit posts to acme host" do
+    host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    host! host
+
+    get edit_acme_org_preference_region_url(ri: "jp", host: host)
+
+    assert_response :success
+    assert_no_match(/id\.umaxica/, response.body)
+    assert_no_match(%r{/sign/[^"]*/preference}, response.body)
+    assert_match(
+      %r{action="(?:https?://#{Regexp.escape(host)})?/preference/region(?:\?[^"]*)?"},
+      response.body,
+    )
+  end
+
+  test "acme org preference timezone edit posts to acme host" do
+    host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    host! host
+
+    get edit_acme_org_preference_timezone_url(ri: "jp", host: host)
+
+    assert_response :success
+    assert_no_match(/id\.umaxica/, response.body)
+    assert_no_match(%r{/sign/[^"]*/preference}, response.body)
+    assert_match(
+      %r{action="(?:https?://#{Regexp.escape(host)})?/preference/timezone(?:\?[^"]*)?"},
+      response.body,
+    )
   end
 
   test "acme preference write updates app user preference" do

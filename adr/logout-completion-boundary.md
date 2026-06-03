@@ -13,9 +13,9 @@ existing logout primitive, and decides the post-mutation navigation target.
 
 The user-visible post-logout screen still needs a stable place. Showing that screen from `sign/id`
 is acceptable only if it does not turn `sign/id` back into a session participant. A one-time
-post/redirect/get completion screen on `sign/id` would require `sign/id` to consume session,
-flash, or a short-lived completion token. That would make sign responsible for post-logout state
-and blur the authority boundary.
+post/redirect/get completion screen on `sign/id` would require `sign/id` to consume session, flash,
+or a short-lived completion token. That would make sign responsible for post-logout state and blur
+the authority boundary.
 
 ## Decision
 

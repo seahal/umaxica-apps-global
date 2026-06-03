@@ -11,7 +11,7 @@ module Acme
       before_action :continue_welcome_sequence_without_content!
 
       def show
-        render "sign/com/welcomes/show"
+        render "acme/shared/welcomes/show"
       end
 
       private

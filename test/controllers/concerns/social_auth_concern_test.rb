@@ -174,6 +174,75 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_PT_SESSION_KEY]
   end
 
+  test "grantless app social link is rejected and only a grant lifts the rejection" do
+    harness = Harness.new
+
+    # A grantless "link" callback must be rejected: final link commit is acme
+    # authority and only flows through an acme-issued ceremony grant.
+    assert_raises(SocialAuth::UnauthorizedError) do
+      harness.send(:reject_grantless_app_social_link!, "link")
+    end
+
+    # Non-link intents are unaffected by the link guard.
+    assert_nil harness.send(:reject_grantless_app_social_link!, "login")
+
+    # With an acme grant in session the guard no longer fires; the grant-backed
+    # link branch (which renders the acme completion form) handles it instead.
+    harness.session_hash[SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY] = "grant-token"
+
+    assert_nil harness.send(:reject_grantless_app_social_link!, "link")
+  end
+
+  test "grantless established social login callback does not create a sign-side session" do
+    user = Client.create!(
+      status_id: ClientStatus::ACTIVE, public_id: "estab_#{SecureRandom.hex(4)}",
+      birthdate: "2000-02-03",
+    )
+    uid = "established_google_#{SecureRandom.hex(4)}"
+    ClientGoogleIdentity.create!(
+      user: user,
+      uid: uid,
+      provider: "google_app",
+      token: "tok",
+      expires_at: 1.week.from_now.to_i,
+      user_google_identity_status: client_google_identity_statuses(:active),
+    )
+
+    harness = Harness.new
+    harness.send(:prepare_social_auth_intent!, "login", provider: "google_app")
+    # Simulate a grantless callback: drop the auto-issued login grant from session.
+    harness.session_hash.delete(SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY)
+    harness.request_object.set_header("omniauth.auth", OmniAuth::AuthHash.new(provider: "google_app", uid: uid))
+
+    # The sign-side inline commit must never run for an established grantless login.
+    committed = false
+
+    SocialAuthService.stub(:handle_callback, ->(**) { committed = true; { user: user } }) do
+      assert_raises(SocialAuth::UnauthorizedError) do
+        harness.send(:process_social_auth_callback)
+      end
+    end
+
+    assert_not committed, "sign must not establish a session for a grantless established social login"
+  end
+
+  test "grantless unknown social login still falls through to compatibility signup" do
+    harness = Harness.new
+    harness.send(:prepare_social_auth_intent!, "login", provider: "google_app")
+    harness.session_hash.delete(SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY)
+    harness.request_object.set_header(
+      "omniauth.auth",
+      OmniAuth::AuthHash.new(provider: "google_app", uid: "unknown_#{SecureRandom.hex(4)}"),
+    )
+
+    handled = false
+    SocialAuthService.stub(:handle_callback, ->(**) { handled = true; { user: nil, existing_account: nil } }) do
+      harness.send(:process_social_auth_callback)
+    end
+
+    assert handled, "unknown social signup remains bounded-legacy compatibility on sign"
+  end
+
   private
 
   def step_up_token(scope:, at: Time.current, public_id: SecureRandom.hex(12))

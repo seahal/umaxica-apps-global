@@ -73,8 +73,6 @@ module Identity
       end
 
       def candidate
-        return unless operation != "link"
-
         @candidate ||= CandidateStore.store!(
           surface: surface,
           actor_ref: actor_ref,

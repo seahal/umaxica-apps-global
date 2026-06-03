@@ -10,7 +10,7 @@ module Acme
       before_action :authenticate_visitor!
 
       def show
-        render "sign/com/dashboards/show"
+        render "acme/shared/dashboards/show"
       end
     end
   end

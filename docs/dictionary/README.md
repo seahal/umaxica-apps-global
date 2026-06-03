@@ -10,6 +10,8 @@ implementation, tests, and documentation.
 - `access-terms.md` - authentication, verification, session lifecycle, and access terminology.
 - `alphabet.md` - alphabetical index from A to Z.
 - `glossary.md` - existing domain-specific terms, abbreviations, and naming rules.
+- `identity-account-organization-avatar.md` - core SNS-domain terms: Identity, Account,
+  Organization, Avatar, Handle, public_id.
 
 ## Entry Format
 

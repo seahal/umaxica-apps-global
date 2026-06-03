@@ -13,7 +13,7 @@ module Acme
 
         def edit
           edit_reset_preference_screen
-          render "sign/app/preference/resets/edit" unless performed?
+          render "acme/shared/preference/resets" unless performed?
         end
 
         def destroy

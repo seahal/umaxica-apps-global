@@ -11,8 +11,7 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = operators(:one)
     @headers = as_staff_headers(@staff, host: @host)
-    @token = operator_tokens(:one)
-    @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
+    @token = OperatorToken.find_by!(public_id: @headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
   end
 
   test "creates verification on success" do
@@ -34,15 +33,28 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
                params: { verification: { challenge_id: "test", credential_json: '{"id":"webauthn_id_1"}' } },
                headers: @headers
 
-          assert_response :redirect
-          assert_redirected_to sign_org_settings_passkeys_url(ri: "jp")
+          assert_response :success
+          assert_includes response.body, "step-up-completion-form"
 
           @token.reload
 
-          assert_not_nil @token.last_step_up_at
-          assert_equal "settings_passkey", @token.last_step_up_scope
+          assert_nil @token.last_step_up_at
+          assert_nil @token.last_step_up_scope
           assert_nil @token.step_up_session
           assert_nil session[:step_up]
+
+          submit_step_up_completion_if_present!(
+            host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+            headers: as_staff_headers(
+              @staff,
+              host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+              session_public_id: @token.public_id,
+            ),
+          )
+
+          assert_response :redirect
+          assert_not_nil @token.reload.last_step_up_at
+          assert_equal "settings_passkey", @token.last_step_up_scope
         end
       end
     end

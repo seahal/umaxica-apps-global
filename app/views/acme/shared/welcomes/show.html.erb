@@ -1,0 +1,6 @@
+<% surface = controller.controller_path.split("/").second %>
+<% dashboard_path = public_send("acme_#{surface}_dashboard_path", ri: params[:ri]) %>
+
+<h1><%= title "Welcome!" %></h1>
+
+<p><%= link_to "Next", @welcome_next_path || dashboard_path %></p>

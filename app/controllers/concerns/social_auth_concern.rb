@@ -237,6 +237,8 @@ module SocialAuthConcern
           acme_social_login_completion_supported?(auth_hash)
         process_social_ceremony_login_callback(auth_hash)
       else
+        reject_grantless_app_social_link!(intent)
+        reject_grantless_established_social_login!(auth_hash, intent)
         # Compatibility entry only. acme/www owns grant-backed social link authority and
         # established-account social login; unknown signup remains legacy for now.
         SocialAuthService.handle_callback(
@@ -253,6 +255,27 @@ module SocialAuthConcern
     result
   end
 
+  def reject_grantless_established_social_login!(auth_hash, intent)
+    return unless intent.to_s == "login"
+    return if social_ceremony_grant_token.present?
+    return unless acme_social_login_completion_supported?(auth_hash)
+
+    raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
+  end
+
+  # App social link final commit is acme authority: it must flow through an
+  # acme-issued ceremony grant and complete on acme. A grantless "link"
+  # callback (including the auto-link path where an already-signed-in user
+  # re-authenticates with a provider) must never reach the sign-side inline
+  # commit in SocialAuthService. Reject it symmetrically with grantless
+  # established social login so sign cannot create or mutate a social link.
+  def reject_grantless_app_social_link!(intent)
+    return unless intent.to_s == "link"
+    return if social_ceremony_grant_token.present?
+
+    raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
+  end
+
   def process_social_ceremony_link_callback(auth_hash)
     result_token = Identity::SocialCeremony::ResultIssuer.issue!(
       grant_token: social_ceremony_grant_token,
@@ -263,22 +286,20 @@ module SocialAuthConcern
       operation: "link",
       challenge_id: extract_callback_state,
     )
-    commit = Identity::SocialCeremony::FinalCommitter.call!(
-      result_token: result_token,
-      auth_hash: auth_hash,
-      actor: social_auth_user,
-      session_ref: current_session_public_id,
-      surface: "app",
-      ip_address: request.remote_ip,
-      user_agent: request.user_agent,
+    clear_social_auth_intent!
+    render(
+      "sign/shared/social_completion",
+      locals: {
+        completion_url: completion_acme_app_social_authentication_url(
+          provider: auth_hash["provider"] || auth_hash[:provider],
+          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        ),
+        result_token: result_token,
+        ri: params[:ri],
+      },
+      layout: false,
     )
-    {
-      user: social_auth_user,
-      identity: commit.identity,
-      jwt_payload: { user_id: social_auth_user.id },
-      step_up_authenticated: false,
-      existing_account: nil,
-    }
+    { user: nil, identity: nil, jwt_payload: {}, existing_account: nil, social_completion_rendered: true }
   end
 
   def process_social_ceremony_login_callback(auth_hash)
@@ -308,6 +329,18 @@ module SocialAuthConcern
     { user: nil, identity: nil, jwt_payload: {}, existing_account: nil, social_completion_rendered: true }
   end
 
+  # Whether a callback identity is an *established / completed* account that must
+  # complete login through acme rather than the bounded-legacy sign-side signup
+  # path.
+  #
+  # Bounded legacy: "completed account" is currently approximated by
+  # birthdate-present, because birthdate is the final required checkpoint of the
+  # client sign-up flow (an account that has it has finished signup). This is a
+  # heuristic, not a status check; it is intentionally conservative so that only
+  # accounts that have clearly finished signup are routed to (and, when grantless,
+  # rejected by) the acme-owned established-login path. Unknown / incomplete
+  # accounts remain on the compatibility signup path. If account completeness
+  # gains a first-class status predicate, replace this with that predicate.
   def acme_social_login_completion_supported?(auth_hash)
     identity = social_auth_identity_for_callback(auth_hash)
 
@@ -315,6 +348,8 @@ module SocialAuthConcern
   end
 
   def social_auth_identity_for_callback(auth_hash)
+    return nil if auth_hash.blank?
+
     provider = auth_hash["provider"] || auth_hash[:provider]
     uid = SocialAuth::UidExtractor.call(auth_hash: auth_hash)
     return nil if provider.blank? || uid.blank?

@@ -111,19 +111,20 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     new_uid = "relink_new_apple_#{SecureRandom.hex(4)}"
     setup_mock_auth(PROVIDERS.fetch(:apple), uid: new_uid, token: "relinked_apple_token")
-    state = seed_social_auth_session(provider: "apple", intent: "link", user: user, ri: "jp")
+    grant_session = seed_app_social_link_grant_session(provider: "apple", user: user, ri: "jp")
 
+    # Grant-backed link commits on acme completion, never inline on sign.
     assert_no_difference("Client.count") do
       assert_difference("ClientAppleIdentity.count", 1) do
         perform_social_callback(
           PROVIDERS.fetch(:apple),
-          params: { state: state },
-          headers: @callback_headers,
+          params: { state: grant_session.state },
+          headers: @callback_headers.merge(grant_session.user_headers),
         )
       end
     end
 
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
     relinked_identity = ClientAppleIdentity.find_by!(uid: new_uid)
 
     assert_equal user.id, relinked_identity.user_id
@@ -281,19 +282,21 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     user = create_social_client
 
     setup_mock_auth(config, uid:, token: "linked_token")
-    state = seed_social_auth_session(provider: config.fetch(:provider), intent: "link", user: user, ri: "jp")
+    grant_session = seed_app_social_link_grant_session(provider: config.fetch(:provider), user: user, ri: "jp")
 
+    # The sign callback must not create the social identity inline; it renders
+    # the acme completion form and the link is committed on acme completion.
     assert_no_difference("Client.count") do
       assert_difference("#{config.fetch(:model)}.count", 1) do
         perform_social_callback(
           config,
-          params: { state: state },
-          headers: @callback_headers,
+          params: { state: grant_session.state },
+          headers: @callback_headers.merge(grant_session.user_headers),
         )
       end
     end
 
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
     identity = config.fetch(:model).find_by!(uid: uid)
 
     assert_equal user.id, identity.user_id

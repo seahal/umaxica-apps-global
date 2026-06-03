@@ -16,10 +16,10 @@ to acme. Do not add sign-side one-time PRG completion state for ordinary logout.
 - Add lightweight sign controllers/actions for `/signed-out` that render as public guest pages and
   do not require actor/current-user state.
 - Add signed-out views with only the completion message and a surface-local link to `sign /sign/in`.
-- Keep `sign /sign/out` GET/POST/DELETE as compatibility redirects to the matching acme
-  `/sign/out` route.
-- Change successful ordinary acme logout paths to redirect with `303 See Other` to the matching
-  sign host's `/signed-out` URL.
+- Keep `sign /sign/out` GET/POST/DELETE as compatibility redirects to the matching acme `/sign/out`
+  route.
+- Change successful ordinary acme logout paths to redirect with `303 See Other` to the matching sign
+  host's `/signed-out` URL.
 - Retire ordinary logout completion rendering from acme. Acme should not render sign completion
   views after the mutation.
 - Remove ordinary logout dependence on session-backed sign-out completion notices where they exist.
@@ -42,8 +42,8 @@ to acme. Do not add sign-side one-time PRG completion state for ordinary logout.
 - Route tests for `GET /signed-out` on app, com, and org sign hosts.
 - Sign controller tests proving `/signed-out` renders without authentication and does not revoke a
   usable token.
-- Negative sign tests proving `/signed-out` does not call logout primitives, refresh-token
-  mutation, freshness mutation, or logout audit code.
+- Negative sign tests proving `/signed-out` does not call logout primitives, refresh-token mutation,
+  freshness mutation, or logout audit code.
 - Existing sign `/sign/out` tests should continue to assert redirect-only behavior and unchanged
   token state for GET, POST, and DELETE.
 - Acme logout tests should assert successful POST/DELETE revokes the current token, clears auth

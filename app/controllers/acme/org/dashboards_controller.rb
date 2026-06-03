@@ -10,7 +10,7 @@ module Acme
       before_action :authenticate_operator!
 
       def show
-        render "sign/org/dashboards/show"
+        render "acme/shared/dashboards/show"
       end
     end
   end

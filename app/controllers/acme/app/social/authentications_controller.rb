@@ -13,6 +13,9 @@ module Acme
         def completion
           provider = social_provider_param
           result_token = params.require(:social_ceremony_result)
+          payload = Identity::SocialCeremony::Contract.decode_unverified_payload(result_token)
+          return complete_social_link!(result_token, payload, provider) if payload["operation"].to_s == "link"
+
           commit = Identity::SocialCeremony::FinalCommitter.call!(
             result_token: result_token,
             actor: nil,
@@ -26,7 +29,7 @@ module Acme
           return complete_social_signup!(commit, provider) if social_sign_up_required?(commit)
 
           complete_social_login!(commit, provider)
-        rescue Identity::SocialCeremony::Error, ActionController::ParameterMissing
+        rescue Identity::SocialCeremony::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
           redirect_to(
             new_sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
@@ -41,6 +44,33 @@ module Acme
         end
 
         private
+
+        def complete_social_link!(result_token, payload, provider)
+          actor = Client.find_by!(public_id: payload.fetch("actor_ref"))
+          Identity::SocialCeremony::FinalCommitter.call!(
+            result_token: result_token,
+            actor: actor,
+            session_ref: payload.fetch("session_ref"),
+            surface: "app",
+            ip_address: request.remote_ip,
+            user_agent: request.user_agent,
+          )
+
+          redirect_to(
+            acme_app_settings_connections_url(
+              ri: params[:ri],
+              host: ENV.fetch(
+                "ACME_SERVICE_URL", "www.app.localhost",
+              ),
+            ),
+            notice: I18n.t(
+              "sign.app.social.sessions.link.success",
+              provider: SocialIdentifiable.normalize_provider(provider).humanize,
+            ),
+            allow_other_host: true,
+            status: :see_other,
+          )
+        end
 
         def complete_social_login!(commit, provider)
           result = establish_signed_in_session!(

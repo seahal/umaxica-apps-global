@@ -10,8 +10,15 @@ module Sign
 
       declare_authentication_mode! :open
 
+      prepend_before_action :skip_compatibility_session_cookie, only: :create
       protect_from_forgery with: :null_session, only: :create
+      skip_before_action :reset_flash, raise: false
       skip_before_action :transparent_refresh_access_token, raise: false
+      skip_before_action :set_region, raise: false
+      skip_before_action :set_preferences_cookie, raise: false
+      skip_before_action :apply_localization_preferences, raise: false
+      skip_before_action :set_locale, raise: false
+      skip_before_action :set_color_theme, raise: false
 
       # Limit token exchange attempts to prevent brute-force/DoS
       rate_limit to: 10, within: 1.minute, only: :create
@@ -40,6 +47,12 @@ module Sign
           render json: { error: result.error, error_description: result.error_description },
                  status: :bad_request
         end
+      end
+
+      private
+
+      def skip_compatibility_session_cookie
+        request.session_options[:skip] = true
       end
     end
   end

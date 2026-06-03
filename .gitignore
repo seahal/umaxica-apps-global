@@ -120,6 +120,8 @@ test_output*.txt
 gha-creds-*.json
 nvim.log
 .codex
+.junie/
+.air/
 
 # Local/private documentation scratch space. Shared docs, ADRs, plans, notes, and memos stay
 # tracked; sensitive or machine-local material belongs in these ignored subdirectories only.

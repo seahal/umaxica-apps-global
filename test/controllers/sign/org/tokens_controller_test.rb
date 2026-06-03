@@ -52,6 +52,8 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal Oidc::Issuer.for_resource_type("operator"), payload.fetch("iss")
     assert_includes acme_kids, header.fetch("kid")
+    assert_empty response.headers["Set-Cookie"].to_s,
+                 "OAuth token compatibility must not create a browser session cookie"
   end
 
   test "sets no-store cache headers on success" do

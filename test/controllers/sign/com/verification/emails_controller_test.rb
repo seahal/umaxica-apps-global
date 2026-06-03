@@ -89,9 +89,23 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
                   params: { verification: { code: "123456" } },
                   headers: @headers
 
-            assert_response :redirect
-            assert_redirected_to sign_com_settings_emails_url(ri: "jp")
+            assert_response :success
+            assert_includes response.body, "step-up-completion-form"
             assert_nil @token.reload.step_up_session
+            assert_nil @token.last_step_up_at
+
+            submit_step_up_completion_if_present!(
+              host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+              headers: as_visitor_headers(
+                @visitor,
+                host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+                session_public_id: @token.public_id,
+              ),
+            )
+
+            assert_response :redirect
+            assert_predicate @token.reload.last_step_up_at, :present?
+            assert_equal "settings_email", @token.last_step_up_scope
           end
         end
       end

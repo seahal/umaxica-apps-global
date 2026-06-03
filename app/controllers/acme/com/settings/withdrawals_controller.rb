@@ -17,12 +17,12 @@ module Acme
 
         def new
           render_withdrawal_entry(current_visitor)
-          render "sign/com/settings/withdrawals/new" unless performed?
+          render "acme/shared/settings/withdrawals/new" unless performed?
         end
 
         def edit
           render_withdrawal_status(current_visitor)
-          render "sign/com/settings/withdrawals/edit" unless performed?
+          render "acme/shared/settings/withdrawals/edit" unless performed?
         end
 
         def create
@@ -65,12 +65,12 @@ module Acme
             ),
           )
           @schedule_confirmed = true
-          render "sign/com/settings/withdrawals/new", status: :unprocessable_content
+          render "acme/shared/settings/withdrawals/new", status: :unprocessable_content
         end
 
         def render_update_validation_error
           @schedule_confirmed = true
-          render "sign/com/settings/withdrawals/new", status: :unprocessable_content
+          render "acme/shared/settings/withdrawals/new", status: :unprocessable_content
         end
 
         def verification_required_action? = true

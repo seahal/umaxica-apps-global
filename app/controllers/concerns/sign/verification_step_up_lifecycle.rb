@@ -16,7 +16,7 @@ module Sign
 
     def consume_step_up_session!(method: nil)
       rs = current_step_up_session
-      return_to = rs.return_to
+      rs.return_to
       scope = rs.scope
       method = method.presence || rs.try(:method).presence
 
@@ -25,22 +25,11 @@ module Sign
         transaction = current_step_up_ceremony_transaction!(scope: scope, now: now)
         result_token = issue_step_up_result!(transaction:, scope:, method:, rs:, now:)
 
-        if acme_step_up_completion_required?(transaction)
-          clear_step_up_state!
-          rs.destroy!
-          clear_acme_step_up_completion_state! if respond_to?(:clear_acme_step_up_completion_state!, true)
-          return render_acme_step_up_completion!(result_token: result_token, ri: params[:ri])
-        end
-
-        complete_step_up_verification!(transaction:, result_token:, scope:, now:)
         clear_step_up_state!
         rs.destroy!
+        clear_acme_step_up_completion_state! if respond_to?(:clear_acme_step_up_completion_state!, true)
+        return render_acme_step_up_completion!(result_token: result_token, ri: params[:ri])
       end
-
-      reset_session
-
-      flash[:notice] = I18n.t(verification_success_notice_key)
-      safe_redirect_to(return_to, fallback: verification_success_fallback_path)
     end
 
     def issue_step_up_result!(transaction:, scope:, method:, rs:, now:)
@@ -58,34 +47,6 @@ module Sign
         attempt_count: rs.attempt_count,
         now: now,
       )
-    end
-
-    def complete_step_up_verification!(transaction:, result_token:, scope:, now:)
-      verification, raw_token = verification_model.issue_for_token!(token: actor_token)
-      consumption = Identity::StepUpCeremony::ResultConsumer.new(
-        transaction: transaction,
-        now: now,
-      ).call(result_token)
-      Identity::StepUpCeremony::FreshnessCommitter.call!(
-        result_token: result_token,
-        token: actor_token,
-        expected_scope: consumption.transaction.required_scope,
-        expected_aal: consumption.transaction.required_aal,
-        expected_method: consumption.transaction.method,
-        audience: step_up_audience,
-        now: now,
-      )
-      if defined?(Actor)
-        Actor.install_context!(
-          step_up: StepUp::Resolver.call(
-            token: actor_token,
-            requirement: step_up_requirement(scope: scope),
-            now: now,
-          ),
-        )
-      end
-      set_verification_cookie!(raw_token, expires_at: verification.discarded_at)
-      create_audit_event!(verification_success_event_id, subject: current_verification_actor)
     end
 
     def valid_step_up_session?(_session_data)
@@ -168,13 +129,6 @@ module Sign
         expires_at: current_step_up_session&.discarded_at,
         now: now,
       ).transaction
-    end
-
-    def acme_step_up_completion_required?(transaction)
-      state = session[:acme_step_up_completion]
-      state.present? &&
-        state["transaction_id"].to_s == transaction.transaction_id.to_s &&
-        state["surface"].to_s == step_up_ceremony_surface
     end
 
     def render_acme_step_up_completion!(result_token:, ri:)

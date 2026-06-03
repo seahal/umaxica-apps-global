@@ -25,7 +25,7 @@
     <% unless logged_in? %>
       <%= link_to "#{t('sign.org.layout.nav.sign_up')} / #{t('sign.org.layout.nav.log_in')}", acme_org_sso_authorization_path %>
     <% else %>
-      <%= link_to t("sign.org.layout.nav.settings"), sign_org_settings_url(host: ENV.fetch('ID_STAFF_URL', 'id.org.localhost')) %>
+      <%= link_to t("sign.org.layout.nav.settings"), acme_org_settings_url(host: ENV.fetch('ACME_STAFF_URL', 'org.localhost')) %>
       <%= button_to t("sign.org.layout.nav.logout"), acme_org_sso_logout_path, method: :post %>
     <% end %>
   </nav>
@@ -46,7 +46,7 @@
   <nav>
     <ul>
       <li><a href="<%= "#{request.protocol}#{ENV.fetch('ACME_STAFF_URL', 'org.localhost')}#{request.port_string}/" %>"><%= t('acme.org.preferences.footer.home') %></a></li>
-      <li><%= link_to t('acme.org.preferences.footer.preference'), sign_org_preference_url(host: ENV.fetch('ID_STAFF_URL', 'id.org.localhost')) %></li>
+      <li><%= link_to t('acme.org.preferences.footer.preference'), acme_org_preference_url(host: ENV.fetch('ACME_STAFF_URL', 'org.localhost')) %></li>
     </ul>
   </nav>
   <%= render "layouts/shared/footer_cookie_controls", scope: :org %>

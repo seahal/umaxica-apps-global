@@ -8,7 +8,10 @@ heading.
 
 ## A
 
-_No entries yet._
+- **Account** — service-usage subject bound to an Identity. See
+  `identity-account-organization-avatar.md`.
+- **Avatar** — SNS-facing embodiment operated by Accounts (app/org only). See
+  `identity-account-organization-avatar.md`.
 
 ## B
 
@@ -36,11 +39,13 @@ _No entries yet._
 
 ## H
 
-_No entries yet._
+- **Handle** — Avatar's mutable `@`-prefixed identifier (stored without `@`). See
+  `identity-account-organization-avatar.md`.
 
 ## I
 
-_No entries yet._
+- **Identity** — authentication subject / runtime actor (`Client`/`Operator`/`Visitor`). See
+  `identity-account-organization-avatar.md`.
 
 ## J
 
@@ -64,11 +69,13 @@ _No entries yet._
 
 ## O
 
-_No entries yet._
+- **Organization** — hierarchical organizational and billing unit (the Collective:
+  `Enterprise`/`Bureau`/`Company`). See `identity-account-organization-avatar.md`.
 
 ## P
 
-_No entries yet._
+- **public_id** — immutable external identifier (NanoID-21, DB-unique); internal `id` is never
+  exposed. See `identity-account-organization-avatar.md`.
 
 ## Q
 

@@ -109,8 +109,13 @@ module MissingHelpers
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
+    acme_hosts = [
+      ENV.fetch("ACME_SERVICE_URL", nil),
+      ENV.fetch("ACME_CORPORATE_URL", nil),
+      ENV.fetch("ACME_STAFF_URL", nil),
+    ].compact
     service =
-      if normalized.include?("acme")
+      if normalized.include?("acme") || normalized.start_with?("www.") || acme_hosts.include?(normalized)
         "ACME"
       elsif normalized.include?("core")
         "CORE"
@@ -304,6 +309,56 @@ module MissingHelpers
     end
   end
 
+  # Seed the grant-backed app social *link* flow exactly as the acme settings
+  # connections controller would: issue an acme ceremony grant bound to the
+  # signed-in client and session, then POST /social/auth/:provider/continue with
+  # that grant. The returned state drives the sign callback, which renders the
+  # acme completion form instead of committing the link inline on sign.
+  AppSocialLinkGrantSession = Struct.new(:state, :user_headers, :session_public_id, keyword_init: true)
+
+  def seed_app_social_link_grant_session(provider:, user:, ri: "jp")
+    host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    host!(host) if respond_to?(:host!)
+    https! if respond_to?(:https!) && host.exclude?("localhost")
+
+    user_headers = as_user_headers(user, host: host)
+    session_public_id = user_headers.fetch("X-TEST-SESSION-PUBLIC-ID")
+    token = ClientToken.find_by(public_id: session_public_id)
+    mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE) if token
+
+    issuance = Identity::SocialCeremony::GrantIssuer.issue!(
+      surface: "app",
+      actor_ref: user.public_id,
+      session_ref: session_public_id,
+      operation: "link",
+      provider: provider,
+    )
+
+    continue_path = continue_sign_app_social_authentication_path(
+      provider: provider,
+      intent: "link",
+      ri: ri,
+      social_ceremony_grant: issuance.grant,
+    )
+
+    state =
+      with_social_auth_csrf_route do |csrf_path|
+        csrf_token = fetch_csrf_token(csrf_path)
+        headers = social_callback_headers(host).merge(csrf_headers(csrf_token)).merge(user_headers)
+
+        post(continue_path, headers: headers)
+
+        assert_response :redirect
+        social_auth_state_from_response
+      end
+
+    AppSocialLinkGrantSession.new(
+      state: state,
+      user_headers: user_headers,
+      session_public_id: session_public_id,
+    )
+  end
+
   def submit_social_completion_if_present!
     return unless response.media_type == "text/html"
     return unless response.body.include?("social-completion-form")
@@ -318,6 +373,22 @@ module MissingHelpers
     end
 
     post(form["action"], params: params, headers: { "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") })
+  end
+
+  def submit_step_up_completion_if_present!(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), headers: {})
+    return unless response.media_type == "text/html"
+    return unless response.body.include?("step-up-completion-form")
+
+    form = Nokogiri::HTML(response.body).at_css("form#step-up-completion-form")
+    raise StandardError, "step-up completion form missing" unless form
+
+    params = {}
+    form.css("input").each do |input|
+      name = input["name"]
+      params[name] = input["value"] if name.present?
+    end
+
+    post(form["action"], params: params, headers: headers.merge("Host" => host))
   end
 
   def with_social_auth_csrf_route

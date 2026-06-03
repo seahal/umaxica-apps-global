@@ -59,15 +59,27 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
            headers: @headers
     end
 
-    assert_response :redirect
-    assert_redirected_to sign_app_settings_emails_url(ri: "jp")
+    assert_response :success
+    assert_includes response.body, "step-up-completion-form"
 
     @token.reload
 
-    assert_not_nil @token.last_step_up_at
-    assert_equal "settings_email", @token.last_step_up_scope
+    assert_nil @token.last_step_up_at
+    assert_nil @token.last_step_up_scope
     assert_nil session[:step_up]
     assert_nil session[:step_up_email_otp]
+
+    submit_step_up_completion_if_present!(
+      headers: as_user_headers(
+        @user,
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        session_public_id: @token.public_id,
+      ),
+    )
+
+    assert_response :redirect
+    assert_not_nil @token.reload.last_step_up_at
+    assert_equal "settings_email", @token.last_step_up_scope
   end
 
   test "successful totp consumes the step-up session and cannot be replayed" do
@@ -90,7 +102,7 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
 
-    assert_difference -> { ClientVerification.count }, 1 do
+    assert_no_difference -> { ClientVerification.count } do
       with_prosopite_paused do
         post sign_app_verification_totp_url(ri: "jp"),
              params: { verification: { code: code } },
@@ -98,9 +110,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       end
     end
 
-    assert_response :redirect
+    assert_response :success
+    assert_includes response.body, "step-up-completion-form"
     assert_equal 0, ClientStepUpSession.where(user_token: @token).count
-    first_step_up_at = @token.reload.last_step_up_at
+    @token.reload.last_step_up_at
 
     assert_no_difference -> { ClientVerification.count } do
       with_prosopite_paused do
@@ -112,7 +125,7 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     assert_response :redirect
     assert_redirected_to sign_app_settings_url(ri: "jp")
-    assert_equal first_step_up_at.to_i, @token.reload.last_step_up_at.to_i
+    assert_nil @token.reload.last_step_up_at
   end
 
   test "renders new on failure" do
@@ -240,8 +253,19 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
            headers: @headers
     end
 
+    assert_response :success
+    assert_includes response.body, "step-up-completion-form"
+    submit_step_up_completion_if_present!(
+      headers: as_user_headers(
+        @user,
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        session_public_id: @token.public_id,
+      ),
+    )
+
     assert_response :redirect
-    assert_redirected_to sign_app_settings_totps_url(ri: "jp")
+    assert_not_nil @token.reload.last_step_up_at
+    assert_equal "settings_totp", @token.last_step_up_scope
   end
 
   test "POST returns 422 when turnstile stealth fails" do

@@ -15,13 +15,13 @@ module Acme
 
       def show
         @sign_out_notice = consume_sign_out_notice
-        return render "sign/com/sign_outs/show" if @sign_out_notice.present?
+        return render "acme/shared/sign_outs/show" if @sign_out_notice.present?
 
         redirect_to(edit_acme_com_sign_out_path(ri: params[:ri]))
       end
 
       def edit
-        render "sign/com/sign_outs/edit"
+        render "acme/shared/sign_outs/edit"
       end
 
       def create
@@ -54,7 +54,7 @@ module Acme
         return render_invalid_return_target! if raw_pt.present? && destination.blank?
         return redirect_to_pt_destination!(destination) if destination.present?
 
-        render "sign/com/sign_outs/show"
+        render "acme/shared/sign_outs/show"
       end
 
       def authorize_current_session_for_sign_out!

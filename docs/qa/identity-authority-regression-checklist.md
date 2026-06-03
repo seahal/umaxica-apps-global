@@ -4,6 +4,30 @@
 
 Use this checklist when implementing or reviewing Identity Authority inversion work.
 
+## Current Status
+
+Status: `COMPLETE_WITH_BOUNDED_LEGACY` as of 2026-06-03.
+
+The retained-authority closure removed the sign-side step-up freshness fallback and moved every app
+social link final commit to acme completion. The sign callback now rejects BOTH grantless app social
+`intent: "link"` (including the already-signed-in auto-link path) and grantless established app
+social login; neither can create or mutate a social link or session on sign. Grant-backed link
+commits are owned by `Acme::App::Social::AuthenticationsController#completion`
+(`Identity::SocialCeremony::FinalCommitter`), are one-shot, and reject replay. Refresh rotation now
+lives physically in `Acme::RefreshTokenService`; `Sign::RefreshTokenService` is a behavior-free
+compatibility subclass.
+
+Remaining bounded legacy:
+
+- Unknown / incomplete social signup and account selection still complete on the sign-side
+  compatibility path (`SocialAuthService.handle_callback`). "Established account" is approximated by
+  the birthdate-present predicate in `acme_social_login_completion_supported?` (birthdate is the
+  final sign-up checkpoint); it is documented in code and guarded by tests. It does not expand link,
+  unlink, token, or established-login authority.
+- `Sign::RefreshTokenService` remains as a compatibility namespace only. Target paths call
+  `Acme::RefreshTokenService`; the sign subclass implies no sign-side refresh issuer or authority
+  and is pinned by `IdentityAuthorityInversionGuardTest`.
+
 ## Negative Checks
 
 - `sign/id` does not issue, refresh, rotate, revoke, list, or display user sessions.
@@ -11,6 +35,11 @@ Use this checklist when implementing or reviewing Identity Authority inversion w
 - `sign/id` does not store `recent_auth`, `sudo`, `last_step_up_at`, or equivalent freshness.
 - `sign/id` does not own preference writes, settings, dashboards, withdrawal, account lifecycle, or
   session-management UI.
+- Migrated acme pages render acme templates/layouts and do not reuse `sign/...` account, preference,
+  dashboard, settings, withdrawal, session-management, or sign-out templates.
+- Migrated acme forms submit to acme routes; they do not generate `id.umaxica.*` or other sign-host
+  form actions. Credential ceremony links to sign remain allowed only when they intentionally start
+  a retained ceremony.
 - `/sign/out`, if retained, redirects to acme logout and does not mutate session/token state.
 - `core` and `line` reject sign-issued session/access/downstream tokens.
 - Social provider callbacks on `sign/id` return evidence only; acme owns account linking.
@@ -20,6 +49,12 @@ Use this checklist when implementing or reviewing Identity Authority inversion w
 - Sign-side OAuth/OIDC, JWKS, userinfo, revocation, logout, and edge token endpoints are
   compatibility redirects, delegates, wrappers, or blocked endpoints only.
 - Established app Google/Apple social login completes through acme-owned session decision.
+- Grantless established app Google/Apple social login is rejected on the sign callback; it must not
+  create a sign-side session.
+- Grantless app social `intent: "link"` (including the already-signed-in auto-link path) is rejected
+  on the sign callback; it must not create or mutate a social link on sign.
+- App settings social link final commit occurs on acme completion only, is one-shot, and rejects
+  replay; it never commits inline on the sign callback.
 - Unknown social signup or account-selection paths, if retained, are classified as bounded legacy
   and have tests proving they do not expand link, unlink, token, or established-login authority.
 
@@ -40,8 +75,8 @@ Use this checklist when implementing or reviewing Identity Authority inversion w
 - Destructive or freshness/token mutation endpoints are non-GET.
 - CSRF protection remains enabled for browser-authenticated mutating endpoints.
 - Compatibility redirects use fixed route helpers and do not accept arbitrary external targets.
-- Provider tokens, refresh tokens, session tokens, raw passwords, TOTP seeds, and ceremony secrets do
-  not appear in URLs, logs, grant payloads, or browser-carried result payloads.
+- Provider tokens, refresh tokens, session tokens, raw passwords, TOTP seeds, and ceremony secrets
+  do not appear in URLs, logs, grant payloads, or browser-carried result payloads.
 - OAuth/OIDC state, nonce, PKCE, issuer, audience, and redirect URI validation remain covered.
 - Refresh token rotation remains one-shot and replay-safe; compromised families are revoked.
 - JWKS exposes public keys only.

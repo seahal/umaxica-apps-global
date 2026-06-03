@@ -198,9 +198,12 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
          params: { state: state },
          headers: social_callback_headers(@host)
 
-    assert_response :redirect
-    assert_match(%r{/sign/in/challenge}, response.redirect_url)
-    assert_predicate session[:pending_mfa], :present?
+    # The sign callback must not establish an MFA challenge or sign-side session
+    # for an established social login; it emits the acme completion form only.
+    # The MFA / session decision belongs to acme completion.
+    assert_emits_acme_completion_only!
+    assert_no_match(%r{/sign/in/challenge}, response.body)
+    assert_nil session[:pending_mfa]
   end
 
   test "should sign in with existing Google user" do
@@ -235,13 +238,14 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    assert_redirected_to @expected_redirect
-    follow_redirect!
+    # Established social login is acme authority: the sign callback emits a
+    # one-shot completion form (evidence only) and the session is established on
+    # acme completion, which redirects to the acme dashboard.
+    assert_emits_acme_completion_only!
 
-    provider_name = SocialIdentifiable.normalize_provider("google_app").humanize
+    submit_social_completion_if_present!
 
-    assert_equal I18n.t("sign.app.social.sessions.create.already_registered", provider: provider_name),
-                 flash[:notice]
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
   end
 
   test "existing Google identity without birthdate returns to sign up checkpoint" do
@@ -324,9 +328,11 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    assert_response :redirect
-    assert_match(%r{/sign/in/challenge}, response.redirect_url)
-    assert_predicate session[:pending_mfa], :present?
+    # The sign callback must not establish an MFA challenge or sign-side session
+    # for an established social login; it emits the acme completion form only.
+    assert_emits_acme_completion_only!
+    assert_no_match(%r{/sign/in/challenge}, response.body)
+    assert_nil session[:pending_mfa]
   end
 
   test "google login with missing user_token_kind does not crash callback" do
@@ -388,23 +394,36 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
       },
     )
 
+    sessions_before = ClientToken.where(user_id: user.id).count
+
     state = start_social_auth_flow(provider: "google_app")
 
     get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    assert_response :found
-    assert_redirected_to @expected_redirect
-    assert_equal I18n.t("sign.app.social.sessions.create.already_registered", provider: "Google"),
-                 flash[:notice]
+    # Session-limit enforcement belongs to acme completion. The sign callback
+    # emits the completion form only and must not create or restrict a sign-side
+    # session token of its own.
+    assert_emits_acme_completion_only!
 
+    assert_equal sessions_before, ClientToken.where(user_id: user.id).count,
+                 "sign must not establish a session token for an established social login"
     restricted = ClientToken.where(user_id: user.id, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
     assert_equal 0, restricted.count
   end
 
   private
+
+  # Pin the sign-side authority boundary for established social login: the sign
+  # callback returns the one-shot acme completion form (signed result only) and
+  # does not perform a sign-side session/redirect itself.
+  def assert_emits_acme_completion_only!
+    assert_response :ok
+    assert_includes response.body, "social-completion-form"
+    assert_includes response.body, "social_ceremony_result"
+  end
 
   def create_rotated_active_user_session(user, rotations:)
     token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)

@@ -25,6 +25,8 @@ class Acme::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
 
     assert_response :success
     assert_select "h1", "Dashboard"
+    assert_no_match(/id\.umaxica/, response.body)
+    assert_select "a[href=?]", acme_org_settings_path(ri: "jp")
   end
 
   test "welcome_route_exists" do

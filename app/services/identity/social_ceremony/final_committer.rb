@@ -83,8 +83,12 @@ module Identity
       end
 
       def commit_link!
+        # On the acme completion path the raw provider auth_hash is not replayed
+        # to the committer; it is recovered from the one-shot candidate the sign
+        # callback stored. Use auth_hash_for_subject so the provider token,
+        # refresh token, and expiry are persisted on the linked identity.
         SocialAuth::LinkHandler.call(
-          auth_hash: auth_hash,
+          auth_hash: auth_hash_for_subject,
           current_client: actor,
           identity_class: identity_class,
           provider: provider,
