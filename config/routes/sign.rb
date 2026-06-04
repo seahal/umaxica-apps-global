@@ -1,4 +1,5 @@
-# Sign 系サービスの app / com / org 各ドメイン向けルーティングを、認証・設定・API・OAuth/OIDC・管理機能ごとに定義する。
+# Routes for sign-service app, com, and org domains grouped by auth, settings, API, OAuth/OIDC,
+# and management features.
 
 # typed: false
 # frozen_string_literal: true
@@ -78,21 +79,21 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show], controller: "preference/redirects"
+      resource :preference, only: [:show], controller: "preferences"
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "redirects"
-        resource :timezone, only: %i(edit update), controller: "redirects"
-        resource :language, only: %i(edit update), controller: "redirects"
-        resource :currency, only: %i(edit update), controller: "redirects"
-        resource :date, only: %i(edit update), controller: "redirects"
-        resource :time, only: %i(edit update), controller: "redirects"
-        resource :motion, only: %i(edit update), controller: "redirects"
-        resource :density, only: %i(edit update), controller: "redirects"
-        resource :page_size, only: %i(edit update), controller: "redirects"
-        resource :adult_content_gate, only: %i(edit update), controller: "redirects"
-        resource :theme, only: %i(edit update), controller: "redirects"
-        resource :cookie, only: %i(edit update), controller: "redirects"
-        resource :reset, only: %i(edit destroy), controller: "redirects"
+        resource :region, only: %i(edit update), controller: "regions", defaults: { preference_screen: "region" }
+        resource :timezone, only: %i(edit update), controller: "timezones", defaults: { preference_screen: "timezone" }
+        resource :language, only: %i(edit update), controller: "languages", defaults: { preference_screen: "language" }
+        resource :currency, only: %i(edit update), controller: "currencies", defaults: { preference_screen: "currency" }
+        resource :date, only: %i(edit update), controller: "dates", defaults: { preference_screen: "date" }
+        resource :time, only: %i(edit update), controller: "times", defaults: { preference_screen: "time" }
+        resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
+        resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
+        resource :page_size, only: %i(edit update), controller: "page_sizes", defaults: { preference_screen: "page_size" }
+        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates", defaults: { preference_screen: "adult_content_gate" }
+        resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
+        resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }
+        resource :reset, only: %i(edit destroy)
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
       end
@@ -318,23 +319,23 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show], controller: "preference/redirects"
+      resource :preference, only: [:show], controller: "preferences"
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "redirects"
-        resource :timezone, only: %i(edit update), controller: "redirects"
-        resource :language, only: %i(edit update), controller: "redirects"
-        resource :currency, only: %i(edit update), controller: "redirects"
-        resource :date, only: %i(edit update), controller: "redirects"
-        resource :time, only: %i(edit update), controller: "redirects"
-        resource :motion, only: %i(edit update), controller: "redirects"
-        resource :density, only: %i(edit update), controller: "redirects"
-        resource :page_size, only: %i(edit update), controller: "redirects"
-        resource :adult_content_gate, only: %i(edit update), controller: "redirects"
-        resource :theme, only: %i(edit update), controller: "redirects"
-        resource :cookie, only: %i(edit update), controller: "redirects"
+        resource :region, only: %i(edit update), controller: "regions", defaults: { preference_screen: "region" }
+        resource :timezone, only: %i(edit update), controller: "timezones", defaults: { preference_screen: "timezone" }
+        resource :language, only: %i(edit update), controller: "languages", defaults: { preference_screen: "language" }
+        resource :currency, only: %i(edit update), controller: "currencies", defaults: { preference_screen: "currency" }
+        resource :date, only: %i(edit update), controller: "dates", defaults: { preference_screen: "date" }
+        resource :time, only: %i(edit update), controller: "times", defaults: { preference_screen: "time" }
+        resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
+        resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
+        resource :page_size, only: %i(edit update), controller: "page_sizes", defaults: { preference_screen: "page_size" }
+        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates", defaults: { preference_screen: "adult_content_gate" }
+        resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
+        resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
-        resource :reset, only: %i(edit destroy), controller: "redirects"
+        resource :reset, only: %i(edit destroy)
       end
 
       # Sign-up and sign-in
@@ -512,28 +513,28 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show], controller: "preference/redirects"
+      resource :preference, only: [:show], controller: "preferences"
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "redirects"
-        resource :timezone, only: %i(edit update), controller: "redirects"
-        resource :language, only: %i(edit update), controller: "redirects"
-        resource :currency, only: %i(edit update), controller: "redirects"
-        resource :date, only: %i(edit update), controller: "redirects"
-        resource :time, only: %i(edit update), controller: "redirects"
+        resource :region, only: %i(edit update), controller: "regions", defaults: { preference_screen: "region" }
+        resource :timezone, only: %i(edit update), controller: "timezones", defaults: { preference_screen: "timezone" }
+        resource :language, only: %i(edit update), controller: "languages", defaults: { preference_screen: "language" }
+        resource :currency, only: %i(edit update), controller: "currencies", defaults: { preference_screen: "currency" }
+        resource :date, only: %i(edit update), controller: "dates", defaults: { preference_screen: "date" }
+        resource :time, only: %i(edit update), controller: "times", defaults: { preference_screen: "time" }
 
-        resource :motion, only: %i(edit update), controller: "redirects"
-        resource :density, only: %i(edit update), controller: "redirects"
+        resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
+        resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
 
-        resource :page_size, only: %i(edit update), controller: "redirects"
-        resource :adult_content_gate, only: %i(edit update), controller: "redirects"
+        resource :page_size, only: %i(edit update), controller: "page_sizes", defaults: { preference_screen: "page_size" }
+        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates", defaults: { preference_screen: "adult_content_gate" }
 
-        resource :theme, only: %i(edit update), controller: "redirects"
-        resource :cookie, only: %i(edit update), controller: "redirects"
+        resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
+        resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }
 
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
 
-        resource :reset, only: %i(edit destroy), controller: "redirects"
+        resource :reset, only: %i(edit destroy)
       end
 
       # Sign-up: email registration and staff invitation flows

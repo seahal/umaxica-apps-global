@@ -21,6 +21,7 @@ module Oidc
           log_in(
             resource, token_kind_id: "BROWSER_WEB", require_totp_check: false,
                       audit_context: { oidc_client_id: oidc_client_id },
+                      bootstrap_actor: true,
           )
         end
       return render_callback_failure("login_failed") unless login_result[:status] == :success

@@ -5,4 +5,10 @@ class ApplicationController < ActionController::Base
   AUTHENTICATION_MODE = :deny_all
 
   protect_from_forgery using: :header_or_legacy_token
+private
+
+def cross_host_redirect_allowed?
+  true
+end
+
 end

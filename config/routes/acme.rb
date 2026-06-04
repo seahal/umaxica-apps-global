@@ -2,7 +2,11 @@
 # frozen_string_literal: true
 
 scope module: :acme, as: :acme do
-  constraints host: ENV["ACME_SERVICE_URL"] do
+  acme_app_hosts = [ENV["ACME_SERVICE_URL"], "app.localhost", "www.app.localhost"].compact.uniq
+  acme_com_hosts = [ENV["ACME_CORPORATE_URL"], "com.localhost", "www.com.localhost"].compact.uniq
+  acme_org_hosts = [ENV["ACME_STAFF_URL"], "org.localhost", "www.org.localhost"].compact.uniq
+
+  constraints host: acme_app_hosts do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -72,6 +76,7 @@ scope module: :acme, as: :acme do
                   only: [],
                   path: "auth",
                   param: :provider do
+          post :continue, on: :member
           post :completion, on: :member
         end
       end
@@ -105,6 +110,10 @@ scope module: :acme, as: :acme do
       scope path: "sign" do
         resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
+      resource :avatar, only: :show
+      resource :identity, only: :show
+      resource :organization, only: :show
+      resource :account, only: :show, controller: "accounts"
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys, only: %i(index show edit update destroy) do
@@ -143,7 +152,7 @@ scope module: :acme, as: :acme do
     end
   end
 
-  constraints host: ENV["ACME_CORPORATE_URL"] do
+  constraints host: acme_com_hosts do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -224,6 +233,8 @@ scope module: :acme, as: :acme do
       scope path: "sign" do
         resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
+      resource :identity, only: :show
+      resource :account, only: :show, controller: "accounts"
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys, only: %i(index show edit update destroy) do
@@ -255,7 +266,7 @@ scope module: :acme, as: :acme do
     end
   end
 
-  constraints host: ENV["ACME_STAFF_URL"] do
+  constraints host: acme_org_hosts do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -336,6 +347,10 @@ scope module: :acme, as: :acme do
       scope path: "sign" do
         resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
+      resource :avatar, only: :show
+      resource :identity, only: :show
+      resource :organization, only: :show
+      resource :account, only: :show, controller: "accounts"
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys, only: %i(index show edit update destroy) do

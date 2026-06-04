@@ -30,10 +30,14 @@
           <div>
             <%= f.select :option_id,
                          options_for_select(
-                           OrgPreferenceRegionOption.all.order(:id).map { |o| [t("acme.org.preferences.regions.select_region_selector.#{o.name}"), o.id] },
+                           OrgPreferenceRegionOption.all.order(:id).filter_map do |o|
+                             next if o.name.blank?
+
+                             [t("acme.org.preferences.regions.select_region_selector.#{o.name}"), o.id]
+                           end,
                            @preference_region.option_id
                           ),
-                         { prompt: t("acme.org.preferences.regions.select_region_prompt") } %>
+                         { include_blank: false } %>
           </div>
         </div>
       </div>

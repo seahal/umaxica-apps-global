@@ -344,10 +344,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: United States
-            JAPAN: Japan
-            US: United States
-            JP: Japan
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English
@@ -1253,10 +1253,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: United States
-            JAPAN: Japan
-            US: United States
-            JP: Japan
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English
@@ -1730,8 +1730,8 @@ en:
             description: Choose the currency used for regional display.
             option_label: Currency
           options:
-            usd: US Dollar (USD)
-            jpy: Japanese Yen (JPY)
+            usd: USD
+            jpy: JPY
         date_format:
           edit:
             heading: Date Format
@@ -1940,10 +1940,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: United States
-            JAPAN: Japan
-            US: United States
-            JP: Japan
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English
@@ -1977,6 +1977,7 @@ en:
         cookie:
           edit:
             h1: Cookie Preferences
+            description: Manage cookie consent settings for this browser.
             accept_necessary_cookies: Allow necessary cookies (required)
             accept_functional_cookies: Allow functional cookies
             accept_performance_cookies: Allow performance cookies
@@ -2001,8 +2002,8 @@ en:
             description: Choose the currency used for regional display.
             option_label: Currency
           options:
-            usd: US Dollar (USD)
-            jpy: Japanese Yen (JPY)
+            usd: USD
+            jpy: JPY
         date_format:
           edit:
             heading: Date Format
@@ -2448,10 +2449,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: United States
-            JAPAN: Japan
-            US: United States
-            JP: Japan
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English
@@ -2518,10 +2519,10 @@ en:
           select_region: Select Region
           select_region_prompt: Choose your region...
           select_region_selector:
-            USA: United States
-            JAPAN: Japan
-            US: United States
-            JP: Japan
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
         region:
           timezone:
             link: Timezone Settings
@@ -2601,10 +2602,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: United States
-            JAPAN: Japan
-            US: United States
-            JP: Japan
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English
@@ -2710,10 +2711,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: United States
-            JAPAN: Japan
-            US: United States
-            JP: Japan
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English
@@ -2790,10 +2791,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: United States
-            JAPAN: Japan
-            US: United States
-            JP: Japan
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English

@@ -9,6 +9,7 @@ module Preference::AccessTokenIssuer
   def issue_access_token_from(preference, rotate_jti: false)
     rotate_preference_jti!(preference) if rotate_jti || preference.jti.blank?
     payload = build_preferences_payload(preference)
+    write_public_option_cookies(payload)
     token = Preference::Token.encode(
       payload,
       host: request.host,

@@ -15,6 +15,19 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     assert_match %r{/auth/google_app}, response.location
   end
 
+  test "continue stores only social ceremony transaction id in cookie session" do
+    post continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp")
+
+    assert_response :redirect
+
+    stored_value = session[SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY]
+
+    assert_predicate stored_value, :present?
+    assert_no_match(/\./, stored_value, "session must not store the signed social ceremony grant JWT")
+    assert_operator stored_value.bytesize, :<, 80
+    assert ClientSocialCeremonyTransaction.find_by(transaction_id: stored_value)
+  end
+
   test "continue without entry parameter does not raise and defaults to sign-in flow" do
     post continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp")
 

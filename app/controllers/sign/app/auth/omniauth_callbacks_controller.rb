@@ -252,6 +252,10 @@ module Sign
 
         def handle_login_intent(user, provider_name, existing_account, pt: nil)
           Rails.logger.debug(Jit::LogEvent.format("sign.social.omniauth.login_intent", message: "Signing in user"))
+          if existing_account
+            return reject_established_social_login_session_creation!(provider_name)
+          end
+
           unless user&.login_allowed?
             return redirect_to(
               new_sign_app_sign_in_path,
@@ -286,6 +290,19 @@ module Sign
             ),
           )
           redirect_after_login(provider_name, existing_account, pt: pt)
+        end
+
+        def reject_established_social_login_session_creation!(provider_name)
+          Rails.logger.warn(
+            Jit::LogEvent.format(
+              "sign.social.omniauth.established_login_session_creation_rejected",
+              provider: provider_name,
+            ),
+          )
+          redirect_to(
+            new_sign_app_sign_in_path(ri: params[:ri].presence || current_social_auth_ri),
+            alert: I18n.t("sign.app.social.sessions.create.failure"),
+          )
         end
 
         def redirect_after_login(provider_name, existing_account, pt: nil)

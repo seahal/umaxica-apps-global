@@ -3,8 +3,14 @@
 
 module Sign
   module App
-    class SettingsController < Sign::RedirectOnlyController
+    class SettingsController < Sign::App::ApplicationController
       include ::Sign::SettingsAuthorityRedirect
+
+      AUTHENTICATION_MODE = :private
+
+      def show
+        return redirect_to_acme_settings_authority! unless logged_in?
+      end
     end
   end
 end

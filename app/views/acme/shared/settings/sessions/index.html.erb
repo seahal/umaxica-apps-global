@@ -1,4 +1,4 @@
-<% surface = controller.controller_path.split("/").second %>
+<% surface = controller_path.split("/").second %>
 <% settings_path = public_send("acme_#{surface}_settings_path", ri: params[:ri]) %>
 <% sessions_path = public_send("acme_#{surface}_settings_sessions_path", ri: params[:ri]) %>
 <% others_path = public_send("others_acme_#{surface}_settings_sessions_path", ri: params[:ri]) %>

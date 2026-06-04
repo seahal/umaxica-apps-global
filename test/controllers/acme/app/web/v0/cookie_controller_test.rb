@@ -62,35 +62,16 @@ class Acme::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not body["targetable"]
   end
 
-  test "PATCH update returns 200 and sets preference_consented cookie with app domain" do
-    expires_at = Time.utc(2030, 1, 2, 3, 4, 5)
+  test "PATCH update without preference jwt does not write consent buffer" do
+    cookies.delete(Preference::CookieName.access(surface: :app))
 
-    travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
-      token = encode_preference_jwt(
-        preferences: { "consented" => true },
-        host: @host,
-        public_id: "pref-app-public-id",
-      )
-      cookies[Preference::CookieName.access] = token
+    patch acme_app_web_v0_cookie_path, params: { consented: true }, as: :json
 
-      with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".app.localhost") do
-        with_preference_jwt_keys(host: @host) do
-          patch acme_app_web_v0_cookie_path, as: :json
-        end
-      end
-    end
-
-    assert_response :ok
-    assert response.parsed_body["consented"]
+    assert_response :unauthorized
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "preference_consented=1"
-    assert_includes set_cookie, "domain=.umaxica.app"
-    assert_includes set_cookie.downcase, "path=/"
-    expires = response_cookie_expiry("preference_consented")
-
-    assert_not_nil expires
-    assert_in_delta expires_at.to_i, expires.to_i, 1
+    assert_not_includes set_cookie, "preference_consented="
+    assert_not_includes set_cookie, "#{Preference::CookieName.access(surface: :app)}="
   end
 
   test "PATCH update with consented true updates preference cookie and issues access token" do
@@ -121,8 +102,76 @@ class Acme::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil preference.app_preference_cookie.consented_at
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "preference_consented="
-    assert_includes set_cookie, "#{Preference::CookieName.access}="
+    assert_includes set_cookie, "#{Preference::CookieName.access(surface: :app)}="
+    assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
+    assert_not_includes set_cookie, "preference_consented="
+  end
+
+  test "PATCH update with nested accept-all cookie params updates every consent flag" do
+    preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
+    AppPreferenceCookie.create!(
+      preference: preference,
+      targetable: false,
+      performant: false,
+      functional: false,
+      consented: false,
+      consented_at: nil,
+    )
+    token = encode_preference_jwt(
+      preferences: { "consented" => false },
+      host: @host,
+      public_id: preference.public_id,
+    )
+    cookies[Preference::CookieName.access(surface: :app)] = token
+
+    with_preference_jwt_keys(host: @host) do
+      patch acme_app_web_v0_cookie_path,
+            params: {
+              cookie: {
+                consented: true,
+                functional: true,
+                performant: true,
+                targetable: true,
+              },
+            },
+            as: :json
+    end
+
+    assert_response :ok
+    cookie = preference.reload.app_preference_cookie
+
+    assert cookie.consented
+    assert cookie.functional
+    assert cookie.performant
+    assert cookie.targetable
+    assert_not_nil cookie.consented_at
+  end
+
+  test "PATCH update does not issue auth access cookie with preference access token" do
+    preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
+    AppPreferenceCookie.create!(
+      preference: preference,
+      targetable: false,
+      performant: false,
+      functional: false,
+      consented: false,
+      consented_at: nil,
+    )
+    token = encode_preference_jwt(
+      preferences: { "consented" => false },
+      host: @host,
+      public_id: preference.public_id,
+    )
+    cookies[Preference::CookieName.access(surface: :app)] = token
+
+    with_preference_jwt_keys(host: @host) do
+      patch acme_app_web_v0_cookie_path, params: { consented: true }, as: :json
+    end
+
+    assert_response :ok
+
+    assert_predicate cookies[Preference::CookieName.access(surface: :app)], :present?
+    assert_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY]
   end
 
   test "PATCH update raises and rolls back consent when access token issue fails" do

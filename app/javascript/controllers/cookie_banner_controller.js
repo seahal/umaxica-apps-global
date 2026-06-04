@@ -1,6 +1,10 @@
 import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller {
+  static values = {
+    settingsUrl: String,
+  };
+
   // Connects to data-controller="cookie-banner"
   connect() {
     void this.checkConsentState();
@@ -13,18 +17,8 @@ export default class extends Controller {
         this.element.remove();
       }
     } catch {
-      if (this.hasCookieConsent()) {
-        this.element.remove();
-      }
+      // Keep the banner visible when the verified preference JWT cannot be read.
     }
-  }
-
-  normalizeConsentValue(value) {
-    if (!value) {
-      return null;
-    }
-
-    return value.toLowerCase();
   }
 
   // Handle invisible/close action
@@ -48,16 +42,11 @@ export default class extends Controller {
   // Handle open settings action
   openSettings(event) {
     event.preventDefault();
-    void this.dispatchSettingsEvent();
-  }
-
-  async dispatchSettingsEvent() {
-    try {
-      const consent = await this.fetchCookieConsent();
-      this.dispatch("open-settings", { detail: { consent } });
-    } catch {
-      this.dispatch("open-settings", { detail: { consent: this.getCookieConsent() } });
+    if (this.hasSettingsUrlValue) {
+      window.location.assign(this.settingsUrlValue);
+      return;
     }
+    this.dispatch("open-settings", { detail: { consent: null } });
   }
 
   // Fetch cookie consent from API endpoint
@@ -70,6 +59,7 @@ export default class extends Controller {
   }
 
   async submitConsent(consented) {
+    const cookie = this.cookieConsentAttrs(consented);
     const response = await fetch(this.cookieEndpointUrl(), {
       method: "PATCH",
       headers: {
@@ -77,21 +67,59 @@ export default class extends Controller {
         "Content-Type": "application/json",
         "X-CSRF-Token": this.csrfToken(),
       },
-      body: JSON.stringify({ consented }),
+      body: JSON.stringify({ cookie }),
     });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    this.setCookieConsent(consented ? "accepted" : "rejected");
+    this.syncCookieFormConsent(await response.json());
     this.element.remove();
+  }
+
+  cookieConsentAttrs(consented) {
+    return {
+      consented: true,
+      functional: consented,
+      performant: consented,
+      targetable: consented,
+    };
+  }
+
+  syncCookieFormConsent(consentState) {
+    const form = document.querySelector("[data-controller~='cookie-toggle'] form");
+    if (!form) {
+      return;
+    }
+
+    ["consented", "functional", "performant", "targetable"].forEach((field) => {
+      if (!(field in consentState)) {
+        return;
+      }
+      const checkbox = form.querySelector(
+        `input[type="checkbox"][name="preference_cookie[${field}]"]`,
+      );
+      if (checkbox) {
+        checkbox.checked = Boolean(consentState[field]);
+        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
   }
 
   cookieEndpointUrl() {
     const endpoint = new URL("/web/v0/cookie", window.location.origin);
-    endpoint.search = window.location.search;
+    this.cookieEndpointQueryKeys().forEach((key) => {
+      const value = new URLSearchParams(window.location.search).get(key);
+      if (value) {
+        endpoint.searchParams.set(key, value);
+      }
+    });
     return endpoint.toString();
+  }
+
+  cookieEndpointQueryKeys() {
+    return ["ri", "lx", "ct", "tz", "cu", "df", "tf", "mo", "dn", "ps", "r18s"];
   }
 
   csrfToken() {
@@ -107,29 +135,4 @@ export default class extends Controller {
     });
   }
 
-  // Helper: Set cookie consent preference
-  setCookieConsent(value) {
-    const expires = new Date();
-    expires.setFullYear(expires.getFullYear() + 1);
-    document.cookie = `cookie_consent=${value}; expires=${expires.toUTCString()}; path=/`;
-  }
-
-  // Helper: Get current cookie consent value
-  getCookieConsent() {
-    const name = "cookie_consent=";
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const cookies = decodedCookie.split(";");
-    for (let cookie of cookies) {
-      cookie = cookie.trim();
-      if (cookie.indexOf(name) === 0) {
-        return this.normalizeConsentValue(cookie.substring(name.length));
-      }
-    }
-    return null;
-  }
-
-  // Helper: Check if user has already provided consent
-  hasCookieConsent() {
-    return this.getCookieConsent() !== null;
-  }
 }

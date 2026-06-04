@@ -79,22 +79,21 @@ class Sign::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil preference.org_preference_cookie.consented_at
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "preference_consented="
     assert_includes set_cookie, "#{Preference::CookieName.access}="
+    assert_not_includes set_cookie, "preference_consented="
   end
 
-  test "PATCH update without access jwt writes consent buffer without persisting preference" do
+  test "PATCH update without access jwt does not write consent buffer" do
     cookies.delete(Preference::CookieName.access)
 
     assert_no_difference -> { OrgPreference.count } do
       patch sign_org_web_v0_cookie_path, params: { consented: true }, as: :json
     end
 
-    assert_response :ok
-    assert response.parsed_body["consented"]
+    assert_response :unauthorized
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "preference_consented=1"
+    assert_not_includes set_cookie, "preference_consented="
     assert_not_includes set_cookie, "#{Preference::CookieName.access}="
   end
 end

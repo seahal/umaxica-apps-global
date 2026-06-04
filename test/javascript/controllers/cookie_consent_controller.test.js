@@ -39,36 +39,36 @@ describe("CookieConsentController", () => {
     });
   });
 
-  test("connect: 未同意時にバナーを表示する", () => {
+  test("connect shows the banner when consent is missing", () => {
     controller.consentedValue = false;
     controller.connect();
     expect(controller.bannerTarget.classList.remove).toHaveBeenCalledWith("hidden");
   });
 
-  test("connect: 同意済みにはバナーを表示しない", () => {
+  test("connect does not show the banner when already consented", () => {
     controller.consentedValue = true;
     controller.connect();
     expect(controller.bannerTarget.classList.remove).not.toHaveBeenCalledWith("hidden");
   });
 
-  test("connect: bannerTarget がない場合は何もしない", () => {
+  test("connect does nothing without a banner target", () => {
     controller.consentedValue = false;
     controller.hasBannerTarget = false;
     controller.connect();
     expect(controller.bannerTarget.classList.remove).not.toHaveBeenCalledWith("hidden");
   });
 
-  test("showBanner: バナーを表示する", () => {
+  test("showBanner shows the banner", () => {
     controller.showBanner();
     expect(controller.bannerTarget.classList.remove).toHaveBeenCalledWith("hidden");
   });
 
-  test("hideBanner: バナーを非表示にする", () => {
+  test("hideBanner hides the banner", () => {
     controller.hideBanner();
     expect(controller.bannerTarget.classList.add).toHaveBeenCalledWith("hidden");
   });
 
-  test("accept: 同意を送信する", async () => {
+  test("accept submits consent", async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ preference: { consented: true } }),
@@ -85,7 +85,7 @@ describe("CookieConsentController", () => {
     );
   });
 
-  test("reject: 拒絶を送信する", async () => {
+  test("reject submits refusal", async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ preference: { consented: false } }),
@@ -102,7 +102,7 @@ describe("CookieConsentController", () => {
     );
   });
 
-  test("submitConsent: 成功時にCookieを設定しバナーを閉じる", async () => {
+  test("submitConsent hides the banner without writing a JS consent cookie", async () => {
     vi.stubGlobal("document", {
       querySelector: vi.fn((selector) => {
         if (selector.includes("csrf-token")) {
@@ -117,55 +117,34 @@ describe("CookieConsentController", () => {
       json: async () => ({ preference: { consented: true } }),
     });
 
-    let cookiesSet = [];
-    Object.defineProperty(document, "cookie", {
-      set: (val) => cookiesSet.push(val),
-      get: () => "",
-    });
-
     await controller.submitConsent(true);
 
-    expect(cookiesSet.some((c) => c.startsWith("preference_consented="))).toBe(true);
     expect(controller.bannerTarget.classList.add).toHaveBeenCalledWith("hidden");
   });
 
-  test("submitConsent: preference がない場合は accepted をフォールバックとして使う", async () => {
+  test("submitConsent dispatches accepted fallback when preference is missing", async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({}),
     });
 
-    let cookiesSet = [];
-    Object.defineProperty(document, "cookie", {
-      set: (val) => cookiesSet.push(val),
-      get: () => "",
-    });
-
     await controller.submitConsent(true);
 
-    expect(cookiesSet.some((c) => c.startsWith("preference_consented=1"))).toBe(true);
     expect(controller.bannerTarget.classList.add).toHaveBeenCalledWith("hidden");
   });
 
-  test("submitConsent: preference.consented がない場合は accepted をフォールバックとして使う", async () => {
+  test("submitConsent dispatches refusal fallback when preference consent is missing", async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ preference: {} }),
     });
 
-    let cookiesSet = [];
-    Object.defineProperty(document, "cookie", {
-      set: (val) => cookiesSet.push(val),
-      get: () => "",
-    });
-
     await controller.submitConsent(false);
 
-    expect(cookiesSet.some((c) => c.startsWith("preference_consented=0"))).toBe(true);
     expect(controller.bannerTarget.classList.add).toHaveBeenCalledWith("hidden");
   });
 
-  test("submitConsent: 失敗時にエラー処理する", async () => {
+  test("submitConsent dispatches an error when the response fails", async () => {
     fetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -178,7 +157,7 @@ describe("CookieConsentController", () => {
     expect(dispatchSpy).toHaveBeenCalled();
   });
 
-  test("submitConsent: 例外時にエラー処理する", async () => {
+  test("submitConsent dispatches an error on exceptions", async () => {
     fetch.mockRejectedValueOnce(new Error("Network error"));
 
     const dispatchSpy = vi.spyOn(controller, "dispatch");

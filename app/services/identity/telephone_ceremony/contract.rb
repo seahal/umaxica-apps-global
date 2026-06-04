@@ -5,8 +5,6 @@ require "jwt"
 
 module Identity
   module TelephoneCeremony
-    Error = Class.new(StandardError)
-
     module Contract
       module_function
 

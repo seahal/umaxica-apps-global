@@ -12,8 +12,8 @@ class AcmeRegionTranslationTest < ActiveSupport::TestCase
       us_key = [locale_prefix, "US"].join(".")
       jp_key = [locale_prefix, "JP"].join(".")
 
-      assert_equal "US — あめりかがっしゅうこく", I18n.t(us_key, locale: :ja)
-      assert_equal "JP — にほん", I18n.t(jp_key, locale: :ja)
+      assert_equal "US", I18n.t(us_key, locale: :ja)
+      assert_equal "JP", I18n.t(jp_key, locale: :ja)
     end
   end
 

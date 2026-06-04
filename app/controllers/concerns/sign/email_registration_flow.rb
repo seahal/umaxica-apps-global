@@ -8,7 +8,8 @@ module Sign
     def new
       @user_email = ClientEmail.new
       reset_email_registration_flow!
-      return if accept_email_ceremony_grant!(surface: "app")
+      return if respond_to?(:accept_email_ceremony_grant!, true) && accept_email_ceremony_grant!(surface: "app")
+      return unless respond_to?(:acme_app_settings_emails_url)
 
       redirect_to(
         acme_app_settings_emails_url(
@@ -16,7 +17,7 @@ module Sign
           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
         ),
         notice: t("sign.app.registration.email.edit.session_expired"),
-        allow_other_host: true,
+        allow_other_host: cross_host_redirect_allowed?,
       )
     end
 
@@ -97,7 +98,7 @@ module Sign
       redirect_to(
         after_email_registration_verified_path,
         notice: t("sign.app.registration.email.update.success"),
-        allow_other_host: true,
+        allow_other_host: cross_host_redirect_allowed?,
       )
     end
 
@@ -215,7 +216,7 @@ module Sign
 
     def reset_email_registration_flow!
       session.delete(registration_email_session_key)
-      reset_email_ceremony_session!
+      reset_email_ceremony_session! if respond_to?(:reset_email_ceremony_session!, true)
       reset_email_flow!
     end
 

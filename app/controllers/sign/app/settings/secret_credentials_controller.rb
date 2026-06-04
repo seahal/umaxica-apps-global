@@ -69,7 +69,7 @@ module Sign
               host: ENV.fetch(
                 "ACME_SERVICE_URL", "www.app.localhost",
               ),
-            ), allow_other_host: true,
+            ), allow_other_host: cross_host_redirect_allowed?,
           )
         rescue ActiveRecord::RecordInvalid => e
           render plain: e.record.errors.full_messages.join("\n"), status: :unprocessable_content

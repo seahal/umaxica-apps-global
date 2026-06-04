@@ -188,7 +188,14 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
 
     # With an acme grant in session the guard no longer fires; the grant-backed
     # link branch (which renders the acme completion form) handles it instead.
-    harness.session_hash[SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY] = "grant-token"
+    issuance = Identity::SocialCeremony::GrantIssuer.issue!(
+      surface: "app",
+      actor_ref: "anonymous",
+      session_ref: "session-ref",
+      operation: "link",
+      provider: "google_app",
+    )
+    harness.session_hash[SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY] = issuance.grant
 
     assert_nil harness.send(:reject_grantless_app_social_link!, "link")
   end

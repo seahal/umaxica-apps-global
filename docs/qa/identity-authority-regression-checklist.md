@@ -19,7 +19,8 @@ compatibility subclass.
 
 Remaining bounded legacy:
 
-- Unknown / incomplete social signup and account selection still complete on the sign-side
+- Unknown / incomplete social signup and account-selection remains bounded sign compatibility and
+  must be moved to acme decision flow later. These paths still complete on the sign-side
   compatibility path (`SocialAuthService.handle_callback`). "Established account" is approximated by
   the birthdate-present predicate in `acme_social_login_completion_supported?` (birthdate is the
   final sign-up checkpoint); it is documented in code and guarded by tests. It does not expand link,

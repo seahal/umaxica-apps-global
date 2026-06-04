@@ -60,34 +60,16 @@ class Acme::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not response.parsed_body["targetable"]
   end
 
-  test "PATCH update returns 200 and sets preference_consented cookie with com domain" do
-    token = encode_preference_jwt(
-      preferences: { "consented" => false },
-      host: @host,
-      public_id: "pref-com-public-id",
-      preference_type: "ComPreference",
-    )
-    cookies[Preference::CookieName.access] = token
-    expires_at = Time.utc(2031, 2, 3, 4, 5, 6)
+  test "PATCH update without preference jwt does not write consent buffer" do
+    cookies.delete(Preference::CookieName.access(surface: :com))
 
-    travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
-      with_cookie_domain_credentials(COOKIE_DOMAIN_COM: ".com.localhost") do
-        with_preference_jwt_keys(host: @host) do
-          patch acme_com_web_v0_cookie_path, as: :json
-        end
-      end
-    end
+    patch acme_com_web_v0_cookie_path, params: { consented: true }, as: :json
 
-    assert_response :ok
+    assert_response :unauthorized
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "preference_consented=0"
-    assert_includes set_cookie, "domain=.umaxica.com"
-    assert_includes set_cookie.downcase, "path=/"
-    expires = response_cookie_expiry("preference_consented")
-
-    assert_not_nil expires
-    assert_in_delta expires_at.to_i, expires.to_i, 1
+    assert_not_includes set_cookie, "preference_consented="
+    assert_not_includes set_cookie, "#{Preference::CookieName.access(surface: :com)}="
   end
 
   test "PATCH update with consented true updates com preference cookie and issues access token" do
@@ -119,8 +101,49 @@ class Acme::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil preference.com_preference_cookie.consented_at
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "preference_consented="
     assert_includes set_cookie, "#{Preference::CookieName.access}="
+    assert_not_includes set_cookie, "preference_consented="
+  end
+
+  test "PATCH update with nested reject-all cookie params records consent choice and clears optional flags" do
+    preference = ComPreference.create!(status_id: ComPreferenceStatus::NOTHING)
+    ComPreferenceCookie.create!(
+      preference: preference,
+      targetable: true,
+      performant: true,
+      functional: true,
+      consented: true,
+      consented_at: Time.current,
+    )
+    token = encode_preference_jwt(
+      preferences: { "consented" => true },
+      host: @host,
+      public_id: preference.public_id,
+      preference_type: "ComPreference",
+    )
+    cookies[Preference::CookieName.access] = token
+
+    with_preference_jwt_keys(host: @host) do
+      patch acme_com_web_v0_cookie_path,
+            params: {
+              cookie: {
+                consented: true,
+                functional: false,
+                performant: false,
+                targetable: false,
+              },
+            },
+            as: :json
+    end
+
+    assert_response :ok
+    cookie = preference.reload.com_preference_cookie
+
+    assert cookie.consented
+    assert_not cookie.functional
+    assert_not cookie.performant
+    assert_not cookie.targetable
+    assert_not_nil cookie.consented_at
   end
 
   private

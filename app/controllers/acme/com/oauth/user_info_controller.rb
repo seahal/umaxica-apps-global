@@ -7,6 +7,11 @@ module Acme
       class UserInfoController < Acme::Com::BareController
         include Acme::OauthEndpoint
 
+        AUTHENTICATION_MODE = :open
+
+        before_action :skip_oauth_session!
+        after_action :set_oauth_cache_headers
+
         def show
           result = ::Oidc::AccessTokenAuthenticator.call(
             access_token: ::Auth::AuthorizationHeader.access_token(request),

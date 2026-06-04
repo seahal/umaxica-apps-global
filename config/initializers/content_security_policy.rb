@@ -9,11 +9,33 @@
 
 Rails.application.configure do
   config.content_security_policy do |policy|
+    acme_form_hosts =
+      [
+        ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+        ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      ].map { |host| "https://#{host}" }
+    sign_form_hosts =
+      %w(
+        ID_SERVICE_URL
+        SIGN_SERVICE_URL
+        ID_CORPORATE_URL
+        SIGN_CORPORATE_URL
+        ID_STAFF_URL
+        SIGN_STAFF_URL
+      ).filter_map { |key| ENV[key].presence }.uniq.map { |host| "https://#{host}" }
+
     policy.default_src(:self)
     policy.base_uri(:self)
     policy.connect_src(:self, :https)
     policy.font_src(:self, :https, :data)
-    policy.form_action(:self, "https://accounts.google.com", "https://appleid.apple.com")
+    policy.form_action(
+      :self,
+      "https://accounts.google.com",
+      "https://appleid.apple.com",
+      *acme_form_hosts,
+      *sign_form_hosts,
+    )
     policy.frame_ancestors(:self)
     policy.frame_src(:self, "https://challenges.cloudflare.com")
     policy.img_src(:self, :https, :data)

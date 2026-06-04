@@ -4,8 +4,12 @@
 module Sign
   module App
     module Preference
-      class TimesController < Sign::RedirectOnlyController
-        include ::Sign::PreferenceAuthorityRedirect
+      class TimesController < Sign::App::PreferencesBaseController
+        include ::Acme::PreferenceScreenDispatch
+
+        AUTHENTICATION_MODE = :open
+
+        before_action :ensure_preferences_record
       end
     end
   end

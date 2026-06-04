@@ -18,9 +18,11 @@
 # - POST /social/auth/:provider/continue?intent=... -> prepares intent, redirects to /auth/:provider
 #
 # State Parameter:
-# - All providers use state validation (via SocialAuthConcern)
-# - State is stored in session[:social_auth_intent] and validated on callback
-# - Apple receives state via query string because response_mode is query.
+# - SocialCallbackGuard validates callback state through CallbackStateStore for all app providers.
+# - SocialAuthConcern stores intent context; provider callback CSRF protection is not solely owned
+#   by that concern.
+# - Apple provider_ignores_state disables provider-side state handling only; app-side
+#   CallbackStateStore/SocialCallbackGuard validation still runs.
 #
 # IMPORTANT: Apple Sign In Constraints
 # - Callback URL must be HTTPS with a valid domain (no localhost/IP)
@@ -151,7 +153,7 @@ end
 # Allow both GET and POST for initiating OAuth
 # - GET: Used after our custom /social/auth/:provider/continue entry point redirects to OmniAuth
 # - POST: Traditional form submission (CSRF protected by Rails token)
-# State validation in SocialAuthConcern provides CSRF protection for both methods
+# Callback state validation is enforced by SocialCallbackGuard and CallbackStateStore.
 OmniAuth.config.silence_get_warning = true
 OmniAuth.config.allowed_request_methods = %i(get post)
 OmniAuth.config.after_request_phase = proc { |env| SocialCallbackGuard.capture_request_state!(env) }

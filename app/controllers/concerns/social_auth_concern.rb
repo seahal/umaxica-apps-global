@@ -26,6 +26,8 @@ module SocialAuthConcern
   SOCIAL_PT_SESSION_KEY = :social_auth_pt
   SOCIAL_ENTRY_SESSION_KEY = :social_auth_entry
   SOCIAL_RI_SESSION_KEY = :social_auth_ri
+  # Stores the social ceremony transaction id, not the JWT grant. Keeping the
+  # JWT in the cookie-backed session can exceed the 4KB cookie limit.
   SOCIAL_CEREMONY_GRANT_SESSION_KEY = :social_ceremony_grant
   STATE_TTL = 5.minutes
   STEP_UP_TTL = 10.minutes
@@ -412,13 +414,24 @@ module SocialAuthConcern
         current_session_public_id.to_s
     end
 
-    session[SOCIAL_CEREMONY_GRANT_SESSION_KEY] = token.to_s
+    session[SOCIAL_CEREMONY_GRANT_SESSION_KEY] = grant["transaction_id"].to_s
   rescue Identity::SocialCeremony::Error
     raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
   end
 
   def social_ceremony_grant_token
-    session[SOCIAL_CEREMONY_GRANT_SESSION_KEY].presence
+    raw_value = session[SOCIAL_CEREMONY_GRANT_SESSION_KEY].presence
+    return nil if raw_value.blank?
+
+    return raw_value if raw_value.include?(".")
+
+    transaction = Identity::SocialCeremony::ReplayStore.for("app").find_transaction!(raw_value)
+    Identity::SocialCeremony::Grant.issue(
+      transaction.grant_claims,
+      issuer_id: Identity::SocialCeremony::Contract.acme_issuer_id("app"),
+    )
+  rescue Identity::SocialCeremony::Error
+    nil
   end
 
   def social_ceremony_grant

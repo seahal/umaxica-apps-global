@@ -4,8 +4,12 @@
 module Sign
   module App
     module Preference
-      class RegionsController < Sign::RedirectOnlyController
-        include ::Sign::PreferenceAuthorityRedirect
+      class RegionsController < Sign::App::PreferencesBaseController
+        include ::Acme::PreferenceScreenDispatch
+
+        AUTHENTICATION_MODE = :open
+
+        before_action :ensure_preferences_record
       end
     end
   end

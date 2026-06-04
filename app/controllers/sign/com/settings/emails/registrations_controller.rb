@@ -36,7 +36,7 @@ module Sign
                 host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
               ),
               notice: t("sign.app.registration.email.edit.session_expired"),
-              allow_other_host: true,
+              allow_other_host: cross_host_redirect_allowed?,
             )
           end
 
@@ -126,7 +126,7 @@ module Sign
                 ),
               ),
               notice: t("sign.app.registration.email.update.success"),
-              allow_other_host: true,
+              allow_other_host: cross_host_redirect_allowed?,
             )
           end
 

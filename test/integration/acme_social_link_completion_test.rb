@@ -51,7 +51,9 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
     # First completion: acme consumes the result and creates the identity.
     assert_difference("ClientGoogleIdentity.count", 1) do
-      post action, params: { social_ceremony_result: result_token, ri: "jp" }, headers: { "Host" => @acme_host }
+      post action,
+           params: { social_ceremony_result: result_token, ri: "jp" },
+           headers: social_completion_browser_headers
     end
 
     assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
@@ -62,7 +64,9 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
     # Replay of the one-shot result must be rejected without a second commit.
     assert_no_difference("ClientGoogleIdentity.count") do
-      post action, params: { social_ceremony_result: result_token, ri: "jp" }, headers: { "Host" => @acme_host }
+      post action,
+           params: { social_ceremony_result: result_token, ri: "jp" },
+           headers: social_completion_browser_headers
     end
 
     assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
@@ -72,10 +76,38 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     assert_no_difference("ClientGoogleIdentity.count") do
       post completion_acme_app_social_authentication_url(provider: "google_app", ri: "jp", host: @acme_host),
            params: { social_ceremony_result: "not-a-real-token", ri: "jp" },
-           headers: { "Host" => @acme_host }
+           headers: social_completion_browser_headers
     end
 
     assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+  end
+
+  test "acme social login start delegates to sign with a login ceremony grant" do
+    assert_no_difference("Client.count") do
+      post continue_acme_app_social_authentication_url(provider: "google_app", ri: "jp", host: @acme_host),
+           headers: { "Host" => @acme_host }
+    end
+
+    assert_response :see_other
+
+    location = URI.parse(response.location)
+    query = Rack::Utils.parse_nested_query(location.query)
+
+    assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), location.host
+    assert_equal "/social/auth/google_app/continue", location.path
+    assert_equal "login", query["intent"]
+    assert_equal "sign_in", query["entry"]
+    assert_equal "jp", query["ri"]
+    assert_predicate query["social_ceremony_grant"], :present?
+
+    grant = Identity::SocialCeremony::Grant.decode(
+      query.fetch("social_ceremony_grant"),
+      issuer_id: Identity::SocialCeremony::Contract.acme_issuer_id("app"),
+    )
+
+    assert_equal "login", grant["operation"]
+    assert_equal "google_app", grant["provider"]
+    assert_equal "anonymous", grant["actor_ref"]
   end
 
   test "sign com and org surfaces expose no social routes" do
@@ -90,6 +122,14 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def social_completion_browser_headers
+    {
+      "Host" => @acme_host,
+      "Origin" => "null",
+      "Sec-Fetch-Site" => "same-site",
+    }
+  end
 
   def setup_google_mock_auth(uid:, token: "google_token")
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(

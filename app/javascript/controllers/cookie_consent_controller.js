@@ -55,9 +55,6 @@ export default class extends Controller {
         const body = await response.json();
         const consented = Boolean(body.preference?.consented ?? accepted);
 
-        // Update JS-readable consent cookie
-        document.cookie = `preference_consented=${consented ? "1" : "0"}; path=/; max-age=31536000`;
-
         // Hide banner
         this.hideBanner();
 

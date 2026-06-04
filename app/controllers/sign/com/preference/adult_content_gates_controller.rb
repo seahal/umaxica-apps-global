@@ -4,8 +4,12 @@
 module Sign
   module Com
     module Preference
-      class AdultContentGatesController < Sign::RedirectOnlyController
-        include ::Sign::PreferenceAuthorityRedirect
+      class AdultContentGatesController < Sign::Com::PreferencesBaseController
+        include ::Acme::PreferenceScreenDispatch
+
+        AUTHENTICATION_MODE = :open
+
+        before_action :ensure_preferences_record
       end
     end
   end

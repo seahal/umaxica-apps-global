@@ -2,7 +2,11 @@
 # frozen_string_literal: true
 
 scope module: :core, as: :core do
-  constraints host: ENV["CORE_SERVICE_URL"] do
+  core_app_hosts = [ENV["CORE_SERVICE_URL"], "core.app.localhost"].compact.uniq
+  core_com_hosts = [ENV["CORE_CORPORATE_URL"], "core.com.localhost"].compact.uniq
+  core_org_hosts = [ENV["CORE_STAFF_URL"], "core.org.localhost"].compact.uniq
+
+  constraints ->(request) { core_app_hosts.include?(request.host) } do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -39,7 +43,7 @@ scope module: :core, as: :core do
     end
   end
 
-  constraints host: ENV["CORE_CORPORATE_URL"] do
+  constraints ->(request) { core_com_hosts.include?(request.host) } do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -76,7 +80,7 @@ scope module: :core, as: :core do
     end
   end
 
-  constraints host: ENV["CORE_STAFF_URL"] do
+  constraints ->(request) { core_org_hosts.include?(request.host) } do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false

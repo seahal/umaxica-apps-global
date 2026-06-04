@@ -36,22 +36,29 @@ module Preference
 
     def requested_theme_value
       request_params = params.to_unsafe_h
-      raw_value = request_params["theme"].presence || request_params["ct"].presence
+      raw_value = request_params["theme"]
       return nil if raw_value.blank?
+      return nil unless raw_value.is_a?(String)
 
-      normalize_theme(raw_value.to_s)
+      normalize_theme(raw_value)
     end
 
     def persist_theme!(short_code)
       write_preference_cookie(Preference::Base::THEME_COOKIE_KEY, short_code)
 
-      public_id = decoded_theme_preference_payload&.dig("public_id")
-      return if public_id.blank?
-
-      preference = find_preference_for_theme_update(public_id)
+      preference = preference_for_theme_update
       return if preference.blank?
 
       update_preference_theme!(preference, short_code)
+    end
+
+    def preference_for_theme_update
+      public_id = decoded_theme_preference_payload&.dig("public_id")
+      preference = find_preference_for_theme_update(public_id) if public_id.present?
+      return preference if preference.present?
+
+      preference, = load_preference_record_from_refresh_token!(create_if_missing: true)
+      preference
     end
 
     def find_preference_for_theme_update(public_id)

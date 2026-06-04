@@ -53,12 +53,14 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "does not create preference records on root" do
-    assert_no_difference("AppPreference.count") do
+  test "creates preference cookies on root" do
+    assert_difference("AppPreference.count", 1) do
       get sign_app_root_url(ri: "jp")
     end
 
     assert_response :success
+    assert_predicate cookies[Preference::CookieName.access(surface: :app)], :present?
+    assert_predicate cookies[Preference::CookieName.refresh(surface: :app)], :present?
   end
 
   test "sets theme cookie" do
@@ -70,11 +72,12 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "GET / redirects to dashboard when logged in" do
+  test "GET / renders root when logged in" do
     user = clients(:one)
     get sign_app_root_url(ri: "jp"),
         headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_response :success
+    assert_select "h1", minimum: 1
   end
 end

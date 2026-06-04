@@ -888,6 +888,12 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
     assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_checkpoint_birthdate_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_app_up_checkpoint_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_checkpoint_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_app_up_checkpoint_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_select "a[href*=?]", new_sign_app_sign_up_path, count: 0
+    assert_select "a[href*=?]", new_sign_app_sign_in_path, count: 0
 
     get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
 
@@ -1103,6 +1109,41 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "2000-02-03", user_email.user.reload.birthdate
     assert cycle.reload.requirement_cleared?(:birthdate)
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.status_id
+  end
+
+  test "email signup checkpoint cancel stops the signup path" do
+    post sign_app_up_email_url(ri: "jp"),
+         params: {
+           user_email: {
+             raw_address: "email_checkpoint_cancel_#{SecureRandom.hex(4)}@example.com",
+             confirm_policy: "1",
+           },
+           "cf-turnstile-response": "test",
+         },
+         headers: default_headers
+
+    user_email = ClientEmail.order(:created_at).last
+    cycle = current_sign_up_flow(user_email)
+    otp_data = user_email.get_otp
+    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+
+    patch sign_app_up_email_url(ri: "jp"),
+          params: { user_email: { pass_code: pass_code } },
+          headers: default_headers
+
+    get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
+    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+
+    delete sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+    assert_redirected_to "/"
+    assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
+
+    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+
+    assert_redirected_to new_sign_app_sign_up_url(ri: "jp")
   end
 
   test "email signup checkpoint birthdate is idempotent after requirement is cleared" do

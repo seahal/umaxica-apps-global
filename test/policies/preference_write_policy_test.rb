@@ -7,6 +7,8 @@ class PreferenceWritePolicyTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   test "shared preference policies allow token-scoped updates without an actor" do
+    # Shared preferences are login-independent surface state; signed preference tokens authorize
+    # these writes before an actor-local preference exists.
     assert_predicate AppPreferencePolicy.new(AppPreference.new, user: nil), :update?
     assert_predicate OrgPreferencePolicy.new(OrgPreference.new, user: nil), :update?
     assert_predicate ComPreferencePolicy.new(ComPreference.new, user: nil), :update?

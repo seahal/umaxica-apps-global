@@ -16,6 +16,7 @@ module Acme
 
           skip_before_action :set_preferences_cookie, raise: false
           skip_before_action :set_current_actor, raise: false
+          skip_before_action :set_color_theme, raise: false
         end
       end
     end

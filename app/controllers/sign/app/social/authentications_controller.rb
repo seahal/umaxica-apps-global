@@ -72,6 +72,7 @@ module Sign
               session_ref: state,
               operation: "login",
               provider: provider,
+              resource_ref: social_auth_entry,
               return_to: path_from_signed_pt(signed_pt_token(resolved_path_or_navigation_target)),
             )
             store_social_ceremony_grant!(issuance.grant)
@@ -98,7 +99,7 @@ module Sign
               host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
             ),
             status: :temporary_redirect,
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         end
 

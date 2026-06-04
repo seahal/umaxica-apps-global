@@ -3,8 +3,12 @@
 
 module Sign
   module Com
-    class PreferencesController < Sign::RedirectOnlyController
-      include ::Sign::PreferenceAuthorityRedirect
+    class PreferencesController < PreferencesBaseController
+      AUTHENTICATION_MODE = :open
+
+      def show
+        render "acme/shared/preferences/show"
+      end
     end
   end
 end

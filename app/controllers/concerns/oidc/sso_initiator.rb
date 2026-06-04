@@ -43,7 +43,12 @@ module Oidc
       session[:oidc_nonce] = nonce
       session[:oidc_pt] = safe_oidc_pt(pt)
 
-      oidc_authorization_url(screen_hint: screen_hint, code_challenge: challenge, state: state, nonce: nonce)
+      oidc_authorization_url(
+        screen_hint: screen_hint,
+        code_challenge: challenge,
+        state: state,
+        nonce: nonce,
+      )
     end
 
     def redirect_to_oidc_authorization_url(url, **)

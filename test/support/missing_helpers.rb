@@ -372,7 +372,15 @@ module MissingHelpers
       params[name] = input["value"] if name.present?
     end
 
-    post(form["action"], params: params, headers: { "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") })
+    post(
+      form["action"],
+      params: params,
+      headers: {
+        "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        "Origin" => "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}",
+        "Sec-Fetch-Site" => "same-site",
+      },
+    )
   end
 
   def submit_step_up_completion_if_present!(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), headers: {})

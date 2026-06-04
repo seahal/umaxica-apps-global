@@ -10,8 +10,11 @@ module Preference
     end
 
     def update
-      apply_consented_update_from_request!
-      set_consented_buffer_cookie! unless cookie_consent_state_overridden?
+      unless apply_consented_update_from_request!
+        render json: { error: "missing_preference_access_token" }, status: :unauthorized
+        return
+      end
+
       render json: cookie_consent_state, status: :ok
     end
   end

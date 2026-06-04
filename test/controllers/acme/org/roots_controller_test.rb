@@ -13,15 +13,27 @@ class Acme::Org::RootsControllerTest < ActionDispatch::IntegrationTest
                   "#{ENV.fetch("BRAND_NAME", "UMAXICA").upcase} (org) | #{I18n.t("acme.org.preferences.footer.home")}"
   end
 
-  # Regression: the public landing page must not perform a per-request
-  # preference create/rotate write (DBSC performance plan).
-  test "does not create preference records on root" do
+  test "creates preference cookies on root" do
     host! ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
 
-    assert_no_difference("OrgPreference.count") do
+    assert_difference("OrgPreference.count", 1) do
       get acme_org_root_url(ri: "jp")
     end
 
     assert_response :success
+    assert_predicate cookies[Preference::CookieName.access(surface: :org)], :present?
+    assert_predicate cookies[Preference::CookieName.refresh(surface: :org)], :present?
+  end
+
+  test "creates preference cookies on root when optional URL preferences are present" do
+    host! ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+
+    assert_difference("OrgPreference.count", 1) do
+      get acme_org_root_url(ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo")
+    end
+
+    assert_response :success
+    assert_predicate cookies[Preference::CookieName.access(surface: :org)], :present?
+    assert_predicate cookies[Preference::CookieName.refresh(surface: :org)], :present?
   end
 end

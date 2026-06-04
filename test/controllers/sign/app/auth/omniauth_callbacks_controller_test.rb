@@ -94,7 +94,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@login_result_for_test, true)
     controller.send(:handle_login_intent, user, "Apple", true)
 
-    assert_match "/dashboard", redirects.last.first.first
+    assert_match "/sign/in/new?ri=jp", redirects.last.first.first
 
     controller.send(
       :handle_login_failure,
@@ -160,7 +160,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_not controller.send(:auto_link_allowed?)
   end
 
-  test "social login records provider in audit context" do
+  test "new social login records provider in audit context" do
     controller = Sign::App::Auth::OmniauthCallbacksController.new
     redirects = []
 
@@ -189,7 +189,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     user = Client.create!(status_id: ClientStatus::NOTHING)
     return_to = "/after-social"
-    controller.send(:handle_login_intent, user, "Google", true, pt: return_to)
+    controller.send(:handle_login_intent, user, "Google", false, pt: return_to)
 
     kwargs = controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)
 
@@ -197,6 +197,14 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal "social", kwargs[:auth_method]
     assert_equal({ auth_method: "social", provider: "google" }, kwargs[:audit_context])
     assert_match "/dashboard", redirects.last.first.first
+  end
+
+  test "grantless established google login does not create sign session" do
+    assert_grantless_established_social_login_rejected(provider: "google_app", provider_name: "Google")
+  end
+
+  test "grantless established apple login does not create sign session" do
+    assert_grantless_established_social_login_rejected(provider: "apple", provider_name: "Apple")
   end
 
   test "social login result log payload excludes bearer credentials" do
@@ -326,7 +334,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal cycle.public_id, session_hash[:sign_app_up_sequence_id]
   end
 
-  test "social sign up entry with existing identity follows sign in path" do
+  test "social sign up entry with existing identity rejects sign-side session creation" do
     controller = Sign::App::Auth::OmniauthCallbacksController.new
     redirects = []
 
@@ -343,17 +351,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
-      "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
-    }
+    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
     controller.define_singleton_method(:sign_app_up_guardrail_path) {
       raise StandardError, "should not continue sign up"
     }
-    controller.define_singleton_method(:establish_signed_in_session!) do |*args, **kwargs|
-      @complete_sign_in_args_for_test = args
-      @complete_sign_in_kwargs_for_test = kwargs
-      { status: :success }
-    end
+    controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
 
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
     identity = ClientGoogleIdentity.create!(
@@ -375,12 +377,10 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       pt: "encoded-pt",
     )
 
-    assert_equal [user], controller.instance_variable_get(:@complete_sign_in_args_for_test)
-    assert_equal "encoded-pt", controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)[:pt]
-    assert_match "/dashboard?ri=jp", redirects.last.first.first
+    assert_match "/sign/in/new?ri=jp", redirects.last.first.first
   end
 
-  test "social sign in failure keeps account records" do
+  test "rejected established social sign in keeps account records" do
     controller = Sign::App::Auth::OmniauthCallbacksController.new
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
     identity = ClientGoogleIdentity.create!(
@@ -391,12 +391,10 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       token_expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
     )
-    controller.define_singleton_method(:sign_in) do |*|
-      { status: :login_forbidden }
-    end
-    controller.define_singleton_method(:handle_login_failure) do |*|
-      nil
-    end
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:redirect_to) { |*| nil }
+    controller.define_singleton_method(:sign_in) { raise StandardError, "should not sign in" }
 
     controller.send(:handle_login_intent, user, "Google", true)
 
@@ -452,5 +450,41 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     session_hash[SocialAuthConcern::SOCIAL_ENTRY_SESSION_KEY] = "sign_in"
 
     assert_equal "/sign/in/new?ri=jp", controller.send(:social_auth_failure_redirect_path)
+  end
+
+  private
+
+  def assert_grantless_established_social_login_rejected(provider:, provider_name:)
+    controller = Sign::App::Auth::OmniauthCallbacksController.new
+    redirects = []
+
+    request = ActionDispatch::TestRequest.create(
+      "REQUEST_METHOD" => "GET",
+      "HTTP_HOST" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+    )
+    request.env["omniauth.auth"] = OpenStruct.new(provider: provider)
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
+
+    session_hash = {}
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: provider) }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
+
+    user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")
+
+    controller.send(
+      :handle_successful_auth,
+      user,
+      "login",
+      provider_name,
+      nil,
+      existing_account: true,
+      pt: "encoded-pt",
+    )
+
+    assert_match "/sign/in/new?ri=jp", redirects.last.first.first
   end
 end

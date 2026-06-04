@@ -1,4 +1,4 @@
-<% surface = controller.controller_path.split("/").second %>
+<% surface = controller_path.split("/").second %>
 <% root_path = public_send("acme_#{surface}_root_path", ri: params[:ri]) %>
 
 <% content_for :page_title, t("sign.shared.sign_out.completed_title") %>

@@ -4,8 +4,12 @@
 module Sign
   module Org
     module Preference
-      class CurrenciesController < Sign::RedirectOnlyController
-        include ::Sign::PreferenceAuthorityRedirect
+      class CurrenciesController < Sign::Org::PreferencesBaseController
+        include ::Acme::PreferenceScreenDispatch
+
+        AUTHENTICATION_MODE = :open
+
+        before_action :ensure_preferences_record
       end
     end
   end

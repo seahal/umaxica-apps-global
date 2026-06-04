@@ -37,9 +37,6 @@ export default class extends Controller {
         const body = await response.json();
         const appliedTheme = body.preference?.ct || theme;
 
-        // Update cookie immediately for instant CSS feedback
-        document.cookie = `ct=${appliedTheme}; path=/; max-age=31536000`;
-
         // Update current theme tracking
         this.currentTheme = appliedTheme;
 

@@ -81,6 +81,7 @@ beforeEach(() => {
   vi.stubGlobal("document", documentMock);
   vi.stubGlobal("window", windowMock);
   vi.stubGlobal("location", { protocol: "https:" });
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network unavailable")));
 });
 
 // ──────────────────────────────────────────────
@@ -104,41 +105,64 @@ describe("connect", () => {
 // ──────────────────────────────────────────────
 
 describe("select", () => {
-  test('"dark" → ct=dr クッキーを設定する', () => {
+  test('"dark" applies the theme without writing the ct cookie', () => {
     const controller = makeController();
     controller.select({ target: { value: "dark" } });
-    expect(cookieWritten).toContain("ct=dr; path=/; max-age=31536000; samesite=lax; secure");
+    expect(cookieWritten).toEqual([]);
+    expect(documentMock.documentElement.dataset.theme).toBe("dark");
   });
 
-  test('"light" → ct=li クッキーを設定する', () => {
+  test('"light" applies the theme without writing the ct cookie', () => {
     const controller = makeController();
     controller.select({ target: { value: "light" } });
-    expect(cookieWritten).toContain("ct=li; path=/; max-age=31536000; samesite=lax; secure");
+    expect(cookieWritten).toEqual([]);
+    expect(documentMock.documentElement.dataset.theme).toBe("light");
   });
 
-  test('"system" → ct=sy クッキーを設定する', () => {
+  test('"system" applies the theme without writing the ct cookie', () => {
     const controller = makeController();
     controller.select({ target: { value: "system" } });
-    expect(cookieWritten).toContain("ct=sy; path=/; max-age=31536000; samesite=lax; secure");
+    expect(cookieWritten).toEqual([]);
+    expect(documentMock.documentElement.dataset.theme).toBe("system");
   });
 
-  test("未知の値はデフォルトで ct=sy になる", () => {
+  test("unknown values apply the system fallback without writing the ct cookie", () => {
     const controller = makeController();
     controller.select({ target: { value: "unknown" } });
-    expect(cookieWritten).toContain("ct=sy; path=/; max-age=31536000; samesite=lax; secure");
+    expect(cookieWritten).toEqual([]);
+    expect(documentMock.documentElement.dataset.theme).toBe("system");
   });
 
-  test("https のとき secure フラグが付く", () => {
-    const controller = makeController();
-    controller.select({ target: { value: "dark" } });
-    expect(cookieWritten[0]).toMatch(/; secure$/);
-  });
+  test("selected theme is persisted through the theme endpoint", async () => {
+    const csrfMeta = { content: "csrf-token" };
+    documentMock.querySelector.mockImplementation((selector) => {
+      if (selector === 'meta[name="csrf-token"]') {
+        return csrfMeta;
+      }
+      return null;
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ theme: "dr" }) }),
+    );
 
-  test("http のとき secure フラグが付かない", () => {
-    vi.stubGlobal("location", { protocol: "http:" });
     const controller = makeController();
     controller.select({ target: { value: "dark" } });
-    expect(cookieWritten[0]).not.toMatch(/; secure$/);
+
+    await vi.waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "http://localhost:3000/web/v0/theme?lx=en&ri=us&tz=asia%2Ftokyo",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "X-CSRF-Token": "csrf-token",
+          },
+          body: JSON.stringify({ theme: "dark" }),
+        },
+      );
+    });
   });
 });
 
@@ -233,8 +257,6 @@ describe("applyThemeFromCookie (統合テスト)", () => {
     const controller = makeController();
     controller.select({ target: { value: "dark" } });
 
-    // select した時点でクッキーが書き込まれ、applyThemeFromCookie が呼ばれる
-    // classListMock に dark クラスが追加されているか確認
     expect(classListMock.has("dark")).toBe(true);
     expect(classListMock.has("theme-dark")).toBe(true);
   });

@@ -16,7 +16,6 @@ module Sign
 
     def consume_step_up_session!(method: nil)
       rs = current_step_up_session
-      rs.return_to
       scope = rs.scope
       method = method.presence || rs.try(:method).presence
 
@@ -141,6 +140,11 @@ module Sign
           csrf_token: acme_step_up_completion_csrf_token,
         },
       )
+    end
+
+    def acme_step_up_completion_state?
+      request_available_for_step_up_completion_state? &&
+        session[:acme_step_up_completion].to_h["transaction_id"].present?
     end
 
     def acme_step_up_completion_csrf_token

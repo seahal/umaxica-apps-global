@@ -78,6 +78,13 @@ module Preference::Global
       lx: normalized_preference_value(preferences, "lx"),
       tz: preferences["tz"],
       ct: theme_short_code(preferences["ct"]),
+      cu: normalized_preference_value(preferences, "cu"),
+      df: normalized_preference_value(preferences, "df"),
+      tf: normalized_preference_value(preferences, "tf"),
+      mo: normalized_preference_value(preferences, "mo"),
+      dn: normalized_preference_value(preferences, "dn"),
+      ps: normalized_preference_value(preferences, "ps"),
+      r18s: normalized_preference_value(preferences, "r18s"),
     }
   end
 
@@ -89,6 +96,13 @@ module Preference::Global
       lx: option_id_to_language(preference_option_id(association_name_for_language), prefix),
       tz: option_id_to_timezone(preference_option_id(association_name_for_timezone), prefix),
       ct: theme_short_code(preference_option_value(preference_theme_association)),
+      cu: normalized_preference_record_option_value(:currency),
+      df: normalized_preference_record_option_value(:date_format),
+      tf: normalized_preference_record_option_value(:time_format),
+      mo: normalized_preference_record_option_value(:motion),
+      dn: normalized_preference_record_option_value(:density),
+      ps: normalized_preference_record_option_value(:page_size),
+      r18s: normalized_preference_record_option_value(:adult_content_gate),
     }
   end
 
@@ -108,6 +122,17 @@ module Preference::Global
 
     record = @preferences.public_send(association_name)
     record&.option_id
+  rescue NoMethodError
+    nil
+  end
+
+  def normalized_preference_record_option_value(type)
+    value = preference_option_value(association_name_for_preference_option(type))
+    value&.to_s&.downcase
+  end
+
+  def association_name_for_preference_option(type)
+    :"#{preference_prefix_underscore}_#{type}"
   rescue NoMethodError
     nil
   end

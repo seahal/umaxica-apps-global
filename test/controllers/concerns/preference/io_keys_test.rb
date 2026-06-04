@@ -13,6 +13,13 @@ class PreferenceIoKeysTest < ActiveSupport::TestCase
     assert_equal "ct", Preference::IoKeys::Cookies::THEME
     assert_equal "language", Preference::IoKeys::Cookies::LANGUAGE
     assert_equal "tz", Preference::IoKeys::Cookies::TIMEZONE
+    assert_equal "cu", Preference::IoKeys::Cookies::CURRENCY
+    assert_equal "df", Preference::IoKeys::Cookies::DATE_FORMAT
+    assert_equal "tf", Preference::IoKeys::Cookies::TIME_FORMAT
+    assert_equal "mo", Preference::IoKeys::Cookies::MOTION
+    assert_equal "dn", Preference::IoKeys::Cookies::DENSITY
+    assert_equal "ps", Preference::IoKeys::Cookies::PAGE_SIZE
+    assert_equal "r18s", Preference::IoKeys::Cookies::ADULT_CONTENT_GATE
     assert_equal "preference_access", Preference::IoKeys::Cookies::ACCESS_BASENAME
     assert_equal "preference_refresh", Preference::IoKeys::Cookies::REFRESH_BASENAME
   end

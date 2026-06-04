@@ -31,7 +31,7 @@ module Acme
           step_up_ceremony_grant: issuance.grant,
           step_up_completion_csrf: form_authenticity_token,
         ),
-        allow_other_host: true,
+        allow_other_host: cross_host_redirect_allowed?,
         status: :see_other,
       )
     end

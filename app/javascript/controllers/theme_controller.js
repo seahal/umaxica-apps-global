@@ -60,10 +60,44 @@ export default class extends Controller {
 
   select(event) {
     const { value } = event.target;
-    const code = { system: "sy", dark: "dr", light: "li" }[value] ?? "sy";
-    const secure = location.protocol === "https:" ? "; secure" : "";
-    document.cookie = `ct=${code}; path=/; max-age=31536000; samesite=lax${secure}`;
-    applyThemeFromCookie();
+    const theme = { system: "system", dark: "dark", light: "light" }[value] ?? "system";
+    const code = { system: "sy", dark: "dr", light: "li" }[theme];
+    this.selectedThemeCode = code;
+    this.syncRadioFromThemeCode(code);
+    this.applyThemeFromCode(code);
+    void this.persistTheme(theme);
+  }
+
+  async persistTheme(theme) {
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+      const headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      if (csrfToken) {
+        headers["X-CSRF-Token"] = csrfToken;
+      }
+
+      const response = await fetch(this.themeEndpointUrl({ includeThemeParams: false }), {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ theme }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const themeCode = data.theme || { system: "sy", dark: "dr", light: "li" }[theme] || "sy";
+      this.syncRadioFromThemeCode(themeCode);
+      this.applyThemeFromCode(themeCode);
+    } catch {
+      const code = { system: "sy", dark: "dr", light: "li" }[theme] || "sy";
+      this.syncRadioFromThemeCode(code);
+      this.applyThemeFromCode(code);
+    }
   }
 
   async fetchAndSyncTheme() {
@@ -74,6 +108,9 @@ export default class extends Controller {
       }
       const data = await response.json();
       const themeCode = data.theme || "sy";
+      if (this.selectedThemeCode) {
+        return;
+      }
       this.syncRadioFromThemeCode(themeCode);
       this.applyThemeFromCode(themeCode);
     } catch {
@@ -82,17 +119,18 @@ export default class extends Controller {
     }
   }
 
-  themeEndpointUrl() {
+  themeEndpointUrl({ includeThemeParams = true } = {}) {
     const endpoint = new URL("/web/v0/theme", window.location.origin);
     endpoint.search = window.location.search;
+    if (!includeThemeParams) {
+      endpoint.searchParams.delete("ct");
+      endpoint.searchParams.delete("theme");
+    }
     return endpoint.toString();
   }
 
   syncRadio() {
-    const raw = document.cookie
-      .split(";")
-      .map((p) => p.trim().split("="))
-      .find(([k]) => k === "ct")?.[1];
+    const raw = readCookie("ct");
     const map = { sy: "system", dr: "dark", li: "light" };
     const value = map[raw] ?? "system";
     const radio = this.element.querySelector(`input[value="${value}"]`);

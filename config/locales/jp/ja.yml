@@ -2189,10 +2189,10 @@ ja:
           select_language_prompt: 言語を選択してください…
           select_timezone_prompt: タイムゾーンを選択してください…
           select_region_selector:
-            USA: アメリカ
-            JAPAN: 日本
-            US: US — あめりかがっしゅうこく
-            JP: JP — にほん
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: 日本語
             ENGLISH: 英語
@@ -2269,8 +2269,8 @@ ja:
             description: 表示に使う通貨を選択します。
             option_label: 通貨
           options:
-            usd: 米ドル (USD)
-            jpy: 日本円 (JPY)
+            usd: USD
+            jpy: JPY
         date_format:
           edit:
             heading: 日付形式
@@ -2322,10 +2322,10 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: US — あめりかがっしゅうこく
-            JP: JP — にほん
-            USA: アメリカ合衆国
-            JAPAN: 日本
+            US: US
+            JP: JP
+            USA: US
+            JAPAN: JP
           language_section: 言語設定
           select_language: 言語を選択
           timezone_section: タイムゾーン設定
@@ -2403,10 +2403,10 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: US — あめりかがっしゅうこく
-            JP: JP — にほん
-            USA: アメリカ合衆国
-            JAPAN: 日本
+            US: US
+            JP: JP
+            USA: US
+            JAPAN: JP
           language_section: 言語設定
           select_language: 言語を選択
           timezone_section: タイムゾーン設定
@@ -2499,6 +2499,7 @@ ja:
         cookie:
           edit:
             h1: クッキー設定
+            description: このブラウザのクッキー同意設定を管理します。
             accept_necessary_cookies: 必須クッキーを許可 (必須)
             accept_functional_cookies: 機能性クッキーを許可
             accept_performance_cookies: パフォーマンスクッキーを許可
@@ -2539,10 +2540,10 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: US — あめりかがっしゅうこく
-            JP: JP — にほん
-            USA: アメリカ合衆国
-            JAPAN: 日本
+            US: US
+            JP: JP
+            USA: US
+            JAPAN: JP
           language_section: 言語設定
           select_language: 言語を選択
           timezone_section: タイムゾーン設定
@@ -3118,10 +3119,10 @@ ja:
           select_language_prompt: 言語を選択してください…
           select_timezone_prompt: タイムゾーンを選択してください…
           select_region_selector:
-            USA: アメリカ合衆国
-            JAPAN: 日本
-            US: US — あめりかがっしゅうこく
-            JP: JP — にほん
+            USA: US
+            JAPAN: JP
+            US: US
+            JP: JP
           select_language_selector:
             JAPANESE: 日本語
             ENGLISH: 英語

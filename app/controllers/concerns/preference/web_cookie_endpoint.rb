@@ -51,13 +51,9 @@ module Preference
     end
 
     def apply_consented_update_from_request!
-      requested = requested_consented_value
-      return false if requested.nil?
-
-      if decoded_preference_payload&.dig("public_id").blank?
-        apply_buffer_only_cookie_consent!(requested)
-        return true
-      end
+      requested = requested_cookie_consent_attrs
+      return false if requested.blank?
+      return false if decoded_preference_payload&.dig("public_id").blank?
 
       persist_cookie_consent!(requested)
       true
@@ -68,19 +64,6 @@ module Preference
 
     def cookie_consent_state_overridden?
       @cookie_consent_state_override.present?
-    end
-
-    def apply_buffer_only_cookie_consent!(consented)
-      set_preference_consented_buffer!(
-        consented: consented,
-        expires_at: Preference::Base::REFRESH_TOKEN_TTL.from_now,
-      )
-      @cookie_consent_state_override = {
-        consented: consented,
-        functional: consented,
-        performant: consented,
-        targetable: false,
-      }
     end
 
     # SSOT decode point.
@@ -137,20 +120,45 @@ module Preference
       cookies[refresh_token_cookie_name]
     end
 
-    def requested_consented_value
-      return ActiveModel::Type::Boolean.new.cast(params[:consented]) if params.key?(:consented)
+    def requested_cookie_consent_attrs
+      if params.key?(:consented)
+        consented = cast_cookie_boolean(params[:consented])
+        return default_cookie_consent_attrs(consented)
+      end
 
       cookie_params = params[:cookie]
       return nil unless cookie_params.is_a?(ActionController::Parameters) || cookie_params.is_a?(Hash)
 
-      cookie_params = cookie_params.to_h.with_indifferent_access
+      cookie_params =
+        if cookie_params.is_a?(ActionController::Parameters)
+          cookie_params.permit(:consented, :functional, :performant, :targetable).to_h
+        else
+          cookie_params.to_h.slice(:consented, :functional, :performant, :targetable)
+        end.with_indifferent_access
       return nil unless cookie_params.key?(:consented)
 
-      raw_value = cookie_params[:consented]
-      ActiveModel::Type::Boolean.new.cast(raw_value)
+      consented = cast_cookie_boolean(cookie_params[:consented])
+      default_cookie_consent_attrs(consented).merge(
+        cookie_params.slice(:functional, :performant, :targetable).transform_values do |value|
+          cast_cookie_boolean(value)
+        end,
+      )
     end
 
-    def persist_cookie_consent!(consented)
+    def cast_cookie_boolean(value)
+      ActiveModel::Type::Boolean.new.cast(value)
+    end
+
+    def default_cookie_consent_attrs(consented)
+      {
+        consented: true,
+        functional: consented,
+        performant: consented,
+        targetable: consented,
+      }
+    end
+
+    def persist_cookie_consent!(attrs)
       public_id = decoded_preference_payload&.dig("public_id")
       raise RuntimeError, "missing_preference_access_token" if public_id.blank?
 
@@ -161,8 +169,8 @@ module Preference
 
           @preferences = preference
           cookie = load_or_create_preference_cookie!(preference)
-          attrs = { consented: consented }
-          attrs[:consented_at] = consented ? (cookie.consented_at || Time.current) : nil
+          attrs = attrs.dup
+          attrs[:consented_at] = attrs[:consented] ? (cookie.consented_at || Time.current) : nil
 
           resource_pref = preference_write_resource_preference!
           authorize_resource_preference_write!(resource_pref)
@@ -174,6 +182,7 @@ module Preference
           issue_access_token_from(preference)
           raise RuntimeError, "failed_to_issue_preference_access_token" if @preference_payload.blank?
 
+          @cookie_consent_state_override = attrs.slice(:consented, :functional, :performant, :targetable)
           @decoded_preference_payload = nil
         end
       end

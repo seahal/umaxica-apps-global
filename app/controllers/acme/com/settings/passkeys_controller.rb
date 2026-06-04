@@ -16,7 +16,7 @@ module Acme
         before_action :set_passkey, only: %i(show edit update destroy)
 
         def index
-          @passkeys = current_visitor.visitor_passkeys.order(created_at: :desc)
+          @passkeys = authorized_scope(current_visitor.visitor_passkeys).order(created_at: :desc)
         end
 
         def enrollment
@@ -34,7 +34,7 @@ module Acme
               host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
             ),
             status: :see_other,
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         end
 
@@ -81,7 +81,7 @@ module Acme
         end
 
         def set_passkey
-          passkey_id = params(:id)
+          passkey_id = params[:id]
           @passkey = current_visitor.visitor_passkeys.find_by(public_id: passkey_id)
           @passkey ||= current_visitor.visitor_passkeys.find(passkey_id) if passkey_id.to_s.match?(/\A\d+\z/)
           raise ActiveRecord::RecordNotFound unless @passkey

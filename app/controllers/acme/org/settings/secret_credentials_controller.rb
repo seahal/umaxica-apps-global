@@ -50,7 +50,7 @@ module Acme
               host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
             ),
             status: :see_other,
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         end
 

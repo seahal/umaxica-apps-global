@@ -5,6 +5,7 @@ module Sign
   module Org
     module Settings
       class SessionsController < Sign::RedirectOnlyController
+        AUTHENTICATION_MODE = :private
         def index = redirect_to_acme_sessions!
 
         def destroy = redirect_to_acme_sessions!

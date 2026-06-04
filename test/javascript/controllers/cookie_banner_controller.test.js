@@ -9,39 +9,67 @@ vi.mock("@hotwired/stimulus", () => ({
 const { default: CookieBannerController } =
   await import("../../../app/javascript/controllers/cookie_banner_controller.js");
 
+function cookieFormFields({ checked }) {
+  return {
+    consented: { checked, dispatchEvent: vi.fn() },
+    functional: { checked, dispatchEvent: vi.fn() },
+    performant: { checked, dispatchEvent: vi.fn() },
+    targetable: { checked, dispatchEvent: vi.fn() },
+  };
+}
+
+function cookieFormFor(fields) {
+  return {
+    querySelector: vi.fn((selector) => {
+      const match = selector.match(/preference_cookie\[(.+?)\]/);
+      return match ? fields[match[1]] : null;
+    }),
+  };
+}
+
 describe("CookieBannerController", () => {
   let controller;
   let element;
-  let cookieValue = "";
+  let cookieForm = null;
 
   beforeEach(() => {
     element = { remove: vi.fn() };
     controller = new CookieBannerController();
     controller.element = element;
 
-    cookieValue = "";
+    cookieForm = null;
     vi.stubGlobal("document", {
-      get cookie() {
-        return cookieValue;
-      },
-      set cookie(val) {
-        cookieValue = val;
-      },
-      querySelector: vi.fn().mockReturnValue({ content: "csrf-token" }),
+      querySelector: vi.fn((selector) => {
+        if (selector === 'meta[name="csrf-token"]') {
+          return { content: "csrf-token" };
+        }
+        if (selector === "[data-controller~='cookie-toggle'] form") {
+          return cookieForm;
+        }
+        return null;
+      }),
+    });
+    vi.stubGlobal("window", {
+      location: { assign: vi.fn() },
+      history: { pushState: vi.fn() },
     });
 
-    window.history.pushState({}, "", "/preference/cookie/edit?ct=dr&lx=en&ri=us&tz=asia/tokyo");
+    window.history.pushState(
+      {},
+      "",
+      "/preference/cookie/edit?ct=dr&lx=en&ri=us&ri=jp&rt=ignored&tz=asia/tokyo",
+    );
     vi.stubGlobal("fetch", vi.fn());
   });
 
-  test("connect: checkConsentState を呼ぶ", () => {
+  test("connect calls checkConsentState", () => {
     const spy = vi.spyOn(controller, "checkConsentState");
     controller.connect();
     expect(spy).toHaveBeenCalled();
   });
 
   describe("connect", () => {
-    test("同意済みの場合、要素を削除する (API)", async () => {
+    test("removes the banner when the API reports consent", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ consented: true }) }),
@@ -51,15 +79,14 @@ describe("CookieBannerController", () => {
       expect(element.remove).toHaveBeenCalled();
     });
 
-    test("同意済みの場合、要素を削除する (Cookie フォールバック)", async () => {
+    test("keeps the banner when fetch fails", async () => {
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
-      cookieValue = "cookie_consent=accepted";
 
       await controller.checkConsentState();
-      expect(element.remove).toHaveBeenCalled();
+      expect(element.remove).not.toHaveBeenCalled();
     });
 
-    test("未同意の場合、要素を削除しない", async () => {
+    test("keeps the banner when consent is false", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ consented: false }) }),
@@ -69,9 +96,8 @@ describe("CookieBannerController", () => {
       expect(element.remove).not.toHaveBeenCalled();
     });
 
-    test("fetch 失敗時に cookie がない場合、要素を削除しない", async () => {
+    test("keeps the banner when fetch fails repeatedly", async () => {
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
-      cookieValue = "other=value";
 
       await controller.checkConsentState();
       expect(element.remove).not.toHaveBeenCalled();
@@ -84,21 +110,35 @@ describe("CookieBannerController", () => {
       event = { preventDefault: vi.fn() };
     });
 
-    test("invisible: 要素を削除する", () => {
+    test("invisible removes the banner", () => {
       controller.invisible(event);
       expect(event.preventDefault).toHaveBeenCalled();
       expect(element.remove).toHaveBeenCalled();
     });
 
-    test("accept: サーバに同意を送信してクッキーを設定し要素を削除する", async () => {
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+    test("accept sends consent to the server, syncs the form, and removes the banner", async () => {
+      const fields = cookieFormFields({ checked: false });
+      cookieForm = cookieFormFor(fields);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              consented: true,
+              functional: true,
+              performant: true,
+              targetable: true,
+            }),
+        }),
+      );
 
       controller.accept(event);
       expect(event.preventDefault).toHaveBeenCalled();
 
       await vi.waitFor(() => {
         expect(fetch).toHaveBeenCalledWith(
-          "http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo",
+          "http://localhost:3000/web/v0/cookie?ri=us&lx=en&ct=dr&tz=asia%2Ftokyo",
           {
             method: "PATCH",
             headers: {
@@ -106,23 +146,48 @@ describe("CookieBannerController", () => {
               "Content-Type": "application/json",
               "X-CSRF-Token": "csrf-token",
             },
-            body: JSON.stringify({ consented: true }),
+            body: JSON.stringify({
+              cookie: {
+                consented: true,
+                functional: true,
+                performant: true,
+                targetable: true,
+              },
+            }),
           },
         );
-        expect(document.cookie).toContain("cookie_consent=accepted");
+        expect(fields.consented.checked).toBe(true);
+        expect(fields.functional.checked).toBe(true);
+        expect(fields.performant.checked).toBe(true);
+        expect(fields.targetable.checked).toBe(true);
         expect(element.remove).toHaveBeenCalled();
       });
     });
 
-    test("reject: サーバに拒否を送信してクッキーを設定し要素を削除する", async () => {
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+    test("reject sends refusal to the server, syncs the form, and removes the banner", async () => {
+      const fields = cookieFormFields({ checked: false });
+      fields.consented.checked = true;
+      cookieForm = cookieFormFor(fields);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              consented: true,
+              functional: false,
+              performant: false,
+              targetable: false,
+            }),
+        }),
+      );
 
       controller.reject(event);
       expect(event.preventDefault).toHaveBeenCalled();
 
       await vi.waitFor(() => {
         expect(fetch).toHaveBeenCalledWith(
-          "http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo",
+          "http://localhost:3000/web/v0/cookie?ri=us&lx=en&ct=dr&tz=asia%2Ftokyo",
           {
             method: "PATCH",
             headers: {
@@ -130,15 +195,25 @@ describe("CookieBannerController", () => {
               "Content-Type": "application/json",
               "X-CSRF-Token": "csrf-token",
             },
-            body: JSON.stringify({ consented: false }),
+            body: JSON.stringify({
+              cookie: {
+                consented: true,
+                functional: false,
+                performant: false,
+                targetable: false,
+              },
+            }),
           },
         );
-        expect(document.cookie).toContain("cookie_consent=rejected");
+        expect(fields.consented.checked).toBe(true);
+        expect(fields.functional.checked).toBe(false);
+        expect(fields.performant.checked).toBe(false);
+        expect(fields.targetable.checked).toBe(false);
         expect(element.remove).toHaveBeenCalled();
       });
     });
 
-    test("reject: サーバ更新に失敗した場合は要素を削除しない", async () => {
+    test("reject keeps the banner when the server update fails", async () => {
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
 
       controller.reject(event);
@@ -147,82 +222,75 @@ describe("CookieBannerController", () => {
       await vi.waitFor(() => {
         expect(fetch).toHaveBeenCalled();
       });
-      expect(document.cookie).not.toContain("cookie_consent=rejected");
       expect(element.remove).not.toHaveBeenCalled();
     });
 
-    test("openSettings: open-settings イベントをディスパッチする", async () => {
-      vi.stubGlobal(
-        "fetch",
-        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ consented: true }) }),
-      );
+    test("syncCookieFormConsent updates cookie edit form checkboxes", () => {
+      const fields = cookieFormFields({ checked: false });
+      cookieForm = cookieFormFor(fields);
+
+      controller.syncCookieFormConsent({
+        consented: true,
+        functional: true,
+        performant: true,
+        targetable: true,
+      });
+
+      expect(fields.consented.checked).toBe(true);
+      expect(fields.functional.checked).toBe(true);
+      expect(fields.performant.checked).toBe(true);
+      expect(fields.targetable.checked).toBe(true);
+    });
+
+    test("syncCookieFormConsent applies reject-all response with only consent true", () => {
+      const fields = cookieFormFields({ checked: false });
+      cookieForm = cookieFormFor(fields);
+
+      controller.syncCookieFormConsent({
+        consented: true,
+        functional: false,
+        performant: false,
+        targetable: false,
+      });
+
+      expect(fields.consented.checked).toBe(true);
+      expect(fields.functional.checked).toBe(false);
+      expect(fields.performant.checked).toBe(false);
+      expect(fields.targetable.checked).toBe(false);
+    });
+
+    test("openSettings navigates to the settings URL when present", () => {
+      controller.hasSettingsUrlValue = true;
+      controller.settingsUrlValue = "/preference/cookie/edit?ri=jp";
 
       controller.openSettings(event);
-      expect(event.preventDefault).toHaveBeenCalled();
 
-      await vi.waitFor(() => {
-        expect(controller.dispatch).toHaveBeenCalledWith("open-settings", {
-          detail: { consent: { consented: true } },
-        });
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(window.location.assign).toHaveBeenCalledWith("/preference/cookie/edit?ri=jp");
+      expect(controller.dispatch).not.toHaveBeenCalled();
+    });
+
+    test("openSettings falls back to null without a settings URL", () => {
+      controller.hasSettingsUrlValue = false;
+
+      controller.openSettings(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(controller.dispatch).toHaveBeenCalledWith("open-settings", {
+        detail: { consent: null },
       });
     });
 
-    test("openSettings: fetch 失敗時に cookie からフォールバックする", async () => {
-      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
-      cookieValue = "cookie_consent=accepted";
-
-      controller.openSettings(event);
-      expect(event.preventDefault).toHaveBeenCalled();
-
-      await vi.waitFor(() => {
-        expect(controller.dispatch).toHaveBeenCalledWith("open-settings", {
-          detail: { consent: "accepted" },
-        });
-      });
-    });
-
-    test("openSettings: fetch 失敗時に cookie もない場合は null をフォールバックする", async () => {
-      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
-      cookieValue = "";
-
-      controller.openSettings(event);
-      expect(event.preventDefault).toHaveBeenCalled();
-
-      await vi.waitFor(() => {
-        expect(controller.dispatch).toHaveBeenCalledWith("open-settings", {
-          detail: { consent: null },
-        });
-      });
-    });
-
-    test("normalizeConsentValue: 空値は null を返す", () => {
-      expect(controller.normalizeConsentValue(null)).toBeNull();
-      expect(controller.normalizeConsentValue(undefined)).toBeNull();
-      expect(controller.normalizeConsentValue("")).toBeNull();
-    });
-
-    test("normalizeConsentValue: 小文字に正規化する", () => {
-      expect(controller.normalizeConsentValue("Accepted")).toBe("accepted");
-    });
-
-    test("fetchCookieConsent: レスポンスが OK でないときエラーを投げる", async () => {
+    test("fetchCookieConsent raises when the response is not OK", async () => {
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
       await expect(controller.fetchCookieConsent()).rejects.toThrow("HTTP error! status: 500");
     });
 
-    test("getCookieConsent: 一致しない cookie は null を返す", () => {
-      cookieValue = "other=value";
-      expect(controller.getCookieConsent()).toBeNull();
+    test("cookieEndpointUrl normalizes query parameters sent to the API", () => {
+      expect(controller.cookieEndpointUrl()).toBe(
+        "http://localhost:3000/web/v0/cookie?ri=us&lx=en&ct=dr&tz=asia%2Ftokyo",
+      );
     });
 
-    test("hasCookieConsent: 同意済みの場合 true", () => {
-      cookieValue = "cookie_consent=accepted";
-      expect(controller.hasCookieConsent()).toBe(true);
-    });
-
-    test("hasCookieConsent: 未同意の場合 false", () => {
-      cookieValue = "";
-      expect(controller.hasCookieConsent()).toBe(false);
-    });
   });
 });

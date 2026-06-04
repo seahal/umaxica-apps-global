@@ -49,10 +49,11 @@ class Preference::CoreTest < ActiveSupport::TestCase
     Struct.new(
       :language, :region, :timezone, :theme,
       :currency, :date_format, :time_format, :motion, :density, :page_size,
+      :adult_content_gate,
       :app_preference_language, :app_preference_region, :app_preference_timezone,
       :app_preference_theme, :app_preference_currency, :app_preference_date_format,
       :app_preference_time_format, :app_preference_motion, :app_preference_density,
-      :app_preference_page_size, :app_preference_cookie,
+      :app_preference_page_size, :app_preference_adult_content_gate, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -75,7 +76,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
       :app_preference_language, :app_preference_region, :app_preference_timezone,
       :app_preference_theme, :app_preference_currency, :app_preference_date_format,
       :app_preference_time_format, :app_preference_motion, :app_preference_density,
-      :app_preference_page_size, :app_preference_cookie,
+      :app_preference_page_size, :app_preference_adult_content_gate, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -126,6 +127,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
       app_preference_motion: FakeAssociation.new(nil, FakeOption.new("standard")),
       app_preference_density: FakeAssociation.new(nil, FakeOption.new("compact")),
       app_preference_page_size: FakeAssociation.new(nil, FakeOption.new("50")),
+      app_preference_adult_content_gate: FakeAssociation.new(nil, FakeOption.new("warn")),
       app_preference_cookie: FakeCookie.new(false, true, false, true),
     )
 
@@ -141,6 +143,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
         motion: "standard",
         density: "compact",
         page_size: "50",
+        adult_content_gate: "warn",
       },
       @controller.send(:resolved_preference_snapshot, preference),
     )
@@ -256,6 +259,43 @@ class Preference::CoreTest < ActiveSupport::TestCase
     assert_equal "dr", @controller.send(:preference_theme_params)[:option_id]
   end
 
+  test "preference write redirect consumes the edited context parameter" do
+    @controller.params_hash = {
+      ri: "jp",
+      lx: "en",
+      tz: "Etc/UTC",
+      ct: "dr",
+      cu: "usd",
+      df: "us",
+      tf: "12",
+      mo: "rd",
+      dn: "cp",
+      ps: "50",
+      r18s: "warn",
+    }
+
+    {
+      language: :lx,
+      timezone: :tz,
+      theme: :ct,
+      currency: :cu,
+      date_format: :df,
+      time_format: :tf,
+      motion: :mo,
+      density: :dn,
+      page_size: :ps,
+      adult_content_gate: :r18s,
+    }.each do |screen, context_key|
+      redirect_params = @controller.send(
+        :preference_write_redirect_params,
+        except: @controller.send(:preference_context_key_for_screen, screen) || context_key,
+      )
+
+      assert_nil redirect_params[context_key], "#{screen} should consume #{context_key}"
+      assert_equal "jp", redirect_params[:ri]
+    end
+  end
+
   test "theme params still accept legacy colortheme scope" do
     @controller.params_hash = { preference_colortheme: { option_id: "dark" } }
 
@@ -263,12 +303,16 @@ class Preference::CoreTest < ActiveSupport::TestCase
   end
 
   test "render update response and reset state cover response helpers" do
-    @controller.instance_variable_set(:@preferences, FakePreference.new(app_preference_cookie: nil))
+    @controller.instance_variable_set(
+      :@preferences,
+      FakePreference.new(adult_content_gate: "warn", app_preference_cookie: nil),
+    )
 
     @controller.send(:render_preference_update_response)
 
     assert_equal :ok, @controller.render_args[:status]
     assert @controller.render_args[:json].key?(:preference)
+    assert_equal "warn", @controller.render_args[:json].fetch(:preference).fetch(:r18s)
 
     @controller.instance_variable_set(:@preference_payload, { "x" => 1 })
     @controller.instance_variable_set(:@refresh_token_value, "token")

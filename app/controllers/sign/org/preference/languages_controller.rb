@@ -4,8 +4,12 @@
 module Sign
   module Org
     module Preference
-      class LanguagesController < Sign::RedirectOnlyController
-        include ::Sign::PreferenceAuthorityRedirect
+      class LanguagesController < Sign::Org::PreferencesBaseController
+        include ::Acme::PreferenceScreenDispatch
+
+        AUTHENTICATION_MODE = :open
+
+        before_action :ensure_preferences_record
       end
     end
   end

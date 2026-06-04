@@ -97,7 +97,7 @@ module Sign
               ),
             ),
             notice: t("messages.totp_successfully_created"),
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         end
 

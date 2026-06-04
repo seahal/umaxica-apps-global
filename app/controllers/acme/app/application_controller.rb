@@ -74,6 +74,7 @@ module Acme
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: Jit::HostOriginEnv.trusted_origins(
                              ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                             ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
                            ),
                            with: :exception
 
@@ -92,6 +93,9 @@ module Acme
       def actor_verification_path(**args)
         acme_app_verification_path(**args)
       end
+def cross_host_redirect_allowed?
+  true
+end
     end
   end
 end

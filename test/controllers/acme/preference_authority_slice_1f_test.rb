@@ -32,6 +32,36 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       get public_send("acme_#{surface}_preference_url", ri: "jp", host: host)
 
       assert_response :success
+      assert_select "[data-controller='theme']", count: 1
+      assert_predicate cookies[Preference::CookieName.access(surface: surface)], :present?
+      assert_predicate cookies[Preference::CookieName.refresh(surface: surface)], :present?
+    end
+  end
+
+  test "acme theme preference edit hides footer ajax theme controls for every surface" do
+    SURFACES.each do |surface, config|
+      host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
+      host! host
+
+      get public_send("edit_acme_#{surface}_preference_theme_url", ri: "jp", host: host)
+
+      assert_response :success
+      assert_select "[data-controller='theme']", count: 0
+      assert_select "select[name='preference_theme[option_id]']", count: 1
+    end
+  end
+
+  test "acme cookie preference edit renders translations for every surface" do
+    SURFACES.each do |surface, config|
+      host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
+      host! host
+
+      get public_send("edit_acme_#{surface}_preference_cookie_url", ri: ["jp", "jp"], host: host)
+
+      assert_response :success
+      assert_no_match(/translation missing/i, response.body)
+      assert_select "form[action*='/preference/cookie']", count: 1
+      assert_select "input[type='checkbox'][name='preference_cookie[consented]']", count: 1
     end
   end
 
@@ -82,6 +112,23 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       %r{action="(?:https?://#{Regexp.escape(host)})?/preference/region(?:\?[^"]*)?"},
       response.body,
     )
+  end
+
+  test "acme preference region edit renders JP and US only for every surface" do
+    SURFACES.each do |surface, config|
+      host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
+      host! host
+
+      get public_send("edit_acme_#{surface}_preference_region_url", ri: "jp", host: host)
+
+      assert_response :success
+      assert_select "select[name='preference_region[option_id]'] option", 2
+      assert_select "select[name='preference_region[option_id]'] option[value='']", 0
+      assert_select "select[name='preference_region[option_id]'] option", text: "JP"
+      assert_select "select[name='preference_region[option_id]'] option", text: "US"
+      assert_select "select[name='preference_region[option_id]'] option", text: "Jp", count: 0
+      assert_select "select[name='preference_region[option_id]'] option", text: "Us", count: 0
+    end
   end
 
   test "acme org preference timezone edit posts to acme host" do

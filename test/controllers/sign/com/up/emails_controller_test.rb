@@ -74,6 +74,12 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
     assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_checkpoint_birthdate_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_com_up_checkpoint_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_checkpoint_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_com_up_checkpoint_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_select "a[href*=?]", new_sign_com_sign_up_path, count: 0
+    assert_select "a[href*=?]", new_sign_com_sign_in_path, count: 0
 
     cycle = VisitorSignUpFlow.order(:id).find_by!(
       principal_id: visitor_email.visitor_id,

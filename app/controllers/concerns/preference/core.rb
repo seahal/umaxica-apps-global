@@ -314,6 +314,7 @@ module Preference::Core
       mo: snapshot[:motion] || "standard",
       dn: snapshot[:density] || "standard",
       ps: snapshot[:page_size] || "20",
+      r18s: snapshot[:adult_content_gate] || "nothing",
       consented: cookie[:consented],
       functional: cookie[:functional],
       performant: cookie[:performant],
@@ -491,6 +492,7 @@ module Preference::Core
       motion: :mo,
       density: :dn,
       page_size: :ps,
+      adult_content_gate: :r18s,
     }[screen.to_sym]
   end
 

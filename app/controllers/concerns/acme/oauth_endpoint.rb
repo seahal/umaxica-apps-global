@@ -5,13 +5,6 @@ module Acme
   module OauthEndpoint
     extend ActiveSupport::Concern
 
-    included do
-      protect_from_forgery with: :null_session
-
-      before_action :skip_oauth_session!
-      after_action :set_oauth_cache_headers
-    end
-
     private
 
     def skip_oauth_session!

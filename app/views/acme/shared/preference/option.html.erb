@@ -1,4 +1,4 @@
-<% surface = controller.controller_path.split("/").second %>
+<% surface = controller_path.split("/").second %>
 <% screen = params[:preference_screen].to_s %>
 <% model = instance_variable_get("@preference_#{screen}") %>
 <% option_class = model.class.reflect_on_association(:option)&.klass %>
@@ -27,9 +27,20 @@
       <div>
         <%= f.select :option_id,
                      options_for_select(
-                       option_class.order(:id).map { |option|
-                         [t("acme.#{surface}.preference.#{screen}.options.#{option.name}",
-                            default: option.name.to_s.tr("_", " ").titleize), option.id]
+                       option_class.order(:id).filter_map { |option|
+                         option_name = option.name.to_s
+                         next if option_name.blank?
+
+                         default_label = option_type == :region ? option_name.upcase : option_name.tr("_", " ").titleize
+                         option_key = option_type == :timezone ? option_name.tr("/", "_").upcase : option_name
+                         translation_key =
+                           if option_type == :timezone
+                             "acme.#{surface}.preference.locale.edit.timezone_options.#{option_key}"
+                           else
+                             "acme.#{surface}.preference.#{screen}.options.#{option_key}"
+                           end
+                         [t(translation_key,
+                            default: default_label), option.id]
                        },
                        model.option_id,
                      ),

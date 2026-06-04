@@ -26,7 +26,7 @@ module Acme
                 host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
               ),
               status: :see_other,
-              allow_other_host: true,
+              allow_other_host: cross_host_redirect_allowed?,
             )
           end
 

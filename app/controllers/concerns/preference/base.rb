@@ -35,6 +35,17 @@ module Preference
     THEME_COOKIE_KEY = Preference::IoKeys::Cookies::THEME
     LANGUAGE_COOKIE_KEY = Preference::IoKeys::Cookies::LANGUAGE
     TIMEZONE_COOKIE_KEY = Preference::IoKeys::Cookies::TIMEZONE
+    PUBLIC_OPTION_COOKIE_METHODS = {
+      Preference::IoKeys::Cookies::THEME => :theme,
+      Preference::IoKeys::Cookies::TIMEZONE => :timezone,
+      Preference::IoKeys::Cookies::CURRENCY => :currency,
+      Preference::IoKeys::Cookies::DATE_FORMAT => :date_format,
+      Preference::IoKeys::Cookies::TIME_FORMAT => :time_format,
+      Preference::IoKeys::Cookies::MOTION => :motion,
+      Preference::IoKeys::Cookies::DENSITY => :density,
+      Preference::IoKeys::Cookies::PAGE_SIZE => :page_size,
+      Preference::IoKeys::Cookies::ADULT_CONTENT_GATE => :adult_content_gate,
+    }.freeze
 
     THEME_SHORT_MAP = {
       "light" => "li",
@@ -130,6 +141,7 @@ module Preference
       theme ||= "sy"
 
       write_preference_cookie(THEME_COOKIE_KEY, theme)
+      write_public_option_cookies(Actor.preferences)
       @color_theme = theme
       nil
     end
@@ -139,6 +151,29 @@ module Preference
       return if preference.null?
 
       preference.theme
+    end
+
+    def write_public_option_cookies(source)
+      public_option_cookie_payload(source).each do |key, value|
+        write_preference_cookie(key, value.to_s)
+      end
+    end
+
+    def public_option_cookie_payload(source)
+      return {} if source.blank?
+
+      PUBLIC_OPTION_COOKIE_METHODS.each_with_object({}) do |(key, method_name), payload|
+        value = public_option_cookie_value(source, key, method_name)
+        payload[key] = value if value.present?
+      end
+    end
+
+    def public_option_cookie_value(source, key, method_name)
+      if source.respond_to?(:[])
+        source[key] || source[key.to_sym]
+      elsif source.respond_to?(method_name)
+        source.public_send(method_name)
+      end
     end
 
     def preference_record_theme
@@ -960,20 +995,17 @@ module Preference
         request: request,
         expires: expires_at,
         httponly: httponly,
-        same_site: :lax,
+        secure: Rails.env.production?,
+        same_site: :strict,
       )
     end
 
     def preference_auth_cookie_options(expires_at:)
-      preference_cookie_options(expires_at: expires_at, httponly: true)
+      preference_cookie_options(expires_at: expires_at, httponly: true).merge(same_site: :lax)
     end
 
     def access_token_cookie_name
-      if self.class.name.start_with?("Acme::App::Preference")
-        Authentication::Base::ACCESS_COOKIE_KEY
-      else
-        Preference::CookieName.access(surface: preference_cookie_surface)
-      end
+      Preference::CookieName.access(surface: preference_cookie_surface)
     end
 
     def access_token_cookie_names
@@ -997,7 +1029,7 @@ module Preference
     end
 
     def set_refresh_token_cookie(token, expires_at)
-      cookies[refresh_token_cookie_name] = preference_cookie_options(expires_at: expires_at, httponly: true).merge(
+      cookies[refresh_token_cookie_name] = preference_auth_cookie_options(expires_at: expires_at).merge(
         value: token,
       )
     end
@@ -1016,7 +1048,7 @@ module Preference
     end
 
     def preference_cookie_deletion_options
-      opts = preference_cookie_options(expires_at: nil, httponly: true)
+      opts = preference_auth_cookie_options(expires_at: nil)
       opts.delete(:expires)
       opts
     end

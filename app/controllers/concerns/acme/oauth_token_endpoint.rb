@@ -5,14 +5,6 @@ module Acme
   module OauthTokenEndpoint
     extend ActiveSupport::Concern
 
-    included do
-      include ::RateLimit
-
-      protect_from_forgery with: :null_session, only: :create
-
-      rate_limit to: 10, within: 1.minute, only: :create
-    end
-
     def create
       result = ::Oidc::TokenExchangeService.call(
         grant_type: params[:grant_type],

@@ -87,6 +87,13 @@ class Acme::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "#{Preference::IoKeys::Cookies::THEME}=dr"
+    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::CURRENCY}=jpy"
+    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::DATE_FORMAT}=iso"
+    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::TIME_FORMAT}=hour_24"
+    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::MOTION}=standard"
+    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::DENSITY}=standard"
+    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::PAGE_SIZE}=20"
+    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::ADULT_CONTENT_GATE}=nothing"
     assert_includes set_cookie, "#{Preference::CookieName.access}="
   end
 

@@ -96,6 +96,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
       mo: "Reduced",
       dn: "Compact",
       ps: "50",
+      r18s: "Warn",
       bad: "value",
     )
 
@@ -112,6 +113,7 @@ class Preference::GlobalTest < ActiveSupport::TestCase
         mo: "rd",
         dn: "cp",
         ps: "50",
+        r18s: "warn",
       },
       controller.request_context,
     )
@@ -129,8 +131,59 @@ class Preference::GlobalTest < ActiveSupport::TestCase
         mo: "rd",
         dn: "cp",
         ps: "50",
+        r18s: "warn",
       },
       controller.requested_context,
+    )
+  end
+
+  test "effective_context lets get parameters override jwt preference values" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(
+      ri: "jp",
+      lx: "en",
+      tz: "Etc/UTC",
+      ct: "dr",
+      cu: "usd",
+      df: "us",
+      tf: "hour_12",
+      mo: "reduced",
+      dn: "compact",
+      ps: "50",
+      r18s: "warn",
+    )
+    controller.define_singleton_method(:preference_payload_preferences) do
+      {
+        "ri" => "us",
+        "lx" => "ja",
+        "tz" => "Asia/Tokyo",
+        "ct" => "sy",
+        "cu" => "jpy",
+        "df" => "iso",
+        "tf" => "hour_24",
+        "mo" => "standard",
+        "dn" => "standard",
+        "ps" => "20",
+        "r18s" => "nothing",
+      }
+    end
+
+    assert_equal(
+      {
+        ri: "jp",
+        lx: "en",
+        tz: "etc/utc",
+        ct: "dr",
+        cu: "usd",
+        df: "us",
+        tf: "12",
+        mo: "rd",
+        dn: "cp",
+        ps: "50",
+        r18s: "warn",
+      },
+      controller.effective_context.slice(:ri, :lx, :tz, :ct, :cu, :df, :tf, :mo, :dn, :ps, :r18s),
     )
   end
 

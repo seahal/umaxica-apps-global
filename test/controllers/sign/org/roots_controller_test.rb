@@ -39,12 +39,14 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "does not create preference records on root" do
-    assert_no_difference("OrgPreference.count") do
+  test "creates preference cookies on root" do
+    assert_difference("OrgPreference.count", 1) do
       get sign_org_root_url(ri: "jp")
     end
 
     assert_response :success
+    assert_predicate cookies[Preference::CookieName.access(surface: :org)], :present?
+    assert_predicate cookies[Preference::CookieName.refresh(surface: :org)], :present?
   end
 
   test "sets theme cookie" do
@@ -56,12 +58,13 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "GET / redirects to dashboard when logged in" do
+  test "GET / renders root when logged in" do
     staff = operators(:one)
 
     get sign_org_root_url(ri: "jp"),
         headers: as_staff_headers(staff, host: ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"))
 
-    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    assert_response :success
+    assert_select "h1", minimum: 1
   end
 end

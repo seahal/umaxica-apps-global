@@ -20,6 +20,16 @@ class ActorSupportOverlayLanguageTest < ActiveSupport::TestCase
     def overlay(context, preference)
       send(:overlay_language, context, preference)
     end
+
+    attr_writer :requested_context
+
+    def requested_context
+      @requested_context || {}
+    end
+
+    def overlay_preference(preference)
+      send(:preference_with_request_overlay, preference)
+    end
   end
 
   setup { @harness = Harness.new }
@@ -53,5 +63,48 @@ class ActorSupportOverlayLanguageTest < ActiveSupport::TestCase
   test "falls back to preference language when no param and no region" do
     assert_equal "en", @harness.overlay({}, pref(language: "en", explicit: ["language"]))
     assert_equal "ja", @harness.overlay({}, pref(language: "ja", null: true))
+  end
+
+  test "request context overlays display preference fields" do
+    @harness.requested_context = {
+      lx: "en",
+      ri: "us",
+      tz: "etc/utc",
+      ct: "dr",
+      cu: "usd",
+      df: "us",
+      tf: "12",
+      mo: "rd",
+      dn: "cp",
+      ps: "50",
+      r18s: "warn",
+    }
+    preference = Actor::Preference.new(
+      language: "ja",
+      region: "jp",
+      timezone: "Asia/Tokyo",
+      theme: "sy",
+      currency: "jpy",
+      date_format: "iso",
+      time_format: "hour_24",
+      motion: "standard",
+      density: "standard",
+      page_size: "20",
+      adult_content_gate: "nothing",
+    )
+
+    overlaid = @harness.overlay_preference(preference)
+
+    assert_equal "en", overlaid.language
+    assert_equal "us", overlaid.region
+    assert_equal "etc/utc", overlaid.timezone
+    assert_equal "dr", overlaid.theme
+    assert_equal "usd", overlaid.currency
+    assert_equal "us", overlaid.date_format
+    assert_equal "12", overlaid.time_format
+    assert_equal "rd", overlaid.motion
+    assert_equal "cp", overlaid.density
+    assert_equal "50", overlaid.page_size
+    assert_equal "warn", overlaid.adult_content_gate
   end
 end

@@ -8,7 +8,31 @@ module Acme
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
 
-        protect_from_forgery with: :null_session, only: :completion
+        def continue
+          provider = social_provider_param
+          issuance = Identity::SocialCeremony::GrantIssuer.issue!(
+            surface: "app",
+            actor_ref: "anonymous",
+            session_ref: SecureRandom.hex(24),
+            operation: "login",
+            provider: provider,
+            resource_ref: social_entry_param,
+            return_to: safe_social_return_to(params[:pt].presence),
+          )
+
+          redirect_to(
+            continue_sign_app_social_authentication_url(
+              provider: provider,
+              intent: "login",
+              entry: social_entry_param,
+              ri: params[:ri],
+              social_ceremony_grant: issuance.grant,
+              host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+            ),
+            status: :see_other,
+            allow_other_host: cross_host_redirect_allowed?,
+          )
+        end
 
         def completion
           provider = social_provider_param
@@ -33,17 +57,41 @@ module Acme
           redirect_to(
             new_sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         rescue SocialAuth::BaseError => e
           redirect_to(
             new_sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t(e.message),
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         end
 
         private
+
+        # The sign/id callback renders a cross-origin auto-submit form. Some
+        # browser/referrer-policy combinations send Origin: null for that POST,
+        # which Rails rejects before trusted_origins can apply. The one-shot
+        # signed ceremony result is the CSRF proof for this endpoint; acme still
+        # verifies and consumes it in the action before creating a session or
+        # committing a link.
+        def verified_request?
+          social_completion_result_verifies_request? || super
+        end
+
+        def social_completion_result_verifies_request?
+          return false unless action_name == "completion"
+
+          provider = social_provider_param
+          result = Identity::SocialCeremony::Result.decode(
+            params[:social_ceremony_result].to_s,
+            issuer_id: Identity::SocialCeremony::Contract.sign_issuer_id("app"),
+          )
+
+          result["surface"].to_s == "app" && result["provider"].to_s == provider
+        rescue ActionController::BadRequest, Identity::SocialCeremony::Error
+          false
+        end
 
         def complete_social_link!(result_token, payload, provider)
           actor = Client.find_by!(public_id: payload.fetch("actor_ref"))
@@ -67,7 +115,7 @@ module Acme
               "sign.app.social.sessions.link.success",
               provider: SocialIdentifiable.normalize_provider(provider).humanize,
             ),
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
             status: :see_other,
           )
         end
@@ -109,7 +157,7 @@ module Acme
               "sign.app.social.sessions.create.success",
               provider: SocialIdentifiable.normalize_provider(provider).humanize,
             ),
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         end
 
@@ -121,7 +169,7 @@ module Acme
           redirect_to(
             new_sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         end
 
@@ -181,7 +229,13 @@ module Acme
           raise ActionController::BadRequest, "invalid social provider"
         end
 
+        def social_entry_param
+          (params[:entry].to_s == "sign_up") ? "sign_up" : "sign_in"
+        end
+
         def safe_social_return_to(value)
+          return nil if value.blank?
+
           path_from_signed_pt(signed_pt_token(value))
         end
       end

@@ -65,7 +65,7 @@ module Sign
               ri: params[:ri],
               host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
             ),
-            allow_other_host: true,
+            allow_other_host: cross_host_redirect_allowed?,
           )
         rescue ActiveRecord::RecordInvalid => e
           @secret_credential = e.record

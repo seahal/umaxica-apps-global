@@ -5,9 +5,16 @@ module Acme
   module App
     class AccountsController < Acme::App::ApplicationController
       AUTHENTICATION_MODE = :private
+      declare_authentication_mode! :private
 
-      def index
+      before_action :authenticate_client!
+
+      def show
+        authorize!(current_client, to: :show?)
+        render "acme/shared/self_service/show", locals: { page_title: "Account" }
       end
+
+      def index = show
     end
   end
 end

@@ -830,6 +830,29 @@ module Preference
 
       assert_not deletion_options.key?(:expires)
       assert_equal :lax, deletion_options[:same_site]
+      assert_not deletion_options[:secure]
+    end
+
+    test "preference cookie options use secure cookies only in production" do
+      expires_at = 1.hour.from_now
+      production = ActiveSupport::EnvironmentInquirer.new("production")
+
+      Rails.stub(:env, production) do
+        options = @controller.send(:preference_cookie_options, expires_at: expires_at, httponly: true)
+
+        assert options[:secure]
+        assert_equal :strict, options[:same_site]
+      end
+    end
+
+    test "preference access and refresh cookies use lax same site" do
+      expires_at = 1.hour.from_now
+
+      assert_equal :lax, @controller.send(:preference_auth_cookie_options, expires_at: expires_at)[:same_site]
+
+      @controller.send(:set_refresh_token_cookie, "refresh-token", expires_at)
+
+      assert_equal "refresh-token", @controller.send(:cookies)[@controller.send(:refresh_token_cookie_name)]
     end
 
     test "load access token payload falls back when referenced preference record is missing" do
@@ -1025,6 +1048,72 @@ module Preference
       @controller.send(:set_color_theme)
 
       assert_equal "dr", @controller.instance_variable_get(:@color_theme)
+    end
+
+    test "set color theme writes public option cookies from actor preferences" do
+      Actor.install_context!(
+        preferences: Actor::Preference.new(
+          language: "en",
+          region: "us",
+          timezone: "Etc/UTC",
+          theme: "dr",
+          currency: "usd",
+          date_format: "slash",
+          time_format: "hour_12",
+          motion: "reduced",
+          density: "compact",
+          page_size: "50",
+          adult_content_gate: "warn",
+        ),
+      )
+
+      @controller.send(:set_color_theme)
+      cookies = @controller.send(:cookies)
+
+      assert_equal "dr", cookies[Preference::IoKeys::Cookies::THEME]
+      assert_equal "Etc/UTC", cookies[Preference::IoKeys::Cookies::TIMEZONE]
+      assert_equal "usd", cookies[Preference::IoKeys::Cookies::CURRENCY]
+      assert_equal "slash", cookies[Preference::IoKeys::Cookies::DATE_FORMAT]
+      assert_equal "hour_12", cookies[Preference::IoKeys::Cookies::TIME_FORMAT]
+      assert_equal "reduced", cookies[Preference::IoKeys::Cookies::MOTION]
+      assert_equal "compact", cookies[Preference::IoKeys::Cookies::DENSITY]
+      assert_equal "50", cookies[Preference::IoKeys::Cookies::PAGE_SIZE]
+      assert_equal "warn", cookies[Preference::IoKeys::Cookies::ADULT_CONTENT_GATE]
+      assert_nil cookies[Preference::Base::LANGUAGE_COOKIE_KEY]
+      assert_nil cookies["ri"]
+      assert_nil cookies["lx"]
+    end
+
+    test "public option cookies are written from preference payload keys" do
+      @controller.send(
+        :write_public_option_cookies,
+        {
+          "ct" => "li",
+          "tz" => "Asia/Tokyo",
+          "cu" => "jpy",
+          "df" => "iso",
+          "tf" => "hour_24",
+          "mo" => "standard",
+          "dn" => "standard",
+          "ps" => "20",
+          "r18s" => "nothing",
+          "ri" => "jp",
+          "lx" => "ja",
+        },
+      )
+      cookies = @controller.send(:cookies)
+
+      assert_equal "li", cookies[Preference::IoKeys::Cookies::THEME]
+      assert_equal "Asia/Tokyo", cookies[Preference::IoKeys::Cookies::TIMEZONE]
+      assert_equal "jpy", cookies[Preference::IoKeys::Cookies::CURRENCY]
+      assert_equal "iso", cookies[Preference::IoKeys::Cookies::DATE_FORMAT]
+      assert_equal "hour_24", cookies[Preference::IoKeys::Cookies::TIME_FORMAT]
+      assert_equal "standard", cookies[Preference::IoKeys::Cookies::MOTION]
+      assert_equal "standard", cookies[Preference::IoKeys::Cookies::DENSITY]
+      assert_equal "20", cookies[Preference::IoKeys::Cookies::PAGE_SIZE]
+      assert_equal "nothing", cookies[Preference::IoKeys::Cookies::ADULT_CONTENT_GATE]
+      assert_nil cookies["ri"]
+      assert_nil cookies["lx"]
     end
 
     test "set color theme ignores explicit request parameter after actor overlay is resolved" do

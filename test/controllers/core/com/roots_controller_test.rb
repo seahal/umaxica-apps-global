@@ -11,15 +11,15 @@ class Core::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  # Regression: the public landing page must not perform a per-request
-  # preference create/rotate write (DBSC performance plan).
-  test "does not create preference records on root" do
+  test "creates preference cookies on root" do
     host! ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com")
 
-    assert_no_difference("ComPreference.count") do
+    assert_difference("ComPreference.count", 1) do
       get core_com_root_url(ri: "jp")
     end
 
     assert_response :success
+    assert_predicate cookies[Preference::CookieName.access(surface: :com)], :present?
+    assert_predicate cookies[Preference::CookieName.refresh(surface: :com)], :present?
   end
 end

@@ -31,6 +31,16 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Security-Policy"], "object-src 'none'"
     assert_includes response.headers["Content-Security-Policy"],
                     "form-action 'self' https://accounts.google.com https://appleid.apple.com"
+    assert_includes response.headers["Content-Security-Policy"],
+                    "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}"
+    assert_includes response.headers["Content-Security-Policy"],
+                    "https://#{ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")}"
+    assert_includes response.headers["Content-Security-Policy"],
+                    "https://#{ENV.fetch("ACME_STAFF_URL", "www.org.localhost")}"
+    assert_includes response.headers["Content-Security-Policy"],
+                    "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}"
+    assert_includes response.headers["Content-Security-Policy"],
+                    "https://#{ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")}"
     assert_includes response.headers["Content-Security-Policy"], "script-src 'self' https://challenges.cloudflare.com"
     assert_no_match(/script-src[^;]*\shttps:(?:\s|;|$)/, response.headers["Content-Security-Policy"])
     assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"

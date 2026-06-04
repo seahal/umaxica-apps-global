@@ -7,6 +7,11 @@ module Acme
       class RevocationsController < Acme::Com::BareController
         include Acme::OauthEndpoint
 
+        AUTHENTICATION_MODE = :open
+
+        before_action :skip_oauth_session!
+        after_action :set_oauth_cache_headers
+
         def create
           result = ::Oidc::TokenRevocationService.call(
             token: params[:token],

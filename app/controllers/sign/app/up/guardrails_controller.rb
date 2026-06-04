@@ -9,6 +9,7 @@ module Sign
 
         AUTHENTICATION_MODE = :guest
 
+        before_action :hide_sign_up_auth_navigation
         before_action :load_sign_up_ticket
         before_action -> { authorize_sign_up_participant!(:enter_guardrail?) }
 
