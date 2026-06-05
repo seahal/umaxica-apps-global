@@ -25,6 +25,8 @@ module Sign
             errors: ["not a social sign-up"],
           ) unless social_cycle?
 
+          return SignUp::Cancellation.call(cycle: cycle, actor_context: Actor.authn) if pre_confirmation_cycle?
+
           actor = Client.find_by(id: cycle.principal_id)
           return SignUp::Result.build(
             status: :blocked, ticket: cycle,
@@ -47,9 +49,14 @@ module Sign
         attr_reader :cycle
 
         def social_cycle?
-          cycle.pending_contact_type == "social_identity" &&
-            SUPPORTED_PROVIDERS.key?(normalized_provider) &&
+          SUPPORTED_PROVIDERS.key?(normalized_provider) &&
             cycle.social_entry_method?
+        end
+
+        def pre_confirmation_cycle?
+          cycle.principal_id.blank? &&
+            cycle.pending_contact_type.blank? &&
+            cycle.pending_contact_id.blank?
         end
 
         def normalized_provider

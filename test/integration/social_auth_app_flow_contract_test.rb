@@ -204,8 +204,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     setup_mock_auth(config, uid:, token: "new_signup_token")
     state = seed_social_auth_session(provider: config.fetch(:provider), intent: "login", entry: "sign_up", ri: "jp")
 
-    assert_difference("Client.count", 1) do
-      assert_difference("#{config.fetch(:model)}.count", 1) do
+    assert_no_difference("Client.count") do
+      assert_no_difference("#{config.fetch(:model)}.count") do
         perform_social_callback(
           config,
           params: { state: state },
@@ -213,9 +213,6 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
         )
       end
     end
-
-    identity = config.fetch(:model).find_by!(uid: uid)
-    user = identity.user
 
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
     follow_redirect!
@@ -227,17 +224,27 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_select "input[name=birthdate_year]"
     assert_select "input[name=birthdate_month]"
     assert_select "input[name=birthdate_day]"
+    assert_select "input[name=confirm_new_social_identity][required]"
 
-    cycle = ClientSignUpFlow.find_by!(principal_id: user.id)
-    patch(
-      sign_app_up_checkpoint_birthdate_url(ri: "jp"),
-      params: {
-        requirement: "birthdate",
-        birthdate: "2000-02-03",
-        checkpoint_version: cycle.checkpoint_version,
-      },
-      headers: browser_headers.merge(@callback_headers),
-    )
+    cycle = ClientSignUpFlow.order(:id).last
+
+    assert_difference("Client.count", 1) do
+      assert_difference("#{config.fetch(:model)}.count", 1) do
+        patch(
+          sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+          params: {
+            requirement: "birthdate",
+            birthdate: "2000-02-03",
+            checkpoint_version: cycle.checkpoint_version,
+            confirm_new_social_identity: "1",
+          },
+          headers: browser_headers.merge(@callback_headers),
+        )
+      end
+    end
+
+    identity = config.fetch(:model).find_by!(uid: uid)
+    user = identity.user
 
     assert_response :redirect
     assert_equal "2000-02-03", user.reload.birthdate

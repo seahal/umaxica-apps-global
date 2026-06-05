@@ -123,17 +123,17 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     assert_nil @user.reload.last_step_up_at
   end
 
-  test "handle_login race condition" do
+  test "handle_login unknown identity does not persist before confirmation" do
     service = SocialAuthService.new(auth_hash: @auth_hash, current_client: nil, intent: "login")
 
-    # Mock find_by to return nil first, then raise RecordNotUnique on user save
     ClientGoogleIdentity.stub(:find_by, nil) do
-      user_mock = Client.new
-      user_mock.define_singleton_method(:save!) { raise ActiveRecord::RecordNotUnique, "identity conflict" }
+      assert_no_difference("Client.count") do
+        assert_no_difference("ClientGoogleIdentity.count") do
+          result = service.handle_callback
 
-      Client.stub(:new, user_mock) do
-        assert_raises(SocialAuth::ConflictError) do
-          service.handle_callback
+          assert result[:pending_social_signup]
+          assert_nil result[:user]
+          assert_nil result[:identity]
         end
       end
     end

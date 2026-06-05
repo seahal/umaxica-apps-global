@@ -63,7 +63,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     follow_redirect!
 
-    assert_predicate flash[:notice], :present?, "Should have success message"
+    assert_response :success
   end
 
   test "Google login with existing identity completes through acme dashboard" do
@@ -263,7 +263,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   # ============================================================================
   # New user creation
   # ============================================================================
-  test "Google login with new uid creates new user and identity" do
+  test "Google login with new uid waits for signup confirmation before creating user and identity" do
     new_uid = "brand_new_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
@@ -272,29 +272,67 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app", intent: "login")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
-        params: { state: state },
-        headers: browser_headers.merge(@callback_headers)
-    submit_social_completion_if_present!
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientGoogleIdentity.count") do
+        get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+            params: { state: state },
+            headers: browser_headers.merge(@callback_headers)
+        submit_social_completion_if_present!
+      end
+    end
 
-    assert_response :redirect
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    follow_redirect!
 
-    # New user created
-    assert_equal user_count_before + 1, Client.count, "New user should be created"
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    follow_redirect!
+
+    assert_response :ok
+    assert_includes response.body, "このGoogleアカウントは未登録です。"
+    assert_includes response.body, "新しいUmaxica Identityを作成します。"
+    assert_includes response.body, "既存アカウントとは後から統合できません。"
+    assert_includes response.body, "間違いならキャンセルしてください。"
+    assert_select "input[name=confirm_new_social_identity][required]"
+
+    cycle = ClientSignUpFlow.order(:id).last
+
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientGoogleIdentity.count") do
+        patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+              params: {
+                requirement: "birthdate",
+                birthdate: "2000-02-03",
+                checkpoint_version: cycle.checkpoint_version,
+              },
+              headers: browser_headers.merge(@callback_headers)
+      end
+    end
+
+    assert_response :unprocessable_content
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientGoogleIdentity.count", 1) do
+        patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+              params: {
+                requirement: "birthdate",
+                birthdate: "2000-02-03",
+                checkpoint_version: cycle.reload.checkpoint_version,
+                confirm_new_social_identity: "1",
+              },
+              headers: browser_headers.merge(@callback_headers)
+      end
+    end
+
     assert_equal identity_count_before + 1, ClientGoogleIdentity.count
 
     identity = ClientGoogleIdentity.find_by(uid: new_uid)
 
     assert_not_nil identity
     assert_not_nil identity.user
-    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, identity.user.status_id
+    assert_equal user_count_before + 1, Client.count, "New user should be created after confirmation"
+    assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, identity.user.status_id
+    assert_equal "2000-02-03", identity.user.birthdate.to_s
     assert_not_nil identity.last_authenticated_at
-    assert_equal "Googleで登録を開始しました", flash[:notice]
-
-    follow_redirect!
-
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
   end
 
   test "duplicate Google callback failure after new-account checkpoint returns to sign in" do
@@ -309,7 +347,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     submit_social_completion_if_present!
 
     assert_response :redirect
-    assert ClientGoogleIdentity.exists?(uid: new_uid)
+    assert_not ClientGoogleIdentity.exists?(uid: new_uid)
 
     get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "google_app"),
         headers: browser_headers.merge("Host" => @host)
@@ -338,7 +376,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal new_sign_app_sign_in_url(ri: "jp"), response.location
   end
 
-  test "Apple login with new uid creates new user and identity" do
+  test "Apple login with new uid waits for signup confirmation before creating user and identity" do
     new_uid = "brand_new_apple_#{SecureRandom.hex(4)}"
     setup_apple_mock_auth(uid: new_uid)
 
@@ -347,21 +385,45 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "apple", intent: "login")
 
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: browser_headers.merge(@callback_headers)
-    submit_social_completion_if_present!
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
+        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+             params: { state: state },
+             headers: browser_headers.merge(@callback_headers)
+        submit_social_completion_if_present!
+      end
+    end
 
-    assert_response :redirect
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    follow_redirect!
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    follow_redirect!
 
-    assert_equal user_count_before + 1, Client.count
-    assert_equal identity_count_before + 1, ClientAppleIdentity.count
+    assert_response :ok
+    assert_includes response.body, "このAppleアカウントは未登録です。"
+    assert_select "input[name=confirm_new_social_identity][required]"
+
+    cycle = ClientSignUpFlow.order(:id).last
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientAppleIdentity.count", 1) do
+        patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+              params: {
+                requirement: "birthdate",
+                birthdate: "2000-02-03",
+                checkpoint_version: cycle.checkpoint_version,
+                confirm_new_social_identity: "1",
+              },
+              headers: browser_headers.merge(@callback_headers)
+      end
+    end
 
     identity = ClientAppleIdentity.find_by(uid: new_uid)
 
     assert_not_nil identity
     assert_not_nil identity.user
+    assert_equal user_count_before + 1, Client.count
+    assert_equal identity_count_before + 1, ClientAppleIdentity.count
   end
 
   # ============================================================================

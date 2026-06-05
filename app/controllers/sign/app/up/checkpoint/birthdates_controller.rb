@@ -37,7 +37,7 @@ module Sign
             end
 
             create_social_signup_actor!(birthdate)
-            run_sign_up_requirement_event
+            run_sign_up_requirement_event(payload: { requirement: :birthdate })
           rescue SocialAuth::BaseError, Identity::SocialCeremony::Error
             render plain: I18n.t("errors.social_auth.provider_error"), status: :unprocessable_content
           end

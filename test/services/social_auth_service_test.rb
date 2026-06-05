@@ -97,22 +97,27 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
       },
     }
 
-    assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count } do
-      result = SocialAuthService.handle_callback(
-        auth_hash: auth_hash,
-        current_client: nil,
-        intent: "login",
-      )
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientGoogleIdentity.count") do
+        assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count } do
+          result = SocialAuthService.handle_callback(
+            auth_hash: auth_hash,
+            current_client: nil,
+            intent: "login",
+          )
 
-      assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, result[:user].status_id
-      assert_equal ClientMfaStatus::UNCONFIGURED, result[:user].mfa_status_id
-      assert_nil result[:user].rp_account
-      assert_not result[:existing_account]
-      assert_equal result[:user].id, result[:identity].user_id
+          assert_nil result[:user]
+          assert_nil result[:identity]
+          assert_not result[:existing_account]
+          assert result[:pending_social_signup]
+          assert_equal "google", result[:provider]
+          assert_equal auth_hash.fetch("uid"), result[:uid]
+        end
+      end
     end
   end
 
-  test "handle_callback for sign up entry creates pending identity without finalization side effects" do
+  test "handle_callback for sign up entry returns pending signup without durable side effects" do
     auth_hash = {
       "provider" => "google",
       "uid" => "new-google-signup-entry-#{SecureRandom.hex(8)}",
@@ -123,22 +128,26 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
       },
     }
 
-    assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count } do
-      result = SocialAuthService.handle_callback(
-        auth_hash: auth_hash,
-        current_client: nil,
-        intent: "login",
-        sign_up_entry: true,
-      )
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientGoogleIdentity.count") do
+        assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count } do
+          result = SocialAuthService.handle_callback(
+            auth_hash: auth_hash,
+            current_client: nil,
+            intent: "login",
+            sign_up_entry: true,
+          )
 
-      assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, result[:user].status_id
-      assert_nil result[:user].rp_account
-      assert_not result[:existing_account]
-      assert_equal result[:user].id, result[:identity].user_id
+          assert_nil result[:user]
+          assert_nil result[:identity]
+          assert_not result[:existing_account]
+          assert result[:pending_social_signup]
+        end
+      end
     end
   end
 
-  test "handle_callback creates apple pending signup user with unconfigured multi factor status" do
+  test "handle_callback creates apple pending signup result without user" do
     ClientAppleIdentityStatus.find_or_create_by!(id: ClientAppleIdentityStatus::ACTIVE)
     auth_hash = {
       "provider" => "apple",
@@ -149,18 +158,23 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
       },
     }
 
-    result = SocialAuthService.handle_callback(
-      auth_hash: auth_hash,
-      current_client: nil,
-      intent: "login",
-    )
+    result = nil
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
+        result = SocialAuthService.handle_callback(
+          auth_hash: auth_hash,
+          current_client: nil,
+          intent: "login",
+        )
+      end
+    end
 
-    assert_equal ClientMfaStatus::UNCONFIGURED, result[:user].mfa_status_id
-    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, result[:user].status_id
-    assert_nil result[:user].rp_account
+    assert_nil result[:user]
+    assert_nil result[:identity]
     assert_not result[:existing_account]
-    assert_equal result[:user].id, result[:identity].user_id
-    assert_equal "apple", result[:identity].provider
+    assert result[:pending_social_signup]
+    assert_equal "apple", result[:provider]
+    assert_equal auth_hash.fetch("uid"), result[:uid]
   end
 
   test "handle_callback records google link audit for new linked identity" do

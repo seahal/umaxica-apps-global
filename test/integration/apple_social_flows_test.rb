@@ -16,13 +16,13 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
-  test "sign up creates user and identity" do
+  test "sign up waits for confirmation before creating user and identity" do
     setup_apple_mock_auth(uid: "apple_flow_signup")
 
     state = start_social_auth_flow(intent: "login")
 
-    assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
         post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
              params: { state: state },
              headers: @callback_headers
@@ -30,10 +30,53 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    follow_redirect!
+    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    follow_redirect!
+
+    assert_response :ok
+    assert_select "input[name=confirm_new_social_identity][required]"
+
+    cycle = ClientSignUpFlow.order(:id).last
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientAppleIdentity.count", 1) do
+        patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+              params: {
+                requirement: "birthdate",
+                birthdate: "2000-02-03",
+                checkpoint_version: cycle.checkpoint_version,
+                confirm_new_social_identity: "1",
+              },
+              headers: @callback_headers
+      end
+    end
+  end
+
+  test "cancel after unknown Apple callback creates nothing durable" do
+    setup_apple_mock_auth(uid: "apple_flow_cancel")
+
+    state = start_social_auth_flow(intent: "login")
+
+    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+         params: { state: state },
+         headers: @callback_headers
+
+    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
+        delete sign_app_up_checkpoint_url(ri: "jp"), headers: @callback_headers
+      end
+    end
+
+    assert_response :redirect
+    assert_nil ClientAppleIdentity.find_by(uid: "apple_flow_cancel")
   end
 
   test "sign in uses existing identity" do
-    user = Client.create!(status_id: ClientStatus::ACTIVE)
+    user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
+    user.create_rp_account!
     ClientAppleIdentity.create!(
       user: user,
       uid: "apple_flow_existing",
@@ -51,11 +94,12 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
          params: { state: state },
          headers: @callback_headers
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
-    follow_redirect!
+    submit_social_completion_if_present!
 
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
-    assert_equal "Appleで登録を開始しました", flash[:notice]
+    assert_redirected_to acme_app_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
   end
 
   test "grant-backed link succeeds for logged in user via acme completion" do
