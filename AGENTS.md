@@ -112,8 +112,8 @@ See `docs/reference/repository-language-policy.md` for the stable policy and rev
   and what still needs promotion or follow-up.
 - Use `notes/` for ADR-adjacent observations, handoff notes, gap notes, compatibility constraints,
   rejected alternatives likely to be revisited, and implementation caveats discovered during work.
-- Use `memos/` for reusable exploratory field notes from investigation, audit, planning,
-  surprising repository behavior, failed approaches, and unresolved observations that are not yet
+- Use `memos/` for reusable exploratory field notes from investigation, audit, planning, surprising
+  repository behavior, failed approaches, and unresolved observations that are not yet
   implementation handoff, stable docs, an ADR, or a plan.
 - Create a short memo when the context would help a future Codex or Claude Code agent avoid
   rediscovery. Record observations, evidence, and open questions; do not record chain-of-thought,

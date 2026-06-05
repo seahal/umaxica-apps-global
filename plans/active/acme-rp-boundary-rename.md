@@ -1,9 +1,10 @@
 # Acme RP Boundary Rename
 
 > **Deprecated by the current Identity Authority boundary where it uses the old Acme aggregation
-> model:** `sign/id` owns Identity, Credential, Refresh, Logout, Step-up, browser/request Preference,
-> and app social link/unlink authority. `acme/www` owns Account, Organization, Avatar, Selector,
-> Dashboard, RP Authorization, and SNS-body authority. Physical DB movement is out of scope.
+> model:** `sign/id` owns Identity, Credential, Refresh, Logout, Step-up, browser/request
+> Preference, and app social link/unlink authority. `acme/www` owns Account, Organization, Avatar,
+> Selector, Dashboard, RP Authorization, and SNS-body authority. Physical DB movement is out of
+> scope.
 
 ## Summary
 

@@ -6,9 +6,9 @@ Active implementation plan.
 
 ## Purpose
 
-Unknown app-surface Google and Apple social identities must not create durable app principal,
-social identity, account, organization, or avatar records at provider callback time. They must enter
-an explicit new-registration confirmation checkpoint first. Durable creation happens only after the
+Unknown app-surface Google and Apple social identities must not create durable app principal, social
+identity, account, organization, or avatar records at provider callback time. They must enter an
+explicit new-registration confirmation checkpoint first. Durable creation happens only after the
 browser owner submits that checkpoint with an affirmative confirmation.
 
 This plan applies only to the `app` surface social login/sign-up path:
@@ -30,8 +30,8 @@ This plan applies only to the `app` surface social login/sign-up path:
 - The current checkpoint page only asks for normal sign-up requirements such as birthdate. It does
   not explicitly say that the provider account is unregistered, that a new Umaxica Identity will be
   created, that later merge is unavailable, or that the user should cancel if this is wrong.
-- Existing integration tests assert the old behavior by expecting unknown Google and Apple
-  callbacks to create a `Client` and social identity immediately.
+- Existing integration tests assert the old behavior by expecting unknown Google and Apple callbacks
+  to create a `Client` and social identity immediately.
 
 ## Target Behavior
 
@@ -59,8 +59,8 @@ This plan applies only to the `app` surface social login/sign-up path:
   pending social signup result instead of calling `login_new_identity`.
 - Keep existing linked-identity handling, but remove the `birthdate.blank?` fallback from the
   linked-identity login decision. Linked identity means login for this task.
-- Keep provider identity lookup based only on normalized provider and UID. Do not use provider
-  email as an account identity boundary.
+- Keep provider identity lookup based only on normalized provider and UID. Do not use provider email
+  as an account identity boundary.
 
 ### 2. Store pending social signup evidence without creating app principals
 
@@ -109,8 +109,9 @@ This plan applies only to the `app` surface social login/sign-up path:
 
 - Unknown social signup cancel before confirmation should terminate the cycle and delete/expire only
   temporary ticket/evidence state.
-- Because no `Client` or provider identity exists before confirmation, `Sign::App::Up::SocialCancellation`
-  must not require a pending actor for pre-confirmation social cycles.
+- Because no `Client` or provider identity exists before confirmation,
+  `Sign::App::Up::SocialCancellation` must not require a pending actor for pre-confirmation social
+  cycles.
 - After durable confirmation, existing cleanup rules for completed sign-up must not delete the
   completed account because later sign-in/session issuance failed.
 

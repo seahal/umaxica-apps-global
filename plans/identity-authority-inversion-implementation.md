@@ -41,8 +41,8 @@ The following known implementation gaps must be resolved or fenced by active sli
 - Sign refresh/logout/session-revocation code exists, but some paths still call token primitives
   directly from controllers instead of going through a Sign authority facade with durable,
   idempotent state transitions.
-- Sign step-up code exists, but Acme business mutations must consume a verifiable Sign step-up result
-  instead of letting the business mutation complete inside a Sign-only flow.
+- Sign step-up code exists, but Acme business mutations must consume a verifiable Sign step-up
+  result instead of letting the business mutation complete inside a Sign-only flow.
 - Sign app social callback/sign-up code exists, but the callback must not create durable
   Client/provider identity/ClientAccount records before the pending evidence, guard/check, and
   confirmation flow reaches the approved finalization point.
@@ -156,8 +156,8 @@ preference/refresh/logout/step-up authority model, add a banner before using it.
    - Avoid controller-level direct token or identity mutation primitives.
 
 4. Acme compatibility cleanup
-   - Reclassify Acme preference routes/controllers as compatibility redirects or JumpRT delegation to
-     Sign.
+   - Reclassify Acme preference routes/controllers as compatibility redirects or JumpRT delegation
+     to Sign.
    - Reclassify Acme app social link/unlink routes/controllers as compatibility delegation to Sign.
    - Ensure Acme account, organization, avatar, selector, dashboard, RP authorization, and SNS-body
      behavior does not leak into Sign controllers.
@@ -167,8 +167,8 @@ preference/refresh/logout/step-up authority model, add a banner before using it.
    - Ensure unregistered callback creates pending evidence only.
    - Create durable Client/provider identity/ClientAccount records only after the approved
      confirmation/checkpoint finalization point.
-   - Existing IdP conflicts should not create a second identity; they should route to the appropriate
-     login or account-selection flow.
+   - Existing IdP conflicts should not create a second identity; they should route to the
+     appropriate login or account-selection flow.
 
 6. External RP/OIDC cleanup
    - Classify external RP-facing OIDC provider behavior separately from internal Sign refresh/logout
@@ -186,8 +186,8 @@ preference/refresh/logout/step-up authority model, add a banner before using it.
 - Add route/controller inventory evidence before moving behavior.
 - Add negative tests that Acme preference compatibility routes do not perform durable Preference
   writes or Preference JWT/cookie issuance, update, or revocation.
-- Add negative tests that Acme app social compatibility routes do not create, link, or unlink durable
-  identities directly.
+- Add negative tests that Acme app social compatibility routes do not create, link, or unlink
+  durable identities directly.
 - Add refresh/logout/session-revoke tests for Sign authority facade usage, idempotency, replay
   protection, and family revocation where applicable.
 - Add tests that Acme business mutations consume verifiable Sign step-up results instead of relying

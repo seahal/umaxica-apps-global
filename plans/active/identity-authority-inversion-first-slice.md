@@ -16,7 +16,8 @@ are known:
 - Sign step-up routes exist, but Acme business mutations need explicit verification and consumption
   of Sign step-up results.
 - Sign app social callback/sign-up routes exist, but callback handling must be checked for premature
-  durable Client/provider identity/ClientAccount creation before the approved confirmation checkpoint.
+  durable Client/provider identity/ClientAccount creation before the approved confirmation
+  checkpoint.
 - Acme preference routes/controllers/dispatch still expose old acme preference-authority behavior.
 - Acme app social link/unlink routes/controllers must not perform durable identity mutations; they
   must redirect or delegate to Sign app social authority.
@@ -33,14 +34,14 @@ namespaces, and physical table locations do not override the logical authority b
 
 Classify routes before changing behavior:
 
-| Classification | Route families | Required first-slice behavior |
-| --- | --- | --- |
-| `SIGN_AUTHORITY` | identity entry, credential ceremonies, refresh, logout, session-token revocation, step-up, Preference screens/JWT/cookie, app social link/unlink | Keep on Sign. Route mutations through explicit Sign authority facades where practical. |
-| `ACME_AUTHORITY` | Account, Organization, Avatar, Selector, Dashboard, RP Authorization, Billing, Activity, SNS body | Keep on Acme. Do not complete these business mutations inside Sign controllers. |
-| `ACME_TO_SIGN_COMPAT` | Acme preference routes, Acme app social link/unlink compatibility routes | Preserve old URLs where practical, but redirect or JumpRT-delegate to Sign. |
-| `SIGN_TO_ACME_COMPAT` | Sign account settings, dashboard, selector, organization/avatar/account business routes | Preserve old URLs where practical, but redirect or delegate to Acme. |
-| `EXTERNAL_RP_REVIEW` | External RP-facing OIDC discovery, authorize, token, userinfo, revoke, logout | Classify as retained, delegated, or retired. If retired, remove routes/controllers/links rather than moving them to Acme. |
-| `REMOVE_LATER` | Compatibility routes after replacements are covered | Remove in a later slice after redirects/delegation and tests are stable. |
+| Classification        | Route families                                                                                                                                   | Required first-slice behavior                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `SIGN_AUTHORITY`      | identity entry, credential ceremonies, refresh, logout, session-token revocation, step-up, Preference screens/JWT/cookie, app social link/unlink | Keep on Sign. Route mutations through explicit Sign authority facades where practical.                                    |
+| `ACME_AUTHORITY`      | Account, Organization, Avatar, Selector, Dashboard, RP Authorization, Billing, Activity, SNS body                                                | Keep on Acme. Do not complete these business mutations inside Sign controllers.                                           |
+| `ACME_TO_SIGN_COMPAT` | Acme preference routes, Acme app social link/unlink compatibility routes                                                                         | Preserve old URLs where practical, but redirect or JumpRT-delegate to Sign.                                               |
+| `SIGN_TO_ACME_COMPAT` | Sign account settings, dashboard, selector, organization/avatar/account business routes                                                          | Preserve old URLs where practical, but redirect or delegate to Acme.                                                      |
+| `EXTERNAL_RP_REVIEW`  | External RP-facing OIDC discovery, authorize, token, userinfo, revoke, logout                                                                    | Classify as retained, delegated, or retired. If retired, remove routes/controllers/links rather than moving them to Acme. |
+| `REMOVE_LATER`        | Compatibility routes after replacements are covered                                                                                              | Remove in a later slice after redirects/delegation and tests are stable.                                                  |
 
 ## First-Slice Implementation Rules
 
@@ -119,8 +120,8 @@ Required security checks:
 3. Change Acme preference routes/controllers to redirect or JumpRT-delegate to Sign.
 4. Change Acme app social link/unlink compatibility routes/controllers to redirect or delegate to
    Sign app social authority.
-5. Change Sign account/dashboard/business compatibility routes/controllers to redirect or delegate to
-   Acme.
+5. Change Sign account/dashboard/business compatibility routes/controllers to redirect or delegate
+   to Acme.
 6. Replace direct controller token/session mutation in touched Sign refresh/logout/session-revoke
    paths with Sign authority facades where practical; otherwise mark the retained direct mutation as
    a next-slice TODO/FIXME.
@@ -160,17 +161,17 @@ Use explicit security-property test names where practical:
 
 ## Security Standards Mapping
 
-| Behavior touched | OWASP concern | NIST SP 800-63B concern | Project authority-boundary concern |
-| --- | --- | --- | --- |
-| Sign refresh/logout/session revoke | Session Management, CSRF Prevention, logging exposure | authenticator/session lifecycle, replay resistance | Sign owns refresh, logout, and session-token revocation |
-| Sign step-up | Authentication, Session Management | AAL vocabulary, step-up, freshness, authenticator binding | Sign owns step-up evidence; Acme consumes scoped results |
-| Sign Preference authority | CSRF Prevention, Authentication, Session Management | none unless authenticator settings are touched | Sign owns browser/request Preference writes and Preference JWT/cookie state |
-| Sign app social link/unlink | Authentication, CSRF Prevention, OAuth/OIDC token handling | authenticator lifecycle, recent authentication where required | Sign owns app social identity mutation |
-| Acme preference compatibility | CSRF Prevention, Authentication, Session Management | none unless authenticator settings are touched | Acme must not commit Preference writes or issue Preference JWT/cookie state |
-| Acme business authority | Authentication, Authorization, CSRF Prevention | step-up result consumption for sensitive actions | Acme owns Account, Organization, Avatar, Selector, Dashboard, RP Authorization, and SNS-body state |
-| External RP/OIDC retirement | OAuth/OIDC token handling, logging exposure | authenticator binding where retained | external RP service is separate from internal Sign refresh/logout authority |
-| redirect or JumpRT target handling | Unvalidated Redirects and Forwards | none | authority result transport must not be confused with navigation |
-| touched logging | Logging and sensitive-data exposure | authenticator lifecycle evidence must avoid secret exposure | logs must not become authority records |
+| Behavior touched                   | OWASP concern                                              | NIST SP 800-63B concern                                       | Project authority-boundary concern                                                                 |
+| ---------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Sign refresh/logout/session revoke | Session Management, CSRF Prevention, logging exposure      | authenticator/session lifecycle, replay resistance            | Sign owns refresh, logout, and session-token revocation                                            |
+| Sign step-up                       | Authentication, Session Management                         | AAL vocabulary, step-up, freshness, authenticator binding     | Sign owns step-up evidence; Acme consumes scoped results                                           |
+| Sign Preference authority          | CSRF Prevention, Authentication, Session Management        | none unless authenticator settings are touched                | Sign owns browser/request Preference writes and Preference JWT/cookie state                        |
+| Sign app social link/unlink        | Authentication, CSRF Prevention, OAuth/OIDC token handling | authenticator lifecycle, recent authentication where required | Sign owns app social identity mutation                                                             |
+| Acme preference compatibility      | CSRF Prevention, Authentication, Session Management        | none unless authenticator settings are touched                | Acme must not commit Preference writes or issue Preference JWT/cookie state                        |
+| Acme business authority            | Authentication, Authorization, CSRF Prevention             | step-up result consumption for sensitive actions              | Acme owns Account, Organization, Avatar, Selector, Dashboard, RP Authorization, and SNS-body state |
+| External RP/OIDC retirement        | OAuth/OIDC token handling, logging exposure                | authenticator binding where retained                          | external RP service is separate from internal Sign refresh/logout authority                        |
+| redirect or JumpRT target handling | Unvalidated Redirects and Forwards                         | none                                                          | authority result transport must not be confused with navigation                                    |
+| touched logging                    | Logging and sensitive-data exposure                        | authenticator lifecycle evidence must avoid secret exposure   | logs must not become authority records                                                             |
 
 ## Tests And Checks
 
@@ -188,8 +189,8 @@ git diff -- config/routes/sign.rb config/routes/acme.rb app/controllers/sign app
 
 ## Next-Slice Risks
 
-- Some direct Sign token/session mutation paths may require deeper service extraction than this slice
-  can safely complete.
+- Some direct Sign token/session mutation paths may require deeper service extraction than this
+  slice can safely complete.
 - Social callback collision handling must be checked against current tests before moving any
   finalization point.
 - External RP-facing OIDC retirement may require docs, UI link, and client cleanup in a separate

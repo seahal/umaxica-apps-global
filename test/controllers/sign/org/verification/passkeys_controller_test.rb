@@ -38,8 +38,11 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
           @token.reload
 
-          assert_nil @token.last_step_up_at
-          assert_nil @token.last_step_up_scope
+          assert_predicate @token.last_step_up_at, :present?
+          assert_equal "settings_passkey", @token.last_step_up_scope
+          assert_equal "aal2", @token.last_step_up_aal
+          assert_equal "passkey", @token.last_step_up_method
+          assert_equal @token.public_id, @token.last_step_up_session_public_id
           assert_nil @token.step_up_session
           assert_nil session[:step_up]
 

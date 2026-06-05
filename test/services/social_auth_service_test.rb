@@ -99,7 +99,9 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count } do
+        assert_no_difference -> {
+          ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count
+        } do
           result = SocialAuthService.handle_callback(
             auth_hash: auth_hash,
             current_client: nil,
@@ -130,7 +132,9 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count } do
+        assert_no_difference -> {
+          ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count
+        } do
           result = SocialAuthService.handle_callback(
             auth_hash: auth_hash,
             current_client: nil,

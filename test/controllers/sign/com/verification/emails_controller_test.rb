@@ -92,7 +92,11 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
             assert_response :success
             assert_includes response.body, "step-up-completion-form"
             assert_nil @token.reload.step_up_session
-            assert_nil @token.last_step_up_at
+            assert_predicate @token.last_step_up_at, :present?
+            assert_equal "settings_email", @token.last_step_up_scope
+            assert_equal "aal2", @token.last_step_up_aal
+            assert_equal "email_otp", @token.last_step_up_method
+            assert_equal @token.public_id, @token.last_step_up_session_public_id
 
             submit_step_up_completion_if_present!(
               host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),

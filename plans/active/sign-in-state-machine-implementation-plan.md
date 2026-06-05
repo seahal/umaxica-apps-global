@@ -2,8 +2,8 @@
 
 > **Updated by the current Identity Authority boundary:** Sign-in identity entry and session-token
 > issuance paths belong to `sign/id`. `acme/www` consumes Sign results for Account, Selector,
-> Dashboard, RP Authorization, and other business authority. Do not use older wording in this plan to
-> restore the Acme aggregation model.
+> Dashboard, RP Authorization, and other business authority. Do not use older wording in this plan
+> to restore the Acme aggregation model.
 
 Status: active planning
 

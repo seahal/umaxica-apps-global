@@ -66,9 +66,8 @@ The accepted target `com` Sign Up routes are:
 
 Com Sign Up should be rebuilt to mirror the app email and telephone sequence shape, without adding
 social authentication. Com email moves from email OTP to `/sign/up/check`, where birthdate is
-required before account finalization. Com telephone moves from telephone OTP to
-`/sign/up/check`, where birthdate, passkey, and sign-in-capable passcode are required before
-account finalization.
+required before account finalization. Com telephone moves from telephone OTP to `/sign/up/check`,
+where birthdate, passkey, and sign-in-capable passcode are required before account finalization.
 
 The accepted `org` operator acquisition and lifecycle routes are:
 
@@ -94,9 +93,9 @@ with a status code and a plain-text message. The application must not redirect t
 dashboard, continue a return path, create a new registration sequence, or sign the actor out on
 their behalf.
 
-Telephone Sign Up must not use `/sign/in/check` to represent incomplete registration state.
-Sign Up needs its own pending registration checkpoint, such as `/sign/up/check`, for flows
-where OTP verification has succeeded but required passkey/MFA setup has not yet completed.
+Telephone Sign Up must not use `/sign/in/check` to represent incomplete registration state. Sign Up
+needs its own pending registration checkpoint, such as `/sign/up/check`, for flows where OTP
+verification has succeeded but required passkey/MFA setup has not yet completed.
 
 Sign Up and Sign In also need guardrail stops. Guardrail is distinct from checkpoint: guardrail
 blocks continuation and returns a plain-text stop message, while checkpoint is an interstitial for

@@ -2,7 +2,8 @@
 
 > **Updated by the current Identity Authority boundary:** Refresh and session-token rotation
 > authority belong to `sign/id`; browser/request Preference token rotation also belongs to Sign.
-> External RP/OIDC provider behavior must be classified separately as retained, delegated, or retired.
+> External RP/OIDC provider behavior must be classified separately as retained, delegated, or
+> retired.
 
 ## Status
 

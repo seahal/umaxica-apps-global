@@ -42,7 +42,7 @@ scope module: :acme, as: :acme do
         resource :density, only: %i(edit update), controller: "screens", defaults: { preference_screen: "density" }
         resource :page_size, only: %i(edit update), controller: "screens", defaults: { preference_screen: "page_size" }
         resource :adult_content_gate, only: %i(edit update), controller: "screens",
-                 defaults: { preference_screen: "adult_content_gate" }
+                                      defaults: { preference_screen: "adult_content_gate" }
         resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
         resource :reset, only: %i(edit destroy)
@@ -187,7 +187,7 @@ scope module: :acme, as: :acme do
         resource :density, only: %i(edit update), controller: "screens", defaults: { preference_screen: "density" }
         resource :page_size, only: %i(edit update), controller: "screens", defaults: { preference_screen: "page_size" }
         resource :adult_content_gate, only: %i(edit update), controller: "screens",
-                 defaults: { preference_screen: "adult_content_gate" }
+                                      defaults: { preference_screen: "adult_content_gate" }
         resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
         resource :reset, only: %i(edit destroy)
@@ -301,7 +301,7 @@ scope module: :acme, as: :acme do
         resource :density, only: %i(edit update), controller: "screens", defaults: { preference_screen: "density" }
         resource :page_size, only: %i(edit update), controller: "screens", defaults: { preference_screen: "page_size" }
         resource :adult_content_gate, only: %i(edit update), controller: "screens",
-                 defaults: { preference_screen: "adult_content_gate" }
+                                      defaults: { preference_screen: "adult_content_gate" }
         resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
         resource :reset, only: %i(edit destroy)

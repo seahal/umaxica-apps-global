@@ -2,8 +2,8 @@
 
 > **Updated by the current Identity Authority boundary:** Identity, Credential, Refresh, Logout,
 > Step-up, browser/request Preference, and app social link/unlink authority belong to `sign/id`.
-> Account, Organization, Avatar, Selector, Dashboard, RP Authorization, and SNS-body authority belong
-> to `acme/www`. Do not use older wording in this plan to restore the Acme aggregation model.
+> Account, Organization, Avatar, Selector, Dashboard, RP Authorization, and SNS-body authority
+> belong to `acme/www`. Do not use older wording in this plan to restore the Acme aggregation model.
 
 ## Summary
 

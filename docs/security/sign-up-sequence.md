@@ -274,8 +274,7 @@ Current implementation path:
   - Calls `redirect_to_sign_in_sequence!`.
   - Target behavior is that guardrail, checkpoint, and selector are evaluated before session
     issuance.
-  - In the current implementation, the actor reaches `/sign/in/check` if checkpoint content
-    exists.
+  - In the current implementation, the actor reaches `/sign/in/check` if checkpoint content exists.
   - Otherwise, or after checkpoint and selector completion, the actor receives the active session,
     continues to welcome, and then the safe `rt` return path when present, falling back to
     `/dashboard`.
@@ -365,8 +364,7 @@ Current path:
 10. The flow calls the sign-in post-authentication sequence.
 11. Target behavior is that guardrail, checkpoint, and selector are evaluated before session
     issuance.
-12. In the current implementation, the actor reaches `/sign/in/check` if checkpoint content
-    exists.
+12. In the current implementation, the actor reaches `/sign/in/check` if checkpoint content exists.
 13. Otherwise, or after checkpoint and selector completion, the actor receives the active session,
     continues to dashboard, and then the safe `rt` return path when present.
 

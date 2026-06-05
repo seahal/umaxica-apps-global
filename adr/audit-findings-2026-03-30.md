@@ -268,8 +268,8 @@ Controllers without dedicated tests:
 
 Services without tests:
 
-| #   | Location                                            |
-| --- | --------------------------------------------------- |
+| #   | Location                                               |
+| --- | ------------------------------------------------------ |
 | 144 | `../app/services/org/invitation_service.rb`            |
 | 145 | `../app/services/org/registration_policy.rb`           |
 | 146 | `../app/services/jit/security/jwt/anomaly_reporter.rb` |

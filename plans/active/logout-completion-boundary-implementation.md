@@ -34,8 +34,8 @@ logout mutation directly.
   only through explicit logout/session authority services.
 - `sign/id` `/signed-out` must not repeat logout mutation after the Sign authority result is
   committed.
-- Acme logout compatibility endpoints must not revoke refresh tokens, clear auth cookies, reset Rails
-  session, write logout audit, or inspect logout attempt state directly.
+- Acme logout compatibility endpoints must not revoke refresh tokens, clear auth cookies, reset
+  Rails session, write logout audit, or inspect logout attempt state directly.
 - Completion redirects must be fixed by surface host helpers or existing host mapping logic. Do not
   use a user-controlled `return_to`, `pt`, `rt`, or similar parameter for the default signed-out
   destination.
