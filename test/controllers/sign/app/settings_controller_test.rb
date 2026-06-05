@@ -10,10 +10,11 @@ class Sign::App::SettingsControllerTest < ActionDispatch::IntegrationTest
     host! @host
   end
 
-  test "sign settings shell redirects to acme authority" do
+  test "anonymous sign settings shell requires sign authentication" do
     get sign_app_settings_url(ri: "jp")
 
-    assert_redirected_to acme_app_settings_url(ri: "jp", host: @acme_host)
+    assert_response :redirect
+    assert_not_equal @acme_host, URI.parse(response.location).host
   end
 
   test "sign credential settings routes still resolve on sign" do

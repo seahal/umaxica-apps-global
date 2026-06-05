@@ -56,14 +56,11 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "authority pages redirect to acme instead of rendering sign UI" do
+  test "acme-owned authority pages redirect to acme instead of rendering sign UI" do
     head = as_user_headers(@user, host: @host)
     authority_pages = {
       sign_app_settings_sessions_path(ri: "jp") => "/settings/sessions",
-      new_sign_app_settings_withdrawal_path(ri: "jp") => "/settings/withdrawal",
       edit_sign_app_sign_out_path(ri: "jp") => "/sign/out",
-      sign_app_settings_emails_path(ri: "jp") => "/settings/emails",
-      sign_app_settings_telephones_path(ri: "jp") => "/settings/telephones",
     }
 
     authority_pages.each do |path, expected_path|

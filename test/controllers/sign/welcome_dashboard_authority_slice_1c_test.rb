@@ -68,7 +68,7 @@ class Sign::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::IntegrationTe
       "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/new",
       method: :get,
     )
-    guardrail = Rails.application.routes.recognize_path(
+    guard = Rails.application.routes.recognize_path(
       "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/guard",
       method: :get,
     )
@@ -79,7 +79,7 @@ class Sign::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::IntegrationTe
 
     assert_equal "sign/app/sign_ins", sign_in.fetch(:controller)
     assert_equal "sign/app/sign_ups", sign_up.fetch(:controller)
-    assert_equal "sign/app/up/guardrails", guardrail.fetch(:controller)
+    assert_equal "sign/app/up/guards", guard.fetch(:controller)
     assert_equal "sign/app/up/checkpoints", checkpoint.fetch(:controller)
   end
 end

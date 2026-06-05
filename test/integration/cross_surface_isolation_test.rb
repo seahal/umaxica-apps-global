@@ -40,19 +40,19 @@ class CrossSurfaceIsolationTest < ActionDispatch::IntegrationTest
   test "client is authenticated on the app dashboard" do
     get sign_app_dashboard_url(ri: "jp"), headers: as_user_headers(@client, host: APP_HOST)
 
-    assert_response :success
+    assert_same_surface_dashboard_redirect(APP_HOST)
   end
 
   test "visitor is authenticated on the com dashboard" do
     get sign_com_dashboard_url(ri: "jp"), headers: as_visitor_headers(@visitor, host: COM_HOST)
 
-    assert_response :success
+    assert_same_surface_dashboard_redirect(COM_HOST)
   end
 
   test "operator is authenticated on the org dashboard" do
     get sign_org_dashboard_url(ri: "jp"), headers: as_staff_headers(@operator, host: ORG_HOST)
 
-    assert_response :success
+    assert_same_surface_dashboard_redirect(ORG_HOST)
   end
 
   # --- isolation matrix: foreign-surface credentials are rejected (redirect to sign-in) ---
@@ -91,5 +91,15 @@ class CrossSurfaceIsolationTest < ActionDispatch::IntegrationTest
     get sign_org_dashboard_url(ri: "jp"), headers: as_visitor_headers(@visitor, host: ORG_HOST)
 
     assert_response :redirect
+  end
+
+  private
+
+  def assert_same_surface_dashboard_redirect(sign_host)
+    assert_response :see_other
+    location = URI.parse(response.location)
+
+    assert_equal sign_host.sub(/\Aid\./, "www."), location.host
+    assert_equal "/dashboard", location.path
   end
 end

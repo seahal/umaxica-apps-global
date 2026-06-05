@@ -14,7 +14,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
     ClientChronicleLevel.find_or_create_by!(id: ClientChronicleLevel::NOTHING)
   end
 
-  test "handle_login creates new user and identity" do
+  test "handle_login returns pending signup for unknown identity" do
     auth_hash = OmniAuth::AuthHash.new(
       {
         "provider" => "google",
@@ -23,12 +23,14 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
       },
     )
 
-    assert_difference -> { Client.count }, 1 do
-      assert_difference -> { ClientGoogleIdentity.count }, 1 do
+    assert_no_difference -> { Client.count } do
+      assert_no_difference -> { ClientGoogleIdentity.count } do
         result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: nil, intent: "login")
 
-        assert_not_nil result[:user]
-        assert_equal "new-uid", result[:identity].uid
+        assert_nil result[:user]
+        assert_nil result[:identity]
+        assert result[:pending_social_signup]
+        assert_equal "new-uid", result[:uid]
       end
     end
   end

@@ -260,7 +260,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
             assert_response :success
             assert_includes response.body, "step-up-completion-form"
             assert_nil @token.reload.step_up_session
-            assert_nil @token.last_step_up_at
+            assert_not_nil @token.last_step_up_at
             assert_nil Rails.cache.read(email_otp_cache_key_for_id(@step_up_session_id))
 
             submit_step_up_completion_if_present!(
@@ -363,7 +363,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_equal I18n.t("otp.resend.too_soon"), flash[:alert]
   end
 
-  test "settings email management redirects to acme before sign step up" do
+  test "settings email management requires sign step up" do
     stale_token = ClientToken.create!(user_id: @user.id, created_at: 20.minutes.ago, updated_at: 20.minutes.ago)
     stale_headers = @headers.merge("X-TEST-SESSION-PUBLIC-ID" => stale_token.public_id)
     email = @user.client_emails.where(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES).first
@@ -371,11 +371,14 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     StepUp::AvailableMethods.stub(:call, [:email_otp]) do
       get edit_sign_app_settings_email_url(email.public_id, ri: "jp"), headers: stale_headers
 
-      assert_redirected_to edit_acme_app_settings_email_url(
-        email.public_id,
-        ri: "jp",
-        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-      )
+      assert_response :redirect
+      location = URI.parse(response.location)
+      query = Rack::Utils.parse_query(location.query)
+
+      assert_equal @host, location.host
+      assert_equal "/verification", location.path
+      assert_equal "settings_email", query["scope"]
+      assert_predicate query["pt"], :present?
     end
   end
 

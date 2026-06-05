@@ -78,8 +78,8 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
                params: { verification: { challenge_id: "test", credential_json: '{"id":"test"}' } },
                headers: @headers
 
-          assert_response :redirect
-          assert_redirected_to sign_app_settings_emails_url(ri: "jp")
+          assert_response :success
+          assert_includes response.body, "step-up-completion-form"
         end
       end
     end

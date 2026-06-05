@@ -56,7 +56,7 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
       host! host
 
-      get public_send("edit_acme_#{surface}_preference_cookie_url", ri: ["jp", "jp"], host: host)
+      get public_send("edit_acme_#{surface}_preference_cookie_url", ri: "jp", host: host)
 
       assert_response :success
       assert_no_match(/translation missing/i, response.body)

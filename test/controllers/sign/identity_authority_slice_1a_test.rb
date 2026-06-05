@@ -20,12 +20,11 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "/settings/sessions", URI.parse(response.location).path
   end
 
-  test "sign withdrawal redirect uses acme authority" do
+  test "sign withdrawal remains sign-owned identity settings" do
     get new_sign_app_settings_withdrawal_url(host: ENV.fetch("SIGN_SERVICE_URL"), ri: "jp")
 
-    assert_response :see_other
-    assert_equal ENV.fetch("ACME_SERVICE_URL"), URI.parse(response.location).host
-    assert_equal "/settings/withdrawal", URI.parse(response.location).path
+    assert_response :redirect
+    assert_not_equal ENV.fetch("ACME_SERVICE_URL"), URI.parse(response.location).host
   end
 
   test "sign in and sign up entry routes still resolve on sign" do
@@ -86,9 +85,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       Sign::App::Settings::SessionsController,
       Sign::Com::Settings::SessionsController,
       Sign::Org::Settings::SessionsController,
-      Sign::App::Settings::WithdrawalsController,
       Sign::Com::Settings::WithdrawalsController,
-      Sign::Org::Settings::WithdrawalsController,
     ]
 
     redirect_only_controllers.each do |controller|

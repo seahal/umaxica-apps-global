@@ -39,10 +39,9 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     uri = URI.parse(response.location)
-    query = Rack::Utils.parse_query(uri.query)
 
-    assert_equal "/verification/setup/new", uri.path
-    assert_predicate query["pt"], :present?
+    assert_equal "/settings/withdrawal", uri.path
+    assert_equal "ri=jp", uri.query
   end
 
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
@@ -54,10 +53,9 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     uri = URI.parse(response.location)
-    query = Rack::Utils.parse_query(uri.query)
 
-    assert_equal "/verification", uri.path
-    assert_predicate query["pt"], :present?
+    assert_equal "/settings/withdrawal", uri.path
+    assert_equal "ri=jp", uri.query
   end
 
   test "GET protected endpoint redirects to verification when usable methods exist" do
@@ -76,7 +74,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal "/verification", uri.path
+    assert_equal "/settings/withdrawal", uri.path
   end
 
   test "POST protected endpoint returns 401 plain when step-up is missing and usable methods exist" do

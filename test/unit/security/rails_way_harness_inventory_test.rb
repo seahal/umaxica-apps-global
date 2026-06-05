@@ -40,8 +40,10 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/models/concerns/refresh_tokenable.rb" => [5, "legacy refresh-token lifecycle concern"],
     "app/models/concerns/retainable.rb" => [6, "legacy retention timestamp concern"],
     "app/models/concerns/secret_credential.rb" => [2, "legacy secret credential validation concern"],
-    "app/models/concerns/secret_credential_ceremony_transactionable.rb" => [12,
-                                                                            "reviewed ceremony transaction model DSL concern",],
+    "app/models/concerns/secret_credential_ceremony_transactionable.rb" => [
+      12,
+      "reviewed ceremony transaction model DSL concern",
+    ],
     "app/models/concerns/session_oidc_connection.rb" => [1, "legacy session OIDC connection callback"],
     "app/models/concerns/sign_flow.rb" => [15, "legacy sign flow state concern"],
     "app/models/concerns/sign_out_flow.rb" => [12, "legacy sign-out flow state concern"],
@@ -69,9 +71,11 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
 
   REVIEWED_BRANCH_EXCEPTIONS = {
     "app/controllers/concerns/acme/step_up_completion.rb" => [2, "reviewed step-up completion branch errors"],
-    "app/controllers/concerns/social_auth_concern.rb" => [14, "legacy SocialAuth control-flow errors"],
-    "app/models/concerns/step_up_ceremony_transactionable.rb" => [3,
-                                                                  "reviewed step-up ceremony transaction branch errors",],
+    "app/controllers/concerns/social_auth_concern.rb" => [13, "legacy SocialAuth control-flow errors"],
+    "app/models/concerns/step_up_ceremony_transactionable.rb" => [
+      3,
+      "reviewed step-up ceremony transaction branch errors",
+    ],
     "app/services/org/registration_policy.rb" => [1, "legacy org invitation branch error"],
     "app/services/social_auth/link_handler.rb" => [1, "legacy SocialAuth link branch error"],
     "app/services/social_auth_service.rb" => [2, "legacy SocialAuth service branch errors"],

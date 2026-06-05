@@ -23,6 +23,7 @@ module Sign
       ActiveRecord::Base.connected_to(role: :writing) do
         transaction = current_step_up_ceremony_transaction!(scope: scope, now: now)
         result_token = issue_step_up_result!(transaction:, scope:, method:, rs:, now:)
+        record_step_up_success!(scope: scope, method: method, now: now)
 
         clear_step_up_state!
         rs.destroy!
@@ -46,6 +47,17 @@ module Sign
         attempt_count: rs.attempt_count,
         now: now,
       )
+    end
+
+    def record_step_up_success!(scope:, method:, now:)
+      actor_token.update!(
+        last_step_up_at: now,
+        last_step_up_scope: scope,
+        last_step_up_aal: "aal2",
+        last_step_up_method: method,
+        last_step_up_session_public_id: actor_token.public_id,
+      )
+      create_audit_event!(verification_success_event_id, subject: current_verification_actor)
     end
 
     def valid_step_up_session?(_session_data)

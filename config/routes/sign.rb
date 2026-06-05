@@ -114,7 +114,7 @@ scope module: :sign, as: :sign do
         resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
           resource :email, only: %i(new create edit update)
-          resource :guard, only: :show, controller: "guardrails"
+          resource :guard, only: :show, controller: "guards"
           resource :check, only: %i(show destroy), controller: "checkpoints"
 
           get "guardrail", to: safe_sign_state_redirect.call("/sign/up/guard"), as: nil
@@ -156,6 +156,7 @@ scope module: :sign, as: :sign do
 
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
+          resource :guard, only: :show, controller: "guards"
           resource :check, only: %i(show update destroy), controller: "checkpoints"
           get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
           patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
@@ -371,7 +372,7 @@ scope module: :sign, as: :sign do
         resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
           resource :email, only: %i(new create edit update)
-          resource :guard, only: :show, controller: "guardrails"
+          resource :guard, only: :show, controller: "guards"
           resource :check, only: %i(show destroy), controller: "checkpoints"
 
           get "guardrail", to: safe_sign_state_redirect.call("/sign/up/guard"), as: nil
@@ -410,6 +411,7 @@ scope module: :sign, as: :sign do
 
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
+          resource :guard, only: :show, controller: "guards"
           resource :check, only: %i(show update destroy), controller: "checkpoints"
           get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
           patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
@@ -601,6 +603,7 @@ scope module: :sign, as: :sign do
 
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
+          resource :guard, only: :show, controller: "guards"
           resource :check, only: %i(show update destroy), controller: "checkpoints"
           get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
           patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil

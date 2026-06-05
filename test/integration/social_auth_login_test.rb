@@ -274,10 +274,18 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
-            params: { state: state },
-            headers: browser_headers.merge(@callback_headers)
-        submit_social_completion_if_present!
+        assert_no_difference("ClientAccount.count") do
+          assert_no_difference("Organization.count") do
+            assert_no_difference("Avatar.count") do
+              assert_no_difference("ClientToken.count") do
+                get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+                    params: { state: state },
+                    headers: browser_headers.merge(@callback_headers)
+                submit_social_completion_if_present!
+              end
+            end
+          end
+        end
       end
     end
 
@@ -298,13 +306,21 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        patch sign_app_up_check_birthdate_url(ri: "jp"),
-              params: {
-                requirement: "birthdate",
-                birthdate: "2000-02-03",
-                checkpoint_version: cycle.checkpoint_version,
-              },
-              headers: browser_headers.merge(@callback_headers)
+        assert_no_difference("ClientAccount.count") do
+          assert_no_difference("Organization.count") do
+            assert_no_difference("Avatar.count") do
+              assert_no_difference("ClientToken.count") do
+                patch sign_app_up_check_birthdate_url(ri: "jp"),
+                      params: {
+                        requirement: "birthdate",
+                        birthdate: "2000-02-03",
+                        checkpoint_version: cycle.checkpoint_version,
+                      },
+                      headers: browser_headers.merge(@callback_headers)
+              end
+            end
+          end
+        end
       end
     end
 
@@ -387,10 +403,18 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
-             params: { state: state },
-             headers: browser_headers.merge(@callback_headers)
-        submit_social_completion_if_present!
+        assert_no_difference("ClientAccount.count") do
+          assert_no_difference("Organization.count") do
+            assert_no_difference("Avatar.count") do
+              assert_no_difference("ClientToken.count") do
+                post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+                     params: { state: state },
+                     headers: browser_headers.merge(@callback_headers)
+                submit_social_completion_if_present!
+              end
+            end
+          end
+        end
       end
     end
 

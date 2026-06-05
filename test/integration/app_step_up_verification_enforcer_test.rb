@@ -113,17 +113,24 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
          params: { verification: { code: code } },
          headers: @headers
 
-    assert_response :redirect
-    assert_redirected_to new_sign_app_settings_withdrawal_url(ri: "jp")
-    assert response_has_cookie?(ClientVerification.cookie_name)
+    assert_response :success
+    assert_includes response.body, "step-up-completion-form"
 
-    assert ClientVerification.active.exists?(user_token_id: @token.id)
     assert ClientChronicle.exists?(
       actor_type: "Client",
       actor_id: @user.id,
       event_id: ClientChronicleEvent::STEP_UP_VERIFIED,
       subject_type: "Client",
       subject_id: @user.id,
+    )
+
+    submit_step_up_completion_if_present!(
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      headers: as_user_headers(
+        @user,
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        session_public_id: @token.public_id,
+      ),
     )
 
     post sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers

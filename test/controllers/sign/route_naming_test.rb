@@ -26,6 +26,7 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_equal "/sign/up/check/passkey/new", new_sign_app_up_check_passkey_path
     assert_equal "/sign/up/check/passkey", sign_app_up_check_passkey_path
     assert_equal "/sign/up/check/passkey/begin", begin_sign_app_up_check_passkey_path
+    assert_equal "/sign/in/guard", sign_app_in_guard_path
     assert_equal "/sign/in/check", sign_app_in_check_path
     assert_equal "/sign/in/challenge", sign_app_in_challenge_path
     assert_equal "/sign/in/challenge/totp/new", new_sign_app_in_challenge_totp_path
@@ -42,7 +43,7 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   end
 
   test "canonical app sign state routes resolve to existing controllers" do
-    assert_recognizes_sign_route(:app, "/sign/up/guard", :get, "up/guardrails", "show")
+    assert_recognizes_sign_route(:app, "/sign/up/guard", :get, "up/guards", "show")
     assert_recognizes_sign_route(:app, "/sign/up/check", :get, "up/checkpoints", "show")
     assert_recognizes_sign_route(:app, "/sign/up/check", :delete, "up/checkpoints", "destroy")
     assert_recognizes_sign_route(:app, "/sign/up/check/birthdate", :patch, "up/checkpoint/birthdates", "update")
@@ -51,6 +52,7 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_recognizes_sign_route(:app, "/sign/up/check/passkey/new", :get, "up/checkpoint/passkeys", "new")
     assert_recognizes_sign_route(:app, "/sign/up/check/passkey", :post, "up/checkpoint/passkeys", "create")
     assert_recognizes_sign_route(:app, "/sign/up/check/passkey/begin", :post, "up/checkpoint/passkeys", "begin")
+    assert_recognizes_sign_route(:app, "/sign/in/guard", :get, "in/guards", "show")
     assert_recognizes_sign_route(:app, "/sign/in/check", :get, "in/checkpoints", "show")
     assert_recognizes_sign_route(:app, "/sign/in/check", :patch, "in/checkpoints", "update")
     assert_recognizes_sign_route(:app, "/sign/in/check", :delete, "in/checkpoints", "destroy")
@@ -60,10 +62,22 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   end
 
   test "canonical com and org sign check routes resolve on their surfaces" do
-    assert_recognizes_sign_route(:com, "/sign/up/guard", :get, "up/guardrails", "show")
+    assert_recognizes_sign_route(:com, "/sign/up/guard", :get, "up/guards", "show")
     assert_recognizes_sign_route(:com, "/sign/up/check", :get, "up/checkpoints", "show")
+    assert_recognizes_sign_route(:com, "/sign/in/guard", :get, "in/guards", "show")
     assert_recognizes_sign_route(:com, "/sign/in/check", :get, "in/checkpoints", "show")
+    assert_recognizes_sign_route(:org, "/sign/in/guard", :get, "in/guards", "show")
     assert_recognizes_sign_route(:org, "/sign/in/check", :get, "in/checkpoints", "show")
+  end
+
+  test "org signup stays invitation only without normal guard or check routes" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{SURFACES.fetch(:org)}/sign/up/guard", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{SURFACES.fetch(:org)}/sign/up/check", method: :get)
+    end
   end
 
   test "old app sign state paths redirect to canonical routes with only safe query params" do
