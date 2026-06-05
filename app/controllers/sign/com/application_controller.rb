@@ -145,9 +145,10 @@ module Sign
         ]
         allowed.include?(controller_path)
       end
-def cross_host_redirect_allowed?
-  true
-end
+
+      def cross_host_redirect_allowed?
+        true
+      end
     end
   end
 end

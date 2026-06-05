@@ -88,7 +88,7 @@
     }
   },
   "shutdownAction": "stopCompose",
-  "updateRemoteUserUID": true,
+  "updateRemoteUserUID": false,
   "postStartCommand": "",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -99,8 +99,7 @@
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",
     "source=${localEnv:HOME}/.claude.json,target=/home/global/.claude.json,type=bind",
-    "source=${localEnv:HOME}/.copilot,target=/home/global/.copilot,type=bind",
-    "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
+    "source=${localEnv:HOME}/.codex/config.toml,target=/home/global/.codex/config.toml,type=bind",
     "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind",
     "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind",
     "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind",

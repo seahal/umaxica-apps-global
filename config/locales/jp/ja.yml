@@ -577,6 +577,12 @@ ja:
           show:
             page_title: 登録を完了
             complete: 登録に必要な項目は完了しています。
+            social:
+              unregistered: この%{provider}アカウントは未登録です。
+              create_identity: 新しいUmaxica Identityを作成します。
+              no_merge: 既存アカウントとは後から統合できません。
+              cancel_if_wrong: 間違いならキャンセルしてください。
+              confirm_label: 新しいUmaxica Identityを作成することを理解しました。
             birthdate:
               title: 生年月日の確認
               description: 登録を続けるため、生年月日を入力してください。

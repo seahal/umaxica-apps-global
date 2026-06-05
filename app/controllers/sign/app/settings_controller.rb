@@ -9,7 +9,7 @@ module Sign
       AUTHENTICATION_MODE = :private
 
       def show
-        return redirect_to_acme_settings_authority! unless logged_in?
+        redirect_to_acme_settings_authority! unless logged_in?
       end
     end
   end

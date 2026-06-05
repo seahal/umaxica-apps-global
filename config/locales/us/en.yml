@@ -255,6 +255,12 @@ en:
           show:
             page_title: Complete registration
             complete: Registration requirements are complete.
+            social:
+              unregistered: This %{provider} account is not registered.
+              create_identity: A new Umaxica Identity will be created.
+              no_merge: It cannot be merged into an existing account later.
+              cancel_if_wrong: Cancel if this is not what you intended.
+              confirm_label: I understand that this creates a new Umaxica Identity.
             birthdate:
               title: Confirm your birthdate
               description: Enter your birthdate to continue registration.

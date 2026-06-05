@@ -20,7 +20,7 @@ module SocialAuth
       identity = identity_class.lock.find_by(uid: uid, provider: provider)
       Rails.logger.debug { "[SocialAuth] handle_login - identity found: #{identity.present?}" }
 
-      identity ? login_existing_identity(identity) : login_new_identity
+      identity ? login_existing_identity(identity) : pending_social_signup
     rescue ActiveRecord::RecordNotUnique => e
       Rails.logger.info(
         Jit::LogEvent.format(
@@ -51,22 +51,18 @@ module SocialAuth
       build_result(user, identity, existing_account: existing_account)
     end
 
-    def login_new_identity
-      Rails.logger.debug { "[SocialAuth] Creating new user and identity" }
-      user = build_login_user
-
-      persist_user!(user, context: "login_new_identity")
-      identity = build_identity_for_user(user)
-      identity.save!
-      identity.touch_authenticated!
-      # Chronicle write happens AFTER user/identity have been persisted.
-      # If either save above raises, this line is unreachable and no
-      # orphan SIGNED_UP_WITH_GOOGLE/SIGNED_UP_WITH_APPLE row is created.
-      # See S-8.
-      create_social_signup_audit(user) unless sign_up_entry
-      Rails.logger.debug { "[SocialAuth] New user created - user_id: #{user.id}" }
-
-      build_result(user, identity, existing_account: false)
+    def pending_social_signup
+      Rails.logger.debug { "[SocialAuth] Unknown social identity requires signup confirmation" }
+      {
+        user: nil,
+        identity: nil,
+        jwt_payload: {},
+        existing_account: false,
+        pending_social_signup: true,
+        provider: provider,
+        uid: uid,
+        identity_class: identity_class,
+      }
     end
 
     def create_user_for_identity(identity)

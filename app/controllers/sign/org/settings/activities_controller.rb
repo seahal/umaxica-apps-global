@@ -5,8 +5,9 @@ module Sign
   module Org
     module Settings
       class ActivitiesController < Sign::RedirectOnlyController
-        AUTHENTICATION_MODE = :private
         include ::Sign::SettingsAuthorityRedirect
+
+        AUTHENTICATION_MODE = :private
       end
     end
   end

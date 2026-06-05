@@ -54,7 +54,7 @@ module Acme
     end
 
     def preference_screen_template
-      sign_template = "sign/#{controller_path.split('/').second}/preference/#{params[:preference_screen].to_s.pluralize}/edit"
+      sign_template = "sign/#{controller_path.split("/").second}/preference/#{params[:preference_screen].to_s.pluralize}/edit"
       return sign_template if controller_path.start_with?("sign/") && lookup_context.exists?(sign_template)
 
       "acme/shared/preference/#{preference_screen_template_name}"

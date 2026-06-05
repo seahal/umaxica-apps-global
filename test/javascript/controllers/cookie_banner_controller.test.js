@@ -291,6 +291,5 @@ describe("CookieBannerController", () => {
         "http://localhost:3000/web/v0/cookie?ri=us&lx=en&ct=dr&tz=asia%2Ftokyo",
       );
     });
-
   });
 });

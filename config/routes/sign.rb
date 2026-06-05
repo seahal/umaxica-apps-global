@@ -89,8 +89,10 @@ scope module: :sign, as: :sign do
         resource :time, only: %i(edit update), controller: "times", defaults: { preference_screen: "time" }
         resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
         resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
-        resource :page_size, only: %i(edit update), controller: "page_sizes", defaults: { preference_screen: "page_size" }
-        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates", defaults: { preference_screen: "adult_content_gate" }
+        resource :page_size, only: %i(edit update), controller: "page_sizes",
+                             defaults: { preference_screen: "page_size" }
+        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates",
+                                      defaults: { preference_screen: "adult_content_gate" }
         resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }
         resource :reset, only: %i(edit destroy)
@@ -329,8 +331,10 @@ scope module: :sign, as: :sign do
         resource :time, only: %i(edit update), controller: "times", defaults: { preference_screen: "time" }
         resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
         resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
-        resource :page_size, only: %i(edit update), controller: "page_sizes", defaults: { preference_screen: "page_size" }
-        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates", defaults: { preference_screen: "adult_content_gate" }
+        resource :page_size, only: %i(edit update), controller: "page_sizes",
+                             defaults: { preference_screen: "page_size" }
+        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates",
+                                      defaults: { preference_screen: "adult_content_gate" }
         resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }
         resources :emails, only: %i(edit destroy)
@@ -525,8 +529,10 @@ scope module: :sign, as: :sign do
         resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
         resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
 
-        resource :page_size, only: %i(edit update), controller: "page_sizes", defaults: { preference_screen: "page_size" }
-        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates", defaults: { preference_screen: "adult_content_gate" }
+        resource :page_size, only: %i(edit update), controller: "page_sizes",
+                             defaults: { preference_screen: "page_size" }
+        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates",
+                                      defaults: { preference_screen: "adult_content_gate" }
 
         resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }

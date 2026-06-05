@@ -8,7 +8,7 @@ module Sign
         AUTHENTICATION_MODE = :private
 
         def show
-          return redirect_to_acme_withdrawal! unless step_up_satisfied?(scope: "withdrawal")
+          redirect_to_acme_withdrawal! unless step_up_satisfied?(scope: "withdrawal")
         end
 
         private

@@ -72,9 +72,10 @@ module Sign
       def after_login_allows_other_host?
         true
       end
-def cross_host_redirect_allowed?
-  true
-end
+
+      def cross_host_redirect_allowed?
+        true
+      end
     end
   end
 end

@@ -26,7 +26,10 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_self_service_page(acme_app_avatar_url(ri: "jp", host: @app_host), headers: headers, title: "Avatar")
     assert_self_service_page(acme_app_identity_url(ri: "jp", host: @app_host), headers: headers, title: "Identity")
-    assert_self_service_page(acme_app_organization_url(ri: "jp", host: @app_host), headers: headers, title: "Organization")
+    assert_self_service_page(
+      acme_app_organization_url(ri: "jp", host: @app_host), headers: headers,
+                                                            title: "Organization",
+    )
     assert_self_service_page(acme_app_account_url(ri: "jp", host: @app_host), headers: headers, title: "Account")
   end
 
@@ -43,7 +46,10 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_self_service_page(acme_org_avatar_url(ri: "jp", host: @org_host), headers: headers, title: "Avatar")
     assert_self_service_page(acme_org_identity_url(ri: "jp", host: @org_host), headers: headers, title: "Identity")
-    assert_self_service_page(acme_org_organization_url(ri: "jp", host: @org_host), headers: headers, title: "Organization")
+    assert_self_service_page(
+      acme_org_organization_url(ri: "jp", host: @org_host), headers: headers,
+                                                            title: "Organization",
+    )
     assert_self_service_page(acme_org_account_url(ri: "jp", host: @org_host), headers: headers, title: "Account")
   end
 
@@ -73,14 +79,14 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
   private
 
   def assert_requires_authentication(url, host:)
-    get url, headers: host_headers(host)
+    get(url, headers: host_headers(host))
 
     assert_response :redirect
     assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
   end
 
   def assert_self_service_page(url, headers:, title:)
-    get url, headers: headers
+    get(url, headers: headers)
 
     assert_response :success
     assert_select "h1", title

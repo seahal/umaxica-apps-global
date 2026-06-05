@@ -9,12 +9,12 @@ module Acme
 
       before_action :authenticate_visitor!
 
+      def index = show
+
       def show
         authorize!(current_visitor, to: :show?)
         render "acme/shared/self_service/show", locals: { page_title: "Account" }
       end
-
-      def index = show
     end
   end
 end

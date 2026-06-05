@@ -89,9 +89,10 @@ module Acme
       def actor_verification_path(**args)
         acme_org_verification_path(**args)
       end
-def cross_host_redirect_allowed?
-  true
-end
+
+      def cross_host_redirect_allowed?
+        true
+      end
     end
   end
 end

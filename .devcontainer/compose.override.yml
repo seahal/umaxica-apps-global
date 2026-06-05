@@ -3,9 +3,14 @@ services:
   core:
     container_name: global-devcontainer-core
     userns_mode: keep-id
-    tmpfs:
-      - /home/global/workspace/tmp:uid=1000,gid=1000,exec
-      - /home/global/workspace/log:uid=1000,gid=1000
+    # Rootless podman rejects uid=/gid= on tmpfs mounts (user-namespace
+    # restriction). Replace the base compose tmpfs list — `!override` is required
+    # because compose merges list-valued fields by default, which would leave
+    # the base entries with uid=/gid= in place. Ownership is mapped correctly
+    # via `userns_mode: keep-id`.
+    tmpfs: !override
+      - /home/global/workspace/tmp
+      - /home/global/workspace/log
     environment:
       - TMPDIR=/home/global/workspace/tmp
       - DEVCONTAINER=1
@@ -28,3 +33,15 @@ services:
   grafana:
     container_name: global-devcontainer-grafana
     ports: []
+  alloy:
+    profiles:
+      - observability
+  # pgadmin and tinyrdm are admin GUIs that don't need to run for normal
+  # devcontainer work. Gate them behind an opt-in profile so they only start
+  # when explicitly requested (e.g. `--profile tools`).
+  pgadmin:
+    profiles:
+      - tools
+  tinyrdm:
+    profiles:
+      - tools
