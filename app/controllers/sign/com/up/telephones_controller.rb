@@ -163,7 +163,7 @@ module Sign
           end
 
           redirect_to(
-            sign_com_up_guardrail_path(ri: params[:ri]),
+            sign_com_up_guard_path(ri: params[:ri]),
             notice: t("sign.com.registration.telephone.success"),
           )
         end

@@ -122,7 +122,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     visitor = telephone.reload.visitor
     cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
 
-    assert_redirected_to sign_com_up_guardrail_path(ri: "jp")
+    assert_redirected_to sign_com_up_guard_path(ri: "jp")
     assert_nil visitor.rp_account
     assert_equal VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, telephone.visitor_telephone_status_id
     assert session.dig(:visitor_telephone_registration, "otp_verified")

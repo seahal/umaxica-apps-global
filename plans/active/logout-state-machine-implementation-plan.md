@@ -1,10 +1,8 @@
 # Logout State Machine Implementation Plan
 
-> **Deprecated by Identity Authority inversion where this plan assigns logout, session, refresh, or
-> token authority to `sign/id`:** `acme/www` now owns Session, Token, Account, Preference,
-> Authorization, and downstream-token authority. `sign/id` is ceremony-only. Physical DB movement is
-> out of scope. Implementation details in this plan must not be used to reintroduce sign-side
-> authority.
+> **Updated by the current Identity Authority boundary:** Refresh, Logout, and session-token
+> revocation authority belong to `sign/id`. Use this plan for Sign logout/session-revocation work,
+> but do not use older wording to restore Acme logout or refresh authority.
 
 Status: active planning
 

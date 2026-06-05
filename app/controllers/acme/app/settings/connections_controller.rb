@@ -35,20 +35,11 @@ module Acme
 
         def social_link
           provider = social_provider_param
-          issuance = Identity::SocialCeremony::GrantIssuer.issue!(
-            surface: "app",
-            actor_ref: current_client.public_id,
-            session_ref: current_session_public_id,
-            operation: "link",
-            provider: provider,
-          )
-
           redirect_to(
             continue_sign_app_social_authentication_url(
               provider: provider,
               intent: "link",
               ri: params[:ri],
-              social_ceremony_grant: issuance.grant,
               host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
             ),
             status: :see_other,
@@ -58,25 +49,15 @@ module Acme
 
         def social_unlink
           provider = social_provider_param
-          return redirect_social_unlink_turnstile_failure unless cloudflare_turnstile_stealth_validation["success"]
-
-          SocialAuthService.unlink(provider: provider, client: current_client)
           redirect_to(
-            acme_app_settings_connections_path(ri: params[:ri]),
-            notice: I18n.t(
-              "sign.app.social.sessions.unlink.success",
-              provider: SocialIdentifiable.normalize_provider(provider).humanize,
+            sign_app_social_authentication_url(
+              provider: provider,
+              ri: params[:ri],
+              host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
             ),
-            status: :see_other,
+            status: :temporary_redirect,
+            allow_other_host: cross_host_redirect_allowed?,
           )
-        rescue SocialAuth::LastIdentityError => e
-          redirect_to(
-            acme_app_settings_connections_path(ri: params[:ri]),
-            alert: I18n.t(e.message),
-            status: :see_other,
-          )
-        rescue SocialAuth::BaseError => e
-          render plain: I18n.t(e.message), status: e.status_code
         end
 
         private
@@ -108,14 +89,6 @@ module Acme
           when "google"
             current_client.user_google_identity
           end
-        end
-
-        def redirect_social_unlink_turnstile_failure
-          redirect_to(
-            acme_app_settings_connections_path(ri: params[:ri]),
-            alert: t("turnstile_error"),
-            status: :see_other,
-          )
         end
 
         def authorize_connections!

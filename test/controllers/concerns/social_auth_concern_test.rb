@@ -174,32 +174,6 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_PT_SESSION_KEY]
   end
 
-  test "grantless app social link is rejected and only a grant lifts the rejection" do
-    harness = Harness.new
-
-    # A grantless "link" callback must be rejected: final link commit is acme
-    # authority and only flows through an acme-issued ceremony grant.
-    assert_raises(SocialAuth::UnauthorizedError) do
-      harness.send(:reject_grantless_app_social_link!, "link")
-    end
-
-    # Non-link intents are unaffected by the link guard.
-    assert_nil harness.send(:reject_grantless_app_social_link!, "login")
-
-    # With an acme grant in session the guard no longer fires; the grant-backed
-    # link branch (which renders the acme completion form) handles it instead.
-    issuance = Identity::SocialCeremony::GrantIssuer.issue!(
-      surface: "app",
-      actor_ref: "anonymous",
-      session_ref: "session-ref",
-      operation: "link",
-      provider: "google_app",
-    )
-    harness.session_hash[SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY] = issuance.grant
-
-    assert_nil harness.send(:reject_grantless_app_social_link!, "link")
-  end
-
   test "grantless established social login callback does not create a sign-side session" do
     user = Client.create!(
       status_id: ClientStatus::ACTIVE, public_id: "estab_#{SecureRandom.hex(4)}",

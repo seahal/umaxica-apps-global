@@ -220,7 +220,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
+    assert_redirected_to sign_app_in_check_path(ri: "jp")
 
     cycle = ClientSignInFlow.where(principal_id: user.id).recent_first.first
 
@@ -565,7 +565,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
+    assert_redirected_to sign_app_in_check_path(ri: "jp")
 
     cycle = ClientSignInFlow.where(principal_id: user.id).recent_first.first
 
@@ -614,7 +614,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
+    assert_redirected_to sign_app_in_check_path(ri: "jp")
   end
 
   test "resets session ID after successful email login" do

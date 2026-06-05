@@ -124,7 +124,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
+    assert_redirected_to sign_app_in_check_path(ri: "jp")
     assert_not_equal old_session_id, session.id
   end
 
@@ -139,7 +139,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
+    assert_redirected_to sign_app_in_check_path(ri: "jp")
   end
 
   test "secret_credential sign-in redirects to MFA challenge for weak method when MFA is enabled" do
@@ -263,7 +263,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
+    assert_redirected_to sign_app_in_check_path(ri: "jp")
     assert_equal 0, one_time_secret_credential.reload.uses_remaining
     assert_equal ClientSecretCredentialStatus::USED, one_time_secret_credential.user_secret_status_id
 
@@ -339,7 +339,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_in_checkpoint_path(ri: "jp")
+    assert_redirected_to sign_app_in_check_path(ri: "jp")
     assert_not_nil session.id
   end
 
@@ -465,8 +465,8 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_checkpoint_path) { |pt: nil, ri: nil|
-      "/sign/in/checkpoint?pt=#{pt}&ri=#{ri}"
+    controller.define_singleton_method(:sign_app_in_check_path) { |pt: nil, ri: nil|
+      "/sign/in/check?pt=#{pt}&ri=#{ri}"
     }
     controller.define_singleton_method(:t) { |key| key }
 
@@ -572,8 +572,8 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     }
     controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_checkpoint_path) { |pt: nil, ri: nil|
-      "/sign/in/checkpoint?pt=#{pt}&ri=#{ri}"
+    controller.define_singleton_method(:sign_app_in_check_path) { |pt: nil, ri: nil|
+      "/sign/in/check?pt=#{pt}&ri=#{ri}"
     }
     controller.define_singleton_method(:t) { |key| key }
     controller.define_singleton_method(:clear_mfa_session!) { session_hash[Sign::App::In::SecretCredentialsController::MFA_USER_SESSION_KEY] = nil }

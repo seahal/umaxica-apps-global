@@ -1,9 +1,9 @@
 # Acme RP Boundary Rename
 
-> **Deprecated by Identity Authority inversion:** `acme/www` now owns Session, Token, Account,
-> Preference, Authorization, and downstream-token authority. `sign/id` is ceremony-only. Physical DB
-> movement is out of scope. Implementation details in this plan must not be used to reintroduce
-> sign-side authority.
+> **Deprecated by the current Identity Authority boundary where it uses the old Acme aggregation
+> model:** `sign/id` owns Identity, Credential, Refresh, Logout, Step-up, browser/request Preference,
+> and app social link/unlink authority. `acme/www` owns Account, Organization, Avatar, Selector,
+> Dashboard, RP Authorization, and SNS-body authority. Physical DB movement is out of scope.
 
 ## Summary
 

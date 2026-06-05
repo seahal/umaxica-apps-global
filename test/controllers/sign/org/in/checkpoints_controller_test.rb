@@ -14,13 +14,13 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show without login is rejected" do
-    get sign_org_in_checkpoint_url(ri: "jp"), headers: host_headers(@host)
+    get sign_org_in_check_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
   end
 
   test "show without sign in sequence is rejected" do
-    get sign_org_in_checkpoint_url(ri: "jp"),
+    get sign_org_in_check_url(ri: "jp"),
         headers: as_staff_headers(@staff, host: @host)
 
     assert_response :bad_request
@@ -29,7 +29,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   test "show with bulletin returns success" do
     start_checkpoint_sequence
 
-    get sign_org_in_checkpoint_url(ri: "jp"),
+    get sign_org_in_check_url(ri: "jp"),
         headers: checkpoint_headers.merge(
           "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new"),
         )
@@ -41,7 +41,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     start_checkpoint_sequence
     previous_issued_at = 10.minutes.ago.to_i
 
-    patch sign_org_in_checkpoint_url(ri: "jp"),
+    patch sign_org_in_check_url(ri: "jp"),
           headers: checkpoint_headers.merge(
             "X-TEST-BULLETIN" => bulletin_json(issued_at: previous_issued_at, state: "new"),
           )
@@ -53,7 +53,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings")
 
-    delete sign_org_in_checkpoint_url(ri: "jp", pt: pt),
+    delete sign_org_in_check_url(ri: "jp", pt: pt),
            headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
@@ -64,7 +64,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   test "destroy without pt redirects to default" do
     start_checkpoint_sequence
 
-    delete sign_org_in_checkpoint_url(ri: "jp"),
+    delete sign_org_in_check_url(ri: "jp"),
            headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
@@ -76,14 +76,14 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     start_checkpoint_sequence
     expired_at = 2.hours.ago.to_i - 1
 
-    get sign_org_in_checkpoint_url(ri: "jp"),
+    get sign_org_in_check_url(ri: "jp"),
         headers: checkpoint_headers.merge(
           "X-TEST-BULLETIN" => bulletin_json(issued_at: expired_at, state: "new"),
         )
 
     assert_response :bad_request
 
-    patch sign_org_in_checkpoint_url(ri: "jp"),
+    patch sign_org_in_check_url(ri: "jp"),
           headers: checkpoint_headers
 
     assert_response :bad_request
@@ -93,7 +93,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings")
 
-    delete sign_org_in_checkpoint_url(ri: "jp", pt: pt),
+    delete sign_org_in_check_url(ri: "jp", pt: pt),
            headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => bulletin_json(issued_at: 2.hours.ago.to_i - 1, state: "updated"),
            )

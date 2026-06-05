@@ -8,7 +8,7 @@ module Sign
         include ::Sign::AcmeAuthorityRedirect
         include Acme::Settings::SessionManagement
 
-        AUTHENTICATION_MODE = :private
+        AUTHENTICATION_MODE = :open
 
         helper_method :current_session_record?
 

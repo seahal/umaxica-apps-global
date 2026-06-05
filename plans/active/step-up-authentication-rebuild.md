@@ -1,10 +1,8 @@
 # Step-Up Authentication Mechanism Rebuild Plan
 
-> **Deprecated by Identity Authority inversion where this plan assigns step-up freshness, session,
-> or token authority to `sign/id`:** `acme/www` now owns Session, Token, Account, Preference,
-> Authorization, and downstream-token authority. `sign/id` is ceremony-only. Physical DB movement is
-> out of scope. Implementation details in this plan must not be used to reintroduce sign-side
-> authority.
+> **Updated by the current Identity Authority boundary:** Step-up authority belongs to `sign/id`.
+> Acme business mutations must consume verifiable, scoped Sign step-up results. Use this plan for
+> Sign step-up work, but do not use older wording to restore Acme step-up authority.
 
 **Status:** Active (2026-05-11) — This file is a specification document that is a prerequisite for
 implementation by another AI. The implementation is not done in this file.

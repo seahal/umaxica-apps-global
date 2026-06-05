@@ -17,7 +17,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
-  test "should create new user with unverified status on first login" do
+  test "first Apple login waits for confirmation before creating user" do
     # IMPORTANT: Social login uses provider+uid ONLY, NOT email
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
@@ -33,15 +33,30 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     prepare_social_login(provider: "apple")
 
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
-         headers: browser_headers.merge(@callback_headers)
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
+        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+             headers: browser_headers.merge(@callback_headers)
+      end
+    end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
+
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    follow_redirect!
+
+    assert_select "input[name=confirm_new_social_identity][required]"
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientAppleIdentity.count", 1) do
+        confirm_social_signup
+      end
+    end
 
     user = ClientAppleIdentity.find_by(uid: "apple_uid_new").user
 
-    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
+    assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
     assert_nil ClientEmail.find_by(user: user)
   end
 
@@ -76,7 +91,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
 
     ComSettingRecord.connected_to(role: :writing) do
       assert AppPreferenceTimezoneOption.exists?(id: AppPreferenceTimezoneOption::ASIA_TOKYO)
@@ -111,9 +126,8 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
-
-    assert_equal "Appleで登録を開始しました", flash[:notice]
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp")
+    assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before login completion"
   end
 
   # ============================================================================
@@ -121,7 +135,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
   # IMPORTANT: These tests verify that social login works WITHOUT email
   # ============================================================================
 
-  test "Apple login without email in auth hash creates user successfully" do
+  test "Apple login without email waits for confirmation before creating user" do
     # Requirement: Social login MUST work with provider+uid ONLY, NO email
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
@@ -139,21 +153,27 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     uid = OmniAuth.config.mock_auth[:apple].uid
 
-    # Should create user and identity
-    assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
         post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
              headers: browser_headers.merge(@callback_headers)
       end
     end
 
-    # Should redirect to success path, NOT /in/new (email registration)
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
 
-    assert_predicate flash[:notice], :present?, "Should have success message"
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    follow_redirect!
 
-    # Verify user and identity were created
+    assert_select "input[name=confirm_new_social_identity][required]"
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientAppleIdentity.count", 1) do
+        confirm_social_signup
+      end
+    end
+
     identity = ClientAppleIdentity.find_by(uid: uid)
 
     assert_not_nil identity, "ClientAppleIdentity identity should exist"
@@ -165,7 +185,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     assert_nil ClientEmail.find_by(user: user), "NO ClientEmail should exist for social login user"
   end
 
-  test "Apple login without email does NOT save email to ClientAppleIdentity" do
+  test "Apple login without email does not save email to ClientAppleIdentity after confirmation" do
     # Even though ClientAppleIdentity schema may have an email column (legacy),
     # we MUST NOT write to it during social login
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
@@ -188,6 +208,14 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
          headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
+    follow_redirect!
+    follow_redirect!
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientAppleIdentity.count", 1) do
+        confirm_social_signup
+      end
+    end
 
     identity = ClientAppleIdentity.find_by(uid: uid)
 
@@ -200,7 +228,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "Google login without email creates user successfully" do
+  test "Google login without email waits for confirmation before creating user" do
     # Same requirement applies to Google
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
@@ -220,14 +248,26 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     uid = OmniAuth.config.mock_auth[:google_app].uid
 
-    assert_difference("Client.count", 1) do
-      assert_difference("ClientGoogleIdentity.count", 1) do
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientGoogleIdentity.count") do
         get sign_app_auth_callback_url(provider: "google_app", ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
     end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
+    follow_redirect!
+
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    follow_redirect!
+
+    assert_select "input[name=confirm_new_social_identity][required]"
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientGoogleIdentity.count", 1) do
+        confirm_social_signup
+      end
+    end
 
     identity = ClientGoogleIdentity.find_by(uid: uid)
 
@@ -244,5 +284,20 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
   def prepare_social_login(provider:)
     @social_state = seed_social_auth_session(provider: provider, intent: "login", ri: "jp")
+  end
+
+  def confirm_social_signup
+    cycle = ClientSignUpFlow.order(:id).last
+
+    patch(
+      sign_app_up_check_birthdate_url(ri: "jp"),
+      params: {
+        requirement: "birthdate",
+        birthdate: "2000-02-03",
+        checkpoint_version: cycle.checkpoint_version,
+        confirm_new_social_identity: "1",
+      },
+      headers: browser_headers.merge(@callback_headers),
+    )
   end
 end

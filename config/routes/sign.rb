@@ -4,6 +4,14 @@
 # typed: false
 # frozen_string_literal: true
 
+safe_sign_state_redirect =
+  lambda do |path|
+    redirect(status: 307) do |_params, request|
+      query = request.query_parameters.slice("ri", "pt", "sid")
+      query.present? ? "#{path}?#{query.to_query}" : path
+    end
+  end
+
 scope module: :sign, as: :sign do
   # User auth service (id.app domain)
   constraints host: ENV["SIGN_SERVICE_URL"] do
@@ -106,16 +114,28 @@ scope module: :sign, as: :sign do
         resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
           resource :email, only: %i(new create edit update)
-          resource :guardrail, only: :show
-          resource :checkpoint, only: %i(show destroy)
+          resource :guard, only: :show, controller: "guardrails"
+          resource :check, only: %i(show destroy), controller: "checkpoints"
 
-          namespace :checkpoint do
+          get "guardrail", to: safe_sign_state_redirect.call("/sign/up/guard"), as: nil
+          get "checkpoint", to: safe_sign_state_redirect.call("/sign/up/check"), as: nil
+          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/up/check"), as: nil
+
+          scope path: "check", as: :check, module: :checkpoint do
             resource :birthdate, only: :update
             resource :passcode, only: %i(new create)
             resource :passkey, only: %i(new create) do
               post :begin, on: :member
             end
           end
+
+          # FIXME: use rails way which resource routing!
+          patch "checkpoint/birthdate", to: safe_sign_state_redirect.call("/sign/up/check/birthdate"), as: nil
+          get "checkpoint/passcode/new", to: safe_sign_state_redirect.call("/sign/up/check/passcode/new"), as: nil
+          post "checkpoint/passcode", to: safe_sign_state_redirect.call("/sign/up/check/passcode"), as: nil
+          get "checkpoint/passkey/new", to: safe_sign_state_redirect.call("/sign/up/check/passkey/new"), as: nil
+          post "checkpoint/passkey", to: safe_sign_state_redirect.call("/sign/up/check/passkey"), as: nil
+          post "checkpoint/passkey/begin", to: safe_sign_state_redirect.call("/sign/up/check/passkey/begin"), as: nil
 
           resource :telephone, only: %i(new create edit update) do
             post :resend
@@ -136,7 +156,10 @@ scope module: :sign, as: :sign do
 
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          resource :checkpoint, only: %i(show update destroy)
+          resource :check, only: %i(show update destroy), controller: "checkpoints"
+          get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
           resource :challenge, only: %i(show)
 
           namespace :challenge do
@@ -348,16 +371,27 @@ scope module: :sign, as: :sign do
         resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
           resource :email, only: %i(new create edit update)
-          resource :guardrail, only: :show
-          resource :checkpoint, only: %i(show destroy)
+          resource :guard, only: :show, controller: "guardrails"
+          resource :check, only: %i(show destroy), controller: "checkpoints"
 
-          namespace :checkpoint do
+          get "guardrail", to: safe_sign_state_redirect.call("/sign/up/guard"), as: nil
+          get "checkpoint", to: safe_sign_state_redirect.call("/sign/up/check"), as: nil
+          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/up/check"), as: nil
+
+          scope path: "check", as: :check, module: :checkpoint do
             resource :birthdate, only: :update
             resource :passcode, only: %i(new create)
             resource :passkey, only: %i(new create) do
               post :begin, on: :member
             end
           end
+
+          patch "checkpoint/birthdate", to: safe_sign_state_redirect.call("/sign/up/check/birthdate"), as: nil
+          get "checkpoint/passcode/new", to: safe_sign_state_redirect.call("/sign/up/check/passcode/new"), as: nil
+          post "checkpoint/passcode", to: safe_sign_state_redirect.call("/sign/up/check/passcode"), as: nil
+          get "checkpoint/passkey/new", to: safe_sign_state_redirect.call("/sign/up/check/passkey/new"), as: nil
+          post "checkpoint/passkey", to: safe_sign_state_redirect.call("/sign/up/check/passkey"), as: nil
+          post "checkpoint/passkey/begin", to: safe_sign_state_redirect.call("/sign/up/check/passkey/begin"), as: nil
 
           resource :telephone, only: %i(new create edit update)
         end
@@ -376,7 +410,10 @@ scope module: :sign, as: :sign do
 
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          resource :checkpoint, only: %i(show update destroy)
+          resource :check, only: %i(show update destroy), controller: "checkpoints"
+          get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
           resource :challenge, only: %i(show)
 
           namespace :challenge do
@@ -564,7 +601,10 @@ scope module: :sign, as: :sign do
 
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          resource :checkpoint, only: %i(show update destroy)
+          resource :check, only: %i(show update destroy), controller: "checkpoints"
+          get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
           resource :challenge, only: %i(show)
 
           namespace :challenge do

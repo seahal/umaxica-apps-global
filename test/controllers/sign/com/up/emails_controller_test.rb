@@ -60,13 +60,13 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           params: { visitor_email: { pass_code: pass_code } },
           headers: default_headers
 
-    assert_redirected_to sign_com_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_com_up_guard_url(ri: "jp")
 
-    get sign_com_up_guardrail_url(ri: "jp"), headers: default_headers
+    get sign_com_up_guard_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_com_up_checkpoint_url(ri: "jp")
+    assert_redirected_to sign_com_up_check_url(ri: "jp")
 
-    get sign_com_up_checkpoint_url(ri: "jp"), headers: default_headers
+    get sign_com_up_check_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
@@ -74,10 +74,10 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
     assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
-    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_checkpoint_birthdate_path(ri: "jp")}']"
-    assert_select "form[action='#{sign_com_up_checkpoint_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
-    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_checkpoint_path(ri: "jp")}']"
-    assert_select "form[action='#{sign_com_up_checkpoint_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_check_birthdate_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_com_up_check_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_check_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_com_up_check_path(ri: "jp")}'] input[name=_method][value=delete]"
     assert_select "a[href*=?]", new_sign_com_sign_up_path, count: 0
     assert_select "a[href*=?]", new_sign_com_sign_in_path, count: 0
 
@@ -87,7 +87,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       pending_contact_id: visitor_email.id,
     )
 
-    patch sign_com_up_checkpoint_birthdate_url(ri: "jp"),
+    patch sign_com_up_check_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-01-01",
@@ -196,7 +196,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           },
           headers: default_headers
 
-    assert_redirected_to sign_com_up_guardrail_path(ri: "jp")
+    assert_redirected_to sign_com_up_guard_path(ri: "jp")
     visitor = visitor_email.reload.visitor
     cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
 

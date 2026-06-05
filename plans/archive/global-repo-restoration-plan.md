@@ -461,14 +461,14 @@ several touch tables that auth code reads.
 
 ---
 
-### H. Audit findings (from `adr/audit/audit-findings-2026-03-30.md`)
+### H. Audit findings (from `../../adr/audit-findings-2026-03-30.md`)
 
 The audit lists 136 findings (2 Critical, 33 High, 90 Medium, 8 Low). Re-apply the items below. Skip
 any that the audit attributes to engine layout — those are mooted by the repo split.
 
 #### H1. `TRUSTED_ORIGINS` for `localhost` (audit Critical)
 
-- **Source:** `adr/audit/audit-findings-2026-03-30.md`, `notes/env-trusted-origins.md`
+- **Source:** `../../adr/audit-findings-2026-03-30.md`, `notes/env-trusted-origins.md`
 - **Goal:** Dev / test must populate `TRUSTED_ORIGINS` correctly for the new `id.*` and `www.*`
   hosts, and `localhost` is allow-listed only in dev.
 - **Key surface:** Environment loading, `config/initializers/...` that configures `TRUSTED_ORIGINS`,

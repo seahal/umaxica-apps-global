@@ -102,6 +102,6 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_equal "ok", response.parsed_body["status"]
-    assert_equal sign_com_in_checkpoint_path(ri: "jp"), response.parsed_body["redirect_url"]
+    assert_equal sign_com_in_check_path(ri: "jp"), response.parsed_body["redirect_url"]
   end
 end

@@ -6,16 +6,15 @@ Use this checklist when implementing or reviewing Identity Authority inversion w
 
 ## Current Status
 
-Status: `COMPLETE_WITH_BOUNDED_LEGACY` as of 2026-06-03.
+Status: `COMPLETE_WITH_BOUNDED_LEGACY` as of 2026-06-05.
 
-The retained-authority closure removed the sign-side step-up freshness fallback and moved every app
-social link final commit to acme completion. The sign callback now rejects BOTH grantless app social
-`intent: "link"` (including the already-signed-in auto-link path) and grantless established app
-social login; neither can create or mutate a social link or session on sign. Grant-backed link
-commits are owned by `Acme::App::Social::AuthenticationsController#completion`
-(`Identity::SocialCeremony::FinalCommitter`), are one-shot, and reject replay. Refresh rotation now
-lives physically in `Acme::RefreshTokenService`; `Sign::RefreshTokenService` is a behavior-free
-compatibility subclass.
+The retained-authority closure removed the sign-side step-up freshness fallback. App Google/Apple
+settings social link and unlink are now Sign-owned durable mutations. Link requires a Sign-started
+server-side `intent: "link"` flow with OAuth state and `social_link` step-up; implicit
+already-signed-in auto-link is rejected. Unlink requires Sign-side authentication, authorization,
+`social_unlink` step-up, Turnstile, and the viable-login-method guard. Grantless established app
+social login remains rejected on the sign callback. Refresh rotation now lives physically in
+`Acme::RefreshTokenService`; `Sign::RefreshTokenService` is a behavior-free compatibility subclass.
 
 Remaining bounded legacy:
 
@@ -43,7 +42,8 @@ Remaining bounded legacy:
   a retained ceremony.
 - `/sign/out`, if retained, redirects to acme logout and does not mutate session/token state.
 - `core` and `line` reject sign-issued session/access/downstream tokens.
-- Social provider callbacks on `sign/id` return evidence only; acme owns account linking.
+- Social provider callbacks on `sign/id` may durably commit app settings social link only for a
+  server-side settings-link intent; acme must not final-commit app settings social link/unlink.
 - WebAuthn/passkey ceremonies on `sign/id` return evidence only; acme owns session/account effects.
 - Redirect targets and OAuth/OIDC `state` do not carry authentication result facts.
 - Existing sign-side physical tables/models are not treated as sign-side authority.
@@ -52,10 +52,11 @@ Remaining bounded legacy:
 - Established app Google/Apple social login completes through acme-owned session decision.
 - Grantless established app Google/Apple social login is rejected on the sign callback; it must not
   create a sign-side session.
-- Grantless app social `intent: "link"` (including the already-signed-in auto-link path) is rejected
-  on the sign callback; it must not create or mutate a social link on sign.
-- App settings social link final commit occurs on acme completion only, is one-shot, and rejects
-  replay; it never commits inline on the sign callback.
+- App settings social link final commit occurs on the Sign callback only after Sign-side auth,
+  authorization, `social_link` step-up, provider, OAuth state, session/user consistency, and replay
+  checks pass.
+- App settings social unlink final commit occurs on Sign only after Sign-side auth, authorization,
+  `social_unlink` step-up, Turnstile, and viable-login-method checks pass.
 - Unknown social signup or account-selection paths, if retained, are classified as bounded legacy
   and have tests proving they do not expand link, unlink, token, or established-login authority.
 
@@ -68,8 +69,8 @@ Remaining bounded legacy:
 - Downstream services trust acme-issued downstream tokens only.
 - `acme/www` owns OAuth/OIDC discovery, JWKS, authorization, token, userinfo, revocation, OIDC
   logout, and edge token refresh endpoints for new flows.
-- `acme/www` owns final contact, authenticator, social link/unlink, and established social login
-  commits.
+- `acme/www` owns final contact, authenticator, and established social login commits. Acme
+  social/settings link and unlink paths are compatibility/delegation paths only.
 
 ## OWASP Review
 

@@ -154,47 +154,45 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     assert_nil identity, "Identity should not be created when intent expired"
   end
 
-  # ============================================================================
-  # Grantless link is rejected on sign: final commit is acme authority only
-  # ============================================================================
-  test "grantless Google link intent does not create a social identity on sign" do
+  test "Sign-owned Google link intent creates one social identity" do
     new_uid = "grantless_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
     post continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
          headers: social_link_headers(@user_one)
 
-    assert_no_difference("ClientGoogleIdentity.count") do
+    assert_difference("ClientGoogleIdentity.count", 1) do
       get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
           params: { state: social_auth_state_from_response },
           headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
     end
 
-    # Rejected, not committed: no completion form is rendered and no identity is created.
-    assert_nil ClientGoogleIdentity.find_by(uid: new_uid), "sign must not commit a grantless link"
+    assert_redirected_to sign_app_settings_path(ri: "jp")
+    assert_equal @user_one.id, ClientGoogleIdentity.find_by!(uid: new_uid).user_id
     assert_not_includes response.body.to_s, "social-completion-form"
   end
 
-  test "grantless Apple link intent does not create a social identity on sign" do
+  test "Sign-owned Apple link intent creates one social identity" do
     new_uid = "grantless_apple_#{SecureRandom.hex(4)}"
     setup_apple_mock_auth(uid: new_uid)
 
     post continue_sign_app_social_authentication_url(provider: "apple", intent: "link", ri: "jp"),
          headers: social_link_headers(@user_one)
 
-    assert_no_difference("ClientAppleIdentity.count") do
+    assert_difference("ClientAppleIdentity.count", 1) do
       post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: social_auth_state_from_response },
            headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
     end
 
-    assert_nil ClientAppleIdentity.find_by(uid: new_uid), "sign must not commit a grantless link"
+    assert_redirected_to sign_app_settings_path(ri: "jp")
+    assert_equal @user_one.id, ClientAppleIdentity.find_by!(uid: new_uid).user_id
   end
 
   # ============================================================================
   # OPTIONAL: Client already has this provider linked (update case)
   # ============================================================================
-  test "grant-backed link when user already has this provider updates existing identity" do
+  test "Sign link when user already has this provider updates existing identity" do
     old_uid = "old_google_uid"
 
     # Client one already has Google linked
@@ -207,23 +205,20 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:active),
     )
 
-    # Re-link the same provider+uid through the acme grant-backed ceremony.
+    # Re-link the same provider+uid through the Sign-owned settings ceremony.
     setup_google_mock_auth(uid: old_uid)
     grant_session = seed_app_social_link_grant_session(provider: "google_app", user: @user_one, ri: "jp")
 
     perform_grant_backed_link(provider: "google_app", grant_session: grant_session)
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_path(ri: "jp")
     # Identity should still exist and remain owned by the same user.
     existing_identity.reload
 
     assert_equal @user_one.id, existing_identity.user_id
   end
 
-  # ============================================================================
-  # Successful grant-backed link creates new identity via acme completion
-  # ============================================================================
-  test "successful grant-backed Google link creates identity for current user" do
+  test "successful Sign-owned Google link creates identity for current user" do
     new_uid = "brand_new_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
@@ -233,9 +228,9 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
       perform_grant_backed_link(provider: "google_app", grant_session: grant_session)
     end
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_path(ri: "jp")
 
-    # New identity created on acme under the current user.
+    # New identity created on Sign under the current user.
     identity = ClientGoogleIdentity.find_by(uid: new_uid)
 
     assert_not_nil identity
@@ -302,11 +297,11 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     # Setup mock auth with the same uid but updated info
     setup_google_mock_auth(uid: revoked_uid)
 
-    # Re-link through the acme grant-backed ceremony.
+    # Re-link through the Sign-owned settings ceremony.
     grant_session = seed_app_social_link_grant_session(provider: "google_app", user: @user_one, ri: "jp")
     perform_grant_backed_link(provider: "google_app", grant_session: grant_session)
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_path(ri: "jp")
 
     # Identity should be reactivated (status changed to ACTIVE)
     revoked_identity.reload
@@ -332,7 +327,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     grant_session = seed_app_social_link_grant_session(provider: "apple", user: @user_one, ri: "jp")
     perform_grant_backed_link(provider: "apple", grant_session: grant_session)
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_path(ri: "jp")
 
     revoked_identity.reload
 

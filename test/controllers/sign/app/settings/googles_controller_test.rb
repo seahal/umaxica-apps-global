@@ -48,10 +48,11 @@ module Sign::App::Settings
 
       assert_response :success
       assert_select "form[action=?]", sign_app_social_authentication_path(provider: "google_app"), count: 0
-      assert_select "form[action*=?]", "/settings/connections/social/google_app/link", count: 1
+      assert_select "form[action*=?]", "/social/auth/google_app/continue", count: 1
+      assert_select "form[action*=?]", "intent=link", count: 1
     end
 
-    test "show posts google unlink to acme authority" do
+    test "show posts google unlink to sign authority" do
       ClientGoogleIdentity.create!(
         user: @user,
         uid: "active-google-config",
@@ -64,8 +65,7 @@ module Sign::App::Settings
       get sign_app_settings_google_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "form[action=?]", sign_app_social_authentication_path(provider: "google_app"), count: 0
-      assert_select "form[action*=?]", "/settings/connections/social/google_app", count: 1
+      assert_select "form[action=?]", sign_app_social_authentication_path(provider: "google_app", ri: "jp"), count: 1
     end
   end
 end

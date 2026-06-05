@@ -5,7 +5,7 @@ require "test_helper"
 class Redirects::PriorityResolverTest < ActiveSupport::TestCase
   Routes =
     Struct.new(:calls) do
-      def sign_app_in_checkpoint_path(ri:) = "/sign/in/checkpoint?ri=#{ri}"
+      def sign_app_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
 
       def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
 
@@ -23,7 +23,7 @@ class Redirects::PriorityResolverTest < ActiveSupport::TestCase
   test "signed nt wins over raw pt" do
     result = resolve([{ kind: :signed_nt, value: :checkpoint }, { kind: :pt, value: "/settings" }])
 
-    assert_equal "/sign/in/checkpoint?ri=jp", result.value
+    assert_equal "/sign/in/check?ri=jp", result.value
   end
 
   test "signed pt wins over raw pt" do

@@ -158,8 +158,8 @@ module Auth
         ri.present? ? "/settings?ri=#{ri}" : "/settings"
       end
 
-      def sign_app_in_checkpoint_path(ri: nil, pt: nil)
-        path = "/sign/in/checkpoint"
+      def sign_app_in_check_path(ri: nil, pt: nil)
+        path = "/sign/in/check"
         query = []
         query << "ri=#{ri}" if ri.present?
         query << "pt=#{pt}" if pt.present?
@@ -462,7 +462,7 @@ module Auth
 
       redirected = URI.parse(harness.redirected.first)
 
-      assert_equal "/sign/in/checkpoint", redirected.path
+      assert_equal "/sign/in/check", redirected.path
       assert_equal "/after",
                    harness.path_from_signed_pt(Rack::Utils.parse_query(redirected.query).fetch("pt"))
       assert_predicate cycle.reload, :sign_in_checkpoint_pending?

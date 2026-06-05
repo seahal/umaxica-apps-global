@@ -63,7 +63,8 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   test "unknown social signup compatibility is explicit" do
     concern = file_content("app/controllers/concerns/social_auth_concern.rb")
 
-    assert_includes concern, "established-account social login; unknown signup remains legacy for now."
+    assert_includes concern, "reject_grantless_established_social_login!"
+    assert_includes concern, "SocialAuthService.handle_callback"
     assert_includes concern, "process_social_ceremony_login_callback"
     assert_includes concern, "acme_social_login_completion_supported?"
   end

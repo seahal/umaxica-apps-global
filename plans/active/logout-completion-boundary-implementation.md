@@ -2,52 +2,55 @@
 
 ## Status
 
-Active implementation plan.
+Active implementation plan, updated by the current Identity Authority boundary.
 
 ## Summary
 
-Implement the boundary from `adr/logout-completion-boundary.md`: acme performs logout mutation, then
-redirects to a static sign guest page at `/signed-out`. Keep legacy `sign /sign/out` redirect-only
-to acme. Do not add sign-side one-time PRG completion state for ordinary logout.
+Sign owns logout mutation, refresh/session-token revocation, logout audit, and logout completion
+state. Acme may initiate logout or consume a Sign logout result, but Acme must not perform durable
+logout mutation directly.
 
 ## Implementation Changes
 
-- Add surface-local sign routes for `GET /signed-out` on app, com, and org sign hosts.
+- Add or retain surface-local sign routes for logout mutation and `GET /signed-out` on app, com, and
+  org sign hosts.
+- Route logout mutation through a Sign logout/session authority service rather than controller-level
+  token primitives.
 - Add lightweight sign controllers/actions for `/signed-out` that render as public guest pages and
-  do not require actor/current-user state.
+  do not repeat logout mutation.
 - Add signed-out views with only the completion message and a surface-local link to `sign /sign/in`.
-- Keep `sign /sign/out` GET/POST/DELETE as compatibility redirects to the matching acme `/sign/out`
-  route.
-- Change successful ordinary acme logout paths to redirect with `303 See Other` to the matching sign
-  host's `/signed-out` URL.
-- Retire ordinary logout completion rendering from acme. Acme should not render sign completion
-  views after the mutation.
-- Remove ordinary logout dependence on session-backed sign-out completion notices where they exist.
-  Keep OIDC-specific behavior separate unless a later OIDC logout plan explicitly changes it.
+- Change acme logout entry points to compatibility redirect or JumpRT delegation to the matching
+  sign logout authority route.
+- Retire ordinary logout mutation and completion rendering from acme.
+- Keep OIDC/RP-specific logout behavior separate unless a later external RP/OIDC plan explicitly
+  changes it.
 
 ## Guardrails
 
-- `sign/id` `/signed-out` must not read, rotate, revoke, clear, or validate refresh tokens.
-- `sign/id` `/signed-out` must not clear Rails session, require current actor, write logout audit,
-  or verify acme session/access tokens.
+- Sign logout mutation must keep CSRF protection and must not be converted to `GET`.
+- Sign logout mutation must be idempotent and should return a durable result object for Acme or UI
+  consumption.
+- Sign logout authority should read, rotate, revoke, clear, or validate refresh/session-token state
+  only through explicit logout/session authority services.
+- `sign/id` `/signed-out` must not repeat logout mutation after the Sign authority result is
+  committed.
+- Acme logout compatibility endpoints must not revoke refresh tokens, clear auth cookies, reset Rails
+  session, write logout audit, or inspect logout attempt state directly.
 - Completion redirects must be fixed by surface host helpers or existing host mapping logic. Do not
   use a user-controlled `return_to`, `pt`, `rt`, or similar parameter for the default signed-out
   destination.
-- Do not convert logout mutation to GET. Mutating acme logout routes must keep CSRF protection.
 - Do not add new documentation files in this slice; this plan is the handoff source until the code
   behavior lands.
 
 ## Test Plan
 
-- Route tests for `GET /signed-out` on app, com, and org sign hosts.
+- Route tests for Sign logout mutation and `GET /signed-out` on app, com, and org sign hosts.
+- Sign controller/service tests proving logout revokes the current token/session state through the
+  Sign authority service and is idempotent.
 - Sign controller tests proving `/signed-out` renders without authentication and does not revoke a
   usable token.
-- Negative sign tests proving `/signed-out` does not call logout primitives, refresh-token mutation,
-  freshness mutation, or logout audit code.
-- Existing sign `/sign/out` tests should continue to assert redirect-only behavior and unchanged
-  token state for GET, POST, and DELETE.
-- Acme logout tests should assert successful POST/DELETE revokes the current token, clears auth
-  state through the existing primitive, and redirects to sign `/signed-out`.
+- Negative acme tests proving acme logout compatibility endpoints do not call logout primitives,
+  refresh-token mutation, session reset, or logout audit code directly.
 - Open-redirect regression tests should assert user-supplied redirect params do not change the
   default signed-out destination.
 
@@ -56,10 +59,8 @@ to acme. Do not add sign-side one-time PRG completion state for ordinary logout.
 - Ordinary logout flow:
 
 ```text
-old sign /sign/out
-  -> acme /sign/out
-
-acme /sign/out
+old acme /sign/out or old sign /sign/out compatibility URL
+  -> sign logout authority
   -> logout mutation
   -> redirect to sign /signed-out
 
@@ -68,12 +69,13 @@ sign /signed-out
   -> sign-in link to sign /sign/in
 ```
 
-- Reloading `/signed-out` shows the same guest page. This is accepted behavior and not a bug.
+- Reloading `/signed-out` shows the same guest page and does not repeat logout mutation.
 - No files outside `adr/` and `plans/` are required for this planning slice.
 
 ## Assumptions
 
 - The selected design prioritizes a clean static sign guest page over one-time PRG completion
   display.
-- `acme/www` remains the only Session, Token, logout, and logout-audit authority.
-- `sign/id` may host logged-out entry pages, but must not become a post-logout state consumer.
+- `sign/id` remains the Refresh, Logout, session-token revocation, and logout-audit authority.
+- `acme/www` may initiate logout or consume logout results, but must not become the durable logout
+  mutation owner.

@@ -127,7 +127,7 @@ module Sign
         end
 
         def passkey_checkpoint_redirect_url
-          sign_org_in_checkpoint_path(pt: retrieve_pt_for_checkpoint, ri: params[:ri])
+          sign_org_in_check_path(pt: retrieve_pt_for_checkpoint, ri: params[:ri])
         end
 
         def passkey_default_redirect_url

@@ -242,7 +242,7 @@ module Sign::App::Up
         user_telephone: { pass_code: code },
       }
 
-      assert_redirected_to sign_app_up_guardrail_url(regional_defaults)
+      assert_redirected_to sign_app_up_guard_url(regional_defaults)
 
       telephone.reload
       cycle = ClientSignUpFlow.find_by!(public_id: session.dig(:app_sign_up_flow_locator, "public_id"))
@@ -277,7 +277,7 @@ module Sign::App::Up
         }
       end
 
-      assert_redirected_to sign_app_up_guardrail_url(regional_defaults)
+      assert_redirected_to sign_app_up_guard_url(regional_defaults)
 
       # The telephone must stay UNVERIFIED_WITH_SIGN_UP so an abandoned cycle
       # stays collectable by the pending-signup cleanup (no number lock).
@@ -325,15 +325,15 @@ module Sign::App::Up
         }
       end
 
-      assert_redirected_to sign_app_up_guardrail_url(regional_defaults)
+      assert_redirected_to sign_app_up_guard_url(regional_defaults)
       assert_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY].presence
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.reload.status_id
 
-      get sign_app_up_guardrail_url(regional_defaults)
+      get sign_app_up_guard_url(regional_defaults)
 
-      assert_redirected_to sign_app_up_checkpoint_url(regional_defaults)
+      assert_redirected_to sign_app_up_check_url(regional_defaults)
 
-      get sign_app_up_checkpoint_url(regional_defaults)
+      get sign_app_up_check_url(regional_defaults)
 
       assert_response :success
       assert_select "[data-birthdate-format=iso]"
@@ -342,7 +342,7 @@ module Sign::App::Up
       assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
       cycle = ClientSignUpFlow.find_by!(principal_id: user.id)
 
-      assert_select "a[href='#{new_sign_app_up_checkpoint_passkey_path(
+      assert_select "a[href='#{new_sign_app_up_check_passkey_path(
         regional_defaults.merge(checkpoint_version: cycle.checkpoint_version),
       )}']"
     end

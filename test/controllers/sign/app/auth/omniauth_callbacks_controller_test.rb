@@ -61,8 +61,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_checkpoint_path) do |ri: nil, pt: nil|
-      "/sign/in/checkpoint?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
+    controller.define_singleton_method(:sign_app_in_check_path) do |ri: nil, pt: nil|
+      "/sign/in/check?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     end
     controller.define_singleton_method(:social_auth_success_redirect_path) { "/settings" }
     controller.define_singleton_method(:issue_bulletin!) { @issue_bulletin_for_test }
@@ -129,7 +129,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     end
   end
 
-  test "direct state helpers" do
+  test "current social auth intent requires explicit server-side link state" do
     controller = Sign::App::Auth::OmniauthCallbacksController.new
     session_hash = {}
     user = Client.create!(status_id: ClientStatus::NOTHING)
@@ -144,20 +144,15 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:logged_in?) { @logged_in_for_test }
     controller.define_singleton_method(:current_resource) { @resource_for_test }
 
-    assert controller.send(:auto_link_allowed?)
     controller.instance_variable_set(:@logged_in_for_test, true)
     controller.instance_variable_set(:@resource_for_test, user)
 
-    assert_equal "link", controller.send(:current_social_auth_intent)
-    assert_equal user.id, session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
+    assert_equal "login", controller.send(:current_social_auth_intent)
+    assert_nil session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
 
     session_hash[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY] = "link"
 
     assert_equal "link", controller.send(:current_social_auth_intent)
-
-    controller.request = ActionDispatch::TestRequest.create("REQUEST_METHOD" => "POST")
-
-    assert_not controller.send(:auto_link_allowed?)
   end
 
   test "new social login records provider in audit context" do
@@ -275,8 +270,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:sign_app_up_guardrail_path) { |ri: nil, pt: nil|
-      "/sign/up/guardrail?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
+    controller.define_singleton_method(:sign_app_up_guard_path) { |ri: nil, pt: nil|
+      "/sign/up/guard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_up_flow_locator) { locator }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
@@ -291,7 +286,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       pt: "encoded-pt",
     )
 
-    assert_match "/sign/up/guardrail?ri=jp&pt=encoded-pt", redirects.last.first.first
+    assert_match "/sign/up/guard?ri=jp&pt=encoded-pt", redirects.last.first.first
     assert_equal user.id, cycle.reload.principal_id
     assert_equal "social_identity", cycle.pending_contact_type
     assert_equal identity.id, cycle.pending_contact_id
@@ -352,7 +347,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
-    controller.define_singleton_method(:sign_app_up_guardrail_path) {
+    controller.define_singleton_method(:sign_app_up_guard_path) {
       raise StandardError, "should not continue sign up"
     }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }

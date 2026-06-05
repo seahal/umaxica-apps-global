@@ -69,11 +69,11 @@ class Sign::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::IntegrationTe
       method: :get,
     )
     guardrail = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/guardrail",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/guard",
       method: :get,
     )
     checkpoint = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/checkpoint",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/check",
       method: :get,
     )
 

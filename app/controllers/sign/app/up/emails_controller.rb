@@ -188,7 +188,7 @@ module Sign
           progress_email_flow!(:update)
           advance_sign_up_flow_after_email_otp!
           redirect_to(
-            sign_app_up_guardrail_path(
+            sign_app_up_guard_path(
               ri: params[:ri],
               pt: signed_pt_token(path_target_value),
             ),

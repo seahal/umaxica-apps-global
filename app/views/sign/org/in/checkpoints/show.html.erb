@@ -4,12 +4,12 @@
 <p><%= @bulletin&.body || t("sign.org.in.bulletins.show.body") %></p>
 <% pt = signed_pt_param %>
 
-<%= form_with url: sign_org_in_checkpoint_path(ri: params[:ri]), method: :patch do %>
+<%= form_with url: sign_org_in_check_path(ri: params[:ri]), method: :patch do %>
   <%= hidden_field_tag :pt, pt %>
   <%= submit_tag t("sign.org.in.bulletins.show.actions.update") %>
 <% end %>
 
-<%= form_with url: sign_org_in_checkpoint_path(ri: params[:ri]), method: :delete do %>
+<%= form_with url: sign_org_in_check_path(ri: params[:ri]), method: :delete do %>
   <%= hidden_field_tag :pt, pt %>
   <%= submit_tag t("sign.org.in.bulletins.show.actions.continue") %>
 <% end %>

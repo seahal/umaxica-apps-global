@@ -50,7 +50,7 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "checkpoint without active registration redirects to sign up start" do
-    get sign_com_up_checkpoint_url(ri: "jp"), headers: default_headers
+    get sign_com_up_check_url(ri: "jp"), headers: default_headers
 
     assert_redirected_to new_sign_com_sign_up_url(ri: "jp")
     assert_equal I18n.t("sign.com.registration.session_missing"), flash[:alert]

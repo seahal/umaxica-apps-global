@@ -46,7 +46,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          }
 
     assert_response :redirect
-    assert_includes response.headers["Location"], sign_org_in_checkpoint_path(ri: "jp")
+    assert_includes response.headers["Location"], sign_org_in_check_path(ri: "jp")
     assert_equal OperatorSecretCredentialStatus::ACTIVE,
                  operator_secret_credentials(:sample_login).reload.staff_secret_status_id
     assert_predicate operator_secret_credentials(:sample_login).reload.last_used_at, :present?

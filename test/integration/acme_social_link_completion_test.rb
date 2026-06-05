@@ -3,13 +3,12 @@
 
 require "test_helper"
 
-# Controller-level behavior for the acme app social-link completion endpoint.
+# Controller-level behavior for social-link completion compatibility.
 #
-# The sign callback for a grant-backed app social link emits a one-shot signed
-# result and posts it to acme completion. These tests pin that:
-#   - acme consumes the result and performs the final link commit
-#   - success redirects to the acme settings connections page
-#   - the one-shot result cannot be replayed
+# The Sign callback for app settings social link is the durable authority. These tests pin that:
+#   - Sign performs the final link commit
+#   - Sign does not emit an Acme completion form for link
+#   - malformed Acme completion posts do not commit
 #   - com/org sign surfaces expose no social link routes at all
 class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
@@ -26,50 +25,25 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
-  test "acme completion commits the social link under acme authority and rejects replay" do
+  test "sign callback commits the social link without acme completion" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "linkcompl_#{SecureRandom.hex(4)}")
     uid = "completion_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: uid, token: "completion_token")
 
     grant_session = seed_app_social_link_grant_session(provider: "google_app", user: user, ri: "jp")
 
-    # The sign callback must only emit the acme completion form (evidence), not
-    # commit the link inline.
-    assert_no_difference("ClientGoogleIdentity.count") do
+    assert_difference("ClientGoogleIdentity.count", 1) do
       get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
           params: { state: grant_session.state },
           headers: @callback_headers.merge(grant_session.user_headers)
     end
-    assert_response :ok
-    assert_includes response.body, "social-completion-form"
 
-    form = response.parsed_body.at_css("form#social-completion-form")
-    action = form["action"]
-    result_token = form.at_css("input[name='social_ceremony_result']")["value"]
-
-    assert_predicate result_token, :present?, "completion form must carry the signed result token"
-
-    # First completion: acme consumes the result and creates the identity.
-    assert_difference("ClientGoogleIdentity.count", 1) do
-      post action,
-           params: { social_ceremony_result: result_token, ri: "jp" },
-           headers: social_completion_browser_headers
-    end
-
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_path(ri: "jp")
+    assert_not_includes response.body.to_s, "social-completion-form"
     identity = ClientGoogleIdentity.find_by!(uid: uid)
 
     assert_equal user.id, identity.user_id
     assert_equal "completion_token", identity.token
-
-    # Replay of the one-shot result must be rejected without a second commit.
-    assert_no_difference("ClientGoogleIdentity.count") do
-      post action,
-           params: { social_ceremony_result: result_token, ri: "jp" },
-           headers: social_completion_browser_headers
-    end
-
-    assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
   end
 
   test "acme completion rejects a malformed social result without committing" do

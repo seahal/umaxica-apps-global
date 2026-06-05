@@ -5,7 +5,7 @@ require "test_helper"
 class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
   Routes =
     Struct.new(:calls) do
-      def sign_app_in_checkpoint_path(ri:) = "/sign/in/checkpoint?ri=#{ri}"
+      def sign_app_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
 
       def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
 
@@ -15,7 +15,7 @@ class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
     end
 
   test "resolves registered navigation keys" do
-    assert_equal "/sign/in/checkpoint?ri=jp", resolve(:checkpoint).value
+    assert_equal "/sign/in/check?ri=jp", resolve(:checkpoint).value
     assert_equal "/sign/in?ri=jp", resolve(:selector).value
     assert_equal "/dashboard?ri=jp", resolve(:dashboard).value
     assert_equal "/settings?ri=jp", resolve(:settings_security, scope: :settings).value

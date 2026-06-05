@@ -41,7 +41,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       Rails.application.reload_routes!
 
       get(
-        "https://id.umaxica.app/settings/sessions?ri=jp",
+        "https://id.umaxica.app/settings/sessions?ri=jp&token=secret&session_id=raw",
         headers: browser_headers.merge("Host" => "id.umaxica.app"),
       )
 
@@ -50,7 +50,9 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
 
       assert_equal "www.umaxica.app", location.host
       assert_equal "/settings/sessions", location.path
-      assert_equal "ri=jp", location.query
+      assert_equal({ "ri" => "jp" }, Rack::Utils.parse_nested_query(location.query))
+      assert_not_includes response.location, "token="
+      assert_not_includes response.location, "session_id="
     end
   ensure
     Rails.application.reload_routes!

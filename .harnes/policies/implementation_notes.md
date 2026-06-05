@@ -22,8 +22,13 @@ Write an implementation note when a non-trivial task involves any of the followi
 - a rejected alternative that future maintainers are likely to revisit
 - a constraint reviewers or future agents need to know
 
-When in doubt, prefer a short note over losing durable context. Keep exploratory scratch work in
-`memos/`, but promote implementation-relevant observations into `notes/` before finishing.
+When in doubt, prefer a short note over losing durable context. Use `memos/` for exploratory field
+notes before or outside implementation: investigations, audits, planning observations, surprising
+repository behavior, failed approaches, and unresolved questions that may help a future Codex or
+Claude Code agent. Use `notes/implementation/` for durable implementation decisions, plan
+deviations, compromises, and handoff context discovered while carrying out a plan. If a memo becomes
+actionable during implementation, promote only the relevant conclusion into `notes/implementation/`
+before finishing.
 
 Use `notes/implementation/YYYY-MM-DD-<task-slug>.md`.
 

@@ -81,7 +81,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
     assert_not PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
     assert PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
@@ -93,7 +93,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:apple))
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_apple_path(ri: "jp")
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
@@ -105,7 +105,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:apple))
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_apple_path(ri: "jp")
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
 
@@ -113,7 +113,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     setup_mock_auth(PROVIDERS.fetch(:apple), uid: new_uid, token: "relinked_apple_token")
     grant_session = seed_app_social_link_grant_session(provider: "apple", user: user, ri: "jp")
 
-    # Grant-backed link commits on acme completion, never inline on sign.
+    # Settings link commits on Sign after the Sign-owned OAuth state and step-up checks.
     assert_no_difference("Client.count") do
       assert_difference("ClientAppleIdentity.count", 1) do
         perform_social_callback(
@@ -124,7 +124,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_path(ri: "jp")
     relinked_identity = ClientAppleIdentity.find_by!(uid: new_uid)
 
     assert_equal user.id, relinked_identity.user_id
@@ -148,8 +148,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
     delete(
-      social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @acme_host),
-      headers: acme_user_headers(user, token),
+      sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+      headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
 
@@ -180,7 +180,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
-    assert_redirected_to "http://#{@acme_host}/"
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: @host)
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
   end
 
@@ -193,7 +193,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
     assert_response :see_other
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
   end
 
@@ -214,10 +214,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
     follow_redirect!
 
     assert_response :ok
@@ -231,7 +231,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_difference("Client.count", 1) do
       assert_difference("#{config.fetch(:model)}.count", 1) do
         patch(
-          sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+          sign_app_up_check_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
@@ -291,8 +291,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     setup_mock_auth(config, uid:, token: "linked_token")
     grant_session = seed_app_social_link_grant_session(provider: config.fetch(:provider), user: user, ri: "jp")
 
-    # The sign callback must not create the social identity inline; it renders
-    # the acme completion form and the link is committed on acme completion.
+    # The sign callback creates the social identity directly for settings link.
     assert_no_difference("Client.count") do
       assert_difference("#{config.fetch(:model)}.count", 1) do
         perform_social_callback(
@@ -303,7 +302,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_path(ri: "jp")
     identity = config.fetch(:model).find_by!(uid: uid)
 
     assert_equal user.id, identity.user_id
@@ -342,7 +341,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, config)
 
-    assert_redirected_to "http://#{@acme_host}/"
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: @host)
     assert config.fetch(:model).exists?(identity.id)
   end
 
@@ -408,15 +407,15 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: "social_unlink")
 
     delete(
-      social_unlink_acme_app_settings_connections_url(provider: config.fetch(:provider), ri: "jp", host: @acme_host),
-      headers: acme_user_headers(user, token),
+      sign_app_social_authentication_url(provider: config.fetch(:provider), ri: "jp", host: @host),
+      headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
   end
 
-  def acme_user_headers(user, token)
+  def sign_user_headers(user, token)
     {
-      "Host" => @acme_host,
+      "Host" => @host,
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }

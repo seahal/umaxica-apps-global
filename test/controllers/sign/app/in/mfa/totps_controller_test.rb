@@ -103,7 +103,7 @@ module Sign::App::In
       end
 
       assert_response :found
-      assert_match %r{\Ahttp://id\.umaxica\.app/sign/in/checkpoint}, response.location
+      assert_match %r{\Ahttp://id\.umaxica\.app/sign/in/check}, response.location
       assert_nil session[:pending_mfa]
       assert_not_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY]
     end

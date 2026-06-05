@@ -144,7 +144,7 @@ module Sign
         end
 
         def passkey_checkpoint_redirect_url
-          sign_com_in_checkpoint_path(
+          sign_com_in_check_path(
             pt: retrieve_pt_for_checkpoint,
             ri: params[:ri],
           )

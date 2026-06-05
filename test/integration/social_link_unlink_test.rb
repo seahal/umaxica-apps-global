@@ -9,7 +9,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
     @user = create_verified_user_with_email(email_address: "social_link_test@example.com")
     # Ensure @user has at least one auth method to start (e.g. password secret_credential)
@@ -60,12 +60,12 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
 
     delete(
-      social_unlink_acme_app_settings_connections_url(provider: "apple", ri: "jp", host: @host),
+      sign_app_social_authentication_url(provider: "apple", ri: "jp", host: @host),
       headers: @headers,
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
     follow_redirect!(headers: @headers)
 
     assert_equal I18n.t("sign.app.social.sessions.unlink.success", provider: "Apple"), flash[:notice]
@@ -86,12 +86,12 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
 
     # Try to unlink Apple
     delete(
-      social_unlink_acme_app_settings_connections_url(provider: "apple", ri: "jp", host: @host),
+      sign_app_social_authentication_url(provider: "apple", ri: "jp", host: @host),
       headers: @headers,
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_redirected_to "http://#{@host}/"
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: @host)
 
     # Ensure it wasn't destroyed
     assert ClientAppleIdentity.find_by(uid: "apple_uid_solo")

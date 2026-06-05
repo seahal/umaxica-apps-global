@@ -1,9 +1,9 @@
 # Sign Authentication Surface Inventory And Terminology Plan
 
-> **Deprecated by Identity Authority inversion where this plan assigns authority to `sign/id`:**
-> `acme/www` now owns Session, Token, Account, Preference, Authorization, and downstream-token
-> authority. `sign/id` is ceremony-only. Physical DB movement is out of scope. Implementation
-> details in this plan must not be used to reintroduce sign-side authority.
+> **Updated by the current Identity Authority boundary:** `sign/id` owns Identity, Credential,
+> Refresh, Logout, Step-up, browser/request Preference, and app social link/unlink authority.
+> `acme/www` owns Account, Organization, Avatar, Selector, Dashboard, RP Authorization, and SNS-body
+> authority. Do not use older wording in this plan to restore the Acme aggregation model.
 
 ## Status
 

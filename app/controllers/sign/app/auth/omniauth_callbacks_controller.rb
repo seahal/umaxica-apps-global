@@ -182,7 +182,7 @@ module Sign
           end
 
           redirect_to(
-            sign_app_up_guardrail_path(
+            sign_app_up_guard_path(
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
@@ -205,7 +205,7 @@ module Sign
           end
 
           redirect_to(
-            sign_app_up_guardrail_path(
+            sign_app_up_guard_path(
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
@@ -248,7 +248,9 @@ module Sign
         def store_pending_social_signup_evidence!(cycle, auth)
           provider = SocialIdentifiable.normalize_provider(auth.provider)
           uid = SocialAuth::UidExtractor.call(auth_hash: auth)
-          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless cycle.social_provider == provider
+          unless cycle.social_provider == provider
+            raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+          end
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless cycle.entry_method == provider
 
           candidate = Identity::SocialCeremony::CandidateStore.store!(
@@ -572,45 +574,14 @@ module Sign
         end
 
         def validate_social_auth_state!
-          intent = current_social_auth_intent
-          if intent == "link" && auto_link_allowed? && logged_in?
-            session[SOCIAL_FLOW_ID_SESSION_KEY] ||= SecureRandom.hex(16)
-            session[SOCIAL_USER_ID_SESSION_KEY] ||= current_resource&.id
-            session[SOCIAL_STARTED_AT_SESSION_KEY] ||= Time.current.to_i
-            session[SOCIAL_PROVIDER_SESSION_KEY] ||= params[:provider]
-          end
-
           super
         end
 
-        # Override to support auto-link when user is already logged in
-        # IMPORTANT: This ensures ClientAppleIdentity/ClientGoogleIdentity is created and linked to current_client
-        # Without this, callback defaults to "login" intent and creates a NEW user instead
         def current_social_auth_intent
           explicit_intent = session[SOCIAL_INTENT_SESSION_KEY]
-
-          # If explicit intent is set (via /social/auth/:provider/continue), use it
           return explicit_intent if explicit_intent.present?
 
-          # Auto-link: if user is logged in and no explicit intent, default to "link"
-          # This handles the case where user clicks Apple Sign In while already logged in
-          if logged_in?
-            session[SOCIAL_INTENT_SESSION_KEY] = "link"
-            if auto_link_allowed?
-              session[SOCIAL_USER_ID_SESSION_KEY] = current_resource&.id
-              session[SOCIAL_STARTED_AT_SESSION_KEY] ||= Time.current.to_i
-              session[SOCIAL_FLOW_ID_SESSION_KEY] ||= SecureRandom.hex(16)
-              session[SOCIAL_PROVIDER_SESSION_KEY] ||= params[:provider]
-            end
-            return "link"
-          end
-
-          # Default: login flow for non-logged-in users
           "login"
-        end
-
-        def auto_link_allowed?
-          request.get? || request.head?
         end
       end
     end

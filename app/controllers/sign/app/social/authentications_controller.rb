@@ -13,6 +13,7 @@ module Sign
       # The actual OmniAuth callbacks are handled by:
       #   Sign::App::Auth::OmniauthCallbacksController
       class AuthenticationsController < Sign::App::ApplicationController
+        include CloudflareTurnstile
         include ::Verification::Client
 
         include SocialAuthConcern
@@ -29,6 +30,7 @@ module Sign
         declare_authentication_mode! :open, only: :continue
         declare_authentication_mode! :private, only: %i(destroy)
         before_action :require_social_link_step_up!, only: :continue
+        before_action :authorize_social_unlink!, only: :destroy
 
         # POST /social/auth/:provider/continue
         # Entry point for social auth flow from sign-up and sign-in screens.
@@ -91,16 +93,26 @@ module Sign
         # Removes a linked social identity from current user.
         def destroy
           provider = params[:provider]
-          # Compatibility entry only. acme/www owns settings social unlink authority.
+
+          return redirect_social_unlink_turnstile_failure unless cloudflare_turnstile_stealth_validation["success"]
+
+          SocialAuthService.unlink(provider: provider, client: current_client)
           redirect_to(
-            social_unlink_acme_app_settings_connections_url(
-              provider: provider,
-              ri: params[:ri],
-              host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+            social_unlink_success_path(provider),
+            notice: I18n.t(
+              "sign.app.social.sessions.unlink.success",
+              provider: SocialIdentifiable.normalize_provider(provider).humanize,
             ),
-            status: :temporary_redirect,
-            allow_other_host: cross_host_redirect_allowed?,
+            status: :see_other,
           )
+        rescue SocialAuth::LastIdentityError => e
+          redirect_to(
+            social_unlink_failure_path(provider),
+            alert: I18n.t(e.message),
+            status: :see_other,
+          )
+        rescue SocialAuth::BaseError => e
+          render plain: I18n.t(e.message), status: e.status_code
         end
 
         private
@@ -154,6 +166,49 @@ module Sign
           SocialIdentifiable.normalize_provider(provider)
         end
 
+        def authorize_social_unlink!
+          identity = social_identity_for_provider(params[:provider])
+          if identity.present?
+            authorize!(identity, to: :destroy?)
+          else
+            authorize!(current_client, to: :update?)
+          end
+        end
+
+        def social_identity_for_provider(provider)
+          case SocialIdentifiable.normalize_provider(provider)
+          when "apple"
+            current_client.user_apple_identity
+          when "google"
+            current_client.user_google_identity
+          end
+        end
+
+        def redirect_social_unlink_turnstile_failure
+          redirect_to(
+            social_unlink_failure_path(params[:provider]),
+            alert: t("turnstile_error"),
+            status: :see_other,
+          )
+        end
+
+        def social_unlink_success_path(provider)
+          social_unlink_settings_path(provider)
+        end
+
+        def social_unlink_failure_path(provider)
+          social_unlink_settings_path(provider)
+        end
+
+        def social_unlink_settings_path(provider)
+          case SocialIdentifiable.normalize_provider(provider)
+          when "apple"
+            sign_app_settings_apple_path(ri: params[:ri])
+          else
+            sign_app_settings_google_path(ri: params[:ri])
+          end
+        end
+
         def require_social_link_step_up!
           return true unless params[:intent].to_s == "link"
           return true unless SUPPORTED_PROVIDERS.include?(params[:provider].to_s)
@@ -188,6 +243,14 @@ module Sign
 
         def sign_up_flow_locator
           SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
+        end
+
+        def verification_required_action?
+          action_name == "destroy"
+        end
+
+        def verification_scope
+          "social_unlink"
         end
       end
     end

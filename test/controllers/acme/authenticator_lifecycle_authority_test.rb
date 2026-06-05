@@ -220,12 +220,12 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "acme app social link intent creates transaction and redirects to sign ceremony" do
+  test "acme app social link intent redirects to sign without creating transaction" do
     @token.update!(last_step_up_scope: "social_link")
     @client.user_google_identity&.destroy!
 
     assert_no_difference -> { ClientGoogleIdentity.where(user: @client).count } do
-      assert_difference -> { ClientSocialCeremonyTransaction.count }, 1 do
+      assert_no_difference -> { ClientSocialCeremonyTransaction.count } do
         post social_link_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @acme_host),
              headers: app_headers(@acme_host)
       end
@@ -240,18 +240,7 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
     query = URI.decode_www_form(uri.query).to_h
 
     assert_equal "link", query["intent"]
-    assert_predicate query["social_ceremony_grant"], :present?
-
-    grant = Identity::SocialCeremony::Grant.decode(
-      query["social_ceremony_grant"],
-      issuer_id: Identity::SocialCeremony::Contract.acme_issuer_id("app"),
-    )
-    transaction = ClientSocialCeremonyTransaction.find_by!(transaction_id: grant["transaction_id"])
-
-    assert_equal @client.public_id, grant["actor_ref"]
-    assert_equal @token.public_id, grant["session_ref"]
-    assert_equal "google_app", transaction.provider
-    assert_equal "link", transaction.operation
+    assert_nil query["social_ceremony_grant"]
   end
 
   test "acme app social link intent rejects unsupported provider" do
@@ -265,24 +254,25 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "acme app social unlink removes google identity and writes audit" do
+  test "acme app social unlink redirects to sign without removing google identity" do
     @token.update!(last_step_up_scope: "social_unlink")
     google_identity = create_google_identity!(@client, uid: "acme-unlink-google")
     apple_identity = create_apple_identity!(@client, uid: "acme-unlink-google-backup")
 
-    assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SOCIAL_UNLINKED).count }, 1 do
+    assert_no_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SOCIAL_UNLINKED).count } do
       delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @acme_host),
              params: { "cf-turnstile-response": "test" },
              headers: app_headers(@acme_host)
     end
 
-    assert_response :see_other
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: @acme_host)
-    assert_not ClientGoogleIdentity.exists?(google_identity.id)
+    assert_response :temporary_redirect
+    assert_equal @sign_host, URI.parse(response.location).host
+    assert_equal "/social/auth/google_app", URI.parse(response.location).path
+    assert ClientGoogleIdentity.exists?(google_identity.id)
     assert ClientAppleIdentity.exists?(apple_identity.id)
   end
 
-  test "acme app social unlink removes apple identity" do
+  test "acme app social unlink redirects to sign without removing apple identity" do
     @token.update!(last_step_up_scope: "social_unlink")
     google_identity = create_google_identity!(@client, uid: "acme-unlink-apple-backup")
     apple_identity = create_apple_identity!(@client, uid: "acme-unlink-apple")
@@ -291,9 +281,9 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
            params: { "cf-turnstile-response": "test" },
            headers: app_headers(@acme_host)
 
-    assert_response :see_other
+    assert_response :temporary_redirect
     assert ClientGoogleIdentity.exists?(google_identity.id)
-    assert_not ClientAppleIdentity.exists?(apple_identity.id)
+    assert ClientAppleIdentity.exists?(apple_identity.id)
   end
 
   test "acme app social unlink is owner scoped" do
@@ -305,7 +295,8 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
            params: { "cf-turnstile-response": "test" },
            headers: app_headers(@acme_host)
 
-    assert_response :see_other
+    assert_response :temporary_redirect
+    assert_equal @sign_host, URI.parse(response.location).host
     assert ClientGoogleIdentity.exists?(other_identity.id)
   end
 

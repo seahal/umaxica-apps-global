@@ -33,11 +33,7 @@
           <div>
             <% if current_client.active_social_provider?("apple") %>
               <% unlink_allowed = current_client.social_unlink_methods_remaining?(excluding_provider: "apple") %>
-              <%= form_with url: social_unlink_acme_app_settings_connections_url(
-                              provider: "apple",
-                              ri: params[:ri],
-                              host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-                            ),
+              <%= form_with url: sign_app_social_authentication_path(provider: "apple", ri: params[:ri]),
                             method: :delete do |f| %>
                 <%= render "shared/cloudflare_turnstile_stealth" if unlink_allowed %>
                 <%= f.submit t('actions.disconnect'), disabled: !unlink_allowed %>
@@ -48,7 +44,11 @@
               <% end %>
             <% else %>
               <%= button_to t('actions.connect'),
-                            social_link_acme_app_settings_connections_path(provider: "apple", ri: params[:ri]),
+                            continue_sign_app_social_authentication_path(
+                              provider: "apple",
+                              intent: "link",
+                              ri: params[:ri],
+                            ),
                             method: :post,
                             form: { data: { turbo: false } } %>
             <% end %>

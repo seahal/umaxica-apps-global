@@ -13,7 +13,7 @@
     <% end %>
     <p><%= t("sign.app.registration.checkpoint.show.birthdate.description") %></p>
 
-    <%= form_with url: sign_app_up_checkpoint_birthdate_path(ri: params[:ri]),
+    <%= form_with url: sign_app_up_check_birthdate_path(ri: params[:ri]),
                   method: :patch,
                   local: true,
                   data: { turbo: false } do %>
@@ -46,7 +46,7 @@
     <h2><%= t("sign.app.registration.checkpoint.show.passkey.title") %></h2>
     <p><%= t("sign.app.registration.checkpoint.show.passkey.description") %></p>
     <%= link_to t("sign.app.registration.checkpoint.show.passkey.action"),
-                new_sign_app_up_checkpoint_passkey_path(
+                new_sign_app_up_check_passkey_path(
                   ri: params[:ri],
                   pt: signed_pt_param,
                   checkpoint_version: @sign_up_ticket.checkpoint_version,
@@ -59,7 +59,7 @@
     <h2><%= t("sign.app.registration.checkpoint.show.passcode.title") %></h2>
     <p><%= t("sign.app.registration.checkpoint.show.passcode.description") %></p>
     <%= link_to t("sign.app.registration.checkpoint.show.passcode.action"),
-                new_sign_app_up_checkpoint_passcode_path(
+                new_sign_app_up_check_passcode_path(
                   ri: params[:ri],
                   pt: signed_pt_param,
                   checkpoint_version: @sign_up_ticket.checkpoint_version,
@@ -72,6 +72,6 @@
 <% end %>
 
 <%= button_to t("actions.cancel"),
-              sign_app_up_checkpoint_path(ri: params[:ri], pt: signed_pt_param),
+              sign_app_up_check_path(ri: params[:ri], pt: signed_pt_param),
               method: :delete,
               form: { data: { turbo: false } } %>

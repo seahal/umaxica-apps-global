@@ -3,14 +3,11 @@
 
 require "test_helper"
 
-# Integration tests for the grantless auto-link path when a user is already
-# logged in.
+# Integration tests for Sign-owned social settings link and login separation.
 #
-# IMPORTANT: Final social-link commit is acme authority. A logged-in user who
-# completes a provider callback WITHOUT an acme-issued ceremony grant (the
-# "auto-link" path) must NOT have a social identity created or mutated on sign.
-# These tests pin that the sign callback rejects the grantless link instead of
-# committing it inline.
+# IMPORTANT: A logged-in user may link only through a Sign-started server-side
+# `intent=link` flow. Unauthenticated login callbacks for unknown identities stay
+# pending-confirmation and must not create durable identities at callback time.
 class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
 
@@ -26,9 +23,9 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
   end
 
   # ============================================================================
-  # a) Grantless auto-link is rejected on sign (no inline commit)
+  # a) Sign-started settings link commits on sign.
   # ============================================================================
-  test "logged-in user: grantless Apple callback does not link on sign" do
+  test "logged-in user: Sign-started Apple link commits on sign" do
     # Create and login as user
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
     ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
@@ -37,25 +34,22 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     apple_uid = "apple_auto_link_#{SecureRandom.hex(4)}"
     setup_apple_mock_auth(uid: apple_uid)
 
-    # Simulate grantless Apple callback as logged-in user
     state = start_social_auth_flow(provider: "apple", intent: "link", user: user)
-    assert_no_difference("ClientAppleIdentity.count") do
+    assert_difference("ClientAppleIdentity.count", 1) do
       post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
 
-    # CRITICAL: sign must NOT create the identity for a grantless link.
     user.reload
 
-    assert_nil user.user_apple_identity, "sign must not commit a grantless auto-link"
-    assert_nil ClientAppleIdentity.find_by(uid: apple_uid)
+    assert_equal apple_uid, user.user_apple_identity.uid
 
     # No new Client created either.
     assert_equal 1, Client.where(id: user.id).count
   end
 
-  test "logged-in user: grantless Google callback does not link on sign" do
+  test "logged-in user: Sign-started Google link commits on sign" do
     # Create and login as user
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
     ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
@@ -64,25 +58,22 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     google_uid = "google_auto_link_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: google_uid)
 
-    # Simulate grantless Google callback as logged-in user
     state = start_social_auth_flow(provider: "google_app", intent: "link", user: user)
-    assert_no_difference("ClientGoogleIdentity.count") do
+    assert_difference("ClientGoogleIdentity.count", 1) do
       get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
           params: { state: state },
           headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
 
-    # CRITICAL: sign must NOT create the identity for a grantless link.
     user.reload
 
-    assert_nil user.user_google_identity, "sign must not commit a grantless auto-link"
-    assert_nil ClientGoogleIdentity.find_by(uid: google_uid)
+    assert_equal google_uid, user.user_google_identity.uid
   end
 
   # ============================================================================
-  # b) Repeated grantless callbacks never create an identity on sign
+  # b) Repeated Sign-started callbacks do not create duplicate identities.
   # ============================================================================
-  test "grantless Apple callback stays non-committing across repeated attempts" do
+  test "Sign-started Apple callbacks remain single-identity across repeated attempts" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
     ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
@@ -96,17 +87,16 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
            headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
 
-    # Still no identity created on sign after repeated grantless attempts.
     user.reload
 
-    assert_nil user.user_apple_identity
-    assert_equal 0, ClientAppleIdentity.where(uid: apple_uid).count
+    assert_equal apple_uid, user.user_apple_identity.uid
+    assert_equal 1, ClientAppleIdentity.where(uid: apple_uid).count
   end
 
   # ============================================================================
-  # c) Grantless link cannot reassign an identity owned by another user
+  # c) Settings link cannot reassign an identity owned by another user
   # ============================================================================
-  test "grantless Apple callback cannot steal a uid linked to a different user" do
+  test "Sign-started Apple link cannot steal a uid linked to a different user" do
     # Create userA and link Apple identity
     user_a = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "userA_#{SecureRandom.hex(4)}")
     apple_uid = "apple_conflict_#{SecureRandom.hex(4)}"
@@ -119,7 +109,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    # Create userB and try to grantless-link the SAME Apple uid
+    # Create userB and try to link the SAME Apple uid
     user_b = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "userB_#{SecureRandom.hex(4)}")
     ClientToken.create!(user: user_b, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
@@ -161,14 +151,11 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    # Should create NEW user (login flow)
-    assert_equal user_count_before + 1, Client.count
+    assert_equal user_count_before, Client.count
 
-    # ClientAppleIdentity should exist
     identity = ClientAppleIdentity.find_by(uid: apple_uid)
 
-    assert_not_nil identity
-    assert_not_nil identity.user
+    assert_nil identity
   end
 
   private

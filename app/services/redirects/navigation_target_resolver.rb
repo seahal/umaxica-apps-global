@@ -6,7 +6,7 @@ module Redirects
     REGISTRY = {
       checkpoint: ->(routes, params) {
         routes.public_send(
-          "sign_#{Redirects::NavigationTargetResolver.surface(params)}_in_checkpoint_path",
+          "sign_#{Redirects::NavigationTargetResolver.surface(params)}_in_check_path",
           ri: params[:ri],
         )
       },

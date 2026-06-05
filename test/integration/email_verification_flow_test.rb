@@ -38,12 +38,23 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     follow_redirect!
 
-    assert_equal sign_app_up_guardrail_path, path
+    assert_equal sign_app_up_guard_path, path
 
-    # Client status should still be UNVERIFIED_WITH_SIGN_UP if it was new,
-    # but no ClientEmail should have been created from the IdP info
-    user = ClientAppleIdentity.find_by(uid: "flow_uid").user
+    assert_nil ClientAppleIdentity.find_by(uid: "flow_uid")
+    assert_no_emails do
+      assert_no_difference("Client.count") do
+        assert_no_difference("ClientAppleIdentity.count") do
+          patch sign_app_up_check_birthdate_url(ri: "jp"),
+                params: {
+                  requirement: "birthdate",
+                  birthdate: "2000-02-03",
+                  checkpoint_version: ClientSignUpFlow.order(:id).last.checkpoint_version,
+                },
+                headers: social_callback_headers(@host)
+        end
+      end
+    end
 
-    assert_nil ClientEmail.find_by(user: user)
+    assert_response :forbidden
   end
 end

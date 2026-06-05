@@ -1,10 +1,9 @@
 # Sign Up State Machine Implementation Plan
 
-> **Deprecated by Identity Authority inversion where this plan assigns account lifecycle, session,
-> or token authority to `sign/id`:** `acme/www` now owns Session, Token, Account, Preference,
-> Authorization, and downstream-token authority. `sign/id` is ceremony-only. Physical DB movement is
-> out of scope. Implementation details in this plan must not be used to reintroduce sign-side
-> authority.
+> **Updated by the current Identity Authority boundary:** `sign/id` owns identity entry, credential,
+> app social evidence, and session-token issuance paths. `acme/www` owns Account lifecycle and
+> Account/Organization/Avatar business state. Do not use older wording in this plan to restore the
+> Acme aggregation model.
 
 Status: active planning
 

@@ -131,7 +131,7 @@ module Sign
 
           progress_email_flow!(:update)
           redirect_to(
-            sign_com_up_guardrail_path(
+            sign_com_up_guard_path(
               ri: params[:ri],
               pt: signed_pt_token(path_target_value),
             ),

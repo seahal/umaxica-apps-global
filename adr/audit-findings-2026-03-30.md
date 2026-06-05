@@ -2,7 +2,7 @@
 
 > Generated: 2026-03-30  
 > Original location: `plans/archive/audit-findings-2026-03-30.md`  
-> Migrated to: `adr/audit/audit-findings-2026-03-30.md`  
+> Migrated to: `audit-findings-2026-03-30.md`  
 > Total findings: 136 (Critical: 2, High: 33, Medium: 90, Low: 8)
 
 ---
@@ -270,10 +270,10 @@ Services without tests:
 
 | #   | Location                                            |
 | --- | --------------------------------------------------- |
-| 144 | `app/services/org/invitation_service.rb`            |
-| 145 | `app/services/org/registration_policy.rb`           |
-| 146 | `app/services/jit/security/jwt/anomaly_reporter.rb` |
-| 147 | `app/services/sign/in/otp_resend_service.rb`        |
+| 144 | `../app/services/org/invitation_service.rb`            |
+| 145 | `../app/services/org/registration_policy.rb`           |
+| 146 | `../app/services/jit/security/jwt/anomaly_reporter.rb` |
+| 147 | `../app/services/sign/in/otp_resend_service.rb`        |
 
 ---
 
@@ -332,7 +332,7 @@ Services without tests:
 
 ## Migration Notes
 
-This document was migrated from `plans/archive/` to `adr/audit/` on 2026-04-07.
+This document was migrated from `../plans/archive` to `audit` on 2026-04-07.
 
 - The Critical findings (#1-2) were reviewed and determined to be **false positives** for an OAuth
   token endpoint. The endpoint uses `ActionController::API` (no session cookies) and relies on

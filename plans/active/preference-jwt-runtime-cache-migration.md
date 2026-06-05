@@ -1,10 +1,11 @@
 # Preference JWT Runtime Cache Migration
 
-> **Deprecated by Identity Authority inversion where this plan assigns preference or token authority
-> to `sign/id`:** `acme/www` now owns Session, Token, Account, Preference, Authorization, and
-> downstream-token authority. `sign/id` is ceremony-only. Physical DB movement is out of scope.
-> Implementation details in this plan must not be used to reintroduce sign-side authority. Existing
-> sign-side tables/models do not imply sign-side authority.
+> **Updated by Identity Authority inversion:** Browser/request Preference authority belongs to
+> `sign/id`, including language, region, timezone, color theme, cookie consent, and Preference
+> JWT/cookie lifecycle. Refresh/session-token authority also belongs to Sign. External RP/OIDC
+> provider behavior must be classified separately as retained, delegated, or retired. Use this plan
+> for Sign Preference JWT/runtime work, but do not use older wording to restore acme-side Preference
+> authority.
 
 ## Status
 

@@ -138,14 +138,14 @@ module Authentication
       safe_pt = signed_pt_token(pt)
       attrs[Auth::IoKeys::Params::PT] = safe_pt if safe_pt.present?
 
-      if respond_to?(:sign_app_in_checkpoint_path, true)
-        sign_app_in_checkpoint_path(**attrs)
-      elsif respond_to?(:sign_org_in_checkpoint_path, true)
-        sign_org_in_checkpoint_path(**attrs)
-      elsif respond_to?(:sign_com_in_checkpoint_path, true)
-        sign_com_in_checkpoint_path(**attrs)
+      if respond_to?(:sign_app_in_check_path, true)
+        sign_app_in_check_path(**attrs)
+      elsif respond_to?(:sign_org_in_check_path, true)
+        sign_org_in_check_path(**attrs)
+      elsif respond_to?(:sign_com_in_check_path, true)
+        sign_com_in_check_path(**attrs)
       else
-        "/sign/in/checkpoint"
+        "/sign/in/check"
       end
     end
 

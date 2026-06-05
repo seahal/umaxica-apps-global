@@ -638,7 +638,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Should redirect directly to the decoded pt destination
-    assert_redirected_to sign_app_up_guardrail_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_path(ri: "jp")
   end
 
   # Transaction Tests for Client Creation
@@ -680,7 +680,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_up_guardrail_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_path(ri: "jp")
 
     # Verify Client count unchanged (pending user was updated, not created)
     assert_equal initial_user_count, Client.count
@@ -735,7 +735,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_up_guardrail_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_path(ri: "jp")
 
     # Sign-up completion and sign-in audit are delayed until checkpoint finalization.
     assert_equal initial_audit_count, ClientChronicle.count
@@ -772,7 +772,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_up_guardrail_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_path(ri: "jp")
     assert_equal initial_audit_count, ClientChronicle.count
   end
 
@@ -874,13 +874,13 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
 
-    get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
 
-    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
@@ -888,21 +888,21 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
     assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
-    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_checkpoint_birthdate_path(ri: "jp")}']"
-    assert_select "form[action='#{sign_app_up_checkpoint_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
-    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_checkpoint_path(ri: "jp")}']"
-    assert_select "form[action='#{sign_app_up_checkpoint_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_check_birthdate_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_app_up_check_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_check_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_app_up_check_path(ri: "jp")}'] input[name=_method][value=delete]"
     assert_select "a[href*=?]", new_sign_app_sign_up_path, count: 0
     assert_select "a[href*=?]", new_sign_app_sign_in_path, count: 0
 
-    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
 
     cycle = current_sign_up_flow(user_email)
 
-    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+    patch sign_app_up_check_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-01-01",
@@ -1060,7 +1060,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_up_guardrail_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_path(ri: "jp")
     assert_equal "contact_verified", cycle.reload.step
   end
 
@@ -1086,16 +1086,16 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           },
           headers: default_headers
 
-    get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_app_up_checkpoint_path(ri: "jp")
+    assert_redirected_to sign_app_up_check_path(ri: "jp")
 
-    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "[data-birthdate-format=iso]"
 
-    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+    patch sign_app_up_check_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate_year: "2000",
@@ -1131,17 +1131,17 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
-    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 
-    delete sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+    delete sign_app_up_check_url(ri: "jp"), headers: default_headers
 
     assert_redirected_to "/"
     assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
 
-    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_url(ri: "jp"), headers: default_headers
 
     assert_redirected_to new_sign_app_sign_up_url(ri: "jp")
   end
@@ -1166,8 +1166,8 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
-    get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_url(ri: "jp"), headers: default_headers
 
     user_email.user.update!(birthdate: "2000-02-03")
     cycle.update!(
@@ -1180,7 +1180,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       checkpoint_version: 1,
     )
 
-    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+    patch sign_app_up_check_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
@@ -1214,17 +1214,17 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
             params: { user_email: { pass_code: pass_code } },
             headers: default_headers
 
-      assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+      assert_redirected_to sign_app_up_guard_url(ri: "jp")
 
-      get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
+      get sign_app_up_guard_url(ri: "jp"), headers: default_headers
 
-      assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+      assert_redirected_to sign_app_up_check_url(ri: "jp")
 
-      get sign_app_up_checkpoint_url(ri: "jp"), headers: default_headers
+      get sign_app_up_check_url(ri: "jp"), headers: default_headers
 
       assert_response :success
 
-      patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+      patch sign_app_up_check_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               birthdate: "2011-03-01",
@@ -1236,7 +1236,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "この登録方法ではアカウントを作成できません"
       assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
 
-      patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+      patch sign_app_up_check_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               birthdate: "2000-01-01",

@@ -29,9 +29,10 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
     follow_redirect!
 
     assert_response :ok
@@ -41,7 +42,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     assert_difference("Client.count", 1) do
       assert_difference("ClientAppleIdentity.count", 1) do
-        patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+        patch sign_app_up_check_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
                 birthdate: "2000-02-03",
@@ -62,11 +63,11 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
          params: { state: state },
          headers: @callback_headers
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        delete sign_app_up_checkpoint_url(ri: "jp"), headers: @callback_headers
+        delete sign_app_up_check_url(ri: "jp"), headers: @callback_headers
       end
     end
 
@@ -102,7 +103,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "grant-backed link succeeds for logged in user via acme completion" do
+  test "settings link succeeds for logged in user via Sign callback" do
     user = clients(:one)
     setup_apple_mock_auth(uid: "apple_flow_link")
 
@@ -115,9 +116,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       submit_social_completion_if_present!
     end
 
-    assert_redirected_to acme_app_settings_connections_url(
-      ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-    )
+    assert_redirected_to sign_app_settings_path(ri: "jp")
 
     identity = ClientAppleIdentity.find_by(uid: "apple_flow_link")
 
@@ -125,21 +124,19 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     assert_equal user.id, identity.user_id
   end
 
-  test "grantless link does not commit even with a logged-in session" do
+  test "Sign-started link commits with a logged-in session" do
     user = clients(:one)
     setup_apple_mock_auth(uid: "apple_flow_link_session_only")
 
     state = start_social_auth_flow(intent: "link", user: user)
 
-    # No acme ceremony grant: the sign callback must reject the link and must
-    # not render an acme completion form or create an identity.
-    assert_no_difference("ClientAppleIdentity.count") do
+    assert_difference("ClientAppleIdentity.count", 1) do
       post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
 
-    assert_nil ClientAppleIdentity.find_by(uid: "apple_flow_link_session_only")
+    assert_equal user.id, ClientAppleIdentity.find_by!(uid: "apple_flow_link_session_only").user_id
     assert_not_includes response.body.to_s, "social-completion-form"
   end
 

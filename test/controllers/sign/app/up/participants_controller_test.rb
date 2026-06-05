@@ -13,7 +13,7 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "guardrail rejects direct access without a ticket" do
-    get sign_app_up_guardrail_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
 
     assert_response :not_found
     assert_equal "Not found", response.body
@@ -22,7 +22,7 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   test "guardrail rejects ticket id without session binding" do
     ticket = create_ticket(status_id: ClientSignUpFlowStatus::CONTACT_VERIFIED, step: "contact_verified")
 
-    get sign_app_up_guardrail_url(ri: "jp", sid: ticket.public_id), headers: default_headers
+    get sign_app_up_guard_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
     assert_response :not_found
     assert_equal "Not found", response.body
@@ -31,14 +31,14 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   test "checkpoint show rejects ticket id without session binding" do
     ticket = create_ticket(status_id: ClientSignUpFlowStatus::GUARDRAIL_PENDING, step: "guardrail")
 
-    get sign_app_up_checkpoint_url(ri: "jp", sid: ticket.public_id), headers: default_headers
+    get sign_app_up_check_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
     assert_redirected_to new_sign_app_sign_up_url(ri: "jp")
     assert_equal I18n.t("sign.app.registration.session_missing"), flash[:alert]
   end
 
   test "checkpoint update rejects direct access without a ticket" do
-    patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+    patch sign_app_up_check_birthdate_url(ri: "jp"),
           params: { requirement: "birthdate" },
           headers: default_headers
 
@@ -48,7 +48,7 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
 
   test "checkpoint destroy is routed for sign up cancellation" do
     route = Rails.application.routes.recognize_path(
-      "http://#{host}/sign/up/checkpoint",
+      "http://#{host}/sign/up/check",
       method: :delete,
     )
 

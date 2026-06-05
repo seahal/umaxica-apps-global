@@ -168,7 +168,7 @@ module Sign
           verify_telephone_ownership!
           advance_sign_up_flow_after_telephone_otp!
           redirect_to(
-            sign_app_up_guardrail_path(ri: params[:ri]),
+            sign_app_up_guard_path(ri: params[:ri]),
             notice: t("sign.app.registration.telephone.update.passkey_required"),
           )
         end

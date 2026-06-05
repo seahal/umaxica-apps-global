@@ -188,7 +188,7 @@ module Sign::App::In
         assert_not_nil json["access_token"]
         assert_equal "Bearer", json["token_type"]
         assert_equal Authentication::Base::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
-        assert_equal sign_app_in_checkpoint_path(ri: "jp"), json["redirect_url"]
+        assert_equal sign_app_in_check_path(ri: "jp"), json["redirect_url"]
 
         # Challenge verification updates sign count
         assert_equal 1, @passkey.reload.sign_count

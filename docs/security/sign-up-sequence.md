@@ -75,7 +75,7 @@ All `app` and target `com` sign-up paths share the same post-finalization routin
 1. Complete sign-up finalization.
 2. Enter the existing sign-in boundary in the same Rails action/request.
 3. The sign-in boundary creates or resumes the pending sign-in cycle.
-4. Evaluate session-limit handling, `/sign/in/guardrail`, `/sign/in/checkpoint`, and
+4. Evaluate session-limit handling, sign-in guardrail state, `/sign/in/check`, and
    `/sign/in/selector` in order.
 5. Commit the selector selection, then issue the active authenticated session.
 6. Continue to `/welcome`.
@@ -97,13 +97,13 @@ out on their behalf.
 
 ## Guardrail, Checkpoint, Selector, Welcome, And Dashboard
 
-`/sign/up/guardrail` is the sign-up stop point for cases where the current sign-up sequence must not
-continue. It is distinct from `/sign/up/checkpoint`:
+`/sign/up/guard` is the sign-up stop point for cases where the current sign-up sequence must not
+continue. It is distinct from `/sign/up/check`:
 
 - Guardrail blocks continuation and returns only plain text.
 - Checkpoint collects or clears required setup before finalization.
 
-`/sign/in/guardrail` is also part of the common post-finalization handoff. It is evaluated before
+Sign-in guardrail state is also part of the common post-finalization handoff. It is evaluated before
 checkpoint, selector, and session issuance. If it blocks after durable sign-up completion, that is a
 sign-in failure domain; it must not delete completed account data.
 
@@ -182,14 +182,14 @@ Expected state-machine path:
   - New-account sign-up should move the sequence toward guardrail/checkpoint without allowing a
     return to email editing.
 
-- Sign-up guardrail: `GET /sign/up/guardrail`
+- Sign-up guard: `GET /sign/up/guard`
   - This is the sign-up stop point for sequence-level rejection such as policy blocks, retry
     cooldowns, or other non-continuable registration states.
   - It returns plain text and does not redirect.
   - If no guardrail content is required, the sequence advances to checkpoint.
 
-- Sign-up checkpoint: `GET /sign/up/checkpoint`
-  - This is a sign-up sequence checkpoint, not the current private `/sign/in/checkpoint`.
+- Sign-up check: `GET /sign/up/check`
+  - This is a sign-up sequence checkpoint, not the current private `/sign/in/check`.
   - For email sign-up, the checkpoint must require birthdate.
   - Birthdate collection happens inside the checkpoint.
   - The checkpoint validates the exact `YYYY-MM-DD` text form.
@@ -274,7 +274,7 @@ Current implementation path:
   - Calls `redirect_to_sign_in_sequence!`.
   - Target behavior is that guardrail, checkpoint, and selector are evaluated before session
     issuance.
-  - In the current implementation, the actor reaches `/sign/in/checkpoint` if checkpoint content
+  - In the current implementation, the actor reaches `/sign/in/check` if checkpoint content
     exists.
   - Otherwise, or after checkpoint and selector completion, the actor receives the active session,
     continues to welcome, and then the safe `rt` return path when present, falling back to
@@ -313,14 +313,14 @@ Target state-machine path:
   - New-account sign-up should move the sequence toward guardrail/checkpoint without allowing a
     return to email editing.
 
-- Sign-up guardrail: `GET /sign/up/guardrail`
+- Sign-up guard: `GET /sign/up/guard`
   - This is the sign-up stop point for sequence-level rejection such as policy blocks, retry
     cooldowns, or other non-continuable registration states.
   - It returns plain text and does not redirect.
   - If no guardrail content is required, the sequence advances to checkpoint.
 
-- Sign-up checkpoint: `GET /sign/up/checkpoint`
-  - This is a sign-up sequence checkpoint, not the current private `/sign/in/checkpoint`.
+- Sign-up check: `GET /sign/up/check`
+  - This is a sign-up sequence checkpoint, not the current private `/sign/in/check`.
   - For com email sign-up, the checkpoint must require birthdate.
   - Birthdate collection happens inside the checkpoint.
   - The checkpoint validates the exact `YYYY-MM-DD` text form.
@@ -365,7 +365,7 @@ Current path:
 10. The flow calls the sign-in post-authentication sequence.
 11. Target behavior is that guardrail, checkpoint, and selector are evaluated before session
     issuance.
-12. In the current implementation, the actor reaches `/sign/in/checkpoint` if checkpoint content
+12. In the current implementation, the actor reaches `/sign/in/check` if checkpoint content
     exists.
 13. Otherwise, or after checkpoint and selector completion, the actor receives the active session,
     continues to dashboard, and then the safe `rt` return path when present.
@@ -398,13 +398,13 @@ Expected state-machine path:
   - Check whether the pending client already has an active passkey.
   - Move the sequence toward guardrail/checkpoint without allowing a return to telephone editing.
 
-- Sign-up guardrail: `GET /sign/up/guardrail`
+- Sign-up guard: `GET /sign/up/guard`
   - This is the sign-up stop point for sequence-level rejection such as policy blocks, retry
     cooldowns, or other non-continuable registration states.
   - It returns plain text and does not redirect.
   - If no guardrail content is required, the sequence advances to checkpoint.
 
-- Sign-up checkpoint: `GET /sign/up/checkpoint`
+- Sign-up check: `GET /sign/up/check`
   - This checkpoint owns all required post-contact setup before account finalization.
   - For SMS sign-up, the checkpoint must require all of:
     - accepted birthdate;
@@ -416,7 +416,7 @@ Expected state-machine path:
     the sequence state should remain `CHECKPOINT_PENDING` until both are complete.
 
 - Birthdate setup requirement
-  - Birthdate collection happens inside `/sign/up/checkpoint`.
+  - Birthdate collection happens inside `/sign/up/check`.
   - The checkpoint validates the exact `YYYY-MM-DD` text form.
   - The checkpoint rejects future values.
   - The checkpoint persists the encrypted birthdate and marks the birthdate requirement as cleared.
@@ -481,8 +481,8 @@ Target state-machine path:
 1. `PATCH /sign/up/telephone` validates the OTP.
 2. OTP success marks the telephone as `VERIFIED_WITH_SIGN_UP`.
 3. The flow checks whether the pending client already has an active passkey.
-4. The flow moves through `GET /sign/up/guardrail` when guardrail content is required.
-5. The flow moves to `GET /sign/up/checkpoint`.
+4. The flow moves through `GET /sign/up/guard` when guardrail content is required.
+5. The flow moves to `GET /sign/up/check`.
 6. The checkpoint blocks account finalization until birthdate, passkey, and passcode requirements
    are all cleared.
 7. Only after the checkpoint is complete, the client is promoted, the account row is created, audit
@@ -521,15 +521,15 @@ Expected state-machine path:
   - If the identity is new, create the pending `Client` and link the Google identity.
   - Move the sign-up sequence toward guardrail/checkpoint.
 
-- Sign-up guardrail: `GET /sign/up/guardrail`
+- Sign-up guard: `GET /sign/up/guard`
   - This is the sign-up stop point for sequence-level rejection such as policy blocks, retry
     cooldowns, or other non-continuable registration states.
   - It returns plain text and does not redirect.
   - If no guardrail content is required, the sequence advances to checkpoint.
 
-- Sign-up checkpoint: `GET /sign/up/checkpoint`
+- Sign-up check: `GET /sign/up/check`
   - For Google sign-up, the checkpoint must require birthdate.
-  - Birthdate collection happens inside `/sign/up/checkpoint`.
+  - Birthdate collection happens inside `/sign/up/check`.
   - The checkpoint validates the exact `YYYY-MM-DD` text form.
   - The checkpoint rejects future values.
   - The checkpoint persists the encrypted birthdate and marks the birthdate requirement as cleared.
@@ -586,15 +586,15 @@ Expected state-machine path:
   - If the identity is new, create the pending `Client` and link the Apple identity.
   - Move the sign-up sequence toward guardrail/checkpoint.
 
-- Sign-up guardrail: `GET /sign/up/guardrail`
+- Sign-up guard: `GET /sign/up/guard`
   - This is the sign-up stop point for sequence-level rejection such as policy blocks, retry
     cooldowns, or other non-continuable registration states.
   - It returns plain text and does not redirect.
   - If no guardrail content is required, the sequence advances to checkpoint.
 
-- Sign-up checkpoint: `GET /sign/up/checkpoint`
+- Sign-up check: `GET /sign/up/check`
   - For Apple sign-up, the checkpoint must require birthdate.
-  - Birthdate collection happens inside `/sign/up/checkpoint`.
+  - Birthdate collection happens inside `/sign/up/check`.
   - The checkpoint validates the exact `YYYY-MM-DD` text form.
   - The checkpoint rejects future values.
   - The checkpoint persists the encrypted birthdate and marks the birthdate requirement as cleared.
@@ -667,13 +667,13 @@ Target state-machine path:
   - Check whether the pending visitor already has an active passkey.
   - Move the sequence toward guardrail/checkpoint without allowing a return to telephone editing.
 
-- Sign-up guardrail: `GET /sign/up/guardrail`
+- Sign-up guard: `GET /sign/up/guard`
   - This is the sign-up stop point for sequence-level rejection such as policy blocks, retry
     cooldowns, or other non-continuable registration states.
   - It returns plain text and does not redirect.
   - If no guardrail content is required, the sequence advances to checkpoint.
 
-- Sign-up checkpoint: `GET /sign/up/checkpoint`
+- Sign-up check: `GET /sign/up/check`
   - This checkpoint owns all required post-contact setup before account finalization.
   - For com telephone sign-up, the checkpoint must require all of:
     - accepted birthdate;
@@ -684,7 +684,7 @@ Target state-machine path:
   - Passkey and passcode setup are checkpoint-owned setup steps for the pending visitor.
 
 - Birthdate setup requirement
-  - Birthdate collection happens inside `/sign/up/checkpoint`.
+  - Birthdate collection happens inside `/sign/up/check`.
   - The checkpoint validates the exact `YYYY-MM-DD` text form.
   - The checkpoint rejects future values.
   - The checkpoint persists the encrypted birthdate and marks the birthdate requirement as cleared.
@@ -748,8 +748,8 @@ Target state-machine path:
 1. `PATCH /sign/up/telephone` validates the OTP.
 2. OTP success marks the telephone as `VERIFIED_WITH_SIGN_UP`.
 3. The flow checks whether the pending visitor already has an active passkey.
-4. The flow moves through `GET /sign/up/guardrail` when guardrail content is required.
-5. The flow moves to `GET /sign/up/checkpoint`.
+4. The flow moves through `GET /sign/up/guard` when guardrail content is required.
+5. The flow moves to `GET /sign/up/check`.
 6. The checkpoint blocks account finalization until birthdate, passkey, and passcode requirements
    are all cleared.
 7. Only after the checkpoint is complete, the visitor is finalized, the account row is created,
@@ -783,7 +783,7 @@ Target path:
   - Do not create an authenticated org session.
   - Link the external candidate to the com/corporate contact or recruiting intake surface.
 
-- Optional guardrail: `GET /sign/up/guardrail`
+- Optional guardrail: `GET /sign/up/guard`
   - This is only for an org acquisition sequence that must stop with a plain-text message.
   - It must not become public self-service operator registration.
   - Direct access without valid sequence state must be rejected.

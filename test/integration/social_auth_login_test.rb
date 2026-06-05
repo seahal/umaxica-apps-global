@@ -281,10 +281,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
     follow_redirect!
 
     assert_response :ok
@@ -298,7 +298,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+        patch sign_app_up_check_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
                 birthdate: "2000-02-03",
@@ -312,7 +312,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_difference("Client.count", 1) do
       assert_difference("ClientGoogleIdentity.count", 1) do
-        patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+        patch sign_app_up_check_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
                 birthdate: "2000-02-03",
@@ -394,9 +394,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
     follow_redirect!
 
     assert_response :ok
@@ -407,7 +408,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_difference("Client.count", 1) do
       assert_difference("ClientAppleIdentity.count", 1) do
-        patch sign_app_up_checkpoint_birthdate_url(ri: "jp"),
+        patch sign_app_up_check_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
                 birthdate: "2000-02-03",

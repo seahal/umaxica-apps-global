@@ -46,25 +46,24 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
-        params: { state: state },
-        headers: social_callback_headers(@host)
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientGoogleIdentity.count") do
+        get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+            params: { state: state },
+            headers: social_callback_headers(@host)
+      end
+    end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
 
-    user = ClientGoogleIdentity.find_by(uid: "123456789").user
-
-    assert_not_nil user
-    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
-    assert_nil user.birthdate
-    assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before checkpoint"
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=birthdate_year]"
     assert_select "input[name=birthdate_month]"
     assert_select "input[name=birthdate_day]"
+    assert_select "input[name=confirm_new_social_identity][required]"
   end
 
   test "google callback without region parameter is processed without regional redirect" do
@@ -107,25 +106,24 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "apple")
 
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: social_callback_headers(@host)
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
+        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+             params: { state: state },
+             headers: social_callback_headers(@host)
+      end
+    end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
 
-    user = ClientAppleIdentity.find_by(uid: "apple_uid_123").user
-
-    assert_not_nil user
-    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
-    assert_nil user.birthdate
-    assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before checkpoint"
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=birthdate_year]"
     assert_select "input[name=birthdate_month]"
     assert_select "input[name=birthdate_day]"
+    assert_select "input[name=confirm_new_social_identity][required]"
   end
 
   test "unknown Apple GET callback enters sign up checkpoint instead of signing in" do
@@ -143,24 +141,24 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "apple")
 
-    get sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
-        params: { state: state },
-        headers: social_callback_headers(@host)
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
+        get sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+            params: { state: state },
+            headers: social_callback_headers(@host)
+      end
+    end
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_url(ri: "jp")
     follow_redirect!
 
-    user = ClientAppleIdentity.find_by(uid: "apple_get_callback_uid").user
-
-    assert_not_nil user
-    assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.status_id
-    assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before checkpoint"
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=birthdate_year]"
     assert_select "input[name=birthdate_month]"
     assert_select "input[name=birthdate_day]"
+    assert_select "input[name=confirm_new_social_identity][required]"
   end
 
   test "apple social login with MFA enabled does not require additional MFA challenge" do
@@ -248,7 +246,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
   end
 
-  test "existing Google identity without birthdate returns to sign up checkpoint" do
+  test "existing Google identity without birthdate stays on login side" do
     user = Client.create!
     ClientGoogleIdentity.create!(
       user: user,
@@ -278,16 +276,8 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    assert_redirected_to sign_app_up_guardrail_url(ri: "jp")
+    assert_redirected_to new_sign_app_sign_in_url(ri: "jp")
     assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before birthdate checkpoint"
-    follow_redirect!
-
-    assert_redirected_to sign_app_up_checkpoint_url(ri: "jp")
-    follow_redirect!
-
-    assert_select "input[name=birthdate_year]"
-    assert_select "input[name=birthdate_month]"
-    assert_select "input[name=birthdate_day]"
   end
 
   test "social login with MFA enabled does not require additional MFA challenge" do

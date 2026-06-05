@@ -4,7 +4,7 @@ Extracted from `plans/archive/global-repo-restoration-plan.md` (2026-05-07).
 
 ## Source
 
-- `adr/audit/audit-findings-2026-03-30.md` (High severity)
+- `../../adr/audit-findings-2026-03-30.md` (High severity)
 
 ## Goal
 

@@ -38,7 +38,7 @@ module Acme
           provider = social_provider_param
           result_token = params.require(:social_ceremony_result)
           payload = Identity::SocialCeremony::Contract.decode_unverified_payload(result_token)
-          return complete_social_link!(result_token, payload, provider) if payload["operation"].to_s == "link"
+          return reject_social_link_completion!(provider) if payload["operation"].to_s == "link"
 
           commit = Identity::SocialCeremony::FinalCommitter.call!(
             result_token: result_token,
@@ -73,8 +73,7 @@ module Acme
         # browser/referrer-policy combinations send Origin: null for that POST,
         # which Rails rejects before trusted_origins can apply. The one-shot
         # signed ceremony result is the CSRF proof for this endpoint; acme still
-        # verifies and consumes it in the action before creating a session or
-        # committing a link.
+        # verifies and consumes it in the action before creating a session.
         def verified_request?
           social_completion_result_verifies_request? || super
         end
@@ -93,31 +92,21 @@ module Acme
           false
         end
 
-        def complete_social_link!(result_token, payload, provider)
-          actor = Client.find_by!(public_id: payload.fetch("actor_ref"))
-          Identity::SocialCeremony::FinalCommitter.call!(
-            result_token: result_token,
-            actor: actor,
-            session_ref: payload.fetch("session_ref"),
-            surface: "app",
-            ip_address: request.remote_ip,
-            user_agent: request.user_agent,
-          )
-
+        def reject_social_link_completion!(provider)
           redirect_to(
-            acme_app_settings_connections_url(
-              ri: params[:ri],
-              host: ENV.fetch(
-                "ACME_SERVICE_URL", "www.app.localhost",
-              ),
-            ),
-            notice: I18n.t(
-              "sign.app.social.sessions.link.success",
-              provider: SocialIdentifiable.normalize_provider(provider).humanize,
-            ),
+            sign_social_settings_url_for(provider),
+            alert: I18n.t("sign.app.social.sessions.create.failure"),
             allow_other_host: cross_host_redirect_allowed?,
             status: :see_other,
           )
+        end
+
+        def sign_social_settings_url_for(provider)
+          if SocialIdentifiable.normalize_provider(provider) == "apple"
+            sign_app_settings_apple_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+          else
+            sign_app_settings_google_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+          end
         end
 
         def complete_social_login!(commit, provider)
@@ -148,7 +137,7 @@ module Acme
           cycle = create_social_sign_up_flow!(commit)
           bind_social_sign_up_flow!(cycle, commit)
           redirect_to(
-            sign_app_up_guardrail_url(
+            sign_app_up_guard_url(
               ri: params[:ri],
               pt: signed_pt_token(commit.pt),
               host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),

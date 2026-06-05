@@ -1,10 +1,9 @@
 # Identity Control Plane Configuration Hardening
 
-> **Deprecated by Identity Authority inversion where this plan assigns settings, dashboard,
-> session-management, preference, account, or token authority to `sign/id`:** `acme/www` now owns
-> Session, Token, Account, Preference, Authorization, and downstream-token authority. `sign/id` is
-> ceremony-only. Physical DB movement is out of scope. Implementation details in this plan must not
-> be used to reintroduce sign-side authority.
+> **Updated by the current Identity Authority boundary:** Identity, Credential, Refresh, Logout,
+> Step-up, browser/request Preference, and app social link/unlink authority belong to `sign/id`.
+> Account, Organization, Avatar, Selector, Dashboard, RP Authorization, and SNS-body authority belong
+> to `acme/www`. Do not use older wording in this plan to restore the Acme aggregation model.
 
 ## Summary
 

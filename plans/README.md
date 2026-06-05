@@ -17,10 +17,10 @@ Return-target rule:
 Current identity authority implementation plan:
 
 - `plans/identity-authority-inversion-implementation.md` is the controlling implementation plan for
-  the Identity Authority inversion. It supersedes old plan directions that assign settings,
-  preference, dashboard, session-management, token issuance, account lifecycle, authorization,
-  downstream-token issuance, or step-up freshness authority to `sign/id`.
+  the Identity Authority boundary. It supersedes old plan directions that treat `sign/id` as
+  credential-ceremony-only or move Refresh, Logout, Step-up, browser/request Preference, or app
+  social link/unlink authority to `acme/www`.
 - `plans/active/identity-authority-inversion-first-slice.md` is the first active implementation
   slice. It records the current implementation conflicts and limits the first code slice to
-  route/controller classification, acme authority entry points, and sign-to-acme redirects or
-  compatibility delegates.
+  route/controller classification, Sign authority facade cleanup, Acme compatibility cleanup, and
+  compatibility redirects or delegation in the correct direction.
