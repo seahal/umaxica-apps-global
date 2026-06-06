@@ -33,6 +33,8 @@ Rails.application.configure do
   end
 
   config.cache_store = :solid_cache_store
+  config.x.rate_limit.store =
+    ActiveSupport::Cache::RedisCacheStore.new(url: ENV.fetch("RATE_LIMIT_REDIS_URL"), namespace: "rate_limit")
   config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
 
   # Store uploaded files on the local file system (see config/storage.yml for options).

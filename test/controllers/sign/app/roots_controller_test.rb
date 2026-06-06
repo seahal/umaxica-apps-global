@@ -10,11 +10,11 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
   include RootThemeCookieHelper
 
   setup do
-    RateLimit.store.clear
+    Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
   teardown do
-    RateLimit.store.clear
+    Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
   test "GET / redirects to new registration path" do

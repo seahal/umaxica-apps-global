@@ -64,6 +64,7 @@ Current content-model references:
 - `docs/security/session-reset-policy.md`
 - `docs/security/sign-withdrawal-and-membership.md`
 - `docs/security/redirect_targets.md`
+- `docs/operations/container-engine-podman-notes.md`
 - `docs/operations/jump-rt-key-rotation.md`
 - `docs/operations/jwt-key-rotation.md`
 - `docs/runbooks/chain_seal_key_rotation.md`

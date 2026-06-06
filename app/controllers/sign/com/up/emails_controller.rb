@@ -22,16 +22,16 @@ module Sign
 
         before_action :enforce_email_flow!
 
-        # Defence-in-depth for sign-up entry. The default IP limit is 300/min
-        # which is too generous for an OTP-generating endpoint. Tighten to
-        # 5/min per IP and 3/10min per email digest to slow address
-        # enumeration and OTP fanout from a single source.
+        # Defence-in-depth for sign-up entry. Tighten OTP fanout from a single
+        # source and from repeated attempts against the same email digest.
         rate_limit(
           to: 5,
           within: 1.minute,
           by: -> { "sign_up_email_ip:#{request.remote_ip}" },
-          with: -> { handle_rate_limit_exceeded!("sign_up_email_ip", 60) },
-          store: RateLimit.store,
+          with: -> { render_rate_limited(rule_name: "sign_up_email_ip", retry_after: 60) },
+          store: rate_limit_store,
+          name: "ip_burst",
+          scope: "sign_com_sign_up_email",
           only: :create,
         )
         rate_limit(
@@ -41,8 +41,10 @@ module Sign
             digest = sign_up_email_digest_for_rate_limit
             digest.present? ? "sign_up_email_addr:#{digest}" : "sign_up_email_addr:none"
           },
-          with: -> { handle_rate_limit_exceeded!("sign_up_email_addr", 600) },
-          store: RateLimit.store,
+          with: -> { render_rate_limited(rule_name: "sign_up_email_addr", retry_after: 600) },
+          store: rate_limit_store,
+          name: "email_sustained",
+          scope: "sign_com_sign_up_email",
           only: :create,
         )
 

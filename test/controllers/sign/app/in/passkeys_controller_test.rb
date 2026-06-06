@@ -11,6 +11,8 @@ module Sign::App::In
 
     setup do
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      CloudflareTurnstile.test_mode = true
+      CloudflareTurnstile.test_validation_response = { "success" => true }
       Jit::Security::TurnstileVerifier.test_mode = true
       Jit::Security::TurnstileVerifier.test_response = { "success" => true }
       @user = create_verified_user_with_email(email_address: "passkey_test_user_#{SecureRandom.hex(6)}@example.com")
@@ -41,6 +43,8 @@ module Sign::App::In
       if defined?(@original_trusted_origins) && @original_trusted_origins
         Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
       end
+      CloudflareTurnstile.test_mode = false
+      CloudflareTurnstile.test_validation_response = nil
       Jit::Security::TurnstileVerifier.test_mode = false
       Jit::Security::TurnstileVerifier.test_response = nil
     end

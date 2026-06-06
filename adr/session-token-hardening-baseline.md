@@ -37,8 +37,16 @@ end-state and records where the build deliberately diverges from the raw checkli
 Production auth cookies use `__Host-` prefix + host-only (no `Domain`) + `Secure` + `HttpOnly` +
 **`SameSite=Strict`** + `Partitioned`. `SameSite=Strict` is implemented in
 `Authentication::CookieService` (`auth_cookie_options` and `auth_cookie_deletion_options`); it
-applies to the auth cookies (access / refresh / DBSC) in all environments. The Rails session cookie
-and preference cookies remain `SameSite=Lax` and are out of scope for this ADR.
+applies to the auth cookies (access / refresh / DBSC) in all environments.
+
+Update: preference cookies (the preference JWT access/refresh and the JS consent buffer) were
+subsequently moved to `SameSite=Strict` as well, since the preference JWT is re-read on the next
+same-site request and does not need to survive a cross-site inbound navigation. The **Rails session
+cookie remains `SameSite=Lax`** because it carries OIDC state/nonce/PKCE and email-link flow state
+that must be present on a cross-site top-level inbound navigation (the IdP callback and emailed
+links). Moving the session cookie to `Strict` is deferred and tracked as a backlog item; it requires
+making those cross-site entry points session-independent (DB-backed OIDC state, self-contained
+signed email-link tokens).
 
 **Cookie name prefix policy.** Host-only cookies use the `__Host-` prefix; cookies that must be
 readable across subdomains use `__Secure-` (which permits a `Domain` attribute, forbidden under

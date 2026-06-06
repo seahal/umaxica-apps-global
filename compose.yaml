@@ -20,10 +20,15 @@ services:
       POSTGRESQL_PASSWORD: "${POSTGRESQL_PASSWORD:-development_password}"
       POSTGRESQL_DATABASE: "${POSTGRESQL_DATABASE:-db}"
     restart: always
-    user: "${UID:-1000}:${GID:-1000}"
+    # The image's USER is baked from DOCKER_UID/DOCKER_GID at build time, so
+    # we do not also pin `user:` in compose — pinning here conflicts with
+    # rootless podman's `userns_mode: keep-id` (set in the devcontainer
+    # override) and the double mapping breaks bind-mount ownership.
     tmpfs:
-    - "/home/global/workspace/tmp:uid=${UID:-1000},gid=${GID:-1000}"
-    - "/home/global/workspace/log:uid=${UID:-1000},gid=${GID:-1000}"
+    # tmpfs uid=/gid= options are rejected by rootless podman. Mode 1777 +
+    # sticky bit lets the in-container user write under root-owned tmpfs.
+    - /home/global/workspace/tmp
+    - /home/global/workspace/log
     volumes:
     - type: bind
       source: "."
@@ -84,16 +89,20 @@ services:
     # Explicit tmpfs cap: writer DBs hold dev (~17G) plus 27 writer test DBs ×
     # up to 32 parallel-test workers (per-worker copies dbname_<n>) in RAM. 64G
     # gives headroom for that fanout without letting the mount grow unbounded.
+    # Override POSTGRES_PRIMARY_TMPFS_SIZE on memory-constrained hosts (rootless
+    # podman bills tmpfs against the user memory cgroup).
     tmpfs:
-    - "/var/lib/postgresql/data:size=64g"
+    - "/var/lib/postgresql/data:size=${POSTGRES_PRIMARY_TMPFS_SIZE:-64g}"
     # PG allocates 32MB DSM segments from /dev/shm for parallel query and
     # column-metadata joins. The default 64MB container shm exhausts under
     # 32 Rails parallel workers; 4G covers worst-case fanout with margin.
     shm_size: 4gb
     volumes:
-    - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
-    - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro"
-    - "./docker/psql-pub:/docker-entrypoint-initdb.d:ro"
+    # `:z` adds an SELinux shared label so Fedora/RHEL hosts permit container
+    # reads. Harmless on non-SELinux hosts (Arch, Ubuntu).
+    - "./docker/psql-pub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
+    - "./docker/psql-pub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
+    - "./docker/psql-pub:/docker-entrypoint-initdb.d:ro,z"
     networks:
     - backend
     restart: unless-stopped
@@ -118,16 +127,17 @@ services:
     # Replica holds dev read-replica copies plus 27 reader test DBs × up to 32
     # parallel-test workers (test reader DBs are physically separate per
     # notes/.../2026-05-31-test-parallel-reader-writer-db-split.md). 48G covers
-    # the expected ~40G working set with margin.
+    # the expected ~40G working set with margin. Override
+    # POSTGRES_REPLICA_TMPFS_SIZE on memory-constrained hosts.
     tmpfs:
-    - "/var/lib/postgresql/data:size=48g"
+    - "/var/lib/postgresql/data:size=${POSTGRES_REPLICA_TMPFS_SIZE:-48g}"
     # Match primary: parallel query + metadata-join DSM segments under 32 Rails
     # workers exceed the 64MB default container shm.
     shm_size: 4gb
     volumes:
-    - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro"
-    - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro"
-    - "./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro"
+    - "./docker/psql-sub/entrypoint.sh:/entrypoint.sh:ro,z"
+    - "./docker/psql-sub/postgresql.conf:/etc/postgresql/postgresql.conf:ro,z"
+    - "./docker/psql-sub/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro,z"
     depends_on:
       primary:
         condition: service_healthy
@@ -199,7 +209,7 @@ services:
     - "4318:4318"
     - "9411:9411"
     volumes:
-    - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro"
+    - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
     - tempo-volume:/var/tempo
     networks:
     - observability
@@ -212,7 +222,7 @@ services:
       GF_PATHS_PROVISIONING: "/etc/grafana/provisioning"
     volumes:
     - grafana-volume:/var/lib/grafana
-    - "./docker/grafana/provisioning:/etc/grafana/provisioning"
+    - "./docker/grafana/provisioning:/etc/grafana/provisioning:z"
     networks:
     - observability
     depends_on:
@@ -223,7 +233,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     volumes:
-    - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro"
+    - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
     networks:
     - observability
     depends_on:
@@ -232,7 +242,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     volumes:
-    - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+    - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
     - prometheus-volume:/prometheus
     networks:
     - observability
@@ -240,8 +250,12 @@ services:
   alloy:
     image: grafana/alloy:latest
     volumes:
-    - "./docker/alloy/config.alloy:/etc/alloy/config.alloy:ro"
-    - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    - "./docker/alloy/config.alloy:/etc/alloy/config.alloy:ro,z"
+    # Host container socket. Docker uses /var/run/docker.sock; rootless
+    # podman exposes a docker-compatible socket at
+    # ${XDG_RUNTIME_DIR}/podman/podman.sock (rootful: /run/podman/podman.sock).
+    # Override via CONTAINER_SOCKET in the environment.
+    - "${CONTAINER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro"
     command: run /etc/alloy/config.alloy
     networks:
     - observability
@@ -250,8 +264,11 @@ services:
     restart: unless-stopped
   pgadmin:
     image: dpage/pgadmin4
-    # Run as root only so the entrypoint can fix the bind-mounted pgpass
-    # permissions to 0600; pgAdmin de-escalates to the pgadmin user itself.
+    # `user: root` lets the entrypoint chmod the bind-mounted pgpass to 0600
+    # before pgAdmin de-escalates to the pgadmin user. Under rootless podman
+    # "root" inside the container is the host user via userns mapping (not
+    # real root), but the chmod still succeeds on the bind-mounted file
+    # because the host user already owns it.
     user: root
     entrypoint:
     - "/bin/sh"
@@ -265,8 +282,8 @@ services:
       # Auto-import the pub/sub server definitions on first launch.
       PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
     volumes:
-    - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro"
-    - "./docker/pgadmin/pgpass:/pgpass"
+    - "./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro,z"
+    - "./docker/pgadmin/pgpass:/pgpass:z"
     networks:
     - backend
     depends_on:

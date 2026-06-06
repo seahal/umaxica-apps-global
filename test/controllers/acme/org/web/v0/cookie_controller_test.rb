@@ -45,16 +45,23 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not body["targetable"]
   end
 
-  test "PATCH update without preference jwt does not write consent buffer" do
+  test "PATCH update without preference jwt writes consent buffer without credential cookies" do
     cookies.delete(Preference::CookieName.access(surface: :org))
 
-    patch acme_org_web_v0_cookie_path, params: { consented: true }, as: :json
+    assert_no_difference -> { OrgPreference.count } do
+      patch acme_org_web_v0_cookie_path, params: { consented: true }, as: :json
+    end
 
-    assert_response :unauthorized
+    assert_response :ok
+    assert response.parsed_body["consented"]
     set_cookie = response.headers["Set-Cookie"].to_s
+    consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
 
-    assert_not_includes set_cookie, "preference_consented="
+    assert_includes set_cookie, "preference_consented=1"
+    assert_includes consent_cookie.downcase, "samesite=strict"
+    assert_not_includes consent_cookie.downcase, "httponly"
     assert_not_includes set_cookie, "#{Preference::CookieName.access(surface: :org)}="
+    assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
   end
 
   test "PATCH update with consented true updates org preference cookie and issues access token" do
@@ -87,7 +94,11 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "#{Preference::CookieName.access}="
-    assert_not_includes set_cookie, "preference_consented="
+    assert_includes set_cookie, "preference_consented=1"
+    consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
+
+    assert_includes consent_cookie.downcase, "samesite=strict"
+    assert_not_includes consent_cookie.downcase, "httponly"
   end
 
   test "PATCH update with nested accept-all cookie params updates every consent flag" do

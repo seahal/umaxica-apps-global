@@ -4,33 +4,14 @@
 require "test_helper"
 
 class Sign::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
-  test "GET /health returns OK response" do
+  test "GET /health returns an html snapshot" do
+    host! ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
+
     get sign_org_health_url(ri: "jp")
 
     assert_response :success
-    assert_equal "text/plain; charset=utf-8", response.headers["Content-Type"]
-    assert_includes response.body, "status=OK"
-    assert_includes response.body, "service=sign"
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, response.body)
-  end
-
-  test "GET /health returns OK html response" do
-    get sign_org_health_url(format: :html, ri: "jp")
-
-    assert_response :success
-    assert_equal "text/plain; charset=utf-8", response.headers["Content-Type"]
-    assert_includes response.body, "status=OK"
-    assert_includes response.body, "service=sign"
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, response.body)
-  end
-
-  test "GET /health returns OK json response" do
-    get sign_org_health_url(format: :json, ri: "jp")
-
-    assert_response :success
-    assert_equal "OK", response.parsed_body["status"]
-    assert_equal "sign", response.parsed_body["service"]
-    assert response.parsed_body.key?("version")
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, response.parsed_body["time"])
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, "Health Snapshot"
+    assert_includes response.body, "sign org"
   end
 end

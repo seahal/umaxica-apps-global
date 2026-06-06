@@ -21,7 +21,6 @@ module Security
       ].freeze
 
       REQUIRED_ORDER = %i(
-        check_default_rate_limit
         set_current_context
         reset_flash
         set_preferences_cookie

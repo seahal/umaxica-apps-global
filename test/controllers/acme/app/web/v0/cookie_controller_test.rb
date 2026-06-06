@@ -62,16 +62,29 @@ class Acme::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not body["targetable"]
   end
 
-  test "PATCH update without preference jwt does not write consent buffer" do
+  test "PATCH update without preference jwt writes consent buffer without credential cookies" do
     cookies.delete(Preference::CookieName.access(surface: :app))
 
-    patch acme_app_web_v0_cookie_path, params: { consented: true }, as: :json
+    assert_no_difference -> { AppPreference.count } do
+      patch acme_app_web_v0_cookie_path, params: { consented: true }, as: :json
+    end
 
-    assert_response :unauthorized
+    assert_response :ok
+    assert response.parsed_body["consented"]
+    assert response.parsed_body["functional"]
+    assert response.parsed_body["performant"]
+    assert response.parsed_body["targetable"]
     set_cookie = response.headers["Set-Cookie"].to_s
+    consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
 
-    assert_not_includes set_cookie, "preference_consented="
+    assert_includes set_cookie, "preference_consented=1"
+    assert_includes consent_cookie.downcase, "samesite=strict"
+    assert_includes consent_cookie.downcase, "path=/"
+    assert_not_includes consent_cookie.downcase, "httponly"
     assert_not_includes set_cookie, "#{Preference::CookieName.access(surface: :app)}="
+    assert_not_includes set_cookie, "#{Preference::CookieName.refresh(surface: :app)}="
+    assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
+    assert_not_includes set_cookie, "#{Authentication::Base::REFRESH_COOKIE_KEY}="
   end
 
   test "PATCH update with consented true updates preference cookie and issues access token" do
@@ -104,7 +117,12 @@ class Acme::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
 
     assert_includes set_cookie, "#{Preference::CookieName.access(surface: :app)}="
     assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
-    assert_not_includes set_cookie, "preference_consented="
+    assert_includes set_cookie, "preference_consented=1"
+    consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
+
+    assert_includes consent_cookie.downcase, "samesite=strict"
+    assert_includes consent_cookie.downcase, "path=/"
+    assert_not_includes consent_cookie.downcase, "httponly"
   end
 
   test "PATCH update with nested accept-all cookie params updates every consent flag" do

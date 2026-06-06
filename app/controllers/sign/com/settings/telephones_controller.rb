@@ -146,7 +146,11 @@ module Sign
 
         def check_telephone_verification_rate_limit!
           cache_key = "rate-limit:telephone_verification:#{request.remote_ip}"
-          count = RateLimit.store.increment(cache_key, 1, expires_in: TELEPHONE_VERIFICATION_RATE_WINDOW.seconds)
+          count = Rails.configuration.x.rate_limit.fetch(:store).increment(
+            cache_key,
+            1,
+            expires_in: TELEPHONE_VERIFICATION_RATE_WINDOW.seconds,
+          )
           return unless count && count > TELEPHONE_VERIFICATION_RATE_LIMIT
 
           Rails.logger.info(

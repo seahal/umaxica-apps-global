@@ -31,7 +31,7 @@ Rails.application.configure do
 
   # Cache store for test environment
   config.cache_store = :null_store
-  config.x.rate_limit.store = -> { ActiveSupport::Cache::MemoryStore.new }
+  config.x.rate_limit.store = ActiveSupport::Cache::MemoryStore.new
   config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.

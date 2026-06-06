@@ -35,7 +35,6 @@ module Acme
         before_filters = callbacks.select { |c| c.kind == :before }.map(&:filter)
 
         expected_order = %i(
-          check_default_rate_limit
           set_current_context
           reset_flash
           set_preferences_cookie

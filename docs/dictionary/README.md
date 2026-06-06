@@ -12,6 +12,8 @@ implementation, tests, and documentation.
 - `glossary.md` - existing domain-specific terms, abbreviations, and naming rules.
 - `identity-account-organization-avatar.md` - core SNS-domain terms: Identity, Account,
   Organization, Avatar, Handle, public_id.
+- `preference-request-context-keys.md` - short GET parameter, JS-readable cookie, and preference
+  payload keys for UI/request-context preference transport.
 
 ## Entry Format
 

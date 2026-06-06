@@ -130,8 +130,8 @@ The following are explicitly deferred and not part of this decision:
 - `Cache-Control` / `expires_in` headers on `/robots.txt` and `/sitemap.xml` for CDN caching.
 - A dedicated public-endpoint rate limit profile.
 - Edge-layer DDoS protection (CDN, WAF, `rack-attack`).
-- Migrating `acme/*/edge/v0/healths_controller.rb` and `sign/*/edge/v0/healths_controller.rb`
-  (API-style health endpoints nested deeper) to `PublicController`.
+- Legacy `acme/*/edge/v0/healths_controller.rb` and `sign/*/edge/v0/healths_controller.rb`
+  endpoints were later retired instead of migrated to `PublicController`.
 
 ## Consequences
 

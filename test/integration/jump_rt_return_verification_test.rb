@@ -103,14 +103,14 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
     assert_not_includes before_filters, :verify_jump_return_rt!
   end
 
-  test "core app explicitly runs jump return verification before rate limit" do
+  test "core app explicitly runs jump return verification before normal auth flow" do
     before_filters =
       Core::App::ApplicationController._process_action_callbacks.filter_map do |callback|
         callback.filter if callback.kind == :before
       end
 
     assert_includes before_filters, :verify_jump_return_rt!
-    assert_operator before_filters.index(:verify_jump_return_rt!), :<, before_filters.index(:check_default_rate_limit)
+    assert_operator before_filters.index(:verify_jump_return_rt!), :<, before_filters.index(:set_current_context)
   end
 
   private

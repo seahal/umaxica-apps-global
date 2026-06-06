@@ -12,7 +12,6 @@ module Sign::App
       before_filters = callbacks.select { |callback| callback.kind == :before }.map(&:filter)
 
       expected_before_filters = %i(
-        check_default_rate_limit
         set_current_context
         reset_flash
         set_preferences_cookie

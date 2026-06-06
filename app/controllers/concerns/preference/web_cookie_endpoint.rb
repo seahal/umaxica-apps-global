@@ -53,7 +53,11 @@ module Preference
     def apply_consented_update_from_request!
       requested = requested_cookie_consent_attrs
       return false if requested.blank?
-      return false if decoded_preference_payload&.dig("public_id").blank?
+
+      if decoded_preference_payload&.dig("public_id").blank?
+        apply_buffer_only_cookie_consent!(requested)
+        return true
+      end
 
       persist_cookie_consent!(requested)
       true
@@ -64,6 +68,14 @@ module Preference
 
     def cookie_consent_state_overridden?
       @cookie_consent_state_override.present?
+    end
+
+    def apply_buffer_only_cookie_consent!(attrs)
+      set_preference_consented_buffer!(
+        consented: attrs.fetch(:consented),
+        expires_at: Preference::Base::REFRESH_TOKEN_TTL.from_now,
+      )
+      @cookie_consent_state_override = attrs.slice(:consented, :functional, :performant, :targetable)
     end
 
     # SSOT decode point.
@@ -183,6 +195,10 @@ module Preference
           raise RuntimeError, "failed_to_issue_preference_access_token" if @preference_payload.blank?
 
           @cookie_consent_state_override = attrs.slice(:consented, :functional, :performant, :targetable)
+          set_preference_consented_buffer!(
+            consented: @cookie_consent_state_override.fetch(:consented),
+            expires_at: consented_buffer_expires_at(preference),
+          )
           @decoded_preference_payload = nil
         end
       end
@@ -200,6 +216,13 @@ module Preference
         consented: false,
       }
       preference.public_send("create_#{association_name}!", default_attrs)
+    end
+
+    def consented_buffer_expires_at(preference)
+      expires_at = preference&.expires_at
+      return expires_at if expires_at.present? && !expires_at.is_a?(Float)
+
+      Preference::Base::REFRESH_TOKEN_TTL.from_now
     end
   end
 end

@@ -20,6 +20,25 @@ The mechanism is `Core::CookieOptions.for`: `domain: true` (default) calls `Core
 and produces an apex-scoped cookie; `domain: false` omits the `domain` attribute and produces a
 host-only cookie.
 
+## JS-Readable Preference Mirrors
+
+Rails may write JS-readable cookies only for non-secret UI and request-context mirrors:
+
+- `ct` - color theme code used by browser theme bootstrapping.
+- `language` - language code; kept under this name for Hono compatibility.
+- `tz`, `cu`, `df`, `tf`, `mo`, `dn`, `ps`, `r18s` - timezone and display preference mirrors.
+- `preference_consented` - compact consent-banner state for AJAX/browser UI.
+
+These cookies are compatibility mirrors. Rails request code must not treat them as authoritative
+preference input; normal runtime reads come from the preference access-token projection and
+`Actor.preferences`. The mirrors are JS-readable because they contain only values already visible in
+the UI or URL/request context. They must not carry session ids, access tokens, refresh tokens,
+preference JWTs, DBSC values, authorization grants, ceremony secrets, one-time tokens, raw
+credentials, or credential/session authority data.
+
+CSRF tokens stay in the existing meta/header flow, not in these mirror cookies. `ri` remains URL
+request context and is not mirrored into a cookie.
+
 Preference credential cookies are apex-scoped but their names are surface-scoped:
 `app_preference_*`, `com_preference_*`, and `org_preference_*`. This prevents an `AppPreference`
 refresh token from being interpreted as a `ComPreference` or `OrgPreference` refresh token on

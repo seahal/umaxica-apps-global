@@ -26,6 +26,11 @@ scope module: :sign, as: :sign do
 
       # Basic public endpoints
       resource :health, only: :show
+      namespace :health do
+        resource :live, only: :show
+        resource :ready, only: :show
+        resource :startup, only: :show
+      end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
@@ -39,8 +44,6 @@ scope module: :sign, as: :sign do
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
         namespace :v0 do
-          resource :health, only: :show
-
           namespace :in do
             namespace :email do
               resource :otp, only: :create
@@ -76,8 +79,6 @@ scope module: :sign, as: :sign do
       # Edge API: token lifecycle management (check, DBSC binding, refresh)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
-
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
@@ -300,6 +301,11 @@ scope module: :sign, as: :sign do
 
       # Basic public endpoints
       resource :health, only: :show
+      namespace :health do
+        resource :live, only: :show
+        resource :ready, only: :show
+        resource :startup, only: :show
+      end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
@@ -307,8 +313,6 @@ scope module: :sign, as: :sign do
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
         namespace :v0 do
-          resource :health, only: :show
-
           namespace :in do
             namespace :email do
               resource :otp, only: :create
@@ -334,8 +338,6 @@ scope module: :sign, as: :sign do
       # Edge API: token lifecycle management (check, DBSC binding, refresh)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
-
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
@@ -522,6 +524,11 @@ scope module: :sign, as: :sign do
 
       # Basic public endpoints
       resource :health, only: :show
+      namespace :health do
+        resource :live, only: :show
+        resource :ready, only: :show
+        resource :startup, only: :show
+      end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
@@ -529,7 +536,6 @@ scope module: :sign, as: :sign do
       # Public web API: cookie consent, theme
       namespace :web do
         namespace :v0 do
-          resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
         end
@@ -545,8 +551,6 @@ scope module: :sign, as: :sign do
       # Edge API: token lifecycle management (check, DBSC binding, refresh)
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
-
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create

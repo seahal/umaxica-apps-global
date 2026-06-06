@@ -4,16 +4,15 @@
 require "test_helper"
 
 class Sign::Com::HealthsControllerTest < ActionDispatch::IntegrationTest
-  test "GET /health returns OK response without redirect" do
-    host! ENV["ID_CORPORATE_URL"] || "id.com.localhost"
+  test "GET /health returns an html snapshot without redirect" do
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
 
     get sign_com_health_url(ri: "jp"), headers: browser_headers
 
     assert_response :success
     assert_not_predicate response, :redirect?
-    assert_equal "text/plain; charset=utf-8", response.headers["Content-Type"]
-    assert_includes response.body, "status=OK"
-    assert_includes response.body, "service=sign"
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, response.body)
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, "Health Snapshot"
+    assert_includes response.body, "sign com"
   end
 end

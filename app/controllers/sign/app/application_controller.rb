@@ -44,7 +44,6 @@ module Sign
                     :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?
 
       # NOTE: Order matters (dependencies rely on this sequence)
-      before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash
       before_action :set_preferences_cookie

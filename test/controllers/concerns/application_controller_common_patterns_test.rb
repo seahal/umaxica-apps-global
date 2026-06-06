@@ -87,25 +87,25 @@ module Concerns
       end
     end
 
-    test "all application controllers have check_default_rate_limit before_action" do
+    test "application controllers do not register removed default rate limit callback" do
       CONTROLLER_FILES.each_value do |controller|
         content = controller[:content]
         controller_name = controller[:path_name]
 
-        assert_includes content, "before_action :check_default_rate_limit",
-                        "#{controller_name} should have before_action :check_default_rate_limit"
+        assert_not_includes content, "before_action :check_default_rate_limit",
+                            "#{controller_name} should not use removed default rate limit callback"
       end
     end
 
-    test "all application controllers set current context and reset flash after check_default_rate_limit" do
+    test "all application controllers set current context before reset flash" do
       CONTROLLER_FILES.each_value do |controller|
         content = controller[:content]
         controller_name = controller[:path_name]
 
         assert_match(
-          /before_action :check_default_rate_limit\s+before_action :set_current_context\s+before_action :reset_flash/,
+          /before_action :set_current_context\s+before_action :reset_flash/,
           content,
-          "#{controller_name} should set current context and reset flash after check_default_rate_limit",
+          "#{controller_name} should set current context before reset flash",
         )
       end
     end

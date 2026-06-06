@@ -60,16 +60,23 @@ class Acme::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not response.parsed_body["targetable"]
   end
 
-  test "PATCH update without preference jwt does not write consent buffer" do
+  test "PATCH update without preference jwt writes consent buffer without credential cookies" do
     cookies.delete(Preference::CookieName.access(surface: :com))
 
-    patch acme_com_web_v0_cookie_path, params: { consented: true }, as: :json
+    assert_no_difference -> { ComPreference.count } do
+      patch acme_com_web_v0_cookie_path, params: { consented: true }, as: :json
+    end
 
-    assert_response :unauthorized
+    assert_response :ok
+    assert response.parsed_body["consented"]
     set_cookie = response.headers["Set-Cookie"].to_s
+    consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
 
-    assert_not_includes set_cookie, "preference_consented="
+    assert_includes set_cookie, "preference_consented=1"
+    assert_includes consent_cookie.downcase, "samesite=strict"
+    assert_not_includes consent_cookie.downcase, "httponly"
     assert_not_includes set_cookie, "#{Preference::CookieName.access(surface: :com)}="
+    assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
   end
 
   test "PATCH update with consented true updates com preference cookie and issues access token" do
@@ -102,7 +109,11 @@ class Acme::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "#{Preference::CookieName.access}="
-    assert_not_includes set_cookie, "preference_consented="
+    assert_includes set_cookie, "preference_consented=1"
+    consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
+
+    assert_includes consent_cookie.downcase, "samesite=strict"
+    assert_not_includes consent_cookie.downcase, "httponly"
   end
 
   test "PATCH update with nested reject-all cookie params records consent choice and clears optional flags" do

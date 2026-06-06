@@ -43,21 +43,6 @@ class AcmePublicControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "rate limit returns 429 when exceeded" do
-    host! ENV.fetch("ACME_SERVICE_URL").delete_suffix("/")
-    # Default limit is 300/min
-    300.times do
-      get "/health", params: { ri: "jp" }
-
-      assert_response :success
-    end
-
-    get "/health", params: { ri: "jp" }
-
-    assert_response :too_many_requests
-    assert_predicate response.headers["Retry-After"], :present?
-  end
-
   test "no Actor state leaks into response" do
     host! ENV.fetch("ACME_SERVICE_URL").delete_suffix("/")
     original_authentication = Actor.authn

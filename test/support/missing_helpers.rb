@@ -979,7 +979,7 @@ if defined?(ActiveSupport::TestCase)
   end
 
   ActiveSupport::TestCase.setup do
-    RateLimit.store.clear if defined?(RateLimit)
+    Rails.configuration.x.rate_limit.fetch(:store).clear
     Authentication::Base.login_cooldown_enabled = false if defined?(Authentication::Base)
     [
       ClientTokenBindingMethod,
@@ -992,7 +992,7 @@ if defined?(ActiveSupport::TestCase)
   end
 
   ActiveSupport::TestCase.teardown do
-    RateLimit.store.clear if defined?(RateLimit)
+    Rails.configuration.x.rate_limit.fetch(:store).clear
     Authentication::Base.login_cooldown_enabled = false if defined?(Authentication::Base)
   end
 

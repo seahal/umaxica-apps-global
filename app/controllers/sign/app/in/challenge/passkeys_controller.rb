@@ -16,6 +16,31 @@ module Sign
 
           AUTHENTICATION_MODE = :guest
 
+          rate_limit(
+            to: 5,
+            within: 1.minute,
+            by: -> { request.remote_ip },
+            scope: "sign_app_sign_in",
+            name: "mfa_passkey_create_ip_burst",
+            store: rate_limit_store,
+            only: :create,
+            with: -> {
+              render_rate_limited(rule_name: "sign_app_sign_in_mfa_passkey_create_ip_burst", retry_after: 60)
+            },
+          )
+          rate_limit(
+            to: 20,
+            within: 15.minutes,
+            by: -> { request.remote_ip },
+            scope: "sign_app_sign_in",
+            name: "mfa_passkey_create_ip_sustained",
+            store: rate_limit_store,
+            only: :create,
+            with: -> {
+              render_rate_limited(rule_name: "sign_app_sign_in_mfa_passkey_create_ip_sustained", retry_after: 900)
+            },
+          )
+
           before_action :ensure_pending_mfa!
 
           def new

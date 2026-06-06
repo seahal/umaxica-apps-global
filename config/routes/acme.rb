@@ -2,9 +2,12 @@
 # frozen_string_literal: true
 
 scope module: :acme, as: :acme do
-  acme_app_hosts = [ENV["ACME_SERVICE_URL"], "app.localhost", "www.app.localhost"].compact.uniq
-  acme_com_hosts = [ENV["ACME_CORPORATE_URL"], "com.localhost", "www.com.localhost"].compact.uniq
-  acme_org_hosts = [ENV["ACME_STAFF_URL"], "org.localhost", "www.org.localhost"].compact.uniq
+  acme_app_hosts = [ENV["ACME_SERVICE_URL"], "app.localhost", "www.app.localhost"].compact
+  acme_app_hosts.uniq!
+  acme_com_hosts = [ENV["ACME_CORPORATE_URL"], "com.localhost", "www.com.localhost"].compact
+  acme_com_hosts.uniq!
+  acme_org_hosts = [ENV["ACME_STAFF_URL"], "org.localhost", "www.org.localhost"].compact
+  acme_org_hosts.uniq!
 
   constraints host: acme_app_hosts do
     scope module: :app, as: :app do
@@ -17,6 +20,11 @@ scope module: :acme, as: :acme do
                format: false
       # Health
       resource :health, only: :show
+      namespace :health do
+        resource :live, only: :show
+        resource :ready, only: :show
+        resource :startup, only: :show
+      end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
@@ -57,7 +65,6 @@ scope module: :acme, as: :acme do
       # Edge API
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
           namespace :token do
@@ -163,6 +170,11 @@ scope module: :acme, as: :acme do
                format: false
       # Health
       resource :health, only: :show
+      namespace :health do
+        resource :live, only: :show
+        resource :ready, only: :show
+        resource :startup, only: :show
+      end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
@@ -202,7 +214,6 @@ scope module: :acme, as: :acme do
       # Edge API
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
           namespace :token do
@@ -277,6 +288,11 @@ scope module: :acme, as: :acme do
                format: false
       # Health
       resource :health, only: :show
+      namespace :health do
+        resource :live, only: :show
+        resource :ready, only: :show
+        resource :startup, only: :show
+      end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
       # Sitemap
@@ -316,7 +332,6 @@ scope module: :acme, as: :acme do
       # Edge API
       namespace :edge do
         namespace :v0 do
-          resource :health, only: :show
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
           namespace :token do

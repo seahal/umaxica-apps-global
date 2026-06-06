@@ -10,6 +10,8 @@ heading.
 
 - **Account** — service-usage subject bound to an Identity. See
   `identity-account-organization-avatar.md`.
+- **Adult Content Gate Key** — `r18s`, adult content gate preference transport key. See
+  `preference-request-context-keys.md`.
 - **Avatar** — SNS-facing embodiment operated by Accounts (app/org only). See
   `identity-account-organization-avatar.md`.
 
@@ -19,11 +21,17 @@ _No entries yet._
 
 ## C
 
-_No entries yet._
+- **Client Theme Key** — `ct`, current client theme preference transport key. See
+  `preference-request-context-keys.md`.
+- **Currency Key** — `cu`, display currency preference transport key. See
+  `preference-request-context-keys.md`.
 
 ## D
 
-_No entries yet._
+- **Date Format Key** — `df`, date format preference transport key. See
+  `preference-request-context-keys.md`.
+- **Density Key** — `dn`, UI density preference transport key. See
+  `preference-request-context-keys.md`.
 
 ## E
 
@@ -57,11 +65,13 @@ _No entries yet._
 
 ## L
 
-_No entries yet._
+- **Language Key** — `language`, UI language preference cookie key. See
+  `preference-request-context-keys.md`.
 
 ## M
 
-_No entries yet._
+- **Motion Key** — `mo`, motion preference transport key. See
+  `preference-request-context-keys.md`.
 
 ## N
 
@@ -74,6 +84,8 @@ _No entries yet._
 
 ## P
 
+- **Page Size Key** — `ps`, page size or items-per-page preference transport key. See
+  `preference-request-context-keys.md`.
 - **public_id** — immutable external identifier (NanoID-21, DB-unique); internal `id` is never
   exposed. See `identity-account-organization-avatar.md`.
 
@@ -91,7 +103,10 @@ _No entries yet._
 
 ## T
 
-_No entries yet._
+- **Time Format Key** — `tf`, time format preference transport key. See
+  `preference-request-context-keys.md`.
+- **Timezone Key** — `tz`, timezone preference transport key. See
+  `preference-request-context-keys.md`.
 
 ## U
 

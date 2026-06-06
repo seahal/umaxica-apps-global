@@ -82,6 +82,8 @@ Rails.application.configure do
   config.sandbox_by_default = true
 
   config.cache_store = :solid_cache_store
+  config.x.rate_limit.store =
+    ActiveSupport::Cache::RedisCacheStore.new(url: ENV.fetch("RATE_LIMIT_REDIS_URL"), namespace: "rate_limit")
   config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
@@ -156,8 +158,12 @@ Rails.application.configure do
     "X-Permitted-Cross-Domain-Policies" => "none",
   )
 
-  # Explicit SameSite cookie protection (matches Rails 8.1 default, pinned against future changes)
-  config.action_dispatch.cookies_same_site_protection = :lax
+  # Default SameSite for cookies that do not set the attribute themselves (e.g. CSRF authenticity).
+  # Strict by default: the Rails session cookie keeps SameSite=Lax via its explicit option in
+  # config/initializers/session_store.rb (it must carry OIDC/email cross-site inbound flow state),
+  # so this stricter default does not affect it. See plans/backlog for the session-cookie Strict
+  # migration that would remove the remaining Lax dependency.
+  config.action_dispatch.cookies_same_site_protection = :strict
 
   # Raise on missing callback actions (same as dev/test)
   config.action_controller.raise_on_missing_callback_actions = true

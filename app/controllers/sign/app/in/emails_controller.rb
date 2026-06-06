@@ -17,6 +17,47 @@ module Sign
 
         AUTHENTICATION_MODE = :guest
 
+        rate_limit(
+          to: 5,
+          within: 1.minute,
+          by: -> { request.remote_ip },
+          scope: "sign_app_sign_in",
+          name: "email_create_ip_burst",
+          store: rate_limit_store,
+          only: :create,
+          with: -> { render_rate_limited(rule_name: "sign_app_sign_in_email_create_ip_burst", retry_after: 60) },
+        )
+        rate_limit(
+          to: 20,
+          within: 15.minutes,
+          by: -> { request.remote_ip },
+          scope: "sign_app_sign_in",
+          name: "email_create_ip_sustained",
+          store: rate_limit_store,
+          only: :create,
+          with: -> { render_rate_limited(rule_name: "sign_app_sign_in_email_create_ip_sustained", retry_after: 900) },
+        )
+        rate_limit(
+          to: 5,
+          within: 1.minute,
+          by: -> { request.remote_ip },
+          scope: "sign_app_sign_in",
+          name: "email_update_ip_burst",
+          store: rate_limit_store,
+          only: :update,
+          with: -> { render_rate_limited(rule_name: "sign_app_sign_in_email_update_ip_burst", retry_after: 60) },
+        )
+        rate_limit(
+          to: 20,
+          within: 15.minutes,
+          by: -> { request.remote_ip },
+          scope: "sign_app_sign_in",
+          name: "email_update_ip_sustained",
+          store: rate_limit_store,
+          only: :update,
+          with: -> { render_rate_limited(rule_name: "sign_app_sign_in_email_update_ip_sustained", retry_after: 900) },
+        )
+
         declare_authentication_mode!(
           :guest,
           status: :bad_request,

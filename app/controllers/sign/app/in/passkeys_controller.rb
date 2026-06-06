@@ -42,6 +42,52 @@ module Sign
         include CloudflareTurnstile
 
         AUTHENTICATION_MODE = :guest
+        rate_limit(
+          to: 5,
+          within: 1.minute,
+          by: -> { request.remote_ip },
+          scope: "sign_app_sign_in",
+          name: "passkey_options_ip_burst",
+          store: rate_limit_store,
+          only: :options,
+          with: -> { render_rate_limited(rule_name: "sign_app_sign_in_passkey_options_ip_burst", retry_after: 60) },
+        )
+        rate_limit(
+          to: 20,
+          within: 15.minutes,
+          by: -> { request.remote_ip },
+          scope: "sign_app_sign_in",
+          name: "passkey_options_ip_sustained",
+          store: rate_limit_store,
+          only: :options,
+          with: -> {
+            render_rate_limited(rule_name: "sign_app_sign_in_passkey_options_ip_sustained", retry_after: 900)
+          },
+        )
+        rate_limit(
+          to: 5,
+          within: 1.minute,
+          by: -> { request.remote_ip },
+          scope: "sign_app_sign_in",
+          name: "passkey_verification_ip_burst",
+          store: rate_limit_store,
+          only: :verification,
+          with: -> {
+            render_rate_limited(rule_name: "sign_app_sign_in_passkey_verification_ip_burst", retry_after: 60)
+          },
+        )
+        rate_limit(
+          to: 20,
+          within: 15.minutes,
+          by: -> { request.remote_ip },
+          scope: "sign_app_sign_in",
+          name: "passkey_verification_ip_sustained",
+          store: rate_limit_store,
+          only: :verification,
+          with: -> {
+            render_rate_limited(rule_name: "sign_app_sign_in_passkey_verification_ip_sustained", retry_after: 900)
+          },
+        )
         before_action :start_minimum_response_budget
         after_action :enforce_minimum_response_budget
 

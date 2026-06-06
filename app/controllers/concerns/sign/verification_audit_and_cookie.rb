@@ -7,17 +7,6 @@ module Sign
 
     private
 
-    def set_verification_cookie!(raw_token, expires_at:)
-      cookies[verification_model.cookie_name] = {
-        value: raw_token,
-        expires: expires_at,
-        httponly: true,
-        secure: Rails.env.production? || ENV["FORCE_SECURE_COOKIES"].present? || request.ssl?,
-        same_site: :lax,
-        path: "/",
-      }
-    end
-
     def create_audit_event!(event_id, subject:)
       ChronicleRecord.connected_to(role: :writing) do
         verification_audit_event_class.find_or_create_by!(id: event_id)

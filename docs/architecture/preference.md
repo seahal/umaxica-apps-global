@@ -164,7 +164,8 @@ The sign surfaces use the same request context contract for `app`, `org`, and `c
 - `lx` carries the language.
 - `ct` carries the theme.
 - `tz` carries the timezone.
-- `cu`, `df`, `tf`, `mo`, `dn`, and `pp` carry optional display and locale-adjacent overlays.
+- `cu`, `df`, `tf`, `mo`, `dn`, `ps`, and `r18s` carry optional display, locale-adjacent, and
+  content-gating overlays.
 - `pt` and `nt` carry redirect target lanes and are not propagated through ordinary preference
   navigation by default.
 
@@ -172,13 +173,14 @@ The sign surfaces use the same request context contract for `app`, `org`, and `c
 `ri`. If `ri` is missing or invalid on a GET or HEAD request, the controller redirects to the same
 route with a valid `ri` value. `ri` is request context, not a preference write path.
 
-`lx`, `ct`, `tz`, `cu`, `df`, `tf`, `mo`, `dn`, and `pp` are optional request context. They are only
-propagated when explicitly present and valid. The runtime preference subset may override the current
-request's locale, theme, timezone, or display reflection by applying a request-local overlay to
-`Actor.preferences`, but these parameters do not update the database or access-token JWT. If they
-are missing, Rails request code should read the already resolved value from `Actor.preferences`,
-without adding those optional keys back to generated URLs. On GET and HEAD requests, invalid or
-blank optional context parameters are removed from the query string by redirect.
+`lx`, `ct`, `tz`, `cu`, `df`, `tf`, `mo`, `dn`, `ps`, and `r18s` are optional request context. They
+are only propagated when explicitly present and valid. The runtime preference subset may override
+the current request's locale, theme, timezone, display reflection, or content-gating reflection by
+applying a request-local overlay to `Actor.preferences`, but these parameters do not update the
+database or preference access-token JWT. If they are missing, Rails request code should read the
+already resolved value from `Actor.preferences`, without adding those optional keys back to
+generated URLs. On GET and HEAD requests, invalid or blank optional context parameters are removed
+from the query string by redirect.
 
 Supported optional request values:
 
@@ -188,6 +190,8 @@ Supported optional request values:
 - `tf`: `12`, `24`, or their long forms `hour_12`, `hour_24`
 - `mo`: `st`, `rd`, or their long forms `standard`, `reduced`
 - `dn`: `st`, `cp`, or their long forms `standard`, `compact`
+- `ps`: valid page size option values
+- `r18s`: valid adult content gate option values
 
 Examples:
 
@@ -302,8 +306,8 @@ to the database or JWT.
   `Actor.preferences`.
 - Auth access tokens carry the preference snapshot in the `prf` claim with stable short keys.
   Localization and theme use `lx`, `ri`, `tz`, and `ct`. Extended options use `cu` for currency,
-  `df` for date format, `tf` for time format, `mo` for motion, `dn` for density, and `ipp` for items
-  per page.
+  `df` for date format, `tf` for time format, `mo` for motion, `dn` for density, `ps` for items per
+  page, and `r18s` for adult content gate preference.
 - `prf` is an application private claim, not a JWT Registered Claim. The nested `ver` key records
   the preference snapshot schema version. Current code emits `ver: 1` only; it does not reject or
   migrate tokens based on this value.

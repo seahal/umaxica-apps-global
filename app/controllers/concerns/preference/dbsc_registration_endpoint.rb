@@ -89,11 +89,15 @@ module Preference
     end
 
     def dbsc_cookie_attributes_string
+      # Must match the attributes the server actually sets in set_preference_dbsc_cookie!
+      # (preference_cookie_options => SameSite=Strict). The DBSC-bound cookie only travels on the
+      # same-origin refresh request, so Strict is correct and keeps the browser-maintained cookie
+      # aligned with the actually-set cookie.
       [
         "Path=/",
         ("Secure" if Rails.env.production?),
         "HttpOnly",
-        "SameSite=Lax",
+        "SameSite=Strict",
       ].compact.join("; ")
     end
 

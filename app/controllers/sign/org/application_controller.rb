@@ -42,9 +42,8 @@ module Sign
       # Restricted session guard - explicitly enabled to block restricted sessions
       # from accessing routes other than /in/session
       # NOTE: Order matters (dependencies rely on this sequence)
-      # Layer order: RateLimit -> CurrentContext -> Preference -> AuthN ->
+      # Layer order: explicit RateLimit -> CurrentContext -> Preference -> AuthN ->
       # CurrentActor -> side-effect reflection -> Verification -> AuthZ
-      before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash
       before_action :set_preferences_cookie

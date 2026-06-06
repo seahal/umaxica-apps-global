@@ -130,7 +130,7 @@ Then run boundary/security coverage:
 ```bash
 bin/rails test test/controllers/controller_base_inheritance_test.rb
 bin/rails test test/controllers/controller_surface_structure_test.rb
-bin/rails test test/controllers/edge/healths_controller_test.rb
+bin/rails test test/integration/edge_health_routes_test.rb
 bin/rails test test/controllers/public_robots_routing_test.rb
 bin/rails test test/unit/security/action_policy_usage_test.rb
 bin/rails test test/unit/security/authentication_mode_inventory_test.rb

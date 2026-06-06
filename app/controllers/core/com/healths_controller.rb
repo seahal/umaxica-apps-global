@@ -4,12 +4,13 @@
 module Core
   module Com
     class HealthsController < BareController
-      include ::Health
+      include ::Health::Controller
 
       AUTHENTICATION_MODE = :bare
+      HEALTH_PROFILE = ::Health::Profiles::Com
 
       def show
-        show_plain_text
+        show_health_snapshot
       end
     end
   end

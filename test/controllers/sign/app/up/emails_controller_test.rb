@@ -9,7 +9,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     cookies["csrf_token"] = csrf_token_value
-    RateLimit.store.clear
+    Rails.configuration.x.rate_limit.fetch(:store).clear
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -17,7 +17,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   teardown do
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
-    RateLimit.store.clear
+    Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
   test "should get new" do

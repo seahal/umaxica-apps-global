@@ -24,11 +24,11 @@ class TelephoneRegistrableTest < ActiveSupport::TestCase
 
   setup do
     @controller = TestController.new
-    RateLimit.store.clear
+    Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
   teardown do
-    RateLimit.store.clear
+    Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
   # ---------------------------------------------------------------------------

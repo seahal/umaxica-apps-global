@@ -64,7 +64,11 @@ module R18Gate
     {
       httponly: true,
       secure: Rails.env.production? || ENV["FORCE_SECURE_COOKIES"].present? || request.ssl?,
-      same_site: :lax,
+      # SameSite=Strict: the anonymous acknowledgment is a local gate flag, not cross-site flow
+      # state. The only cost of Strict is that an anonymous visitor arriving via a cross-site inbound
+      # link is re-prompted to acknowledge on that first hit, which is acceptable (and conservative)
+      # for an adult-content gate.
+      same_site: :strict,
       path: "/",
     }
   end

@@ -3,141 +3,113 @@
 
 require "test_helper"
 
-# ---------------------------------------------------------------------------
-# Dummy controllers for testing the RateLimit concern with Rails 8.1 DSL
-# ---------------------------------------------------------------------------
-
 class RateLimitDummyController < ApplicationController
   include ::RateLimit
 
-  has_custom_rate_limit!
-
-  rate_limit to: 1, within: 1.minute,
-             by: -> { request.remote_ip },
-             with: -> { handle_rate_limit_exceeded!("dummy_ip", 60) },
-             store: RateLimit.store,
-             name: "dummy_ip",
-             only: :index
+  rate_limit(
+    to: 1,
+    within: 1.minute,
+    by: -> { request.remote_ip },
+    with: -> { render_rate_limited(rule_name: "dummy_ip", retry_after: 60) },
+    store: rate_limit_store,
+    name: "dummy_ip",
+    only: :index,
+  )
 
   def index
-    if request.format.json?
-      render json: { ok: true }
-    else
-      render plain: "ok"
-    end
+    render json: { ok: true }
   end
 end
 
-class RateLimitExceptController < ApplicationController
+class RateLimitShortNameController < ApplicationController
   include ::RateLimit
 
-  has_custom_rate_limit!
-
-  rate_limit to: 1, within: 1.minute,
-             by: -> { request.remote_ip },
-             with: -> { handle_rate_limit_exceeded!("test_rule", 60) },
-             store: RateLimit.store,
-             name: "test_rule",
-             except: :excluded_action
+  rate_limit(
+    to: 1,
+    within: 1.minute,
+    by: -> { request.remote_ip },
+    with: -> { render_rate_limited(rule_name: "short", retry_after: 60) },
+    store: rate_limit_store,
+    name: "short",
+    only: :index,
+  )
+  rate_limit(
+    to: 10,
+    within: 1.minute,
+    by: -> { request.remote_ip },
+    with: -> { render_rate_limited(rule_name: "long", retry_after: 60) },
+    store: rate_limit_store,
+    name: "long",
+    only: :index,
+  )
 
   def index
-    render plain: "ok"
-  end
-
-  def excluded_action
-    render plain: "excluded"
+    render json: { ok: true }
   end
 end
 
-class RateLimitEmailController < ApplicationController
+class RateLimitSharedScopeOneController < ApplicationController
   include ::RateLimit
 
-  has_custom_rate_limit!
-
-  rate_limit to: 1, within: 1.minute,
-             by: -> { params[:email].to_s.strip.downcase.presence || request.remote_ip },
-             with: -> { handle_rate_limit_exceeded!("email_rule", 60) },
-             store: RateLimit.store,
-             name: "email_rule"
+  rate_limit(
+    to: 1,
+    within: 1.minute,
+    by: -> { request.remote_ip },
+    scope: "shared_test_scope",
+    name: "shared",
+    with: -> { render_rate_limited(rule_name: "shared_scope", retry_after: 60) },
+    store: rate_limit_store,
+  )
 
   def index
-    render plain: "ok"
+    render json: { ok: true }
   end
 end
 
-class RateLimitTelephoneController < ApplicationController
+class RateLimitSharedScopeTwoController < ApplicationController
   include ::RateLimit
 
-  has_custom_rate_limit!
-
-  rate_limit to: 1, within: 1.minute,
-             by: -> { params[:telephone].to_s.gsub(/\D/, "").presence || request.remote_ip },
-             with: -> { handle_rate_limit_exceeded!("telephone_rule", 60) },
-             store: RateLimit.store,
-             name: "telephone_rule"
-
-  def index
-    render plain: "ok"
-  end
-end
-
-# Controller that includes RateLimit but has no explicit declaration (tests default)
-class RateLimitDefaultOnlyController < ApplicationController
-  include ::RateLimit
-
-  before_action :check_default_rate_limit, unless: :skip_default_rate_limit?
+  rate_limit(
+    to: 1,
+    within: 1.minute,
+    by: -> { request.remote_ip },
+    scope: "shared_test_scope",
+    name: "shared",
+    with: -> { render_rate_limited(rule_name: "shared_scope", retry_after: 60) },
+    store: rate_limit_store,
+  )
 
   def index
-    render plain: "ok"
+    render json: { ok: true }
   end
 end
-
-# Controller that opts out of default rate limiting
-class RateLimitOptOutController < ApplicationController
-  include ::RateLimit
-
-  has_custom_rate_limit!
-
-  # Override default with a high limit to effectively opt out
-  rate_limit to: 10_000, within: 1.minute,
-             by: -> { request.remote_ip },
-             with: -> { handle_rate_limit_exceeded!("opt_out", 60) },
-             store: RateLimit.store,
-             name: "opt_out"
-
-  def index
-    render plain: "ok"
-  end
-end
-
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
 
 class RateLimitConcernTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
 
   setup do
-    clear_rate_limit_stores
+    clear_rate_limit_store
   end
 
   teardown do
-    clear_rate_limit_stores
+    clear_rate_limit_store
   end
 
-  test "rails rate limiter returns 429 with layer headers and i18n message" do
-    with_dummy_route do
-      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
+  test "rails rate limiter returns json 429 with layer headers and i18n message" do
+    with_routing do |set|
+      set.draw { get "/test_rate_limit", to: "rate_limit_dummy#index" }
+
+      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "text/html" }
 
       assert_response :success
 
-      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
+      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "text/html" }
 
       assert_response :too_many_requests
-
+      assert_equal "application/json; charset=utf-8", response.content_type
       assert_equal "rails", response.headers["X-RateLimit-Layer"]
       assert_equal "dummy_ip", response.headers["X-RateLimit-Rule"]
-      assert_predicate response.headers["Retry-After"], :present?
+      assert_equal "60", response.headers["Retry-After"]
 
       body = response.parsed_body
 
@@ -149,152 +121,98 @@ class RateLimitConcernTest < ActionDispatch::IntegrationTest
 
   test "rails limiter emits a notification event" do
     payloads = []
-
-    callback =
-      lambda do |_name, _start, _finish, _id, payload|
-        payloads << payload
-      end
+    callback = ->(_name, _start, _finish, _id, payload) { payloads << payload }
 
     ActiveSupport::Notifications.subscribed(callback, "rate_limit.action_controller") do
-      with_dummy_route do
-        get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
-        get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
+      with_routing do |set|
+        set.draw { get "/test_rate_limit", to: "rate_limit_dummy#index" }
+
+        get "/test_rate_limit", headers: { "Host" => "example.com" }
+        get "/test_rate_limit", headers: { "Host" => "example.com" }
       end
     end
 
     assert_predicate payloads, :any?, "Expected rate_limit.action_controller to be emitted"
-    payload = payloads.last
-
-    assert_equal "dummy_ip", payload[:name]
-    assert_predicate payload[:cache_key], :present?
+    assert_equal "dummy_ip", payloads.last[:name]
+    assert_predicate payloads.last[:cache_key], :present?
   end
 
-  test "rails limiter returns 429 for HTML format with plain text message" do
-    with_dummy_route do
-      get "/test_rate_limit"
+  test "distinct names in the same controller do not collide" do
+    with_routing do |set|
+      set.draw { get "/test_named", to: "rate_limit_short_name#index" }
+
+      get "/test_named", headers: { "Host" => "example.com" }
 
       assert_response :success
 
-      get "/test_rate_limit"
+      get "/test_named", headers: { "Host" => "example.com" }
 
       assert_response :too_many_requests
-
-      assert_equal I18n.t("errors.rate_limit.exceeded"), response.body
+      assert_equal "short", response.headers["X-RateLimit-Rule"]
     end
   end
 
-  test "rate limit with except parameter skips specified actions" do
+  test "shared scope is honored across controllers" do
     with_routing do |set|
       set.draw do
-        get "/test_except", to: "rate_limit_except#index"
-        get "/test_except_excluded", to: "rate_limit_except#excluded_action"
+        get "/test_scope_one", to: "rate_limit_shared_scope_one#index"
+        get "/test_scope_two", to: "rate_limit_shared_scope_two#index"
       end
 
-      get "/test_except", headers: { "Host" => "example.com" }
+      get "/test_scope_one", headers: { "Host" => "example.com" }
 
       assert_response :success
 
-      get "/test_except", headers: { "Host" => "example.com" }
+      get "/test_scope_two", headers: { "Host" => "example.com" }
 
       assert_response :too_many_requests
-
-      # Excluded action should not be rate limited
-      get "/test_except_excluded", headers: { "Host" => "example.com" }
-
-      assert_response :success
-
-      get "/test_except_excluded", headers: { "Host" => "example.com" }
-
-      assert_response :success
+      assert_equal "shared_scope", response.headers["X-RateLimit-Rule"]
     end
   end
 
-  test "rate limit with email scope uses email parameter as discriminator" do
-    with_routing do |set|
-      set.draw do
-        get "/test_email", to: "rate_limit_email#index"
-      end
+  test "legacy rate limit APIs are removed" do
+    assert_not_respond_to RateLimit, :store
+    assert_not RateLimit.const_defined?(:STORE_REGISTRY, false)
+    assert_not RateLimit.const_defined?(:SKIP_DEFAULT_CLASSES, false)
 
-      get "/test_email", params: { email: "test@example.com" }, headers: { "Host" => "example.com" }
+    controller = RateLimitDummyController.new
 
-      assert_response :success
-
-      get "/test_email", params: { email: "test@example.com" }, headers: { "Host" => "example.com" }
-
-      assert_response :too_many_requests
-    end
+    assert_not_respond_to RateLimitDummyController, :has_custom_rate_limit!
+    assert_not_respond_to controller, :check_default_rate_limit, true
+    assert_not_respond_to controller, :handle_rate_limit_exceeded!, true
   end
 
-  test "rate limit with telephone scope uses telephone parameter as discriminator" do
-    with_routing do |set|
-      set.draw do
-        get "/test_telephone", to: "rate_limit_telephone#index"
+  test "production code does not use removed rate limit APIs" do
+    patterns = [
+      "RateLimit.store",
+      "has_custom_rate_limit!",
+      "skip_default_rate_limit?",
+      "check_default_rate_limit",
+      "handle_rate_limit_exceeded!",
+      "STORE_REGISTRY",
+    ]
+    files = Rails.root.glob("{app,config}/**/*.rb").reject { |path| path.to_s.include?("/vendor/") }
+    violations =
+      files.flat_map do |path|
+        content = path.read
+        patterns.filter_map { |pattern|
+          "#{path.relative_path_from(Rails.root)}: #{pattern}" if content.include?(pattern)
+        }
       end
 
-      get "/test_telephone", params: { telephone: "+1-555-123-4567" }, headers: { "Host" => "example.com" }
-
-      assert_response :success
-
-      get "/test_telephone", params: { telephone: "+1-555-123-4567" }, headers: { "Host" => "example.com" }
-
-      assert_response :too_many_requests
-
-      # Different telephone should not be rate limited
-      get "/test_telephone", params: { telephone: "+1-555-999-8888" }, headers: { "Host" => "example.com" }
-
-      assert_response :success
-    end
+    assert_empty violations
   end
 
-  test "default rate limit is applied when including RateLimit concern" do
-    RateLimit.define_singleton_method(:default_rate_limit) { 1 }
+  test "rate limit redis url has no localhost fallback" do
+    config_content =
+      Rails.root.glob("config/environments/*.rb").map(&:read).join("\n")
 
-    with_routing do |set|
-      set.draw do
-        get("/test_default", to: "rate_limit_default_only#index")
-      end
-
-      get("/test_default", headers: { "Host" => "example.com" })
-
-      assert_response :success
-
-      get("/test_default", headers: { "Host" => "example.com" })
-
-      assert_response :too_many_requests
-      assert_equal "default_ip", response.headers["X-RateLimit-Rule"]
-    end
-  ensure
-    RateLimit.define_singleton_method(:default_rate_limit) { 300 }
-  end
-
-  test "controller can override default rate limit" do
-    with_routing do |set|
-      set.draw do
-        get "/test_opt_out", to: "rate_limit_opt_out#index"
-      end
-
-      2.times do
-        get "/test_opt_out", headers: { "Host" => "example.com" }
-
-        assert_response :success
-      end
-    end
+    assert_no_match(/RATE_LIMIT_REDIS_URL["']\s*,/, config_content)
   end
 
   private
 
-  def with_dummy_route
-    with_routing do |set|
-      set.draw do
-        get("/test_rate_limit", to: "rate_limit_dummy#index")
-      end
-
-      yield
-    end
-  end
-
-  def clear_rate_limit_stores
-    registry = RateLimit.const_get(:STORE_REGISTRY) # rubocop:disable Sorbet/ConstantsFromStrings
-    ([RateLimit.store] + registry.values).uniq.each(&:clear)
+  def clear_rate_limit_store
+    Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 end

@@ -105,23 +105,23 @@ Risk: low (4 files)
 naming IS technically correct Rails. Renaming to `HealthController` requires adding
 `controller: "health"` to every route line so Rails finds the right controller.
 
-**Controller files to rename (16 files)**
+**Controller files to rename**
 
 All `healths_controller.rb` -> `health_controller.rb`, class `HealthsController` ->
-`HealthController`. Boundaries are `acme`, `sign`, `jump` (no `core`, `acme`, `docs` — those were
-retired per `adr/split-into-regional-and-global-repos.md`):
+`HealthController` for current non-probe health snapshot controllers:
 
-- `app/controllers/acme/healths_controller.rb` (boundary-level shared base)
 - `app/controllers/acme/{app,com,org}/healths_controller.rb` (3)
-- `app/controllers/acme/{app,com,org}/edge/v0/healths_controller.rb` (3)
-- `app/controllers/jump/{app,com,org}/healths_controller.rb` (3)
+- `app/controllers/core/{app,com,org}/healths_controller.rb` (3)
 - `app/controllers/sign/{app,com,org}/healths_controller.rb` (3)
-- `app/controllers/sign/{app,org}/edge/v0/healths_controller.rb` (2)
-- `app/controllers/sign/app/web/v0/healths_controller.rb` (1)
 
-**Route files to update (3 files, 19 route lines)**
+Do not reintroduce retired `/edge/v0/health` or Sign `/web/v0/health` controllers while doing this
+cleanup. Probe controllers under `health/lives`, `health/readies`, and `health/startups` already
+follow Rails' plural controller convention.
 
-In `config/routes/acme.rb`, `config/routes/jump.rb`, `config/routes/sign.rb`, every occurrence of:
+**Route files to update**
+
+For snapshot controllers in `config/routes/acme.rb`, `config/routes/core.rb`, and
+`config/routes/sign.rb`, every occurrence of:
 
 ```ruby
 resource :health, only: :show
@@ -133,11 +133,7 @@ becomes:
 resource :health, only: :show, controller: "health"
 ```
 
-**View directory to rename (1 directory)**
-
-- `app/views/sign/app/web/v0/healths/` -> `health/`
-
-**Test files to rename (13 files)**
+**Test files to rename**
 
 All `healths_controller_test.rb` -> `health_controller_test.rb`, update class names inside. Mirror
 the controller paths above (test paths follow `test/controllers/<boundary>/...`).

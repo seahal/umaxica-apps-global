@@ -14,8 +14,6 @@ module Acme
 
       AUTHENTICATION_MODE = :deny_all
       helper_method :current_actor
-
-      before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash
       prepend_around_action :with_actor_lifecycle

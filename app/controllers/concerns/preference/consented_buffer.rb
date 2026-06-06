@@ -12,7 +12,11 @@ module Preference
       cookie_options = ::Core::CookieOptions.for(
         surface: ::Core::Surface.current(request),
         request: request,
-        same_site: :lax,
+        # SameSite=Strict: this is a JS-readable projection of the JWT consent state, apex-scoped
+        # for cross-subdomain reads within a surface (still same-site). The only cost of Strict is a
+        # brief consent-banner flash on the first cross-site inbound hit before a same-site request
+        # repopulates it; the source of truth is the JWT, not this buffer.
+        same_site: :strict,
         path: "/",
       )
 

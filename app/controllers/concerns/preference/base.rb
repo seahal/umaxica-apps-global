@@ -1001,7 +1001,11 @@ module Preference
     end
 
     def preference_auth_cookie_options(expires_at:)
-      preference_cookie_options(expires_at: expires_at, httponly: true).merge(same_site: :lax)
+      # Inherit SameSite=Strict from preference_cookie_options. The preference JWT (access/refresh)
+      # is not required on a cross-site top-level inbound navigation: a missing cookie on the first
+      # external hit only means default preferences for that first paint, restored on the next
+      # same-site request. This matches the accepted trade-off for the auth cookies.
+      preference_cookie_options(expires_at: expires_at, httponly: true)
     end
 
     def access_token_cookie_name

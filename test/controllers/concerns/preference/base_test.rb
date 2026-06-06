@@ -829,7 +829,7 @@ module Preference
       deletion_options = @controller.send(:preference_cookie_deletion_options)
 
       assert_not deletion_options.key?(:expires)
-      assert_equal :lax, deletion_options[:same_site]
+      assert_equal :strict, deletion_options[:same_site]
       assert_not deletion_options[:secure]
     end
 
@@ -845,10 +845,10 @@ module Preference
       end
     end
 
-    test "preference access and refresh cookies use lax same site" do
+    test "preference access and refresh cookies use strict same site" do
       expires_at = 1.hour.from_now
 
-      assert_equal :lax, @controller.send(:preference_auth_cookie_options, expires_at: expires_at)[:same_site]
+      assert_equal :strict, @controller.send(:preference_auth_cookie_options, expires_at: expires_at)[:same_site]
 
       @controller.send(:set_refresh_token_cookie, "refresh-token", expires_at)
 

@@ -41,8 +41,6 @@ module Sign
                     :signed_pt_param, :current_visitor, :logged_in?, :active_visitor?, :logged_in_visitor?
 
       helper Sign::Com::ApplicationHelper
-
-      before_action :check_default_rate_limit
       before_action :set_current_context
       before_action :reset_flash
       before_action :set_preferences_cookie

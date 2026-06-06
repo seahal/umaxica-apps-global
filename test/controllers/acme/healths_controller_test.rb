@@ -29,9 +29,8 @@ class AcmeHealthsControllerTest < ActionDispatch::IntegrationTest
   def assert_health_response
     assert_response :success
     assert_not_predicate response, :redirect?
-    assert_equal "text/plain; charset=utf-8", response.headers["Content-Type"]
-    assert_includes response.body, "status=OK"
-    assert_includes response.body, "service=acme"
-    assert_match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, response.body)
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, "Health Snapshot"
+    assert_includes response.body, "Generated at"
   end
 end

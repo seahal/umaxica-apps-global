@@ -3,14 +3,18 @@ services:
   core:
     container_name: global-devcontainer-core
     userns_mode: keep-id
-    # Rootless podman rejects uid=/gid= on tmpfs mounts (user-namespace
-    # restriction). Replace the base compose tmpfs list — `!override` is required
-    # because compose merges list-valued fields by default, which would leave
-    # the base entries with uid=/gid= in place. Ownership is mapped correctly
-    # via `userns_mode: keep-id`.
-    tmpfs: !override
-      - /home/global/workspace/tmp
-      - /home/global/workspace/log
+    # `userns_mode: keep-id` already maps the host UID to the in-container
+    # UID baked by the Dockerfile. Specifying `user:` on top double-maps and
+    # breaks bind-mount ownership under rootless podman. Clear the inherited
+    # value so the image's USER (provisioned at build time from DOCKER_UID/
+    # DOCKER_GID) wins.
+    user: !reset null
+    # Disable tmpfs for tmp/ and log/ in the devcontainer. Mounting them as
+    # tmpfs periodically caused issues (lost state across restarts, sporadic
+    # write failures), so fall back to the bind-mounted workspace directories.
+    # `!reset` clears the tmpfs list inherited from the base compose file —
+    # without it, compose would merge the base entries back in.
+    tmpfs: !reset null
     environment:
       - TMPDIR=/home/global/workspace/tmp
       - DEVCONTAINER=1

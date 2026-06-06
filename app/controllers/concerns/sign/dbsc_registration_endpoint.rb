@@ -93,11 +93,15 @@ module Sign
     end
 
     def dbsc_cookie_attributes_string
+      # Must match the attributes the server actually sets in set_dbsc_cookie! (auth_cookie_options
+      # => SameSite=Strict). The DBSC-bound cookie is host-only and only travels on the same-origin
+      # refresh request, so Strict is correct and keeps the browser-maintained cookie aligned with
+      # the ADR (auth/DBSC cookies are Strict).
       [
         "Path=/",
         ("Secure" if Rails.env.production?),
         "HttpOnly",
-        "SameSite=Lax",
+        "SameSite=Strict",
       ].compact.join("; ")
     end
 

@@ -80,20 +80,28 @@ class Sign::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "#{Preference::CookieName.access}="
-    assert_not_includes set_cookie, "preference_consented="
+    assert_includes set_cookie, "preference_consented=1"
+    assert_not_includes response_set_cookie_lines.find { |line|
+      line.start_with?("preference_consented=")
+    }.to_s.downcase,
+                        "httponly"
   end
 
-  test "PATCH update without access jwt does not write consent buffer" do
+  test "PATCH update without access jwt writes consent buffer without credential cookies" do
     cookies.delete(Preference::CookieName.access)
 
     assert_no_difference -> { OrgPreference.count } do
       patch sign_org_web_v0_cookie_path, params: { consented: true }, as: :json
     end
 
-    assert_response :unauthorized
+    assert_response :ok
     set_cookie = response.headers["Set-Cookie"].to_s
+    consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
 
-    assert_not_includes set_cookie, "preference_consented="
+    assert_includes set_cookie, "preference_consented=1"
+    assert_includes consent_cookie.downcase, "samesite=strict"
+    assert_not_includes consent_cookie.downcase, "httponly"
     assert_not_includes set_cookie, "#{Preference::CookieName.access}="
+    assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
   end
 end
